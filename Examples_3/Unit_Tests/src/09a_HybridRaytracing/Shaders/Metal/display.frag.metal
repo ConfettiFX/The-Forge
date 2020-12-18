@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,6 +29,15 @@ struct PsIn {
 	float2 texCoord;
 };
 
+struct Uniforms_cbPerProp {
+
+    float4x4 world;
+    float roughness;
+    float metallic;
+    int pbrMaterials;
+    float pad;
+};
+
 //from https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 float3 ACESFilm(float3 x)
 {
@@ -42,7 +50,10 @@ float3 ACESFilm(float3 x)
 }
 
 struct FSData {
-    texture2d<float, access::read> inputRT  [[id(0)]];
+    constant Uniforms_cbPerProp& cbPerProp [[id(0)]];
+    texture2d<float> textureMaps[84];
+    texture2d<float, access::read> inputRT  [[id(85)]];
+    sampler samplerLinear [[id(86)]]; 
 };
 
 fragment float4 stageMain(PsIn input        [[stage_in]],

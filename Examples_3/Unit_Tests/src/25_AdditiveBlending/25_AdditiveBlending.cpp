@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -148,6 +148,9 @@ const char* gStickFigureName = "stickFigure/skeleton.ozz";
 const char* gWalkClipName = "stickFigure/animations/walk.ozz";
 const char* gNeckCrackClipName = "stickFigure/animations/neckCrack.ozz";
 
+float* pJointPoints;
+float* pBonePoints;
+
 const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
 const float gJointRadius = gBoneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
@@ -243,6 +246,19 @@ void UpperBodyJointIndexCallback()
 void WalkClipTimeChangeCallback() { gWalkClipController.SetTimeRatioHard(gUIData.mWalkClip.mAnimationTime); }
 void NeckCrackClipTimeChangeCallback() { gNeckCrackClipController.SetTimeRatioHard(gUIData.mNeckCrackClip.mAnimationTime); }
 
+const char* gTestScripts[] = { "Test.lua" };
+uint32_t gScriptIndexes[] = { 0 };
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
@@ -259,151 +275,19 @@ class AdditiveBlending: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS,      "Animation");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,		   "Scripts");
 
-		// WINDOW AND RENDERER SETUP
-		//
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer)    //check for init success
-			return false;
-
-		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
-		//
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		// INITIALIZE RESOURCE/DEBUG SYSTEMS
-		//
-		initResourceLoaderInterface(pRenderer);
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			return false;
-
-    // INITIALIZE THE USER INTERFACE
-    //
-    if (!gAppUI.Init(pRenderer))
-      return false;
-
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		// INITIALIZE PIPILINE STATES
-		//
-		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0 };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0 };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
-		addShader(pRenderer, &basicShader, &pSkeletonShader);
-
-		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+		
 
 		// GENERATE VERTEX BUFFERS
 		//
 
 		// Generate joint vertex buffer
-		float* pJointPoints;
 		generateSpherePoints(&pJointPoints, &gNumberOfJointPoints, gSphereResolution, gJointRadius);
 
-		uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
-		BufferLoadDesc jointVbDesc = {};
-		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		jointVbDesc.mDesc.mSize = jointDataSize;
-		jointVbDesc.pData = pJointPoints;
-		jointVbDesc.ppBuffer = &pJointVertexBuffer;
-		addResource(&jointVbDesc, NULL);
-
 		// Generate bone vertex buffer
-		float* pBonePoints;
 		generateBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio);
 
-		uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
-		BufferLoadDesc boneVbDesc = {};
-		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		boneVbDesc.mDesc.mSize = boneDataSize;
-		boneVbDesc.pData = pBonePoints;
-		boneVbDesc.ppBuffer = &pBoneVertexBuffer;
-		addResource(&boneVbDesc, NULL);
-
-		//Generate plane vertex buffer
-		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
-								10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
-								10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
-
-		uint64_t       planeDataSize = 6 * 6 * sizeof(float);
-		BufferLoadDesc planeVbDesc = {};
-		planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		planeVbDesc.mDesc.mSize = planeDataSize;
-		planeVbDesc.pData = planePoints;
-		planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
-		addResource(&planeVbDesc, NULL);
-
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlockPlane);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pPlaneUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-
-		/************************************************************************/
-		// SETUP ANIMATION STRUCTURES
-		/************************************************************************/
-		// SKELETON RENDERER
-		//
-
-		// Set up details for rendering the skeletons
-		SkeletonRenderDesc skeletonRenderDesc = {};
-		skeletonRenderDesc.mRenderer = pRenderer;
-		skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
-		skeletonRenderDesc.mRootSignature = pRootSignature;
-		skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
-		skeletonRenderDesc.mNumJointPoints = gNumberOfJointPoints;
-		skeletonRenderDesc.mDrawBones = true;
-		skeletonRenderDesc.mBoneVertexBuffer = pBoneVertexBuffer;
-		skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
-		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
-		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
-		gSkeletonBatcher.Initialize(skeletonRenderDesc);
-		
 		// RIGS
 		//
 		// Initialize the rig with the path to its ozz file
@@ -471,187 +355,6 @@ class AdditiveBlending: public IApp
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		// Add the GUI Panels/Windows
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 14 };
-
-		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
-		vec2    UIPanelSize = { 650, 1000 };
-		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
-		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Partially Blended Animation", &guiDesc);
-
-		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
-		//
-
-		// Blend Params
-		gUIData.mBlendParams.mWalkClipWeight = gWalkClipController.GetWeightPtr();
-		gUIData.mBlendParams.mNeckCrackClipWeight = gNeckCrackClipController.GetWeightPtr();
-		gUIData.mBlendParams.mThreshold = gBlendedAnimation.GetThresholdPtr();
-
-		// Walk Clip
-		gUIData.mWalkClip.mPlay = gWalkClipController.GetPlayPtr();
-		gUIData.mWalkClip.mLoop = gWalkClipController.GetLoopPtr();
-		gUIData.mWalkClip.mPlaybackSpeed = gWalkClipController.GetPlaybackSpeedPtr();
-
-		// Neck Crack Clip
-		gUIData.mNeckCrackClip.mPlay = gNeckCrackClipController.GetPlayPtr();
-		gUIData.mNeckCrackClip.mLoop = gNeckCrackClipController.GetLoopPtr();
-		gUIData.mNeckCrackClip.mPlaybackSpeed = gNeckCrackClipController.GetPlaybackSpeedPtr();
-
-		// SET UP GUI BASED ON gUIData STRUCT
-		//
-		{
-			// BLEND PARAMETERS
-			//
-			CollapsingHeaderWidget CollapsingBlendParamsWidgets("Blend Parameters");
-
-			// Walk Clip Weight - Slider
-			float fValMin = 0.0f;
-			float fValMax = 1.0f;
-			float sliderStepSize = 0.01f;
-
-			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingBlendParamsWidgets.AddSubWidget(
-				SliderFloatWidget("Clip Weight [Walk]", gUIData.mBlendParams.mWalkClipWeight, fValMin, fValMax, sliderStepSize));
-
-			// NeckCrack Clip Weight - Slider
-			fValMin = 0.0f;
-			fValMax = 1.0f;
-			sliderStepSize = 0.01f;
-
-			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingBlendParamsWidgets.AddSubWidget(
-				SliderFloatWidget("Clip Weight [NeckCrack]", gUIData.mBlendParams.mNeckCrackClipWeight, fValMin, fValMax, sliderStepSize));
-
-			// Threshold - Slider
-			fValMin = 0.01f;
-			fValMax = 1.0f;
-			sliderStepSize = 0.01f;
-
-			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingBlendParamsWidgets.AddSubWidget(
-				SliderFloatWidget("Threshold", gUIData.mBlendParams.mThreshold, fValMin, fValMax, sliderStepSize));
-			CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
-
-			// UPPER BODY MASK
-			//
-			CollapsingHeaderWidget CollapsingUpperBodyMaskWidgets("Upper Body Masking");
-
-			// EnableMask - Checkbox
-			CheckboxWidget CheckboxEnableMask("Enable Mask", &gUIData.mUpperBodyMask.mEnableMask);
-			CheckboxEnableMask.pOnEdited = EnableMaskCallback;
-
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(CheckboxEnableMask);
-
-			// NeckCrack Joints Weight - Slider
-			fValMin = 0.0f;
-			fValMax = 1.0f;
-			sliderStepSize = 0.01f;
-			SliderFloatWidget SliderNeckCrackJointsWeight(
-				"Joints Weight [NeckCrack]", &gUIData.mUpperBodyMask.mNeckCrackJointsWeight, fValMin, fValMax, sliderStepSize);
-			SliderNeckCrackJointsWeight.pOnEdited = NeckCrackClipJointsWeightCallback;
-
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(SliderNeckCrackJointsWeight);
-
-			// UpperBodyJointIndex - Slider
-			unsigned         uintValMin = 0;
-			unsigned         uintValMax = gStickFigureRig.GetNumJoints() - 1;
-			unsigned         sliderStepSizeUint = 1;
-			SliderUintWidget SliderUpperBodyJointIndex(
-				"Root Joint Index", &gUIData.mUpperBodyMask.mUpperBodyJointIndex, uintValMin, uintValMax, sliderStepSizeUint);
-			SliderUpperBodyJointIndex.pOnEdited = UpperBodyJointIndexCallback;
-
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingUpperBodyMaskWidgets.AddSubWidget(SliderUpperBodyJointIndex);
-
-			// WALK CLIP
-			//
-			CollapsingHeaderWidget CollapsingWalkClipWidgets("Walk Clip (Main)");
-
-			// Play/Pause - Checkbox
-			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingWalkClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mWalkClip.mPlay));
-
-			// Loop - Checkbox
-			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingWalkClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mWalkClip.mLoop));
-
-			// Animation Time - Slider
-			fValMin = 0.0f;
-			fValMax = gWalkClipController.GetDuration();
-			sliderStepSize = 0.01f;
-			SliderFloatWidget SliderWalkClipAnimationTime(
-				"Animation Time", &gUIData.mWalkClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
-			SliderWalkClipAnimationTime.pOnActive = WalkClipTimeChangeCallback;
-
-			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingWalkClipWidgets.AddSubWidget(SliderWalkClipAnimationTime);
-
-			// Playback Speed - Slider
-			fValMin = -5.0f;
-			fValMax = 5.0f;
-			sliderStepSize = 0.1f;
-
-			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingWalkClipWidgets.AddSubWidget(
-				SliderFloatWidget("Playback Speed", gUIData.mWalkClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
-			CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
-
-			// NECK CRACK CLIP
-			//
-			CollapsingHeaderWidget CollapsingNeckCrackClipWidgets("NeckCrack Clip (Additive)");
-
-			// Play/Pause - Checkbox
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingNeckCrackClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mNeckCrackClip.mPlay));
-
-			// Loop - Checkbox
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingNeckCrackClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mNeckCrackClip.mLoop));
-
-			// Animation Time - Slider
-			fValMin = 0.0f;
-			fValMax = gNeckCrackClipController.GetDuration();
-			sliderStepSize = 0.01f;
-			SliderFloatWidget SliderNeckCrackClipAnimationTime(
-				"Animation Time", &gUIData.mNeckCrackClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
-			SliderNeckCrackClipAnimationTime.pOnActive = NeckCrackClipTimeChangeCallback;
-
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SliderNeckCrackClipAnimationTime);
-
-			// Playback Speed - Slider
-			fValMin = -5.0f;
-			fValMax = 5.0f;
-			sliderStepSize = 0.1f;
-
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingNeckCrackClipWidgets.AddSubWidget(
-				SliderFloatWidget("Playback Speed", gUIData.mNeckCrackClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
-			CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
-
-			// GENERAL SETTINGS
-			//
-			CollapsingHeaderWidget CollapsingGeneralSettingsWidgets("General Settings");
-
-			// ShowBindPose - Checkbox
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose", &gUIData.mGeneralSettings.mShowBindPose));
-
-			// DrawPlane - Checkbox
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-
-			// Add all widgets to the window
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingBlendParamsWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingUpperBodyMaskWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingWalkClipWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingNeckCrackClipWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingGeneralSettingsWidgets);
-		}
-
 		if (!initInputSystem(pWindow))
 			return false;
 
@@ -687,82 +390,372 @@ class AdditiveBlending: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		waitForAllResourceLoads();
-
-		// Need to free memory;
-		tf_free(pJointPoints);
-		tf_free(pBonePoints);
-		
-		// Prepare descriptor sets
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			DescriptorData params[1] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
-		}
 
 		return true;
 	}
 
 	void Exit()
 	{
-		// wait for rendering to finish before freeing resources
-		waitQueueIdle(pGraphicsQueue);
-
 		exitInputSystem();
+		destroyCameraController(pCameraController);
 
-		exitProfiler();
-
-		// Animation data
-		gSkeletonBatcher.Destroy();
 		gStickFigureRig.Destroy();
 		gWalkClip.Destroy();
 		gNeckCrackClip.Destroy();
 		gNeckCrackClipMask.Destroy();
 		gBlendedAnimation.Destroy();
 		gStickFigureAnimObject.Destroy();
-
-		destroyCameraController(pCameraController);
-
-		gVirtualJoystick.Exit();
-
-		gAppUI.Exit();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pPlaneUniformBuffer[i]);
-		}
-
-		removeResource(pJointVertexBuffer);
-		removeResource(pBoneVertexBuffer);
-		removeResource(pPlaneVertexBuffer);
-
-		removeShader(pRenderer, pSkeletonShader);
-		removeShader(pRenderer, pPlaneDrawShader);
-		removeDescriptorSet(pRenderer, pDescriptorSet);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
+	
+		// Need to free memory;
+		tf_free(pJointPoints);
+		tf_free(pBonePoints);
 	}
 
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			// WINDOW AND RENDERER SETUP
+		//
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+			if (!pRenderer)    //check for init success
+				return false;
+
+			// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
+			//
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			// INITIALIZE RESOURCE/DEBUG SYSTEMS
+			//
+			initResourceLoaderInterface(pRenderer);
+
+			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+				return false;
+
+			// INITIALIZE THE USER INTERFACE
+			//
+			if (!gAppUI.Init(pRenderer))
+				return false;
+			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			// INITIALIZE PIPILINE STATES
+			//
+			ShaderLoadDesc planeShader = {};
+			planeShader.mStages[0] = { "plane.vert", NULL, 0 };
+			planeShader.mStages[1] = { "plane.frag", NULL, 0 };
+			ShaderLoadDesc basicShader = {};
+			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+			addShader(pRenderer, &planeShader, &pPlaneDrawShader);
+			addShader(pRenderer, &basicShader, &pSkeletonShader);
+
+			Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mShaderCount = 2;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+			uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
+			BufferLoadDesc jointVbDesc = {};
+			jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			jointVbDesc.mDesc.mSize = jointDataSize;
+			jointVbDesc.pData = pJointPoints;
+			jointVbDesc.ppBuffer = &pJointVertexBuffer;
+			addResource(&jointVbDesc, NULL);
+
+
+
+			uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
+			BufferLoadDesc boneVbDesc = {};
+			boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			boneVbDesc.mDesc.mSize = boneDataSize;
+			boneVbDesc.pData = pBonePoints;
+			boneVbDesc.ppBuffer = &pBoneVertexBuffer;
+			addResource(&boneVbDesc, NULL);
+
+			//Generate plane vertex buffer
+			float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
+									10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
+									10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
+
+			uint64_t       planeDataSize = 6 * 6 * sizeof(float);
+			BufferLoadDesc planeVbDesc = {};
+			planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			planeVbDesc.mDesc.mSize = planeDataSize;
+			planeVbDesc.pData = planePoints;
+			planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
+			addResource(&planeVbDesc, NULL);
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			ubDesc.mDesc.mSize = sizeof(UniformBlockPlane);
+			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			ubDesc.pData = NULL;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				ubDesc.ppBuffer = &pPlaneUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			/************************************************************************/
+			// SETUP ANIMATION STRUCTURES
+			/************************************************************************/
+			// SKELETON RENDERER
+			//
+
+			// Set up details for rendering the skeletons
+			SkeletonRenderDesc skeletonRenderDesc = {};
+			skeletonRenderDesc.mRenderer = pRenderer;
+			skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
+			skeletonRenderDesc.mRootSignature = pRootSignature;
+			skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
+			skeletonRenderDesc.mNumJointPoints = gNumberOfJointPoints;
+			skeletonRenderDesc.mDrawBones = true;
+			skeletonRenderDesc.mBoneVertexBuffer = pBoneVertexBuffer;
+			skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
+			skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
+			skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
+			gSkeletonBatcher.Initialize(skeletonRenderDesc);
+
+			// Add the GUI Panels/Windows
+			const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 14 };
+
+			vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
+			vec2    UIPanelSize = { 650, 1000 };
+			GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
+			pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Partially Blended Animation", &guiDesc);
+
+			// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
+			//
+
+			// Blend Params
+			gUIData.mBlendParams.mWalkClipWeight = gWalkClipController.GetWeightPtr();
+			gUIData.mBlendParams.mNeckCrackClipWeight = gNeckCrackClipController.GetWeightPtr();
+			gUIData.mBlendParams.mThreshold = gBlendedAnimation.GetThresholdPtr();
+
+			// Walk Clip
+			gUIData.mWalkClip.mPlay = gWalkClipController.GetPlayPtr();
+			gUIData.mWalkClip.mLoop = gWalkClipController.GetLoopPtr();
+			gUIData.mWalkClip.mPlaybackSpeed = gWalkClipController.GetPlaybackSpeedPtr();
+
+			// Neck Crack Clip
+			gUIData.mNeckCrackClip.mPlay = gNeckCrackClipController.GetPlayPtr();
+			gUIData.mNeckCrackClip.mLoop = gNeckCrackClipController.GetLoopPtr();
+			gUIData.mNeckCrackClip.mPlaybackSpeed = gNeckCrackClipController.GetPlaybackSpeedPtr();
+
+			// SET UP GUI BASED ON gUIData STRUCT
+			//
+			{
+				// BLEND PARAMETERS
+				//
+				CollapsingHeaderWidget CollapsingBlendParamsWidgets("Blend Parameters");
+
+				// Walk Clip Weight - Slider
+				float fValMin = 0.0f;
+				float fValMax = 1.0f;
+				float sliderStepSize = 0.01f;
+
+				CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingBlendParamsWidgets.AddSubWidget(
+					SliderFloatWidget("Clip Weight [Walk]", gUIData.mBlendParams.mWalkClipWeight, fValMin, fValMax, sliderStepSize));
+
+				// NeckCrack Clip Weight - Slider
+				fValMin = 0.0f;
+				fValMax = 1.0f;
+				sliderStepSize = 0.01f;
+
+				CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingBlendParamsWidgets.AddSubWidget(
+					SliderFloatWidget("Clip Weight [NeckCrack]", gUIData.mBlendParams.mNeckCrackClipWeight, fValMin, fValMax, sliderStepSize));
+
+				// Threshold - Slider
+				fValMin = 0.01f;
+				fValMax = 1.0f;
+				sliderStepSize = 0.01f;
+
+				CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingBlendParamsWidgets.AddSubWidget(
+					SliderFloatWidget("Threshold", gUIData.mBlendParams.mThreshold, fValMin, fValMax, sliderStepSize));
+				CollapsingBlendParamsWidgets.AddSubWidget(SeparatorWidget());
+
+				// UPPER BODY MASK
+				//
+				CollapsingHeaderWidget CollapsingUpperBodyMaskWidgets("Upper Body Masking");
+
+				// EnableMask - Checkbox
+				CheckboxWidget CheckboxEnableMask("Enable Mask", &gUIData.mUpperBodyMask.mEnableMask);
+				CheckboxEnableMask.pOnEdited = EnableMaskCallback;
+
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(CheckboxEnableMask);
+
+				// NeckCrack Joints Weight - Slider
+				fValMin = 0.0f;
+				fValMax = 1.0f;
+				sliderStepSize = 0.01f;
+				SliderFloatWidget SliderNeckCrackJointsWeight(
+					"Joints Weight [NeckCrack]", &gUIData.mUpperBodyMask.mNeckCrackJointsWeight, fValMin, fValMax, sliderStepSize);
+				SliderNeckCrackJointsWeight.pOnEdited = NeckCrackClipJointsWeightCallback;
+
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(SliderNeckCrackJointsWeight);
+
+				// UpperBodyJointIndex - Slider
+				unsigned         uintValMin = 0;
+				unsigned         uintValMax = gStickFigureRig.GetNumJoints() - 1;
+				unsigned         sliderStepSizeUint = 1;
+				SliderUintWidget SliderUpperBodyJointIndex(
+					"Root Joint Index", &gUIData.mUpperBodyMask.mUpperBodyJointIndex, uintValMin, uintValMax, sliderStepSizeUint);
+				SliderUpperBodyJointIndex.pOnEdited = UpperBodyJointIndexCallback;
+
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingUpperBodyMaskWidgets.AddSubWidget(SliderUpperBodyJointIndex);
+
+				// WALK CLIP
+				//
+				CollapsingHeaderWidget CollapsingWalkClipWidgets("Walk Clip (Main)");
+
+				// Play/Pause - Checkbox
+				CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingWalkClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mWalkClip.mPlay));
+
+				// Loop - Checkbox
+				CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingWalkClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mWalkClip.mLoop));
+
+				// Animation Time - Slider
+				fValMin = 0.0f;
+				fValMax = gWalkClipController.GetDuration();
+				sliderStepSize = 0.01f;
+				SliderFloatWidget SliderWalkClipAnimationTime(
+					"Animation Time", &gUIData.mWalkClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
+				SliderWalkClipAnimationTime.pOnActive = WalkClipTimeChangeCallback;
+
+				CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingWalkClipWidgets.AddSubWidget(SliderWalkClipAnimationTime);
+
+				// Playback Speed - Slider
+				fValMin = -5.0f;
+				fValMax = 5.0f;
+				sliderStepSize = 0.1f;
+
+				CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingWalkClipWidgets.AddSubWidget(
+					SliderFloatWidget("Playback Speed", gUIData.mWalkClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
+				CollapsingWalkClipWidgets.AddSubWidget(SeparatorWidget());
+
+				// NECK CRACK CLIP
+				//
+				CollapsingHeaderWidget CollapsingNeckCrackClipWidgets("NeckCrack Clip (Additive)");
+
+				// Play/Pause - Checkbox
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingNeckCrackClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mNeckCrackClip.mPlay));
+
+				// Loop - Checkbox
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingNeckCrackClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mNeckCrackClip.mLoop));
+
+				// Animation Time - Slider
+				fValMin = 0.0f;
+				fValMax = gNeckCrackClipController.GetDuration();
+				sliderStepSize = 0.01f;
+				SliderFloatWidget SliderNeckCrackClipAnimationTime(
+					"Animation Time", &gUIData.mNeckCrackClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
+				SliderNeckCrackClipAnimationTime.pOnActive = NeckCrackClipTimeChangeCallback;
+
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SliderNeckCrackClipAnimationTime);
+
+				// Playback Speed - Slider
+				fValMin = -5.0f;
+				fValMax = 5.0f;
+				sliderStepSize = 0.1f;
+
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingNeckCrackClipWidgets.AddSubWidget(
+					SliderFloatWidget("Playback Speed", gUIData.mNeckCrackClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
+				CollapsingNeckCrackClipWidgets.AddSubWidget(SeparatorWidget());
+
+				// GENERAL SETTINGS
+				//
+				CollapsingHeaderWidget CollapsingGeneralSettingsWidgets("General Settings");
+
+				// ShowBindPose - Checkbox
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose", &gUIData.mGeneralSettings.mShowBindPose));
+
+				// DrawPlane - Checkbox
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+
+				// Add all widgets to the window
+
+				// Reset graphics with a button.
+				ButtonWidget testGPUReset("ResetGraphicsDevice");
+				testGPUReset.pOnEdited = testGraphicsReset;
+				pStandaloneControlsGUIWindow->AddWidget(testGPUReset);
+
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingBlendParamsWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingUpperBodyMaskWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingWalkClipWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingNeckCrackClipWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingGeneralSettingsWidgets);
+
+				DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+				ButtonWidget bRunScript("Run");
+				bRunScript.pOnEdited = RunScript;
+				pStandaloneControlsGUIWindow->AddWidget(ddTestScripts);
+				pStandaloneControlsGUIWindow->AddWidget(bRunScript);
+			}
+
+			waitForAllResourceLoads();
+
+			// Prepare descriptor sets
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pPlaneUniformBuffer[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
+			}
+		}
+
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
 		//
 		if (!addSwapChain())
@@ -777,8 +770,6 @@ class AdditiveBlending: public IApp
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for skeleton draw
 		VertexLayout vertexLayout = {};
@@ -850,9 +841,7 @@ class AdditiveBlending: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
-
-    gAppUI.Unload();
+	    gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
 
@@ -861,6 +850,51 @@ class AdditiveBlending: public IApp
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
+
+		if (mSettings.mQuit || mSettings.mResetGraphics) 
+		{
+			exitProfilerUI();
+
+			exitProfiler();
+
+			// Animation data
+			gSkeletonBatcher.Destroy();
+
+			gVirtualJoystick.Exit();
+
+			gAppUI.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pPlaneUniformBuffer[i]);
+			}
+
+			removeResource(pJointVertexBuffer);
+			removeResource(pBoneVertexBuffer);
+			removeResource(pPlaneVertexBuffer);
+
+			removeShader(pRenderer, pSkeletonShader);
+			removeShader(pRenderer, pPlaneDrawShader);
+			removeDescriptorSet(pRenderer, pDescriptorSet);
+			removeRootSignature(pRenderer, pRootSignature);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -1039,8 +1073,21 @@ class AdditiveBlending: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset)
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -196,181 +196,7 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
-		// WINDOW AND RENDERER SETUP
-		//
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer)    //check for init success
-			return false;
-
-		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
-		//
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		// INITIALIZE RESOURCE/DEBUG SYSTEMS
-		//
-		initResourceLoaderInterface(pRenderer);
-
-		TextureLoadDesc textureDesc = {};
-		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFileName = "sprites";
-		addResource(&textureDesc, NULL);
-
-		waitForAllResourceLoads();
-
-		// INITIALIZE THE USER INTERFACE
-		//
-		if (!gAppUI.Init(pRenderer))
-		{
-			// todo: display err msg (multiplatform?)
-			return false;
-		}
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		// Add the GUI Panels/Windows
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
-
-		// Add the UI Controls to the GUI Panel
-		//
-		//-----------------------------------------------------------------------
-		// Note:
-		//  We bind the UI controls to data we've declared in the gUIData struct.
-		//  The UI controls directly update the variable we bind to it with the
-		//  UIProperty() constructor.
-		//-----------------------------------------------------------------------
-
-		//-----------------------------------------------------------------------
-		// Standalone GUI Controls
-		//-----------------------------------------------------------------------		
-		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
-		vec2    UIPanelSize = vec2(650.f, 1000.f);
-		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
-		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Right-click me for context menu :)", &guiDesc);
-
-		// Contextual (Context Menu)
-		for (int i = 0; i < 7; i++)
-			pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(sContextMenuItems[i]);
-		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
-		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
-
-		{
-			// Drop Down
-			gFrameTimeDraw.mFontColor = dropDownItemValues[5];    // initial value
-			gUIData.mStandalone.mSelectedDropdownItemValue = 5u;
-			DropdownWidget DropDown(
-				"[Drop Down] Select Text Color", &gUIData.mStandalone.mSelectedDropdownItemValue, dropDownItemNames, dropDownItemValues, 6);
-			// Add a callback
-			DropDown.pOnDeactivatedAfterEdit = ColorDropDownCallback;
-
-			// Button
-			ButtonWidget Button("[Button] Fill the Progress Bar!");
-			Button.pOnDeactivatedAfterEdit = ButtonCallback;
-
-			// Progress Bar
-			gUIData.mStandalone.mProgressBarValue = 0;
-			gUIData.mStandalone.mProgressBarValueMax = 100;
-			ProgressBarWidget ProgressBar(
-				"[ProgressBar]", &gUIData.mStandalone.mProgressBarValue, gUIData.mStandalone.mProgressBarValueMax);
-
-			// Checkbox
-			CheckboxWidget Checkbox("[Checkbox]", &gUIData.mStandalone.mCheckboxToggle);
-
-			// Radio Buttons
-			RadioButtonWidget RadioButton0("[Radio Button] 0", &gUIData.mStandalone.mRadioButtonToggle, 0);
-			RadioButtonWidget RadioButton1("[Radio Button] 1", &gUIData.mStandalone.mRadioButtonToggle, 1);
-
-			// Grouping UI Elements:
-			// This is done via CollapsingHeaderWidget.
-			CollapsingHeaderWidget CollapsingSliderWidgets("SLIDERS");
-
-			// Slider<int>
-			const int intValMin = -10;
-			const int intValMax = +10;
-			const int sliderStepSizeI = 1;
-			CollapsingSliderWidgets.AddSubWidget(
-				SliderIntWidget("[Slider<int>]", &gUIData.mStandalone.mSliderInt, intValMin, intValMax, sliderStepSizeI));
-
-			// Slider<unsigned>
-			const unsigned uintValMin = 0;
-			const unsigned uintValMax = 100;
-			const unsigned sliderStepSizeUint = 5;
-			CollapsingSliderWidgets.AddSubWidget(
-				SliderUintWidget("[Slider<uint>]", &gUIData.mStandalone.mSliderUint, uintValMin, uintValMax, sliderStepSizeUint));
-
-			// Slider<float w/ step size>
-			const float fValMin = 0;
-			const float fValMax = 100;
-			const float sliderStepSizeF = 0.1f;
-			CollapsingSliderWidgets.AddSubWidget(
-				SliderFloatWidget("[Slider<float>] Step Size=0.1f", &gUIData.mStandalone.mSliderFloat, fValMin, fValMax, sliderStepSizeF));
-
-			// Slider<float w/ step count>
-			const float _fValMin = -100.0f;
-			const float _fValMax = +100.0f;
-			const int   stepCount = 6;
-			CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget(
-				"[Slider<float>] Step Count=6", &gUIData.mStandalone.mSliderFloatSteps, _fValMin, _fValMax,
-				(_fValMax - _fValMin) / stepCount));
-
-			// Textbox
-			strcpy(gUIData.mStandalone.mText, "Edit Here!");
-			TextboxWidget Textbox("[Textbox]", gUIData.mStandalone.mText, UserInterfaceUnitTestingData::STRING_SIZE);
-
-			// Color Slider & Picker
-			CollapsingHeaderWidget CollapsingColorWidgets("COLOR WIDGETS");
-
-			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);    // dark blue
-			CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));
-			CollapsingColorWidgets.AddSubWidget(ColorPickerWidget("[Color Picker]", &gUIData.mStandalone.mColorForSlider));
-
-			// Texture preview
-			CollapsingHeaderWidget CollapsingTexPreviewWidgets("TEXTURE PREVIEW");
-			DebugTexturesWidget dbgTexWidget("Texture Preview");
-			eastl::vector<Texture*> texPreviews;
-			texPreviews.push_back(pSpriteTexture);
-			dbgTexWidget.SetTextures(texPreviews, float2(441, 64));
-			CollapsingTexPreviewWidgets.AddSubWidget(dbgTexWidget);
-
-			// Register the GUI elements to the Window
-			pStandaloneControlsGUIWindow->AddWidget(LabelWidget("[Label] UI Controls"));
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(DropDown);
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(Button);
-			pStandaloneControlsGUIWindow->AddWidget(ProgressBar);
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(Checkbox);
-			pStandaloneControlsGUIWindow->AddWidget(RadioButton0);
-			pStandaloneControlsGUIWindow->AddWidget(RadioButton1);
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(Textbox);
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingSliderWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingColorWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingTexPreviewWidgets);
-		}
-
+		
 		if (!initInputSystem(pWindow))
 			return false;
 
@@ -403,40 +229,189 @@ public:
 
 	void Exit()
 	{
-		// wait for rendering to finish before freeing resources
-		waitQueueIdle(pGraphicsQueue);
-
 		exitInputSystem();
-
-		gAppUI.Exit();
-
-		//for (uint32_t i = 0; i < gImageCount; ++i)
-		//{
-		//  removeResource(pProjViewUniformBuffer[i]);
-		//}
-
-		removeResource(pSpriteTexture);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			// WINDOW AND RENDERER SETUP
+		//
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+			if (!pRenderer)    //check for init success
+				return false;
+
+			// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
+			//
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			// INITIALIZE RESOURCE/DEBUG SYSTEMS
+			//
+			initResourceLoaderInterface(pRenderer);
+
+			TextureLoadDesc textureDesc = {};
+			textureDesc.ppTexture = &pSpriteTexture;
+			textureDesc.pFileName = "sprites";
+			addResource(&textureDesc, NULL);
+
+			waitForAllResourceLoads();
+
+			// INITIALIZE THE USER INTERFACE
+			//
+			if (!gAppUI.Init(pRenderer))
+			{
+				// todo: display err msg (multiplatform?)
+				return false;
+			}
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			// Add the GUI Panels/Windows
+			const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
+
+			// Add the UI Controls to the GUI Panel
+			//
+			//-----------------------------------------------------------------------
+			// Note:
+			//  We bind the UI controls to data we've declared in the gUIData struct.
+			//  The UI controls directly update the variable we bind to it with the
+			//  UIProperty() constructor.
+			//-----------------------------------------------------------------------
+
+			//-----------------------------------------------------------------------
+			// Standalone GUI Controls
+			//-----------------------------------------------------------------------		
+			vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
+			vec2    UIPanelSize = vec2(650.f, 1000.f);
+			GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
+			pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Right-click me for context menu :)", &guiDesc);
+
+			// Contextual (Context Menu)
+			for (int i = 0; i < 7; i++)
+				pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(sContextMenuItems[i]);
+			pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
+			pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
+
+			{
+				// Drop Down
+				gFrameTimeDraw.mFontColor = dropDownItemValues[5];    // initial value
+				gUIData.mStandalone.mSelectedDropdownItemValue = 5u;
+				DropdownWidget DropDown(
+					"[Drop Down] Select Text Color", &gUIData.mStandalone.mSelectedDropdownItemValue, dropDownItemNames, dropDownItemValues, 6);
+				// Add a callback
+				DropDown.pOnDeactivatedAfterEdit = ColorDropDownCallback;
+
+				// Button
+				ButtonWidget Button("[Button] Fill the Progress Bar!");
+				Button.pOnDeactivatedAfterEdit = ButtonCallback;
+
+				// Progress Bar
+				gUIData.mStandalone.mProgressBarValue = 0;
+				gUIData.mStandalone.mProgressBarValueMax = 100;
+				ProgressBarWidget ProgressBar(
+					"[ProgressBar]", &gUIData.mStandalone.mProgressBarValue, gUIData.mStandalone.mProgressBarValueMax);
+
+				// Checkbox
+				CheckboxWidget Checkbox("[Checkbox]", &gUIData.mStandalone.mCheckboxToggle);
+
+				// Radio Buttons
+				RadioButtonWidget RadioButton0("[Radio Button] 0", &gUIData.mStandalone.mRadioButtonToggle, 0);
+				RadioButtonWidget RadioButton1("[Radio Button] 1", &gUIData.mStandalone.mRadioButtonToggle, 1);
+
+				// Grouping UI Elements:
+				// This is done via CollapsingHeaderWidget.
+				CollapsingHeaderWidget CollapsingSliderWidgets("SLIDERS");
+
+				// Slider<int>
+				const int intValMin = -10;
+				const int intValMax = +10;
+				const int sliderStepSizeI = 1;
+				CollapsingSliderWidgets.AddSubWidget(
+					SliderIntWidget("[Slider<int>]", &gUIData.mStandalone.mSliderInt, intValMin, intValMax, sliderStepSizeI));
+
+				// Slider<unsigned>
+				const unsigned uintValMin = 0;
+				const unsigned uintValMax = 100;
+				const unsigned sliderStepSizeUint = 5;
+				CollapsingSliderWidgets.AddSubWidget(
+					SliderUintWidget("[Slider<uint>]", &gUIData.mStandalone.mSliderUint, uintValMin, uintValMax, sliderStepSizeUint));
+
+				// Slider<float w/ step size>
+				const float fValMin = 0;
+				const float fValMax = 100;
+				const float sliderStepSizeF = 0.1f;
+				CollapsingSliderWidgets.AddSubWidget(
+					SliderFloatWidget("[Slider<float>] Step Size=0.1f", &gUIData.mStandalone.mSliderFloat, fValMin, fValMax, sliderStepSizeF));
+
+				// Slider<float w/ step count>
+				const float _fValMin = -100.0f;
+				const float _fValMax = +100.0f;
+				const int   stepCount = 6;
+				CollapsingSliderWidgets.AddSubWidget(SliderFloatWidget(
+					"[Slider<float>] Step Count=6", &gUIData.mStandalone.mSliderFloatSteps, _fValMin, _fValMax,
+					(_fValMax - _fValMin) / stepCount));
+
+				// Textbox
+				strcpy(gUIData.mStandalone.mText, "Edit Here!");
+				TextboxWidget Textbox("[Textbox]", gUIData.mStandalone.mText, UserInterfaceUnitTestingData::STRING_SIZE);
+
+				// Color Slider & Picker
+				CollapsingHeaderWidget CollapsingColorWidgets("COLOR WIDGETS");
+
+				gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);    // dark blue
+				CollapsingColorWidgets.AddSubWidget(ColorSliderWidget("[Color Slider]", &gUIData.mStandalone.mColorForSlider));
+				CollapsingColorWidgets.AddSubWidget(ColorPickerWidget("[Color Picker]", &gUIData.mStandalone.mColorForSlider));
+
+				// Texture preview
+				CollapsingHeaderWidget CollapsingTexPreviewWidgets("TEXTURE PREVIEW");
+				DebugTexturesWidget dbgTexWidget("Texture Preview");
+				eastl::vector<Texture*> texPreviews;
+				texPreviews.push_back(pSpriteTexture);
+				dbgTexWidget.SetTextures(texPreviews, float2(441, 64));
+				CollapsingTexPreviewWidgets.AddSubWidget(dbgTexWidget);
+
+				// Register the GUI elements to the Window
+				pStandaloneControlsGUIWindow->AddWidget(LabelWidget("[Label] UI Controls"));
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(DropDown);
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(Button);
+				pStandaloneControlsGUIWindow->AddWidget(ProgressBar);
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(Checkbox);
+				pStandaloneControlsGUIWindow->AddWidget(RadioButton0);
+				pStandaloneControlsGUIWindow->AddWidget(RadioButton1);
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(Textbox);
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingSliderWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingColorWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingTexPreviewWidgets);
+			}
+		}
+
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
 		//
 		if (!addSwapChain())
@@ -457,6 +432,35 @@ public:
 		gAppUI.Unload();
 
 		removeSwapChain(pRenderer, pSwapChain);
+
+		if (mSettings.mQuit || mSettings.mResetGraphics) 
+		{
+			gAppUI.Exit();
+
+			//for (uint32_t i = 0; i < gImageCount; ++i)
+			//{
+			//  removeResource(pProjViewUniformBuffer[i]);
+			//}
+
+			removeResource(pSpriteTexture);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -551,7 +555,13 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

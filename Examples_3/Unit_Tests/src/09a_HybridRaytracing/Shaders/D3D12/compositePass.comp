@@ -1,5 +1,4 @@
 /*
-* Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,10 +21,10 @@
 * under the License.
 */
 
-Texture2D<float4>	albedobuffer : register(t0);
-Texture2D<float4>	lightbuffer : register(t1);
+Texture2D<float4>	albedobuffer : register(t5);
+Texture2D<float4>	lightbuffer : register(t6);
 
-RWTexture2D<float4> outputRT : register(u2);
+RWTexture2D<float4> outputRT : register(u4);
 
 [numthreads(16, 16, 1)]
 void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)

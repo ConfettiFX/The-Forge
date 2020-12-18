@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -601,6 +601,20 @@ GLTFAsset gCurrentAsset;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
+const char* gTestScripts[] = { "Test_Lantern.lua", "Test_FlightHelmet.lua", "Test_capsule.lua", "Test_cube.lua", "Test_lion.lua", "Test_matBall.lua" };
+uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4, 5 };
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 class GLTFViewer : public IApp
 {
 public:
@@ -810,249 +824,8 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
-		
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		//check for init success
-		if (!pRenderer)
-			return false;
-		
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-        
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-        
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-		
-		initResourceLoaderInterface(pRenderer);
-		
-		if (!gAppUI.Init(pRenderer))
-			return false;
-		
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-		
-		initProfiler();
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,		   "Scripts");
 
-		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-	
-		SamplerDesc defaultSamplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
-			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
-		};
-		addSampler(pRenderer, &defaultSamplerDesc, &pDefaultSampler);
-		
-		SamplerDesc samplerClampDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-		};
-		addSampler(pRenderer, &samplerClampDesc, &pBilinearClampSampler);
-		
-		float floorPoints[] = {
-			-1.0f, 0.0f, 1.0f, -1.0f, -1.0f,
-			-1.0f, 0.0f, -1.0f, -1.0f, 1.0f,
-			1.0f, 0.0f, -1.0f, 1.0f, 1.0f,
-			1.0f, 0.0f, 1.0f, 1.0f, -1.0f,
-		};
-		
-		BufferLoadDesc floorVbDesc = {};
-		floorVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		floorVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		floorVbDesc.mDesc.mSize = sizeof(float) * 5 * 4;
-		floorVbDesc.pData = floorPoints;
-		floorVbDesc.ppBuffer = &pFloorVB;
-		addResource(&floorVbDesc, NULL);
-		
-		uint16_t floorIndices[] =
-		{
-			0, 1, 3,
-			3, 1, 2
-		};
-		
-		BufferLoadDesc indexBufferDesc = {};
-		indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		indexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		indexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-		indexBufferDesc.mDesc.mSize = sizeof(uint16_t) * 6;
-		indexBufferDesc.pData = floorIndices;
-		indexBufferDesc.ppBuffer = &pFloorIB;
-		addResource(&indexBufferDesc, NULL);
-		
-		float screenTriangularPoints[] =
-		{
-			-1.0f,  3.0f, 0.5f, 0.0f, -1.0f,
-			-1.0f, -1.0f, 0.5f, 0.0f, 1.0f,
-			3.0f, -1.0f, 0.5f, 2.0f, 1.0f,
-		};
-		
-		BufferLoadDesc screenQuadVbDesc = {};
-		screenQuadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		screenQuadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 3;
-		screenQuadVbDesc.pData = screenTriangularPoints;
-		screenQuadVbDesc.ppBuffer = &TriangularVB;
-		addResource(&screenQuadVbDesc, NULL);
-		
-		TextureDesc defaultTextureDesc = {};
-		defaultTextureDesc.mArraySize = 1;
-		defaultTextureDesc.mDepth = 1;
-		defaultTextureDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-		defaultTextureDesc.mWidth = 4;
-		defaultTextureDesc.mHeight = 4;
-		defaultTextureDesc.mMipLevels = 1;
-		defaultTextureDesc.mSampleCount = SAMPLE_COUNT_1;
-		defaultTextureDesc.mStartState = RESOURCE_STATE_COMMON;
-		defaultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		defaultTextureDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		defaultTextureDesc.pName = gMissingTextureString;
-		TextureLoadDesc defaultLoadDesc = {};
-		defaultLoadDesc.pDesc = &defaultTextureDesc;
-		defaultLoadDesc.ppTexture = &pTextureBlack;
-		addResource(&defaultLoadDesc, NULL);
-
-		TextureUpdateDesc updateDesc = { pTextureBlack };
-		beginUpdateResource(&updateDesc);
-		memset(updateDesc.pMappedData, 0, 4 * 4 * sizeof(uint32_t));
-		endUpdateResource(&updateDesc, NULL);
-
-		gModelFile = pModelNames[mModelSelected];
-		
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlock);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-		
-		BufferLoadDesc subDesc = {};
-		subDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		subDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		subDesc.mDesc.mSize = sizeof(UniformBlock_Shadow);
-		subDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		subDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			subDesc.ppBuffer = &pShadowUniformBuffer[i];
-			addResource(&subDesc, NULL);
-		}
-		
-		ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlock);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pFloorUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-		/************************************************************************/
-		// GUI
-		/************************************************************************/
-		GuiDesc guiDesc = {};		
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-		
-#if !defined(TARGET_IOS)
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync", &bToggleVSync));
-#endif
-		
-		pGuiWindow->AddWidget(SeparatorWidget());
-
-		DropdownWidget loadModelWidget("Load Model", &mModelSelected, pModelNames, gModelValues, mModelCount);
-
-		pGuiWindow->AddWidget(loadModelWidget);
-		
-		pGuiWindow->AddWidget(SeparatorWidget());
-		
-		pSelectLodWidget = pGuiWindow->AddWidget(SliderIntWidget("LOD", &gCurrentLod, 0, gMaxLod));
-		
-		////////////////////////////////////////////////////////////////////////////////////////////
-		
-		guiDesc = {};		
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.35f);
-		pGuiGraphics = gAppUI.AddGuiComponent("Graphics Options", &guiDesc);
-		
-		pGuiGraphics->AddWidget(CheckboxWidget("Enable FXAA", &bToggleFXAA));
-		pGuiGraphics->AddWidget(CheckboxWidget("Enable Vignetting", &bVignetting));
-		
-		pGuiGraphics->AddWidget(SeparatorWidget());
-		
-		CollapsingHeaderWidget LightWidgets("Light Options", false, false);
-		LightWidgets.AddSubWidget(SliderFloatWidget("Light Azimuth", &gLightDirection.x, float(-180.0f), float(180.0f), float(0.001f)));
-		LightWidgets.AddSubWidget(SliderFloatWidget("Light Elevation", &gLightDirection.y, float(210.0f), float(330.0f), float(0.001f)));
-		
-		LightWidgets.AddSubWidget(SeparatorWidget());
-		
-		CollapsingHeaderWidget LightColor1Picker("Main Light Color");
-		LightColor1Picker.AddSubWidget(ColorPickerWidget("Main Light Color", &gLightColor[0]));
-		LightWidgets.AddSubWidget(LightColor1Picker);
-		
-		CollapsingHeaderWidget LightColor1Intensity("Main Light Intensity");
-		LightColor1Intensity.AddSubWidget(SliderFloatWidget("Main Light Intensity", &gLightColorIntensity[0], 0.0f, 5.0f, 0.001f));
-		LightWidgets.AddSubWidget(LightColor1Intensity);
-		
-		LightWidgets.AddSubWidget(SeparatorWidget());
-		
-		CollapsingHeaderWidget LightColor2Picker("Light2 Color");
-		LightColor2Picker.AddSubWidget(ColorPickerWidget("Light2 Color", &gLightColor[1]));
-		LightWidgets.AddSubWidget(LightColor2Picker);
-		
-		CollapsingHeaderWidget LightColor2Intensity("Light2 Intensity");
-		LightColor2Intensity.AddSubWidget(SliderFloatWidget("Light2 Intensity", &gLightColorIntensity[1], 0.0f, 5.0f, 0.001f));
-		LightWidgets.AddSubWidget(LightColor2Intensity);
-		
-		LightWidgets.AddSubWidget(SeparatorWidget());
-		
-		CollapsingHeaderWidget LightColor3Picker("Light3 Color");
-		LightColor3Picker.AddSubWidget(ColorPickerWidget("Light3 Color", &gLightColor[2]));
-		LightWidgets.AddSubWidget(LightColor3Picker);
-		
-		CollapsingHeaderWidget LightColor3Intensity("Light3 Intensity");
-		LightColor3Intensity.AddSubWidget(SliderFloatWidget("Light3 Intensity", &gLightColorIntensity[2], 0.0f, 5.0f, 0.001f));
-		LightWidgets.AddSubWidget(LightColor3Intensity);
-		
-		LightWidgets.AddSubWidget(SeparatorWidget());
-		
-		CollapsingHeaderWidget AmbientLightColorPicker("Ambient Light Color");
-		AmbientLightColorPicker.AddSubWidget(ColorPickerWidget("Ambient Light Color", &gLightColor[3]));
-		LightWidgets.AddSubWidget(AmbientLightColorPicker);
-		
-		CollapsingHeaderWidget LightColor4Intensity("Ambient Light Intensity");
-		LightColor4Intensity.AddSubWidget(SliderFloatWidget("Light Intensity", &gLightColorIntensity[3], 0.0f, 5.0f, 0.001f));
-		LightWidgets.AddSubWidget(LightColor4Intensity);
-		
-		LightWidgets.AddSubWidget(SeparatorWidget());
-		
-		pGuiGraphics->AddWidget(LightWidgets);
-		
 		CameraMotionParameters cmp{ 1.0f, 120.0f, 40.0f };
 		vec3                   camPos{ 3.0f, 2.5f, -4.0f };
 		vec3                   lookAt{ 0.0f, 0.4f, 0.0f };
@@ -1096,8 +869,6 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		waitForAllResourceLoads();
-		
 		return true;
 	}
 	
@@ -1242,53 +1013,9 @@ public:
 	
 	void Exit()
 	{
-		waitQueueIdle(pGraphicsQueue);
-		
 		exitInputSystem();
-		
-		exitProfiler();
-		
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
-		
-		gVirtualJoystick.Exit();
-		
-		gAppUI.Exit();
-		
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pShadowUniformBuffer[i]);
-			removeResource(pUniformBuffer[i]);
-			removeResource(pFloorUniformBuffer[i]);
-		}
-		
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-        
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		removeSampler(pRenderer, pDefaultSampler);
-		removeSampler(pRenderer, pBilinearClampSampler);
-		
-		removeResource(TriangularVB);
-		
-		removeResource(pFloorVB);
-		removeResource(pFloorIB);
-		
-		removeResource(pTextureBlack);
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
-		
 		gModelFile = NULL;
 	}
 	
@@ -1463,6 +1190,266 @@ public:
 	{
 		if (!mModelReload)
 		{
+			if(mSettings.mResetGraphics || !pRenderer)
+			{
+				// window and renderer setup
+				RendererDesc settings = { 0 };
+				initRenderer(GetName(), &settings, &pRenderer);
+				//check for init success
+				if (!pRenderer)
+					return false;
+
+				QueueDesc queueDesc = {};
+				queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+				queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+				addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					CmdPoolDesc cmdPoolDesc = {};
+					cmdPoolDesc.pQueue = pGraphicsQueue;
+					addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+					CmdDesc cmdDesc = {};
+					cmdDesc.pPool = pCmdPools[i];
+					addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+				}
+
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					addFence(pRenderer, &pRenderCompleteFences[i]);
+					addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+				}
+				addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+				initResourceLoaderInterface(pRenderer);
+
+				if (!gAppUI.Init(pRenderer))
+					return false;
+				gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+				gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+				initProfiler();
+				initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+				gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+				if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+				{
+					LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+					return false;
+				}
+
+				SamplerDesc defaultSamplerDesc = {
+					FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
+					ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT
+				};
+				addSampler(pRenderer, &defaultSamplerDesc, &pDefaultSampler);
+
+				SamplerDesc samplerClampDesc = {
+					FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
+					ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+				};
+				addSampler(pRenderer, &samplerClampDesc, &pBilinearClampSampler);
+
+				float floorPoints[] = {
+					-1.0f, 0.0f, 1.0f, -1.0f, -1.0f,
+					-1.0f, 0.0f, -1.0f, -1.0f, 1.0f,
+					1.0f, 0.0f, -1.0f, 1.0f, 1.0f,
+					1.0f, 0.0f, 1.0f, 1.0f, -1.0f,
+				};
+
+				BufferLoadDesc floorVbDesc = {};
+				floorVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+				floorVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				floorVbDesc.mDesc.mSize = sizeof(float) * 5 * 4;
+				floorVbDesc.pData = floorPoints;
+				floorVbDesc.ppBuffer = &pFloorVB;
+				addResource(&floorVbDesc, NULL);
+
+				uint16_t floorIndices[] =
+				{
+					0, 1, 3,
+					3, 1, 2
+				};
+
+				BufferLoadDesc indexBufferDesc = {};
+				indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+				indexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				indexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+				indexBufferDesc.mDesc.mSize = sizeof(uint16_t) * 6;
+				indexBufferDesc.pData = floorIndices;
+				indexBufferDesc.ppBuffer = &pFloorIB;
+				addResource(&indexBufferDesc, NULL);
+
+				float screenTriangularPoints[] =
+				{
+					-1.0f,  3.0f, 0.5f, 0.0f, -1.0f,
+					-1.0f, -1.0f, 0.5f, 0.0f, 1.0f,
+					3.0f, -1.0f, 0.5f, 2.0f, 1.0f,
+				};
+
+				BufferLoadDesc screenQuadVbDesc = {};
+				screenQuadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+				screenQuadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 3;
+				screenQuadVbDesc.pData = screenTriangularPoints;
+				screenQuadVbDesc.ppBuffer = &TriangularVB;
+				addResource(&screenQuadVbDesc, NULL);
+
+				TextureDesc defaultTextureDesc = {};
+				defaultTextureDesc.mArraySize = 1;
+				defaultTextureDesc.mDepth = 1;
+				defaultTextureDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+				defaultTextureDesc.mWidth = 4;
+				defaultTextureDesc.mHeight = 4;
+				defaultTextureDesc.mMipLevels = 1;
+				defaultTextureDesc.mSampleCount = SAMPLE_COUNT_1;
+				defaultTextureDesc.mStartState = RESOURCE_STATE_COMMON;
+				defaultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+				defaultTextureDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+				defaultTextureDesc.pName = gMissingTextureString;
+				TextureLoadDesc defaultLoadDesc = {};
+				defaultLoadDesc.pDesc = &defaultTextureDesc;
+				defaultLoadDesc.ppTexture = &pTextureBlack;
+				addResource(&defaultLoadDesc, NULL);
+
+				TextureUpdateDesc updateDesc = { pTextureBlack };
+				beginUpdateResource(&updateDesc);
+				memset(updateDesc.pMappedData, 0, 4 * 4 * sizeof(uint32_t));
+				endUpdateResource(&updateDesc, NULL);
+
+				gModelFile = pModelNames[mModelSelected];
+
+				BufferLoadDesc ubDesc = {};
+				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				ubDesc.mDesc.mSize = sizeof(UniformBlock);
+				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				ubDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					ubDesc.ppBuffer = &pUniformBuffer[i];
+					addResource(&ubDesc, NULL);
+				}
+
+				BufferLoadDesc subDesc = {};
+				subDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				subDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				subDesc.mDesc.mSize = sizeof(UniformBlock_Shadow);
+				subDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				subDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					subDesc.ppBuffer = &pShadowUniformBuffer[i];
+					addResource(&subDesc, NULL);
+				}
+
+				ubDesc = {};
+				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				ubDesc.mDesc.mSize = sizeof(UniformBlock);
+				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				ubDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					ubDesc.ppBuffer = &pFloorUniformBuffer[i];
+					addResource(&ubDesc, NULL);
+				}
+				/************************************************************************/
+				// GUI
+				/************************************************************************/
+				GuiDesc guiDesc = {};
+				guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+				pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+				// Reset graphics with a button.
+				ButtonWidget testGPUReset("ResetGraphicsDevice");
+				testGPUReset.pOnEdited = testGraphicsReset;
+				pGuiWindow->AddWidget(testGPUReset);
+
+#if !defined(TARGET_IOS)
+				pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync", &bToggleVSync));
+#endif
+
+				pGuiWindow->AddWidget(SeparatorWidget());
+
+				DropdownWidget loadModelWidget("Load Model", &mModelSelected, pModelNames, gModelValues, mModelCount);
+
+				pGuiWindow->AddWidget(loadModelWidget);
+
+				pGuiWindow->AddWidget(SeparatorWidget());
+
+				pSelectLodWidget = pGuiWindow->AddWidget(SliderIntWidget("LOD", &gCurrentLod, 0, gMaxLod));
+
+				////////////////////////////////////////////////////////////////////////////////////////////
+
+				guiDesc = {};
+				guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.35f);
+				pGuiGraphics = gAppUI.AddGuiComponent("Graphics Options", &guiDesc);
+
+				pGuiGraphics->AddWidget(CheckboxWidget("Enable FXAA", &bToggleFXAA));
+				pGuiGraphics->AddWidget(CheckboxWidget("Enable Vignetting", &bVignetting));
+
+				pGuiGraphics->AddWidget(SeparatorWidget());
+
+				CollapsingHeaderWidget LightWidgets("Light Options", false, false);
+				LightWidgets.AddSubWidget(SliderFloatWidget("Light Azimuth", &gLightDirection.x, float(-180.0f), float(180.0f), float(0.001f)));
+				LightWidgets.AddSubWidget(SliderFloatWidget("Light Elevation", &gLightDirection.y, float(210.0f), float(330.0f), float(0.001f)));
+
+				LightWidgets.AddSubWidget(SeparatorWidget());
+
+				CollapsingHeaderWidget LightColor1Picker("Main Light Color");
+				LightColor1Picker.AddSubWidget(ColorPickerWidget("Main Light Color", &gLightColor[0]));
+				LightWidgets.AddSubWidget(LightColor1Picker);
+
+				CollapsingHeaderWidget LightColor1Intensity("Main Light Intensity");
+				LightColor1Intensity.AddSubWidget(SliderFloatWidget("Main Light Intensity", &gLightColorIntensity[0], 0.0f, 5.0f, 0.001f));
+				LightWidgets.AddSubWidget(LightColor1Intensity);
+
+				LightWidgets.AddSubWidget(SeparatorWidget());
+
+				CollapsingHeaderWidget LightColor2Picker("Light2 Color");
+				LightColor2Picker.AddSubWidget(ColorPickerWidget("Light2 Color", &gLightColor[1]));
+				LightWidgets.AddSubWidget(LightColor2Picker);
+
+				CollapsingHeaderWidget LightColor2Intensity("Light2 Intensity");
+				LightColor2Intensity.AddSubWidget(SliderFloatWidget("Light2 Intensity", &gLightColorIntensity[1], 0.0f, 5.0f, 0.001f));
+				LightWidgets.AddSubWidget(LightColor2Intensity);
+
+				LightWidgets.AddSubWidget(SeparatorWidget());
+
+				CollapsingHeaderWidget LightColor3Picker("Light3 Color");
+				LightColor3Picker.AddSubWidget(ColorPickerWidget("Light3 Color", &gLightColor[2]));
+				LightWidgets.AddSubWidget(LightColor3Picker);
+
+				CollapsingHeaderWidget LightColor3Intensity("Light3 Intensity");
+				LightColor3Intensity.AddSubWidget(SliderFloatWidget("Light3 Intensity", &gLightColorIntensity[2], 0.0f, 5.0f, 0.001f));
+				LightWidgets.AddSubWidget(LightColor3Intensity);
+
+				LightWidgets.AddSubWidget(SeparatorWidget());
+
+				CollapsingHeaderWidget AmbientLightColorPicker("Ambient Light Color");
+				AmbientLightColorPicker.AddSubWidget(ColorPickerWidget("Ambient Light Color", &gLightColor[3]));
+				LightWidgets.AddSubWidget(AmbientLightColorPicker);
+
+				CollapsingHeaderWidget LightColor4Intensity("Ambient Light Intensity");
+				LightColor4Intensity.AddSubWidget(SliderFloatWidget("Ambient Light Intensity", &gLightColorIntensity[3], 0.0f, 5.0f, 0.001f));
+				LightWidgets.AddSubWidget(LightColor4Intensity);
+
+				LightWidgets.AddSubWidget(SeparatorWidget());
+
+				pGuiGraphics->AddWidget(LightWidgets);
+
+				DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+				ButtonWidget bRunScript("Run");
+				bRunScript.pOnEdited = RunScript;
+				pGuiGraphics->AddWidget(ddTestScripts);
+				pGuiGraphics->AddWidget(bRunScript);
+
+				waitForAllResourceLoads();
+			}
+
 			if (!addSwapChain())
 				return false;
 
@@ -1477,8 +1464,6 @@ public:
 
 			if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 				return false;
-
-			loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 			float wmHeight = min(mSettings.mWidth, mSettings.mHeight) * 0.09f;
 			float wmWidth = wmHeight * 2.8077f;
@@ -1542,7 +1527,6 @@ public:
 
 		removeResource(WaterMarkVB);
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 		
 		gVirtualJoystick.Unload();
@@ -1553,6 +1537,51 @@ public:
 		removeRenderTarget(pRenderer, pForwardRT);
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeRenderTarget(pRenderer, pShadowRT);
+
+		if (mSettings.mResetGraphics || mSettings.mQuit) 
+		{
+			exitProfilerUI();
+
+			exitProfiler();
+
+			gVirtualJoystick.Exit();
+
+			gAppUI.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pShadowUniformBuffer[i]);
+				removeResource(pUniformBuffer[i]);
+				removeResource(pFloorUniformBuffer[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			removeSampler(pRenderer, pDefaultSampler);
+			removeSampler(pRenderer, pBilinearClampSampler);
+
+			removeResource(TriangularVB);
+
+			removeResource(pFloorVB);
+			removeResource(pFloorIB);
+
+			removeResource(pTextureBlack);
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 	
 	void Update(float deltaTime)
@@ -1934,10 +1963,23 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		
 		flipProfiler();
 		
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset)
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
+
 		PostDrawUpdate();
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;

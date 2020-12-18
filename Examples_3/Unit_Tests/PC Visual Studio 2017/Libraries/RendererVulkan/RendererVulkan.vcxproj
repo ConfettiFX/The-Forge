@@ -90,7 +90,7 @@
       <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)..\..\..\PrivateNvidia\NsightAftermath\Win64\x64\DebugVk;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib\amd_ags_x64.dll" "$(TargetDir)amd_ags_x64.dll"* /Y /D</Command>

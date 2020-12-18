@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,7 +25,7 @@
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
-#ifndef _WIN32
+#if !defined(_WINDOWS) && !defined(XBOX)
 #include <unistd.h>    // for sleep()
 #include <time.h>      // for CLOCK_REALTIME
 #include <cstring>     // for memset

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -42,7 +41,7 @@ struct Compute_Shader
         float4 cameraPos;
     };
     constant Uniforms_cbPerPass & cbPerPass;
-	texture2d<float, access::read> normalbuffer;
+	texture2d<float, access::read> normalBuffer;
     texture2d<float, access::read> shadowbuffer;
     texture2d<float, access::write> outputRT;
 
@@ -51,7 +50,7 @@ struct Compute_Shader
         const float lightIntensity = 5;
         const float3 lightColour = float3(1, 1, 0.5);
 
-        float3 normal = normalbuffer.read(uint2(DTid.xy)).xyz;
+        float3 normal = normalBuffer.read(uint2(DTid.xy)).xyz;
         float NdotL = saturate(dot(normal, cbPerPass.lightDir.xyz));
 
         float shadowFactor = ( shadowbuffer.read(uint2(float2(DTid.xy)), 0)).x;
@@ -65,20 +64,25 @@ struct Compute_Shader
 
     Compute_Shader(
 		constant Uniforms_cbPerPass & cbPerPass,
-        texture2d<float, access::read> normalbuffer,
+        texture2d<float, access::read> normalBuffer,
         texture2d<float, access::read> shadowbuffer,
         texture2d<float, access::write> outputRT) : cbPerPass(cbPerPass),
-    normalbuffer(normalbuffer),
+    normalBuffer(normalBuffer),
     shadowbuffer(shadowbuffer),
     outputRT(outputRT) {}
 };
 
 struct CSData {
-    texture2d<float, access::read>        normalbuffer [[id(0)]];
-    texture2d<float, access::read>        shadowbuffer [[id(1)]];
-#ifndef TARGET_IOS
-    texture2d<float, access::write>  outputRT     [[id(2)]];
-#endif
+    constant  float4 * BVHTree [[id(0)]];
+        texture2d<float, access::read> depthBuffer[[id(1)]];
+        texture2d<float, access::read> normalBuffer[[id(2)]];
+        texture2d<float, access::read> shadowbuffer[[id(3)]];
+        texture2d<float, access::read> albedobuffer[[id(4)]];
+        texture2d<float, access::read> lightbuffer [[id(5)]];
+    #ifndef TARGET_IOS
+        texture2d<float, access::write> outputShadowRT[[id(6)]];
+        texture2d<float, access::write> outputRT[[id(7)]];
+    #endif
 };
 
 struct CSDataPerFrame {
@@ -98,7 +102,7 @@ kernel void stageMain(
     uint3 DTid0;
     DTid0 = DTid;
     Compute_Shader main(csDataPerFrame.cbPerPass,
-						csData.normalbuffer,
+						csData.normalBuffer,
 						csData.shadowbuffer,
 #ifndef TARGET_IOS
 						csData.outputRT

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,7 +49,7 @@
 
 #include "../../ThirdParty/OpenSource/gpudetect/include/GpuDetectHelper.h"
 
-#if !defined(_WIN32)
+#if !defined(_WINDOWS) && !defined(XBOX)
 #error "Windows is needed!"
 #endif
 
@@ -143,11 +143,6 @@ D3D11_FILL_MODE gFillModeTranslator[MAX_FILL_MODES] =
 };
 
 // clang-format on
-
-// DX Commands cache which gets processed on queue submission.
-// Actual implementation of the processing is done in Direct3D11Commands.cpp.
-typedef eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> > CachedCmds;
-eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> >         gCachedCmds;
 
 // =================================================================================================
 // IMPLEMENTATION
@@ -359,13 +354,13 @@ DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
 	// FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
 	switch (format)
 	{
-	case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
-	case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
-	case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
-	case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
-	case TinyImageFormat_R8G8B8A8_SRGB: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
-	case TinyImageFormat_R10G10B10A2_UNORM: result = DXGI_FORMAT_R10G10B10A2_UNORM; break;
-	default: break;
+		case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
+		case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
+		case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+		case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
+		case TinyImageFormat_R8G8B8A8_SRGB: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+		case TinyImageFormat_R10G10B10A2_UNORM: result = DXGI_FORMAT_R10G10B10A2_UNORM; break;
+		default: break;
 	}
 
 	if (result == DXGI_FORMAT_UNKNOWN)
@@ -654,56 +649,70 @@ API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarge
 // clang-format on
 void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
+	//TODO: Use CopySubresource region to update the contents of the destination buffer without mapping them to cpu.
+
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
-	//ASSERT(pSrcBuffer->pDxResource);
+	ASSERT(pSrcBuffer);
 	ASSERT(pBuffer);
-	//ASSERT(pBuffer->pDxResource);
+	ASSERT(pBuffer->pDxResource);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	D3D11_MAPPED_SUBRESOURCE sub = {};
+	D3D11_BOX dstBox = { (UINT)dstOffset, 0, 0, (UINT)(dstOffset + size), 1, 1 };
+
+	// Not persistently mapped buffer.
+	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
+		pContext->Map(pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+	}
+	else
+	{
+		sub = { pSrcBuffer->pCpuMappedAddress,0,0 };
 	}
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdUpdateBuffer;
-	cmd.mUpdateBufferCmd.srcOffset = srcOffset;
-	cmd.mUpdateBufferCmd.dstOffset = dstOffset;
-	cmd.mUpdateBufferCmd.size = size;
-	cmd.mUpdateBufferCmd.pSrcBuffer = pSrcBuffer;
-	cmd.mUpdateBufferCmd.pBuffer = pBuffer;
-	cachedCmdsIter->second.push_back(cmd);
+	pContext->UpdateSubresource(
+		pBuffer->pDxResource, 0, &dstBox, (uint8_t*)sub.pData + srcOffset, (UINT)size, 0);
+
+
+	if (!pSrcBuffer->pCpuMappedAddress)
+	{
+		pContext->Unmap(pSrcBuffer->pDxResource, 0);
+	}
 }
 
 void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
 {
 	ASSERT(pCmd);
 	ASSERT(pSubresourceDesc);
-	//ASSERT(pSrcBuffer->pDxResource);
-	ASSERT(pTexture);
-	//ASSERT(pBuffer->pDxResource);
+	ASSERT(pSrcBuffer);
+	ASSERT(pTexture->pDxResource);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	D3D11_MAPPED_SUBRESOURCE sub = {};
+	UINT subresource = D3D11CalcSubresource(pSubresourceDesc->mMipLevel, pSubresourceDesc->mArrayLayer, (uint32_t)pTexture->mMipLevels);
+
+	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
+		pContext->Map(pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+	}
+	else
+	{
+		sub = { pSrcBuffer->pCpuMappedAddress, 0, 0 };
 	}
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdUpdateSubresource;
-	cmd.mUpdateSubresourcesCmd.pTexture = pTexture;
-	cmd.mUpdateSubresourcesCmd.pSrcBuffer = pSrcBuffer;
-	cmd.mUpdateSubresourcesCmd.mSubresourceDesc = *pSubresourceDesc;
-	cachedCmdsIter->second.push_back(cmd);
+	pContext->UpdateSubresource(
+		pTexture->pDxResource, subresource, NULL, (uint8_t*)sub.pData + pSubresourceDesc->mSrcOffset,
+		pSubresourceDesc->mRowPitch, pSubresourceDesc->mSlicePitch);
+
+	if (!pSrcBuffer->pCpuMappedAddress)
+	{
+		pContext->Unmap(pSrcBuffer->pDxResource, 0);
+	}
 }
 /************************************************************************/
 // Internal init functions
@@ -1004,8 +1013,17 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	// Create the actual device
 	DWORD deviceFlags = 0;
 
-#if defined(ENABLE_GRAPHICS_DEBUG)
+	// The D3D debug layer (as well as Microsoft PIX and other graphics debugger
+	// tools using an injection library) is not compatible with Nsight Aftermath.
+	// If Aftermath detects that any of these tools are present it will fail initialization.
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	// Enable Nsight Aftermath GPU crash dump creation.
+	// This needs to be done before the Vulkan device is created.
+	CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
 #endif
 
 	D3D_FEATURE_LEVEL featureLevel;
@@ -1014,7 +1032,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 		&pRenderer->pDxDevice,
 		&featureLevel,    // max feature level
 		&pRenderer->pDxContext);
-	
+
 	if (E_INVALIDARG == hr)
 	{
 		hr = D3D11CreateDevice(
@@ -1031,8 +1049,18 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	{
 		SAFE_RELEASE(gpuDesc[i].pGpu);
 	}
-	
+
 	pRenderer->mFeatureLevel = featureLevel;
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	SetAftermathDevice(pRenderer->pDxDevice);
+#endif
+
+#if defined(ENABLE_PERFORMANCE_MARKER)
+	hr = pRenderer->pDxContext->QueryInterface(__uuidof(pRenderer->pUserDefinedAnnotation), (void**)(&pRenderer->pUserDefinedAnnotation));
+	if (FAILED(hr))
+		LOGF(LogLevel::eERROR, "Failed to query interface ID3DUserDefinedAnnotation.");
+#endif
 
 	return true;
 }
@@ -1043,7 +1071,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->pDxActiveGPU);
 
 	SAFE_RELEASE(pRenderer->pDxContext);
-#if defined(ENABLE_GRAPHICS_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
 	ID3D11Debug* pDebugDevice = NULL;
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->pDxDevice);
@@ -1063,6 +1091,10 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	DestroyAftermathTracker(&pRenderer->mAftermathTracker);
+#endif
 }
 /************************************************************************/
 // Pipeline State Functions
@@ -1173,7 +1205,7 @@ static ID3D11RasterizerState* util_to_rasterizer_state(Renderer* pRenderer, cons
 	ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
 	ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
-	D3D11_RASTERIZER_DESC desc;
+	D3D11_RASTERIZER_DESC desc = {};
 	desc.FillMode = gFillModeTranslator[pDesc->mFillMode];
 	desc.CullMode = gCullModeTranslator[pDesc->mCullMode];
 	desc.FrontCounterClockwise = pDesc->mFrontFace == FRONT_FACE_CCW;
@@ -1183,6 +1215,7 @@ static ID3D11RasterizerState* util_to_rasterizer_state(Renderer* pRenderer, cons
 	desc.DepthClipEnable = !pDesc->mDepthClampEnable;
 	desc.MultisampleEnable = pDesc->mMultiSample ? TRUE : FALSE;
 	desc.AntialiasedLineEnable = FALSE;
+	desc.ScissorEnable = pDesc->mScissor;
 
 	ID3D11RasterizerState* out = NULL;
 	if (FAILED(pRenderer->pDxDevice->CreateRasterizerState(&desc, &out)))
@@ -1291,8 +1324,6 @@ void removeRenderer(Renderer* pRenderer)
 	remove_default_resources(pRenderer);
 
 	RemoveDevice(pRenderer);
-
-	gCachedCmds.clear(true);
 
 	// Free all the renderer components
 	SAFE_FREE(pRenderer->pCapBits);
@@ -1425,7 +1456,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	};
 
 	HRESULT hres = E_FAIL;
-	IDXGISwapChain* swapchain = NULL; 
+	IDXGISwapChain* swapchain = NULL;
 	uint32_t swapEffectsCount = (sizeof swapEffects / sizeof DXGI_SWAP_EFFECT);
 	uint32_t i = pDesc->mUseFlipSwapEffect ? 0 : swapEffectsCount - 2;
 
@@ -1858,8 +1889,8 @@ void compileShader(
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-        code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
-        0, &compiled_code, &error_msgs);
+		code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
+		0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
 		char* msg = (char*)tf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
@@ -2081,13 +2112,16 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	}
 
 	D3D11_BUFFER_DESC desc = {};
-	desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, RESOURCE_STATE_COMMON);
 	desc.ByteWidth = (UINT)allocationSize;
 	desc.CPUAccessFlags = util_determine_dx_cpu_access_flags(pDesc->mMemoryUsage);
+	desc.Usage = util_to_dx_usage(pDesc->mMemoryUsage);
+	// Staging resource can't have bind flags.
+	if (desc.Usage != D3D11_USAGE_STAGING)
+	{
+		desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, RESOURCE_STATE_COMMON);
+	}
 	desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
 	desc.StructureByteStride = (UINT)((desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS) ? 0 : pDesc->mStructStride);
-	desc.Usage = util_to_dx_usage(pDesc->mMemoryUsage);
-
 	CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateBuffer(&desc, NULL, &pBuffer->pDxResource));
 
 	if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) &&
@@ -2184,7 +2218,7 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 	switch (mem)
 	{
 		case RESOURCE_MEMORY_USAGE_CPU_ONLY: mapType = D3D11_MAP_READ_WRITE; break;
-		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: 
+		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU:
 			// its possible a driver doesn't support partial updates to constant buffers
 			// this errors out in that case if a partial update is asked for
 			// To maintain API compatibility on these devices, a cpu buffer
@@ -2293,62 +2327,62 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	{
 		switch (res_dim)
 		{
-		case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
-		{
-			ID3D11Texture1D*     pTex1D;
-			D3D11_TEXTURE1D_DESC desc = {};
-			desc.ArraySize = pDesc->mArraySize;
-			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
-			desc.CPUAccessFlags = 0;
-			desc.Format =  featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
-			desc.MipLevels = pDesc->mMipLevels;
-			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
-			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
-			desc.Width = pDesc->mWidth;
-			CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D));
-			pTexture->pDxResource = pTex1D;
-			break;
-		}
-		case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
-		{
-			ID3D11Texture2D*     pTex2D;
-			D3D11_TEXTURE2D_DESC desc = {};
-			desc.ArraySize = pDesc->mArraySize;
-			desc.BindFlags = util_determine_dx_bind_flags(descriptors, pDesc->mStartState);
-			desc.CPUAccessFlags = 0;
-			desc.Format = featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
-			desc.Height = pDesc->mHeight;
-			desc.MipLevels = pDesc->mMipLevels;
-			desc.MiscFlags = util_determine_dx_resource_misc_flags(descriptors, pDesc->mFormat);
-			desc.SampleDesc.Count = pDesc->mSampleCount;
-			desc.SampleDesc.Quality = pDesc->mSampleQuality;
-			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
-			desc.Width = pDesc->mWidth;
-			CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture2D(&desc, NULL, &pTex2D));
-			pTexture->pDxResource = pTex2D;
-			break;
-		}
-		case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
-		{
-			ID3D11Texture3D*     pTex3D;
-			D3D11_TEXTURE3D_DESC desc = {};
-			desc.BindFlags = util_determine_dx_bind_flags(descriptors, pDesc->mStartState);
-			desc.CPUAccessFlags = 0;
-			desc.Depth = pDesc->mDepth;
-			desc.Format = featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
-			desc.Height = pDesc->mHeight;
-			desc.MipLevels = pDesc->mMipLevels;
-			desc.MiscFlags = util_determine_dx_resource_misc_flags(descriptors, pDesc->mFormat);
-			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
-				desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
-			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
-			desc.Width = pDesc->mWidth;
-			CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex3D));
-			pTexture->pDxResource = pTex3D;
-			break;
-		}
-		default:
-			break;
+			case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
+			{
+				ID3D11Texture1D*     pTex1D;
+				D3D11_TEXTURE1D_DESC desc = {};
+				desc.ArraySize = pDesc->mArraySize;
+				desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
+				desc.CPUAccessFlags = 0;
+				desc.Format = featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
+				desc.MipLevels = pDesc->mMipLevels;
+				desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
+				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
+				desc.Width = pDesc->mWidth;
+				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D));
+				pTexture->pDxResource = pTex1D;
+				break;
+			}
+			case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
+			{
+				ID3D11Texture2D*     pTex2D;
+				D3D11_TEXTURE2D_DESC desc = {};
+				desc.ArraySize = pDesc->mArraySize;
+				desc.BindFlags = util_determine_dx_bind_flags(descriptors, pDesc->mStartState);
+				desc.CPUAccessFlags = 0;
+				desc.Format = featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
+				desc.Height = pDesc->mHeight;
+				desc.MipLevels = pDesc->mMipLevels;
+				desc.MiscFlags = util_determine_dx_resource_misc_flags(descriptors, pDesc->mFormat);
+				desc.SampleDesc.Count = pDesc->mSampleCount;
+				desc.SampleDesc.Quality = pDesc->mSampleQuality;
+				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
+				desc.Width = pDesc->mWidth;
+				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture2D(&desc, NULL, &pTex2D));
+				pTexture->pDxResource = pTex2D;
+				break;
+			}
+			case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
+			{
+				ID3D11Texture3D*     pTex3D;
+				D3D11_TEXTURE3D_DESC desc = {};
+				desc.BindFlags = util_determine_dx_bind_flags(descriptors, pDesc->mStartState);
+				desc.CPUAccessFlags = 0;
+				desc.Depth = pDesc->mDepth;
+				desc.Format = featureLevel11 ? (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat) : dxFormat;
+				desc.Height = pDesc->mHeight;
+				desc.MipLevels = pDesc->mMipLevels;
+				desc.MiscFlags = util_determine_dx_resource_misc_flags(descriptors, pDesc->mFormat);
+				if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
+					desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
+				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
+				desc.Width = pDesc->mWidth;
+				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex3D));
+				pTexture->pDxResource = pTex3D;
+				break;
+			}
+			default:
+				break;
 		}
 	}
 	else
@@ -2552,15 +2586,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	pTexture->mArraySizeMinusOne = pDesc->mArraySize - 1;
 	pTexture->mFormat = pDesc->mFormat;
 
-	// TODO: Handle host visible textures in a better way
-	if (pDesc->mHostVisible)
-	{
-		internal_log(
-			LOG_TYPE_WARN,
-			"D3D11 does not support host visible textures, memory of resulting texture will not be mapped for CPU visibility",
-			"addTexture");
-	}
-
 	*ppTexture = pTexture;
 }
 
@@ -2600,7 +2625,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 	eastl::unordered_map<eastl::string, Sampler*> staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({{ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] }});
+		staticSamplerMap.insert({ { pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] } });
 
 	// Collect all unique shader resources in the given shaders
 	// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -2661,7 +2686,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			{
 				if (shaderResources[pNode->second].reg != pRes->reg)
 				{
-					LOGF(eERROR, 
+					LOGF(eERROR,
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching register. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2671,7 +2696,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				}
 				if (shaderResources[pNode->second].set != pRes->set)
 				{
-					LOGF(eERROR, 
+					LOGF(eERROR,
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching space. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2740,18 +2765,18 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		DescriptorType type = pRes->type;
 		switch (type)
 		{
-		case DESCRIPTOR_TYPE_TEXTURE:
-		case DESCRIPTOR_TYPE_BUFFER:
-		case DESCRIPTOR_TYPE_BUFFER_RAW:
-			pDesc->mHandleIndex = srvCount++;
-			break;
-		case DESCRIPTOR_TYPE_RW_TEXTURE:
-		case DESCRIPTOR_TYPE_RW_BUFFER:
-		case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
-			pDesc->mHandleIndex = uavCount++;
-			break;
-		default:
-			break;
+			case DESCRIPTOR_TYPE_TEXTURE:
+			case DESCRIPTOR_TYPE_BUFFER:
+			case DESCRIPTOR_TYPE_BUFFER_RAW:
+				pDesc->mHandleIndex = srvCount++;
+				break;
+			case DESCRIPTOR_TYPE_RW_TEXTURE:
+			case DESCRIPTOR_TYPE_RW_BUFFER:
+			case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+				pDesc->mHandleIndex = uavCount++;
+				break;
+			default:
+				break;
 		}
 
 		// Find the D3D11 type of the descriptors
@@ -2998,30 +3023,30 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 
 	switch (pDesc->mType)
 	{
-	case(PIPELINE_TYPE_COMPUTE):
-	{
-		ASSERT(pDesc->mComputeDesc.pShaderProgram);
-		ASSERT(pDesc->mComputeDesc.pRootSignature);
+		case(PIPELINE_TYPE_COMPUTE):
+		{
+			ASSERT(pDesc->mComputeDesc.pShaderProgram);
+			ASSERT(pDesc->mComputeDesc.pRootSignature);
 
-		Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
-		ASSERT(ppPipeline);
-		pPipeline->mType = PIPELINE_TYPE_COMPUTE;
-		pPipeline->pDxComputeShader = pDesc->mComputeDesc.pShaderProgram->pDxComputeShader;
-		*ppPipeline = pPipeline;
-		break;
-	}
-	case(PIPELINE_TYPE_GRAPHICS):
-	{
-		addPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
-		break;
-	}
-	case(PIPELINE_TYPE_RAYTRACING):
-	default:
-	{
-		ASSERT(false);
-		*ppPipeline = {};
-		break;
-	}
+			Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+			ASSERT(ppPipeline);
+			pPipeline->mType = PIPELINE_TYPE_COMPUTE;
+			pPipeline->pDxComputeShader = pDesc->mComputeDesc.pShaderProgram->pDxComputeShader;
+			*ppPipeline = pPipeline;
+			break;
+		}
+		case(PIPELINE_TYPE_GRAPHICS):
+		{
+			addPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+			break;
+		}
+		case(PIPELINE_TYPE_RAYTRACING):
+		default:
+		{
+			ASSERT(false);
+			*ppPipeline = {};
+			break;
+		}
 	}
 }
 
@@ -3192,166 +3217,166 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 		switch (type)
 		{
-		case DESCRIPTOR_TYPE_SAMPLER:
-		{
-			// Index is invalid when descriptor is a static sampler
-			VALIDATE_DESCRIPTOR(pDesc->mIndexInParent != -1,
-				"Trying to update a static sampler (%s). All static samplers must be set in addRootSignature and cannot be updated later",
-				pDesc->pName);
-
-			VALIDATE_DESCRIPTOR(pParam->ppSamplers, "NULL Sampler (%s)", pDesc->pName);
-
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			case DESCRIPTOR_TYPE_SAMPLER:
 			{
-				VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
+				// Index is invalid when descriptor is a static sampler
+				VALIDATE_DESCRIPTOR(pDesc->mIndexInParent != -1,
+					"Trying to update a static sampler (%s). All static samplers must be set in addRootSignature and cannot be updated later",
+					pDesc->pName);
 
-				pDescriptorSet->pHandles[index].pSamplers[paramIndex] =(DescriptorHandle
-					{
-						pParam->ppSamplers[arr]->pSamplerState,
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg + arr
-					});
-			}
-			break;
-		}
-		case DESCRIPTOR_TYPE_TEXTURE:
-		{
-			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
+				VALIDATE_DESCRIPTOR(pParam->ppSamplers, "NULL Sampler (%s)", pDesc->pName);
 
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
-			{
-				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
-
-				pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
-					{
-						pParam->ppTextures[arr]->pDxSRVDescriptor,
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg + arr
-					});
-			}
-			break;
-		}
-		case DESCRIPTOR_TYPE_RW_TEXTURE:
-		{
-			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->pName);
-			const uint32_t mipSlice = pParam->mUAVMipSlice;
-
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
-			{
-				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
-				VALIDATE_DESCRIPTOR(mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
-					pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
-
-				pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
-					{
-						pParam->ppTextures[arr]->pDxUAVDescriptors[pParam->mUAVMipSlice],
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg + arr
-					});
-			}
-			break;
-		}
-		case DESCRIPTOR_TYPE_BUFFER:
-		case DESCRIPTOR_TYPE_BUFFER_RAW:
-		{
-			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
-
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
-			{
-				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
-
-				pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
-					{
-						pParam->ppBuffers[arr]->pDxSrvHandle,
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg + arr
-					});
-			}
-			break;
-		}
-		case DESCRIPTOR_TYPE_RW_BUFFER:
-		case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
-		{
-			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
-
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
-			{
-				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
-
-				pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
-					{
-						pParam->ppBuffers[arr]->pDxUavHandle,
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg + arr
-					});
-			}
-			break;
-		}
-		case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-		{
-			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->pName);
-
-			if (pDesc->mIndexInParent == -1)
-			{
-				VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, 0);
-				VALIDATE_DESCRIPTOR(arrayCount == 1, "Descriptor (%s) : RootCBV does not support arrays", pDesc->pName);
-				VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) : Must provide pSizes for RootCBV", pDesc->pName);
-				VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, 0);
-				VALIDATE_DESCRIPTOR(pParam->pSizes[0] <= 65536,
-					"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, 0,
-					pParam->pSizes[0],
-					65536);
-
-				uint32_t offset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
-				uint32_t size = (uint32_t)pParam->pSizes[0];
-				CBV cbv =
-				{
-					pParam->ppBuffers[0]->pDxResource,
-					offset,
-					size,
-					(ShaderStage)pDesc->mUsedStages,
-					pDesc->mReg
-				};
-
-				uint32_t dynamicCbvCount = pDescriptorSet->pDynamicCBVsCount[index];
-				if ((dynamicCbvCount + 1) >= pDescriptorSet->pDynamicCBVsCapacity[index])
-				{
-					pDescriptorSet->pDynamicCBVsCapacity[index] <<= 1;
-					pDescriptorSet->pDynamicCBVs[index] = (CBV*)tf_realloc(pDescriptorSet->pDynamicCBVs[index], pDescriptorSet->pDynamicCBVsCapacity[index] * sizeof(CBV));
-				}
-
-				pDescriptorSet->pDynamicCBVs[index][dynamicCbvCount++] = cbv;
-				pDescriptorSet->pDynamicCBVsCount[index] = dynamicCbvCount;
-			}
-			else
-			{
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
-					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, arr);
-					if (pParam->pOffsets || pParam->pSizes)
-					{
-						VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->pName);
-						VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, arr);
-						VALIDATE_DESCRIPTOR(pParam->pSizes[arr] <= 65536,
-							"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, arr,
-							pParam->pSizes[arr],
-							65536);
-					}
+					VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->pHandles[index].pCBVs[paramIndex] = (CBV
+					pDescriptorSet->pHandles[index].pSamplers[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppBuffers[arr]->pDxResource,
-							pParam->pOffsets ? (uint32_t)pParam->pOffsets[i] : 0U,
-							pParam->pSizes ? (uint32_t)pParam->pSizes[i] : 0U,
+							pParam->ppSamplers[arr]->pSamplerState,
 							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr,
+							pDesc->mReg + arr
 						});
 				}
+				break;
 			}
-			break;
-		}
-		default:
-			break;
+			case DESCRIPTOR_TYPE_TEXTURE:
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
+
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
+
+					pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
+						{
+							pParam->ppTextures[arr]->pDxSRVDescriptor,
+							(ShaderStage)pDesc->mUsedStages,
+							pDesc->mReg + arr
+						});
+				}
+				break;
+			}
+			case DESCRIPTOR_TYPE_RW_TEXTURE:
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->pName);
+				const uint32_t mipSlice = pParam->mUAVMipSlice;
+
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
+					VALIDATE_DESCRIPTOR(mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
+						pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
+
+					pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
+						{
+							pParam->ppTextures[arr]->pDxUAVDescriptors[pParam->mUAVMipSlice],
+							(ShaderStage)pDesc->mUsedStages,
+							pDesc->mReg + arr
+						});
+				}
+				break;
+			}
+			case DESCRIPTOR_TYPE_BUFFER:
+			case DESCRIPTOR_TYPE_BUFFER_RAW:
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
+
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
+
+					pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
+						{
+							pParam->ppBuffers[arr]->pDxSrvHandle,
+							(ShaderStage)pDesc->mUsedStages,
+							pDesc->mReg + arr
+						});
+				}
+				break;
+			}
+			case DESCRIPTOR_TYPE_RW_BUFFER:
+			case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
+
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
+
+					pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
+						{
+							pParam->ppBuffers[arr]->pDxUavHandle,
+							(ShaderStage)pDesc->mUsedStages,
+							pDesc->mReg + arr
+						});
+				}
+				break;
+			}
+			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->pName);
+
+				if (pDesc->mIndexInParent == -1)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, 0);
+					VALIDATE_DESCRIPTOR(arrayCount == 1, "Descriptor (%s) : RootCBV does not support arrays", pDesc->pName);
+					VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) : Must provide pSizes for RootCBV", pDesc->pName);
+					VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, 0);
+					VALIDATE_DESCRIPTOR(pParam->pSizes[0] <= 65536,
+						"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, 0,
+						pParam->pSizes[0],
+						65536);
+
+					uint32_t offset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
+					uint32_t size = (uint32_t)pParam->pSizes[0];
+					CBV cbv =
+					{
+						pParam->ppBuffers[0]->pDxResource,
+						offset,
+						size,
+						(ShaderStage)pDesc->mUsedStages,
+						pDesc->mReg
+					};
+
+					uint32_t dynamicCbvCount = pDescriptorSet->pDynamicCBVsCount[index];
+					if ((dynamicCbvCount + 1) >= pDescriptorSet->pDynamicCBVsCapacity[index])
+					{
+						pDescriptorSet->pDynamicCBVsCapacity[index] <<= 1;
+						pDescriptorSet->pDynamicCBVs[index] = (CBV*)tf_realloc(pDescriptorSet->pDynamicCBVs[index], pDescriptorSet->pDynamicCBVsCapacity[index] * sizeof(CBV));
+					}
+
+					pDescriptorSet->pDynamicCBVs[index][dynamicCbvCount++] = cbv;
+					pDescriptorSet->pDynamicCBVsCount[index] = dynamicCbvCount;
+				}
+				else
+				{
+					for (uint32_t arr = 0; arr < arrayCount; ++arr)
+					{
+						VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, arr);
+						if (pParam->pOffsets || pParam->pSizes)
+						{
+							VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->pName);
+							VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, arr);
+							VALIDATE_DESCRIPTOR(pParam->pSizes[arr] <= 65536,
+								"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, arr,
+								pParam->pSizes[arr],
+								65536);
+						}
+
+						pDescriptorSet->pHandles[index].pCBVs[paramIndex] = (CBV
+							{
+								pParam->ppBuffers[arr]->pDxResource,
+								pParam->pOffsets ? (uint32_t)pParam->pOffsets[i] : 0U,
+								pParam->pSizes ? (uint32_t)pParam->pSizes[i] : 0U,
+								(ShaderStage)pDesc->mUsedStages,
+								pDesc->mReg + arr,
+							});
+					}
+				}
+				break;
+			}
+			default:
+				break;
 		}
 	}
 }
@@ -3366,24 +3391,43 @@ void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 
 void beginCmd(Cmd* pCmd)
 {
-	ASSERT(pCmd);
-
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	if (cachedCmdsIter != gCachedCmds.end())
-		cachedCmdsIter->second.clear();    // found it so clear the cmds list
-	else
-		gCachedCmds[pCmd];    // create a new cached cmd list
-
-	pCmd->mDescriptorCacheOffset = 0;
+  //TODO: Maybe put lock here if required.
 }
 
 void endCmd(Cmd* pCmd)
 {
-	ASSERT(pCmd);
-
-	// TODO: should we do anything particular here?
+  //TODO: Maybe put unlock here if required.
 }
 
+void reset_shader_resources(ID3D11DeviceContext* pContext)
+{
+	static ID3D11ShaderResourceView* pNullSRV[32] = { NULL };
+	pContext->VSSetShaderResources(0, 32, pNullSRV);
+	pContext->PSSetShaderResources(0, 32, pNullSRV);
+	pContext->HSSetShaderResources(0, 32, pNullSRV);
+	pContext->DSSetShaderResources(0, 32, pNullSRV);
+	pContext->GSSetShaderResources(0, 32, pNullSRV);
+	pContext->CSSetShaderResources(0, 32, pNullSRV);
+}
+
+void set_shader_resources(
+	ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32_t reg, uint32_t count, ID3D11ShaderResourceView** pSRVs)
+{
+	if (used_stages & SHADER_STAGE_VERT)
+		pContext->VSSetShaderResources(reg, count, pSRVs);
+	if (used_stages & SHADER_STAGE_FRAG)
+		pContext->PSSetShaderResources(reg, count, pSRVs);
+	if (used_stages & SHADER_STAGE_HULL)
+		pContext->HSSetShaderResources(reg, count, pSRVs);
+	if (used_stages & SHADER_STAGE_DOMN)
+		pContext->DSSetShaderResources(reg, count, pSRVs);
+	if (used_stages & SHADER_STAGE_GEOM)
+		pContext->GSSetShaderResources(reg, count, pSRVs);
+	if (used_stages & SHADER_STAGE_COMP)
+		pContext->CSSetShaderResources(reg, count, pSRVs);
+}
+
+// Beginning of the rendering pass.
 void cmdBindRenderTargets(
 	Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
 	const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice,
@@ -3394,24 +3438,24 @@ void cmdBindRenderTargets(
 	if (!renderTargetCount && !pDepthStencil)
 		return;
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindRenderTargets;
-	cmd.mBindRenderTargetsCmd.renderTargetCount = renderTargetCount;
+	// Reset any shader settings left from previous render passes.
+	reset_shader_resources(pContext);
+
+	// Remove all rendertargets from previous render passes.
+	static ID3D11RenderTargetView* pNullRTV[MAX_RENDER_TARGET_ATTACHMENTS] = { NULL };
+	pContext->OMSetRenderTargets(MAX_RENDER_TARGET_ATTACHMENTS, pNullRTV, NULL);
+
+	ID3D11RenderTargetView* ppDxTargets[MAX_RENDER_TARGET_ATTACHMENTS] = { 0 };
+
+	// Make a list of d3d11 rendertargets to bind.
 	for (uint32_t i = 0; i < renderTargetCount; ++i)
 	{
 		if (!pColorMipSlices && !pColorArraySlices)
 		{
-			cmd.mBindRenderTargetsCmd.ppRenderTargets[i] = ppRenderTargets[i]->pDxRtvDescriptor;
+			ppDxTargets[i] = ppRenderTargets[i]->pDxRtvDescriptor;
 		}
 		else
 		{
@@ -3419,22 +3463,31 @@ void cmdBindRenderTargets(
 			if (pColorMipSlices)
 			{
 				if (pColorArraySlices)
+				{
 					handle = pColorMipSlices[i] * ppRenderTargets[i]->mArraySize + pColorArraySlices[i];
+				}
 				else
+				{
 					handle = pColorMipSlices[i];
+				}
 			}
 			else if (pColorArraySlices)
 			{
 				handle = pColorArraySlices[i];
 			}
-			cmd.mBindRenderTargetsCmd.ppRenderTargets[i] = ppRenderTargets[i]->pDxRtvSliceDescriptors[handle];
+
+			ppDxTargets[i] = ppRenderTargets[i]->pDxRtvSliceDescriptors[handle];
 		}
 	}
+
+	// Get the d3d11 depth/stencil target to bind.
+	ID3D11DepthStencilView* pDxDepthStencilTarget = 0;
+
 	if (pDepthStencil)
 	{
 		if (-1 == depthMipSlice && -1 == depthArraySlice)
 		{
-			cmd.mBindRenderTargetsCmd.pDepthStencil = pDepthStencil->pDxDsvDescriptor;
+			pDxDepthStencilTarget = pDepthStencil->pDxDsvDescriptor;
 		}
 		else
 		{
@@ -3450,59 +3503,95 @@ void cmdBindRenderTargets(
 			{
 				handle = depthArraySlice;
 			}
-			cmd.mBindRenderTargetsCmd.pDepthStencil = pDepthStencil->pDxDsvSliceDescriptors[handle];
+			pDxDepthStencilTarget = pDepthStencil->pDxDsvSliceDescriptors[handle];
 		}
 	}
-	cmd.mBindRenderTargetsCmd.mLoadActions = pLoadActions ? *pLoadActions : LoadActionsDesc{};
-	cachedCmdsIter->second.push_back(cmd);
+
+	// Bind the render targets and the depth-stencil target.
+	pContext->OMSetRenderTargets(renderTargetCount, ppDxTargets, pDxDepthStencilTarget);
+
+	// Clear RTs and Depth-Stencil views bound to the render pass.
+	LoadActionsDesc targetLoadActions = {};
+
+	if (pLoadActions)
+	{
+		targetLoadActions = *pLoadActions;
+	}
+
+	for (uint32_t i = 0; i < renderTargetCount; ++i)
+	{
+		if (targetLoadActions.mLoadActionsColor[i] == LOAD_ACTION_CLEAR)
+		{
+			FLOAT clear[4] = { targetLoadActions.mClearColorValues[i].r, targetLoadActions.mClearColorValues[i].g,
+					   targetLoadActions.mClearColorValues[i].b, targetLoadActions.mClearColorValues[i].a };
+
+			pContext->ClearRenderTargetView(ppDxTargets[i], clear);
+		}
+	}
+
+	if (pDxDepthStencilTarget &&
+		(targetLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR || targetLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR))
+	{
+		uint32_t clearFlag = 0;
+		if (targetLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR)
+			clearFlag |= D3D11_CLEAR_DEPTH;
+		if (targetLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR)
+			clearFlag |= D3D11_CLEAR_STENCIL;
+		pContext->ClearDepthStencilView(pDxDepthStencilTarget, clearFlag, targetLoadActions.mClearDepth.depth, targetLoadActions.mClearDepth.stencil);
+	}
 }
 
 void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 {
 	ASSERT(pCmd);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdSetViewport;
-	cmd.mSetViewportCmd.x = x;
-	cmd.mSetViewportCmd.y = y;
-	cmd.mSetViewportCmd.width = width;
-	cmd.mSetViewportCmd.height = height;
-	cmd.mSetViewportCmd.minDepth = minDepth;
-	cmd.mSetViewportCmd.maxDepth = maxDepth;
-	cachedCmdsIter->second.push_back(cmd);
+	D3D11_VIEWPORT viewport = {};
+	viewport.Width = width;
+	viewport.Height = height;
+	viewport.MaxDepth = maxDepth;
+	viewport.MinDepth = minDepth;
+	viewport.TopLeftX = x;
+	viewport.TopLeftY = y;
+	pContext->RSSetViewports(1, &viewport);
 }
 
 void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
 	ASSERT(pCmd);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdSetScissor;
-	cmd.mSetScissorCmd.x = x;
-	cmd.mSetScissorCmd.y = y;
-	cmd.mSetScissorCmd.width = width;
-	cmd.mSetScissorCmd.height = height;
-	cachedCmdsIter->second.push_back(cmd);
+	D3D11_RECT scissor = {};
+	scissor.left = x;
+	scissor.top = y;
+	scissor.right = x + width;
+	scissor.bottom = y + height;
+	pContext->RSSetScissorRects(1, &scissor);
+}
+
+void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	ID3D11DepthStencilState* pDepth = NULL;
+	uint32_t value = 0;
+
+	pContext->OMGetDepthStencilState(&pDepth, &value);
+	value = val;
+	pContext->OMSetDepthStencilState(pDepth, val);
+}
+
+void reset_uavs(ID3D11DeviceContext* pContext)
+{
+	static ID3D11UnorderedAccessView* pNullUAV[D3D11_PS_CS_UAV_REGISTER_COUNT] = { NULL };
+	pContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, pNullUAV, NULL);
 }
 
 void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
@@ -3510,327 +3599,56 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	ASSERT(pCmd);
 	ASSERT(pPipeline);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	static const float dummyClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	if (pCmd->pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
+		reset_uavs(pContext);
 	}
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindPipeline;
-	cmd.mBindPipelineCmd.pPipeline = pPipeline;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
-{
-	ASSERT(pCmd);
-	ASSERT(pDescriptorSet);
-	ASSERT(index < pDescriptorSet->mMaxSets);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
+	if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
 	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
+	  // Set InputAssembly, Raster and Output state settings.
+		pContext->IASetPrimitiveTopology(pPipeline->mDxPrimitiveTopology);
+		pContext->IASetInputLayout(pPipeline->pDxInputLayout);
+		pContext->RSSetState(pPipeline->pRasterizerState);
+		pContext->OMSetDepthStencilState(pPipeline->pDepthState, 0);
+		pContext->OMSetBlendState(pPipeline->pBlendState, dummyClearColor, ~0);
+
+		// Set shaders.
+		pContext->VSSetShader(pPipeline->pDxVertexShader, NULL, 0);
+		pContext->PSSetShader(pPipeline->pDxPixelShader, NULL, 0);
+		pContext->GSSetShader(pPipeline->pDxGeometryShader, NULL, 0);
+		pContext->DSSetShader(pPipeline->pDxDomainShader, NULL, 0);
+		pContext->HSSetShader(pPipeline->pDxHullShader, NULL, 0);
 	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindDescriptorSet;
-	cmd.mBindDescriptorSetCmd.pDescriptorSet = pDescriptorSet;
-	cmd.mBindDescriptorSetCmd.mIndex = index;
-
-	if (pDescriptorSet->pDynamicCBVsCount[index] != pDescriptorSet->pDynamicCBVsPrevCount[index])
+	else
 	{
-		// Create descriptor pool for storing the descriptor data
-		if (!pCmd->pDescriptorCache)
-		{
-			pCmd->pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
-		}
-		cmd.mBindDescriptorSetCmd.mDynamicCBVCount = (uint32_t)(pDescriptorSet->pDynamicCBVsCount[index] - pDescriptorSet->pDynamicCBVsPrevCount[index]);
-		cmd.mBindDescriptorSetCmd.pDynamicCBVs = (CBV*)(pCmd->pDescriptorCache + pCmd->mDescriptorCacheOffset);
-		pCmd->mDescriptorCacheOffset += sizeof(CBV) * cmd.mBindDescriptorSetCmd.mDynamicCBVCount;
-		for (uint32_t i = 0; i < cmd.mBindDescriptorSetCmd.mDynamicCBVCount; ++i)
-		{
-			CBV* pCbv = (CBV*)cmd.mBindDescriptorSetCmd.pDynamicCBVs + i;
-			*pCbv = pDescriptorSet->pDynamicCBVs[index][pDescriptorSet->pDynamicCBVsPrevCount[index] + i];
-		}
-
-		pDescriptorSet->pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->pDynamicCBVsCount[index];
+		pContext->RSSetState(NULL);
+		pContext->OMSetDepthStencilState(NULL, 0);
+		pContext->OMSetBlendState(NULL, dummyClearColor, ~0);
+		reset_shader_resources(pContext);
+		pContext->CSSetShader(pPipeline->pDxComputeShader, NULL, 0);
 	}
-
-	cachedCmdsIter->second.push_back(cmd);
 }
 
-void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void set_samplers(ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32_t reg, uint32_t count, ID3D11SamplerState** pSamplers)
 {
-	ASSERT(pCmd);
-	ASSERT(pName);
-	ASSERT(pConstants);
-	ASSERT(pRootSignature);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
-	ASSERT(pDesc);
-	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindPushConstants;
-	memcpy(cmd.mBindPushConstantsCmd.mPushConstant, pConstants, pDesc->mSize * sizeof(uint32_t));
-	cmd.mBindPushConstantsCmd.mSize = (uint8_t)pDesc->mSize * sizeof(uint32_t);
-	cmd.mBindPushConstantsCmd.mBinding = pDesc->mReg;
-	cmd.mBindPushConstantsCmd.mStage = pDesc->mUsedStages;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
-{
-	ASSERT(pCmd);
-	ASSERT(pConstants);
-	ASSERT(pRootSignature);
-	ASSERT(paramIndex >= 0 && paramIndex < pRootSignature->mDescriptorCount);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
-	ASSERT(pDesc);
-	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindPushConstants;
-	memcpy(cmd.mBindPushConstantsCmd.mPushConstant, pConstants, pDesc->mSize * sizeof(uint32_t));
-	cmd.mBindPushConstantsCmd.mSize = (uint8_t)pDesc->mSize * sizeof(uint32_t);
-	cmd.mBindPushConstantsCmd.mBinding = pDesc->mReg;
-	cmd.mBindPushConstantsCmd.mStage = pDesc->mUsedStages;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
-{
-	ASSERT(pCmd);
-	ASSERT(pBuffer);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindIndexBuffer;
-	cmd.mBindIndexBufferCmd.pBuffer = pBuffer;
-	cmd.mBindIndexBufferCmd.offset = (uint32_t)offset;
-	cmd.mBindIndexBufferCmd.mIndexType = (IndexType)indexType;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
-{
-	ASSERT(pCmd);
-	ASSERT(bufferCount);
-	ASSERT(ppBuffers);
-	ASSERT(pStrides);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindVertexBuffer;
-	cmd.mBindVertexBufferCmd.bufferCount = bufferCount;
-	cmd.mBindVertexBufferCmd.ppBuffers = (ID3D11Buffer**)tf_calloc(bufferCount, sizeof(ID3D11Buffer*));
-	cmd.mBindVertexBufferCmd.pOffsets = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
-	cmd.mBindVertexBufferCmd.pStrides = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
-	for (uint32_t i = 0; i < bufferCount; ++i)
-	{
-		cmd.mBindVertexBufferCmd.ppBuffers[i] = ppBuffers[i]->pDxResource;
-		cmd.mBindVertexBufferCmd.pStrides[i] = pStrides[i];
-		cmd.mBindVertexBufferCmd.pOffsets[i] = (uint32_t)(pOffsets ? pOffsets[i] : 0);
-	}
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdDraw;
-	cmd.mDrawCmd.vertexCount = vertexCount;
-	cmd.mDrawCmd.firstVertex = firstVertex;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdDrawInstanced;
-	cmd.mDrawInstancedCmd.vertexCount = vertexCount;
-	cmd.mDrawInstancedCmd.firstVertex = firstVertex;
-	cmd.mDrawInstancedCmd.instanceCount = instanceCount;
-	cmd.mDrawInstancedCmd.firstInstance = firstInstance;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdDrawIndexed;
-	cmd.mDrawIndexedCmd.indexCount = indexCount;
-	cmd.mDrawIndexedCmd.firstIndex = firstIndex;
-	cmd.mDrawIndexedCmd.firstVertex = firstVertex;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdDrawIndexedInstanced(
-	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdDrawIndexedInstanced;
-	cmd.mDrawIndexedInstancedCmd.indexCount = indexCount;
-	cmd.mDrawIndexedInstancedCmd.firstIndex = firstIndex;
-	cmd.mDrawIndexedInstancedCmd.instanceCount = instanceCount;
-	cmd.mDrawIndexedInstancedCmd.firstInstance = firstInstance;
-	cmd.mDrawIndexedInstancedCmd.firstVertex = firstVertex;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdDispatch;
-	cmd.mDispatchCmd.groupCountX = groupCountX;
-	cmd.mDispatchCmd.groupCountY = groupCountY;
-	cmd.mDispatchCmd.groupCountZ = groupCountZ;
-	cachedCmdsIter->second.push_back(cmd);
-}
-/************************************************************************/
-// Transition Commands
-/************************************************************************/
-void cmdResourceBarrier(Cmd* pCmd,
-	uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
-	uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
-	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
-{
-}
-/************************************************************************/
-// Queue Fence Semaphore Functions
-/************************************************************************/
-void acquireNextImage(
-	Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pSwapChainImageIndex)
-{
-	// We only have read/write access to the first buffer.
-	pSwapChain->mImageIndex = 0;
-	*pSwapChainImageIndex = pSwapChain->mImageIndex;
-}
-
-void reset_shader_resources(ID3D11DeviceContext* pContext)
-{
-	static ID3D11ShaderResourceView* pNullSRV[32] = { NULL };
-	pContext->VSSetShaderResources(0, 32, pNullSRV);
-	pContext->PSSetShaderResources(0, 32, pNullSRV);
-	pContext->HSSetShaderResources(0, 32, pNullSRV);
-	pContext->DSSetShaderResources(0, 32, pNullSRV);
-	pContext->GSSetShaderResources(0, 32, pNullSRV);
-	pContext->CSSetShaderResources(0, 32, pNullSRV);
-}
-
-void reset_uavs(ID3D11DeviceContext* pContext)
-{
-	static ID3D11UnorderedAccessView* pNullUAV[D3D11_PS_CS_UAV_REGISTER_COUNT] = { NULL };
-	pContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, pNullUAV, NULL);
+	if (used_stages & SHADER_STAGE_VERT)
+		pContext->VSSetSamplers(reg, count, pSamplers);
+	if (used_stages & SHADER_STAGE_FRAG)
+		pContext->PSSetSamplers(reg, count, pSamplers);
+	if (used_stages & SHADER_STAGE_HULL)
+		pContext->HSSetSamplers(reg, count, pSamplers);
+	if (used_stages & SHADER_STAGE_DOMN)
+		pContext->DSSetSamplers(reg, count, pSamplers);
+	if (used_stages & SHADER_STAGE_GEOM)
+		pContext->GSSetSamplers(reg, count, pSamplers);
+	if (used_stages & SHADER_STAGE_COMP)
+		pContext->CSSetSamplers(reg, count, pSamplers);
 }
 
 void set_constant_buffers(ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32_t reg, uint32_t count, ID3D11Buffer** pCBVs)
@@ -3874,37 +3692,276 @@ void set_dynamic_constant_buffer(Cmd* pCmd, ID3D11DeviceContext* pContext, const
 	set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, &pCmd->pTransientConstantBuffer);
 }
 
-void set_shader_resources(
-	ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32_t reg, uint32_t count, ID3D11ShaderResourceView** pSRVs)
+void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
-	if (used_stages & SHADER_STAGE_VERT)
-		pContext->VSSetShaderResources(reg, count, pSRVs);
-	if (used_stages & SHADER_STAGE_FRAG)
-		pContext->PSSetShaderResources(reg, count, pSRVs);
-	if (used_stages & SHADER_STAGE_HULL)
-		pContext->HSSetShaderResources(reg, count, pSRVs);
-	if (used_stages & SHADER_STAGE_DOMN)
-		pContext->DSSetShaderResources(reg, count, pSRVs);
-	if (used_stages & SHADER_STAGE_GEOM)
-		pContext->GSSetShaderResources(reg, count, pSRVs);
-	if (used_stages & SHADER_STAGE_COMP)
-		pContext->CSSetShaderResources(reg, count, pSRVs);
+	ASSERT(pCmd);
+	ASSERT(pDescriptorSet);
+	ASSERT(index < pDescriptorSet->mMaxSets);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+
+	// Texture samplers.
+	for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+	{
+		set_samplers(
+			pContext, pRootSignature->pStaticSamplerStages[i], pRootSignature->pStaticSamplerSlots[i], 1,
+			&pRootSignature->ppStaticSamplers[i]);
+	}
+
+	// Shader resources.
+	for (uint32_t i = 0; i < pRootSignature->mSrvCount; ++i)
+	{
+		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSRVs[i];
+		if (pHandle->pHandle)
+			set_shader_resources(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11ShaderResourceView**)&pHandle->pHandle);
+	}
+
+	// UAVs
+	for (uint32_t i = 0; i < pRootSignature->mUavCount; ++i)
+	{
+		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pUAVs[i];
+		if (pHandle->pHandle)
+			pContext->CSSetUnorderedAccessViews(pHandle->mBinding, 1, (ID3D11UnorderedAccessView**)&pHandle->pHandle, NULL);
+	}
+
+	// Constant buffers(Uniform buffers)
+	for (uint32_t i = 0; i < pRootSignature->mCbvCount; ++i)
+	{
+		CBV* pHandle = &pDescriptorSet->pHandles[index].pCBVs[i];
+		if (pHandle->pHandle)
+		{
+			if (pHandle->mOffset || pHandle->mSize)
+			{
+				set_dynamic_constant_buffer(pCmd, pContext, pHandle);
+			}
+			else
+			{
+				set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11Buffer**)&pHandle->pHandle);
+			}
+		}
+	}
+
+	uint32_t dynamicCBVCount = 0;
+	CBV* pDynamicCBVs = 0;
+
+	if (pDescriptorSet->pDynamicCBVsCount[index] != pDescriptorSet->pDynamicCBVsPrevCount[index])
+	{
+	  // Create descriptor pool for storing the descriptor data
+		if (!pCmd->pDescriptorCache)
+		{
+			pCmd->pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
+		}
+
+		dynamicCBVCount = (uint32_t)(pDescriptorSet->pDynamicCBVsCount[index] - pDescriptorSet->pDynamicCBVsPrevCount[index]);
+		pDynamicCBVs = (CBV*)(pCmd->pDescriptorCache + pCmd->mDescriptorCacheOffset);
+		pCmd->mDescriptorCacheOffset += sizeof(CBV) * dynamicCBVCount;
+
+		for (uint32_t i = 0; i < dynamicCBVCount; ++i)
+		{
+			CBV* pCbv = (CBV*)pDynamicCBVs + i;
+			*pCbv = pDescriptorSet->pDynamicCBVs[index][pDescriptorSet->pDynamicCBVsPrevCount[index] + i];
+		}
+
+		pDescriptorSet->pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->pDynamicCBVsCount[index];
+	}
+
+	for (uint32_t i = 0; i < dynamicCBVCount; ++i)
+	{
+		CBV* pHandle = (CBV*)pDynamicCBVs + i;
+		set_dynamic_constant_buffer(pCmd, pContext, pHandle);
+	}
+
+	for (uint32_t i = 0; i < pRootSignature->mSamplerCount; ++i)
+	{
+		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSamplers[i];
+		if (pHandle->pHandle)
+			set_samplers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11SamplerState**)&pHandle->pHandle);
+	}
+
+	pDescriptorSet->pDynamicCBVsCount[index] = 0;
+	pDescriptorSet->pDynamicCBVsPrevCount[index] = 0;
+
 }
 
-void set_samplers(ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32_t reg, uint32_t count, ID3D11SamplerState** pSamplers)
+void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
-	if (used_stages & SHADER_STAGE_VERT)
-		pContext->VSSetSamplers(reg, count, pSamplers);
-	if (used_stages & SHADER_STAGE_FRAG)
-		pContext->PSSetSamplers(reg, count, pSamplers);
-	if (used_stages & SHADER_STAGE_HULL)
-		pContext->HSSetSamplers(reg, count, pSamplers);
-	if (used_stages & SHADER_STAGE_DOMN)
-		pContext->DSSetSamplers(reg, count, pSamplers);
-	if (used_stages & SHADER_STAGE_GEOM)
-		pContext->GSSetSamplers(reg, count, pSamplers);
-	if (used_stages & SHADER_STAGE_COMP)
-		pContext->CSSetSamplers(reg, count, pSamplers);
+	ASSERT(pCmd);
+	ASSERT(pName);
+	ASSERT(pConstants);
+	ASSERT(pRootSignature);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	if (!pCmd->pRootConstantBuffer)
+	{
+		Buffer* buffer = {};
+		BufferDesc bufDesc = {};
+		bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mSize = 256;
+		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
+		pCmd->pRootConstantBuffer = buffer->pDxResource;
+		SAFE_FREE(buffer);
+	}
+
+	D3D11_MAPPED_SUBRESOURCE sub = {};
+	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
+
+	pContext->Map(pCmd->pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t));
+	pContext->Unmap(pCmd->pRootConstantBuffer, 0);
+	set_constant_buffers(pContext, (ShaderStage)pDesc->mUsedStages, pDesc->mReg, 1, &pCmd->pRootConstantBuffer);
+}
+
+void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+{
+	ASSERT(pCmd);
+	ASSERT(pConstants);
+	ASSERT(pRootSignature);
+	ASSERT(paramIndex >= 0 && paramIndex < pRootSignature->mDescriptorCount);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	if (!pCmd->pRootConstantBuffer)
+	{
+		Buffer* buffer = {};
+		BufferDesc bufDesc = {};
+		bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mSize = 256;
+		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
+		pCmd->pRootConstantBuffer = buffer->pDxResource;
+		SAFE_FREE(buffer);
+	}
+
+	D3D11_MAPPED_SUBRESOURCE sub = {};
+	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
+
+	pContext->Map(pCmd->pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t));
+	pContext->Unmap(pCmd->pRootConstantBuffer, 0);
+	set_constant_buffers(pContext, (ShaderStage)pDesc->mUsedStages, pDesc->mReg, 1, &pCmd->pRootConstantBuffer);
+}
+
+void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
+{
+	ASSERT(pCmd);
+	ASSERT(pBuffer->pDxResource);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->IASetIndexBuffer(
+		(ID3D11Buffer*)pBuffer->pDxResource,
+		INDEX_TYPE_UINT16 == indexType ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
+		(uint32_t)offset);
+}
+
+void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
+{
+	ASSERT(pCmd);
+	ASSERT(bufferCount);
+	ASSERT(ppBuffers);
+	ASSERT(pStrides);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	ID3D11Buffer** ppDxBuffers = (ID3D11Buffer**)tf_calloc(bufferCount, sizeof(ID3D11Buffer*));
+	uint32_t* pDxOffsets = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
+
+	for (uint32_t i = 0; i < bufferCount; ++i)
+	{
+		ppDxBuffers[i] = ppBuffers[i]->pDxResource;
+		pDxOffsets[i] = (uint32_t)(pOffsets ? pOffsets[i] : 0);
+	}
+
+	pContext->IASetVertexBuffers(
+		0, bufferCount, ppDxBuffers, pStrides,
+		pDxOffsets);
+
+	tf_free(ppDxBuffers);
+	tf_free(pDxOffsets);
+}
+
+void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->Draw(vertexCount, firstVertex);
+}
+
+void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->DrawInstanced(
+		vertexCount, instanceCount, firstVertex,
+		firstInstance);
+}
+
+void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->DrawIndexed(indexCount, firstIndex, firstVertex);
+}
+
+void cmdDrawIndexedInstanced(
+	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->DrawIndexedInstanced(
+		indexCount, instanceCount,
+		firstIndex, firstVertex,
+		firstInstance);
+}
+
+void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+	ASSERT(pCmd);
+
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+
+	pContext->Dispatch(groupCountX, groupCountY, groupCountZ);
+}
+/************************************************************************/
+// Transition Commands
+/************************************************************************/
+void cmdResourceBarrier(Cmd* pCmd,
+	uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
+	uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
+	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
+{
+}
+/************************************************************************/
+// Queue Fence Semaphore Functions
+/************************************************************************/
+void acquireNextImage(
+	Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pSwapChainImageIndex)
+{
+	// We only have read/write access to the first buffer.
+	pSwapChain->mImageIndex = 0;
+	*pSwapChainImageIndex = pSwapChain->mImageIndex;
 }
 
 static void util_wait_for_fence(ID3D11DeviceContext* pDxContext, Fence* pFence)
@@ -3918,347 +3975,53 @@ static void util_wait_for_fence(ID3D11DeviceContext* pDxContext, Fence* pFence)
 	pFence->mSubmitted = false;
 }
 
-void queueSubmit(
-	Queue* pQueue, const QueueSubmitDesc* pDesc)
+void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
-	uint32_t cmdCount = pDesc->mCmdCount;
-	Cmd** ppCmds = pDesc->ppCmds;
 	Fence* pFence = pDesc->pSignalFence;
+	Cmd** ppCmds = pDesc->ppCmds;
 	pQueue->pFence = pFence;
-
 	ID3D11DeviceContext* pContext = ppCmds[0]->pRenderer->pDxContext;
-	ID3D11Device*        pDevice = ppCmds[0]->pRenderer->pDxDevice;
-	for (uint32_t i = 0; i < cmdCount; ++i)
-	{
-		Cmd*                              pCmd = ppCmds[i];
-		const eastl::vector<CachedCmd>& cmds = gCachedCmds[pCmd];
-		for (uint32_t cmdIndex = 0; cmdIndex < (uint32_t)cmds.size(); ++cmdIndex)
-		{
-			const CachedCmd& cmd = cmds[cmdIndex];
-			CmdType          type = cmd.sType;
-			switch (type)
-			{
-				case CMD_TYPE_cmdBindRenderTargets:
-				{
-					reset_shader_resources(pContext);
-					static ID3D11RenderTargetView* pNullRTV[MAX_RENDER_TARGET_ATTACHMENTS] = { NULL };
-					pContext->OMSetRenderTargets(MAX_RENDER_TARGET_ATTACHMENTS, pNullRTV, NULL);
-
-					const BindRenderTargetsCmd& rt = cmd.mBindRenderTargetsCmd;
-					pContext->OMSetRenderTargets(rt.renderTargetCount, rt.ppRenderTargets, rt.pDepthStencil);
-					for (uint32_t i = 0; i < rt.renderTargetCount; ++i)
-					{
-						if (rt.mLoadActions.mLoadActionsColor[i] == LOAD_ACTION_CLEAR)
-						{
-							FLOAT clear[4] = { rt.mLoadActions.mClearColorValues[i].r, rt.mLoadActions.mClearColorValues[i].g,
-											   rt.mLoadActions.mClearColorValues[i].b, rt.mLoadActions.mClearColorValues[i].a };
-							pContext->ClearRenderTargetView(rt.ppRenderTargets[i], clear);
-						}
-					}
-					if (rt.pDepthStencil &&
-						(rt.mLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR || rt.mLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR))
-					{
-						uint32_t clearFlag = 0;
-						if (rt.mLoadActions.mLoadActionDepth == LOAD_ACTION_CLEAR)
-							clearFlag |= D3D11_CLEAR_DEPTH;
-						if (rt.mLoadActions.mLoadActionStencil == LOAD_ACTION_CLEAR)
-							clearFlag |= D3D11_CLEAR_STENCIL;
-						pContext->ClearDepthStencilView(
-							rt.pDepthStencil, clearFlag, rt.mLoadActions.mClearDepth.depth, rt.mLoadActions.mClearDepth.stencil);
-					}
-					break;
-				}
-				case CMD_TYPE_cmdSetViewport:
-				{
-					D3D11_VIEWPORT viewport = {};
-					viewport.Height = cmd.mSetViewportCmd.height;
-					viewport.MaxDepth = cmd.mSetViewportCmd.maxDepth;
-					viewport.MinDepth = cmd.mSetViewportCmd.minDepth;
-					viewport.TopLeftX = cmd.mSetViewportCmd.x;
-					viewport.TopLeftY = cmd.mSetViewportCmd.y;
-					viewport.Width = cmd.mSetViewportCmd.width;
-					pContext->RSSetViewports(1, &viewport);
-					break;
-				}
-				case CMD_TYPE_cmdSetScissor:
-				{
-					D3D11_RECT scissor = {};
-					scissor.left = cmd.mSetScissorCmd.x;
-					scissor.top = cmd.mSetScissorCmd.y;
-					scissor.right = cmd.mSetScissorCmd.x + cmd.mSetScissorCmd.width;
-					scissor.bottom = cmd.mSetScissorCmd.y + cmd.mSetScissorCmd.height;
-					pContext->RSSetScissorRects(1, &scissor);
-					break;
-				}
-				case CMD_TYPE_cmdBindPipeline:
-				{
-					static const float dummyClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-					const Pipeline*    pPipeline = cmd.mBindPipelineCmd.pPipeline;
-					if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
-					{
-						pContext->IASetPrimitiveTopology(pPipeline->mDxPrimitiveTopology);
-						pContext->IASetInputLayout(pPipeline->pDxInputLayout);
-						pContext->RSSetState(pPipeline->pRasterizerState);
-						pContext->OMSetDepthStencilState(pPipeline->pDepthState, 0);
-						pContext->OMSetBlendState(pPipeline->pBlendState, dummyClearColor, ~0);
-
-						if (pCmd->pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
-						{
-							reset_uavs(pContext);
-						}
-						pContext->VSSetShader(pPipeline->pDxVertexShader, NULL, 0);
-						pContext->PSSetShader(pPipeline->pDxPixelShader, NULL, 0);
-						pContext->GSSetShader(pPipeline->pDxGeometryShader, NULL, 0);
-						pContext->DSSetShader(pPipeline->pDxDomainShader, NULL, 0);
-						pContext->HSSetShader(pPipeline->pDxHullShader, NULL, 0);
-					}
-					else
-					{
-						pContext->RSSetState(NULL);
-						pContext->OMSetDepthStencilState(NULL, 0);
-						pContext->OMSetBlendState(NULL, dummyClearColor, ~0);
-
-						if (pCmd->pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
-						{
-							reset_uavs(pContext);
-						}
-						reset_shader_resources(pContext);
-						pContext->CSSetShader(pPipeline->pDxComputeShader, NULL, 0);
-					}
-					break;
-				}
-				case CMD_TYPE_cmdBindDescriptorSet:
-				{
-					/************************************************************************/
-					// Bind static samplers
-					/************************************************************************/
-					const BindDescriptorsCmd& bind = cmd.mBindDescriptorSetCmd;
-					DescriptorSet* pDescriptorSet = bind.pDescriptorSet;
-					const uint32_t index = bind.mIndex;
-					const RootSignature*      pRootSignature = pDescriptorSet->pRootSignature;
-					for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
-					{
-						set_samplers(
-							pContext, pRootSignature->pStaticSamplerStages[i], pRootSignature->pStaticSamplerSlots[i], 1,
-							&pRootSignature->ppStaticSamplers[i]);
-					}
-					/************************************************************************/
-					// Bind regular shader variables
-					/************************************************************************/
-					for (uint32_t i = 0; i < pRootSignature->mSrvCount; ++i)
-					{
-						DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSRVs[i];
-						if (pHandle->pHandle)
-							set_shader_resources(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11ShaderResourceView**)&pHandle->pHandle);
-					}
-					for (uint32_t i = 0; i < pRootSignature->mUavCount; ++i)
-					{
-						DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pUAVs[i];
-						if (pHandle->pHandle)
-						pContext->CSSetUnorderedAccessViews(pHandle->mBinding, 1, (ID3D11UnorderedAccessView**)&pHandle->pHandle, NULL);
-					}
-					for (uint32_t i = 0; i < pRootSignature->mCbvCount; ++i)
-					{
-						CBV* pHandle = &pDescriptorSet->pHandles[index].pCBVs[i];
-						if (pHandle->pHandle)
-						{
-							if (pHandle->mOffset || pHandle->mSize)
-							{
-								set_dynamic_constant_buffer(pCmd, pContext, pHandle);
-							}
-							else
-							{
-								set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11Buffer**)&pHandle->pHandle);
-							}
-						}
-					}
-					for (uint32_t i = 0; i < bind.mDynamicCBVCount; ++i)
-					{
-						CBV* pHandle = (CBV*)bind.pDynamicCBVs + i;
-						set_dynamic_constant_buffer(pCmd, pContext, pHandle);
-					}
-					for (uint32_t i = 0; i < pRootSignature->mSamplerCount; ++i)
-					{
-						DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSamplers[i];
-						if (pHandle->pHandle)
-							set_samplers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11SamplerState**)&pHandle->pHandle);
-					}
-
-					pDescriptorSet->pDynamicCBVsCount[index] = 0;
-					pDescriptorSet->pDynamicCBVsPrevCount[index] = 0;
-					/************************************************************************/
-					/************************************************************************/
-					break;
-				}
-				case CMD_TYPE_cmdBindPushConstants:
-				{
-					const BindPushConstantsCmd& bind = cmd.mBindPushConstantsCmd;
-
-					if (!pCmd->pRootConstantBuffer)
-					{
-						Buffer* buffer = {};
-						BufferDesc bufDesc = {};
-						bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-						bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-						bufDesc.mSize = 256;
-						addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-						pCmd->pRootConstantBuffer = buffer->pDxResource;
-						SAFE_FREE(buffer);
-					}
-
-					D3D11_MAPPED_SUBRESOURCE sub = {};
-					pContext->Map(pCmd->pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-					memcpy(sub.pData, bind.mPushConstant, bind.mSize);
-					pContext->Unmap(pCmd->pRootConstantBuffer, 0);
-					set_constant_buffers(pContext, (ShaderStage)bind.mStage, bind.mBinding, 1, &pCmd->pRootConstantBuffer);
-					break;
-				}
-				case CMD_TYPE_cmdBindIndexBuffer:
-				{
-					pContext->IASetIndexBuffer(
-						(ID3D11Buffer*)cmd.mBindIndexBufferCmd.pBuffer->pDxResource,
-						INDEX_TYPE_UINT16 == cmd.mBindIndexBufferCmd.mIndexType ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
-						cmd.mBindIndexBufferCmd.offset);
-					break;
-				}
-				case CMD_TYPE_cmdBindVertexBuffer:
-				{
-					pContext->IASetVertexBuffers(
-						0, cmd.mBindVertexBufferCmd.bufferCount, cmd.mBindVertexBufferCmd.ppBuffers, cmd.mBindVertexBufferCmd.pStrides,
-						cmd.mBindVertexBufferCmd.pOffsets);
-
-					tf_free(cmd.mBindVertexBufferCmd.ppBuffers);
-					tf_free(cmd.mBindVertexBufferCmd.pStrides);
-					tf_free(cmd.mBindVertexBufferCmd.pOffsets);
-					break;
-				}
-				case CMD_TYPE_cmdDraw:
-				{
-					pContext->Draw(cmd.mDrawCmd.vertexCount, cmd.mDrawCmd.firstVertex);
-					break;
-				}
-				case CMD_TYPE_cmdDrawInstanced:
-				{
-					pContext->DrawInstanced(
-						cmd.mDrawInstancedCmd.vertexCount, cmd.mDrawInstancedCmd.instanceCount, cmd.mDrawInstancedCmd.firstVertex,
-						cmd.mDrawInstancedCmd.firstInstance);
-					break;
-				}
-				case CMD_TYPE_cmdDrawIndexed:
-				{
-					pContext->DrawIndexed(cmd.mDrawIndexedCmd.indexCount, cmd.mDrawIndexedCmd.firstIndex, cmd.mDrawIndexedCmd.firstVertex);
-					break;
-				}
-				case CMD_TYPE_cmdDrawIndexedInstanced:
-				{
-					pContext->DrawIndexedInstanced(
-						cmd.mDrawIndexedInstancedCmd.indexCount, cmd.mDrawIndexedInstancedCmd.instanceCount,
-						cmd.mDrawIndexedInstancedCmd.firstIndex, cmd.mDrawIndexedInstancedCmd.firstVertex,
-						cmd.mDrawIndexedInstancedCmd.firstInstance);
-					break;
-				}
-				case CMD_TYPE_cmdDispatch:
-				{
-					pContext->Dispatch(cmd.mDispatchCmd.groupCountX, cmd.mDispatchCmd.groupCountY, cmd.mDispatchCmd.groupCountZ);
-					break;
-				}
-				case CMD_TYPE_cmdBeginQuery:
-				{
-					const BeginQueryCmd& query = cmd.mBeginQueryCmd;
-					pContext->End(query.pQueryPool->ppDxQueries[query.mQuery.mIndex]);
-					break;
-				}
-				case CMD_TYPE_cmdEndQuery:
-				{
-					const EndQueryCmd& query = cmd.mEndQueryCmd;
-					pContext->End(query.pQueryPool->ppDxQueries[query.mQuery.mIndex]);
-					break;
-				}
-				case CMD_TYPE_cmdResolveQuery:
-				{
-					const ResolveQueryCmd& resolve = cmd.mResolveQueryCmd;
-					if (resolve.queryCount)
-					{
-						D3D11_MAPPED_SUBRESOURCE sub = {};
-						pContext->Map(resolve.pReadbackBuffer->pDxResource, 0, D3D11_MAP_WRITE, 0, &sub);
-						uint64_t* pResults = (uint64_t*)sub.pData;
-						for (uint32_t i = resolve.startQuery; i < resolve.startQuery + resolve.queryCount; ++i)
-						{
-							while (pContext->GetData(resolve.pQueryPool->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
-								Thread::Sleep(0);
-						}
-						pContext->Unmap(resolve.pReadbackBuffer->pDxResource, 0);
-					}
-					break;
-				}
-				case CMD_TYPE_cmdAddDebugMarker:
-					break;
-				case CMD_TYPE_cmdUpdateBuffer:
-				{
-					const UpdateBufferCmd&   update = cmd.mUpdateBufferCmd;
-					D3D11_MAPPED_SUBRESOURCE sub = {};
-					D3D11_BOX dstBox = { (UINT)update.dstOffset, 0, 0, (UINT)(update.dstOffset + update.size), 1, 1 };
-					if (!update.pSrcBuffer->pCpuMappedAddress)
-					{
-						pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
-					}
-					else
-					{
-						sub = { update.pSrcBuffer->pCpuMappedAddress,0,0 };
-					}
-					pContext->UpdateSubresource(
-						update.pBuffer->pDxResource, 0, &dstBox, (uint8_t*)sub.pData + update.srcOffset, (UINT)update.size, 0);
-					if (!update.pSrcBuffer->pCpuMappedAddress)
-					{
-						pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
-					}
-					break;
-				}
-				case CMD_TYPE_cmdUpdateSubresource:
-				{
-					const UpdateSubresourcesCmd& update = cmd.mUpdateSubresourcesCmd;
-					const SubresourceDataDesc&   pSubresource = update.mSubresourceDesc;
-					D3D11_MAPPED_SUBRESOURCE     sub = {};
-					UINT                         subresource = D3D11CalcSubresource(pSubresource.mMipLevel, pSubresource.mArrayLayer,
-						(uint32_t)update.pTexture->mMipLevels);
-					if (!update.pSrcBuffer->pCpuMappedAddress)
-					{
-						pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
-					}
-					else
-					{
-						sub = { update.pSrcBuffer->pCpuMappedAddress, 0, 0 };
-					}
-					pContext->UpdateSubresource(
-						update.pTexture->pDxResource, subresource, NULL, (uint8_t*)sub.pData + pSubresource.mSrcOffset,
-						pSubresource.mRowPitch, pSubresource.mSlicePitch);
-					if (!update.pSrcBuffer->pCpuMappedAddress)
-					{
-						pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
-					}
-					break;
-				}
-				default: break;
-			}
-		}
-	}
 
 	if (pFence)
 	{
-		// if work of that query still in flight, wait
 		util_wait_for_fence(pContext, pFence);
 		pFence->mSubmitted = true;
 		pContext->End(pFence->pDX11Query);
 	}
-
 }
 
-void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
+	PresentStatus status = PRESENT_STATUS_FAILED;
 	if (pDesc->pSwapChain)
 	{
-		CHECK_HRESULT_DEVICE(pQueue->pDxDevice, pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0));
+		HRESULT hr = pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0);
+		if (!SUCCEEDED(hr))
+		{
+			LOGF(eERROR, "%s: FAILED with HRESULT: %u", "pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0)", (uint32_t)hr);
+			
+			if (hr == DXGI_ERROR_DEVICE_REMOVED) 
+			{
+				LOGF(eERROR, "ERROR_DEVICE_REMOVED: %u", (uint32_t)pQueue->pDxDevice->GetDeviceRemovedReason());
+				status = PRESENT_STATUS_DEVICE_RESET;
+			}
+
+#if defined(USE_NSIGHT_AFTERMATH)
+			// DXGI_ERROR error notification is asynchronous to the NVIDIA display
+			// driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
+			// thread some time to do its work before terminating the process.
+			sleep(3000);
+#endif
+
+			ASSERT(false);
+		}
+		else 
+		{
+			status = PRESENT_STATUS_SUCCESS;
+		}
 	}
+
+	return status;
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
@@ -4415,21 +4178,10 @@ void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 	ASSERT(pCmd);
 	ASSERT(pQuery);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBeginQuery;
-	cmd.mBeginQueryCmd.pQueryPool = pQueryPool;
-	cmd.mBeginQueryCmd.mQuery = *pQuery;
-	cachedCmdsIter->second.push_back(cmd);
+	pContext->End(pQueryPool->ppDxQueries[pQuery->mIndex]);
 }
 
 void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
@@ -4437,21 +4189,10 @@ void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 	ASSERT(pCmd);
 	ASSERT(pQuery);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdEndQuery;
-	cmd.mEndQueryCmd.pQueryPool = pQueryPool;
-	cmd.mEndQueryCmd.mQuery = *pQuery;
-	cachedCmdsIter->second.push_back(cmd);
+	pContext->End(pQueryPool->ppDxQueries[pQuery->mIndex]);
 }
 
 void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
@@ -4459,30 +4200,30 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 	ASSERT(pCmd);
 	ASSERT(pReadbackBuffer);
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
+	Renderer* pRenderer = pCmd->pRenderer;
+	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
 
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdResolveQuery;
-	cmd.mResolveQueryCmd.pQueryPool = pQueryPool;
-	cmd.mResolveQueryCmd.pReadbackBuffer = pReadbackBuffer;
-	cmd.mResolveQueryCmd.startQuery = startQuery;
-	cmd.mResolveQueryCmd.queryCount = queryCount;
-	cachedCmdsIter->second.push_back(cmd);
+	if (queryCount)
+	{
+		D3D11_MAPPED_SUBRESOURCE sub = {};
+		pContext->Map(pReadbackBuffer->pDxResource, 0, D3D11_MAP_WRITE, 0, &sub);
+		uint64_t* pResults = (uint64_t*)sub.pData;
+
+		for (uint32_t i = startQuery; i < startQuery + queryCount; ++i)
+		{
+			while (pContext->GetData(pQueryPool->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
+				Thread::Sleep(0);
+		}
+
+		pContext->Unmap(pReadbackBuffer->pDxResource, 0);
+	}
 }
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
 void calculateMemoryStats(Renderer* pRenderer, char** stats) {}
 
-void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes){}
+void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes) {}
 
 void freeMemoryStats(Renderer* pRenderer, char* stats) {}
 /************************************************************************/
@@ -4490,69 +4231,33 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) {}
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	ASSERT(pCmd);
-	ASSERT(pName);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBeginDebugMarker;
-	cmd.mBeginDebugMarkerCmd.r = r;
-	cmd.mBeginDebugMarkerCmd.g = g;
-	cmd.mBeginDebugMarkerCmd.b = b;
-	cmd.mBeginDebugMarkerCmd.pName = pName;
-	cachedCmdsIter->second.push_back(cmd);
+#if defined(ENABLE_PERFORMANCE_MARKER)
+	wchar_t markerName[256] = { 0 };
+	int nameLen = int(strlen(pName));
+	MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
+	pCmd->pRenderer->pUserDefinedAnnotation->BeginEvent(markerName);
+#endif
 }
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdEndDebugMarker;
-	cachedCmdsIter->second.push_back(cmd);
+#if defined(ENABLE_PERFORMANCE_MARKER)
+	pCmd->pRenderer->pUserDefinedAnnotation->EndEvent();
+#endif
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	ASSERT(pCmd);
-	ASSERT(pName);
+#if defined(ENABLE_PERFORMANCE_MARKER)
+	wchar_t markerName[256] = { 0 };
+	int nameLen = int(strlen(pName));
+	MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
+	pCmd->pRenderer->pUserDefinedAnnotation->SetMarker(markerName);
+#endif
 
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdAddDebugMarker;
-	cmd.mAddDebugMarkerCmd.r = r;
-	cmd.mAddDebugMarkerCmd.g = g;
-	cmd.mAddDebugMarkerCmd.b = b;
-	cmd.mAddDebugMarkerCmd.pName = pName;
-	cachedCmdsIter->second.push_back(cmd);
+#if defined(USE_NSIGHT_AFTERMATH)
+	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->pDxContext, pName);
+#endif
 }
 
 /************************************************************************/
@@ -4590,5 +4295,7 @@ void setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const
 void setPipelineName(Renderer*, Pipeline*, const char*)
 {
 }
+
+
 #endif
 #endif

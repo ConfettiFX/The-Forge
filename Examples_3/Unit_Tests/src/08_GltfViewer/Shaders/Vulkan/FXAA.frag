@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,9 +31,9 @@ cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 	float4		cameraPos;
 }
 
-Texture2D<float4>	normalbuffer : register(t1);
-Texture2D<float>	shadowbuffer : register(t2);
-RWTexture2D<float4> outputRT : register(u3);
+Texture2D<float4>	normalBuffer : register(t2);
+Texture2D<float>	shadowbuffer : register(t4);
+RWTexture2D<float4> outputRT : register(u4);
 
 [numthreads(16, 16, 1)]
 void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
@@ -42,7 +41,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 	const float lightIntensity = 5;
 	const float3 lightColour = float3(1, 1, 0.5);
 
-	float3 normal = normalbuffer[DTid.xy].xyz;
+	float3 normal = normalBuffer[DTid.xy].xyz;
 
 	float NdotL = saturate(dot(normal, lightDir.xyz));
 

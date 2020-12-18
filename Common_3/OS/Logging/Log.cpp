@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -326,7 +326,7 @@ uint32_t Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * fi
 	{
 		time_t  t = time(NULL);
 		tm time_info;
-	#ifdef _WIN32
+	#if defined(_WINDOWS) || defined(XBOX)
 		localtime_s(&time_info, &t);
 	#elif defined(ORBIS) || defined(PROSPERO)
 		localtime_s(&t, &time_info);

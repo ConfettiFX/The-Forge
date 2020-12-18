@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,7 +37,7 @@ Texture2D<float>			depthBuffer : register(t1);
 Texture2D<float4>			normalBuffer : register(t2);
 Buffer<float4>				BVHTree : register(t3);
 
-RWTexture2D<float>			outputRT : register(u4);
+RWTexture2D<float>			outputShadowRT : register(u9);
 
 #define THREADX 8
 #define THREADY 8
@@ -122,5 +121,5 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
 		};
 	}
 
-	outputRT[DTid.xy] =   1 - float(collision);
+	outputShadowRT[DTid.xy] =   1 - float(collision);
 }

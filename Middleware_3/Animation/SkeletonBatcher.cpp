@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,6 +47,8 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 		mNumBonePoints = skeletonRenderDesc.mNumBonePoints;
 	}
 
+	mInstanceCount = 0;
+
 	// Initialize all the buffer that will be used for each batch per each frame index
 	BufferLoadDesc ubDesc = {};
 	ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -60,6 +62,8 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 
 	for (uint32_t i = 0; i < ImageCount; ++i)
 	{
+		mBatchCounts[i] = 0;
+
 		for (uint32_t j = 0; j < MAX_BATCHES; ++j)
 		{
 			ubDesc.ppBuffer = &mProjViewUniformBufferJoints[i][j];
@@ -94,41 +98,49 @@ void SkeletonBatcher::Destroy()
 			}
 		}
 	}
-
-	mRigs.set_capacity(0);
 }
 
 void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor)
 {
-	mUniformDataJoints.mProjectView = projViewMat;
-	mUniformDataJoints.mLightPosition = Vector4(lightPos);
-	mUniformDataJoints.mLightColor = Vector4(lightColor);
-
-	if (mDrawBones)
+	for (uint32_t i = 0; i < MAX_BATCHES; ++i)
 	{
-		mUniformDataBones.mProjectView = projViewMat;
-		mUniformDataBones.mLightPosition = Vector4(lightPos);
-		mUniformDataBones.mLightColor = Vector4(lightColor);
+		mUniformDataJoints[i].mProjectView = projViewMat;
+		mUniformDataJoints[i].mLightPosition = Vector4(lightPos);
+		mUniformDataJoints[i].mLightColor = Vector4(lightColor);
+
+		if (mDrawBones)
+		{
+			mUniformDataBones[i].mProjectView = projViewMat;
+			mUniformDataBones[i].mLightPosition = Vector4(lightPos);
+			mUniformDataBones[i].mLightColor = Vector4(lightColor);
+		}
 	}
 }
 
-void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs)
+void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs, uint32_t rigsOffset)
 {
-	// Will keep track of the current batch we are setting the uniforms for
-	// and will indicate how many catches to draw when draw is called for this frame index
-	mBatchCounts[frameIndex] = 0;
-
-	// Will keep track of the number of instances that have their data added
-	unsigned int instanceCount = 0;
-
-	// If the numRigs parameter was not initialized, used the data from all the rigs
+	// If the numRigs parameter was not initialized, used the data from all the active rigs
 	if (numRigs == -1)
 	{
-		numRigs = mNumRigs;
+		numRigs = mNumActiveRigs;
 	}
 
+	const unsigned int lastBatchIndex = mCumulativeRigInstanceCount[mNumActiveRigs] / MAX_INSTANCES;
+	const unsigned int lastBatchSize = mCumulativeRigInstanceCount[mNumActiveRigs] % MAX_INSTANCES;
+
+	// Will keep track of the number of instances that have their data added
+	const unsigned int totalInstanceCount = mCumulativeRigInstanceCount[rigsOffset + numRigs] - mCumulativeRigInstanceCount[rigsOffset];
+	unsigned int instanceCount = tfrg_atomic32_add_relaxed(&mInstanceCount, totalInstanceCount);
+
+	// Last resets mInstanceCount
+	if (instanceCount + totalInstanceCount == mCumulativeRigInstanceCount[mNumActiveRigs])
+		mInstanceCount = 0;
+
+	unsigned int batchInstanceCount = 0;
+	unsigned int batchIndex = instanceCount / MAX_INSTANCES;
+
 	// For every rig
-	for (int rigIndex = 0; rigIndex < numRigs; rigIndex++)
+	for (uint32_t rigIndex = rigsOffset; rigIndex < numRigs + rigsOffset; ++rigIndex)
 	{
 		// Get the number of joints in the rig
 		unsigned int numJoints = mRigs[rigIndex]->GetNumJoints();
@@ -136,60 +148,61 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 		// For every joint in the rig
 		for (unsigned int jointIndex = 0; jointIndex < numJoints; jointIndex++)
 		{
+			unsigned int instanceIndex = instanceCount % MAX_INSTANCES;
+			UniformSkeletonBlock& uniformDataJoints = mUniformDataJoints[batchIndex];
+			UniformSkeletonBlock& uniformDataBones = mUniformDataBones[batchIndex];
+
 			if (mDrawBones)
 			{
 				// add bones data to the uniform
-				mUniformDataBones.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetBoneWorldMat(jointIndex);
-				mUniformDataBones.mColor[instanceCount] = mRigs[rigIndex]->GetBoneColor();
+				uniformDataBones.mToWorldMat[instanceIndex] = mRigs[rigIndex]->GetBoneWorldMat(jointIndex);
+				uniformDataBones.mColor[instanceIndex] = mRigs[rigIndex]->GetBoneColor();
 
 				// add joint data to the uniform while scaling the joints by their determined chlid bone length
-				mUniformDataJoints.mToWorldMat[instanceCount] =
+				uniformDataJoints.mToWorldMat[instanceIndex] =
 					mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex) * mat4::scale(mRigs[rigIndex]->GetJointScale(jointIndex));
 			}
 			else
 			{
 				// add joint data to the uniform without scaling
-				mUniformDataJoints.mToWorldMat[instanceCount] = mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex);
+				uniformDataJoints.mToWorldMat[instanceIndex] = mRigs[rigIndex]->GetJointWorldMatNoScale(jointIndex);
 			}
-			mUniformDataJoints.mColor[instanceCount] = mRigs[rigIndex]->GetJointColor();
+			uniformDataJoints.mColor[instanceIndex] = mRigs[rigIndex]->GetJointColor();
 
 			// increment the count of uniform data that has been filled for this batch
-			instanceCount++;
+			++instanceCount;
+			++batchInstanceCount;
 
 			// If we have reached our maximun amount of instances, or the end of our data
-			if ((instanceCount == MAX_INSTANCES) || ((rigIndex == numRigs - 1) && (jointIndex == numJoints - 1)))
+			if ((instanceIndex == MAX_INSTANCES -1) || ((rigIndex - rigsOffset == numRigs - 1) && (jointIndex == numJoints - 1)))
 			{
-				// Finalize the data for this batch
 
-				unsigned int currBatch = mBatchCounts[frameIndex];
-
-				BufferUpdateDesc viewProjCbvJoints = { mProjViewUniformBufferJoints[frameIndex][currBatch] };
-				beginUpdateResource(&viewProjCbvJoints);
-				memcpy(viewProjCbvJoints.pMappedData, &mUniformDataJoints, sizeof(mUniformDataJoints));
-				endUpdateResource(&viewProjCbvJoints, NULL);
-
-				if (mDrawBones)
+				// Finalize the data for this batch by adding the batch instance to the batch total size
+				unsigned int currBatchSize = tfrg_atomic32_add_relaxed(&mBatchSize[frameIndex][batchIndex], batchInstanceCount) + batchInstanceCount;
+				
+				// Only update if batch is full, or this is the last batch as it could be less than MAX_INSTANCES
+				if(currBatchSize == MAX_INSTANCES ||
+					(lastBatchIndex == batchIndex && currBatchSize == lastBatchSize))
 				{
-					BufferUpdateDesc viewProjCbvBones = { mProjViewUniformBufferBones[frameIndex][currBatch] };
-					beginUpdateResource(&viewProjCbvBones);
-					memcpy(viewProjCbvBones.pMappedData, &mUniformDataBones, sizeof(mUniformDataBones));
-					endUpdateResource(&viewProjCbvBones, NULL);
+					tfrg_atomic32_add_relaxed(&mBatchCounts[frameIndex], 1);
+					BufferUpdateDesc viewProjCbvJoints = { mProjViewUniformBufferJoints[frameIndex][batchIndex] };
+					beginUpdateResource(&viewProjCbvJoints);
+					memcpy(viewProjCbvJoints.pMappedData, &uniformDataJoints, sizeof(uniformDataJoints));
+					endUpdateResource(&viewProjCbvJoints, NULL);
+
+					if (mDrawBones)
+					{
+						BufferUpdateDesc viewProjCbvBones = { mProjViewUniformBufferBones[frameIndex][batchIndex] };
+						beginUpdateResource(&viewProjCbvBones);
+						memcpy(viewProjCbvBones.pMappedData, &uniformDataBones, sizeof(uniformDataBones));
+						endUpdateResource(&viewProjCbvBones, NULL);
+					}
 				}
 
-				// Increment the total batch count for this frame index
-				mBatchCounts[frameIndex]++;
-
-				// If we have reached the end of our data, save the number of instances in this
-				// last batch as it could be less than MAX_INSTANCES
-				if ((rigIndex == numRigs - 1) && (jointIndex == numJoints - 1))
-				{
-					mLastBatchSize[frameIndex] = instanceCount;
-				}
-				// Otherwise reset the count so it can be used for the next batch
-				else
-				{
-					instanceCount = 0;
-				}
+				// Increase batchIndex for next batch
+				++batchIndex;
+				// Reset the count so it can be used for the next batch
+				batchInstanceCount = 0;
 			}
 		}
 	}
@@ -198,14 +211,19 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 void SkeletonBatcher::AddRig(Rig* rig)
 {
 	// Adds the rig so its data can be used and increments the rig count
-	mRigs.push_back(rig);
-	mNumRigs++;
+	ASSERT(mNumRigs < MAX_RIGS && "Exceed maximum amount of rigs");
+	mRigs[mNumRigs] = rig;
+	uint32_t joints = rig->GetNumJoints() + mCumulativeRigInstanceCount[mNumRigs];
+	ASSERT(joints < MAX_INSTANCES * MAX_BATCHES && "Exceed maximum amount of instances");
+	++mNumRigs;
+	++mNumActiveRigs;
+	mCumulativeRigInstanceCount[mNumRigs] = joints;
 }
 
 void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 {
 	// Get the number of batches to draw for this frameindex
-	unsigned int numBatches = mBatchCounts[frameIndex];
+	unsigned int numBatches = tfrg_atomic32_store_relaxed(&mBatchCounts[frameIndex], 0);
 
 	cmdBindPipeline(cmd, mSkeletonPipeline);
 
@@ -217,17 +235,8 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 	{
 		cmdBindDescriptorSet(cmd, (frameIndex * (MAX_BATCHES * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
-
-		if (batchIndex < numBatches - 1)
-		{
-			// Draw MAX_INSTANCES number of joints
-			cmdDrawInstanced(cmd, mNumJointPoints / 6, 0, MAX_INSTANCES, 0);
-		}
-		else
-		{
-			// For the last batch use its recorded number of instances for this frameindex
-			cmdDrawInstanced(cmd, mNumJointPoints / 6, 0, mLastBatchSize[frameIndex], 0);
-		}
+		cmdDrawInstanced(cmd, mNumJointPoints / 6, 0, mBatchSize[frameIndex][batchIndex], 0);
+		if(!mDrawBones) mBatchSize[frameIndex][batchIndex] = 0;
 	}
 	cmdEndDebugMarker(cmd);
 
@@ -241,17 +250,8 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 		for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 		{
 			cmdBindDescriptorSet(cmd, (frameIndex * (MAX_BATCHES * 2)) + (batchIndex * 2 + 1), pDescriptorSet);
-
-			if (batchIndex < numBatches - 1)
-			{
-				// Draw MAX_INSTANCES number of bones
-				cmdDrawInstanced(cmd, mNumBonePoints / 6, 0, MAX_INSTANCES, 0);
-			}
-			else
-			{
-				// For the last batch use its recorded number of instances for this frameindex
-				cmdDrawInstanced(cmd, mNumBonePoints / 6, 0, mLastBatchSize[frameIndex], 0);
-			}
+			cmdDrawInstanced(cmd, mNumBonePoints / 6, 0, mBatchSize[frameIndex][batchIndex], 0);
+			mBatchSize[frameIndex][batchIndex] = 0;
 		}
 		cmdEndDebugMarker(cmd);
 	}

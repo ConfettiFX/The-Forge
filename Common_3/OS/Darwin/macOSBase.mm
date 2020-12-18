@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -57,6 +57,23 @@ uint32_t gMonitorCount = 0;
 bool gCursorVisible = true;
 bool gCursorInsideTrackingArea = true;
 static WindowsDesc gCurrentWindow;
+
+@interface ForgeApplication : NSApplication
+@end
+
+@implementation ForgeApplication
+- (void) sendEvent:(NSEvent *)event
+{
+	if ([event type] == NSEventTypeKeyUp)
+	{
+		[[[self mainWindow] firstResponder] tryToPerform:@selector(keyUp:) with:event ];
+		// returning as it will get discarded.
+		return;
+	}
+	[super sendEvent:event];
+}
+
+@end
 
 void HideMenuBar()
 {
@@ -334,11 +351,28 @@ void AutoHideMenuBar()
 
 - (void)windowDidResize:(NSNotification *)notification
 {
-	if (gCurrentWindow.fullScreen)
+	ForgeNSWindow* window = [notification object];
+	if (gCurrentWindow.fullScreen || [window inLiveResize])
 	{
 		return;
 	}
+
+	NSRect viewSize = [window.contentView frame];
 	
+	[self.delegate didResize: viewSize.size];
+	
+	float2 dpiScale = getDpiScale();
+	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale.x, self.frame.size.height * dpiScale.y);
+	
+	[window updateClientRect:&gCurrentWindow];
+	[window updateWindowRect:&gCurrentWindow];
+}
+
+- (void) windowDidEndLiveResize:(NSNotification *)notification
+{
+	if (gCurrentWindow.fullScreen)
+		return;
+		
 	ForgeNSWindow* window = [notification object];
 	NSRect viewSize = [window.contentView frame];
 	
@@ -963,8 +997,7 @@ void showWindow(WindowsDesc* winDesc)
 		return;
 	}
 	
-	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	window.isVisible = !winDesc->hide;
+    [[NSApplication sharedApplication] unhide:nil];
 }
 
 void hideWindow(WindowsDesc* winDesc)
@@ -976,8 +1009,7 @@ void hideWindow(WindowsDesc* winDesc)
 		return;
 	}
 	
-	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	window.isVisible = !winDesc->hide;
+    [[NSApplication sharedApplication] hide:nil];
 }
 
 void maximizeWindow(WindowsDesc* winDesc)
@@ -1086,8 +1118,6 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 		return;
 	}
 	
-	NSRect fullScreenRect = [screen frame];
-	NSRect visibleScreenRect = [screen visibleFrame];
 	CGFloat titleBarHeight = 0.0;
 	const RectDesc* windowRect = nil;
 	if(winDesc->fullScreen)
@@ -1369,6 +1399,10 @@ uint32_t testingMaxFrameCount = 120;
 		collectMonitorInfo();
 		
 		pSettings = &pApp->mSettings;
+		if (pSettings->mMonitorIndex < 0)
+		{
+			pSettings->mMonitorIndex = 0;
+		}
 		
 		gCurrentWindow = {};
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
@@ -1387,8 +1421,15 @@ uint32_t testingMaxFrameCount = 120;
 		getRecommendedResolution(&fullScreenRect);
 		if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
 		{
-			pSettings->mWidth = getRectWidth(fullScreenRect);
-			pSettings->mHeight = getRectHeight(fullScreenRect);
+			MonitorDesc* windowMonitor = getMonitor(pSettings->mMonitorIndex);
+			uint32_t oneBeforeLast = windowMonitor->resolutionCount - 2;
+			if (oneBeforeLast == ~0)
+			{
+				oneBeforeLast = 0;
+			}
+			
+			pSettings->mWidth = windowMonitor->resolutions[oneBeforeLast].mWidth;
+			pSettings->mHeight = windowMonitor->resolutions[oneBeforeLast].mWidth;
 		}
 		
 		gCurrentWindow.clientRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
@@ -1456,6 +1497,13 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Update(deltaTime);
 	pApp->Draw();
 	
+	// Graphics reset in cases where device has to be re-created.
+	if (pApp->mSettings.mResetGraphics) 
+	{
+		pApp->Unload();
+		pApp->Load();
+		pApp->mSettings.mResetGraphics = false;
+	}
 #ifdef AUTOMATED_TESTING
 	testingCurrentFrameCount++;
 	if (testingCurrentFrameCount >= testingMaxFrameCount)
@@ -1484,6 +1532,7 @@ uint32_t testingMaxFrameCount = 120;
 		tf_free(gMonitors);
 	}
 	
+	pApp->mSettings.mQuit = true;
 	pApp->Unload();
 	pApp->Exit();
 	Log::Exit();
@@ -1504,5 +1553,3 @@ uint32_t testingMaxFrameCount = 120;
 /************************************************************************/
 /************************************************************************/
 #endif
-
-

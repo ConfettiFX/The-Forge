@@ -87,7 +87,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\Debug\$(TargetName).exe"</Command>
@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
       <Command>
@@ -124,7 +124,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -146,7 +146,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\Release\$(TargetName).exe"</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -168,6 +168,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\Release\$(TargetName).exe"</Command>
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsLog.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsStackTraceDump.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsThread.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\EASTL\allocator_forge.cpp" />
@@ -205,6 +206,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\Release\$(TargetName).exe"</Command>
     <ClCompile Include="StringLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\OS\Windows\WindowsStackTraceDump.h" />
     <ClInclude Include="CodeWriter.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FullTokenizer.h" />

@@ -24,6 +24,13 @@
 #else // !_MSC_VER
     #if defined(__SSE__)
         #define VECTORMATH_CPU_HAS_SSE1_OR_BETTER 1
+	#elif defined(__ANDROID__)
+		#if defined(ANDROID_ARM_NEON)
+			#define VECTORMATH_CPU_HAS_NEON 1
+		#else
+			#define VECTORMATH_CPU_HAS_SSE1_OR_BETTER 0
+			#define VECTORMATH_CPU_HAS_NEON 0
+		#endif
 	#elif defined(__arm64) || defined(__aarch64__) || defined(__arm__ )
 		#define VECTORMATH_CPU_HAS_NEON 1
     #else // !__SSE__

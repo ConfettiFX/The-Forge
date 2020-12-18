@@ -550,6 +550,44 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsSRGB(TinyImageFormat const fmt) {
 	}
 }
 
+TIF_CONSTEXPR inline bool TinyImageFormat_IsYCbCr(TinyImageFormat const fmt) {
+	switch(fmt) {
+		case TinyImageFormat_G8B8G8R8_422_UNORM:
+		case TinyImageFormat_B8G8R8G8_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM :
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
+		case TinyImageFormat_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
+		case TinyImageFormat_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+		case TinyImageFormat_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16:
+		case TinyImageFormat_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G16B16G16R16_422_UNORM:
+		case TinyImageFormat_B16G16R16G16_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_444_UNORM:
+			return true;
+		
+		default: return false;
+	}
+}
+
 TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt) {
 	switch(fmt) {
 		case TinyImageFormat_DXBC1_RGB_UNORM: return true;
@@ -616,6 +654,172 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt
 		case TinyImageFormat_ASTC_12x12_SRGB: return true;
 		default: return false;
 	}
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsPlanar(TinyImageFormat const fmt) {
+	switch(fmt) {
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_444_UNORM:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+			return true;
+
+		default:
+			return false;
+   }
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_IsPacked(TinyImageFormat const fmt) {
+	switch(fmt) {
+		case TinyImageFormat_G8B8G8R8_422_UNORM:
+		case TinyImageFormat_B8G8R8G8_422_UNORM:
+		case TinyImageFormat_G16B16G16R16_422_UNORM:
+		case TinyImageFormat_B16G16R16G16_422_UNORM:
+		case TinyImageFormat_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
+		case TinyImageFormat_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+		case TinyImageFormat_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16:
+		case TinyImageFormat_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
+			return true;
+
+	default: 
+		return false;
+   }
+}
+
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_NumOfPlanes(TinyImageFormat const fmt) {
+	switch(fmt) {
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_444_UNORM:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+			return 3;
+
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+			return 2;
+      
+		default: 
+			return 1;
+   }
+}
+
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneWidth(TinyImageFormat const fmt, uint32_t const plane, uint32_t const width) {
+	if (0 == plane)
+		return width;
+
+	switch(fmt) {
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+			return width >> 1;
+     
+		default:
+			return width;         
+	}
+}
+
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneHeight(TinyImageFormat const fmt, uint32_t const plane, uint32_t const height) {	
+	if (0 == plane)
+		return height;
+
+	switch(fmt) {
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+			return height >> 1;
+     
+		default:
+			return height;         
+	}
+}
+
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneSizeOfBlock(TinyImageFormat const fmt, uint32_t plane) {
+	switch(fmt) {
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
+			return 1;
+
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_444_UNORM:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+			return 2;
+
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+			return 0 == plane ? 1 : 2;
+			return 0 == plane ? 1 : 2;
+
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+			return 0 == plane ? 2 : 4;
+
+		default:
+			return 1;
+	}
+}
+
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_IsSinglePlane(TinyImageFormat const fmt) {
+	return !TinyImageFormat_IsPlanar(fmt) || TinyImageFormat_NumOfPlanes(fmt) < 2;
 }
 
 TIF_CONSTEXPR inline bool TinyImageFormat_IsHomogenous(TinyImageFormat const fmt) {
@@ -1037,6 +1241,16 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_BitSizeOfBlock(TinyImageFormat con
 		case TinyImageFormat_CLUT_P4A4: return 8;
 		case TinyImageFormat_CLUT_P8: return 8;
 		case TinyImageFormat_CLUT_P8A8: return 16;
+		case TinyImageFormat_G16B16G16R16_422_UNORM: return 8;
+		case TinyImageFormat_B16G16R16G16_422_UNORM: return 8;
+		case TinyImageFormat_R12X4G12X4B12X4A12X4_UNORM_4PACK16: return 8;
+		case TinyImageFormat_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16: return 8;
+		case TinyImageFormat_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16: return 8;
+		case TinyImageFormat_R10X6G10X6B10X6A10X6_UNORM_4PACK16: return 8;
+		case TinyImageFormat_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16: return 8;
+		case TinyImageFormat_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16: return 8;
+		case TinyImageFormat_G8B8G8R8_422_UNORM: return 4;
+		case TinyImageFormat_B8G8R8G8_422_UNORM: return 4;
 		default: return 32;
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -145,6 +145,20 @@ bool             gMultiGPU = true;
 bool             gMultiGPURestart = false;
 float* pSpherePoints;
 
+const char* gTestScripts[] = { "Test0.lua", "Test1.lua" };
+uint32_t gScriptIndexes[] = { 0, 1 };
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 class MultiGPU : public IApp
 {
 public:
@@ -156,6 +170,7 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		gClearColor.r = 0.0f;
 		gClearColor.g = 0.0f;
@@ -165,207 +180,11 @@ public:
 		gClearDepth.depth = 1.0f;
 		gClearDepth.stencil = 0;
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
-		initRenderer(GetName(), &settings, &pRenderer);
-		//check for init success
-		if (!pRenderer)
-			return false;
-
-		initResourceLoaderInterface(pRenderer);
-
-		if (pRenderer->mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
-		{
-			LOGF(LogLevel::eWARNING, "Multi GPU will be disabled since the system only has one GPU");
-			gMultiGPU = false;
-		}
-		for (uint32_t i = 0; i < gViewCount; ++i)
-		{
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			queueDesc.mNodeIndex = i;
-
-			if (!gMultiGPU && i > 0)
-				pGraphicsQueue[i] = pGraphicsQueue[0];
-			else
-				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
-			gGpuProfilerNames[i] = eastl::string("Graphics") + eastl::to_string(i);
-			pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
-		}
-
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-
-		initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			for (uint32_t j = 0; j < gViewCount; ++j)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue[j];
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i][j]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i][j];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i][j]);
-
-				addFence(pRenderer, &pRenderCompleteFences[i][j]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][j]);
-			}
-		}
-
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-		addShader(pRenderer, &basicShader, &pSphereShader);
-
-		SamplerDesc samplerDesc = { FILTER_LINEAR,
-									FILTER_LINEAR,
-									MIPMAP_MODE_NEAREST,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
-		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
-
-		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		const char* pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		for (uint32_t i = 0; i < gViewCount; i++)
-		{
-			if (!gMultiGPU && i > 0)
-			{
-				pDescriptorSetTexture[i] = pDescriptorSetTexture[0];
-				pDescriptorSetUniforms[i] = pDescriptorSetUniforms[0];
-			}
-			else
-			{
-				DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1, i };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture[i]);
-				setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2, i };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[i]);
-			}
-		}
-
 		// Generate sphere vertex buffer
 		if (!pSpherePoints)
 			generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
 
-		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
-		BufferLoadDesc sphereVbDesc = {};
-		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		sphereVbDesc.mDesc.mSize = sphereDataSize;
-		sphereVbDesc.pData = pSpherePoints;
-
-		//Generate sky box vertex buffer
-		float skyBoxPoints[] = {
-			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
-			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
-			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
-
-			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
-			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
-			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
-
-			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
-			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
-			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
-
-			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
-			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
-			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
-
-			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
-			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
-			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
-
-			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
-			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
-			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
-		};
-
-		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.pData = skyBoxPoints;
-
-		TextureLoadDesc textureDesc = {};
-
-		for (uint32_t view = 0; view < gViewCount; ++view)
-		{
-			textureDesc.mNodeIndex = view;
-
-			for (int i = 0; i < 6; ++i)
-			{
-				textureDesc.pFileName = pSkyBoxImageFileNames[i];
-				textureDesc.ppTexture = &pSkyBoxTextures[view][i];
-
-				if (!gMultiGPU && view > 0)
-					pSkyBoxTextures[view][i] = pSkyBoxTextures[0][i];
-				else
-					addResource(&textureDesc, NULL);
-			}
-
-			sphereVbDesc.mDesc.mNodeIndex = view;
-			sphereVbDesc.ppBuffer = &pSphereVertexBuffer[view];
-
-			skyboxVbDesc.mDesc.mNodeIndex = view;
-			skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer[view];
-
-			if (!gMultiGPU && view > 0)
-			{
-				pSphereVertexBuffer[view] = pSphereVertexBuffer[0];
-				pSkyBoxVertexBuffer[view] = pSkyBoxVertexBuffer[0];
-			}
-			else
-			{
-				addResource(&sphereVbDesc, NULL);
-				addResource(&skyboxVbDesc, NULL);
-			}
-		}
-
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlock);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-
-		waitForAllResourceLoads();
-
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
-
 		// Sun
 		gPlanetInfoData[0].mParentIndex = 0;
 		gPlanetInfoData[0].mYOrbitSpeed = 0;    // Earth years for one orbit
@@ -465,18 +284,7 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-#if !defined(TARGET_IOS)
-		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
-#endif
-		// Show this checkbox only when multiple GPUs are present
-		if (pRenderer->mLinkedNodeCount > 1)
-		{
-			pGui->AddWidget(CheckboxWidget("Enable Multi GPU", &gMultiGPU));
-		}
-		pGui->AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
-		pGui->AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
-		pGui->AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
-		pGui->AddWidget(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 600.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -484,11 +292,6 @@ public:
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
-
-		if (!gPanini.Init(pRenderer))
-			return false;
-
-		gPanini.SetMaxDraws(gImageCount * 2);
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -522,114 +325,290 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		// Prepare descriptor sets
-		for (uint32_t i = 0; i < gViewCount; ++i)
-		{
-			if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
-				continue;
-
-			DescriptorData params[6] = {};
-			params[0].pName = "RightText";
-			params[0].ppTextures = &pSkyBoxTextures[i][0];
-			params[1].pName = "LeftText";
-			params[1].ppTextures = &pSkyBoxTextures[i][1];
-			params[2].pName = "TopText";
-			params[2].ppTextures = &pSkyBoxTextures[i][2];
-			params[3].pName = "BotText";
-			params[3].ppTextures = &pSkyBoxTextures[i][3];
-			params[4].pName = "FrontText";
-			params[4].ppTextures = &pSkyBoxTextures[i][4];
-			params[5].pName = "BackText";
-			params[5].ppTextures = &pSkyBoxTextures[i][5];
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture[i], 6, params);
-
-			for (uint32_t f = 0; f < gImageCount; ++f)
-			{
-				DescriptorData params[1] = {};
-				params[0].pName = "uniformBlock";
-				params[0].ppBuffers = &pSkyboxUniformBuffer[f];
-				updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
-				params[0].ppBuffers = &pProjViewUniformBuffer[f];
-				updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
-			}
-		}
-
 		return true;
 	}
 
 	void Exit()
 	{
-		for (uint32_t i = 0; i < gViewCount; ++i)
-			waitQueueIdle(pGraphicsQueue[i]);
-
 		exitInputSystem();
 
 		destroyCameraController(pCameraController);
 
-		exitProfiler();
 
 		if (!gMultiGPURestart)
 		{
 			// Need to free memory;
 			tf_free(pSpherePoints);
+			pSpherePoints = 0;
 		}
-
-		gPanini.Exit();
-		gAppUI.Exit();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pProjViewUniformBuffer[i]);
-			removeResource(pSkyboxUniformBuffer[i]);
-		}
-
-		for (uint32_t view = 0; view < gViewCount; ++view)
-		{
-			if (!gMultiGPU && view > 0)
-				continue;
-
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture[view]);
-			removeDescriptorSet(pRenderer, pDescriptorSetUniforms[view]);
-
-			removeResource(pSphereVertexBuffer[view]);
-			removeResource(pSkyBoxVertexBuffer[view]);
-
-			for (uint i = 0; i < 6; ++i)
-				removeResource(pSkyBoxTextures[view][i]);
-		}
-
-		removeSampler(pRenderer, pSamplerSkyBox);
-		removeShader(pRenderer, pSphereShader);
-		removeShader(pRenderer, pSkyBoxDrawShader);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			for (uint32_t j = 0; j < gViewCount; ++j)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i][j]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][j]);
-				removeCmd(pRenderer, pCmds[i][j]);
-				removeCmdPool(pRenderer, pCmdPools[i][j]);
-			}
-		}
-
-		for (uint32_t view = 0; view < gViewCount; ++view)
-		{
-			if (!gMultiGPU && view > 0)
-				break;
-			removeQueue(pRenderer, pGraphicsQueue[view]);
-		}
-
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		exitResourceLoaderInterface(pRenderer);
-
-		removeRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			// window and renderer setup
+			RendererDesc settings = { 0 };
+			settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
+			initRenderer(GetName(), &settings, &pRenderer);
+			//check for init success
+			if (!pRenderer)
+				return false;
+
+			initResourceLoaderInterface(pRenderer);
+
+			if (pRenderer->mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
+			{
+				LOGF(LogLevel::eWARNING, "Multi GPU will be disabled since the system only has one GPU");
+				gMultiGPU = false;
+			}
+			for (uint32_t i = 0; i < gViewCount; ++i)
+			{
+				QueueDesc queueDesc = {};
+				queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+				queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+				queueDesc.mNodeIndex = i;
+
+				if (!gMultiGPU && i > 0)
+					pGraphicsQueue[i] = pGraphicsQueue[0];
+				else
+					addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
+				gGpuProfilerNames[i] = eastl::string("Graphics") + eastl::to_string(i);
+				pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
+			}
+
+			if (!gAppUI.Init(pRenderer))
+				return false;
+			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+			pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+
+			initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				for (uint32_t j = 0; j < gViewCount; ++j)
+				{
+					CmdPoolDesc cmdPoolDesc = {};
+					cmdPoolDesc.pQueue = pGraphicsQueue[j];
+					addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i][j]);
+					CmdDesc cmdDesc = {};
+					cmdDesc.pPool = pCmdPools[i][j];
+					addCmd(pRenderer, &cmdDesc, &pCmds[i][j]);
+
+					addFence(pRenderer, &pRenderCompleteFences[i][j]);
+					addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][j]);
+				}
+			}
+
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			ShaderLoadDesc skyShader = {};
+			skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+			skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+			ShaderLoadDesc basicShader = {};
+			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+			addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+			addShader(pRenderer, &basicShader, &pSphereShader);
+
+			SamplerDesc samplerDesc = { FILTER_LINEAR,
+										FILTER_LINEAR,
+										MIPMAP_MODE_NEAREST,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE };
+			addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
+
+			Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
+			const char* pStaticSamplers[] = { "uSampler0" };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mStaticSamplerCount = 1;
+			rootDesc.ppStaticSamplerNames = pStaticSamplers;
+			rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+			rootDesc.mShaderCount = 2;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			for (uint32_t i = 0; i < gViewCount; i++)
+			{
+				if (!gMultiGPU && i > 0)
+				{
+					pDescriptorSetTexture[i] = pDescriptorSetTexture[0];
+					pDescriptorSetUniforms[i] = pDescriptorSetUniforms[0];
+				}
+				else
+				{
+					DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1, i };
+					addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture[i]);
+					setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2, i };
+					addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[i]);
+				}
+			}
+
+			uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
+			BufferLoadDesc sphereVbDesc = {};
+			sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			sphereVbDesc.mDesc.mSize = sphereDataSize;
+			sphereVbDesc.pData = pSpherePoints;
+
+			//Generate sky box vertex buffer
+			float skyBoxPoints[] = {
+				10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+				-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+				-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
+
+				-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+				-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+				-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
+
+				10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+				10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+				10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
+
+				-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+				-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+				10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
+
+				-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+				10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+				10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
+
+				10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+				10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+				-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
+			};
+
+			uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+			BufferLoadDesc skyboxVbDesc = {};
+			skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+			skyboxVbDesc.pData = skyBoxPoints;
+
+			TextureLoadDesc textureDesc = {};
+
+			for (uint32_t view = 0; view < gViewCount; ++view)
+			{
+				textureDesc.mNodeIndex = view;
+
+				for (int i = 0; i < 6; ++i)
+				{
+					textureDesc.pFileName = pSkyBoxImageFileNames[i];
+					textureDesc.ppTexture = &pSkyBoxTextures[view][i];
+
+					if (!gMultiGPU && view > 0)
+						pSkyBoxTextures[view][i] = pSkyBoxTextures[0][i];
+					else
+						addResource(&textureDesc, NULL);
+				}
+
+				sphereVbDesc.mDesc.mNodeIndex = view;
+				sphereVbDesc.ppBuffer = &pSphereVertexBuffer[view];
+
+				skyboxVbDesc.mDesc.mNodeIndex = view;
+				skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer[view];
+
+				if (!gMultiGPU && view > 0)
+				{
+					pSphereVertexBuffer[view] = pSphereVertexBuffer[0];
+					pSkyBoxVertexBuffer[view] = pSkyBoxVertexBuffer[0];
+				}
+				else
+				{
+					addResource(&sphereVbDesc, NULL);
+					addResource(&skyboxVbDesc, NULL);
+				}
+			}
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			ubDesc.mDesc.mSize = sizeof(UniformBlock);
+			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			ubDesc.pData = NULL;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+				ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			waitForAllResourceLoads();
+
+			ButtonWidget testGPUReset("ResetGraphicsDevice");
+			testGPUReset.pOnEdited = testGraphicsReset;
+			pGui->AddWidget(testGPUReset);
+
+
+#if !defined(TARGET_IOS)
+			pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
+#endif
+						// Reset graphics with a button.
+
+		// Show this checkbox only when multiple GPUs are present
+			if (pRenderer->mLinkedNodeCount > 1)
+			{
+				pGui->AddWidget(CheckboxWidget("Enable Multi GPU", &gMultiGPU));
+			}
+			pGui->AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
+			pGui->AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
+			pGui->AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
+			pGui->AddWidget(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
+
+			DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+			ButtonWidget bRunScript("Run");
+			bRunScript.pOnEdited = RunScript;
+			pGui->AddWidget(ddTestScripts);
+			pGui->AddWidget(bRunScript);
+
+			if (!gPanini.Init(pRenderer))
+				return false;
+
+			gPanini.SetMaxDraws(gImageCount * 2);
+
+			// Prepare descriptor sets
+			for (uint32_t i = 0; i < gViewCount; ++i)
+			{
+				if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
+					continue;
+
+				DescriptorData params[6] = {};
+				params[0].pName = "RightText";
+				params[0].ppTextures = &pSkyBoxTextures[i][0];
+				params[1].pName = "LeftText";
+				params[1].ppTextures = &pSkyBoxTextures[i][1];
+				params[2].pName = "TopText";
+				params[2].ppTextures = &pSkyBoxTextures[i][2];
+				params[3].pName = "BotText";
+				params[3].ppTextures = &pSkyBoxTextures[i][3];
+				params[4].pName = "FrontText";
+				params[4].ppTextures = &pSkyBoxTextures[i][4];
+				params[5].pName = "BackText";
+				params[5].ppTextures = &pSkyBoxTextures[i][5];
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture[i], 6, params);
+
+				for (uint32_t f = 0; f < gImageCount; ++f)
+				{
+					DescriptorData params[1] = {};
+					params[0].pName = "uniformBlock";
+					params[0].ppBuffers = &pSkyboxUniformBuffer[f];
+					updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
+					params[0].ppBuffers = &pProjViewUniformBuffer[f];
+					updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
+				}
+			}
+		}
+
 		gFrameIndex = 0;
 
 		if (!addSwapChain())
@@ -643,8 +622,6 @@ public:
 
 		if (!gPanini.Load(pSwapChain->ppRenderTargets))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -714,7 +691,6 @@ public:
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			waitQueueIdle(pGraphicsQueue[i]);
 
-		unloadProfilerUI();
 		gPanini.Unload();
 		gAppUI.Unload();
 
@@ -728,6 +704,66 @@ public:
 
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			removeRenderTarget(pRenderer, pDepthBuffers[i]);
+
+		if (mSettings.mResetGraphics || mSettings.mQuit) 
+		{
+			exitProfilerUI();
+
+			exitProfiler();
+
+			gPanini.Exit();
+			gAppUI.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pProjViewUniformBuffer[i]);
+				removeResource(pSkyboxUniformBuffer[i]);
+			}
+
+			for (uint32_t view = 0; view < gViewCount; ++view)
+			{
+				if (!gMultiGPU && view > 0)
+					continue;
+
+				removeDescriptorSet(pRenderer, pDescriptorSetTexture[view]);
+				removeDescriptorSet(pRenderer, pDescriptorSetUniforms[view]);
+
+				removeResource(pSphereVertexBuffer[view]);
+				removeResource(pSkyBoxVertexBuffer[view]);
+
+				for (uint i = 0; i < 6; ++i)
+					removeResource(pSkyBoxTextures[view][i]);
+			}
+
+			removeSampler(pRenderer, pSamplerSkyBox);
+			removeShader(pRenderer, pSphereShader);
+			removeShader(pRenderer, pSkyBoxDrawShader);
+			removeRootSignature(pRenderer, pRootSignature);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				for (uint32_t j = 0; j < gViewCount; ++j)
+				{
+					removeFence(pRenderer, pRenderCompleteFences[i][j]);
+					removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][j]);
+					removeCmd(pRenderer, pCmds[i][j]);
+					removeCmdPool(pRenderer, pCmdPools[i][j]);
+				}
+			}
+
+			for (uint32_t view = 0; view < gViewCount; ++view)
+			{
+				if (!gMultiGPU && view > 0)
+					break;
+				removeQueue(pRenderer, pGraphicsQueue[view]);
+			}
+
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			exitResourceLoaderInterface(pRenderer);
+
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -956,7 +992,21 @@ public:
 				presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 				presentDesc.pSwapChain = pSwapChain;
 				presentDesc.mSubmitDone = true;
-				queuePresent(pGraphicsQueue[i], &presentDesc);
+				PresentStatus presentStatus = queuePresent(pGraphicsQueue[i], &presentDesc);
+				flipProfiler();
+
+				if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+				{
+					Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+					mSettings.mResetGraphics = true;
+				}
+
+				// Test re-creating graphics resources mid app.
+				if (gTestGraphicsReset)
+				{
+					mSettings.mResetGraphics = true;
+					gTestGraphicsReset = false;
+				}
 			}
 			else
 			{

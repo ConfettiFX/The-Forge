@@ -1,6 +1,6 @@
 #ifndef DGA_INPUT
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -528,8 +528,9 @@ struct InputSystemImpl : public gainput::InputListener
 		// create input manager
 		pInputManager = tf_new(gainput::InputManager);
 		ASSERT(pInputManager);
-#ifdef _WIN32
-		pInputManager->window_instance_ = window->handle.window;
+
+#if defined(_WINDOWS) || defined(XBOX)
+		pInputManager->SetWindowsInstance(window->handle.window);
 #endif
 
 		// create all necessary devices
@@ -979,7 +980,7 @@ struct InputSystemImpl : public gainput::InputListener
 	{
 		ASSERT(pWindow);
 
-#if defined(_WIN32) && !defined(XBOX)
+#if defined(_WINDOWS) && !defined(XBOX)
 		static int32_t lastCursorPosX = 0;
 		static int32_t lastCursorPosY = 0;
 
@@ -1617,11 +1618,19 @@ struct InputSystemImpl : public gainput::InputListener
 		gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
 		pDevicePad->SetLEDColor(r, g, b);
 	}
+
+	void setOnDeviceChangeCallBack(void(*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
+	{
+		if (gamePadIndex >= MAX_INPUT_GAMEPADS)
+			return;
+		gainput::InputDevicePad* pDevicePad = (gainput::InputDevicePad*)pInputManager->GetDevice(pGamepadDeviceIDs[gamePadIndex]);
+		pDevicePad->SetOnDeviceChangeCallBack(onDeviceChnageCallBack);
+	}
 };
 
 static InputSystemImpl* pInputSystem = NULL;
 
-#if defined(_WIN32) && !defined(XBOX)
+#if defined(_WINDOWS) && !defined(XBOX)
 static void ResetInputStates()
 {
 	pInputSystem->pInputManager->ClearAllStates(pInputSystem->mMouseDeviceID);
@@ -1639,7 +1648,7 @@ int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 	{
 		return 0;
 	}
-#if defined(_WIN32) && !defined(XBOX)
+#if defined(_WINDOWS) && !defined(XBOX)
 	pInputSystem->pInputManager->HandleMessage(*(MSG*)msg);
 	if ((*(MSG*)msg).message == WM_ACTIVATEAPP && (*(MSG*)msg).wParam == WA_INACTIVE)
 	{
@@ -1742,5 +1751,11 @@ void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
 	ASSERT(pInputSystem);
 
 	pInputSystem->SetLEDColor(gamePadIndex, r, g, b);
+}
+
+void setOnDeviceChangeCallBack(void(*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
+{
+	ASSERT(pInputSystem);
+	pInputSystem->setOnDeviceChangeCallBack(onDeviceChnageCallBack, gamePadIndex);
 }
 #endif

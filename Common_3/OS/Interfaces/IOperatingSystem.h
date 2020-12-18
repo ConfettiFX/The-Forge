@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 #include <sys/stat.h>
 #include <stdlib.h>
 #ifndef WIN32_LEAN_AND_MEAN
@@ -71,7 +71,7 @@ typedef uint64_t uint64;
 #include "../Core/Compiler.h"
 #include "../Math/MathTypes.h"
 
-#if !defined(_WIN32)
+#if !defined(_WINDOWS) && !defined(XBOX)
 #include <unistd.h>
 #define stricmp(a, b) strcasecmp(a, b)
 #if !defined(ORBIS) && !defined(PROSPERO)
@@ -112,7 +112,7 @@ typedef struct WindowHandle
 	xcb_window_t             window;
 	xcb_screen_t*            screen;
 	xcb_intern_atom_reply_t* atom_wm_delete_window;
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
 	ANativeWindow*           window;
 	ANativeActivity*         activity;
 #else
@@ -167,7 +167,7 @@ typedef struct
     uint2             dpi;
     uint2             physicalSize;
 	// This size matches the static size of DISPLAY_DEVICE.DeviceName
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 	WCHAR             adapterName[32];
 	WCHAR             displayName[32];
 	WCHAR             publicAdapterName[128];

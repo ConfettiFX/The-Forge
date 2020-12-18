@@ -16,6 +16,7 @@
     <Project Name="OS"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="SpirVTools"/>
@@ -23,6 +24,7 @@
     <Project Name="OS"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -46,8 +48,10 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
@@ -111,8 +115,10 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>

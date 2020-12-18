@@ -213,6 +213,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Screenshot.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -418,6 +418,12 @@ static void createEntities(void* pData, uintptr_t i)
 	}
 }
 
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 class EntityComponentSystem: public IApp
 {
 	public:
@@ -435,123 +441,9 @@ class EntityComponentSystem: public IApp
 		PositionComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 		WorldBoundsComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 
-		pEntityManager = tf_new(EntityManager);
-
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		//check for init success
-		if (!pRenderer)
-			return false;
-
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		initResourceLoaderInterface(pRenderer);
-
-		if (!gAppUI.Init(pRenderer))
-		  return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-
-		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		// TODO: rename to sprite
-		ShaderLoadDesc spriteShader = {};
-		spriteShader.mStages[0] = { "basic.vert", NULL, 0 };
-		spriteShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-		addShader(pRenderer, &spriteShader, &pSpriteShader);
-
-		SamplerDesc samplerDesc = { FILTER_LINEAR,
-									FILTER_LINEAR,
-									MIPMAP_MODE_LINEAR,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
-		addSampler(pRenderer, &samplerDesc, &pLinearClampSampler);
-
-		const char*       pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = { &pSpriteShader, 1 };
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pLinearClampSampler;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
-
-		gSpriteData = (SpriteData*)tf_malloc(MaxSpriteCount * sizeof(SpriteData));
-
-		// Instance buffer
-		BufferLoadDesc spriteVbDesc = {};
-		spriteVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-		spriteVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		spriteVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
-		spriteVbDesc.mDesc.mFirstElement = 0;
-		spriteVbDesc.mDesc.mElementCount = MaxSpriteCount;
-		spriteVbDesc.mDesc.mStructStride = sizeof(SpriteData);
-		spriteVbDesc.mDesc.mSize = MaxSpriteCount * spriteVbDesc.mDesc.mStructStride;
-		spriteVbDesc.pData = gSpriteData;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			spriteVbDesc.ppBuffer = &pSpriteVertexBuffers[i];
-			addResource(&spriteVbDesc, NULL);
-		}
-
-		// Index buffer
-		uint16_t indices[] =
-		{
-			0, 1, 2, 2, 1, 3,
-		};
-		BufferLoadDesc spriteIBDesc = {};
-		spriteIBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		spriteIBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		spriteIBDesc.mDesc.mSize = sizeof(indices);
-		spriteIBDesc.pData = indices;
-		spriteIBDesc.ppBuffer = &pSpriteIndexBuffer;
-		addResource(&spriteIBDesc, NULL);
-
-		// Sprites texture
-		TextureLoadDesc textureDesc = {};
-		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFileName = "sprites";
-		addResource(&textureDesc, NULL);
-
 		initThreadSystem(&pThreadSystem);
 
-	/************************************************************************/
-	// GUI
-	/************************************************************************/
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.1f);
-		GUIWindow = gAppUI.AddGuiComponent("MT", &guiDesc);
-		
-		CheckboxWidget Checkbox("Threading", &multiThread);
-		GUIWindow->AddWidget(Checkbox);
-
+		pEntityManager = tf_new(EntityManager);
 
 		// Create entities
 		pAvoidanceSystem = tf_new(AvoidanceSystem);
@@ -602,73 +494,17 @@ class EntityComponentSystem: public IApp
 		};
 		addInputAction(&actionDesc);
 
-		waitForAllResourceLoads();
-		
-		// Prepare descriptor sets
-		DescriptorData params[1] = {};
-		params[0].pName = "uTexture0";
-		params[0].ppTextures = &pSpriteTexture;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			params[0].pName = "instanceBuffer";
-			params[0].ppBuffers = &pSpriteVertexBuffers[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-		}
-
 		return true;
 	}
 
 	void Exit()
 	{
 		exitInputSystem();
-
 		shutdownThreadSystem(pThreadSystem);
-		
 		pAvoidanceSystem->exit();
 		tf_delete(pAvoidanceSystem);
 		tf_delete(pMoveSystem);
-		
 		tf_delete(pEntityManager);
-
-		waitQueueIdle(pGraphicsQueue);
-
-		exitProfiler();
-
-		gAppUI.Exit();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pSpriteVertexBuffers[i]);
-		}
-		removeResource(pSpriteTexture);
-		removeShader(pRenderer, pSpriteShader);
-		removeResource(pSpriteIndexBuffer);
-
-		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-		removeSampler(pRenderer, pLinearClampSampler);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		
-        exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
-
-		tf_free(gSpriteData);
 		gSpriteData = NULL;
 
 		AvoidanceSystem::removeAllObjects();
@@ -680,13 +516,146 @@ class EntityComponentSystem: public IApp
 
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			// window and renderer setup
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+			//check for init success
+			if (!pRenderer)
+				return false;
+
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			initResourceLoaderInterface(pRenderer);
+
+			if (!gAppUI.Init(pRenderer))
+				return false;
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			// TODO: rename to sprite
+			ShaderLoadDesc spriteShader = {};
+			spriteShader.mStages[0] = { "basic.vert", NULL, 0 };
+			spriteShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+			addShader(pRenderer, &spriteShader, &pSpriteShader);
+
+			SamplerDesc samplerDesc = { FILTER_LINEAR,
+										FILTER_LINEAR,
+										MIPMAP_MODE_LINEAR,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE };
+			addSampler(pRenderer, &samplerDesc, &pLinearClampSampler);
+
+			const char*       pStaticSamplers[] = { "uSampler0" };
+			RootSignatureDesc rootDesc = { &pSpriteShader, 1 };
+			rootDesc.mStaticSamplerCount = 1;
+			rootDesc.ppStaticSamplerNames = pStaticSamplers;
+			rootDesc.ppStaticSamplers = &pLinearClampSampler;
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+
+			gSpriteData = (SpriteData*)tf_malloc(MaxSpriteCount * sizeof(SpriteData));
+
+			// Instance buffer
+			BufferLoadDesc spriteVbDesc = {};
+			spriteVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+			spriteVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			spriteVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
+			spriteVbDesc.mDesc.mFirstElement = 0;
+			spriteVbDesc.mDesc.mElementCount = MaxSpriteCount;
+			spriteVbDesc.mDesc.mStructStride = sizeof(SpriteData);
+			spriteVbDesc.mDesc.mSize = MaxSpriteCount * spriteVbDesc.mDesc.mStructStride;
+			spriteVbDesc.pData = gSpriteData;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				spriteVbDesc.ppBuffer = &pSpriteVertexBuffers[i];
+				addResource(&spriteVbDesc, NULL);
+			}
+
+			// Index buffer
+			uint16_t indices[] =
+			{
+				0, 1, 2, 2, 1, 3,
+			};
+			BufferLoadDesc spriteIBDesc = {};
+			spriteIBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+			spriteIBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			spriteIBDesc.mDesc.mSize = sizeof(indices);
+			spriteIBDesc.pData = indices;
+			spriteIBDesc.ppBuffer = &pSpriteIndexBuffer;
+			addResource(&spriteIBDesc, NULL);
+
+			// Sprites texture
+			TextureLoadDesc textureDesc = {};
+			textureDesc.ppTexture = &pSpriteTexture;
+			textureDesc.pFileName = "sprites";
+			addResource(&textureDesc, NULL);
+
+			/************************************************************************/
+			// GUI
+			/************************************************************************/
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.1f);
+			GUIWindow = gAppUI.AddGuiComponent("MT", &guiDesc);
+
+			CheckboxWidget Checkbox("Threading", &multiThread);
+			GUIWindow->AddWidget(Checkbox);
+			// Reset graphics with a button.
+			ButtonWidget testGPUReset("ResetGraphicsDevice");
+			testGPUReset.pOnEdited = testGraphicsReset;
+			GUIWindow->AddWidget(testGPUReset);
+			
+			waitForAllResourceLoads();
+
+			// Prepare descriptor sets
+			DescriptorData params[1] = {};
+			params[0].pName = "uTexture0";
+			params[0].ppTextures = &pSpriteTexture;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				params[0].pName = "instanceBuffer";
+				params[0].ppBuffers = &pSpriteVertexBuffers[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+			}
+		}
+
 		if (!addMainSwapChain())
 			return false;
 
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -728,12 +697,50 @@ class EntityComponentSystem: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pSpritePipeline);
 
 		removeSwapChain(pRenderer, pSwapChain);
+
+		if (mSettings.mResetGraphics || mSettings.mQuit) 
+		{
+			waitThreadSystemIdle(pThreadSystem);
+			exitProfilerUI();
+			exitProfiler();
+			gAppUI.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pSpriteVertexBuffers[i]);
+			}
+			removeResource(pSpriteTexture);
+			removeShader(pRenderer, pSpriteShader);
+			removeResource(pSpriteIndexBuffer);
+
+			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+			removeSampler(pRenderer, pLinearClampSampler);
+			removeRootSignature(pRenderer, pRootSignature);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+			tf_free(gSpriteData);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -893,8 +900,21 @@ class EntityComponentSystem: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset)
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

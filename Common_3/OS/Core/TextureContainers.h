@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
 #pragma once
 
 #include "../Interfaces/IOperatingSystem.h"
@@ -32,9 +56,9 @@ static inline bool util_get_surface_info(
 
 	uint32_t bpp = TinyImageFormat_BitSizeOfBlock(fmt);
 	bool compressed = TinyImageFormat_IsCompressed(fmt);
+	bool planar = TinyImageFormat_IsPlanar(fmt);
 	// #TODO
 	bool packed = false;
-	bool planar = false;
 
 	if (compressed)
 	{
@@ -63,19 +87,17 @@ static inline bool util_get_surface_info(
 		//numRows = uint64_t(height);
 		//numBytes = rowBytes * height;
 	}
-	//else if (dxgiFormat == DXGI_FORMAT_NV11)
-	//{
-	//	rowBytes = ((uint64_t(width) + 3u) >> 2) * 4u;
-	//	numRows = uint64_t(height) * 2u; // Direct3D makes this simplifying assumption, although it is larger than the 4:1:1 data
-	//	numBytes = rowBytes * numRows;
-	//}
 	else if (planar)
 	{
-		LOGF(eERROR, "Not implemented");
-		return false;
-		//rowBytes = ((uint64_t(width) + 1u) >> 1) * bpe;
-		//numBytes = (rowBytes * uint64_t(height)) + ((rowBytes * uint64_t(height) + 1u) >> 1);
-		//numRows = height + ((uint64_t(height) + 1u) >> 1);
+		uint32_t numOfPlanes = TinyImageFormat_NumOfPlanes(fmt);
+
+		for (uint32_t i = 0; i < numOfPlanes; ++i)
+		{
+			numBytes += TinyImageFormat_PlaneWidth(fmt, i, width) * TinyImageFormat_PlaneHeight(fmt, i, height) * TinyImageFormat_PlaneSizeOfBlock(fmt, i);
+		}
+
+		numRows = 1;
+		rowBytes = numBytes;
 	}
 	else
 	{
@@ -87,13 +109,8 @@ static inline bool util_get_surface_info(
 		numBytes = rowBytes * height;
 	}
 
-#if defined(_M_IX86) || defined(_M_ARM) || defined(_M_HYBRID_X86_ARM64)
-	static_assert(sizeof(size_t) == 4, "Not a 32-bit platform!");
 	if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX)
 		return false;
-#else
-	static_assert(sizeof(size_t) == 8, "Not a 64-bit platform!");
-#endif
 
 	if (outNumBytes)
 	{
@@ -129,6 +146,7 @@ static inline uint32_t util_get_surface_size(
 		{
 			uint32_t rowBytes = 0;
 			uint32_t numRows = 0;
+
 			if (!util_get_surface_info(w, h, format, NULL, &rowBytes, &numRows))
 			{
 				return false;
@@ -457,6 +475,72 @@ static constexpr TinyImageFormat_DXGI_FORMAT util_get_dxgi_format(const DDS_PIXE
 			return TIF_DXGI_FORMAT_YUY2;
 		}
 
+		// YUV formats
+		if (MAKEFOURCC('I', '4', '2', '0') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('I', 'Y', 'U', 'V') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('I', 'M', 'C', '1') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('I', 'M', 'C', '2') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('I', 'M', 'C', '3') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('I', 'M', 'C', '4') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('Y', 'U', '1', '2') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_420_OPAQUE;
+		}
+		if (MAKEFOURCC('N', 'V', '1', '2') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_NV12;
+		}
+		if (MAKEFOURCC('A', 'Y', 'U', 'V') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_AYUV;
+		}
+		if (MAKEFOURCC('Y', '4', '1', '0') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_Y410;
+		}
+		if (MAKEFOURCC('Y', '4', '1', '6') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_Y416;
+		}		
+		if (MAKEFOURCC('P', '0', '1', '0') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_P010;
+		}
+		if (MAKEFOURCC('P', '0', '1', '6') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_P016;
+		}
+		if (MAKEFOURCC('P', '2', '0', '8') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_P208;
+		}
+		if (MAKEFOURCC('Y', '2', '1', '0') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_Y210;
+		}
+		if (MAKEFOURCC('Y', '2', '1', '6') == ddpf.fourCC)
+		{
+			return TIF_DXGI_FORMAT_Y216;
+		}
+
 		// Check for D3DFORMAT enums being set here
 		switch (ddpf.fourCC)
 		{
@@ -676,6 +760,9 @@ if (!(exp))                   \
 	textureDesc.mArraySize = max(1U, TinyKtx_ArraySlices(ctx));
 	textureDesc.mMipLevels = max(1U, TinyKtx_NumberOfMipmaps(ctx));
 	textureDesc.mFormat = TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
+	textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+	textureDesc.mSampleCount = SAMPLE_COUNT_1;
+
 	if (textureDesc.mFormat == TinyImageFormat_UNDEFINED)
 	{
 		TinyKtx_DestroyContext(ctx);
@@ -687,9 +774,6 @@ if (!(exp))                   \
 		textureDesc.mArraySize *= 6;
 		textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE_CUBE;
 	}
-
-	textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-	textureDesc.mSampleCount = SAMPLE_COUNT_1;
 
 	TinyKtx_DestroyContext(ctx);
 

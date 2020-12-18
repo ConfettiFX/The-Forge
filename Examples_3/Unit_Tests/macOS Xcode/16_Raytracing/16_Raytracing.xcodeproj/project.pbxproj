@@ -20,6 +20,8 @@
 		B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BB21420E7000DF2297 /* UIKit.framework */; };
 		B25042C12214EC10006D133F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
 		B25042C22214EC10006D133F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD121421A13006F372D /* MetalKit.framework */; };
+		B28DC8E72522B279009B5FEF /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC8232522AEDB009B5FEF /* libLuaManager.a */; };
+		B28DC8EC2522B2A1009B5FEF /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC8252522AEDB009B5FEF /* libLuaManager_iOS.a */; };
 		B2DA3B6E2214D8F300D5FD8F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2DA3B6C2214D8F300D5FD8F /* AppDelegate.m */; };
 		B2DA3B712214D91500D5FD8F /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = B2DA3B6F2214D91500D5FD8F /* MainMenu.xib */; };
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
@@ -49,12 +51,40 @@
 			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
 		};
-		E958921C23416E0B00B68D6A /* PBXContainerItemProxy */ = {
+		B28DC8222522AEDB009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
+			remoteInfo = LuaManager;
+		};
+		B28DC8242522AEDB009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
+			remoteInfo = LuaManager_iOS;
+		};
+		B28DC8E52522B26F009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = LuaManager;
+		};
+		B28DC8E82522B297009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = LuaManager_iOS;
+		};
+		B28DC8EA2522B29C009B5FEF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
 			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = "The-Forge";
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -78,6 +108,7 @@
 		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		B2DA3B6C2214D8F300D5FD8F /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		B2DA3B6D2214D8F300D5FD8F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		B2DA3B702214D91500D5FD8F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -107,6 +138,7 @@
 				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
 				5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */,
 				5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */,
+				B28DC8EC2522B2A1009B5FEF /* libLuaManager_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +150,7 @@
 				B25042C22214EC10006D133F /* MetalKit.framework in Frameworks */,
 				65F9794021EE02C7008EC741 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C55835021413FD10019960B /* libThe-Forge.a in Frameworks */,
+				B28DC8E72522B279009B5FEF /* libLuaManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -169,6 +202,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B28DC81E2522AEDB009B5FEF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B28DC8232522AEDB009B5FEF /* libLuaManager.a */,
+				B28DC8252522AEDB009B5FEF /* libLuaManager_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		C95132EE2010E68A002E584B /* 16_Raytracing_iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -184,6 +226,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */,
 				6512E9F022098AA700B24B31 /* 16_Raytracing.cpp */,
 				5C55833721413EE30019960B /* The-Forge.xcodeproj */,
 				28A5AB66201F377A000E571F /* Shaders */,
@@ -231,7 +274,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				E958921D23416E0B00B68D6A /* PBXTargetDependency */,
+				B28DC8EB2522B29C009B5FEF /* PBXTargetDependency */,
+				B28DC8E92522B297009B5FEF /* PBXTargetDependency */,
 			);
 			name = 16_Raytracing_iOS;
 			productName = 17_EntityComponentSystem_iOS;
@@ -251,6 +295,7 @@
 			);
 			dependencies = (
 				5C55834021413EFB0019960B /* PBXTargetDependency */,
+				B28DC8E62522B26F009B5FEF /* PBXTargetDependency */,
 			);
 			name = 16_Raytracing;
 			productName = 02_Texture;
@@ -290,6 +335,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = B28DC81E2522AEDB009B5FEF /* Products */;
+					ProjectRef = B28DC81D2522AEDB009B5FEF /* LuaManager.xcodeproj */;
+				},
+				{
 					ProductGroup = 5C55833821413EE30019960B /* Products */;
 					ProjectRef = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
 				},
@@ -315,6 +364,20 @@
 			fileType = archive.ar;
 			path = "libThe-Forge.a";
 			remoteRef = 5C55833C21413EE30019960B /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B28DC8232522AEDB009B5FEF /* libLuaManager.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager.a;
+			remoteRef = B28DC8222522AEDB009B5FEF /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B28DC8252522AEDB009B5FEF /* libLuaManager_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager_iOS.a;
+			remoteRef = B28DC8242522AEDB009B5FEF /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -404,10 +467,20 @@
 			name = "The-Forge";
 			targetProxy = 5C55833F21413EFB0019960B /* PBXContainerItemProxy */;
 		};
-		E958921D23416E0B00B68D6A /* PBXTargetDependency */ = {
+		B28DC8E62522B26F009B5FEF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			name = "The-Forge";
-			targetProxy = E958921C23416E0B00B68D6A /* PBXContainerItemProxy */;
+			name = LuaManager;
+			targetProxy = B28DC8E52522B26F009B5FEF /* PBXContainerItemProxy */;
+		};
+		B28DC8E92522B297009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LuaManager_iOS;
+			targetProxy = B28DC8E82522B297009B5FEF /* PBXContainerItemProxy */;
+		};
+		B28DC8EB2522B29C009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = B28DC8EA2522B29C009B5FEF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

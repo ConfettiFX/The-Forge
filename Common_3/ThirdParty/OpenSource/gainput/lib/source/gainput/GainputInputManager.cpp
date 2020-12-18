@@ -58,7 +58,8 @@ InputManager::InputManager(bool useSystemTime, Allocator& allocator) :
 		displayHeight_(-1),
 		useSystemTime_(useSystemTime),
 		debugRenderingEnabled_(false),
-		debugRenderer_(0)
+		debugRenderer_(0),
+		window_instance_(0)
 {
 	GAINPUT_DEV_INIT(this);
 #ifdef GAINPUT_PLATFORM_ANDROID

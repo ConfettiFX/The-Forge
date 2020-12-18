@@ -145,6 +145,9 @@
     <ClCompile Include="..\..\..\..\..\OS\Core\Timer.cpp">
       <Filter>OS</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsStackTraceDump.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Parser.h">
@@ -185,6 +188,9 @@
     </ClInclude>
     <ClInclude Include="mcpp-master\mcpp_lib.h">
       <Filter>Source Files\mcpp-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\Windows\WindowsStackTraceDump.h">
+      <Filter>OS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -528,12 +528,13 @@ float SampleShadowFactor(vec3 worldPos)
 	float shadowFactor = 0.0;
 	float fadeInFactor = 0.0;
 	float demLOD = gs_ASMMaxRefinement;
-	ASMFrustumDesc frustumDesc;
-	frustumDesc.mStartingMip = 0;
-	
 
+	ASMFrustumDesc frustumDesc;
 	ASMFrustumDesc preRenderFrustumDesc;
-	preRenderFrustumDesc.mStartingMip = 5;
+
+	int swap = int(mMiscBool.z); 
+	frustumDesc.mStartingMip = swap * 5;
+	preRenderFrustumDesc.mStartingMip = (1 - swap) * 5;
 
 	float blockerDistance = 0.0;
 	float preRenderBlockerDistance = 0.0;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -56,7 +56,7 @@
 #if __cplusplus >= 201103
 #define DEFINE_ALIGNED(def, a) alignas(a) def
 #else
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 #define DEFINE_ALIGNED(def, a) __declspec(align(a)) def
 #elif defined(__APPLE__)
 #define DEFINE_ALIGNED(def, a) def __attribute__((aligned(a)))
@@ -72,7 +72,7 @@
 #define NOREFS __unsafe_unretained
 #endif
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 #define FORGE_CALLCONV __cdecl
 #else
 #define FORGE_CALLCONV

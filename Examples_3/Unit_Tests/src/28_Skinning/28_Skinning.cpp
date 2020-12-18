@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -172,6 +172,9 @@ const char* gStickFigureName = "stormtrooper/skeleton.ozz";
 const char* gClipName = "stormtrooper/animations/dance.ozz";
 const char* gDiffuseTexture = "Stormtrooper_D";
 
+float* pJointPoints = 0;
+float* pBonePoints = 0;
+
 const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
 const float gJointRadius = gBoneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
@@ -206,6 +209,13 @@ UIData gUIData;
 // Hard set the controller's time ratio via callback when it is set in the UI
 void ClipTimeChangeCallback() { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
 eastl::vector<mat4> inverseBindMatrices;
+
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
@@ -222,54 +232,6 @@ class Skinning: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS,      "Animation");
-
-		// WINDOW AND RENDERER SETUP
-		//
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer)    //check for init success
-			return false;
-
-		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
-		//
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		// INITIALIZE RESOURCE/DEBUG SYSTEMS
-		//
-		initResourceLoaderInterface(pRenderer);
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			return false;
-
-		// INITIALIZE THE USER INTERFACE
-		//
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		/************************************************************************/
 		// SETUP ANIMATION STRUCTURES
@@ -307,185 +269,14 @@ class Skinning: public IApp
 		//
 		gStickFigureAnimObject.Initialize(&gStickFigureRig, &gAnimation);
 
-		// INITIALIZE SAMPLERS
-		//
-		SamplerDesc defaultSamplerDesc = {};
-		defaultSamplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
-		defaultSamplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
-		defaultSamplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
-		defaultSamplerDesc.mMinFilter = FILTER_LINEAR;
-		defaultSamplerDesc.mMagFilter = FILTER_LINEAR;
-		defaultSamplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-		addSampler(pRenderer, &defaultSamplerDesc, &pDefaultSampler);
-
-		// INITIALIZE PIPILINE STATES
-		//
-		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0 };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0 };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-		char           maxNumBonesMacroBuffer[4] = {};
-		sprintf(maxNumBonesMacroBuffer, "%i", gStickFigureRig.GetNumJoints());
-		ShaderMacro    maxNumBonesMacro = { "MAX_NUM_BONES", maxNumBonesMacroBuffer };
-		ShaderLoadDesc skinningShader = {};
-		skinningShader.mStages[0] = { "skinning.vert", &maxNumBonesMacro, 1 };
-		skinningShader.mStages[1] = { "skinning.frag", &maxNumBonesMacro, 1 };
-
-		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
-		addShader(pRenderer, &basicShader, &pSkeletonShader);
-		addShader(pRenderer, &skinningShader, &pShaderSkinning);
-
-		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		const char* staticSamplers[] = { "DefaultSampler" };
-
-		RootSignatureDesc skinningRootSignatureDesc = {};
-		skinningRootSignatureDesc.mShaderCount = 1;
-		skinningRootSignatureDesc.ppShaders = &pShaderSkinning;
-		skinningRootSignatureDesc.mStaticSamplerCount = 1;
-		skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
-		skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
-		addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
-
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
-		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
-		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
-
 		// GENERATE VERTEX BUFFERS
 		//
 
 		// Generate joint vertex buffer
-		float* pJointPoints;
 		generateSpherePoints(&pJointPoints, &gNumberOfJointPoints, gSphereResolution, gJointRadius);
 
-		uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
-		BufferLoadDesc jointVbDesc = {};
-		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		jointVbDesc.mDesc.mSize = jointDataSize;
-		jointVbDesc.pData = pJointPoints;
-		jointVbDesc.ppBuffer = &pJointVertexBuffer;
-		addResource(&jointVbDesc, NULL);
-
 		// Generate bone vertex buffer
-		float* pBonePoints;
 		generateBonePoints(&pBonePoints, &gNumberOfBonePoints, gBoneWidthRatio);
-
-		uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
-		BufferLoadDesc boneVbDesc = {};
-		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		boneVbDesc.mDesc.mSize = boneDataSize;
-		boneVbDesc.pData = pBonePoints;
-		boneVbDesc.ppBuffer = &pBoneVertexBuffer;
-		addResource(&boneVbDesc, NULL);
-
-		//Generate plane vertex buffer
-		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
-								10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
-								10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
-
-		uint64_t       planeDataSize = 6 * 6 * sizeof(float);
-		BufferLoadDesc planeVbDesc = {};
-		planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		planeVbDesc.mDesc.mSize = planeDataSize;
-		planeVbDesc.pData = planePoints;
-		planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
-		addResource(&planeVbDesc, NULL);
-
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlockPlane);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pPlaneUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-
-		/************************************************************************/
-		// LOAD SKINNED MESH
-		/************************************************************************/
-		gVertexLayoutSkinned.mAttribCount = 5;
-		gVertexLayoutSkinned.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		gVertexLayoutSkinned.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		gVertexLayoutSkinned.mAttribs[0].mBinding = 0;
-		gVertexLayoutSkinned.mAttribs[0].mLocation = 0;
-		gVertexLayoutSkinned.mAttribs[0].mOffset = 0;
-		gVertexLayoutSkinned.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		gVertexLayoutSkinned.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		gVertexLayoutSkinned.mAttribs[1].mBinding = 0;
-		gVertexLayoutSkinned.mAttribs[1].mLocation = 1;
-		gVertexLayoutSkinned.mAttribs[1].mOffset = 3 * sizeof(float);
-		gVertexLayoutSkinned.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		gVertexLayoutSkinned.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		gVertexLayoutSkinned.mAttribs[2].mBinding = 0;
-		gVertexLayoutSkinned.mAttribs[2].mLocation = 2;
-		gVertexLayoutSkinned.mAttribs[2].mOffset = 6 * sizeof(float);
-		gVertexLayoutSkinned.mAttribs[3].mSemantic = SEMANTIC_WEIGHTS;
-		gVertexLayoutSkinned.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		gVertexLayoutSkinned.mAttribs[3].mBinding = 0;
-		gVertexLayoutSkinned.mAttribs[3].mLocation = 3;
-		gVertexLayoutSkinned.mAttribs[3].mOffset = 8 * sizeof(float);
-		gVertexLayoutSkinned.mAttribs[4].mSemantic = SEMANTIC_JOINTS;
-		gVertexLayoutSkinned.mAttribs[4].mFormat = TinyImageFormat_R16G16B16A16_UINT;
-		gVertexLayoutSkinned.mAttribs[4].mBinding = 0;
-		gVertexLayoutSkinned.mAttribs[4].mLocation = 4;
-		gVertexLayoutSkinned.mAttribs[4].mOffset = 12 * sizeof(float);
-
-		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFileName = "stormtrooper/riggedMesh.gltf";
-		loadDesc.pVertexLayout = &gVertexLayoutSkinned;
-		loadDesc.ppGeometry = &pGeom;
-		addResource(&loadDesc, NULL);
-
-		BufferLoadDesc boneBufferDesc = {};
-		boneBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		boneBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		boneBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		boneBufferDesc.mDesc.mSize = sizeof(mat4) * gStickFigureRig.GetNumJoints();
-		boneBufferDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
-		{
-			boneBufferDesc.ppBuffer = &pUniformBufferBones[i];
-			addResource(&boneBufferDesc, NULL);
-		}
-
-		TextureLoadDesc diffuseTextureDesc = {};
-		diffuseTextureDesc.pFileName = gDiffuseTexture;
-		diffuseTextureDesc.ppTexture = &pTextureDiffuse;
-		addResource(&diffuseTextureDesc, NULL);
-		/************************************************************************/
-
-		// SKELETON RENDERER
-		//
-
-		// Set up details for rendering the skeletons
-		SkeletonRenderDesc skeletonRenderDesc = {};
-		skeletonRenderDesc.mRenderer = pRenderer;
-		skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
-		skeletonRenderDesc.mRootSignature = pRootSignature;
-		skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
-		skeletonRenderDesc.mNumJointPoints = gNumberOfJointPoints;
-		skeletonRenderDesc.mDrawBones = true;
-		skeletonRenderDesc.mBoneVertexBuffer = pBoneVertexBuffer;
-		skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
-		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
-		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
-		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// SETUP THE MAIN CAMERA
 		//
@@ -495,79 +286,6 @@ class Skinning: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
-
-		// Add the GUI Panels/Windows
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
-
-		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
-		vec2    UIPanelSize = { 650, 1000 };
-		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
-		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Animation", &guiDesc);
-
-		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
-		//
-
-		// Clip
-		gUIData.mClip.mPlay = gClipController.GetPlayPtr();
-		gUIData.mClip.mLoop = gClipController.GetLoopPtr();
-		gUIData.mClip.mPlaybackSpeed = gClipController.GetPlaybackSpeedPtr();
-
-		// SET UP GUI BASED ON gUIData STRUCT
-		//
-		{
-			// STAND CLIP
-			//
-			CollapsingHeaderWidget CollapsingClipWidgets("Clip");
-
-			// Play/Pause - Checkbox
-			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mClip.mPlay));
-
-			// Loop - Checkbox
-			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mClip.mLoop));
-
-			// Animation Time - Slider
-			float             fValMin = 0.0f;
-			float             fValMax = gClipController.GetDuration();
-			float             sliderStepSize = 0.01f;
-			SliderFloatWidget SliderAnimationTime("Animation Time", &gUIData.mClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
-			SliderAnimationTime.pOnActive = ClipTimeChangeCallback;
-
-			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingClipWidgets.AddSubWidget(SliderAnimationTime);
-
-			// Playback Speed - Slider
-			fValMin = -5.0f;
-			fValMax = 5.0f;
-			sliderStepSize = 0.1f;
-
-			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingClipWidgets.AddSubWidget(
-				SliderFloatWidget("Playback Speed", gUIData.mClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
-			CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
-
-			// GENERAL SETTINGS
-			//
-			CollapsingHeaderWidget CollapsingGeneralSettingsWidgets("General Settings");
-
-			// ShowBindPose - Checkbox
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose", &gUIData.mGeneralSettings.mShowBindPose));
-
-			// DrawBones - Checkbox
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("DrawBones", &gUIData.mGeneralSettings.mDrawBones));
-
-			// DrawPlane - Checkbox
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-			CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
-			CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
-
-			// Add all widgets to the window
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingClipWidgets);
-			pStandaloneControlsGUIWindow->AddWidget(CollapsingGeneralSettingsWidgets);
-		}
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -604,46 +322,13 @@ class Skinning: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		waitForAllResourceLoads();
-
-		// Need to free memory;
-		tf_free(pBonePoints);
-		tf_free(pJointPoints);
-		
-		// Prepare descriptor sets
-		DescriptorData params[1] = {};
-		params[0].pName = "DiffuseTexture";
-		params[0].ppTextures = &pTextureDiffuse;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			DescriptorData params[2] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
-
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[i];
-			params[1].pName = "boneMatrices";
-			params[1].ppBuffers = &pUniformBufferBones[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, params);
-		}
-
 		return true;
 	}
 
 	void Exit()
 	{
-		// wait for rendering to finish before freeing resources
-		waitQueueIdle(pGraphicsQueue);
-
 		exitInputSystem();
 
-		exitProfiler();
-
-		// Animation data
-		gSkeletonBatcher.Destroy();
 		gStickFigureRig.Destroy();
 		gClip.Destroy();
 		gAnimation.Destroy();
@@ -651,55 +336,335 @@ class Skinning: public IApp
 
 		destroyCameraController(pCameraController);
 
-		gVirtualJoystick.Exit();
-
-		gAppUI.Exit();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pPlaneUniformBuffer[i]);
-		}
-
-		removeResource(pGeom);
-		for (int i = 0; i < gImageCount; ++i)
-			removeResource(pUniformBufferBones[i]);
-		removeResource(pTextureDiffuse);
-
-		removeResource(pJointVertexBuffer);
-		removeResource(pBoneVertexBuffer);
-		removeResource(pPlaneVertexBuffer);
-
-		removeShader(pRenderer, pShaderSkinning);
-		removeShader(pRenderer, pSkeletonShader);
-		removeShader(pRenderer, pPlaneDrawShader);
-		removeDescriptorSet(pRenderer, pDescriptorSet);
-		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
-		removeRootSignature(pRenderer, pRootSignatureSkinning);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		removeSampler(pRenderer, pDefaultSampler);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
+		// Need to free memory;
+		tf_free(pBonePoints);
+		tf_free(pJointPoints);
 	}
 
 	bool Load()
 	{
+		if(mSettings.mResetGraphics || !pRenderer)
+		{
+			// WINDOW AND RENDERER SETUP
+			//
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+			if (!pRenderer)    //check for init success
+				return false;
+
+			// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
+			//
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			// INITIALIZE RESOURCE/DEBUG SYSTEMS
+			//
+			initResourceLoaderInterface(pRenderer);
+
+			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+				return false;
+
+			// INITIALIZE THE USER INTERFACE
+			//
+			if (!gAppUI.Init(pRenderer))
+				return false;
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			// INITIALIZE SAMPLERS
+		//
+			SamplerDesc defaultSamplerDesc = {};
+			defaultSamplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
+			defaultSamplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
+			defaultSamplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
+			defaultSamplerDesc.mMinFilter = FILTER_LINEAR;
+			defaultSamplerDesc.mMagFilter = FILTER_LINEAR;
+			defaultSamplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
+			addSampler(pRenderer, &defaultSamplerDesc, &pDefaultSampler);
+
+			// INITIALIZE PIPILINE STATES
+			//
+			ShaderLoadDesc planeShader = {};
+			planeShader.mStages[0] = { "plane.vert", NULL, 0 };
+			planeShader.mStages[1] = { "plane.frag", NULL, 0 };
+			ShaderLoadDesc basicShader = {};
+			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+			char           maxNumBonesMacroBuffer[4] = {};
+			sprintf(maxNumBonesMacroBuffer, "%i", gStickFigureRig.GetNumJoints());
+			ShaderMacro    maxNumBonesMacro = { "MAX_NUM_BONES", maxNumBonesMacroBuffer };
+			ShaderLoadDesc skinningShader = {};
+			skinningShader.mStages[0] = { "skinning.vert", &maxNumBonesMacro, 1 };
+			skinningShader.mStages[1] = { "skinning.frag", &maxNumBonesMacro, 1 };
+
+			addShader(pRenderer, &planeShader, &pPlaneDrawShader);
+			addShader(pRenderer, &basicShader, &pSkeletonShader);
+			addShader(pRenderer, &skinningShader, &pShaderSkinning);
+
+			Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mShaderCount = 2;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			const char* staticSamplers[] = { "DefaultSampler" };
+
+			RootSignatureDesc skinningRootSignatureDesc = {};
+			skinningRootSignatureDesc.mShaderCount = 1;
+			skinningRootSignatureDesc.ppShaders = &pShaderSkinning;
+			skinningRootSignatureDesc.mStaticSamplerCount = 1;
+			skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
+			skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
+			addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
+
+			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+			setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
+			setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
+
+			uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
+			BufferLoadDesc jointVbDesc = {};
+			jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			jointVbDesc.mDesc.mSize = jointDataSize;
+			jointVbDesc.pData = pJointPoints;
+			jointVbDesc.ppBuffer = &pJointVertexBuffer;
+			addResource(&jointVbDesc, NULL);
+
+			uint64_t       boneDataSize = gNumberOfBonePoints * sizeof(float);
+			BufferLoadDesc boneVbDesc = {};
+			boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			boneVbDesc.mDesc.mSize = boneDataSize;
+			boneVbDesc.pData = pBonePoints;
+			boneVbDesc.ppBuffer = &pBoneVertexBuffer;
+			addResource(&boneVbDesc, NULL);
+
+			//Generate plane vertex buffer
+			float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
+									10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f, 10.0f,  0.0f, 10.0f,  1.0f, 1.0f, 1.0f,
+									10.0f,  0.0f, -10.0f, 1.0f, 0.0f, 1.0f, -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f };
+
+			uint64_t       planeDataSize = 6 * 6 * sizeof(float);
+			BufferLoadDesc planeVbDesc = {};
+			planeVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			planeVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			planeVbDesc.mDesc.mSize = planeDataSize;
+			planeVbDesc.pData = planePoints;
+			planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
+			addResource(&planeVbDesc, NULL);
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			ubDesc.mDesc.mSize = sizeof(UniformBlockPlane);
+			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			ubDesc.pData = NULL;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				ubDesc.ppBuffer = &pPlaneUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			/************************************************************************/
+			// LOAD SKINNED MESH
+			/************************************************************************/
+			gVertexLayoutSkinned.mAttribCount = 5;
+			gVertexLayoutSkinned.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+			gVertexLayoutSkinned.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			gVertexLayoutSkinned.mAttribs[0].mBinding = 0;
+			gVertexLayoutSkinned.mAttribs[0].mLocation = 0;
+			gVertexLayoutSkinned.mAttribs[0].mOffset = 0;
+			gVertexLayoutSkinned.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+			gVertexLayoutSkinned.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			gVertexLayoutSkinned.mAttribs[1].mBinding = 0;
+			gVertexLayoutSkinned.mAttribs[1].mLocation = 1;
+			gVertexLayoutSkinned.mAttribs[1].mOffset = 3 * sizeof(float);
+			gVertexLayoutSkinned.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+			gVertexLayoutSkinned.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+			gVertexLayoutSkinned.mAttribs[2].mBinding = 0;
+			gVertexLayoutSkinned.mAttribs[2].mLocation = 2;
+			gVertexLayoutSkinned.mAttribs[2].mOffset = 6 * sizeof(float);
+			gVertexLayoutSkinned.mAttribs[3].mSemantic = SEMANTIC_WEIGHTS;
+			gVertexLayoutSkinned.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			gVertexLayoutSkinned.mAttribs[3].mBinding = 0;
+			gVertexLayoutSkinned.mAttribs[3].mLocation = 3;
+			gVertexLayoutSkinned.mAttribs[3].mOffset = 8 * sizeof(float);
+			gVertexLayoutSkinned.mAttribs[4].mSemantic = SEMANTIC_JOINTS;
+			gVertexLayoutSkinned.mAttribs[4].mFormat = TinyImageFormat_R16G16B16A16_UINT;
+			gVertexLayoutSkinned.mAttribs[4].mBinding = 0;
+			gVertexLayoutSkinned.mAttribs[4].mLocation = 4;
+			gVertexLayoutSkinned.mAttribs[4].mOffset = 12 * sizeof(float);
+
+			GeometryLoadDesc loadDesc = {};
+			loadDesc.pFileName = "stormtrooper/riggedMesh.gltf";
+			loadDesc.pVertexLayout = &gVertexLayoutSkinned;
+			loadDesc.ppGeometry = &pGeom;
+			addResource(&loadDesc, NULL);
+
+			BufferLoadDesc boneBufferDesc = {};
+			boneBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			boneBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			boneBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			boneBufferDesc.mDesc.mSize = sizeof(mat4) * gStickFigureRig.GetNumJoints();
+			boneBufferDesc.pData = NULL;
+			for (int i = 0; i < gImageCount; ++i)
+			{
+				boneBufferDesc.ppBuffer = &pUniformBufferBones[i];
+				addResource(&boneBufferDesc, NULL);
+			}
+
+			TextureLoadDesc diffuseTextureDesc = {};
+			diffuseTextureDesc.pFileName = gDiffuseTexture;
+			diffuseTextureDesc.ppTexture = &pTextureDiffuse;
+			addResource(&diffuseTextureDesc, NULL);
+			/************************************************************************/
+
+			// SKELETON RENDERER
+			//
+
+			// Set up details for rendering the skeletons
+			SkeletonRenderDesc skeletonRenderDesc = {};
+			skeletonRenderDesc.mRenderer = pRenderer;
+			skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
+			skeletonRenderDesc.mRootSignature = pRootSignature;
+			skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
+			skeletonRenderDesc.mNumJointPoints = gNumberOfJointPoints;
+			skeletonRenderDesc.mDrawBones = true;
+			skeletonRenderDesc.mBoneVertexBuffer = pBoneVertexBuffer;
+			skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
+			skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
+			skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
+			gSkeletonBatcher.Initialize(skeletonRenderDesc);
+
+			// Add the GUI Panels/Windows
+			const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
+
+			vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
+			vec2    UIPanelSize = { 650, 1000 };
+			GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
+			pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Animation", &guiDesc);
+
+			// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
+			//
+
+			// Clip
+			gUIData.mClip.mPlay = gClipController.GetPlayPtr();
+			gUIData.mClip.mLoop = gClipController.GetLoopPtr();
+			gUIData.mClip.mPlaybackSpeed = gClipController.GetPlaybackSpeedPtr();
+
+			// SET UP GUI BASED ON gUIData STRUCT
+			//
+			{
+				// STAND CLIP
+				//
+				CollapsingHeaderWidget CollapsingClipWidgets("Clip");
+
+				// Play/Pause - Checkbox
+				CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingClipWidgets.AddSubWidget(CheckboxWidget("Play", gUIData.mClip.mPlay));
+
+				// Loop - Checkbox
+				CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingClipWidgets.AddSubWidget(CheckboxWidget("Loop", gUIData.mClip.mLoop));
+
+				// Animation Time - Slider
+				float             fValMin = 0.0f;
+				float             fValMax = gClipController.GetDuration();
+				float             sliderStepSize = 0.01f;
+				SliderFloatWidget SliderAnimationTime("Animation Time", &gUIData.mClip.mAnimationTime, fValMin, fValMax, sliderStepSize);
+				SliderAnimationTime.pOnActive = ClipTimeChangeCallback;
+
+				CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingClipWidgets.AddSubWidget(SliderAnimationTime);
+
+				// Playback Speed - Slider
+				fValMin = -5.0f;
+				fValMax = 5.0f;
+				sliderStepSize = 0.1f;
+
+				CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingClipWidgets.AddSubWidget(
+					SliderFloatWidget("Playback Speed", gUIData.mClip.mPlaybackSpeed, fValMin, fValMax, sliderStepSize));
+				CollapsingClipWidgets.AddSubWidget(SeparatorWidget());
+
+				// GENERAL SETTINGS
+				//
+				CollapsingHeaderWidget CollapsingGeneralSettingsWidgets("General Settings");
+
+				// ShowBindPose - Checkbox
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Show Bind Pose", &gUIData.mGeneralSettings.mShowBindPose));
+
+				// DrawBones - Checkbox
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("DrawBones", &gUIData.mGeneralSettings.mDrawBones));
+
+				// DrawPlane - Checkbox
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+				CollapsingGeneralSettingsWidgets.AddSubWidget(CheckboxWidget("Draw Plane", &gUIData.mGeneralSettings.mDrawPlane));
+				CollapsingGeneralSettingsWidgets.AddSubWidget(SeparatorWidget());
+
+				// Add all widgets to the window
+				
+				// Reset graphics with a button.
+				ButtonWidget testGPUReset("ResetGraphicsDevice");
+				testGPUReset.pOnEdited = testGraphicsReset;
+				pStandaloneControlsGUIWindow->AddWidget(testGPUReset);
+				
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingClipWidgets);
+				pStandaloneControlsGUIWindow->AddWidget(CollapsingGeneralSettingsWidgets);
+			}
+
+			waitForAllResourceLoads();
+
+			// Prepare descriptor sets
+			DescriptorData params[1] = {};
+			params[0].pName = "DiffuseTexture";
+			params[0].ppTextures = &pTextureDiffuse;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[2] = {};
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pPlaneUniformBuffer[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
+
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pPlaneUniformBuffer[i];
+				params[1].pName = "boneMatrices";
+				params[1].ppBuffers = &pUniformBufferBones[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, params);
+			}
+		}
+
 		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
 		//
 		if (!addSwapChain())
@@ -714,8 +679,6 @@ class Skinning: public IApp
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for skeleton draw
 		VertexLayout vertexLayout = {};
@@ -802,8 +765,6 @@ class Skinning: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-        unloadProfilerUI();
-
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -814,6 +775,62 @@ class Skinning: public IApp
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
+
+		if(mSettings.mResetGraphics || mSettings.mQuit)
+		{
+			exitProfilerUI();
+			exitProfiler();
+
+			// Animation data
+			gSkeletonBatcher.Destroy();
+
+
+			gVirtualJoystick.Exit();
+
+			gAppUI.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pPlaneUniformBuffer[i]);
+			}
+
+			removeResource(pGeom);
+			for (int i = 0; i < gImageCount; ++i)
+				removeResource(pUniformBufferBones[i]);
+			removeResource(pTextureDiffuse);
+
+			removeResource(pJointVertexBuffer);
+			removeResource(pBoneVertexBuffer);
+			removeResource(pPlaneVertexBuffer);
+
+			removeShader(pRenderer, pShaderSkinning);
+			removeShader(pRenderer, pSkeletonShader);
+			removeShader(pRenderer, pPlaneDrawShader);
+			removeDescriptorSet(pRenderer, pDescriptorSet);
+			removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
+			removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
+			removeRootSignature(pRenderer, pRootSignatureSkinning);
+			removeRootSignature(pRenderer, pRootSignature);
+
+			removeSampler(pRenderer, pDefaultSampler);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -1021,8 +1038,21 @@ class Skinning: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset)
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

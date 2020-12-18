@@ -533,11 +533,24 @@ namespace gainput
 		HANDLE					hidDevice;
 	}GamePadInfo;
 
+	enum XInputType : unsigned int
+	{
+		InputTypeNone,
+		InputTypeXboxOne,
+		InputTypeXbox360
+	};
+	typedef struct XInputInfo
+	{
+		bool found;
+		unsigned int type;
+	}XInputInfo;
+
 	typedef struct DirectInputGamePads
 	{
 		int				xinputCountConnected;
 		void *handle;
 		GamePadInfo		gamePadInfos[MAX_DIRECT_INPUT];
+		XInputInfo		xinputPadInfo[MAX_DIRECT_INPUT];
 		LPDIRECTINPUT8	dinput;
 		int				directInputCountConnected;
 	}DirectInputGamePads;
@@ -595,7 +608,7 @@ namespace gainput
 	}LinearAllocator;
 
 
-	static bool IsXInputDevice(const GUID* pGuidProductFromDirectInput)
+	static XInputType IsXInputDevice(const GUID* pGuidProductFromDirectInput)
 	{
 		static GUID IID_ValveStreamingGamepad = { MAKELONG(0x28DE, 0x11FF), 0x0000, 0x0000, { 0x00, 0x00, 0x50, 0x49, 0x44, 0x56, 0x49, 0x44 } };
 		static GUID IID_X360WiredGamepad = { MAKELONG(0x045E, 0x02A1), 0x0000, 0x0000, { 0x00, 0x00, 0x50, 0x49, 0x44, 0x56, 0x49, 0x44 } };
@@ -629,7 +642,7 @@ namespace gainput
 		{
 			if (memcmp((void*)pGuidProductFromDirectInput, s_XInputProductGUID[iDevice], sizeof(GUID)) == 0)
 			{
-				return true;
+				return iDevice <=2 ? XInputType::InputTypeXbox360 : XInputType::InputTypeXboxOne;
 			}
 		}
 
@@ -637,20 +650,20 @@ namespace gainput
 		{
 			if ((GetRawInputDeviceList(NULL, &RawDevListCount, sizeof(RAWINPUTDEVICELIST)) == -1) || (!RawDevListCount))
 			{
-				return false;
+				return XInputType::InputTypeNone;
 			}
 
 			RawDevList = (PRAWINPUTDEVICELIST)malloc(sizeof(RAWINPUTDEVICELIST) * RawDevListCount);
 			if (RawDevList == NULL)
 			{
-				return false;
+				return XInputType::InputTypeNone;
 			}
 
 			if (GetRawInputDeviceList(RawDevList, &RawDevListCount, sizeof(RAWINPUTDEVICELIST)) == -1)
 			{
 				free(RawDevList);
 				RawDevList = NULL;
-				return false;
+				return XInputType::InputTypeNone;
 			}
 		}
 
@@ -668,10 +681,11 @@ namespace gainput
 				(GetRawInputDeviceInfoA(RawDevList[i].hDevice, RIDI_DEVICENAME, devName, &nameSize) != ((UINT)-1)) &&
 				(strstr(devName, "IG_") != NULL))
 			{
-				return true;
+				// just pasing Xbox360 here
+				return XInputType::InputTypeXbox360;
 			}
 		}
-		return false;
+		return XInputType::InputTypeNone;
 	}
 
 	static BOOL CALLBACK EnumDevObjectsCallback(LPCDIDEVICEOBJECTINSTANCE dev, LPVOID pvRef)
@@ -875,6 +889,29 @@ namespace gainput
 		}
 		*pszGUID = '\0';
 	}
+	
+	static void PrintControllerInfo(const DIDEVICEINSTANCE * pdidInstance)
+	{
+		//https://chromium.googlesource.com/breakpad/breakpad/+/master/src/common/windows/guid_string.cc
+		char guid_string[37];
+		snprintf(
+		guid_string, sizeof(guid_string),
+		"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+		pdidInstance->guidProduct.Data1, pdidInstance->guidProduct.Data2, pdidInstance->guidProduct.Data3,
+		pdidInstance->guidProduct.Data4[0], pdidInstance->guidProduct.Data4[1], pdidInstance->guidProduct.Data4[2],
+		pdidInstance->guidProduct.Data4[3], pdidInstance->guidProduct.Data4[4], pdidInstance->guidProduct.Data4[5],
+		pdidInstance->guidProduct.Data4[6], pdidInstance->guidProduct.Data4[7]);
+
+		UINT16 vendor = 0;
+		UINT16 product = 0;
+
+		if (memcmp(&pdidInstance->guidProduct.Data4[2], "PIDVID", 6) == 0)
+		{
+			vendor = (UINT16)LOWORD(pdidInstance->guidProduct.Data1);
+			product = (UINT16)HIWORD(pdidInstance->guidProduct.Data1);
+		}
+		LOGF(LogLevel::eDEBUG, "GamePad Name: %s , GUID: %s, Product Id: %d, Vendor Id: %d", pdidInstance->tszProductName, guid_string, product, vendor);
+	}
 
 	static void GetInfo(const DIDEVICEINSTANCE * pdidInstance,LPVOID pvRef)
 	{
@@ -914,14 +951,22 @@ namespace gainput
 		}
 		gamepad.hwdata.vendor = vendor;
 		gamepad.hwdata.product = product;
+		PrintControllerInfo(pdidInstance);
 	}
 
 	static BOOL CALLBACK EnumJoysticksCallback(const DIDEVICEINSTANCE * pdidInstance, LPVOID pvRef)
 	{
-		DirectInputGamePads *directInutGamePads = (DirectInputGamePads *)pvRef;
-		if (IsXInputDevice(&pdidInstance->guidProduct))
+ 		DirectInputGamePads *directInutGamePads = (DirectInputGamePads *)pvRef;
+		
+		XInputType type = IsXInputDevice(&pdidInstance->guidProduct);
+		if (type != XInputType::InputTypeNone)
 		{
+			DirectInputGamePads *directInutGamePads = (DirectInputGamePads *)pvRef;
+			XInputInfo &xinputPad = directInutGamePads->xinputPadInfo[directInutGamePads->directInputCountConnected];
+			xinputPad.found = true;
+			xinputPad.type = type;
 			directInutGamePads->xinputCountConnected++;
+			PrintControllerInfo(pdidInstance);
 			//handled by xinput
 			return DIENUM_CONTINUE;
 		}
@@ -1046,10 +1091,12 @@ namespace gainput
 
 		void XInputClean()
 		{
-			if (gamePads.xinputCountConnected)
+			for (int i = 0; i < gamePads.xinputCountConnected; ++i)
 			{
-				gamePads.xinputCountConnected--;
+				gamePads.xinputPadInfo[gamePads.xinputCountConnected] = {};
 			}
+				
+			gamePads.xinputCountConnected = 0;
 		}
 
 		void DInputClean()
@@ -1212,6 +1259,14 @@ namespace gainput
 			}
 			return guid;
 		}
+		
+		unsigned int GetXInputType(unsigned int index)
+		{
+			if (index >= MAX_DIRECT_INPUT)
+				return XInputType::InputTypeNone;
+			unsigned int type = gamePads.xinputPadInfo[index].found ? gamePads.xinputPadInfo[index].type : XInputType::InputTypeNone;
+			return type;
+		}
 
 		~DirectInputInitializer()
 		{
@@ -1228,6 +1283,7 @@ namespace gainput
 		int countIndx;
 		uint8_t* input_messages[1024];
 		LinearAllocator allocator;
+		ControllerFeedback cachedFeedBack;
 	public:
 		bool created;
 		GainputInputDirectInputPadWin()
@@ -1240,6 +1296,7 @@ namespace gainput
 			padIndex = 0;
 			countIndx = 0;
 			allocator.Reserve(1024 * 1024);
+			cachedFeedBack = {};
 		}
 
 		void Init(int index, void* handle)
@@ -1357,6 +1414,16 @@ namespace gainput
 		{
 			return gamepad.name;
 		}
+		
+		unsigned int GetXInputType(unsigned int padIndex)
+		{
+			DirectInputInitializer*instance = DirectInputInitializer::GetInstance();
+			if (instance)
+			{
+				return instance->GetXInputType(padIndex);
+			}
+			return XInputType::InputTypeNone;
+		}
 
 		int8_t TranslatePOV(DWORD value)
 		{
@@ -1464,7 +1531,7 @@ namespace gainput
 			return (a < b) ? b : a;
 		}
 
-		bool SetControllerFeedback(const ControllerFeedback& data)
+		bool SetRumbleEffectFeedback(const ControllerFeedback& data)
 		{
 			if (!gamepadInfo.hidDevice)
 			{
@@ -1487,6 +1554,51 @@ namespace gainput
 			buf[1] = 0xFF;
 			buf[4] = data.vibration_right;
 			buf[5] = data.vibration_left;
+			buf[6] = cachedFeedBack.r;
+			buf[7] = cachedFeedBack.g;
+			buf[8] = cachedFeedBack.b;
+			DWORD bytes_written;
+			BOOL result = WriteFile(gamepadInfo.hidDevice, buf, sizeof(buf), &bytes_written, NULL);
+			if (result != TRUE)
+			{
+				DLOGF(LogLevel::eERROR, "result != TRUE");
+				return false;
+			}
+			if (bytes_written != ARRAYSIZE(buf))
+			{
+				DLOGF(LogLevel::eERROR, "bytes_written != ARRAYSIZE(buf)");
+				return false;
+			}
+			return result;
+		}
+
+
+		bool SetLedColorFeedback(const ControllerFeedback& data)
+		{
+			if (!gamepadInfo.hidDevice)
+			{
+				gamepadInfo.hidDevice = CreateFile(
+					gamepadInfo.name,
+					GENERIC_READ | GENERIC_WRITE,
+					FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+					OPEN_EXISTING, 0, NULL
+				);
+
+			}
+			if (gamepadInfo.hidDevice == INVALID_HANDLE_VALUE)
+			{
+				DLOGF(LogLevel::eERROR, "gamepadInfo.hidDevice == INVALID_HANDLE_VALUE");
+				return false;
+			}
+			//assert(gamepadInfo.hidDevice != INVALID_HANDLE_VALUE);
+			cachedFeedBack.r = data.r;
+			cachedFeedBack.g = data.g;
+			cachedFeedBack.b = data.b;
+			uint8_t buf[32] = {};
+			buf[0] = 0x05;
+			buf[1] = 0xFF;
+			buf[4] = 0;
+			buf[5] = 0;
 			buf[6] = data.r;
 			buf[7] = data.g;
 			buf[8] = data.b;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -705,17 +705,28 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 						{
 							skipUpdate = false;
 							
-							for (uint32_t j = 0; j < arrayCount; ++j)
+							if (pParam->mBindMipChain)
 							{
-								if (type == DESCRIPTOR_TYPE_RW_TEXTURE && pParam->ppTextures[j]->pMtlUAVDescriptors)
+								for (uint32_t j = 0; j < pParam->ppTextures[0]->mMipLevels; ++j)
 								{
-									[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[j]->pMtlUAVDescriptors[pParam->mUAVMipSlice]
+									[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[0]->pMtlUAVDescriptors[j]
 																				   atIndex: pDesc->mHandleIndex + j];
 								}
-								else
+							}
+							else
+							{
+								for (uint32_t j = 0; j < arrayCount; ++j)
 								{
+									if (type == DESCRIPTOR_TYPE_RW_TEXTURE && pParam->ppTextures[j]->pMtlUAVDescriptors)
+									{
+										[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[j]->pMtlUAVDescriptors[pParam->mUAVMipSlice]
+																					   atIndex: pDesc->mHandleIndex + j];
+									}
+									else
+									{
 									[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[j]->mtlTexture
-																				   atIndex: pDesc->mHandleIndex + j];
+																					   atIndex: pDesc->mHandleIndex + j];
+									}
 								}
 							}
 						}
@@ -1691,6 +1702,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		// Wave ops crash the compiler if not supported by gpu
 		gpuSettings[0].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
 #ifdef TARGET_IOS
+		gpuSettings[0].mDrawIndexVertexOffsetSupported = [pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
+		
 		if (@available(iOS 13.0, *))
 		{
 			if ([pRenderer->pDevice supportsFamily:(MTLGPUFamily)1006]) // family 6
@@ -2169,7 +2182,6 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	//no need to have vsync on layers otherwise we will wait on semaphores
 	//get a copy of the layer for nextDrawables
 	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-
 	//only available on mac OS.
 	//VSync seems to be necessary on iOS.
 #if defined(ENABLE_DISPLAY_SYNC_TOGGLE)
@@ -2310,29 +2322,27 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 #if defined(ENABLE_HEAPS)
 	else if (pRenderer->pActiveGpuSettings->mHeaps)
 	{
-		bool canUseHeaps = false;
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
 			// We cannot use heaps on macOS for upload buffers.
 			// Instead we sub-allocate out of a buffer resource
 			// which we treat as a pseudo-heap
 #ifdef TARGET_IOS
-			canUseHeaps = true;
+			bool canUseHeaps = true;
 #else
-			canUseHeaps = RESOURCE_MEMORY_USAGE_GPU_ONLY == pDesc->mMemoryUsage;
+			bool canUseHeaps = RESOURCE_MEMORY_USAGE_GPU_ONLY == pDesc->mMemoryUsage;
 #endif
+			
+			MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapBufferSizeAndAlignWithLength:allocationSize
+				options:resourceOptions];
+			sizeAlign.align = max((NSUInteger)pDesc->mAlignment, sizeAlign.align);
 			
 			if (canUseHeaps)
 			{
-				MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapBufferSizeAndAlignWithLength:allocationSize
-																						 options:resourceOptions];
-				sizeAlign.align = max((NSUInteger)pDesc->mAlignment, sizeAlign.align);
-				
-				bool canUsePlacementHeaps = false;
-#if defined(ENABLE_HEAP_PLACEMENT)
-				if (@available(macOS 10.15, iOS 13.0, *))
+				if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
 				{
-					if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
+#if defined(ENABLE_HEAP_PLACEMENT)
+					if (@available(macOS 10.15, iOS 13.0, *))
 					{
 						VmaAllocationInfo allocInfo = util_render_alloc(pRenderer,
 																		pDesc->mMemoryUsage,
@@ -2344,12 +2354,10 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 																						options:resourceOptions
 																						 offset:allocInfo.offset];
 						ASSERT(pBuffer->mtlBuffer);
-						
-						canUsePlacementHeaps = true;
 					}
-				}
 #endif
-				if (!canUsePlacementHeaps)
+				}
+				else
 				{
 					// If placement heaps are not supported we cannot use VMA
 					// Instead we have to rely on MTLHeap automatic placement
@@ -2361,12 +2369,13 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 					ASSERT(pBuffer->mtlBuffer);
 				}
 			}
-		}
-
-		if (!canUseHeaps)
-		{
-			pBuffer->mtlBuffer = [pRenderer->pDevice newBufferWithLength:allocationSize
-																 options:resourceOptions];
+			else
+			{
+				VmaAllocationInfo allocInfo = util_render_alloc(pRenderer, pDesc->mMemoryUsage, sizeAlign.size, sizeAlign.align, &pBuffer->pAllocation);
+				
+				pBuffer->mtlBuffer = (id<MTLBuffer>)allocInfo.deviceMemory->pHeap;
+				pBuffer->mOffset = allocInfo.offset;
+			}
 		}
 	}
 #endif
@@ -2494,7 +2503,6 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	rtDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	rtDesc.mStartState = RESOURCE_STATE_UNDEFINED;
 	rtDesc.pNativeHandle = pDesc->pNativeHandle;
-	rtDesc.mHostVisible = false;
 	rtDesc.mDescriptors |= pDesc->mDescriptors;
 
 	add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
@@ -3645,22 +3653,37 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	uint32_t maxScissorY = pCmd->pRenderPassDesc.colorAttachments[0].texture.height > 0
 							   ? (uint32_t)pCmd->pRenderPassDesc.colorAttachments[0].texture.height
 							   : (uint32_t)pCmd->pRenderPassDesc.depthAttachment.texture.height;
-	uint32_t maxScissorW = maxScissorX - int32_t(max(x, 0U));
-	uint32_t maxScissorH = maxScissorY - int32_t(max(y, 0U));
-
+	uint32_t maxScissorW = maxScissorX;
+	uint32_t maxScissorH = maxScissorY;
+	
+	// ensure scissor rect does not exceed RT size
+	width = min(width, maxScissorW);
+	height = min(height, maxScissorH);
+	
 	// Make sure neither width or height are 0 (unsupported by Metal).
 	if (width == 0u)
 		width = 1u;
 	if (height == 0u)
 		height = 1u;
-
+	
 	MTLScissorRect scissor;
 	scissor.x = min(x, maxScissorX);
 	scissor.y = min(y, maxScissorY);
-	scissor.width = min(width, maxScissorW);
-	scissor.height = min(height, maxScissorH);
-
+	scissor.width =  width;
+	scissor.height =  height;
+	
+	// ensure position is smaller than width / height otherwise metal throws errors.
+	scissor.x = scissor.x + width > maxScissorX ? max(0, int32_t(maxScissorX - width)) : scissor.x;
+	scissor.y = scissor.y + height  > maxScissorY ? max(0, int32_t(maxScissorY - height)): scissor.y ;
+	
 	[pCmd->mtlRenderEncoder setScissorRect:scissor];
+}
+
+void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+{
+	ASSERT(pCmd);
+
+	[pCmd->mtlRenderEncoder setStencilReferenceValue:val];
 }
 
 void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
@@ -4458,7 +4481,7 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	}
 }
 
-void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
@@ -4488,6 +4511,12 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 			pSwapChain->presentCommandBuffer = nil;
 		}
 	}
+	else
+	{
+		return PRESENT_STATUS_FAILED;
+	}
+
+	return PRESENT_STATUS_SUCCESS;
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -4738,20 +4767,19 @@ void util_set_heaps_graphics(Cmd* pCmd)
 {
 	// #TODO: Investigate iOS seems to not like the call to useHeaps
 	// Nothing renders if it is called and everything works without it
-#if !defined(TARGET_IOS)
+	// #NOTE: Update 11/11/2020 - iOS 14.0+ seems to require this call but versions prior to this dont like it
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 #if defined(ENABLE_ARGUMENT_BUFFER_USE_STAGES)
-	if (@available(macOS 10.15, iOS 13.0, *))
+	if (@available(macOS 10.15, iOS 14.0, *))
 	{
 		[pCmd->mtlRenderEncoder useHeaps:pCmd->pRenderer->pHeaps count:pCmd->pRenderer->mHeapCount stages:MTLRenderStageVertex|MTLRenderStageFragment];
 	}
 #else
-	if (@available(macOS 10.13, iOS 11.0, *))
+	if (@available(macOS 10.13, iOS 14.0, *))
 	{
 		// Fallback on earlier versions
 		[pCmd->mtlRenderEncoder useHeaps:pCmd->pRenderer->pHeaps count:pCmd->pRenderer->mHeapCount];
 	}
-#endif
 #endif
 #endif
 }
@@ -4760,13 +4788,12 @@ void util_set_heaps_compute(Cmd* pCmd)
 {
 	// #TODO: Investigate iOS seems to not like the call to useHeaps
 	// Nothing renders if it is called and everything works without it
-#if !defined(TARGET_IOS)
+	// #NOTE: Update 11/11/2020 - iOS 14.0+ seems to require this call but versions prior to this dont like it
 #if defined(ENABLE_ARGUMENT_BUFFERS)
-	if (@available(macOS 10.13, iOS 11.0, *))
+	if (@available(macOS 10.13, iOS 14.0, *))
 	{
 		[pCmd->mtlComputeEncoder useHeaps:pCmd->pRenderer->pHeaps count:pCmd->pRenderer->mHeapCount];
 	}
-#endif
 #endif
 }
 
@@ -5052,13 +5079,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		internal_log(LOG_TYPE_WARN, "Format D24S8 is not supported on this device. Using D32S8 instead", "addTexture");
 		pTexture->mtlPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 		((TextureDesc*)pDesc)->mFormat = TinyImageFormat_D32_SFLOAT_S8_UINT;
-	}
-
-	if (pDesc->mHostVisible)
-	{
-		internal_log(
-			LOG_TYPE_WARN, "Host visible textures are not supported, memory of resulting texture will not be mapped for CPU visibility",
-			"addTexture");
 	}
 
 	// If we've passed a native handle, it means the texture is already on device memory, and we just need to assign it.

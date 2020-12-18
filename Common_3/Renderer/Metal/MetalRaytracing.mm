@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -1529,7 +1529,6 @@ void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTextur
 		resultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		resultTextureDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		resultTextureDesc.pNativeHandle = CFBridgingRetain(resultTexture);
-		resultTextureDesc.mHostVisible = resultTexture.storageMode != MTLStorageModePrivate;
 
 		resultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 

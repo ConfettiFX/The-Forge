@@ -29,11 +29,12 @@ public:
 		previousState_(previousState),
 		deviceState_(InputDevice::DS_UNAVAILABLE),
 		lastPacketNumber_(-1),
+		onDeviceChangeCallBack_ (0),
 		hasBattery_(false)
 	{
 		padIndex_ = index;
 		GAINPUT_ASSERT(padIndex_ < MaxPadCount);
-		dinpt.Init(padIndex_, manager.window_instance_);
+		dinpt.Init(padIndex_, manager.GetWindowsInstance());
 #if 0
 		XINPUT_BATTERY_INFORMATION xbattery;
 		DWORD result = XInputGetBatteryInformation(padIndex, BATTERY_DEVTYPE_GAMEPAD, &xbattery);
@@ -155,6 +156,17 @@ public:
 		{
 			return dinpt.GetDeviceName();
 		}
+		enum 
+		{
+			InputTypeNone,
+			InputTypeXboxOne,
+			InputTypeXbox360
+		};
+		unsigned int type = dinpt.GetXInputType(padIndex_);
+		if (type == InputTypeXboxOne)
+			return "Xbox One";
+		else if (type == InputTypeXbox360)
+			return "Xbox 360";
 		return "Not Set";
 	}
 
@@ -172,11 +184,13 @@ public:
 		case DBT_DEVICEARRIVAL:
 		{
 			dinpt.OnDeviceAdd(padIndex_, msg.hwnd);
+			NotifyOnDeviceChange(true);
 		}
 		break;
 		case DBT_DEVICEREMOVECOMPLETE:
 		{
 			dinpt.OnDeviceRemove(padIndex_, msg.hwnd);
+			NotifyOnDeviceChange(false);
 		}
 		break;
 		default:
@@ -200,7 +214,7 @@ public:
 
 		if (dinpt.created)
 		{
-			return dinpt.SetControllerFeedback(fb);
+			return dinpt.SetRumbleEffectFeedback(fb);
 		}
 		else
 		{
@@ -222,7 +236,20 @@ public:
 			feedBack.r = r;
 			feedBack.g = g;
 			feedBack.b = b;
-			dinpt.SetControllerFeedback(feedBack);
+			dinpt.SetLedColorFeedback(feedBack);
+		}
+	}
+
+	virtual void SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char* name, bool added)) 
+	{
+		onDeviceChangeCallBack_ = onDeviceChange;
+	}
+
+	void NotifyOnDeviceChange(bool added)
+	{
+		if (onDeviceChangeCallBack_ != 0)
+		{
+			onDeviceChangeCallBack_(GetDeviceName(), added);
 		}
 	}
 
@@ -234,6 +261,7 @@ private:
 	InputDevice::DeviceState deviceState_;
 	unsigned padIndex_;
 	DWORD lastPacketNumber_;
+	void(*onDeviceChangeCallBack_)(const char*, bool added);
 	bool hasBattery_;
 	//added
 	GainputInputDirectInputPadWin dinpt;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,6 +34,12 @@
 
 #include "../../Middleware_3/Text/Fontstash.h"
 #include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
+
+//LUA
+#include "../../Middleware_3/LUA/LuaManager.h"
+static LuaManager*		  pLuaManager = NULL;
+static bool				  localLuaManager = false;
+int32_t					  luaCounter = 0;
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -356,6 +362,362 @@ IWidget* ColumnWidget::Clone() const
 
 	return pWidget;
 }
+
+static void TrimString(eastl::string& str)
+{
+	if (isdigit(str[0]))
+		str.erase(0,1);
+	for (uint32_t i = 0; i < str.size(); ++i)
+	{
+		if (isspace(str[i]) || (!isalnum(str[i]) && str[i] != '_'))
+			str.erase(i--, 1);
+	}
+}
+
+void IWidget::RegisterLua() const
+{
+	typedef eastl::pair<eastl::string, WidgetCallback> NamePtrPair;
+	eastl::vector<NamePtrPair> functionsList;
+	eastl::string functionName = mLabel;
+	TrimString(functionName);
+
+	if (pOnHover)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnHover", pOnHover });
+	if (pOnActive)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnActive", pOnActive });
+	if (pOnFocus)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnFocus", pOnFocus });
+	if (pOnEdited)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnEdited", pOnEdited });
+	if (pOnDeactivated)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnDeactivated", pOnDeactivated });
+	if (pOnDeactivatedAfterEdit)
+		functionsList.emplace_back(NamePtrPair{ functionName + "OnDeactivatedAfterEdit", pOnDeactivatedAfterEdit });
+
+	for (NamePtrPair pair : functionsList)
+	{
+		pLuaManager->SetFunction(pair.first.c_str(), [pair](ILuaStateWrap* state) -> int {
+			pair.second();
+			return 0;
+		});
+	}
+}
+
+void CollapsingHeaderWidget::RegisterLua() const
+{
+	for (IWidget* widget : mGroupedWidgets)
+	{
+		widget->RegisterLua();
+	}
+}
+
+void SliderFloatWidget::RegisterLua() const
+{
+	float* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (float)state->GetNumberArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultNumber((double)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void SliderFloat2Widget::RegisterLua() const
+{
+	float2* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		data->x = (float)state->GetNumberArg(1);
+		data->y = (float)state->GetNumberArg(2);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultNumber((double)data->x);
+		state->PushResultNumber((double)data->y);
+		return 2;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void SliderFloat3Widget::RegisterLua() const
+{
+	float3* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		data->x = (float)state->GetNumberArg(1);
+		data->y = (float)state->GetNumberArg(2);
+		data->z = (float)state->GetNumberArg(3);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultNumber((double)data->x);
+		state->PushResultNumber((double)data->y);
+		state->PushResultNumber((double)data->z);
+		return 3;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void SliderFloat4Widget::RegisterLua() const
+{
+	float4* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		data->x = (float)state->GetNumberArg(1);
+		data->y = (float)state->GetNumberArg(2);
+		data->z = (float)state->GetNumberArg(3);
+		data->w = (float)state->GetNumberArg(4);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultNumber((double)data->x);
+		state->PushResultNumber((double)data->y);
+		state->PushResultNumber((double)data->z);
+		state->PushResultNumber((double)data->w);
+		return 4;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void SliderIntWidget::RegisterLua() const
+{
+	int32_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (int32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void SliderUintWidget::RegisterLua() const
+{
+	uint32_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (uint32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void CheckboxWidget::RegisterLua() const
+{
+	bool* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (bool)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void OneLineCheckboxWidget::RegisterLua() const
+{
+	bool* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (bool)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void DropdownWidget::RegisterLua() const
+{
+	uint32_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (uint32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void ProgressBarWidget::RegisterLua() const
+{
+	size_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (size_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void ColorSliderWidget::RegisterLua() const
+{
+	uint32_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (uint32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void ColorPickerWidget::RegisterLua() const
+{
+	uint32_t* data = pData;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		*data = (uint32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultInteger((int)*data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void TextboxWidget::RegisterLua() const
+{
+	char* data = pData;
+	uint32_t len = mLength;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data, len](ILuaStateWrap* state) -> int {
+		eastl::string strData = state->GetStringArg(1);
+		ASSERT(len > strData.size());
+		memcpy(data, strData.c_str(), strData.size());
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data](ILuaStateWrap* state) -> int {
+		state->PushResultString(data);
+		return 1;
+	});
+
+	IWidget::RegisterLua();
+}
+
+void DynamicTextWidget::RegisterLua() const
+{
+	char* data = pData;
+	uint32_t len = mLength;
+	float4* color = pColor;
+	eastl::string functionName = "Set" + mLabel;
+	TrimString(functionName);
+
+	pLuaManager->SetFunction(functionName.c_str(), [data, len, color](ILuaStateWrap* state) -> int {
+		eastl::string strData = state->GetStringArg(1);
+		ASSERT(len > strData.size());
+		memcpy(data, strData.c_str(), strData.size());
+		color->x = (float)state->GetNumberArg(2);
+		color->y = (float)state->GetNumberArg(3);
+		color->z = (float)state->GetNumberArg(4);
+		color->w = (float)state->GetNumberArg(5);
+		return 0;
+	});
+
+	functionName.at(0) = 'G';
+	pLuaManager->SetFunction(functionName.c_str(), [data, color](ILuaStateWrap* state) -> int {
+		state->PushResultString(data);
+		state->PushResultNumber(color->x);
+		state->PushResultNumber(color->y);
+		state->PushResultNumber(color->z);
+		state->PushResultNumber(color->w);
+		return 5;
+	});
+
+	IWidget::RegisterLua();
+}
+
 /************************************************************************/
 // UI Implementation
 /************************************************************************/
@@ -393,21 +755,50 @@ bool UIApp::Init(Renderer* renderer, PipelineCache* pCache)
 		pDriver->setCustomShader(pCustomShader);
 	success &= pDriver->init(pImpl->pRenderer, mMaxDynamicUIUpdatesPerBatch);
 
+	if (!pLuaManager)
+	{
+		pLuaManager = tf_new(LuaManager);
+		pLuaManager->Init();
+		localLuaManager = true;
+	}
+
+	pLuaManager->SetFunction("LOGINFO", [](ILuaStateWrap* state) -> int {
+		eastl::string str = state->GetStringArg(1);
+		LOGF(LogLevel::eINFO, str.c_str());
+		return 0;
+	});
+
+	pLuaManager->SetFunction("SetCounter", [](ILuaStateWrap* state) -> int {
+		luaCounter = (int32_t)state->GetIntegerArg(1);
+		return 0;
+	});
+
 	return success;
 }
 
 void UIApp::Exit()
 {
+	if (localLuaManager)
+	{
+		pLuaManager->Exit();
+		tf_delete(pLuaManager);
+		pLuaManager = NULL;
+	}
+	mRuntimeScripts.clear();
+	mTestScripts.clear();
+
 	RemoveAllGuiComponents();
 
 	pImpl->pFontStash->exit();
 	tf_delete(pImpl->pFontStash);
+	pImpl->pFontStash = NULL;
 
 	pDriver->exit();
 	removeGUIDriver(pDriver);
 	pDriver = NULL;
 
 	tf_delete(pImpl);
+	pImpl = NULL;
 }
 
 bool UIApp::Load(RenderTarget** rts, uint32_t count)
@@ -426,6 +817,23 @@ void UIApp::Unload()
 {
 	pDriver->unload();
 	pImpl->pFontStash->unload();
+}
+
+void UIApp::AddLuaManager(LuaManager* aLuaManager)
+{
+	ASSERT(!pLuaManager || aLuaManager);
+	pLuaManager = aLuaManager;
+}
+
+void UIApp::AddTestScripts(const char** filenames, uint32_t count)
+{
+	for(uint32_t i = 0; i < count; ++i)
+		mTestScripts.push_back(filenames[i]);
+}
+
+void UIApp::RunTestScript(const char* filename)
+{
+	mRuntimeScripts.push_back(filename);
 }
 
 uint32_t UIApp::LoadFont(const char* pFontPath)
@@ -526,6 +934,18 @@ void UIApp::Update(float deltaTime)
 	if (pImpl->mUpdated || !pImpl->mComponentsToUpdate.size())
 		return;
 
+	if (luaCounter > 0)
+		--luaCounter;
+
+#if defined(AUTOMATED_TESTING)
+	if (!mTestScripts.empty() && !luaCounter)
+	{
+		LOGF(LogLevel::eINFO, ("Script " + mTestScripts.front() + " is running..").c_str());
+		pLuaManager->RunScript(mTestScripts.front().c_str());
+		mTestScripts.pop_front();
+	}
+#endif
+
 	pImpl->mUpdated = true;
 
 	eastl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
@@ -538,6 +958,13 @@ void UIApp::Update(float deltaTime)
 	pDriver->update(&guiUpdate);
 
 	pImpl->mComponentsToUpdate.clear();
+
+	if (!mRuntimeScripts.empty() && !luaCounter)
+	{
+		LOGF(LogLevel::eINFO, ("Script " + mRuntimeScripts.front() + " is running..").c_str());
+		pLuaManager->RunScript(mRuntimeScripts.front().c_str());
+		mRuntimeScripts.pop_front();
+	}
 }
 
 void UIApp::Draw(Cmd* pCmd)
@@ -555,6 +982,7 @@ IWidget* GuiComponent::AddWidget(const IWidget& widget, bool clone /* = true*/)
 {
 	mWidgets.emplace_back((clone ? widget.Clone() : (IWidget*)&widget));
 	mWidgetsClone.emplace_back(clone);
+	widget.RegisterLua();
 	return mWidgets.back();
 }
 

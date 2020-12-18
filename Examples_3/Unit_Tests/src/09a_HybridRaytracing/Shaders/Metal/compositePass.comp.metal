@@ -1,5 +1,4 @@
 /*
-* Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,11 +26,16 @@
 using namespace metal;
 
 struct CSData {
-    texture2d<float, access::read> albedobuffer     [[id(0)]];
-    texture2d<float, access::read> lightbuffer      [[id(1)]];
-#ifndef TARGET_IOS
-    texture2d<float, access::write> outputRT        [[id(2)]];
-#endif
+    constant  float4 * BVHTree [[id(0)]];
+        texture2d<float, access::read> depthBuffer[[id(1)]];
+        texture2d<float, access::read> normalBuffer[[id(2)]];
+        texture2d<float, access::read> shadowbuffer[[id(3)]];
+        texture2d<float, access::read> albedobuffer[[id(4)]];
+        texture2d<float, access::read> lightbuffer [[id(5)]];
+    #ifndef TARGET_IOS
+        texture2d<float, access::write> outputShadowRT[[id(6)]];
+        texture2d<float, access::write> outputRT[[id(7)]];
+    #endif
 };
 
 //[numthreads(16, 16, 1)]

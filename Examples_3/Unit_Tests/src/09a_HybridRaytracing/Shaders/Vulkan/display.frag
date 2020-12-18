@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,8 +37,8 @@ vec3 ACESFilm(vec3 x)
 	return clamp(result, 0.0, 1.0);
 }
 
-layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D  inputRT;
-layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler   samplerPoint;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D  inputRT;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform sampler   samplerPoint;
 
 layout(location = 0) in vec2 texcoord;
 layout(location = 0) out vec4 fs_out_color;

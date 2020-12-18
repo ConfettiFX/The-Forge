@@ -11,19 +11,37 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{97028d05-c873-4dc4-9202-8e958de8afd1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{42eb7871-d5d4-4971-b00b-d59d85378037}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\GLES">
+      <UniqueIdentifier>{4937e2e7-606c-4c33-98a8-80737ce45e66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\basic.frag">
+      <Filter>Shaders\GLES</Filter>
+    </None>
+    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\basic.vert">
+      <Filter>Shaders\GLES</Filter>
+    </None>
+    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\skybox.frag">
+      <Filter>Shaders\GLES</Filter>
+    </None>
+    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\skybox.vert">
+      <Filter>Shaders\GLES</Filter>
     </None>
   </ItemGroup>
 </Project>

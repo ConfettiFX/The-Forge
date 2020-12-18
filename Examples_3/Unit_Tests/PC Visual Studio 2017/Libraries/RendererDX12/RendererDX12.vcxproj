@@ -126,7 +126,7 @@ xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompi
       <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib;dxcompiler.lib;WinPixEventRuntime.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;$(SolutionDir)..\..\..\PrivateNvidia\NsightAftermath\Win64\x64\DebugDx</AdditionalLibraryDirectories>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">/IGNORE:4006,4221</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">/IGNORE:4006,4221</AdditionalOptions>
     </Lib>

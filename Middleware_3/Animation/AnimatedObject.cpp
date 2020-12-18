@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -35,7 +35,7 @@ void MultiplySoATransformQuaternion(int _index, const Quat& _quat, ozz::Range<So
 	transpose4x4(&soa_transform_ref.rotation.x, aos_quats);
 
 	Vector4& aos_quat_ref = aos_quats[_index & 3];
-	aos_quat_ref = Vector4((Quat(aos_quat_ref) * _quat).get128());
+	aos_quat_ref = Vector4((Quat(aos_quat_ref) * _quat));
 
 	transpose4x4(aos_quats, &soa_transform_ref.rotation.x);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -64,6 +64,7 @@ enum SPIRV_Resource_Type
    SPIRV_TYPE_UNIFORM_TEXEL_BUFFERS,
    SPIRV_TYPE_STORAGE_TEXEL_BUFFERS,
    SPIRV_TYPE_ACCELERATION_STRUCTURES,
+   SPIRV_TYPE_COMBINED_SAMPLERS,
    SPIRV_TYPE_COUNT
 };
 

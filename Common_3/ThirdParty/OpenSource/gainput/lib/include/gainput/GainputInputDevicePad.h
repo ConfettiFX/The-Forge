@@ -150,6 +150,7 @@ public:
 	const char* GetDeviceName();
 	bool SetRumbleEffect(float left_motor, float right_motor, uint32_t duration_ms);
 	void SetLEDColor(uint8_t r, uint8_t g, uint8_t b);
+	void SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char*, bool added));
 
 protected:
 	void InternalUpdate(InputDeltaState* delta);

@@ -304,6 +304,11 @@ InputDevicePad::GetDeviceName()
 	return impl_->GetDeviceName();
 }
 
+void InputDevicePad::SetOnDeviceChangeCallBack(void(*onDeviceChange)(const char*, bool added))
+{
+	return impl_->SetOnDeviceChangeCallBack(onDeviceChange);
+}
+
 bool
 InputDevicePad::SetRumbleEffect(float left_motor, float right_motor, uint32_t duration_ms)
 {

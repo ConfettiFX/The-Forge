@@ -1,0 +1,340 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_shuffle : require
+layout(local_size_x = 32, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform texture2D g_depth_buffer;
+layout(set = 0, binding = 1, r32f) uniform image2D g_downsampled_depth_buffer[13];
+layout(set = 0, binding = 2) buffer g_global_atomic
+{
+    uint g_global_atomic_Data[];
+};
+
+shared float g_group_shared_depth_values[16][16];
+shared uint g_group_shared_counter;
+
+float GetMipsCount(vec2 texture_size)
+{
+    float max_dim = max(texture_size.x, texture_size.y);
+    return 1.0 + floor(log2(max_dim));
+}
+
+uint GetThreadgroupCount(uvec2 image_size)
+{
+    return ((image_size.x + 63u) / 64u) * ((image_size.y + 63u) / 64u);
+}
+
+uvec2 ARmpRed8x8(uint a)
+{
+    return uvec2(bitfieldInsert(bitfieldExtract(a, 2, 3), a, 0, 1), bitfieldInsert(bitfieldExtract(a, 3, 3), bitfieldExtract(a, 1, 2), 0, 2));
+}
+
+vec4 SpdLoadSourceImage(ivec2 index)
+{
+    return vec4(texelFetch(g_depth_buffer, index, 0).x);
+}
+
+vec4 SpdReduce4(vec4 v0, vec4 v1, vec4 v2, vec4 v3)
+{
+    return min(min(v0, v1), min(v2, v3));
+}
+
+vec4 SpdReduceLoadSourceImage4(uvec2 i0, uvec2 i1, uvec2 i2, uvec2 i3)
+{
+    vec4 v0 = SpdLoadSourceImage(ivec2(i0));
+    vec4 v1 = SpdLoadSourceImage(ivec2(i1));
+    vec4 v2 = SpdLoadSourceImage(ivec2(i2));
+    vec4 v3 = SpdLoadSourceImage(ivec2(i3));
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+vec4 SpdReduceLoadSourceImage4(uvec2 base)
+{
+    return SpdReduceLoadSourceImage4(base + uvec2(0u), base + uvec2(0u, 1u), base + uvec2(1u, 0u), base + uvec2(1u));
+}
+
+void SpdStore(uvec2 pix, vec4 outValue, uint index)
+{
+    imageStore(g_downsampled_depth_buffer[index + 1u], ivec2(pix), vec4(outValue.x));
+}
+
+vec4 SpdReduceQuad(vec4 v)
+{
+    uint quad = gl_SubgroupInvocationID & ~3u;
+    vec4 v0 = v;
+    vec4 v1 = subgroupShuffle(v, quad | 1u);
+    vec4 v2 = subgroupShuffle(v, quad | 2u);
+    vec4 v3 = subgroupShuffle(v, quad | 3u);
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+void SpdStoreIntermediate(uint x, uint y, vec4 value)
+{
+    g_group_shared_depth_values[x][y] = value.x;
+}
+
+void SpdDownsampleMips_0_1(uint x, uint y, uvec2 workGroupID, uint mip)
+{
+    vec4 v[4];
+
+    uvec2 tex = workGroupID * 64u + uvec2(x * 2u, y * 2u);
+    uvec2 pix = workGroupID * 32u + uvec2(x, y);
+    v[0] = SpdReduceLoadSourceImage4(tex);
+    SpdStore(pix, v[0], 0u);
+
+    tex = workGroupID * 64u + uvec2(x * 2u + 32u, y * 2u);
+    pix = workGroupID * 32u + uvec2(x + 16u, y);
+    v[1] = SpdReduceLoadSourceImage4(tex);
+    SpdStore(pix, v[1], 0u);
+
+    tex = workGroupID * 64u + uvec2(x * 2u, y * 2u + 32u);
+    pix = workGroupID * 32u + uvec2(x, y + 16u);
+    v[2] = SpdReduceLoadSourceImage4(tex);
+    SpdStore(pix, v[2], 0u);
+
+    tex = workGroupID * 64u + uvec2(x * 2u + 32u, y * 2u + 32u);
+    pix = workGroupID * 32u + uvec2(x + 16u, y + 16u);
+    v[3] = SpdReduceLoadSourceImage4(tex);
+    SpdStore(pix, v[3], 0u);
+
+    if (mip <= 1u)
+    {
+        return;
+    }
+
+    v[0] = SpdReduceQuad(v[0]);
+    v[1] = SpdReduceQuad(v[1]);
+    v[2] = SpdReduceQuad(v[2]);
+    v[3] = SpdReduceQuad(v[3]);
+
+    if ((gl_LocalInvocationIndex % 4u) == 0u)
+    {
+        SpdStore(workGroupID * 16u + uvec2(x / 2u, y / 2u), v[0], 1u);
+        SpdStoreIntermediate(x / 2u, y / 2u, v[0]);
+
+        SpdStore(workGroupID * 16u + uvec2(x / 2u + 8u, y / 2u), v[1], 1u);
+        SpdStoreIntermediate(x / 2u + 8u, y / 2u, v[1]);
+
+        SpdStore(workGroupID * 16u + uvec2(x / 2u, y / 2u + 8u), v[2], 1u);
+        SpdStoreIntermediate(x / 2u, y / 2u + 8u, v[2]);
+
+        SpdStore(workGroupID * 16u + uvec2(x / 2u + 8u, y / 2u + 8u), v[3], 1u);
+        SpdStoreIntermediate(x / 2u + 8u, y / 2u + 8u, v[3]);
+    }
+}
+
+vec4 SpdLoadIntermediate(uint x, uint y)
+{
+    return vec4(g_group_shared_depth_values[x][y]);
+}
+
+void SpdDownsampleMip_2(uint x, uint y, uvec2 workGroupID, uint mip)
+{
+    vec4 v = SpdLoadIntermediate(x, y);
+    v = SpdReduceQuad(v);
+
+    if ((gl_LocalInvocationIndex % 4u) == 0u)
+    {
+        SpdStore(workGroupID * 8u + uvec2(x / 2u, y / 2u), v, mip);
+        SpdStoreIntermediate(x + (y / 2u) % 2u, y, v);
+    }
+}
+
+void SpdDownsampleMip_3(uint x, uint y, uvec2 workGroupID, uint mip)
+{
+    if (gl_LocalInvocationIndex < 64u)
+    {
+        vec4 v = SpdLoadIntermediate(x * 2u + (y % 2u), y * 2u);
+        v = SpdReduceQuad(v);
+        if ((gl_LocalInvocationIndex % 4u) == 0u)
+        {
+            SpdStore(workGroupID * 4u + uvec2(x / 2u, y / 2u), v, mip);
+            SpdStoreIntermediate(x * 2u + y / 2u, y * 2u, v);
+        }
+    }
+}
+
+void SpdDownsampleMip_4(uint x, uint y, uvec2 workGroupID, uint mip)
+{
+    if (gl_LocalInvocationIndex < 16u)
+    {
+        vec4 v = SpdLoadIntermediate(x * 4u + y, y * 4u);
+        v = SpdReduceQuad(v);
+        if ((gl_LocalInvocationIndex % 4u) == 0u)
+        {
+            SpdStore(workGroupID * 2u + uvec2(x / 2u, y / 2u), v, mip);
+            SpdStoreIntermediate(x / 2u + y, 0u, v);
+        }
+    }
+}
+
+void SpdDownsampleMip_5(uint x, uint y, uvec2 workGroupID, uint mip)
+{
+    if (gl_LocalInvocationIndex < 4u)
+    {
+        vec4 v = SpdLoadIntermediate(gl_LocalInvocationIndex, 0u);
+        v = SpdReduceQuad(v);
+        if ((gl_LocalInvocationIndex % 4u) == 0u)
+        {
+            SpdStore(workGroupID, v, mip);
+        }
+    }
+}
+
+void SpdDownsampleNextFour(uint x, uint y, uvec2 workGroupID, uint baseMip, uint mips)
+{
+    if (mips <= baseMip)
+    {
+        return;
+    }
+    barrier();
+    SpdDownsampleMip_2(x, y, workGroupID, baseMip);
+
+    if (mips <= (baseMip + 1u))
+    {
+        return;
+    }
+    barrier();
+    SpdDownsampleMip_3(x, y, workGroupID, baseMip + 1u);
+
+    if (mips <= (baseMip + 2u))
+    {
+        return;
+    }
+    barrier();
+    SpdDownsampleMip_4(x, y, workGroupID, baseMip + 2u);
+
+    if (mips <= (baseMip + 3u))
+    {
+        return;
+    }
+    barrier();
+    SpdDownsampleMip_5(x, y, workGroupID, baseMip + 3u);
+}
+
+void SpdIncreaseAtomicCounter()
+{
+    g_group_shared_counter = atomicAdd(g_global_atomic_Data[0], 1u);
+}
+
+void SpdResetAtomicCounter()
+{
+    g_global_atomic_Data[0] = 0;
+}
+
+uint SpdGetAtomicCounter()
+{
+    return g_group_shared_counter;
+}
+
+bool SpdExitWorkgroup(uint numWorkGroups)
+{
+    if (gl_LocalInvocationIndex == 0u)
+    {
+        SpdIncreaseAtomicCounter();
+    }
+    barrier();
+    return SpdGetAtomicCounter() != (numWorkGroups - 1u);
+}
+
+vec4 SpdLoad(uvec2 index)
+{
+    return vec4(imageLoad(g_downsampled_depth_buffer[6], ivec2(index)).x);
+}
+
+vec4 SpdReduceLoad4(uvec2 i0, uvec2 i1, uvec2 i2, uvec2 i3)
+{
+    vec4 v0 = SpdLoad(i0);
+    vec4 v1 = SpdLoad(i1);
+    vec4 v2 = SpdLoad(i2);
+    vec4 v3 = SpdLoad(i3);
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+vec4 SpdReduceLoad4(uvec2 base)
+{
+    return SpdReduceLoad4(base + uvec2(0u), base + uvec2(0u, 1u), base + uvec2(1u, 0u), base + uvec2(1u));
+}
+
+void SpdDownsampleMips_6_7(uint x, uint y, uint mips)
+{
+    uvec2 tex = uvec2(x * 4u + 0u, y * 4u + 0u);
+    uvec2 pix = uvec2(x * 2u + 0u, y * 2u + 0u);
+    vec4 v0 = SpdReduceLoad4(tex);
+    SpdStore(pix, v0, 6u);
+
+    tex = uvec2(x * 4u + 2u, y * 4u + 0u);
+    pix = uvec2(x * 2u + 1u, y * 2u + 0u);
+    vec4 v1 = SpdReduceLoad4(tex);
+    SpdStore(pix, v1, 6u);
+
+    tex = uvec2(x * 4u + 0u, y * 4u + 2u);
+    pix = uvec2(x * 2u + 0u, y * 2u + 1u);
+    vec4 v2 = SpdReduceLoad4(tex);
+    SpdStore(pix, v2, 6u);
+
+    tex = uvec2(x * 4u + 2u, y * 4u + 2u);
+    pix = uvec2(x * 2u + 1u, y * 2u + 1u);
+    vec4 v3 = SpdReduceLoad4(tex);
+    SpdStore(pix, v3, 6u);
+
+    if (mips <= 7u)
+    {
+        return;
+    }
+
+    vec4 v = SpdReduce4(v0, v1, v2, v3);
+    SpdStore(uvec2(x, y), v, 7u);
+    SpdStoreIntermediate(x, y, v);
+}
+
+void SpdDownsample(uvec2 workGroupID, uint mips, uint numWorkGroups)
+{
+    uvec2 sub_xy = ARmpRed8x8(gl_LocalInvocationIndex % 64u);
+    uint x = sub_xy.x + 8u * ((gl_LocalInvocationIndex >> 6u) % 2u);
+    uint y = sub_xy.y + 8u * (gl_LocalInvocationIndex >> 7u);
+    SpdDownsampleMips_0_1(x, y, workGroupID, mips);
+
+    SpdDownsampleNextFour(x, y, workGroupID, 2u, mips);
+
+    if (mips <= 6u)
+    {
+        return;
+    }
+
+    if (SpdExitWorkgroup(numWorkGroups))
+    {
+        return;
+    }
+
+    SpdResetAtomicCounter();
+
+    SpdDownsampleMips_6_7(x, y, mips);
+
+    SpdDownsampleNextFour(x, y, uvec2(0u), 8u, mips);
+}
+
+void main()
+{
+    vec2 depth_image_size = textureSize(g_depth_buffer, 0);
+    uvec2 u_depth_image_size = uvec2(depth_image_size);
+
+    for (int i = 0; i < 2; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            ivec2 idx = ivec2(2u * gl_GlobalInvocationID.x + i, 8u * gl_GlobalInvocationID.y + j);
+            if ((idx.x < u_depth_image_size.x) && (idx.y < u_depth_image_size.y))
+            {
+                imageStore(g_downsampled_depth_buffer[0], idx, vec4(texelFetch(g_depth_buffer, idx, 0).x));
+            }
+        }
+    }
+
+    vec2 image_size = imageSize(g_downsampled_depth_buffer[0]);
+    float mips_count = GetMipsCount(image_size);
+    uint threadgroup_count = GetThreadgroupCount(uvec2(image_size));
+
+    SpdDownsample(gl_WorkGroupID.xy, uint(mips_count), threadgroup_count);
+}

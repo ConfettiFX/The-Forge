@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -216,13 +216,13 @@ void ReflectShaderResources(CrossCompiler* pCompiler)
    resource_count += (uint32_t)allResources.separate_images.size();		    // textures
    resource_count += (uint32_t)allResources.storage_images.size();		    // uav textures
    resource_count += (uint32_t)allResources.separate_samplers.size();	    // samplers
+   resource_count += (uint32_t)allResources.sampled_images.size();          // combined samplers
    resource_count += (uint32_t)allResources.push_constant_buffers.size();   // push constants
    resource_count += (uint32_t)allResources.subpass_inputs.size();          // input attachments
    resource_count += (uint32_t)allResources.acceleration_structures.size(); // raytracing structures
 
    // these we dont care about right
    // subpass_inputs - we are not going to use this   TODO: warn when found
-   // sampled_images - we wont be using these		 TODO: warn when found
    // atomic_counters - not useable in Vulkan		 TODO: warn when found
 
    // allocate array for resources
@@ -294,6 +294,7 @@ void ReflectShaderResources(CrossCompiler* pCompiler)
    ReflectBoundResources(compiler, allResources.storage_images, usedResouces, resources, &current_resource, SPIRV_TYPE_STORAGE_IMAGES);
    ReflectBoundResources(compiler, allResources.separate_images, usedResouces, resources, &current_resource, SPIRV_TYPE_IMAGES);
    ReflectBoundResources(compiler, allResources.separate_samplers, usedResouces, resources, &current_resource, SPIRV_TYPE_SAMPLERS);
+   ReflectBoundResources(compiler, allResources.sampled_images, usedResouces, resources, &current_resource, SPIRV_TYPE_COMBINED_SAMPLERS);
    ReflectBoundResources(compiler, allResources.subpass_inputs, usedResouces, resources, &current_resource, SPIRV_TYPE_SUBPASS_INPUTS);
    ReflectBoundResources(compiler, allResources.subpass_inputs, usedResouces, resources, &current_resource, SPIRV_TYPE_SUBPASS_INPUTS);
    ReflectBoundResources(compiler, allResources.acceleration_structures, usedResouces, resources, &current_resource, SPIRV_TYPE_ACCELERATION_STRUCTURES);

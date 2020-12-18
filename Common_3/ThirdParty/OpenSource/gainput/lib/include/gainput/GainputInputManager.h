@@ -224,6 +224,10 @@ public:
 	void SetDebugRenderer(DebugRenderer* debugRenderer);
 	/// Returns the previously set debug renderer.
 	DebugRenderer* GetDebugRenderer() const { return debugRenderer_; }
+
+	//getter/setter for window Instance window instance 
+	void SetWindowsInstance(void* instance) { window_instance_ = instance; }
+	void* GetWindowsInstance() { return window_instance_; }
 private:
 	Allocator& allocator_;
 
@@ -262,6 +266,7 @@ private:
 
 	bool debugRenderingEnabled_;
 	DebugRenderer* debugRenderer_;
+	void* window_instance_;
     
 	void DeviceCreated(InputDevice* device);
 
@@ -269,7 +274,6 @@ private:
 	InputManager(const InputManager &);
 	InputManager& operator=(const InputManager &);
 public:
-	void* window_instance_;
 };
 
 

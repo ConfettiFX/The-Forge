@@ -110,45 +110,57 @@ struct BVHNode
 
 const uint32_t gImageCount = 3;
 
-class RenderPassData
+enum Enum
 {
-public:
-	Shader* pShader;
-	RootSignature* pRootSignature;
-	DescriptorSet* pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	Pipeline* pPipeline;
-	CmdPool* pCmdPools[gImageCount];
-	Cmd* pCmds[gImageCount];
-	Buffer* pPerPassCB[gImageCount];
-	eastl::vector<RenderTarget*> RenderTargets;
-	eastl::vector<Texture*>      Textures;
-
-	RenderPassData(Renderer* pRenderer, Queue* pGraphicsQueue, int ImageCount)
-	{
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-	}
+	GBuffer,
+	Lighting,
+	Composite,
+	RaytracedShadows,
+	//RaytractedReflections,
+	CopyToBackbuffer,
+	RenderPassCount
 };
 
-struct RenderPass
+Shader* pShader[RenderPassCount];
+
+RootSignature* pRootSignature;
+RootSignature* pRootSignatureComp;
+
+DescriptorSet* pDescriptorSetNonFreq;
+DescriptorSet* pDescriptorSetFreq;
+DescriptorSet* pDescriptorSetFreqPerDraw;
+DescriptorSet* pDescriptorSetCompNonFreq;
+DescriptorSet* pDescriptorSetCompFreq;
+
+Pipeline* pPipeline[RenderPassCount];
+
+CmdPool* pCmdPools[gImageCount];
+Cmd* pCmds[gImageCount];
+
+Buffer* pGPrepassUniformBuffer[gImageCount];
+Buffer* pShadowpassUniformBuffer[gImageCount];
+Buffer* pLightpassUniformBuffer[gImageCount];
+
+enum Gbuffers
 {
-	enum Enum
-	{
-		GBuffer,
-		Lighting,
-		Composite,
-		RaytracedShadows,
-		RaytractedReflections,
-		CopyToBackbuffer
-	};
+	Albedo,
+	Normal,
+	GbufferCount
 };
+
+RenderTarget* pRenderTargets[GbufferCount] = { NULL };
+RenderTarget* pDepthBuffer = NULL;
+
+enum Textures
+{
+	Texture_Lighting,
+	Texture_RaytracedShadows,
+	Texture_Composite,	
+	TextureCount
+};
+
+Texture*	pTextures[TextureCount] = { NULL };
+
 
 // Per pass data
 struct DefaultpassUniformBuffer
@@ -205,26 +217,12 @@ struct MeshBatch
 	int     MaterialID;
 };
 
-//Enum for easy access of GBuffer RTs
-struct GBufferRT
-{
-	enum Enum
-	{
-		Albedo,
-		Normals,
-		Noof
-	};
-};
-
 struct PropData
 {
 	mat4                        WorldMatrix;
 	Geometry* Geom;
 	Buffer* pConstantBuffer;
 };
-
-typedef eastl::unordered_map<RenderPass::Enum, RenderPassData*> RenderPassMap;
-typedef eastl::pair<const RenderPass::Enum, RenderPassData*> RenderPassPair;
 
 Renderer* pRenderer = NULL;
 Queue* pGraphicsQueue = NULL;
@@ -241,7 +239,7 @@ SwapChain* pSwapChain = NULL;
 Buffer* BVHBoundingBoxesBuffer;
 
 //The render passes used in the demo
-RenderPassMap            RenderPasses;
+//RenderPassMap            RenderPasses;
 GPrepassUniformBuffer    gPrepasUniformData;
 ShadowpassUniformBuffer  gShadowPassUniformData;
 LightpassUniformBuffer   gLightPassUniformData;
@@ -423,8 +421,6 @@ Texture* pMaterialTextures[TOTAL_IMGS];
 eastl::vector<int> gSponzaTextureIndexforMaterial;
 
 AABBox gWholeSceneBBox;
-
-RenderTarget* pDepthBuffer = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 ProfileToken gGpuProfileToken;
@@ -859,255 +855,8 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-
-		//check for init success
-		if (!pRenderer)
+		if (!initInputSystem(pWindow))
 			return false;
-
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-		//Add rendering passes
-
-		//Gbuffer pass
-		RenderPassData* pass =
-			tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::GBuffer, pass));
-
-		//Shadow pass
-		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::RaytracedShadows, pass));
-
-		//Lighting pass
-		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Lighting, pass));
-
-		//Composite pass
-		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Composite, pass));
-
-		//Copy to backbuffer
-		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
-		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::CopyToBackbuffer, pass));
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		initResourceLoaderInterface(pRenderer);
-
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		//Load shaders
-		{
-			//Load shaders for GPrepass
-			char           totalImagesShaderMacroBuffer[5] = {};
-			sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
-
-			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
-			ShaderLoadDesc shaderGPrepass = {};
-			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
-#ifndef TARGET_IOS
-			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
-#else
-			//separate fragment gbuffer pass for iOs that does not use bindless textures
-			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0 };
-#endif
-			addShader(pRenderer, &shaderGPrepass, &RenderPasses[RenderPass::GBuffer]->pShader);
-
-			//shader for Shadow pass
-			ShaderLoadDesc shadowsShader = {};
-			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
-			addShader(pRenderer, &shadowsShader, &RenderPasses[RenderPass::RaytracedShadows]->pShader);
-
-			//shader for Lighting pass
-			ShaderLoadDesc lightingShader = {};
-			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
-			addShader(pRenderer, &lightingShader, &RenderPasses[RenderPass::Lighting]->pShader);
-
-			//shader for Composite pass
-			ShaderLoadDesc compositeShader = {};
-			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
-			addShader(pRenderer, &compositeShader, &RenderPasses[RenderPass::Composite]->pShader);
-
-			//Load shaders for copy to backbufferpass
-			ShaderLoadDesc copyShader = {};
-			copyShader.mStages[0] = { "display.vert", NULL, 0 };
-			copyShader.mStages[1] = { "display.frag", NULL, 0 };
-			addShader(pRenderer, &copyShader, &RenderPasses[RenderPass::CopyToBackbuffer]->pShader);
-		}
-
-		//Create sampler state objects
-		{ //point sampling with clamping
-			{ SamplerDesc samplerDesc = { FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pSamplerPointClamp);
-			}
-
-			//linear sampling with wrapping
-			{
-				SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
-											ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
-				addSampler(pRenderer, &samplerDesc, &pSamplerLinearWrap);
-			}
-		}
-
-		//Create root signatures
-		{ //Add root signature for GPrepass
-			{ const char* pStaticSamplers[] = { "samplerLinear" };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
-			rootDesc.mShaderCount = 1;
-			rootDesc.ppShaders = &RenderPasses[RenderPass::GBuffer]->pShader;
-#ifndef TARGET_IOS
-			rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
-
-			addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRootSignature);
-
-			DescriptorSetDesc setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0]);
-			setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1]);
-			}
-
-			//Add root signature for Shadow pass
-			{
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = &RenderPasses[RenderPass::RaytracedShadows]->pShader;
-				addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::RaytracedShadows]->pRootSignature);
-
-				DescriptorSetDesc setDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0]);
-				setDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1]);
-			}
-
-			//Add root signature for Lighting pass
-			{
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = &RenderPasses[RenderPass::Lighting]->pShader;
-				addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Lighting]->pRootSignature);
-
-				DescriptorSetDesc setDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorSets[0]);
-				setDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorSets[1]);
-			}
-
-			//Add root signature for composite pass
-			{
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = &RenderPasses[RenderPass::Composite]->pShader;
-				addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Composite]->pRootSignature);
-
-				DescriptorSetDesc setDesc = { RenderPasses[RenderPass::Composite]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Composite]->pDescriptorSets[0]);
-			}
-
-			//Add root signature for Copy to Backbuffer Pass
-			{
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = &RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
-				addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature);
-
-				DescriptorSetDesc setDesc = { RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0]);
-			}
-		}
-
-		//Create Constant buffers
-		{
-			//Gprepass per-pass constant buffer
-			{
-				BufferLoadDesc ubDesc = {};
-				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-				ubDesc.mDesc.mSize = sizeof(GPrepassUniformBuffer);
-				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-				ubDesc.pData = NULL;
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					ubDesc.ppBuffer = &RenderPasses[RenderPass::GBuffer]->pPerPassCB[i];
-					addResource(&ubDesc, NULL);
-				}
-			}
-
-			//Shadow pass per-pass constant buffer
-			{
-				BufferLoadDesc ubDesc = {};
-				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-				ubDesc.mDesc.mSize = sizeof(ShadowpassUniformBuffer);
-				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-				ubDesc.pData = NULL;
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					ubDesc.ppBuffer = &RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[i];
-					addResource(&ubDesc, NULL);
-				}
-			}
-
-			//Lighting pass per-pass constant buffer
-			{
-				BufferLoadDesc ubDesc = {};
-				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-				ubDesc.mDesc.mSize = sizeof(LightpassUniformBuffer);
-				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-				ubDesc.pData = NULL;
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					ubDesc.ppBuffer = &RenderPasses[RenderPass::Lighting]->pPerPassCB[i];
-					addResource(&ubDesc, NULL);
-				}
-			}
-
-			//Composite pass per-pass constant buffer
-			{
-				BufferLoadDesc ubDesc = {};
-				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-				ubDesc.mDesc.mSize = sizeof(DefaultpassUniformBuffer);
-				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-				ubDesc.pData = NULL;
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					ubDesc.ppBuffer = &RenderPasses[RenderPass::Composite]->pPerPassCB[i];
-					addResource(&ubDesc, NULL);
-				}
-			}
-		}
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			return false;
-
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);;
-		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-		pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation X", &gLightRotationX, (float)-M_PI, (float)M_PI));
-		pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation Z", &gLightRotationZ, (float)-M_PI, (float)M_PI));
 
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 		vec3                   camPos{ 100.0f, 25.0f, 0.0f };
@@ -1116,17 +865,6 @@ public:
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
-
-		SyncToken token = {};
-		if (!LoadSponza(&token))
-			return false;
-
-		waitForToken(&token);
-
-		CreateBVHBuffers();
-
-		if (!initInputSystem(pWindow))
-			return false;
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -1160,95 +898,13 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-#ifdef TARGET_IOS
-		DescriptorSetDesc setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
-		addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2]);
-#endif
-
 		return true;
 	}
 
 	void Exit()
 	{
-		waitQueueIdle(pGraphicsQueue);
-
 		exitInputSystem();
-
-		exitProfiler();
-
 		destroyCameraController(pCameraController);
-
-		gAppUI.Exit();
-
-		gVirtualJoystick.Exit();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		removeSampler(pRenderer, pSamplerLinearWrap);
-		removeSampler(pRenderer, pSamplerPointClamp);
-
-		//Delete rendering passes
-		for (RenderPassMap::iterator iter = RenderPasses.begin(); iter != RenderPasses.end(); ++iter)
-		{
-			RenderPassData* pass = iter->second;
-
-			if (!pass)
-				continue;
-
-			for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
-				if (pass->pDescriptorSets[i])
-					removeDescriptorSet(pRenderer, pass->pDescriptorSets[i]);
-
-			for (RenderTarget* rt : pass->RenderTargets)
-			{
-				removeRenderTarget(pRenderer, rt);
-			}
-
-			for (Texture* texture : pass->Textures)
-			{
-				removeResource(texture);
-			}
-
-			for (uint32_t j = 0; j < gImageCount; ++j)
-			{
-				if (pass->pPerPassCB[j])
-					removeResource(pass->pPerPassCB[j]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pass->pCmds[i]);
-				removeCmdPool(pRenderer, pass->pCmdPools[i]);
-			}
-
-			removeShader(pRenderer, pass->pShader);
-
-			removeRootSignature(pRenderer, pass->pRootSignature);
-
-			pass->~RenderPassData();
-			tf_free(pass);
-		}
-
-		RenderPasses.clear(true);
-		gSponzaTextureIndexforMaterial.set_capacity(0);
-
-		//Delete Sponza resources
-		removeResource(SponzaProp.Geom);
-		removeResource(SponzaProp.pConstantBuffer);
-
-		for (uint i = 0; i < TOTAL_IMGS; ++i)
-			removeResource(pMaterialTextures[i]);
-
-		removeResource(BVHBoundingBoxesBuffer);
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
 	}
 
 	void AssignSponzaTextures()
@@ -1574,18 +1230,14 @@ public:
 				rtDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 
 				rtDesc.pName = "G-Buffer RTs";
-
-				RenderTarget* rendertarget;
-
+				
 				//Add albedo RT
 				rtDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-				addRenderTarget(pRenderer, &rtDesc, &rendertarget);
-				RenderPasses[RenderPass::GBuffer]->RenderTargets.push_back(rendertarget);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargets[Albedo]);
 
 				//Add normals RT
 				rtDesc.mFormat = TinyImageFormat_R8G8B8A8_SNORM;
-				addRenderTarget(pRenderer, &rtDesc, &rendertarget);
-				RenderPasses[RenderPass::GBuffer]->RenderTargets.push_back(rendertarget);
+				addRenderTarget(pRenderer, &rtDesc, &pRenderTargets[Normal]);
 			}
 
 			// Add depth buffer
@@ -1617,14 +1269,9 @@ public:
 				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
-				desc.mHostVisible = false;
-				textureDesc.pDesc = &desc;
-
-				Texture* pTexture;
-				textureDesc.ppTexture = &pTexture;
+				textureDesc.pDesc = &desc;				
+				textureDesc.ppTexture = &pTextures[Texture_RaytracedShadows];
 				addResource(&textureDesc, NULL);
-
-				RenderPasses[RenderPass::RaytracedShadows]->Textures.push_back(pTexture);
 			}
 
 			// Add Lighting Pass render target
@@ -1640,14 +1287,9 @@ public:
 				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
-				desc.mHostVisible = false;
 				textureDesc.pDesc = &desc;
-
-				Texture* pTexture;
-				textureDesc.ppTexture = &pTexture;
+				textureDesc.ppTexture = &pTextures[Texture_Lighting];
 				addResource(&textureDesc, NULL);
-
-				RenderPasses[RenderPass::Lighting]->Textures.push_back(pTexture);
 			}
 
 			// Add Composite Pass render target
@@ -1663,20 +1305,241 @@ public:
 				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
-				desc.mHostVisible = false;
 				textureDesc.pDesc = &desc;
-
-				Texture* pTexture;
-				textureDesc.ppTexture = &pTexture;
+				textureDesc.ppTexture = &pTextures[Texture_Composite];
 				addResource(&textureDesc, NULL);
-
-				RenderPasses[RenderPass::Composite]->Textures.push_back(pTexture);
 			}
 		}
 	}
 
+	void RemoveRenderTargets()
+	{
+		removeRenderTarget(pRenderer, pRenderTargets[Albedo]);
+		removeRenderTarget(pRenderer, pRenderTargets[Normal]);
+
+		removeResource(pTextures[Texture_Lighting]);
+		removeResource(pTextures[Texture_Composite]);
+		removeResource(pTextures[Texture_RaytracedShadows]);
+	}
+
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			// window and renderer setup
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+
+			//check for init success
+			if (!pRenderer)
+				return false;
+
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			initResourceLoaderInterface(pRenderer);
+
+			if (!gAppUI.Init(pRenderer))
+				return false;
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			//Load shaders
+			{
+				//Load shaders for GPrepass
+				char           totalImagesShaderMacroBuffer[5] = {};
+				sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
+
+				ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
+				ShaderLoadDesc shaderGPrepass = {};
+				shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
+#ifndef TARGET_IOS
+				shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
+#else
+			//separate fragment gbuffer pass for iOs that does not use bindless textures
+				shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0 };
+#endif
+
+				addShader(pRenderer, &shaderGPrepass, &pShader[GBuffer]);
+
+				//shader for Shadow pass
+				ShaderLoadDesc shadowsShader = {};
+				shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
+				addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
+
+				//shader for Lighting pass
+				ShaderLoadDesc lightingShader = {};
+				lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
+				addShader(pRenderer, &lightingShader, &pShader[Lighting]);
+
+				//shader for Composite pass
+				ShaderLoadDesc compositeShader = {};
+				compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
+				addShader(pRenderer, &compositeShader, &pShader[Composite]);
+
+				//Load shaders for copy to backbufferpass
+				ShaderLoadDesc copyShader = {};
+				copyShader.mStages[0] = { "display.vert", NULL, 0 };
+#ifndef TARGET_IOS
+				copyShader.mStages[1] = { "display.frag", NULL, 0 };
+#else
+			//separate fragment for iOs that does not use bindless textures
+				shaderGPrepass.mStages[1] = { "display_iOS.frag", NULL, 0 };
+#endif
+				addShader(pRenderer, &copyShader, &pShader[CopyToBackbuffer]);
+			}
+
+			//Create sampler state objects
+			{ //point sampling with clamping
+				{ SamplerDesc samplerDesc = { FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE,
+											ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE };
+				addSampler(pRenderer, &samplerDesc, &pSamplerPointClamp);
+				}
+
+				//linear sampling with wrapping
+				{
+					SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
+												ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+					addSampler(pRenderer, &samplerDesc, &pSamplerLinearWrap);
+				}
+			}
+
+			//Create root signatures
+			{
+				const char* pStaticSamplers[] = { "samplerLinear" };
+
+				Shader* shaders[] = { pShader[GBuffer], pShader[CopyToBackbuffer] };
+
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = pStaticSamplers;
+				rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
+				rootDesc.mShaderCount = 2;
+				rootDesc.ppShaders = shaders;
+#ifndef TARGET_IOS
+				rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+				addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+				Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
+
+				RootSignatureDesc rootCompDesc = {};
+				rootCompDesc.mShaderCount = 3;
+				rootCompDesc.ppShaders = compShaders;
+#ifndef TARGET_IOS
+				rootCompDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+				addRootSignature(pRenderer, &rootCompDesc, &pRootSignatureComp);
+
+				DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+				addDescriptorSet(pRenderer, &desc, &pDescriptorSetNonFreq);
+
+				desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+				addDescriptorSet(pRenderer, &desc, &pDescriptorSetFreq);
+
+				DescriptorSetDesc compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_NONE, TextureCount };
+				addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompNonFreq);
+
+				compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * TextureCount };
+				addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompFreq);
+			}
+
+			//Create Constant buffers
+			{
+				//Gprepass per-pass constant buffer
+				{
+					BufferLoadDesc ubDesc = {};
+					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+					ubDesc.mDesc.mSize = sizeof(GPrepassUniformBuffer);
+					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+					ubDesc.pData = NULL;
+					for (uint32_t i = 0; i < gImageCount; ++i)
+					{
+						ubDesc.ppBuffer = &pGPrepassUniformBuffer[i];
+						addResource(&ubDesc, NULL);
+					}
+				}
+
+				//Shadow pass per-pass constant buffer
+				{
+					BufferLoadDesc ubDesc = {};
+					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+					ubDesc.mDesc.mSize = sizeof(ShadowpassUniformBuffer);
+					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+					ubDesc.pData = NULL;
+					for (uint32_t i = 0; i < gImageCount; ++i)
+					{
+						ubDesc.ppBuffer = &pShadowpassUniformBuffer[i];
+						addResource(&ubDesc, NULL);
+					}
+				}
+
+				//Lighting pass per-pass constant buffer
+				{
+					BufferLoadDesc ubDesc = {};
+					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+					ubDesc.mDesc.mSize = sizeof(LightpassUniformBuffer);
+					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+					ubDesc.pData = NULL;
+					for (uint32_t i = 0; i < gImageCount; ++i)
+					{
+						ubDesc.ppBuffer = &pLightpassUniformBuffer[i];
+						addResource(&ubDesc, NULL);
+					}
+				}
+			}
+
+			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+				return false;
+
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);;
+			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+			pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation X", &gLightRotationX, (float)-M_PI, (float)M_PI));
+			pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation Z", &gLightRotationZ, (float)-M_PI, (float)M_PI));
+
+			SyncToken token = {};
+			if (!LoadSponza(&token))
+				return false;
+
+			waitForToken(&token);
+
+			CreateBVHBuffers();
+
+#ifdef TARGET_IOS
+			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFreqPerDraw);
+#endif
+		}
+
 		if (!addSwapChain())
 			return false;
 
@@ -1703,31 +1566,31 @@ public:
 		//add gbuffer pipeline
 		{
 			//set up g-prepass buffer formats
-			TinyImageFormat deferredFormats[GBufferRT::Noof] = {};
-			for (uint32_t i = 0; i < GBufferRT::Noof; ++i)
+			TinyImageFormat deferredFormats[GbufferCount] = {};
+			for (uint32_t i = 0; i < GbufferCount; ++i)
 			{
-				deferredFormats[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mFormat;
+				deferredFormats[i] = pRenderTargets[i]->mFormat;
 			}
 
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_GRAPHICS;
 			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = GBufferRT::Noof;
+			pipelineSettings.mRenderTargetCount = GbufferCount;
 			pipelineSettings.pDepthState = &depthStateDesc;
 
 			pipelineSettings.pColorFormats = deferredFormats;
 
-			pipelineSettings.mSampleCount = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mSampleCount;
-			pipelineSettings.mSampleQuality = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mSampleQuality;
+			pipelineSettings.mSampleCount = pRenderTargets[0]->mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargets[0]->mSampleQuality;
 
 			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-			pipelineSettings.pRootSignature = RenderPasses[RenderPass::GBuffer]->pRootSignature;
-			pipelineSettings.pShaderProgram = RenderPasses[RenderPass::GBuffer]->pShader;
+			pipelineSettings.pRootSignature = pRootSignature;
+			pipelineSettings.pShaderProgram = pShader[GBuffer];
 			pipelineSettings.pVertexLayout = &gVertexLayoutGPrepass;
 			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 
-			addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::GBuffer]->pPipeline);
+			addPipeline(pRenderer, &desc, &pPipeline[GBuffer]);
 		}
 
 		//create shadows pipeline
@@ -1735,9 +1598,9 @@ public:
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_COMPUTE;
 			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = RenderPasses[RenderPass::RaytracedShadows]->pRootSignature;
-			pipelineDesc.pShaderProgram = RenderPasses[RenderPass::RaytracedShadows]->pShader;
-			addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[RaytracedShadows];
+			addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadows]);
 		}
 
 		//create lighting pipeline
@@ -1745,9 +1608,9 @@ public:
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_COMPUTE;
 			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = RenderPasses[RenderPass::Lighting]->pRootSignature;
-			pipelineDesc.pShaderProgram = RenderPasses[RenderPass::Lighting]->pShader;
-			addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::Lighting]->pPipeline);
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[Lighting];
+			addPipeline(pRenderer, &desc, &pPipeline[Lighting]);
 		}
 
 		//create composite pipeline
@@ -1755,9 +1618,9 @@ public:
 			PipelineDesc desc = {};
 			desc.mType = PIPELINE_TYPE_COMPUTE;
 			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = RenderPasses[RenderPass::Composite]->pRootSignature;
-			pipelineDesc.pShaderProgram = RenderPasses[RenderPass::Composite]->pShader;
-			addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::Composite]->pPipeline);
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[Composite];
+			addPipeline(pRenderer, &desc, &pPipeline[Composite]);
 		}
 
 		//create copy to backbuffer pipeline
@@ -1774,10 +1637,10 @@ public:
 			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 
-			pipelineSettings.pRootSignature = RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature;
-			pipelineSettings.pShaderProgram = RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
+			pipelineSettings.pRootSignature = pRootSignature;
+			pipelineSettings.pShaderProgram = pShader[CopyToBackbuffer];
 
-			addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
+			addPipeline(pRenderer, &desc, &pPipeline[CopyToBackbuffer]);
 		}
 
 		//make the camera point towards the centre of the scene;
@@ -1787,8 +1650,6 @@ public:
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 
@@ -1801,39 +1662,86 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
 
-		//Delete rendering passes Textures and Render targets
-		for (RenderPassMap::iterator iter = RenderPasses.begin(); iter != RenderPasses.end(); ++iter)
-		{
-			RenderPassData* pass = iter->second;
+		RemoveRenderTargets();
 
-			for (RenderTarget* rt : pass->RenderTargets)
-			{
-				removeRenderTarget(pRenderer, rt);
-			}
-
-			for (Texture* texture : pass->Textures)
-			{
-				removeResource(texture);
-			}
-			pass->RenderTargets.clear();
-			pass->Textures.clear();
-
-			if (pass->pPipeline)
-			{
-				removePipeline(pRenderer, pass->pPipeline);
-				pass->pPipeline = NULL;
-			}
-		}
+		removePipeline(pRenderer, pPipeline[GBuffer]);
+		removePipeline(pRenderer, pPipeline[RaytracedShadows]);
+		removePipeline(pRenderer, pPipeline[Lighting]);
+		removePipeline(pRenderer, pPipeline[Composite]);
+		removePipeline(pRenderer, pPipeline[CopyToBackbuffer]);
 
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
 		pDepthBuffer = NULL;
 		pSwapChain = NULL;
+
+		if (mSettings.mResetGraphics || mSettings.mQuit) 
+		{
+			exitProfilerUI();
+			exitProfiler();
+			gAppUI.Exit();
+			gVirtualJoystick.Exit();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			removeSampler(pRenderer, pSamplerLinearWrap);
+			removeSampler(pRenderer, pSamplerPointClamp);
+
+			//Delete rendering passes
+			removeDescriptorSet(pRenderer, pDescriptorSetNonFreq);
+			removeDescriptorSet(pRenderer, pDescriptorSetFreq);
+#ifdef TARGET_IOS
+			removeDescriptorSet(pRenderer, pDescriptorSetFreqPerDraw);
+#endif
+			removeDescriptorSet(pRenderer, pDescriptorSetCompNonFreq);
+			removeDescriptorSet(pRenderer, pDescriptorSetCompFreq);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pGPrepassUniformBuffer[i]);
+				removeResource(pShadowpassUniformBuffer[i]);
+				removeResource(pLightpassUniformBuffer[i]);
+			}
+
+			removeShader(pRenderer, pShader[GBuffer]);
+			removeShader(pRenderer, pShader[Lighting]);
+			removeShader(pRenderer, pShader[Composite]);
+			removeShader(pRenderer, pShader[RaytracedShadows]);
+			removeShader(pRenderer, pShader[CopyToBackbuffer]);
+
+			removeRootSignature(pRenderer, pRootSignature);
+			removeRootSignature(pRenderer, pRootSignatureComp);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			gSponzaTextureIndexforMaterial.set_capacity(0);
+
+			//Delete Sponza resources
+			removeResource(SponzaProp.Geom);
+			removeResource(SponzaProp.pConstantBuffer);
+
+			for (uint i = 0; i < TOTAL_IMGS; ++i)
+				removeResource(pMaterialTextures[i]);
+
+			removeResource(BVHBoundingBoxesBuffer);
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -1925,78 +1833,64 @@ public:
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/
-		BufferUpdateDesc desc = { RenderPasses[RenderPass::GBuffer]->pPerPassCB[gFrameIndex] };
+		BufferUpdateDesc desc = { pGPrepassUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&desc);
 		*(GPrepassUniformBuffer*)desc.pMappedData = gPrepasUniformData;
 		endUpdateResource(&desc, NULL);
 
-		desc = { RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[gFrameIndex] };
+		desc = { pShadowpassUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&desc);
 		*(ShadowpassUniformBuffer*)desc.pMappedData = gShadowPassUniformData;
 		endUpdateResource(&desc, NULL);
 
-		desc = { RenderPasses[RenderPass::Lighting]->pPerPassCB[gFrameIndex] };
+		desc = { pLightpassUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&desc);
 		*(LightpassUniformBuffer*)desc.pMappedData = gLightPassUniformData;
 		endUpdateResource(&desc, NULL);
 
-		desc = { RenderPasses[RenderPass::Composite]->pPerPassCB[gFrameIndex] };
-		beginUpdateResource(&desc);
-		*(DefaultpassUniformBuffer*)desc.pMappedData = gDefaultPassUniformData;
-		endUpdateResource(&desc, NULL);
-		/************************************************************************/
-		// Rendering
-		/************************************************************************/
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 
-		for (RenderPassPair& kv : RenderPasses)
-		{
-			RenderPassData* pass = kv.second;
-			resetCmdPool(pRenderer, pass->pCmdPools[gFrameIndex]);
-		}
+		Cmd* cmd = pCmds[gFrameIndex];
+		beginCmd(cmd);
+
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		// GPrepass *********************************************************************************
 		{
-			Cmd* cmd = RenderPasses[RenderPass::GBuffer]->pCmds[gFrameIndex];
-			beginCmd(cmd);
-
-			cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
-
 			//Clear G-buffers and Depth buffer
 			LoadActionsDesc loadActions = {};
-			for (uint32_t i = 0; i < RenderPasses[RenderPass::GBuffer]->RenderTargets.size(); ++i)
+			for (uint32_t i = 0; i < GbufferCount; ++i)
 			{
 				loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-				loadActions.mClearColorValues[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mClearValue;
+				loadActions.mClearColorValues[i] = pRenderTargets[i]->mClearValue;
 			}
 
 			// Clear depth to the far plane and stencil to 0
 			loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 			loadActions.mClearDepth = { {1.0f, 0.0f} };
 
-			// Transfer G-buffers to render target state for each buffer
-			RenderTargetBarrier* barriers = (RenderTargetBarrier*)alloca((RenderPasses[RenderPass::GBuffer]->RenderTargets.size() + 1) * sizeof(*barriers));
-			barriers[0] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
-			for (uint32_t i = 0; i < RenderPasses[RenderPass::GBuffer]->RenderTargets.size(); ++i)
 			{
-				barriers[1 + i] = { RenderPasses[RenderPass::GBuffer]->RenderTargets[i], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+				RenderTargetBarrier barriers[] =
+				{
+					{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+					{ pRenderTargets[Albedo], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+					{ pRenderTargets[Normal], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET }
+				};
+
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
 			}
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, (uint32_t)RenderPasses[RenderPass::GBuffer]->RenderTargets.size() + 1, barriers);
+
+			RenderTarget* GbufferRTs[] = { pRenderTargets[Albedo], pRenderTargets[Normal] };
 
 			//Set rendertargets and viewports
-			cmdBindRenderTargets(
-				cmd, (uint32_t)RenderPasses[RenderPass::GBuffer]->RenderTargets.size(), RenderPasses[RenderPass::GBuffer]->RenderTargets.data(),
-				pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mWidth,
-				(float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mHeight, 0.0f, 1.0f);
-			cmdSetScissor(
-				cmd, 0, 0, RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mWidth,
-				RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mHeight);
+			cmdBindRenderTargets( cmd, GbufferCount, GbufferRTs, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+			cmdSetViewport( cmd, 0.0f, 0.0f, (float)pRenderTargets[Albedo]->mWidth, (float)pRenderTargets[Albedo]->mHeight, 0.0f, 1.0f);
+			cmdSetScissor( cmd, 0, 0, pRenderTargets[Albedo]->mWidth, pRenderTargets[Albedo]->mHeight);
 
 			// Draw props
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "GBuffer Pass");
 
-			cmdBindPipeline(cmd, RenderPasses[RenderPass::GBuffer]->pPipeline);
+			cmdBindPipeline(cmd, pPipeline[GBuffer]);
 
 			//draw sponza
 			{
@@ -2023,44 +1917,40 @@ public:
 					//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 					//descriptor param count.
 					//one descriptor param if using bindless textures
-					cmdBindPushConstants(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, "cbTextureRootConstants", &data);
+					cmdBindPushConstants(cmd, pRootSignature, "cbTextureRootConstants", &data);
 #else
-					cmdBindDescriptorSet(cmd, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2]);
+					cmdBindDescriptorSet(cmd, i, pDescriptorSetFreqPerDraw);
 #endif
-
-					cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0]);
-					cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1]);
+					cmdBindDescriptorSet(cmd, 0, pDescriptorSetNonFreq);
+					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFreq);
 
 					cmdDrawIndexed(cmd, draw.mIndexCount, draw.mStartIndex, draw.mVertexOffset);
 				}
+				
+				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			}
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			
 
-			endCmd(cmd);
-			allCmds.push_back(cmd);
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+			// Transfer DepthBuffer and normals to SRV State
+			RenderTargetBarrier barriers[] =
+			{
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargets[Albedo], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargets[Normal], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+			};
+			TextureBarrier uav = { pTextures[Texture_RaytracedShadows], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+			cmdResourceBarrier(cmd, 0, NULL, 1, &uav, 3, barriers);
 		}
 
 		// Raytraced shadow pass ************************************************************************
 		{
-			Cmd* cmd = RenderPasses[RenderPass::RaytracedShadows]->pCmds[gFrameIndex];
-
-			beginCmd(cmd);
-
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Raytraced shadow Pass");
 
-			// Transfer DepthBuffer and normals to SRV State
-			RenderTargetBarrier barriers[] = {
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
-				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
-				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
-			};
-			TextureBarrier uav = { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
-			cmdResourceBarrier(cmd, 0, NULL, 1, &uav, 3, barriers);
-
-			cmdBindPipeline(cmd, RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
-			cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0]);
-			cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1]);
+			cmdBindPipeline(cmd, pPipeline[RaytracedShadows]);
+			cmdBindDescriptorSet(cmd, Texture_RaytracedShadows, pDescriptorSetCompNonFreq);
+			cmdBindDescriptorSet(cmd, gImageCount * Texture_RaytracedShadows + gFrameIndex, pDescriptorSetCompFreq);
 
 			const uint32_t threadGroupSizeX = mSettings.mWidth / 8 + 1;
 			const uint32_t threadGroupSizeY = mSettings.mHeight / 8 + 1;
@@ -2068,27 +1958,24 @@ public:
 			cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-
-			endCmd(cmd);
-			allCmds.push_back(cmd);
 		}
 
 		// Lighting pass *********************************************************************************
 		{
-			Cmd* cmd = RenderPasses[RenderPass::Lighting]->pCmds[gFrameIndex];
-
-			beginCmd(cmd);
-
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
 
 			// Transfer shadowbuffer to SRV and lightbuffer to UAV states
-			TextureBarrier barriers[] = { { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
-										  { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
+			TextureBarrier barriers[] =
+			{
+				{ pTextures[Texture_RaytracedShadows], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pTextures[Texture_Lighting], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS }
+			};
+
 			cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
 
-			cmdBindPipeline(cmd, RenderPasses[RenderPass::Lighting]->pPipeline);
-			cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Lighting]->pDescriptorSets[0]);
-			cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::Lighting]->pDescriptorSets[1]);
+			cmdBindPipeline(cmd, pPipeline[Lighting]);
+			cmdBindDescriptorSet(cmd, Texture_Lighting, pDescriptorSetCompNonFreq);
+			cmdBindDescriptorSet(cmd, gImageCount * Texture_Lighting + gFrameIndex, pDescriptorSetCompFreq);
 
 			const uint32_t threadGroupSizeX = mSettings.mWidth / 16 + 1;
 			const uint32_t threadGroupSizeY = mSettings.mHeight / 16 + 1;
@@ -2096,25 +1983,22 @@ public:
 			cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-
-			endCmd(cmd);
-			allCmds.push_back(cmd);
 		}
 
 		// Composite pass *********************************************************************************
 		{
-			Cmd* cmd = RenderPasses[RenderPass::Composite]->pCmds[gFrameIndex];
-			beginCmd(cmd);
-
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Composite Pass");
 
 			// Transfer albedo and lighting to SRV State
-			TextureBarrier barriers[] = { { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
-										  { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
+			TextureBarrier barriers[] =
+			{
+				{ pTextures[Texture_Lighting], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pTextures[Texture_Composite], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS }
+			};
 			cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
 
-			cmdBindPipeline(cmd, RenderPasses[RenderPass::Composite]->pPipeline);
-			cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Composite]->pDescriptorSets[0]);
+			cmdBindPipeline(cmd, pPipeline[Composite]);
+			cmdBindDescriptorSet(cmd, Texture_Composite, pDescriptorSetCompNonFreq);
 
 			const uint32_t threadGroupSizeX = mSettings.mWidth / 16 + 1;
 			const uint32_t threadGroupSizeY = mSettings.mHeight / 16 + 1;
@@ -2124,19 +2008,13 @@ public:
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 			RenderTargetBarrier rtBarrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
-			barriers[0] = { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
+			barriers[0] = { pTextures[Texture_Composite], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
 
 			cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, &rtBarrier);
-
-			endCmd(cmd);
-			allCmds.push_back(cmd);
 		}
 
 		// Copy results to the backbuffer & draw text *****************************************************************
 		{
-			Cmd* cmd = RenderPasses[RenderPass::CopyToBackbuffer]->pCmds[gFrameIndex];
-			beginCmd(cmd);
-
 			LoadActionsDesc loadActions = {};
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -2145,8 +2023,8 @@ public:
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Copy to Backbuffer Pass");
 
 			// Draw  results
-			cmdBindPipeline(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
-			cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0]);
+			cmdBindPipeline(cmd, pPipeline[CopyToBackbuffer]);
+			cmdBindDescriptorSet(cmd, 1, pDescriptorSetNonFreq);
 
 			//draw fullscreen triangle
 			cmdDraw(cmd, 3, 0);
@@ -2169,18 +2047,16 @@ public:
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT } };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-
-			cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
-
-			endCmd(cmd);
-			allCmds.push_back(cmd);
 		}
 
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
+		endCmd(cmd);
+
 		QueueSubmitDesc submitDesc = {};
-		submitDesc.mCmdCount = (uint32_t)allCmds.size();
+		submitDesc.mCmdCount = 1;
 		submitDesc.mSignalSemaphoreCount = 1;
 		submitDesc.mWaitSemaphoreCount = 1;
-		submitDesc.ppCmds = allCmds.data();
+		submitDesc.ppCmds = &cmd;
 		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
 		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
 		submitDesc.pSignalFence = pRenderCompleteFence;
@@ -2191,8 +2067,14 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -2210,9 +2092,9 @@ public:
 			params[1].pName = "textureMaps";
 			params[1].ppTextures = pMaterialTextures;
 			params[1].mCount = TOTAL_IMGS;
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0], 2, params);
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetNonFreq, 2, params);
 #else
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0], 1, params);
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetNonFreq, 1, params);
 
 
 			for (uint32_t i = 0; i < (uint32_t)SponzaProp.Geom->mDrawArgCount; ++i)
@@ -2231,15 +2113,33 @@ public:
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2], 1, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetFreqPerDraw, 1, params);
 			}
 
 #endif
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				params[0].pName = "cbPerPass";
-				params[0].ppBuffers = &RenderPasses[RenderPass::GBuffer]->pPerPassCB[i];
-				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1], 1, params);
+				params[0].ppBuffers = &pGPrepassUniformBuffer[i];
+				updateDescriptorSet(pRenderer, gImageCount*GBuffer + i, pDescriptorSetFreq, 1, params);
+			}
+		}
+
+		// Lighting
+		{
+			DescriptorData params[4] = {};
+			params[0].pName = "normalBuffer";
+			params[0].ppTextures = &pRenderTargets[Normal]->pTexture;
+			params[1].pName = "shadowbuffer";
+			params[1].ppTextures = &pTextures[Texture_RaytracedShadows];
+			params[2].pName = "outputRT";
+			params[2].ppTextures = &pTextures[Texture_Lighting];
+			updateDescriptorSet(pRenderer, Texture_Lighting, pDescriptorSetCompNonFreq, 3, params);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				params[0].pName = "cbPerPass";
+				params[0].ppBuffers = &pLightpassUniformBuffer[i];
+				updateDescriptorSet(pRenderer, Texture_Lighting*gImageCount + i, pDescriptorSetCompFreq, 1, params);
 			}
 		}
 
@@ -2249,35 +2149,17 @@ public:
 			params[0].pName = "depthBuffer";
 			params[0].ppTextures = &pDepthBuffer->pTexture;
 			params[1].pName = "normalBuffer";
-			params[1].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
+			params[1].ppTextures = &pRenderTargets[Normal]->pTexture;
 			params[2].pName = "BVHTree";
 			params[2].ppBuffers = &BVHBoundingBoxesBuffer;
-			params[3].pName = "outputRT";
-			params[3].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0], 4, params);
+			params[3].pName = "outputShadowRT";
+			params[3].ppTextures = &pTextures[Texture_RaytracedShadows];
+			updateDescriptorSet(pRenderer, Texture_RaytracedShadows, pDescriptorSetCompNonFreq, 4, params);
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				params[0].pName = "cbPerPass";
-				params[0].ppBuffers = &RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[i];
-				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1], 1, params);
-			}
-		}
-
-		// Lighting
-		{
-			DescriptorData params[4] = {};
-			params[0].pName = "normalbuffer";
-			params[0].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
-			params[1].pName = "shadowbuffer";
-			params[1].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
-			params[2].pName = "outputRT";
-			params[2].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::Lighting]->pDescriptorSets[0], 3, params);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				params[0].pName = "cbPerPass";
-				params[0].ppBuffers = &RenderPasses[RenderPass::Lighting]->pPerPassCB[i];
-				updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::Lighting]->pDescriptorSets[1], 1, params);
+				params[0].ppBuffers = &pShadowpassUniformBuffer[i];
+				updateDescriptorSet(pRenderer, Texture_RaytracedShadows*gImageCount + i, pDescriptorSetCompFreq, 1, params);
 			}
 		}
 
@@ -2285,20 +2167,20 @@ public:
 		{
 			DescriptorData params[4] = {};
 			params[0].pName = "albedobuffer";
-			params[0].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo]->pTexture;
+			params[0].ppTextures = &pRenderTargets[Albedo]->pTexture;
 			params[1].pName = "lightbuffer";
-			params[1].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
+			params[1].ppTextures = &pTextures[Texture_Lighting];
 			params[2].pName = "outputRT";
-			params[2].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::Composite]->pDescriptorSets[0], 3, params);
+			params[2].ppTextures = &pTextures[Texture_Composite];
+			updateDescriptorSet(pRenderer, Texture_Composite, pDescriptorSetCompNonFreq, 3, params);
 		}
 
 		// Display
 		{
 			DescriptorData params[4] = {};
 			params[0].pName = "inputRT";
-			params[0].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-			updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0], 1, params);
+			params[0].ppTextures = &pTextures[Texture_Composite];
+			updateDescriptorSet(pRenderer, 1, pDescriptorSetNonFreq, 1, params);
 		}
 	}
 

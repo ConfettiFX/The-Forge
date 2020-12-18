@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,8 +26,10 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
+#include <sys/prctl.h>
 
 #include "../Interfaces/IMemory.h"
+
 
 bool Mutex::Init(uint32_t spinCount, const char* name)
 {
@@ -130,12 +132,14 @@ ThreadID Thread::GetCurrentThreadID()
 
 void Thread::GetCurrentThreadName(char * buffer, int buffer_size)
 {
-	pthread_getname_np(pthread_self(), buffer, buffer_size);
+	//pthread_getname_np(pthread_self(), buffer, buffer_size);
+	prctl(PR_GET_NAME, buffer); // Use this since pthread_getname is non portable for lower api versions
 }
 
 void Thread::SetCurrentThreadName(const char * name)
 {
-	pthread_setname_np(pthread_self(), name);
+	//pthread_setname_np(pthread_self(), name);
+	prctl(PR_SET_NAME, name); // Use this since pthread_setname is non portable for lower api versions
 }
 
 bool Thread::IsMainThread()

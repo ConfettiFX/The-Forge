@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -197,6 +197,8 @@ static uint32_t gLastReflectionType = gReflectionType;
 static uint32_t gPlaneNumber = 1;
 static float    gPlaneSize = 75.0f;
 static float    gRRP_Intensity = 0.2f;
+
+static bool gUseSPD = true;
 
 static uint32_t gSSSR_MaxTravelsalIntersections = 128;
 static uint32_t gSSSR_MinTravelsalOccupancy = 4;
@@ -411,6 +413,11 @@ RootSignature* pGenerateMipRootSignature = NULL;
 Pipeline*      pGenerateMipPipeline = NULL;
 DescriptorSet* pDescriptorGenerateMip = NULL;
 
+Shader*        pSPDShader = NULL;
+RootSignature* pSPDRootSignature = NULL;
+Pipeline*      pSPDPipeline = NULL;
+DescriptorSet* pDescriptorSPD = NULL;
+
 Shader*        pSSSR_ClassifyTilesShader = NULL;
 RootSignature* pSSSR_ClassifyTilesRootSignature = NULL;
 Pipeline*      pSSSR_ClassifyTilesPipeline = NULL;
@@ -459,6 +466,8 @@ DescriptorSet*    pDescriptorSetSSSR_ResolveEAWStride4 = NULL;
 
 Buffer*                  pSSSR_ConstantsBuffer[gImageCount] = { NULL };
 UniformSSSRConstantsData gUniformSSSRConstantsData;
+
+Buffer* pSPD_AtomicCounterBuffer = NULL;
 
 Buffer*  pSSSR_RayListBuffer = NULL;
 Buffer*  pSSSR_TileListBuffer = NULL;
@@ -575,6 +584,14 @@ VertexLayout gVertexLayoutModel = {};
 
 void assignSponzaTextures();
 
+const char* gTestScripts[] = { "Test_RenderScene.lua", "Test_RenderReflections.lua", "Test_RenderSceneReflections.lua", "Test_RenderSceneExReflections.lua" };
+uint32_t gScriptIndexes[] = { 0, 1, 2, 3 };
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+
 class ScreenSpaceReflections: public IApp
 {
 	size_t mProgressBarValue = 0, mProgressBarValueMax = 1024;
@@ -597,6 +614,7 @@ class ScreenSpaceReflections: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		RendererDesc settings = { 0 };
 		settings.mShaderTarget = shader_target_6_0;
@@ -648,6 +666,7 @@ class ScreenSpaceReflections: public IApp
 		// Create UI
 		if (!gAppUI.Init(pRenderer))
 			return false;
+		gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
@@ -656,6 +675,7 @@ class ScreenSpaceReflections: public IApp
 		pGui = gAppUI.AddGuiComponent("Screen Space Reflections", &guiDesc);
 
 		initProfiler();
+		initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		ComputePBRMaps();
@@ -765,6 +785,15 @@ class ScreenSpaceReflections: public IApp
 
 		if (gSSSRSupported)
 		{
+			ShaderLoadDesc SPDDesc = {};
+			SPDDesc.mStages[0] = { "DepthDownsample.comp", NULL, 0 };
+			SPDDesc.mTarget = shader_target_6_0;
+			addShader(pRenderer, &SPDDesc, &pSPDShader);
+
+			RootSignatureDesc SPDDescRootDesc = { &pSPDShader, 1 };
+			SPDDescRootDesc.mMaxBindlessTextures = 13;
+			addRootSignature(pRenderer, &SPDDescRootDesc, &pSPDRootSignature);
+
 			ShaderLoadDesc CopyDepthShaderDesc = {};
 			CopyDepthShaderDesc.mStages[0] = { "copyDepth.comp", NULL, 0 };
 			addShader(pRenderer, &CopyDepthShaderDesc, &pCopyDepthShader);
@@ -975,6 +1004,8 @@ class ScreenSpaceReflections: public IApp
 
 		if (gSSSRSupported)
 		{
+			setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
 			// Copy depth
 			setDesc = { pCopyDepthRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorCopyDepth);
@@ -1113,6 +1144,20 @@ class ScreenSpaceReflections: public IApp
 			addResource(&ubPPR_ProDesc, NULL);
 		}
 
+		uint32_t zero = 0;
+
+		BufferLoadDesc SPD_AtomicCounterDesc = {};
+		SPD_AtomicCounterDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
+		SPD_AtomicCounterDesc.mDesc.mElementCount = 1;
+		SPD_AtomicCounterDesc.mDesc.mStructStride = sizeof(uint32_t);
+		SPD_AtomicCounterDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		SPD_AtomicCounterDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		SPD_AtomicCounterDesc.mDesc.mSize = SPD_AtomicCounterDesc.mDesc.mStructStride * SPD_AtomicCounterDesc.mDesc.mElementCount;
+		SPD_AtomicCounterDesc.mDesc.pName = "SPD_AtomicCounterBuffer";
+		SPD_AtomicCounterDesc.pData = &zero;
+		SPD_AtomicCounterDesc.ppBuffer = &pSPD_AtomicCounterBuffer;
+		addResource(&SPD_AtomicCounterDesc, NULL);
+
 		// SSSR
 		BufferLoadDesc ubSSSR_ConstDesc = {};
 		ubSSSR_ConstDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1127,8 +1172,6 @@ class ScreenSpaceReflections: public IApp
 			ubSSSR_ConstDesc.ppBuffer = &pSSSR_ConstantsBuffer[i];
 			addResource(&ubSSSR_ConstDesc, NULL);
 		}
-
-		uint32_t zero = 0;
 
 		BufferLoadDesc SSSR_RayCounterDesc = {};
 		SSSR_RayCounterDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
@@ -1358,6 +1401,7 @@ class ScreenSpaceReflections: public IApp
 
 		if (gSSSRSupported)
 		{
+			SSSR_Widgets.AddWidget(OneLineCheckboxWidget("Use Singlepass Downsampler", &gUseSPD, 0xFFFFFFFF));
 			SSSR_Widgets.AddWidget(OneLineCheckboxWidget("Show Intersection Results", &gSSSR_SkipDenoiser, 0xFFFFFFFF));
 			SSSR_Widgets.AddWidget(SliderUintWidget("Max Traversal Iterations", &gSSSR_MaxTravelsalIntersections, 0, 256));
 			SSSR_Widgets.AddWidget(SliderUintWidget("Min Traversal Occupancy", &gSSSR_MinTravelsalOccupancy, 0, 32));
@@ -1376,6 +1420,12 @@ class ScreenSpaceReflections: public IApp
 		{
 			SSSR_Widgets.AddWidget(LabelWidget("Not supported by your GPU"));
 		}
+
+		DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+		ButtonWidget bRunScript("Run");
+		bRunScript.pOnEdited = RunScript;
+		pGui->AddWidget(ddTestScripts);
+		pGui->AddWidget(bRunScript);
 
 		if (gReflectionType == PP_REFLECTION)
 		{
@@ -1513,6 +1563,8 @@ class ScreenSpaceReflections: public IApp
 		exitInputSystem();
 		destroyCameraController(pCameraController);
 
+		exitProfilerUI();
+
 		exitProfiler();
 
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
@@ -1530,6 +1582,7 @@ class ScreenSpaceReflections: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[1]);
 		if (gSSSRSupported)
 		{
+			removeDescriptorSet(pRenderer, pDescriptorSPD);
 			removeDescriptorSet(pRenderer, pDescriptorCopyDepth);
 			removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
 			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ClassifyTiles);
@@ -1557,6 +1610,7 @@ class ScreenSpaceReflections: public IApp
 		removeResource(pSponzaBuffer);
 		removeResource(pLionBuffer);
 
+		removeResource(pSPD_AtomicCounterBuffer);
 		removeResource(pSSSR_RayCounterBuffer);
 		removeResource(pSSSR_TileCounterBuffer);
 		removeResource(pSSSR_IntersectArgsBuffer);
@@ -1599,6 +1653,7 @@ class ScreenSpaceReflections: public IApp
 			removeShader(pRenderer, pSSSR_IntersectShader);
 			removeShader(pRenderer, pSSSR_PrepareIndirectArgsShader);
 			removeShader(pRenderer, pSSSR_ClassifyTilesShader);
+			removeShader(pRenderer, pSPDShader);
 			removeShader(pRenderer, pGenerateMipShader);
 			removeShader(pRenderer, pCopyDepthShader);
 		}
@@ -1628,6 +1683,7 @@ class ScreenSpaceReflections: public IApp
 			removeRootSignature(pRenderer, pSSSR_IntersectRootSignature);
 			removeRootSignature(pRenderer, pSSSR_PrepareIndirectArgsRootSignature);
 			removeRootSignature(pRenderer, pSSSR_ClassifyTilesRootSignature);
+			removeRootSignature(pRenderer, pSPDRootSignature);
 			removeRootSignature(pRenderer, pGenerateMipRootSignature);
 			removeRootSignature(pRenderer, pCopyDepthRootSignature);
 		}
@@ -1771,7 +1827,6 @@ class ScreenSpaceReflections: public IApp
 		brdfIntegrationDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
-		brdfIntegrationDesc.mHostVisible = false;
 		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 		brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
 		addResource(&brdfIntegrationLoadDesc, NULL);
@@ -2036,8 +2091,6 @@ class ScreenSpaceReflections: public IApp
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
@@ -2185,6 +2238,11 @@ class ScreenSpaceReflections: public IApp
 		if (gSSSRSupported)
 		{
 			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSPDShader;
+			cpipelineSettings.pRootSignature = pSPDRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSPDPipeline);
+
+			cpipelineSettings = { 0 };
 			cpipelineSettings.pShaderProgram = pCopyDepthShader;
 			cpipelineSettings.pRootSignature = pCopyDepthRootSignature;
 			addPipeline(pRenderer, &computeDesc, &pCopyDepthPipeline);
@@ -2248,7 +2306,6 @@ class ScreenSpaceReflections: public IApp
 
 		waitForAllResourceLoads();
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -2260,6 +2317,7 @@ class ScreenSpaceReflections: public IApp
 		removePipeline(pRenderer, pPPR_HolePatchingPipeline);
 		if (gSSSRSupported)
 		{
+			removePipeline(pRenderer, pSPDPipeline);
 			removePipeline(pRenderer, pCopyDepthPipeline);
 			removePipeline(pRenderer, pGenerateMipPipeline);
 			removePipeline(pRenderer, pSSSR_ClassifyTilesPipeline);
@@ -2760,30 +2818,39 @@ class ScreenSpaceReflections: public IApp
 			textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
-			cmdBindPipeline(cmd, pCopyDepthPipeline);
-			cmdBindDescriptorSet(cmd, 0, pDescriptorCopyDepth);
-			cmdDispatch(cmd, dim_x, dim_y, 1);
-
-			uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mWidth));
-			uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mHeight));
-			cmdBindPipeline(cmd, pGenerateMipPipeline);
-			for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
+			if (gUseSPD)
 			{
-				mipSizeX >>= 1;
-				mipSizeY >>= 1;
-				uint mipSize[2] = { mipSizeX, mipSizeY };
-				cmdBindPushConstants(cmd, pGenerateMipRootSignature, "RootConstant", mipSize);
-				cmdBindDescriptorSet(cmd, i - 1, pDescriptorGenerateMip);
-				textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-				cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+				cmdBindPipeline(cmd, pSPDPipeline);
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSPD);
+				cmdDispatch(cmd, (pDepthBuffer->mWidth + 63) / 64, (pDepthBuffer->mHeight + 63) / 64, 1);
+			}
+			else
+			{
+				cmdBindPipeline(cmd, pCopyDepthPipeline);
+				cmdBindDescriptorSet(cmd, 0, pDescriptorCopyDepth);
+				cmdDispatch(cmd, dim_x, dim_y, 1);
 
-				uint32_t groupCountX = mipSizeX / 16;
-				uint32_t groupCountY = mipSizeY / 16;
-				if (groupCountX == 0)
-					groupCountX = 1;
-				if (groupCountY == 0)
-					groupCountY = 1;
-				cmdDispatch(cmd, groupCountX, groupCountY, 1);
+				uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mWidth));
+				uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)pDepthBuffer->mHeight));
+				cmdBindPipeline(cmd, pGenerateMipPipeline);
+				for (uint32_t i = 1; i < pSSSR_DepthHierarchy->mMipLevels; ++i)
+				{
+					mipSizeX >>= 1;
+					mipSizeY >>= 1;
+					uint mipSize[2] = { mipSizeX, mipSizeY };
+					cmdBindPushConstants(cmd, pGenerateMipRootSignature, "RootConstant", mipSize);
+					cmdBindDescriptorSet(cmd, i - 1, pDescriptorGenerateMip);
+					textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+
+					uint32_t groupCountX = mipSizeX / 16;
+					uint32_t groupCountY = mipSizeY / 16;
+					if (groupCountX == 0)
+						groupCountX = 1;
+					if (groupCountY == 0)
+						groupCountY = 1;
+					cmdDispatch(cmd, groupCountX, groupCountY, 1);
+				}
 			}
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -3113,6 +3180,17 @@ class ScreenSpaceReflections: public IApp
 		}
 		if (gSSSRSupported)
 		{
+			{
+				DescriptorData params[3] = {};
+				params[0].pName = "g_depth_buffer";
+				params[0].ppTextures = &pDepthBuffer->pTexture;
+				params[1].pName = "g_downsampled_depth_buffer";
+				params[1].ppTextures = &pSSSR_DepthHierarchy;
+				params[1].mBindMipChain = true;
+				params[2].pName = "g_global_atomic";
+				params[2].ppBuffers = &pSPD_AtomicCounterBuffer;
+				updateDescriptorSet(pRenderer, 0, pDescriptorSPD, 3, params);
+			}
 			{
 				DescriptorData params[2] = {};
 				params[0].pName = "Source";
