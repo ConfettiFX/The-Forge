@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -139,6 +139,8 @@ public:
 		bool     mShowStatusBar = false;
 		float    mContentScaleFactor = 0.f;
 #endif
+		// Used on PC to re-create graphics device and resources.
+		bool	mResetGraphics = false;
 	} mSettings;
 
 	WindowsDesc*    pWindow;
@@ -161,7 +163,7 @@ public:
 		appClass app;                                             \
 		return DurangoMain(argc, argv, &app);                     \
 	}
-#elif defined(_WIN32)
+#elif defined(_WINDOWS)
 #define DEFINE_APPLICATION_MAIN(appClass)                         \
 	int IApp::argc;                                               \
 	const char** IApp::argv;                                      \

@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -102,8 +101,12 @@ struct CSData {
     constant  float4 * BVHTree [[id(0)]];
     texture2d<float, access::read> depthBuffer[[id(1)]];
     texture2d<float, access::read> normalBuffer[[id(2)]];
+    texture2d<float, access::read> shadowbuffer[[id(3)]];
+    texture2d<float, access::read> albedobuffer[[id(4)]];
+    texture2d<float, access::read> lightbuffer [[id(5)]];
 #ifndef TARGET_IOS
-    texture2d<float, access::write> outputRT[[id(3)]];
+    texture2d<float, access::write> outputShadowRT[[id(6)]];
+    texture2d<float, access::write> outputRT[[id(7)]];
 #endif
 };
 
@@ -117,7 +120,7 @@ kernel void stageMain(
     constant CSData& csData             [[buffer(UPDATE_FREQ_NONE)]],
     constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
 #ifdef TARGET_IOS
-	  ,texture2d<float, access::write> outputRT [[texture(0)]]
+	  ,texture2d<float, access::write> outputShadowRT [[texture(0)]]
 #endif
 )
 {
@@ -192,8 +195,8 @@ kernel void stageMain(
 	}
 	float shadowFactor = 1.0f - float(collision);
 #ifndef TARGET_IOS
-	csData.outputRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
+	csData.outputShadowRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
 #else
-	outputRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
+	outputShadowRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
 #endif
 }

@@ -165,7 +165,7 @@ inline int64_t ProfileTicksPerSecondCpu()
 
 #define P_GETCURRENTPROCESSID() getpid()
 typedef uint32_t ProfileProcessIdType;
-#elif defined(_WIN32)
+#elif defined(_WINDOWS) || defined(XBOX)
 int64_t ProfileGetTick();
 #define P_TICK() ProfileGetTick()
 #define P_BREAK() __debugbreak()
@@ -478,7 +478,7 @@ struct ProfileScopeHandlerCpu
 // We disable context switch trace because it's unable to open the file needed, and because
 // no documentation was found on how to use this
 #ifndef PROFILE_CONTEXT_SWITCH_TRACE
-#if defined(_WIN32) 
+#if defined(_WINDOWS) || defined(XBOX)
 #define PROFILE_CONTEXT_SWITCH_TRACE 0
 #elif defined(__APPLE__) && !TARGET_OS_IPHONE
 #define PROFILE_CONTEXT_SWITCH_TRACE 0
@@ -502,7 +502,7 @@ struct ProfileScopeHandlerCpu
 #define PROFILE_COUNTER_HISTORY 1
 #endif
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 #include <basetsd.h>
 typedef UINT_PTR MpSocket;
 #else
@@ -817,7 +817,7 @@ struct Profile
 	uint32_t					nWebServerPut;
 	uint64_t 					nWebServerDataSent;
 
-    tfrg_atomicptr_t			LabelBuffer;
+	tfrg_atomic64_t				LabelBuffer;
     tfrg_atomic64_t     		nLabelPut;
 
 	char 						CounterNames[PROFILE_MAX_COUNTER_NAME_CHARS];

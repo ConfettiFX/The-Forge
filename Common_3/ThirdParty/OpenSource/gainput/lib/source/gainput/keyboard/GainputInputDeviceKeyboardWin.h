@@ -198,7 +198,7 @@ public:
 			unsigned char scancode = ((unsigned char*)&msg.lParam)[2];
 			unsigned int virtualKey = MapVirtualKey(scancode, MAPVK_VSC_TO_VK);
 
-			if (dialect_.count(virtualKey) || dialect_.count(charKey))
+			if ((dialect_.count(virtualKey) || dialect_.count(charKey)) && textCount_ < GAINPUT_TEXT_INPUT_QUEUE_LENGTH)
 			{
 				textBuffer_[textCount_++] = charKey;
 			}

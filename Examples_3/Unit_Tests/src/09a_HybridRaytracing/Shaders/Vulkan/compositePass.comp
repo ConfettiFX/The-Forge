@@ -1,5 +1,4 @@
 /*
-* Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,9 +25,9 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
-layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D albedobuffer;
-layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D lightbuffer;
-layout(UPDATE_FREQ_NONE, binding = 2, rgba32f) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 8) uniform texture2D albedobuffer;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform texture2D lightbuffer;
+layout(UPDATE_FREQ_NONE, binding = 5, rgba32f) uniform image2D outputRT;
 
 #define THREADX 16
 #define THREADY 16

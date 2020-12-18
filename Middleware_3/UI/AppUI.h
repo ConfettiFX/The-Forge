@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,9 +23,20 @@
 */
 
 #pragma once
+
+// SCRIPTED TESTING :
+// For now, if a script file with the name "Test.lua", exist in the script directory, will run once an execution.
+// Lua function name resolution:
+// - UI Widget "label"s will be included in the name
+//		- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", event - OnEdited : "PressOnEdited"
+//		- For Widget modifier ints/floats: "Set" and "Get" function set will be added as a prefix to label name.
+//											e.g., "X" variable will have "SetX" and "GetX" pair of functions
+// To add global Lua functions, independent of Unit Tests, add definition in UIApp::Init (Check LOGINFO there for example).
+
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/list.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../Text/Fontstash.h"
@@ -42,6 +53,8 @@ struct Sampler;
 struct Buffer;
 struct Texture;
 struct PipelineCache;
+
+class LuaManager;
 
 class IWidget
 {
@@ -66,6 +79,8 @@ public:
 	virtual ~IWidget() {}
 	virtual IWidget* Clone() const = 0;
 	virtual void     Draw() = 0;
+
+	virtual void	 RegisterLua() const;
 
 	void ProcessCallbacks(bool deferred = false);
 
@@ -119,6 +134,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 	IWidget* AddSubWidget(const IWidget& widget)
 	{
@@ -280,6 +296,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -306,6 +323,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -332,6 +350,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -358,6 +377,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -384,6 +404,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -410,6 +431,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	eastl::string mFormat;
@@ -443,6 +465,7 @@ public:
 	CheckboxWidget(const eastl::string& _label, bool* _data) : IWidget(_label), pData(_data) {}
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	bool* pData;
@@ -454,6 +477,7 @@ public:
 	OneLineCheckboxWidget(const eastl::string& _label, bool* _data, const uint32_t& _color) : IWidget(_label), pData(_data), mColor(_color) {}
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	bool* pData;
@@ -488,6 +512,7 @@ public:
 	}
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	uint32_t*                        pData;
@@ -529,6 +554,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	size_t* pData;
@@ -542,6 +568,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	uint32_t* pData;
@@ -602,6 +629,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	uint32_t* pData;
@@ -620,6 +648,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	char*    pData;
@@ -640,6 +669,7 @@ public:
 
 	IWidget* Clone() const;
 	void     Draw();
+	void	 RegisterLua() const;
 
 protected:
 	char*    pData;
@@ -827,6 +857,7 @@ typedef struct DynamicUIWidgets
 	IWidget* AddWidget(const IWidget& widget)
 	{
 		mDynamicProperties.emplace_back(widget.Clone());
+		widget.RegisterLua();
 		return mDynamicProperties.back();
 	}
 
@@ -939,6 +970,11 @@ public:
 	void Update(float deltaTime);
 	void Draw(Cmd* cmd);
 
+	// scripted testing
+	void AddLuaManager(LuaManager* aLuaManager);
+	void AddTestScripts(const char** filenames, uint32_t count);
+	void RunTestScript(const char* filename);
+
 	uint          LoadFont(const char* pFontPath);
 	GuiComponent* AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void          RemoveGuiComponent(GuiComponent* pComponent);
@@ -984,6 +1020,8 @@ private:
 	int32_t  mFontAtlasSize = 0;
 	uint32_t mMaxDynamicUIUpdatesPerBatch = 20;
 	uint32_t mFontstashRingSizeBytes = 0;
+	eastl::list<eastl::string> mTestScripts;
+	eastl::list<eastl::string> mRuntimeScripts;
 };
 
 class VirtualJoystickUI

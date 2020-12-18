@@ -60,6 +60,7 @@
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>
+    <File Name="../../../../Common_3/OS/Core/Screenshot.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Input">
     <File Name="../../../../Common_3/OS/Input/InputSystem.cpp"/>
@@ -175,6 +176,7 @@
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
+        <Preprocessor Value="SCREENSHOT_ENABLED"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

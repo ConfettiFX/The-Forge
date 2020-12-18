@@ -72,7 +72,7 @@
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y /d
@@ -81,6 +81,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\Titil
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y /d
 $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
     </PostBuildEvent>
     <PreBuildEvent>
@@ -104,7 +105,7 @@ $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
@@ -112,7 +113,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\ci
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>

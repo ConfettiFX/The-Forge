@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
 #include "ProfilerBase.h"
 #if 0 == PROFILE_ENABLED
 void initProfiler(Renderer* pRenderer, Queue** ppQueue, const char** ppProfilerNames, ProfileToken* pProfileTokens, uint32_t nGpuProfilerCount) {}
@@ -27,9 +51,8 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
 
 void initGpuProfilers();
 void exitGpuProfilers();
-void exitProfilerUI();
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -62,7 +85,7 @@ int64_t ProfileGetTick()
 
 #if PROFILE_WEBSERVER
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 #if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
 #error WinSock.h has already been included; microprofile requires WinSock2
 #endif
@@ -90,7 +113,7 @@ inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
 {
 	static ThreadDesc desc[5];
 	static int count = 0;
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 	*pThread = static_cast<ProfileThread>(tf_malloc(sizeof(ThreadHandle)));
 #else
 	// Need to check if this actually works right
@@ -188,7 +211,7 @@ void ProfileInit()
 			S.CategoryInfo[i].pName[0] = '\0';
 			S.CategoryInfo[i].nGroupMask = 0;
 		}
-#ifndef _WIN32
+#if !defined(_WINDOWS) && !defined(XBOX)
 		strcpy(&S.CategoryInfo[0].pName[0], "default");
 #else
 		strcpy_s(&S.CategoryInfo[0].pName[0], PROFILE_NAME_MAX_LEN, "default");
@@ -274,7 +297,6 @@ void exitCpuProfiler()
 void exitProfiler()
 {
 #if PROFILE_ENABLED
-    exitProfilerUI();
     exitCpuProfiler();
 
 #if GPU_PROFILER_SUPPORTED
@@ -798,7 +820,7 @@ uint64_t ProfileAllocateLabel(const char* pName)
 			pLabelBuffer = static_cast<char *>(tf_malloc(PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN));
 			memset(pLabelBuffer, 0, PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN);
 			S.nMemUsage += PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN;
-            tfrg_atomicptr_store_release((tfrg_atomic64_t*)&S.LabelBuffer, *pLabelBuffer);
+			tfrg_atomic64_store_release(&S.LabelBuffer, *pLabelBuffer);
 		}
 	}
 
@@ -1824,7 +1846,7 @@ PROFILE_FORMAT(3, 4) void ProfilePrintf(ProfileWriteCallback CB, void* Handle, c
 	char buffer[4096];
 	va_list args;
 	va_start(args, pFmt);
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 	size_t size = vsprintf_s(buffer, pFmt, args);
 #else
 	size_t size = vsnprintf(buffer, sizeof(buffer) - 1, pFmt, args);
@@ -2934,7 +2956,7 @@ void ProfileWebServerHandleRequest(MpSocket Connection)
 
 void ProfileWebServerCloseSocket(MpSocket Connection)
 {
-#ifdef _WIN32
+#ifdef _WINDOWS
 	closesocket(Connection);
 #else
 	shutdown(Connection, SHUT_RDWR);
@@ -2945,7 +2967,7 @@ void ProfileWebServerCloseSocket(MpSocket Connection)
 void ProfileWebServerUpdate(void*)
 {
 	Profile & S = g_Profile;
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa))
 		return;
@@ -2999,7 +3021,7 @@ void ProfileWebServerUpdate(void*)
 		PROFILE_PRINTF("Profile: Web server could not start: no free ports in range [%d..%d)\n", nPortBegin, nPortEnd);
 	}
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 	WSACleanup();
 #endif
 
@@ -3127,7 +3149,7 @@ uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_
 	return nNumThreads;
 }
 
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 #include <psapi.h>
 #pragma comment(lib, "psapi.lib")
 

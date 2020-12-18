@@ -6,6 +6,7 @@
   <Project Name="VisibilityBuffer" Path="VisibilityBuffer/VisibilityBuffer.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
+  <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -15,6 +16,7 @@
       <Project Name="VisibilityBuffer" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
+      <Project Name="LuaManager" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
@@ -24,6 +26,7 @@
       <Project Name="VisibilityBuffer" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
+      <Project Name="LuaManager" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

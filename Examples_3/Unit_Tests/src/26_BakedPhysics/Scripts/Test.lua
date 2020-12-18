@@ -1,0 +1,5 @@
+math.randomseed( os.time() )
+loader.SetAnimationTime(0.01)
+loader.AnimationTimeOnActive()
+loader.SetPlaybackSpeed(math.random() + math.random(-5.0, 4.0))
+loader.SetPlay(1)

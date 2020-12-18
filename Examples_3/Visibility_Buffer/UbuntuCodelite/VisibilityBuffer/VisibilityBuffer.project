@@ -12,20 +12,6 @@
     <File Name="../../src/Geometry.h"/>
     <File Name="../../src/Visibility_Buffer.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <VirtualDirectory Name="Shaders">
     <File Name="../../src/Shaders/Vulkan/batch_compaction.comp"/>
     <File Name="../../src/Shaders/Vulkan/clear_buffers.comp"/>
@@ -72,6 +58,22 @@
     <File Name="../../src/Shaders/Vulkan/visibilityBuffer_shade.frag"/>
     <File Name="../../src/Shaders/Vulkan/visibilityBuffer_shade.vert"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -95,8 +97,10 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -165,8 +169,10 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>

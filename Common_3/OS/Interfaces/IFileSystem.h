@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -61,6 +61,7 @@ typedef enum ResourceDirectory
 	RD_GPU_CONFIG,
 	RD_LOG,
 	RD_SCRIPTS,
+	RD_SCREENSHOTS,
 	RD_OTHER_FILES,
 
 	// Libraries can have their own directories.
@@ -217,44 +218,41 @@ bool fsStreamAtEnd(const FileStream* stream);
 /************************************************************************/
 // MARK: - Minor filename manipulation
 /************************************************************************/
-/// Appends `pathComponent` to `basePath`, returning a new Path for which the caller has ownership.
-/// `basePath` is assumed to be a directory.
+/// Appends `pathComponent` to `basePath`, where `basePath` is assumed to be a directory.
 void fsAppendPathComponent(const char* basePath, const char* pathComponent, char* output);
 
-/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
+/// Appends `newExtension` to `basePath`.
 /// If `basePath` already has an extension, `newExtension` will be appended to the end.
 void fsAppendPathExtension(const char* basePath, const char* newExtension, char* output);
 
-/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
+/// Appends `newExtension` to `basePath`.
 /// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
 void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
 
-/// Copies `path`'s parent path, returning a new Path for which the caller has ownership. May return NULL if `path` has no parent.
+/// Get `path`'s parent path, excluding the end seperator. 
 void fsGetParentPath(const char* path, char* output);
 
-/// Returns `path`'s file name as a PathComponent. The return value is guaranteed to live for as long as `path` lives.
+/// Get `path`'s file name, without extension or parent path.
 void fsGetPathFileName(const char* path, char* output);
 
-/// Returns `path`'s extension, excluding the '.'. The return value is guaranteed to live for as long as `path` lives.
-/// The returned PathComponent's buffer is guaranteed to either be NULL or a NULL-terminated string.
+/// Returns `path`'s extension, excluding the '.'.
 void fsGetPathExtension(const char* path, char* output);
 /************************************************************************/
 // MARK: - Directory queries
 /************************************************************************/
-/// Returns location set for resource directory in fsSetPathForResourceDir
+/// Returns location set for resource directory in fsSetPathForResourceDir.
 const char* fsGetResourceDirectory(ResourceDirectory resourceDir);
 
-/// Sets the relative path for `resourceDir` on `fileSystem` to `relativePath`, where the base path is the root resource directory path.
-/// If `fsSetResourceDirRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
-/// is relative to the new root path.
-///
-/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
-/// no modifications to the file system are occurring at the time of this call.
+/// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
+/// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
+/// When `mount` is set to `RM_CONTENT` for a `resourceDir`, this directory is marked as a bundled resource folder.
+/// Bundled resource folders should only be used for Read operations.
+/// NOTE: A `resourceDir` can only be set once.
 void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
 /************************************************************************/
 // MARK: - File Queries
 /************************************************************************/
-/// Gets the time of last modification for the file at `filePath`. Undefined if no file exists at `filePath`.
+/// Gets the time of last modification for the file at `fileName`, within 'resourceDir'.
 time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
 /************************************************************************/
 // MARK: - FileMode

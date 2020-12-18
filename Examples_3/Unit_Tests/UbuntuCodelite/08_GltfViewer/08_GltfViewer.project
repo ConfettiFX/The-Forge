@@ -61,8 +61,10 @@
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Debug/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -89,6 +91,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
@@ -136,8 +139,10 @@
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Release/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -164,6 +169,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>

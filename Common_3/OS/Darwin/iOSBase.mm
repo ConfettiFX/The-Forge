@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -511,6 +511,13 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Update(deltaTime);
 	pApp->Draw();
 
+	// Graphics reset in cases where device has to be re-created.
+	if (pApp->mSettings.mResetGraphics) 
+	{
+		pApp->Unload();
+		pApp->Load();
+		pApp->mSettings.mResetGraphics = false;
+	}
 #ifdef AUTOMATED_TESTING
 		testingCurrentFrameCount++;
 	if (testingCurrentFrameCount >= testingMaxFrameCount)
@@ -523,6 +530,7 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)shutdown
 {
+	pApp->mSettings.mQuit = true;
 	pApp->Unload();
 	pApp->Exit();
 	Log::Exit();

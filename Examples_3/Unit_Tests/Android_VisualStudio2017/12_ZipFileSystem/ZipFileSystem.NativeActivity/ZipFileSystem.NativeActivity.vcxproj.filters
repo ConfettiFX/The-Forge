@@ -6,23 +6,41 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\basic.frag">
+      <Filter>Shaders\GLES</Filter>
     </None>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\basic.vert">
+      <Filter>Shaders\GLES</Filter>
     </None>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\skybox.frag">
+      <Filter>Shaders\GLES</Filter>
     </None>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\skybox.vert">
+      <Filter>Shaders\GLES</Filter>
     </None>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\zipTexture.frag">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\zipTexture.frag">
+      <Filter>Shaders\GLES</Filter>
     </None>
-    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\zipTexture.vert">
-      <Filter>Shaders</Filter>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\..\..\src\12_ZipFileSystem\Shaders\GLES\zipTexture.vert">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -31,6 +49,12 @@
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{05c683df-d609-403f-b728-570a5cf9e18a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{1a0b0f26-7167-4475-9ad2-c5e6523e490c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\GLES">
+      <UniqueIdentifier>{2be5e11d-9dbd-48f8-8715-fdd568b7113e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

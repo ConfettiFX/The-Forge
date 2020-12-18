@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -76,7 +76,7 @@
 #include "../../ThirdParty/OpenSource/ags/AgsHelper.h"
 #include "../../ThirdParty/OpenSource/nvapi/NvApiHelper.h"
 
-#if !defined(_WIN32)
+#if !defined(_WINDOWS) && !defined(XBOX)
 #error "Windows is needed!"
 #endif
 
@@ -100,6 +100,10 @@ extern void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t sha
 extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
 extern void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructure, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle);
 extern void cmdBindRaytracingPipeline(Cmd* pCmd, Pipeline* pPipeline);
+#endif
+//Enabling DRED
+#if defined(_WIN32) && defined(_DEBUG) && defined(DRED)
+#define USE_DRED 1
 #endif
 
 // clang-format off
@@ -217,6 +221,9 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 		p_var = NULL;       \
 	}
 #endif
+
+#define CALC_SUBRESOURCE_INDEX(MipSlice, ArraySlice, PlaneSlice, MipLevels, ArraySize) \
+((MipSlice) + ((ArraySlice) * (MipLevels)) + ((PlaneSlice) * (MipLevels) * (ArraySize)))
 
 void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget);
 void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget);
@@ -390,21 +397,42 @@ static DescriptorHeap::DescriptorHandle consume_descriptor_handles(DescriptorHea
 			SAFE_FREE(pHeap->pHandles);
 			pHeap->pHandles = pNewHandles;
 		}
-		else if (descriptorCount == 1 && pHeap->mFreeList.size())
+		else if (pHeap->mFreeList.size() >= descriptorCount)
 		{
-			DescriptorHeap::DescriptorHandle ret = pHeap->mFreeList.back();
-			pHeap->mFreeList.pop_back();
-			return ret;
+			if (descriptorCount == 1)
+			{
+				DescriptorHeap::DescriptorHandle ret = pHeap->mFreeList.back();
+				pHeap->mFreeList.pop_back();
+				return ret;
+			}
+
+			// search for continuous free items in the list
+			uint32_t freeCount = 1;		
+			for (size_t i = pHeap->mFreeList.size() - 1; i > 0; --i)
+			{
+				size_t index = i - 1;
+				DescriptorHeap::DescriptorHandle mDescHandle = pHeap->mFreeList[index];
+				if (mDescHandle.mCpu.ptr + pHeap->mDescriptorSize == pHeap->mFreeList[i].mCpu.ptr)
+					++freeCount;
+				else
+					freeCount = 1;
+
+				if (freeCount == descriptorCount)
+				{
+					pHeap->mFreeList.erase(pHeap->mFreeList.begin() + index, pHeap->mFreeList.begin() + index + descriptorCount);
+					return mDescHandle;
+				}
+			}
 		}
 	}
 
 	uint32_t usedDescriptors = tfrg_atomic32_add_relaxed(&pHeap->mUsedDescriptors, descriptorCount);
+	ASSERT(usedDescriptors + descriptorCount <= pHeap->mDesc.NumDescriptors);
 	DescriptorHeap::DescriptorHandle ret =
 	{
 		{ pHeap->mStartHandle.mCpu.ptr + usedDescriptors * pHeap->mDescriptorSize },
 		{ pHeap->mStartHandle.mGpu.ptr + usedDescriptors * pHeap->mDescriptorSize },
 	};
-
 
 	return ret;
 }
@@ -412,9 +440,10 @@ static DescriptorHeap::DescriptorHandle consume_descriptor_handles(DescriptorHea
 void return_cpu_descriptor_handles(DescriptorHeap* pHeap, D3D12_CPU_DESCRIPTOR_HANDLE handle, uint32_t count)
 {
 	ASSERT((pHeap->mDesc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) == 0);
+	MutexLock lock(*pHeap->pMutex);
 	for (uint32_t i = 0; i < count; ++i)
 		pHeap->mFreeList.push_back({
-		{ handle.ptr * pHeap->mDescriptorSize * i },
+		{ handle.ptr + pHeap->mDescriptorSize * i },
 		D3D12_GPU_VIRTUAL_ADDRESS_NULL });
 }
 
@@ -720,7 +749,9 @@ static void add_dsv(
 	Renderer* pRenderer, ID3D12Resource* pResource, DXGI_FORMAT format, uint32_t mipSlice, uint32_t arraySlice,
 	D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
 {
-	*pHandle = consume_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV], 1).mCpu;
+	if (D3D12_GPU_VIRTUAL_ADDRESS_NULL == pHandle->ptr)
+		*pHandle = consume_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV], 1).mCpu;
+		
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
 	D3D12_RESOURCE_DESC           desc = pResource->GetDesc();
 	D3D12_RESOURCE_DIMENSION      type = desc.Dimension;
@@ -1370,13 +1401,30 @@ static void HANGDUMPCALLBACK(const WCHAR* strFileName) { return; }
 #endif
 
 static bool AddDevice(Renderer* pRenderer)
-{
-#if defined(ENABLE_GRAPHICS_DEBUG)
+{    
+	// The D3D debug layer (as well as Microsoft PIX and other graphics debugger
+	// tools using an injection library) is not compatible with Nsight Aftermath.
+	// If Aftermath detects that any of these tools are present it will fail initialization.
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
 	//add debug layer if in debug mode
 	if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDXDebug), (void**)&(pRenderer->pDXDebug))))
 	{
 		hook_enable_debug_layer(pRenderer);
 	}
+#endif
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	// Enable Nsight Aftermath GPU crash dump creation.
+	// This needs to be done before the Vulkan device is created.
+	CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
+#endif
+
+#if defined(USE_DRED)
+	SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDredSettings), (void**)&(pRenderer->pDredSettings)));
+
+	// Turn on AutoBreadcrumbs and Page Fault reporting
+	pRenderer->pDredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+	pRenderer->pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
 #endif
 
 	D3D_FEATURE_LEVEL feature_levels[4] =
@@ -1641,6 +1689,10 @@ static bool AddDevice(Renderer* pRenderer)
 	CHECK_HRESULT(D3D12CreateDevice(pRenderer->pDxActiveGPU, gpuDesc[gpuIndex].mMaxSupportedFeatureLevel, IID_ARGS(&pRenderer->pDxDevice)));
 #endif
 
+#if defined(USE_NSIGHT_AFTERMATH)
+	SetAftermathDevice(pRenderer->pDxDevice);
+#endif
+
 #if defined(_WINDOWS) && defined(FORGE_DEBUG)
 	HRESULT hr = pRenderer->pDxDevice->QueryInterface(IID_ARGS(&pRenderer->pDxDebugValidation));
 	if (SUCCEEDED(hr))
@@ -1688,6 +1740,15 @@ static void RemoveDevice(Renderer* pRenderer)
 #else
 	SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	DestroyAftermathTracker(&pRenderer->mAftermathTracker);
+#endif
+
+#if defined(USE_DRED)
+	SAFE_RELEASE(pRenderer->pDredSettings);
+#endif
+
 }
 /************************************************************************/
 // Renderer Init Remove
@@ -2376,7 +2437,10 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	if (RESOURCE_MEMORY_USAGE_CPU_ONLY == pDesc->mMemoryUsage || RESOURCE_MEMORY_USAGE_CPU_TO_GPU == pDesc->mMemoryUsage)
 		alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 	else if (RESOURCE_MEMORY_USAGE_GPU_TO_CPU == pDesc->mMemoryUsage)
+	{
 		alloc_desc.HeapType = D3D12_HEAP_TYPE_READBACK;
+		desc.Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+	}
 	else
 		alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
@@ -2963,15 +3027,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	pTexture->mFormat = pDesc->mFormat;
 	pTexture->mArraySizeMinusOne = pDesc->mArraySize - 1;
 
-	// TODO: Handle host visible textures in a better way
-	if (pDesc->mHostVisible)
-	{
-		internal_log(
-			LOG_TYPE_WARN,
-			"D3D12 does not support host visible textures, memory of resulting texture will not be mapped for CPU visibility",
-			"addTexture");
-	}
-
 	*ppTexture = pTexture;
 }
 
@@ -3056,11 +3111,12 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
 		(pDesc->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
 		handleCount *= desc.DepthOrArraySize;
+	handleCount += 1;
 
 	DescriptorHeap* pHeap = isDepth ?
 		pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] :
 		pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV];
-	pRenderTarget->mDxDescriptors = consume_descriptor_handles(pHeap, 1 + handleCount).mCpu;
+	pRenderTarget->mDxDescriptors = consume_descriptor_handles(pHeap, handleCount).mCpu;
 	pRenderTarget->mDxDescriptorSize = pHeap->mDescriptorSize;
 
 	if(isDepth)
@@ -3120,6 +3176,7 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	if ((pRenderTarget->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
 		(pRenderTarget->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES))
 		handleCount *= depthOrArraySize;
+	handleCount += 1;
 
 	!isDepth ?
 		return_cpu_descriptor_handles(pRenderer->pCPUDescriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV], pRenderTarget->mDxDescriptors, handleCount) :
@@ -4208,14 +4265,30 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->pName);
 
-				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				if (pParam->mBindMipChain)
 				{
-					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
+					VALIDATE_DESCRIPTOR(pParam->ppTextures[0], "NULL RW Texture (%s)", pDesc->pName);
+					for (uint32_t arr = 0; arr < pParam->ppTextures[0]->mMipLevels; ++arr)
+					{
+						copy_descriptor_handle(
+							pRenderer->pCbvSrvUavHeaps[nodeIndex],
+							{ pParam->ppTextures[0]->mDxDescriptorHandles.ptr +
+							  pParam->ppTextures[0]->mDescriptorSize * (arr + pParam->ppTextures[0]->mUavStartIndex) },
+							pDescriptorSet->mCbvSrvUavHandle + index * pDescriptorSet->mCbvSrvUavStride, pDesc->mHandleIndex + arr);
+					}
+				}
+				else
+				{
+					for (uint32_t arr = 0; arr < arrayCount; ++arr)
+					{
+						VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
 
-					copy_descriptor_handle(pRenderer->pCbvSrvUavHeaps[nodeIndex],
-						{ pParam->ppTextures[arr]->mDxDescriptorHandles.ptr +
-						pParam->ppTextures[arr]->mDescriptorSize * (pParam->mUAVMipSlice + pParam->ppTextures[arr]->mUavStartIndex) },
-						pDescriptorSet->mCbvSrvUavHandle + index * pDescriptorSet->mCbvSrvUavStride, pDesc->mHandleIndex + arr);
+						copy_descriptor_handle(
+							pRenderer->pCbvSrvUavHeaps[nodeIndex],
+							{ pParam->ppTextures[arr]->mDxDescriptorHandles.ptr +
+							  pParam->ppTextures[arr]->mDescriptorSize * (pParam->mUAVMipSlice + pParam->ppTextures[arr]->mUavStartIndex) },
+							pDescriptorSet->mCbvSrvUavHandle + index * pDescriptorSet->mCbvSrvUavStride, pDesc->mHandleIndex + arr);
+					}
 				}
 				break;
 			}
@@ -5081,6 +5154,14 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	pCmd->pDxCmdList->RSSetScissorRects(1, &scissor);
 }
 
+void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+{
+	ASSERT(pCmd);
+	ASSERT(pCmd->pDxCmdList);
+
+	pCmd->pDxCmdList->OMSetStencilRef(val); 
+}
+
 void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
 	ASSERT(pCmd);
@@ -5197,7 +5278,6 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	ASSERT(pCmd->pDxCmdList != NULL);
 
 	hook_dispatch(pCmd, groupCountX, groupCountY, groupCountZ);
-
 }
 
 void cmdResourceBarrier(Cmd* pCmd,
@@ -5241,7 +5321,7 @@ void cmdResourceBarrier(Cmd* pCmd,
 				}
 				else if (pTransBarrier->mEndOnly)
 				{
-					pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+					pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
 				}
 				pBarrier->Transition.pResource = pBuffer->pDxResource;
 				pBarrier->Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -5255,12 +5335,12 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 	for (uint32_t i = 0; i < numTextureBarriers; ++i)
 	{
-		TextureBarrier*         pTransBarrier = &pTextureBarriers[i];
+		TextureBarrier*         pTrans = &pTextureBarriers[i];
 		D3D12_RESOURCE_BARRIER* pBarrier = &barriers[transitionCount];
-		Texture*                pTexture = pTransBarrier->pTexture;
+		Texture*                pTexture = pTrans->pTexture;
 
-		if (RESOURCE_STATE_UNORDERED_ACCESS == pTransBarrier->mCurrentState &&
-			RESOURCE_STATE_UNORDERED_ACCESS == pTransBarrier->mNewState)
+		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
+			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
 			pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 			pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -5271,18 +5351,21 @@ void cmdResourceBarrier(Cmd* pCmd,
 		{
 			pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			if (pTransBarrier->mBeginOnly)
+			if (pTrans->mBeginOnly)
 			{
 				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
 			}
-			else if (pTransBarrier->mEndOnly)
+			else if (pTrans->mEndOnly)
 			{
-				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
 			}
 			pBarrier->Transition.pResource = pTexture->pDxResource;
-			pBarrier->Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			pBarrier->Transition.StateBefore = util_to_dx_resource_state(pTransBarrier->mCurrentState);
-			pBarrier->Transition.StateAfter = util_to_dx_resource_state(pTransBarrier->mNewState);
+			pBarrier->Transition.Subresource =
+				pTrans->mSubresourceBarrier ?
+				CALC_SUBRESOURCE_INDEX(pTrans->mMipLevel, pTrans->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1) :
+				D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			pBarrier->Transition.StateBefore = util_to_dx_resource_state(pTrans->mCurrentState);
+			pBarrier->Transition.StateAfter = util_to_dx_resource_state(pTrans->mNewState);
 
 			++transitionCount;
 		}
@@ -5290,12 +5373,12 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 	for (uint32_t i = 0; i < numRtBarriers; ++i)
 	{
-		RenderTargetBarrier*    pTransBarrier = &pRtBarriers[i];
+		RenderTargetBarrier*    pTrans = &pRtBarriers[i];
 		D3D12_RESOURCE_BARRIER* pBarrier = &barriers[transitionCount];
-		Texture*                pTexture = pTransBarrier->pRenderTarget->pTexture;
+		Texture*                pTexture = pTrans->pRenderTarget->pTexture;
 
-		if (RESOURCE_STATE_UNORDERED_ACCESS == pTransBarrier->mCurrentState &&
-			RESOURCE_STATE_UNORDERED_ACCESS == pTransBarrier->mNewState)
+		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
+			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
 			pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
 			pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
@@ -5306,18 +5389,21 @@ void cmdResourceBarrier(Cmd* pCmd,
 		{
 			pBarrier->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			if (pTransBarrier->mBeginOnly)
+			if (pTrans->mBeginOnly)
 			{
 				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
 			}
-			else if (pTransBarrier->mEndOnly)
+			else if (pTrans->mEndOnly)
 			{
-				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY;
+				pBarrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
 			}
 			pBarrier->Transition.pResource = pTexture->pDxResource;
-			pBarrier->Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			pBarrier->Transition.StateBefore = util_to_dx_resource_state(pTransBarrier->mCurrentState);
-			pBarrier->Transition.StateAfter = util_to_dx_resource_state(pTransBarrier->mNewState);
+			pBarrier->Transition.Subresource =
+				pTrans->mSubresourceBarrier ?
+				CALC_SUBRESOURCE_INDEX(pTrans->mMipLevel, pTrans->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1) :
+				D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			pBarrier->Transition.StateBefore = util_to_dx_resource_state(pTrans->mCurrentState);
+			pBarrier->Transition.StateAfter = util_to_dx_resource_state(pTrans->mNewState);
 
 			++transitionCount;
 		}
@@ -5353,10 +5439,7 @@ typedef struct SubresourceDataDesc
 
 void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pDesc)
 {
-#define SUBRESOURCE_INDEX(MipSlice, ArraySlice, PlaneSlice, MipLevels, ArraySize) \
-((MipSlice) + ((ArraySlice) * (MipLevels)) + ((PlaneSlice) * (MipLevels) * (ArraySize)))
-
-	uint32_t subresource = SUBRESOURCE_INDEX(pDesc->mMipLevel, pDesc->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1);
+	uint32_t subresource = CALC_SUBRESOURCE_INDEX(pDesc->mMipLevel, pDesc->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1);
 	D3D12_RESOURCE_DESC resourceDesc = pTexture->pDxResource->GetDesc();
 
 	D3D12_TEXTURE_COPY_LOCATION src = {};
@@ -5374,6 +5457,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, cons
 	pCmd->pDxCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
 #endif
 }
+
 /************************************************************************/
 // Queue Fence Semaphore Functions
 /************************************************************************/
@@ -5443,8 +5527,9 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		hook_signal(pQueue, ppSignalSemaphores[i]->pDxFence, ppSignalSemaphores[i]->mFenceValue++);
 }
 
-void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
+	PresentStatus presentStatus = PRESENT_STATUS_FAILED;
 	if (pDesc->pSwapChain)
 	{
 		SwapChain* pSwapChain = pDesc->pSwapChain;
@@ -5455,14 +5540,49 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 			ID3D12Device* device = NULL;
 			pSwapChain->pDxSwapChain->GetDevice(IID_ARGS(&device));
 			HRESULT removeHr =  device->GetDeviceRemovedReason();
-			if (FAILED(removeHr))
-				ASSERT(false);    //TODO: let's do something with the error
+
+			if (FAILED(removeHr)) 
+			{
+				presentStatus = PRESENT_STATUS_DEVICE_RESET;
+			}
+
+#if defined(USE_NSIGHT_AFTERMATH)
+			// DXGI_ERROR error notification is asynchronous to the NVIDIA display
+			// driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
+			// thread some time to do its work before terminating the process.
+			sleep(3000);
+#endif
+
+#if defined(USE_DRED)
+			ID3D12DeviceRemovedExtendedData* pDread;
+			if (SUCCEEDED(device->QueryInterface(IID_ARGS(&pDread))))
+			{
+				D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT breadcrumbs;
+				if (SUCCEEDED(pDread->GetAutoBreadcrumbsOutput(&breadcrumbs)))
+				{
+					LOGF(LogLevel::eINFO, "Gathered auto-breadcrumbs output.");
+				}
+
+				D3D12_DRED_PAGE_FAULT_OUTPUT pageFault;
+				if (SUCCEEDED(pDread->GetPageFaultAllocationOutput(&pageFault)))
+				{
+					LOGF(LogLevel::eINFO, "Gathered page fault allocation output.");
+				}
+			}
+			pDread->Release();
+#endif
+
 #else
 			// Xbox One apps do not need to handle DXGI_ERROR_DEVICE_REMOVED or DXGI_ERROR_DEVICE_RESET.
 #endif
 			LOGF(LogLevel::eERROR, "Failed to present swapchain render target");
 		}
+		else 
+		{
+			presentStatus = PRESENT_STATUS_SUCCESS;
+		}
 	}
+	return presentStatus;
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -5774,6 +5894,38 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 	//color is in B8G8R8X8 format where X is padding
 	PIXSetMarker(pCmd->pDxCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
+#if defined(USE_NSIGHT_AFTERMATH)
+	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pDxCmdList, pName);
+#endif
+}
+
+uint32_t cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+{
+	D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = pBuffer->mDxGpuAddress + offset * sizeof(uint32_t);
+
+	uint count = MARKER_TYPE_IN_OUT == markerType ? 2 : 1;
+	D3D12_WRITEBUFFERIMMEDIATE_PARAMETER wbParam[2];
+	D3D12_WRITEBUFFERIMMEDIATE_MODE wbMode[2];
+
+	if (count > 1)
+	{
+		wbParam[0].Dest = wbParam[1].Dest = gpuAddress;
+		wbParam[0].Value = markerValue | (useAutoFlags ? (MARKER_TYPE_IN << 30) : 0);
+		wbParam[1].Value = markerValue | (useAutoFlags ? (MARKER_TYPE_OUT << 30) : 0);
+
+		wbMode[0] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)MARKER_TYPE_IN;
+		wbMode[1] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)MARKER_TYPE_OUT;
+	}
+	else
+	{
+		wbParam[0].Dest = gpuAddress;
+		wbParam[0].Value = markerValue | (useAutoFlags ? (markerType << 30) : 0 );
+		wbMode[0] = (D3D12_WRITEBUFFERIMMEDIATE_MODE)markerType;
+	}
+
+	((ID3D12GraphicsCommandList2*)pCmd->pDxCmdList)->WriteBufferImmediate(count, wbParam, wbMode);
+
+	return markerValue;
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -6375,5 +6527,6 @@ void cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
 		fillVirtualTexture(cmd, pTexture, NULL);
 	}
 }
+
 #endif
 #endif

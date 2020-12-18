@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,7 +38,7 @@
 #endif
 /************************************************************************/
 /************************************************************************/
-#if defined(_WIN32)
+#if defined(_WINDOWS)
 // Pull in minimal Windows headers
 #if !defined(NOMINMAX)
 #define NOMINMAX
@@ -289,6 +289,19 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_NV_RAY_TRACING_EXTENSION_NAME,
 #endif
 	/************************************************************************/
+	// YCbCr format support
+	/************************************************************************/
+#if VK_KHR_sampler_ycbcr_conversion
+	VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME,
+#endif
+    /************************************************************************/
+	// Nsight Aftermath
+	/************************************************************************/
+#ifdef USE_NSIGHT_AFTERMATH
+		VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
+		VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
+#endif
+	/************************************************************************/
 	/************************************************************************/
 };
 // clang-format on
@@ -307,53 +320,45 @@ static bool gDescriptorIndexingExtension = false;
 static bool gAMDDrawIndirectCountExtension = false;
 static bool gAMDGCNShaderExtension = false;
 static bool gNVRayTracingExtension = false;
-
+static bool gYCbCrExtension = false;
 static bool gDebugMarkerSupport = false;
 
-VkAllocationCallbacks gVkAllocationCallbacks =
+static void* VKAPI_PTR gVkAllocation(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
+	return tf_memalign(alignment, size);
+}
+
+static void* VKAPI_PTR
+	gVkReallocation(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
+{
+	return tf_realloc(pOriginal, size);
+}
+
+static void VKAPI_PTR gVkFree(void* pUserData, void* pMemory) { tf_free(pMemory); }
+
+static void VKAPI_PTR
+	gVkInternalAllocation(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+{
+}
+
+static void VKAPI_PTR
+	gVkInternalFree(void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope)
+{
+}
+
+VkAllocationCallbacks gVkAllocationCallbacks = {
 	// pUserData
 	NULL,
 	// pfnAllocation
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	size_t                                      alignment,
-	VkSystemAllocationScope                     allocationScope)
-	{
-		return tf_memalign(alignment, size);
-	},
+	gVkAllocation,
 	// pfnReallocation
-	[](
-	void*                                       pUserData,
-	void*                                       pOriginal,
-	size_t                                      size,
-	size_t                                      alignment,
-	VkSystemAllocationScope                     allocationScope)
-	{
-		return tf_realloc(pOriginal, size);
-	},
+	gVkReallocation,
 	// pfnFree
-	[](
-		void*                                       pUserData,
-		void*                                       pMemory)
-	{
-		tf_free(pMemory);
-	},
+	gVkFree,
 	// pfnInternalAllocation
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	VkInternalAllocationType                    allocationType,
-	VkSystemAllocationScope                     allocationScope)
-	{},
+	gVkInternalAllocation,
 	// pfnInternalFree
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	VkInternalAllocationType                    allocationType,
-	VkSystemAllocationScope                     allocationScope)
-	{}
+	gVkInternalFree
 };
 
 #if defined(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME)
@@ -1532,6 +1537,65 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 	return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
+void util_get_planar_vk_image_memory_requirement(VkDevice device, VkImage image, uint32_t planesCount, VkMemoryRequirements* outVkMemReq, uint64_t* outPlanesOffsets)
+{
+	outVkMemReq->size = 0;
+	outVkMemReq->alignment = 0;
+	outVkMemReq->memoryTypeBits = 0;
+
+	VkImagePlaneMemoryRequirementsInfo imagePlaneMemReqInfo = { VK_STRUCTURE_TYPE_IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO, NULL };
+
+	VkImageMemoryRequirementsInfo2 imagePlaneMemReqInfo2 = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2 };
+	imagePlaneMemReqInfo2.pNext = &imagePlaneMemReqInfo;
+	imagePlaneMemReqInfo2.image = image;
+
+	VkMemoryDedicatedRequirements memDedicatedReq = { VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS, NULL };
+	VkMemoryRequirements2 memReq2 = { VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2 };
+	memReq2.pNext = &memDedicatedReq;
+
+	for (uint32_t i = 0; i < planesCount; ++i)
+	{
+		imagePlaneMemReqInfo.planeAspect = (VkImageAspectFlagBits)(VK_IMAGE_ASPECT_PLANE_0_BIT << i);
+		vkGetImageMemoryRequirements2(device, &imagePlaneMemReqInfo2, &memReq2);
+		
+		outPlanesOffsets[i] += outVkMemReq->size;
+		outVkMemReq->alignment = max(memReq2.memoryRequirements.alignment, outVkMemReq->alignment);
+		outVkMemReq->size += round_up_64(memReq2.memoryRequirements.size, memReq2.memoryRequirements.alignment);
+		outVkMemReq->memoryTypeBits |= memReq2.memoryRequirements.memoryTypeBits;
+	}
+}
+
+uint32_t util_get_memory_type(uint32_t typeBits, VkPhysicalDeviceMemoryProperties memoryProperties, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr)
+{
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				if (memTypeFound)
+				{
+					*memTypeFound = true;
+				}
+				return i;
+			}
+		}
+		typeBits >>= 1;
+	}
+
+	if (memTypeFound)
+	{
+		*memTypeFound = false;
+		return 0;
+	}
+	else
+	{
+		LOGF(LogLevel::eERROR, "Could not find a matching memory type");
+		ASSERT(0);
+		return 0;
+	}
+}
+
 // Determines pipeline stages involved for given accesses
 VkPipelineStageFlags
 util_determine_pipeline_stage_flags(Renderer* pRenderer, VkAccessFlags accessFlags, QueueType queueType)
@@ -1687,6 +1751,7 @@ VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
 		case DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 		case DESCRIPTOR_TYPE_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+		case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 #ifdef ENABLE_RAYTRACING
 		case DESCRIPTOR_TYPE_RAY_TRACING: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
 #endif
@@ -1886,7 +1951,11 @@ void CreateInstance(const char* app_name,
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "TheForge";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+#ifdef ANDROID
+	app_info.apiVersion = VK_API_VERSION_1_0;
+#else
 	app_info.apiVersion = VK_API_VERSION_1_1;
+#endif
 
 	eastl::vector<const char*> layerTemp = eastl::vector<const char*>(userDefinedInstanceLayerCount);
 	memcpy(layerTemp.data(), userDefinedInstanceLayers, layerTemp.size() * sizeof(char*));
@@ -2250,7 +2319,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		subgroupProperties.pNext = NULL;
 		gpuProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
 		gpuProperties[i].pNext = &subgroupProperties;
+#ifdef ANDROID
+		vkGetPhysicalDeviceProperties2KHR(gpus[i], &gpuProperties[i]);
+#else
 		vkGetPhysicalDeviceProperties2(gpus[i], &gpuProperties[i]);
+#endif
 
 		// Get queue family properties
 		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyPropertyCount[i], NULL);
@@ -2459,6 +2532,22 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 							gDescriptorTypeRangeSize = FORGE_DESCRIPTOR_TYPE_RANGE_SIZE;
 						}
 #endif
+#ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) == 0)
+						{
+							gYCbCrExtension = true;
+						}
+#endif
+#ifdef USE_NSIGHT_AFTERMATH
+						if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME) == 0)
+						{
+							pRenderer->mDiagnosticCheckPointsSupport = true;
+						}
+						if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME) == 0)
+						{
+							pRenderer->mDiagnosticsConfigSupport = true;
+						}
+#endif
 						break;
 					}
 				}
@@ -2478,6 +2567,15 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
 	gpuFeatures2.pNext = &descriptorIndexingFeatures;
+
+#ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
+	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
+	if (gYCbCrExtension)
+	{
+		gpuFeatures2.pNext = &ycbcr_features;
+		ycbcr_features.pNext = &descriptorIndexingFeatures;
+	}
+#endif
 
 #ifndef NX64
 	vkGetPhysicalDeviceFeatures2KHR(pRenderer->pVkActiveGPU, &gpuFeatures2);
@@ -2541,6 +2639,30 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	create_info.enabledExtensionCount = extension_count;
 	create_info.ppEnabledExtensionNames = deviceExtensionCache;
 	create_info.pEnabledFeatures = NULL;
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	if (pRenderer->mDiagnosticCheckPointsSupport && pRenderer->mDiagnosticsConfigSupport)
+	{
+		pRenderer->mAftermathSupport = true;
+		LOGF(LogLevel::eINFO, "Successfully loaded Aftermath extensions");
+	}
+
+	if (pRenderer->mAftermathSupport)
+	{
+		DECLARE_ZERO(VkDeviceDiagnosticsConfigCreateInfoNV, diagnostics_create_info);
+		diagnostics_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV;
+		diagnostics_create_info.flags =
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |
+			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV;
+		gpuFeatures2.pNext = &diagnostics_create_info;
+		diagnostics_create_info.pNext = &descriptorIndexingFeatures;
+		// Enable Nsight Aftermath GPU crash dump creation.
+		// This needs to be done before the Vulkan device is created.
+		CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
+	}
+#endif
+
 	/************************************************************************/
 	// Add Device Group Extension if requested and available
 	/************************************************************************/
@@ -2619,9 +2741,15 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 static void RemoveDevice(Renderer* pRenderer)
 {
 	vkDestroyDevice(pRenderer->pVkDevice, &gVkAllocationCallbacks);
-
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 	SAFE_FREE(pRenderer->pVkActiveGPUProperties);
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	if (pRenderer->mAftermathSupport)
+	{
+		DestroyAftermathTracker(&pRenderer->mAftermathTracker);
+	}
+#endif
 }
 
 VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer)
@@ -3196,7 +3324,13 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	if ((caps.maxImageCount > 0) && (pDesc->mImageCount > caps.maxImageCount))
 	{
+		LOGF(LogLevel::eWARNING, "Changed requested SwapChain images {%u} to maximum allowed SwapChain images {%u}", pDesc->mImageCount, caps.maxImageCount);
 		((SwapChainDesc*)pDesc)->mImageCount = caps.maxImageCount;
+	}
+	if (pDesc->mImageCount < caps.minImageCount)
+	{
+		LOGF(LogLevel::eWARNING, "Changed requested SwapChain images {%u} to minimum required SwapChain images {%u}", pDesc->mImageCount, caps.minImageCount);
+		((SwapChainDesc*)pDesc)->mImageCount = caps.minImageCount;
 	}
 
 	// Surface format
@@ -3283,8 +3417,8 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	// Swapchain
 	VkExtent2D extent = { 0 };
-	extent.width = pDesc->mWidth;
-	extent.height = pDesc->mHeight;
+	extent.width = clamp(pDesc->mWidth, caps.minImageExtent.width, caps.maxImageExtent.width);
+	extent.height = clamp(pDesc->mHeight, caps.minImageExtent.height, caps.maxImageExtent.height);
 
 	VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
 	uint32_t      queue_family_index_count = 0;
@@ -3386,7 +3520,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	swapChainCreateInfo.pNext = NULL;
 	swapChainCreateInfo.flags = 0;
 	swapChainCreateInfo.surface = vkSurface;
-	swapChainCreateInfo.minImageCount = clamp(pDesc->mImageCount, caps.minImageCount, caps.maxImageCount);
+	swapChainCreateInfo.minImageCount = pDesc->mImageCount;
 	swapChainCreateInfo.imageFormat = surface_format.format;
 	swapChainCreateInfo.imageColorSpace = surface_format.colorSpace;
 	swapChainCreateInfo.imageExtent = extent;
@@ -3721,6 +3855,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	bool           cubemapRequired = (DESCRIPTOR_TYPE_TEXTURE_CUBE == (descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE));
 	bool           arrayRequired = false;
 
+	const bool     isPlanarFormat = TinyImageFormat_IsPlanar(pDesc->mFormat);
+	const uint32_t numOfPlanes = TinyImageFormat_NumOfPlanes(pDesc->mFormat);
+	const bool     isSinglePlane = TinyImageFormat_IsSinglePlane(pDesc->mFormat);
+	ASSERT(((isSinglePlane && numOfPlanes == 1) || (!isSinglePlane && numOfPlanes > 1 && numOfPlanes <= MAX_PLANE_COUNT)) 
+		   && "Number of planes for multi-planar formats must be 2 or 3 and for single-planar formats it must be 1.");
+
 	if (image_type == VK_IMAGE_TYPE_3D)
 		arrayRequired = true;
 
@@ -3738,7 +3878,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		add_info.mipLevels = pDesc->mMipLevels;
 		add_info.arrayLayers = pDesc->mArraySize;
 		add_info.samples = util_to_vk_sample_count(pDesc->mSampleCount);
-		add_info.tiling = (0 != pDesc->mHostVisible) ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
+		add_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		add_info.usage = util_to_vk_image_usage(descriptors);
 		add_info.usage |= additionalFlags;
 		add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -3751,6 +3891,14 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		if (arrayRequired)
 			add_info.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
 
+		DECLARE_ZERO(VkFormatProperties, format_props);
+		vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, add_info.format, &format_props);
+		if (isPlanarFormat) // multi-planar formats must have each plane separately bound to memory, rather than having a single memory binding for the whole image
+		{
+			ASSERT(format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_DISJOINT_BIT);
+			add_info.flags |= VK_IMAGE_CREATE_DISJOINT_BIT;
+		}
+
 		if ((VK_IMAGE_USAGE_SAMPLED_BIT & add_info.usage) || (VK_IMAGE_USAGE_STORAGE_BIT & add_info.usage))
 		{
 			// Make it easy to copy to and from textures
@@ -3759,23 +3907,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 		ASSERT(pRenderer->pCapBits->canShaderReadFrom[pDesc->mFormat] && "GPU shader can't' read from this format");
 
-		// TODO Deano move hostvisible flag to capbits structure
 		// Verify that GPU supports this format
-		DECLARE_ZERO(VkFormatProperties, format_props);
-		vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, add_info.format, &format_props);
 		VkFormatFeatureFlags format_features = util_vk_image_usage_to_format_features(add_info.usage);
-
-		if (pDesc->mHostVisible)
-		{
-			VkFormatFeatureFlags flags = format_props.linearTilingFeatures & format_features;
-			ASSERT((0 != flags) && "Format is not supported for host visible images");
-		}
-		else
-		{
-			VkFormatFeatureFlags flags = format_props.optimalTilingFeatures & format_features;
-			ASSERT((0 != flags) && "Format is not supported for GPU local images (i.e. not host visible images)");
-		}
-
+	
+		VkFormatFeatureFlags flags = format_props.optimalTilingFeatures & format_features;
+		ASSERT((0 != flags) && "Format is not supported for GPU local images (i.e. not host visible images)");
+		
 		const bool linkedMultiGpu = (pRenderer->mGpuMode == GPU_MODE_LINKED) && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex);
 
 		VmaAllocationCreateInfo mem_reqs = { 0 };
@@ -3826,8 +3963,63 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		}
 
 		VmaAllocationInfo alloc_info = {};
-		CHECK_VKRESULT(vmaCreateImage(pRenderer->pVmaAllocator, &add_info, &mem_reqs,
-			&pTexture->pVkImage, &pTexture->pVkAllocation, &alloc_info));
+		if (isSinglePlane)
+		{
+			CHECK_VKRESULT(vmaCreateImage(pRenderer->pVmaAllocator, &add_info, &mem_reqs,
+				&pTexture->pVkImage, &pTexture->pVkAllocation, &alloc_info));
+		}
+		else // Multi-planar formats
+		{
+			// Create info requires the mutable format flag set for multi planar images
+			// Also pass the format list for mutable formats as per recommendation from the spec
+			// Might help to keep DCC enabled if we ever use this as a output format
+			// DCC gets disabled when we pass mutable format bit to the create info. Passing the format list helps the driver to enable it
+			VkFormat planarFormat = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mFormat);
+			VkImageFormatListCreateInfoKHR formatList = {};
+			formatList.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO_KHR;
+			formatList.pNext = NULL;
+			formatList.pViewFormats = &planarFormat;
+			formatList.viewFormatCount = 1;
+
+			add_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+			add_info.pNext = &formatList;
+
+			// Create Image
+			CHECK_VKRESULT(vkCreateImage(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &pTexture->pVkImage));
+
+			VkMemoryRequirements vkMemReq = {};
+			uint64_t planesOffsets[MAX_PLANE_COUNT] = {0};
+			util_get_planar_vk_image_memory_requirement(pRenderer->pVkDevice, pTexture->pVkImage, numOfPlanes, &vkMemReq, planesOffsets);
+			
+			// Allocate image memory
+			VkMemoryAllocateInfo mem_alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+			mem_alloc_info.allocationSize = vkMemReq.size;
+			VkPhysicalDeviceMemoryProperties memProps = {};
+			vkGetPhysicalDeviceMemoryProperties(pRenderer->pVkActiveGPU, &memProps);
+			mem_alloc_info.memoryTypeIndex = util_get_memory_type(vkMemReq.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			CHECK_VKRESULT(vkAllocateMemory(pRenderer->pVkDevice, &mem_alloc_info, &gVkAllocationCallbacks, &pTexture->pVkDeviceMemory));
+
+			// Bind planes to their memories
+			VkBindImageMemoryInfo bindImagesMemoryInfo[MAX_PLANE_COUNT];
+			VkBindImagePlaneMemoryInfo bindImagePlanesMemoryInfo[MAX_PLANE_COUNT];
+			for (uint32_t i = 0; i < numOfPlanes; ++i)
+			{
+				VkBindImagePlaneMemoryInfo& bindImagePlaneMemoryInfo = bindImagePlanesMemoryInfo[i];
+				bindImagePlaneMemoryInfo.sType = VK_STRUCTURE_TYPE_BIND_IMAGE_PLANE_MEMORY_INFO;
+				bindImagePlaneMemoryInfo.pNext = NULL;
+				bindImagePlaneMemoryInfo.planeAspect = (VkImageAspectFlagBits)(VK_IMAGE_ASPECT_PLANE_0_BIT << i);
+
+				VkBindImageMemoryInfo& bindImageMemoryInfo = bindImagesMemoryInfo[i];
+				bindImageMemoryInfo.sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO;
+				bindImageMemoryInfo.pNext = &bindImagePlaneMemoryInfo;
+				bindImageMemoryInfo.image = pTexture->pVkImage;
+				bindImageMemoryInfo.memory = pTexture->pVkDeviceMemory;
+				bindImageMemoryInfo.memoryOffset = planesOffsets[i];
+			}
+
+			CHECK_VKRESULT(vkBindImageMemory2(pRenderer->pVkDevice, numOfPlanes, bindImagesMemoryInfo));
+		}
+
 		/************************************************************************/
 		// Texture to be used on multiple GPUs
 		/************************************************************************/
@@ -3900,6 +4092,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	srvDesc.subresourceRange.baseArrayLayer = 0;
 	srvDesc.subresourceRange.layerCount = pDesc->mArraySize;
 	pTexture->mAspectMask = util_vk_determine_aspect_mask(srvDesc.format, true);
+
+	if (pDesc->pVkSamplerYcbcrConversionInfo)
+	{
+		srvDesc.pNext = pDesc->pVkSamplerYcbcrConversionInfo;
+	}
+
 	if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
 	{
 		CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->pVkSRVDescriptor));
@@ -3957,7 +4155,19 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	ASSERT(VK_NULL_HANDLE != pTexture->pVkImage);
 
 	if (pTexture->mOwnsImage)
-		vmaDestroyImage(pRenderer->pVmaAllocator, pTexture->pVkImage, pTexture->pVkAllocation);
+	{
+		const TinyImageFormat fmt = (TinyImageFormat)pTexture->mFormat;
+		const bool isSinglePlane = TinyImageFormat_IsSinglePlane(fmt);
+		if (isSinglePlane)
+		{
+			vmaDestroyImage(pRenderer->pVmaAllocator, pTexture->pVkImage, pTexture->pVkAllocation);
+		}
+		else
+		{
+			vkDestroyImage(pRenderer->pVkDevice, pTexture->pVkImage, &gVkAllocationCallbacks);
+			vkFreeMemory(pRenderer->pVkDevice, pTexture->pVkDeviceMemory, &gVkAllocationCallbacks);
+		}
+	}
 
 	if (VK_NULL_HANDLE != pTexture->pVkSRVDescriptor)
 		vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkSRVDescriptor, &gVkAllocationCallbacks);
@@ -4016,7 +4226,6 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	textureDesc.mFlags = pDesc->mFlags;
 	textureDesc.mFormat = pDesc->mFormat;
 	textureDesc.mHeight = pDesc->mHeight;
-	textureDesc.mHostVisible = false;
 	textureDesc.mMipLevels = pDesc->mMipLevels;
 	textureDesc.mSampleCount = pDesc->mSampleCount;
 	textureDesc.mSampleQuality = pDesc->mSampleQuality;
@@ -4167,6 +4376,47 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	add_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	add_info.unnormalizedCoordinates = VK_FALSE;
 
+	if (TinyImageFormat_IsPlanar(pDesc->mSamplerConversionDesc.mFormat))
+	{
+		auto & conversionDesc = pDesc->mSamplerConversionDesc;
+		VkFormat format = (VkFormat)TinyImageFormat_ToVkFormat(conversionDesc.mFormat);
+
+		// Check format props
+		{
+			ASSERT(gYCbCrExtension);
+
+			DECLARE_ZERO(VkFormatProperties, format_props);
+			vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, format, &format_props);
+			if (conversionDesc.mChromaOffsetX == SAMPLE_LOCATION_MIDPOINT)
+			{
+				ASSERT(format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT);
+			}
+			else if (conversionDesc.mChromaOffsetX == SAMPLE_LOCATION_COSITED)
+			{
+				ASSERT(format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT);
+			}
+		}
+
+		DECLARE_ZERO(VkSamplerYcbcrConversionCreateInfo, conversion_info);
+		conversion_info.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO;
+		conversion_info.pNext = NULL;
+		conversion_info.format = format;
+		conversion_info.ycbcrModel = (VkSamplerYcbcrModelConversion)conversionDesc.mModel;
+		conversion_info.ycbcrRange = (VkSamplerYcbcrRange)conversionDesc.mRange;
+		conversion_info.components = { VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY };
+		conversion_info.xChromaOffset = (VkChromaLocation)conversionDesc.mChromaOffsetX;
+		conversion_info.yChromaOffset = (VkChromaLocation)conversionDesc.mChromaOffsetY;
+		conversion_info.chromaFilter = util_to_vk_filter(conversionDesc.mChromaFilter);
+		conversion_info.forceExplicitReconstruction = conversionDesc.mForceExplicitReconstruction ? VK_TRUE : VK_FALSE;
+		CHECK_VKRESULT(vkCreateSamplerYcbcrConversion(pRenderer->pVkDevice, &conversion_info, &gVkAllocationCallbacks, &pSampler->pVkSamplerYcbcrConversion));
+		
+		pSampler->mVkSamplerYcbcrConversionInfo	= {};
+		pSampler->mVkSamplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
+		pSampler->mVkSamplerYcbcrConversionInfo.pNext = NULL;
+		pSampler->mVkSamplerYcbcrConversionInfo.conversion = pSampler->pVkSamplerYcbcrConversion;
+		add_info.pNext = &pSampler->mVkSamplerYcbcrConversionInfo;
+	}
+
 	CHECK_VKRESULT(vkCreateSampler(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSampler->pVkSampler)));
 
 	*ppSampler = pSampler;
@@ -4181,8 +4431,14 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 
 	vkDestroySampler(pRenderer->pVkDevice, pSampler->pVkSampler, &gVkAllocationCallbacks);
 
+	if (NULL != pSampler->pVkSamplerYcbcrConversion)
+	{
+		vkDestroySamplerYcbcrConversion(pRenderer->pVkDevice, pSampler->pVkSamplerYcbcrConversion, &gVkAllocationCallbacks);
+	}
+
 	SAFE_FREE(pSampler);
 }
+
 /************************************************************************/
 // Buffer Functions
 /************************************************************************/
@@ -4371,7 +4627,33 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			}
 			break;
 		}
-		case DESCRIPTOR_TYPE_TEXTURE:
+		case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
+
+			DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->mMap.find(pDesc->pName);
+			if (it == pRootSignature->pDescriptorNameToIndexMap->mMap.end())
+			{
+				LOGF(LogLevel::eERROR, "No Static Sampler called (%s)", pDesc->pName);
+				ASSERT(false);
+			}
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
+
+				pUpdateData[pDesc->mHandleIndex + arr].mImageInfo =
+				{
+					NULL,											// Sampler
+					pParam->ppTextures[arr]->pVkSRVDescriptor,		// Image View
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL		// Image Layout 
+				};
+
+				update = true;
+			}
+			break;
+		}
+      case DESCRIPTOR_TYPE_TEXTURE:
 		{
 			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
 
@@ -4412,22 +4694,41 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 		case DESCRIPTOR_TYPE_RW_TEXTURE:
 		{
 			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->pName);
-			const uint32_t mipSlice = pParam->mUAVMipSlice;
 
-			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			if (pParam->mBindMipChain)
 			{
-				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
-				VALIDATE_DESCRIPTOR(mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
-					pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
+				VALIDATE_DESCRIPTOR(pParam->ppTextures[0], "NULL RW Texture (%s)", pDesc->pName);
 
-				pUpdateData[pDesc->mHandleIndex + arr].mImageInfo =
+				for (uint32_t arr = 0; arr < pParam->ppTextures[0]->mMipLevels; ++arr)
 				{
-					VK_NULL_HANDLE,                                        // Sampler
-					pParam->ppTextures[arr]->pVkUAVDescriptors[mipSlice],  // Image View
-					VK_IMAGE_LAYOUT_GENERAL                                // Image Layout
-				};
+					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						VK_NULL_HANDLE,                                          // Sampler
+						pParam->ppTextures[0]->pVkUAVDescriptors[arr],    // Image View
+						VK_IMAGE_LAYOUT_GENERAL                                  // Image Layout
+					};
 
-				update = true;
+					update = true;
+				}
+			}
+			else
+			{
+				const uint32_t mipSlice = pParam->mUAVMipSlice;
+
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->pName, arr);
+					VALIDATE_DESCRIPTOR(
+						mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
+						pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
+
+					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						VK_NULL_HANDLE,                                          // Sampler
+						pParam->ppTextures[arr]->pVkUAVDescriptors[mipSlice],    // Image View
+						VK_IMAGE_LAYOUT_GENERAL                                  // Image Layout
+					};
+
+					update = true;
+				}
 			}
 			break;
 		}
@@ -5027,13 +5328,19 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 			// Find if the given descriptor is a static sampler
 			decltype(staticSamplerMap)::iterator it = staticSamplerMap.find(pDesc->pName);
-			if (it != staticSamplerMap.end())
+			bool hasStaticSampler = it != staticSamplerMap.end();
+			if (hasStaticSampler)
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->pName);
-
-				// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
-				pDesc->mIndexInParent = -1;
 				binding.pImmutableSamplers = &it->second->pVkSampler;
+			}
+
+			// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
+			// In case of Combined Image Samplers, skip invalidating the index
+			// because we do not to introduce new ways to update the descriptor in the Interface
+			if (hasStaticSampler && pDesc->mType != DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+			{
+				pDesc->mIndexInParent = -1;
 			}
 			else
 			{
@@ -5515,17 +5822,18 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 		cb = pDesc->pBlendState ? util_to_blend_desc(pDesc->pBlendState, cbAtt) : gDefaultBlendDesc;
 		cb.attachmentCount = pDesc->mRenderTargetCount;
 
-		DECLARE_ZERO(VkDynamicState, dyn_states[5]);
+		DECLARE_ZERO(VkDynamicState, dyn_states[6]);
 		dyn_states[0] = VK_DYNAMIC_STATE_VIEWPORT;
 		dyn_states[1] = VK_DYNAMIC_STATE_SCISSOR;
 		dyn_states[2] = VK_DYNAMIC_STATE_DEPTH_BIAS;
 		dyn_states[3] = VK_DYNAMIC_STATE_BLEND_CONSTANTS;
 		dyn_states[4] = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+		dyn_states[5] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
 		DECLARE_ZERO(VkPipelineDynamicStateCreateInfo, dy);
 		dy.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dy.pNext = NULL;
 		dy.flags = 0;
-		dy.dynamicStateCount = 5;
+		dy.dynamicStateCount = 6;
 		dy.pDynamicStates = dyn_states;
 
 		DECLARE_ZERO(VkGraphicsPipelineCreateInfo, add_info);
@@ -5958,6 +6266,13 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	vkCmdSetScissor(pCmd->pVkCmdBuf, 0, 1, &rect);
 }
 
+void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+{
+	ASSERT(pCmd);
+
+	vkCmdSetStencilReference(pCmd->pVkCmdBuf, VK_STENCIL_FRONT_AND_BACK, val);
+}
+
 void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
 	ASSERT(pCmd);
@@ -6129,13 +6444,6 @@ void cmdResourceBarrier(Cmd* pCmd,
 			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			pImageBarrier->pNext = NULL;
 
-			pImageBarrier->image = pTexture->pVkImage;
-			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
-			pImageBarrier->subresourceRange.baseMipLevel = 0;
-			pImageBarrier->subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-			pImageBarrier->subresourceRange.baseArrayLayer = 0;
-			pImageBarrier->subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
 			pImageBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 			pImageBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 			pImageBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -6157,10 +6465,10 @@ void cmdResourceBarrier(Cmd* pCmd,
 		{
 			pImageBarrier->image = pTexture->pVkImage;
 			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
-			pImageBarrier->subresourceRange.baseMipLevel = 0;
-			pImageBarrier->subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-			pImageBarrier->subresourceRange.baseArrayLayer = 0;
-			pImageBarrier->subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+			pImageBarrier->subresourceRange.baseMipLevel = pTrans->mSubresourceBarrier ? pTrans->mMipLevel : 0;
+			pImageBarrier->subresourceRange.levelCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_MIP_LEVELS;
+			pImageBarrier->subresourceRange.baseArrayLayer = pTrans->mSubresourceBarrier ? pTrans->mArrayLayer : 0;
+			pImageBarrier->subresourceRange.layerCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_ARRAY_LAYERS;
 
 			if (pTrans->mAcquire)
 			{
@@ -6196,13 +6504,6 @@ void cmdResourceBarrier(Cmd* pCmd,
 			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			pImageBarrier->pNext = NULL;
 
-			pImageBarrier->image = pTexture->pVkImage;
-			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
-			pImageBarrier->subresourceRange.baseMipLevel = 0;
-			pImageBarrier->subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-			pImageBarrier->subresourceRange.baseArrayLayer = 0;
-			pImageBarrier->subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
-
 			pImageBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 			pImageBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 			pImageBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -6224,10 +6525,10 @@ void cmdResourceBarrier(Cmd* pCmd,
 		{
 			pImageBarrier->image = pTexture->pVkImage;
 			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
-			pImageBarrier->subresourceRange.baseMipLevel = 0;
-			pImageBarrier->subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
-			pImageBarrier->subresourceRange.baseArrayLayer = 0;
-			pImageBarrier->subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+			pImageBarrier->subresourceRange.baseMipLevel = pTrans->mSubresourceBarrier ? pTrans->mMipLevel : 0;
+			pImageBarrier->subresourceRange.levelCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_MIP_LEVELS;
+			pImageBarrier->subresourceRange.baseArrayLayer = pTrans->mSubresourceBarrier ? pTrans->mArrayLayer : 0;
+			pImageBarrier->subresourceRange.layerCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_ARRAY_LAYERS;
 
 			if (pTrans->mAcquire)
 			{
@@ -6289,30 +6590,67 @@ typedef struct SubresourceDataDesc
 
 void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
 {
-	const uint32_t        width = max<uint32_t>(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel);
-	const uint32_t        height = max<uint32_t>(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel);
-	const uint32_t        depth = max<uint32_t>(1, pTexture->mDepth >> pSubresourceDesc->mMipLevel);
 	const TinyImageFormat fmt = (TinyImageFormat)pTexture->mFormat;
-	const uint32_t        numBlocksWide = pSubresourceDesc->mRowPitch / (TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
-	const uint32_t        numBlocksHigh = (pSubresourceDesc->mSlicePitch / pSubresourceDesc->mRowPitch);
+	const bool isSinglePlane = TinyImageFormat_IsSinglePlane(fmt);
 
-	VkBufferImageCopy copy = {};
-	copy.bufferOffset = pSubresourceDesc->mSrcOffset;
-	copy.bufferRowLength = numBlocksWide * TinyImageFormat_WidthOfBlock(fmt);
-	copy.bufferImageHeight = numBlocksHigh * TinyImageFormat_HeightOfBlock(fmt);
-	copy.imageSubresource.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
-	copy.imageSubresource.mipLevel = pSubresourceDesc->mMipLevel;
-	copy.imageSubresource.baseArrayLayer = pSubresourceDesc->mArrayLayer;
-	copy.imageSubresource.layerCount = 1;
-	copy.imageOffset.x = 0;
-	copy.imageOffset.y = 0;
-	copy.imageOffset.z = 0;
-	copy.imageExtent.width = width;
-	copy.imageExtent.height = height;
-	copy.imageExtent.depth = depth;
+	if (isSinglePlane)
+	{
+		const uint32_t width = max<uint32_t>(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel);
+		const uint32_t height = max<uint32_t>(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel);
+		const uint32_t depth = max<uint32_t>(1, pTexture->mDepth >> pSubresourceDesc->mMipLevel);
+		const uint32_t numBlocksWide = pSubresourceDesc->mRowPitch / (TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
+		const uint32_t numBlocksHigh = (pSubresourceDesc->mSlicePitch / pSubresourceDesc->mRowPitch);
 
-	vkCmdCopyBufferToImage(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pTexture->pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		VkBufferImageCopy copy = {};
+		copy.bufferOffset = pSubresourceDesc->mSrcOffset;
+		copy.bufferRowLength = numBlocksWide * TinyImageFormat_WidthOfBlock(fmt);
+		copy.bufferImageHeight = numBlocksHigh * TinyImageFormat_HeightOfBlock(fmt);
+		copy.imageSubresource.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
+		copy.imageSubresource.mipLevel = pSubresourceDesc->mMipLevel;
+		copy.imageSubresource.baseArrayLayer = pSubresourceDesc->mArrayLayer;
+		copy.imageSubresource.layerCount = 1;
+		copy.imageOffset.x = 0;
+		copy.imageOffset.y = 0;
+		copy.imageOffset.z = 0;
+		copy.imageExtent.width = width;
+		copy.imageExtent.height = height;
+		copy.imageExtent.depth = depth;
+
+		vkCmdCopyBufferToImage(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pTexture->pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+	}
+	else
+	{
+		const uint32_t	width = pTexture->mWidth;
+		const uint32_t	height = pTexture->mHeight;
+		const uint32_t	depth = pTexture->mDepth;
+		const uint32_t	numOfPlanes = TinyImageFormat_NumOfPlanes(fmt);
+
+		uint64_t offset = pSubresourceDesc->mSrcOffset;
+		VkBufferImageCopy bufferImagesCopy[MAX_PLANE_COUNT];
+
+		for (uint32_t i = 0; i < numOfPlanes; ++i)
+		{
+			VkBufferImageCopy & copy = bufferImagesCopy[i];
+			copy.bufferOffset = offset;
+			copy.bufferRowLength = 0;
+			copy.bufferImageHeight = 0;
+			copy.imageSubresource.aspectMask = (VkImageAspectFlagBits)(VK_IMAGE_ASPECT_PLANE_0_BIT << i);
+			copy.imageSubresource.mipLevel = pSubresourceDesc->mMipLevel;
+			copy.imageSubresource.baseArrayLayer = pSubresourceDesc->mArrayLayer;
+			copy.imageSubresource.layerCount = 1;
+			copy.imageOffset.x = 0;
+			copy.imageOffset.y = 0;
+			copy.imageOffset.z = 0;
+			copy.imageExtent.width = TinyImageFormat_PlaneWidth(fmt, i, width);
+			copy.imageExtent.height = TinyImageFormat_PlaneHeight(fmt, i, height);
+			copy.imageExtent.depth = depth;
+			offset += copy.imageExtent.width * copy.imageExtent.height * TinyImageFormat_PlaneSizeOfBlock(fmt, i);
+		}
+
+		vkCmdCopyBufferToImage(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pTexture->pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, numOfPlanes, bufferImagesCopy);
+	}
 }
+
 /************************************************************************/
 // Queue Fence Semaphore Functions
 /************************************************************************/
@@ -6475,14 +6813,14 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		pFence->mSubmitted = true;
 }
 
-void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
 
 	uint32_t waitSemaphoreCount = pDesc->mWaitSemaphoreCount;
 	Semaphore** ppWaitSemaphores = pDesc->ppWaitSemaphores;
-
+	PresentStatus presentStatus = PRESENT_STATUS_FAILED;
 	if (pDesc->pSwapChain)
 	{
 		SwapChain* pSwapChain = pDesc->pSwapChain;
@@ -6522,15 +6860,26 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 		// Lightweight lock to make sure multiple threads dont use the same queue simultaneously
 		MutexLock lock(*pQueue->pSubmitMutex);
 		VkResult vk_res = vkQueuePresentKHR(pSwapChain->pPresentQueue ? pSwapChain->pPresentQueue : pQueue->pVkQueue, &present_info);
-		if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
+
+		if (vk_res == VK_SUCCESS) 
+		{
+			presentStatus = PRESENT_STATUS_SUCCESS;
+		}
+		else if (vk_res == VK_ERROR_DEVICE_LOST) 
+		{
+			presentIndex = PRESENT_STATUS_DEVICE_RESET;
+		}
+		else if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			// TODO : Fix bug where we get this error if window is closed before able to present queue.
 		}
 		else
 		{
-			ASSERT(VK_SUCCESS == vk_res);
+			ASSERT(0);
 		}
 	}
+
+	return presentStatus;
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -6549,7 +6898,20 @@ void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 
 	if (numValidFences)
 	{
-		vkWaitForFences(pRenderer->pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
+		VkResult result = vkWaitForFences(pRenderer->pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
+
+#if defined(USE_NSIGHT_AFTERMATH)
+		if (pRenderer->mAftermathSupport)
+		{
+			if (VK_ERROR_DEVICE_LOST == result)
+			{
+				// Device lost notification is asynchronous to the NVIDIA display
+				// driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
+				// thread some time to do its work before terminating the process.
+				sleep(3000);
+			}
+		}
+#endif
 		vkResetFences(pRenderer->pVkDevice, numValidFences, fences);
 	}
 
@@ -6848,6 +7210,13 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 		vkCmdDebugMarkerInsertEXT(pCmd->pVkCmdBuf, &markerInfo);
 #endif
 	}
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	if (pCmd->pRenderer->mAftermathSupport)
+	{
+		vkCmdSetCheckpointNV(pCmd->pVkCmdBuf, pName);
+	}
+#endif
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -6930,37 +7299,6 @@ void setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName
 /************************************************************************/
 // Virtual Texture
 /************************************************************************/
-uint32_t getMemoryType(uint32_t typeBits, VkPhysicalDeviceMemoryProperties memoryProperties, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr)
-{
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
-	{
-		if ((typeBits & 1) == 1)
-		{
-			if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			{
-				if (memTypeFound)
-				{
-					*memTypeFound = true;
-				}
-				return i;
-			}
-		}
-		typeBits >>= 1;
-	}
-
-	if (memTypeFound)
-	{
-		*memTypeFound = false;
-		return 0;
-	}
-	else
-	{
-		LOGF(LogLevel::eERROR, "Could not find a matching memory type");
-		ASSERT(0);
-		return 0;
-	}
-}
-
 void alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity, VkExtent3D* out)
 {
 	out->width = (extent.width / granularity.width + ((extent.width  % granularity.width) ? 1u : 0u));
@@ -7378,7 +7716,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	// todo:
 	// Calculate number of required sparse memory bindings by alignment
 	assert((sparseImageMemoryReqs.size % sparseImageMemoryReqs.alignment) == 0);
-	pTexture->pSvt->mSparseMemoryTypeIndex = getMemoryType(sparseImageMemoryReqs.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	pTexture->pSvt->mSparseMemoryTypeIndex = util_get_memory_type(sparseImageMemoryReqs.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	// Get sparse bindings
 	uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);
@@ -7596,6 +7934,7 @@ void cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
 		fillVirtualTexture(cmd, pTexture, NULL);
 	}
 }
+
 
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)

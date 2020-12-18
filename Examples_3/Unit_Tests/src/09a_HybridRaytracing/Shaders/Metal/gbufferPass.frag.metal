@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -58,7 +57,7 @@ struct Fragment_Shader
     sampler samplerLinear;
 
     struct Uniforms_textureMaps {
-         array<texture2d<float>, 128> Textures;
+         array<texture2d<float>, 84> Textures;
     };
     constant texture2d<float>* textureMaps;
 
@@ -107,8 +106,9 @@ struct Fragment_Shader
 
 struct FSData {
     constant Fragment_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
-    sampler samplerLinear [[id(1)]];
-    texture2d<float> textureMaps[128];
+    texture2d<float> textureMaps[84];
+    texture2d<float, access::read> inputRT  [[id(85)]];
+    sampler samplerLinear [[id(86)]];
 };
 
 struct FSDataPerFrame {

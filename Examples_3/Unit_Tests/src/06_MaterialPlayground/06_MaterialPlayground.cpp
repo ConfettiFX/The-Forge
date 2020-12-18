@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,6 +47,7 @@
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 //Math
@@ -666,6 +667,14 @@ eastl::vector<mat4> gTextWorldMats;
 
 void ReloadScriptButtonCallback() { gLuaManager.ReloadUpdatableScript(); }
 
+bool gTakeScreenshot = false;
+
+void takeScreenshot()
+{
+	if (!gTakeScreenshot)
+		gTakeScreenshot = true;
+}
+
 // Finds the vertex in the direction of the normal
 vec3 AABBGetVertex(AABB b, vec3 normal)
 {
@@ -717,6 +726,23 @@ DynamicUIWidgets                                  GuiController::materialDynamic
 MaterialType                                       GuiController::currentMaterialType;
 uint                                               GuiController::currentHairType = 0;
 
+const char* gTestScripts[] = { "Test_Metal.lua", "Test_Wood.lua",
+#if !defined(DIRECT3D11) && !defined(METAL)
+"Test_Hair.lua"
+#endif
+};
+
+uint32_t gScriptIndexes[] = { 0, 1
+#ifndef DIRECT3D11
+, 2
+#endif
+};
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+
 class MaterialPlayground: public IApp
 {
 	public:
@@ -753,6 +779,7 @@ class MaterialPlayground: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
 
 		initThreadSystem(&pIOThreads);
 
@@ -763,7 +790,7 @@ class MaterialPlayground: public IApp
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)
 			return false;
-
+		
 		gGPUPresetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 
 		QueueDesc queueDesc = {};
@@ -795,6 +822,7 @@ class MaterialPlayground: public IApp
 		//
 		gLuaManager.Init();
 		initResourceLoaderInterface(pRenderer);
+		initScreenshotInterface(pRenderer, pGraphicsQueue);
 
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
@@ -826,12 +854,16 @@ class MaterialPlayground: public IApp
 
 		// INITIALIZE UI
 		//
+		gAppUI.AddLuaManager(&gLuaManager);
 		if (!gAppUI.Init(pRenderer))
 			return false;
+		gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
         initProfiler();
+		initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		GuiDesc guiDesc = {};		
@@ -839,6 +871,10 @@ class MaterialPlayground: public IApp
 		guiDesc.mStartSize = vec2(450, 600);
 		pGuiWindowMain = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		
+		ButtonWidget screenshot("Screenshot");
+		screenshot.pOnEdited = takeScreenshot;
+		pGuiWindowMain->AddWidget(screenshot);
+
 		//guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
 		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
 		pGuiWindowMaterial = gAppUI.AddGuiComponent("Material Properties", &guiDesc);
@@ -882,7 +918,7 @@ class MaterialPlayground: public IApp
 			return 1;    // return amount of arguments
 		});
 		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
-
+		
 		// SET MATERIAL LIGHTING MODELS
 		//
 		gMaterialLightingModelMap[MATERIAL_METAL] = LAMBERT_REFLECTION;
@@ -940,6 +976,8 @@ class MaterialPlayground: public IApp
 
 		waitQueueIdle(pGraphicsQueue);
 
+		exitProfilerUI();
+
 		exitProfiler();
 
 		destroyCameraController(pCameraController);
@@ -984,6 +1022,8 @@ class MaterialPlayground: public IApp
 
 		// Remove resource loader and renderer
 		exitResourceLoaderInterface(pRenderer);
+		exitScreenshotInterface();
+
 		removeRenderer(pRenderer);
 
 		gTextWorldMats.set_capacity(0);
@@ -1012,8 +1052,6 @@ class MaterialPlayground: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
 		waitForAllResourceLoads();
 
 		PrepareDescriptorSets();
@@ -1025,7 +1063,6 @@ class MaterialPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -1324,6 +1361,7 @@ class MaterialPlayground: public IApp
 		*(UniformDataHairGlobal*)hairGlobalBufferUpdateDesc.pMappedData = gUniformDataHairGlobal;
 		endUpdateResource(&hairGlobalBufferUpdateDesc, NULL);
 
+#if !defined(DIRECT3D11)
 		for (size_t i = 0; i < gHair.size(); ++i)
 		{
 			BufferUpdateDesc hairShadingBufferUpdateDesc = { gHair[i].pUniformBufferHairShading[gFrameIndex] };
@@ -1337,7 +1375,6 @@ class MaterialPlayground: public IApp
 			endUpdateResource(&hairSimulationBufferUpdateDesc, NULL);
 		}
 
-#if !defined(DIRECT3D11)
 		if (gMaterialType == MATERIAL_HAIR)
 			gSkeletonBatcher.SetPerInstanceUniforms(gFrameIndex);
 #endif
@@ -1943,6 +1980,7 @@ class MaterialPlayground: public IApp
 			default: ppMaterialNames = metalEnumNames; break;
 		}
 
+#if !defined(DIRECT3D11)
 		if (GuiController::currentMaterialType != MATERIAL_HAIR)
 		{
 			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
@@ -1950,6 +1988,7 @@ class MaterialPlayground: public IApp
 				gAppUI.DrawTextInWorldSpace(cmd, ppMaterialNames[i], gTextWorldMats[i], gTextProjView, &gMaterialPropDraw);
 			}
 		}
+#endif
 
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -2005,9 +2044,20 @@ class MaterialPlayground: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
+
+		// Capture screenshot before presentation.
+		if (gTakeScreenshot)
+		{
+			// Metal platforms need one renderpass to prepare the swapchain textures for copy.
+			if(prepareScreenshot(pSwapChain))
+			{
+				captureScreenshot(pSwapChain, swapchainImageIndex, RESOURCE_STATE_PRESENT, "06_Material_Screenshot.png");
+				gTakeScreenshot = false;
+			}
+		}
+
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
@@ -2811,7 +2861,15 @@ class MaterialPlayground: public IApp
 
 		uintptr_t meshCount = pStagingData->mModelList.size();
 		gMeshes.resize(meshCount);
+
+#if !defined(DIRECT3D11)
 		addThreadSystemRangeTask(pIOThreads, &memberTaskFunc<MaterialPlayground, &MaterialPlayground::LoadModel>, this, meshCount);
+#else
+		for (uint32_t i = 0; i < meshCount; ++i)
+		{
+			LoadModel(i);
+		}
+#endif
 
 		bool texturesAreLoaded = false;
 		gLuaManager.SetFunction("GetTextureResolution", [](ILuaStateWrap* state) -> int {
@@ -2840,7 +2898,15 @@ class MaterialPlayground: public IApp
 
 		uintptr_t materialTextureCount = pStagingData->mMaterialNamesStorage.size();
 		gTextureMaterialMaps.resize(materialTextureCount);
+
+#if !defined(DIRECT3D11)
 		addThreadSystemRangeTask(pIOThreads, LoadMaterialTexturesTask, pStagingData, materialTextureCount);
+#else
+		for (uint32_t i = 0; i < materialTextureCount; ++i)
+		{
+			LoadMaterialTexturesTask(pStagingData, i);
+		}
+#endif
 
 		bool groundTexturesAreLoaded = false;
 		//This is how we can replace function in runtime.
@@ -2863,7 +2929,15 @@ class MaterialPlayground: public IApp
 
 		uintptr_t groundTextureCount = pStagingData->mGroundNamesStorage.size();
 		gTextureMaterialMapsGround.resize(groundTextureCount);
+
+#if !defined(DIRECT3D11)
 		addThreadSystemRangeTask(pIOThreads, &LoadGroundTexturesTask, pStagingData, groundTextureCount);
+#else
+		for (uint32_t i = 0; i < groundTextureCount; ++i)
+		{
+			LoadGroundTexturesTask(pStagingData, i);
+		}
+#endif
 	}
 
 	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
@@ -2993,7 +3067,6 @@ class MaterialPlayground: public IApp
 		brdfIntegrationDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
-		brdfIntegrationDesc.mHostVisible = false;
 		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 		brdfIntegrationLoadDesc.ppTexture = &pTextureBRDFIntegrationMap;
 		addResource(&brdfIntegrationLoadDesc, &token);
@@ -4764,6 +4837,12 @@ void GuiController::AddGui()
 		GuiController::hairDynamicWidgets[gHairType].hairShading.ShowWidgets(pGuiWindowMain);
 		GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
 	}
+
+	DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+	ButtonWidget bRunScript("Run");
+	bRunScript.pOnEdited = RunScript;
+	pGuiWindowMain->AddWidget(ddTestScripts);
+	pGuiWindowMain->AddWidget(bRunScript);
 }
 
 void GuiController::Exit()

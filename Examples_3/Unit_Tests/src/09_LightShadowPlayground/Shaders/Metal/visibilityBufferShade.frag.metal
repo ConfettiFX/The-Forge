@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of TheForge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -477,12 +477,14 @@ float SampleShadowFactor(float3 worldPos, thread ASMArguments& asmArguments)
 	
 	ASMFrustumDesc frustumDesc;
 	frustumDesc.mIndexCoord = float3(0.0, 0.0, 0.0);
-	frustumDesc.mStartingMip = 0;
 	
 	
 	ASMFrustumDesc preRenderFrustumDesc;
 	preRenderFrustumDesc.mIndexCoord = float3(0.0, 0.0, 0.0);
-	preRenderFrustumDesc.mStartingMip = 5;
+	
+	int swap = int(asmArguments.asmUniformBlock.mMiscBool.z); 
+	frustumDesc.mStartingMip = swap * 5;
+	preRenderFrustumDesc.mStartingMip = (1 - swap) * 5;
 	
 	float blockerDistance = 0.0;
 	float preRenderBlockerDistance = 0.0;

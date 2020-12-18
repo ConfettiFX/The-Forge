@@ -400,6 +400,11 @@ static void onWindowFocusChanged(ANativeActivity* activity, int focused) {
             focused ? APP_CMD_GAINED_FOCUS : APP_CMD_LOST_FOCUS);
 }
 
+static void onWindowResized(ANativeActivity* activity, ANativeWindow* window) {
+	LOGV("WindowResized: %p -- %p\n", activity, window);
+	android_app_write_cmd((struct android_app*)activity->instance, APP_CMD_WINDOW_RESIZED);
+}
+
 static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* window) {
     LOGV("NativeWindowCreated: %p -- %p\n", activity, window);
     android_app_set_window((struct android_app*)activity->instance, window);
@@ -432,6 +437,7 @@ void ANativeActivity_onCreate(ANativeActivity* activity,
     activity->callbacks->onConfigurationChanged = onConfigurationChanged;
     activity->callbacks->onLowMemory = onLowMemory;
     activity->callbacks->onWindowFocusChanged = onWindowFocusChanged;
+    activity->callbacks->onNativeWindowResized = onWindowResized;
     activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;
     activity->callbacks->onNativeWindowDestroyed = onNativeWindowDestroyed;
     activity->callbacks->onInputQueueCreated = onInputQueueCreated;

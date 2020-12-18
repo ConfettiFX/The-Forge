@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,6 +36,7 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
@@ -118,15 +119,84 @@ PlanetInfoStruct gPlanetInfoData[gNumPlanets];
 
 ICameraController* pCameraController = NULL;
 
-GuiComponent* pGuiWindow;
+GuiComponent* pGuiWindow = 0;
 
 /// UI
 UIApp gAppUI;
+
+/// Breadcrumb
+#if defined(DIRECT3D12)
+/* Markers to be used to pinpoint which command has caused GPU hang.
+/* In this example, two markers get injected into the command list.
+/* Pressing the crash button would result in a gpu hang.
+/* In this sitatuion, the first marker would be written before the draw command, but the second one would stall for the draw command to finish.
+/* Due to the infinite loop in the shader, the second marker won't be written, and we can reason that the draw command has caused the GPU hang.
+/* We log the markers information to verify this.*/
+bool bHasCrashed = false;
+bool bSimulateCrash = false;
+
+uint32_t gCrashedFrame = 0;
+const uint32_t gMarkerCount = 2;
+const uint32_t gValidMarkerValue = 1U;
+
+Buffer* pMarkerBuffer[gImageCount] = { NULL };
+Shader* pCrashShader = NULL;
+Pipeline* pCrashPipeline = NULL;
+
+extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+
+#define USE_BREADCRUMB
+#endif
+
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+
+float* pSpherePoints = 0;
+
+		//Generate sky box vertex buffer
+const float gSkyBoxPoints[] = {
+	10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+	-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+	-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
+
+	-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+	-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+	-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
+
+	10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+	10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+	10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
+
+	-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+	-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+	10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
+
+	-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+	10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+	10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
+
+	10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+	10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+	-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
+};
+
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
+
+bool gTakeScreenshot = false;
+void takeScreenshot() 
+{
+	if (!gTakeScreenshot)
+		gTakeScreenshot = true;
+}
 
 class Transformations: public IApp
 {
@@ -140,152 +210,16 @@ public:
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		initRenderer(GetName(), &settings, &pRenderer);
-		//check for init success
-		if (!pRenderer)
-			return false;
-
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		initResourceLoaderInterface(pRenderer);
-
-		// Loads Skybox Textures
-		for (int i = 0; i < 6; ++i)
-		{
-			TextureLoadDesc textureDesc = {};
-			textureDesc.pFileName = pSkyBoxImageFileNames[i];
-			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, NULL);
-		}
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
-		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0};
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0};
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0};
-		basicShader.mStages[1] = { "basic.frag", NULL, 0};
-
-		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-		addShader(pRenderer, &basicShader, &pSphereShader);
-
-		SamplerDesc samplerDesc = { FILTER_LINEAR,
-									FILTER_LINEAR,
-									MIPMAP_MODE_NEAREST,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
-		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
-
-		Shader*           shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		const char*       pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
-		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
 
 		// Generate sphere vertex buffer
-		float* pSpherePoints;
 		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
 
-		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
-		BufferLoadDesc sphereVbDesc = {};
-		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		sphereVbDesc.mDesc.mSize = sphereDataSize;
-		sphereVbDesc.pData = pSpherePoints;
-		sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
-		addResource(&sphereVbDesc, NULL);
-
-		//Generate sky box vertex buffer
-		float skyBoxPoints[] = {
-			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
-			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
-			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
-
-			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
-			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
-			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
-
-			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
-			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
-			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
-
-			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
-			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
-			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
-
-			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
-			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
-			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
-
-			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
-			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
-			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
-		};
-
-		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.pData = skyBoxPoints;
-		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL);
-
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(UniformBlock);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL);
-		}
-
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
-
 		// Sun
 		gPlanetInfoData[0].mParentIndex = 0;
 		gPlanetInfoData[0].mYOrbitSpeed = 0;    // Earth years for one orbit
@@ -385,11 +319,6 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ vec3(0) };
@@ -401,25 +330,9 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
-    
-        // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		/************************************************************************/
-		// GUI
-		/************************************************************************/
-		GuiDesc guiDesc = {};		
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-#if !defined(TARGET_IOS)
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync\t\t\t\t\t", &bToggleVSync));
-#endif
-
 		// App Actions
-        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
-        addInputAction(&actionDesc);
+		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
@@ -434,7 +347,7 @@ public:
 			}, this
 		};
 		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
 			if (!gAppUI.IsFocused() && *ctx->pCaptured)
@@ -451,94 +364,215 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		waitForAllResourceLoads();
-
-		// Need to free memory;
-		tf_free(pSpherePoints);
-		
-		// Prepare descriptor sets
-		DescriptorData params[6] = {};
-		params[0].pName = "RightText";
-		params[0].ppTextures = &pSkyBoxTextures[0];
-		params[1].pName = "LeftText";
-		params[1].ppTextures = &pSkyBoxTextures[1];
-		params[2].pName = "TopText";
-		params[2].ppTextures = &pSkyBoxTextures[2];
-		params[3].pName = "BotText";
-		params[3].ppTextures = &pSkyBoxTextures[3];
-		params[4].pName = "FrontText";
-		params[4].ppTextures = &pSkyBoxTextures[4];
-		params[5].pName = "BackText";
-		params[5].ppTextures = &pSkyBoxTextures[5];
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 6, params);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			DescriptorData params[1] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
-
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pProjViewUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
-		}
-
 		return true;
 	}
 
 	void Exit()
 	{
-		waitQueueIdle(pGraphicsQueue);
-
 		exitInputSystem();
 
 		destroyCameraController(pCameraController);
 
-		gVirtualJoystick.Exit();
-
-		gAppUI.Exit();
-
-		// Exit profile
-		exitProfiler();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pProjViewUniformBuffer[i]);
-			removeResource(pSkyboxUniformBuffer[i]);
-		}
-
-		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-
-		removeResource(pSphereVertexBuffer);
-		removeResource(pSkyBoxVertexBuffer);
-
-		for (uint i = 0; i < 6; ++i)
-			removeResource(pSkyBoxTextures[i]);
-
-		removeSampler(pRenderer, pSamplerSkyBox);
-		removeShader(pRenderer, pSphereShader);
-		removeShader(pRenderer, pSkyBoxDrawShader);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
+		// Need to free memory;
+		tf_free(pSpherePoints);
 	}
 
 	bool Load()
 	{
+		if (mSettings.mResetGraphics || !pRenderer)
+		{
+			// window and renderer setup
+			RendererDesc settings = { 0 };
+			initRenderer(GetName(), &settings, &pRenderer);
+			//check for init success
+			if (!pRenderer)
+				return false;
+
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			initResourceLoaderInterface(pRenderer);
+
+			initScreenshotInterface(pRenderer, pGraphicsQueue);
+
+			// Loads Skybox Textures
+			for (int i = 0; i < 6; ++i)
+			{
+				TextureLoadDesc textureDesc = {};
+				textureDesc.pFileName = pSkyBoxImageFileNames[i];
+				textureDesc.ppTexture = &pSkyBoxTextures[i];
+				addResource(&textureDesc, NULL);
+			}
+
+			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+			{
+				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+				return false;
+			}
+
+			ShaderLoadDesc skyShader = {};
+			skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+			skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+			ShaderLoadDesc basicShader = {};
+			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+			ShaderLoadDesc crashShader = {};
+			crashShader.mStages[0] = { "crash.vert", NULL, 0 };
+			crashShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+			addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+			addShader(pRenderer, &basicShader, &pSphereShader);
+#if defined(USE_BREADCRUMB)
+			addShader(pRenderer, &crashShader, &pCrashShader);
+#endif
+
+			SamplerDesc samplerDesc = { FILTER_LINEAR,
+										FILTER_LINEAR,
+										MIPMAP_MODE_NEAREST,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE };
+			addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
+#if !defined(USE_BREADCRUMB)
+			Shader*           shaders[] = { pSphereShader, pSkyBoxDrawShader };
+			uint32_t shadersCount = 2;
+#else
+			Shader*           shaders[] = { pSphereShader, pSkyBoxDrawShader, pCrashShader };
+			uint32_t shadersCount = 3;
+#endif
+			const char*       pStaticSamplers[] = { "uSampler0" };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mStaticSamplerCount = 1;
+			rootDesc.ppStaticSamplerNames = pStaticSamplers;
+			rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+			rootDesc.mShaderCount = shadersCount;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
+			desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
+
+			uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
+			BufferLoadDesc sphereVbDesc = {};
+			sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			sphereVbDesc.mDesc.mSize = sphereDataSize;
+			sphereVbDesc.pData = pSpherePoints;
+			sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
+			addResource(&sphereVbDesc, NULL);
+
+			uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+			BufferLoadDesc skyboxVbDesc = {};
+			skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+			skyboxVbDesc.pData = gSkyBoxPoints;
+			skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
+			addResource(&skyboxVbDesc, NULL);
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			ubDesc.mDesc.mSize = sizeof(UniformBlock);
+			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+			ubDesc.pData = NULL;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+				ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			// Initialize breadcrumb buffer to write markers in it.
+			initMarkers();
+
+			if (!gAppUI.Init(pRenderer))
+				return false;
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			// Initialize micro profiler and it's UI.
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			// Gpu profiler can only be added after initProfile.
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			/************************************************************************/
+			// GUI
+			/************************************************************************/
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+#if !defined(TARGET_IOS)
+			pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync\t\t\t\t\t", &bToggleVSync));
+#endif
+
+			// Reset graphics with a button.
+			ButtonWidget testGPUReset("ResetGraphics");
+			testGPUReset.pOnEdited = testGraphicsReset;
+			pGuiWindow->AddWidget(testGPUReset);
+
+			// Take a screenshot with a button.
+			ButtonWidget screenshot("Screenshot");
+			screenshot.pOnEdited = takeScreenshot;
+			pGuiWindow->AddWidget(screenshot);
+
+#if defined(USE_BREADCRUMB)
+			ButtonWidget crashButton("Simulate crash");
+			crashButton.pOnEdited = []() { bSimulateCrash = true; };
+			pGuiWindow->AddWidget(crashButton);
+#endif
+			waitForAllResourceLoads();
+
+			// Prepare descriptor sets
+			DescriptorData params[6] = {};
+			params[0].pName = "RightText";
+			params[0].ppTextures = &pSkyBoxTextures[0];
+			params[1].pName = "LeftText";
+			params[1].ppTextures = &pSkyBoxTextures[1];
+			params[2].pName = "TopText";
+			params[2].ppTextures = &pSkyBoxTextures[2];
+			params[3].pName = "BotText";
+			params[3].ppTextures = &pSkyBoxTextures[3];
+			params[4].pName = "FrontText";
+			params[4].ppTextures = &pSkyBoxTextures[4];
+			params[5].pName = "BackText";
+			params[5].ppTextures = &pSkyBoxTextures[5];
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 6, params);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pSkyboxUniformBuffer[i];
+				updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
+
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pProjViewUniformBuffer[i];
+				updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
+			}
+		}
+
 		if (!addSwapChain())
 			return false;
 
@@ -550,8 +584,6 @@ public:
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -594,6 +626,11 @@ public:
 		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
+#if defined(USE_BREADCRUMB)
+		pipelineSettings.pShaderProgram = pCrashShader;
+		addPipeline(pRenderer, &desc, &pCrashPipeline);
+#endif
+
 		//layout and pipeline for skybox draw
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
@@ -615,7 +652,6 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -623,8 +659,63 @@ public:
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pSpherePipeline);
 
+#if defined(USE_BREADCRUMB)
+		removePipeline(pRenderer, pCrashPipeline);
+#endif
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
+
+		if (mSettings.mResetGraphics || mSettings.mQuit)
+		{
+			gVirtualJoystick.Exit();
+
+			exitProfilerUI();
+
+			gAppUI.Exit();
+
+			// Exit profile
+			exitProfiler();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeResource(pProjViewUniformBuffer[i]);
+				removeResource(pSkyboxUniformBuffer[i]);
+			}
+			
+			removeMarkers();
+
+			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+
+			removeResource(pSphereVertexBuffer);
+			removeResource(pSkyBoxVertexBuffer);
+
+			for (uint i = 0; i < 6; ++i)
+				removeResource(pSkyBoxTextures[i]);
+
+			removeSampler(pRenderer, pSamplerSkyBox);
+			removeShader(pRenderer, pSphereShader);
+			removeShader(pRenderer, pSkyBoxDrawShader);
+#if defined(USE_BREADCRUMB)
+			removeShader(pRenderer, pCrashShader);
+#endif
+			removeRootSignature(pRenderer, pRootSignature);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			exitResourceLoaderInterface(pRenderer);
+			exitScreenshotInterface();
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+		}
 	}
 
 	void Update(float deltaTime)
@@ -646,7 +737,7 @@ public:
 		/************************************************************************/
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
-	
+
 		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
@@ -685,10 +776,10 @@ public:
 		gUniformDataSky = gUniformData;
 		gUniformDataSky.mProjectView = projMat * viewMat;
 
-        /************************************************************************/
-        // Update GUI
-        /************************************************************************/
-        gAppUI.Update(deltaTime);
+		/************************************************************************/
+		// Update GUI
+		/************************************************************************/
+		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -706,6 +797,9 @@ public:
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
+		// Check breadcrumb markers
+		checkMarkers();
+
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&viewProjCbv);
@@ -722,6 +816,9 @@ public:
 
 		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
+
+		// Reset markers values
+		resetMarkers(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
@@ -756,37 +853,68 @@ public:
 
 		////// draw planets
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Planets");
-		cmdBindPipeline(cmd, pSpherePipeline);
+
+		Pipeline* pipeline = pSpherePipeline;
+
+		// Using the malfunctioned pipeline
+#if defined(USE_BREADCRUMB)
+		if (bSimulateCrash)
+		{
+			gCrashedFrame = gFrameIndex;
+			bSimulateCrash = false;
+			bHasCrashed = true;
+			pipeline = pCrashPipeline;
+			LOGF(LogLevel::eERROR, "[Breadcrumb] Simulating a GPU crash situation...");
+		}
+#endif
+
+		cmdBindPipeline(cmd, pipeline);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, &sphereVbStride, NULL);
+
+#if defined(USE_BREADCRUMB)
+		// Marker on top of the pip, won't wait for the following draw commands.
+		cmdWriteMarker(cmd, MARKER_TYPE_IN, gValidMarkerValue, pMarkerBuffer[gFrameIndex], 0);
+#endif
+
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
+
+#if defined(USE_BREADCRUMB)
+		// Marker on bottom of the pip, will wait for draw command to be executed.
+		cmdWriteMarker(cmd, MARKER_TYPE_OUT, gValidMarkerValue, pMarkerBuffer[gFrameIndex], 1);
+
+		// Handle readback warning
+		if (pMarkerBuffer[gFrameIndex]->pCpuMappedAddress)
+		{
+			unmapBuffer(pRenderer, pMarkerBuffer[gFrameIndex]);
+		}
+#endif
+
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-
-	loadActions = {};
-	loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-	cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-    cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
+		loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-				
+
 		const float txtIndent = 8.f;
 		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 		cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
-		
-		
 
-    cmdDrawProfilerUI();
+
+		cmdDrawProfilerUI();
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-    cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -804,8 +932,33 @@ public:
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+
+		// captureScreenshot() must be used before presentation.
+		if (gTakeScreenshot)
+		{
+			// Metal platforms need one renderpass to prepare the swapchain textures for copy.
+			if(prepareScreenshot(pSwapChain))
+			{
+				captureScreenshot(pSwapChain, swapchainImageIndex, RESOURCE_STATE_PRESENT, "01_Transformations_Screenshot.png");
+				gTakeScreenshot = false;
+			}
+		}
+		
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset) 
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -846,6 +999,69 @@ public:
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
+	}
+
+	void initMarkers()
+	{
+#if defined(USE_BREADCRUMB)
+		BufferLoadDesc breadcrumbBuffer = {};
+		breadcrumbBuffer.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNDEFINED;
+		breadcrumbBuffer.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+		breadcrumbBuffer.mDesc.mSize = (gMarkerCount + 3) / 4 * 4 * sizeof(uint32_t);
+		breadcrumbBuffer.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		breadcrumbBuffer.mDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+		breadcrumbBuffer.pData = NULL;
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			breadcrumbBuffer.ppBuffer = &pMarkerBuffer[i];
+			addResource(&breadcrumbBuffer, NULL);
+		}
+#endif
+	}
+
+	void checkMarkers()
+	{
+#if defined(USE_BREADCRUMB)
+		if (bHasCrashed)
+		{
+			mapBuffer(pRenderer, pMarkerBuffer[gCrashedFrame], NULL);
+
+			uint32_t* markersValue = (uint32_t*)pMarkerBuffer[gCrashedFrame]->pCpuMappedAddress;
+
+			for (uint32_t m = 0; m < gMarkerCount; ++m)
+			{
+				if (gValidMarkerValue != markersValue[m])
+				{
+					LOGF(LogLevel::eERROR, "[Breadcrumb] crashed frame: %u, marker: %u, value:%u", gCrashedFrame, m, markersValue[m]);
+				}
+			}
+
+			unmapBuffer(pRenderer, pMarkerBuffer[gCrashedFrame]);
+
+			bHasCrashed = false;
+		}
+#endif
+	}
+
+	void resetMarkers(Cmd* pCmd)
+	{
+#if defined(USE_BREADCRUMB)
+		for (uint32_t i = 0; i < gMarkerCount; ++i)
+		{
+			cmdWriteMarker(pCmd, MARKER_TYPE_DEFAULT, 0, pMarkerBuffer[gFrameIndex], i);
+		}
+#endif
+	}
+
+	void removeMarkers()
+	{
+#if defined(USE_BREADCRUMB)
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pMarkerBuffer[i]);
+		}
+#endif
 	}
 };
 

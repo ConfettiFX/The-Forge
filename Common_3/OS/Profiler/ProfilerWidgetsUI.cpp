@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,8 +27,8 @@
 #include "../Interfaces/IProfiler.h"
 
 #if 0 == PROFILE_ENABLED
-void loadProfilerUI(UIApp* uiApp, int32_t width, int32_t height) {}
-void unloadProfilerUI() {}
+void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height) {}
+void exitProfilerUI() {}
 void cmdDrawProfilerUI() {}
 float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc) {}
 float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc) {}
@@ -993,7 +993,7 @@ void profileUpdateTimerModeData(Profile& S, uint32_t groupIndex, uint32_t timerI
 	fMaxExclusive > criticalTime ? *timeColor[8] = gCriticalColor : float4(0.0f);
 }
 
-void unloadProfilerUI()
+void resetProfilerUI()
 {
 	if (pWidgetGuiComponent)
 	{
@@ -1008,6 +1008,7 @@ void unloadProfilerUI()
 			tf_delete(gWidgetTable[i][j]);
 		}
 	}
+	gWidgetTable.clear();
 
 	// Free any allocated timer data mem.
 	for (uint32_t i = 0; i < gTimerData.size(); ++i)
@@ -1018,12 +1019,25 @@ void unloadProfilerUI()
 			tf_delete(gTimerColorData[i][j]);
 		}
 	}
+	gTimerData.clear();
+	gTimerColorData.clear();
 
 	// Free any allocated graph data mem.
 	for (uint32_t i = 0; i < gPlotModeData.size(); ++i)
 	{
 		tf_delete(gPlotModeData[i].mTimeData);
 	}
+	gPlotModeData.clear();
+	gDetailedModeTooltips.clear();
+	gDetailedModeWidgets.clear();
+	gDetailedModeDump.clear();
+	gPlotModeWidgets.clear();
+	gFrameTimerTitle.clear();
+}
+
+void exitProfilerUI()
+{
+	resetProfilerUI();
 
 	gWidgetTable.set_capacity(0);
 	gTimerData.set_capacity(0);
@@ -1038,11 +1052,6 @@ void unloadProfilerUI()
 	{
 		gGPUTimerTitle[i].set_capacity(0);
 	}
-	gUnloaded = true;
-}
-
-void exitProfilerUI()
-{
 	pAppUIRef = 0;
 	pWidgetGuiComponent = 0;
 	pMenuGuiComponent = 0;
@@ -1129,8 +1138,7 @@ float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDr
 /// Draws the top menu and draws the selected timer mode.
 void profileLoadWidgetUI(Profile& S)
 {
-	// Reset
-	unloadProfilerUI();
+	resetProfilerUI();
 
 	eastl::vector<IWidget*> topMenu;
 	topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Select Profile Mode", (uint32_t*)&gProfileMode, pProfileModesNames, gProfileModesValues, PROFILE_MODE_MAX));
@@ -1214,7 +1222,14 @@ void profileUpdateWidgetUI(Profile& S)
 	float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 
-	gCurrWindowSize = float2(pWidgetGuiComponent->mCurrentWindowRect.getZ(), pWidgetGuiComponent->mCurrentWindowRect.getW());
+	// Check windowSize change.
+	float2 windowSize = float2(pWidgetGuiComponent->mCurrentWindowRect.getZ(), pWidgetGuiComponent->mCurrentWindowRect.getW());
+	if (windowSize.x != gCurrWindowSize.x || windowSize.y != gCurrWindowSize.y)
+	{
+		gCurrWindowSize = windowSize;
+		gUpdatePlotModeGUI = true;
+	}
+
 	gHistogramSize = float2(gCurrWindowSize.x, 0.1f * gCurrWindowSize.y);
 	gFrameTime = fToMs * (S.nFlipTicks);
 
@@ -1270,7 +1285,7 @@ void toggleProfilerUI()
 	gProfilerWidgetUIEnabled = (gProfilerWidgetUIEnabled == true) ? false : true;
 }
 
-void loadProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
+void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
 {
 	// Remove previous GUI component.
 	if (pWidgetGuiComponent)

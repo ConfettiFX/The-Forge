@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -99,7 +99,6 @@ typedef struct Geometry
 	Buffer*                     pIndexBuffer;
 	/// The array of vertex buffers to bind when drawing this geometry
 	Buffer*                     pVertexBuffers[MAX_VERTEX_BINDINGS];
-	uint32_t                    mVertexStrides[MAX_VERTEX_BINDINGS];
 	/// The array of traditional draw arguments to draw each subset in this geometry
 	IndirectDrawIndexArguments* pDrawArgs;
 	/// Shadow copy of the geometry vertex and index data if requested through the load flags
@@ -109,6 +108,8 @@ typedef struct Geometry
 	mat4*                       pInverseBindPoses;
 	/// The array of data to remap skin batch local joint ids to global joint ids
 	uint32_t*                   pJointRemaps;
+	/// The array of vertex buffer strides to bind when drawing this geometry
+	uint32_t                    mVertexStrides[MAX_VERTEX_BINDINGS];
 	/// Hair data
 	Hair                        mHair;
 
@@ -125,11 +126,7 @@ typedef struct Geometry
 	/// Number of vertices in the geometry
 	uint32_t                    mVertexCount;
 
-	uint32_t                    mPadA;
-	uint32_t                    mPadB;
-#if defined(_WINDOWS) && !defined(_WIN64)
-	uint32_t                    mPadC;
-#endif
+	uint32_t                     mPad[3];
 } Geometry;
 static_assert(sizeof(Geometry) % 16 == 0, "GLTFContainer size must be a multiple of 16");
 
@@ -270,6 +267,7 @@ typedef struct ResourceLoaderDesc
 {
 	uint64_t mBufferSize;
 	uint32_t mBufferCount;
+	bool     mSingleThreaded;
 } ResourceLoaderDesc;
 
 extern ResourceLoaderDesc gDefaultResourceLoaderDesc;

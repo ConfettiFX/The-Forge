@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,7 +31,9 @@
 
 #define MAX_INSTANCES 815    // For allocating space in uniform block. Must match with shader and application.
 
-#define MAX_BATCHES 500    // Batch count must always be less than this
+#define MAX_BATCHES 512    // Batch count must always be less than this
+
+#define MAX_RIGS 4096
 
 const uint32_t ImageCount = 3;    // must match the application
 
@@ -81,19 +83,25 @@ class SkeletonBatcher
 	// Add a rig to the list of skeletons to draw
 	void AddRig(Rig* rig);
 
+	void SetActiveRigs(uint32_t activeRigs) { mNumActiveRigs = min(activeRigs, mNumRigs); }
+
 	// Update uniforms that will be shared between all skeletons
 	void SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor);
 
 	// Update all the instanced uniform data for each batch of joints and bones
-	void SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs = -1);
+	void SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs = -1, uint32_t rigsOffset = 0);
 
 	// Instance draw all the skeletons
 	void Draw(Cmd* cmd, const uint32_t& frameIndex);
 
 	private:
+
 	// List of Rigs whose skeletons need to be rendered
-	eastl::vector<Rig*> mRigs;
+	Rig* mRigs[MAX_RIGS];
+	uint32_t mCumulativeRigInstanceCount[MAX_RIGS] = { 0 };
+
 	uint32_t            mNumRigs = 0;
+	uint32_t            mNumActiveRigs = 0;
 
 	// Application variables used to be able to update buffers
 	Renderer*      mRenderer;
@@ -114,15 +122,17 @@ class SkeletonBatcher
 	Buffer*  mProjViewUniformBufferBones[ImageCount][MAX_BATCHES] = { { {} } };
 
 	// Uniform data for the joints and bones
-	UniformSkeletonBlock mUniformDataJoints;
-	UniformSkeletonBlock mUniformDataBones;
+	UniformSkeletonBlock mUniformDataJoints[MAX_BATCHES];
+	UniformSkeletonBlock mUniformDataBones[MAX_BATCHES];
 
 	// Keeps track of the number of batches we will send for instanced rendering
 	// for each frame index
-	uint32_t mBatchCounts[ImageCount];
+	tfrg_atomic32_t mBatchCounts[ImageCount];
+
+	tfrg_atomic32_t mInstanceCount;
 
 	// Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
-	uint32_t mLastBatchSize[ImageCount];
+	tfrg_atomic32_t mBatchSize[ImageCount][MAX_BATCHES];
 
 	// Determines if this renderer will need to draw bones between each joint
 	// Set in initialize

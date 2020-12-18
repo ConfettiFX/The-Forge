@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -102,7 +101,7 @@ layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass
 layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D depthBuffer;
 layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D normalBuffer;
 layout(UPDATE_FREQ_NONE, binding = 3) buffer BVHTree { vec4 BVHTreeData[]; };
-layout(UPDATE_FREQ_NONE, binding = 4, r8) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 9, r8) uniform image2D outputShadowRT;
 
 #define THREADX 8
 #define THREADY 8
@@ -190,5 +189,5 @@ void main()
 
 	float shadowFactor =  1.0 - float(collision);
 
-	imageStore(outputRT, ivec2(DTid.xy), vec4(shadowFactor.x, 0, 0,0));
+	imageStore(outputShadowRT, ivec2(DTid.xy), vec4(shadowFactor.x, 0, 0,0));
 }

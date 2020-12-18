@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,7 +34,7 @@ void _OutputDebugStringV(const char* str, va_list args);
 
 void _PrintUnicode(const char* str, bool error = false);
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 #define CHECK_HRESULT(exp)                                                     \
 {                                                                              \
 	HRESULT hres = (exp);                                                      \

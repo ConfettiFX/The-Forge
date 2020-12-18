@@ -1,3 +1,27 @@
+/*
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
 #pragma once
 
 #ifndef PROFILE_ENABLED
@@ -51,10 +75,10 @@ void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const cha
 //------ Profiler UI Widget --------//
 
 // Call on application load to generate the resources needed for UI drawing
-void loadProfilerUI(UIApp* uiApp, int32_t width, int32_t height);
+void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height);
 
 // Call on application exit to release resources needed for UI drawing
-void unloadProfilerUI();
+void exitProfilerUI();
 
 // Call once per frame to draw UI
 void cmdDrawProfilerUI();

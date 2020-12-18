@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,7 +22,7 @@
 * under the License.
 */
 
-#ifdef _WIN32
+#ifdef _WINDOWS
 
 #include <ctime>
 #pragma comment(lib, "WinMM.lib")
@@ -64,6 +64,7 @@ static WNDCLASSW gWindowClass;
 static MonitorDesc* gMonitors = nullptr;
 static uint32_t gMonitorCount = 0;
 static WindowsDesc* gWindow = nullptr;
+static bool gWindowIsResizing = false;
 static bool gCursorVisible = true;
 static bool gCursorInsideRectangle = false;
 
@@ -207,6 +208,8 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_MOVE:
 	{
 		UpdateWindowDescFullScreenRect(gWindow);
+		if (!gWindow->fullScreen)
+			UpdateWindowDescWindowedRect(gWindow);
 		break;
 	}
 	case WM_STYLECHANGING:
@@ -215,21 +218,39 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	case WM_SIZE:
 	{
-		if (wParam == SIZE_MINIMIZED)
+		switch (wParam)
 		{
-			gWindow->minimized = true;
-		}
-		else
-		{
+		case SIZE_RESTORED:
+		case SIZE_MAXIMIZED:
 			gWindow->minimized = false;
+			if (!gWindow->fullScreen && !gWindowIsResizing)
+			{
+				UpdateWindowDescClientRect(gWindow);
+				onResize(gWindow, getRectWidth(gWindow->clientRect), getRectHeight(gWindow->clientRect));
+			}
+			break;
+		case SIZE_MINIMIZED:
+			gWindow->minimized = true;
+			break;
+		default:
+			break;
 		}
 
+		break;
+	}
+	case WM_ENTERSIZEMOVE:
+	{
+		gWindowIsResizing = true;
+		break;
+	}
+	case WM_EXITSIZEMOVE:
+	{
+		gWindowIsResizing = false;
 		if (!gWindow->fullScreen)
 		{
 			UpdateWindowDescClientRect(gWindow);
 			onResize(gWindow, getRectWidth(gWindow->clientRect), getRectHeight(gWindow->clientRect));
 		}
-
 		break;
 	}
 	case WM_SETCURSOR:
@@ -679,12 +700,10 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	}
 	else
 	{
-		UpdateWindowDescWindowedRect(gWindow);
-
 		RECT clientRectStyleAdjusted =
 		{
-			(LONG)(winDesc->windowedRect.left + clientWidthStart),
-			(LONG)(winDesc->windowedRect.top + clientHeightStart),
+			(LONG)(rect.left + clientWidthStart),
+			(LONG)(rect.top + clientHeightStart),
 			(LONG)(clientRectStyleAdjusted.left + getRectWidth(rect)),
 			(LONG)(clientRectStyleAdjusted.top + getRectHeight(rect))
 		};
@@ -714,8 +733,8 @@ void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 {
 	RectDesc newClientRect =
 	{
-		newClientRect.left = winDesc->clientRect.left,
-		newClientRect.top = winDesc->clientRect.top,
+		newClientRect.left = winDesc->windowedRect.left,
+		newClientRect.top = winDesc->windowedRect.top,
 		newClientRect.right = newClientRect.left + (int32_t)width,
 		newClientRect.bottom = newClientRect.top + (int32_t)height
 	};
@@ -886,6 +905,7 @@ void showCursor()
 	if (!gCursorVisible)
 	{
 		ShowCursor(TRUE);
+		gCursorVisible = true;
 	}
 }
 
@@ -894,6 +914,7 @@ void hideCursor()
 	if (gCursorVisible)
 	{
 		ShowCursor(FALSE);
+		gCursorVisible = false;
 	}
 }
 
@@ -975,10 +996,15 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 		return;
 	}
 
+	pApp->mSettings.mFullScreen = wnd->fullScreen;
+	if (pApp->mSettings.mWidth == newSizeX && pApp->mSettings.mHeight == newSizeY)
+	{
+		return;
+	}
+
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 
-	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();
 }
@@ -1105,6 +1131,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
+		// Graphics reset in cases where device has to be re-created.
+		if (pApp->mSettings.mResetGraphics) 
+		{
+			pApp->Unload();
+			pApp->Load();
+			pApp->mSettings.mResetGraphics = false;
+		}
+
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		if (pSettings->mDefaultAutomatedTesting)
@@ -1116,6 +1150,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 #endif
 	}
 
+	pApp->mSettings.mQuit = true;
 	pApp->Unload();
 	pApp->Exit();
 

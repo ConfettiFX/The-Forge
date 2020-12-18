@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2020 The Forge Interactive Inc.
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -625,6 +625,21 @@ TransparencyType  GuiController::currentTransparencyType;
 
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
+
+const char* gTestScripts[] = { "Test_AlphaBlend.lua", "Test_WeightedBlendedOIT.lua", "Test_WeightedBlendedOITVolition.lua", "Test_Phenomenological.lua", "Test_AdaptiveOIT.lua" };
+uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
+uint32_t gCurrentScriptIndex = 0;
+void RunScript()
+{
+	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+}
+
+bool gTestGraphicsReset = false;
+void testGraphicsReset()
+{
+	gTestGraphicsReset = !gTestGraphicsReset;
+}
+
 class Transparency: public IApp
 {
 public:
@@ -637,64 +652,8 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
-
-		RendererDesc settings = { NULL };
-		initRenderer(GetName(), &settings, &pRenderer);
-
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-		initResourceLoaderInterface(pRenderer);
-
-		LoadModels();
-
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			return false;
-
-		CreateSamplers();
-		CreateShaders();
-		CreateRootSignatures();
-		CreateResources();
-		CreateUniformBuffers();
-		CreateDescriptorSets();
-
-		/************************************************************************/
-		// Add GPU profiler
-		/************************************************************************/
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		CreateScene();
-
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-
-		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-		GuiController::AddGui();
-
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+	
 		CameraMotionParameters cmp{ 16.0f, 60.0f, 20.0f };
 		vec3                   camPos{ 0, 5, -15 };
 		vec3                   lookAt{ 0, 5, 0 };
@@ -743,62 +702,87 @@ public:
 
 	void Exit() override
 	{
-		waitQueueIdle(pGraphicsQueue);
-
-		GuiController::RemoveGui();
-
 		exitInputSystem();
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
-
-		exitProfiler();
-
-		gAppUI.Exit();
-
-		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
-			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
-
-		gScene.mParticleSystems.set_capacity(0);
-		gScene.mObjects.set_capacity(0);
-		gOpaqueDrawCalls.set_capacity(0);
-		gTransparentDrawCalls.set_capacity(0);
-
-		gVirtualJoystick.Exit();
-
-		DestroySamplers();
-		DestroyShaders();
-		DestroyDescriptorSets();
-		DestroyRootSignatures();
-		DestroyResources();
-		DestroyUniformBuffers();
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeCmd(pRenderer, pCmds[i]);
-			removeCmdPool(pRenderer, pCmdPools[i]);
-		}
-
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		removeRenderer(pRenderer);
 	}
 
 	bool Load() override
 	{
+		if (mSettings.mResetGraphics || !pRenderer) 
+		{
+			RendererDesc settings = { NULL };
+			initRenderer(GetName(), &settings, &pRenderer);
+
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+			}
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			initResourceLoaderInterface(pRenderer);
+
+			LoadModels();
+
+			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+				return false;
+
+			CreateSamplers();
+			CreateShaders();
+			CreateRootSignatures();
+			CreateResources();
+			CreateUniformBuffers();
+			CreateDescriptorSets();
+
+			CreateScene();
+
+			/************************************************************************/
+			// Add GPU profiler
+			/************************************************************************/
+			if (!gAppUI.Init(pRenderer))
+				return false;
+			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+
+			initProfiler();
+			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+
+			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+			GuiController::AddGui();
+			// Reset graphics with a button.
+			ButtonWidget testGPUReset("ResetGraphicsDevice");
+			testGPUReset.pOnEdited = testGraphicsReset;
+			pGuiWindow->AddWidget(testGPUReset);
+		}
+
 		if (!CreateRenderTargetsAndSwapChain())
 			return false;
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		CreatePipelines();
 
@@ -813,8 +797,6 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfilerUI();
-
 		gVirtualJoystick.Unload();
 
 		gAppUI.Unload();
@@ -822,6 +804,50 @@ public:
 		DestroyPipelines();
 
 		DestroyRenderTargetsAndSwapChian();
+
+		if (mSettings.mQuit || mSettings.mResetGraphics) 
+		{
+			GuiController::RemoveGui();
+			exitProfilerUI();
+
+			exitProfiler();
+
+			gAppUI.Exit();
+
+			for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
+				removeResource(gScene.mParticleSystems[i].pParticleBuffer);
+
+			gVirtualJoystick.Exit();
+
+			DestroySamplers();
+			DestroyShaders();
+			DestroyDescriptorSets();
+			DestroyRootSignatures();
+			DestroyResources();
+			DestroyUniformBuffers();
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeFence(pRenderer, pRenderCompleteFences[i]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			}
+			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				removeCmd(pRenderer, pCmds[i]);
+				removeCmdPool(pRenderer, pCmdPools[i]);
+			}
+
+			exitResourceLoaderInterface(pRenderer);
+			removeQueue(pRenderer, pGraphicsQueue);
+			removeRenderer(pRenderer);
+
+			gScene.mParticleSystems.set_capacity(0);
+			gScene.mObjects.set_capacity(0);
+			gOpaqueDrawCalls.set_capacity(0);
+			gTransparentDrawCalls.set_capacity(0);
+		}
 	}
 
 	void Update(float deltaTime) override
@@ -1926,8 +1952,21 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		queuePresent(pGraphicsQueue, &presentDesc);
+		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
+		{
+			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
+			mSettings.mResetGraphics = true;
+		}
+
+		// Test re-creating graphics resources mid app.
+		if (gTestGraphicsReset)
+		{
+			mSettings.mResetGraphics = true;
+			gTestGraphicsReset = false;
+		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -3733,6 +3772,12 @@ void GuiController::AddGui()
 	if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		dropDownCount = 5;
 #endif
+
+	DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+	ButtonWidget bRunScript("Run");
+	bRunScript.pOnEdited = RunScript;
+	pGuiWindow->AddWidget(ddTestScripts);
+	pGuiWindow->AddWidget(bRunScript);
 
 	pGuiWindow->AddWidget(
 		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));

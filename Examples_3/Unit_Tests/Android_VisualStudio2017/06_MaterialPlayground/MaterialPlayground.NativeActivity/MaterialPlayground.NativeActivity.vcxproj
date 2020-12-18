@@ -85,7 +85,7 @@ $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Fonts\Titi
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
+$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\Hair\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\Hair\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\PBR\Metallic_*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\PBR\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\PBR\" /s /y /d /exclude:$(ProjectDir)xcludedfileslist.txt
@@ -121,11 +121,10 @@ $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Fonts\Titi
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
+$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\06_MaterialPlayground\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\Hair\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\Hair\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\PBR\Metallic_*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\PBR\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\PBR\" /s /y /d /exclude:$(ProjectDir)xcludedfileslist.txt
-$(systemroot)\System32\xcopy "$(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\" /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\PBR\" /s /y /d /exclude:$(ProjectDir)xcludedfileslist.txt</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>

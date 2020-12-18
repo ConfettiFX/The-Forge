@@ -18,6 +18,7 @@
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
     <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="ozz_base"/>
@@ -27,6 +28,7 @@
     <Project Name="SpirVTools"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
+    <Project Name="LuaManager"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -53,8 +55,10 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -80,6 +84,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Animations</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Animation/ $(ProjectPath)/$(ConfigurationName)/Animation/</Command>
@@ -123,7 +128,9 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+	<LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <Library Value="libOS.a"/>
+        <Library Value="libLuaManager.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libRenderer.a"/>
@@ -151,6 +158,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Animations</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Animation/ $(ProjectPath)/$(ConfigurationName)/Animation/</Command>

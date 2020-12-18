@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,6 +28,11 @@
 #include <android/looper.h>
 #include <android/native_activity.h>
 #include <android/log.h>
+
+#if defined(GLES)
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
+#endif
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
@@ -172,11 +177,14 @@ void getDisplayMetrics(struct android_app* _android_app)
         metrics.xdpi = jni->GetFloatField(displayMetrics, idDisplayMetrics_xdpi);
     if ( idDisplayMetrics_ydpi )
         metrics.ydpi = jni->GetFloatField(displayMetrics, idDisplayMetrics_ydpi);
-
+	
     _android_app->activity->vm->DetachCurrentThread();
 }
 
-void openWindow(const char* app_name, WindowsDesc* winDesc) {}
+void openWindow(const char* app_name, WindowsDesc* winDesc)
+{
+
+}
 
 void handleMessages(WindowsDesc* winDesc) { return; }
 
@@ -190,6 +198,7 @@ void setCustomMessageProcessor(CustomMessageProcessor proc)
 
 static bool    windowReady = false;
 static bool    isActive = false;
+
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
 {
 	if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK)
@@ -205,6 +214,8 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event)
 	
 	return 0;
 }
+
+
 
 // Process the next main command.
 void handle_cmd(android_app* app, int32_t cmd)
@@ -222,12 +233,11 @@ void handle_cmd(android_app* app, int32_t cmd)
 			gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
 			gWindow.fullScreen = pSettings->mFullScreen;
 			gWindow.maximized = false;
-			openWindow(pApp->GetName(), &gWindow);
-
 			gWindow.handle.window = app->window;
-
 			pSettings->mWidth = screenWidth;
 			pSettings->mHeight = screenHeight;
+			openWindow(pApp->GetName(), &gWindow);
+
 			pApp->pWindow = &gWindow;
 
 			// The window is being shown, mark it as ready.
@@ -243,8 +253,26 @@ void handle_cmd(android_app* app, int32_t cmd)
 			// losing window, remove swapchain
 			if (windowReady)
 				pApp->Unload();
+
 			windowReady = false;
 			// The window is being hidden or closed, clean it up.
+			break;
+		}
+		case APP_CMD_WINDOW_RESIZED:
+		{
+			int32_t screenWidth = ANativeWindow_getWidth(app->window);
+			int32_t screenHeight = ANativeWindow_getHeight(app->window);
+
+			IApp::Settings* pSettings = &pApp->mSettings;
+			if (pSettings->mWidth != screenWidth || pSettings->mHeight != screenHeight)
+			{
+				gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
+				pSettings->mWidth = screenWidth;
+				pSettings->mHeight = screenHeight;
+
+				pApp->Unload();
+				pApp->Load();
+			}
 			break;
 		}
 		case APP_CMD_START:
@@ -368,17 +396,26 @@ int AndroidMain(void* param, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
+		// Graphics reset in cases where device has to be re-created.
+		if (pApp->mSettings.mResetGraphics) 
+		{
+			pApp->Unload();
+			pApp->Load();
+			pApp->mSettings.mResetGraphics = false;
+		}
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;
 		if (testingFrameCount >= testingDesiredFrameCount)
 		{
 			ANativeActivity_finish(android_app->activity);
+			pApp->mSettings.mQuit = true;
 		}
 #endif
 		if (android_app->destroyRequested)
 			quit = true;
 	}
+	pApp->mSettings.mQuit = true;
 	if (windowReady)
 		pApp->Unload();
 	windowReady = false;

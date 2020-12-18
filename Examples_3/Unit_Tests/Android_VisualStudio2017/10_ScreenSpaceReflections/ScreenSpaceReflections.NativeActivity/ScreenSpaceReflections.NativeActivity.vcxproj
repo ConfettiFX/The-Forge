@@ -71,7 +71,7 @@
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;</LibraryDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -88,6 +88,7 @@ $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Sh
 $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_ScreenSpaceReflections\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
 $(systemroot)\System32\Robocopy /S $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ *.ktx
 $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_ScreenSpaceReflections\Scripts\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ *.lua
 $(systemroot)\System32\Robocopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi) $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi) *.so
 if ERRORLEVEL 2 goto HandleError
 exit 0
@@ -107,7 +108,7 @@ exit %ERRORLEVEL%
       <EnableNeonCodegen>false</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;</LibraryDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -124,6 +125,7 @@ $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Sh
 $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_ScreenSpaceReflections\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
 $(systemroot)\System32\Robocopy /S $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ *.ktx
 $(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_ScreenSpaceReflections\Scripts\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ *.lua
 if ERRORLEVEL 2 goto HandleError
 exit 0
 :HandleError

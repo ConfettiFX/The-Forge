@@ -22,6 +22,8 @@
 		B2087DF321421A66006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF121421A66006F372D /* MetalKit.framework */; };
 		B2087DF421421A66006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF221421A66006F372D /* Metal.framework */; };
 		B236BE46246C2F7B000AAC0A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B236BE44246C2F7B000AAC0A /* Main.storyboard */; };
+		B28DC8DB2522B22B009B5FEF /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC8192522AED4009B5FEF /* libLuaManager.a */; };
+		B28DC8E02522B24E009B5FEF /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC81B2522AED4009B5FEF /* libLuaManager_iOS.a */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
@@ -47,6 +49,41 @@
 			proxyType = 2;
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
+		};
+		B28DC8182522AED4009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
+			remoteInfo = LuaManager;
+		};
+		B28DC81A2522AED4009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
+			remoteInfo = LuaManager_iOS;
+		};
+		B28DC8D92522B227009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = LuaManager;
+		};
+		B28DC8E12522B25F009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C172FA821414B680074EE71 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		B28DC8E32522B261009B5FEF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = LuaManager_iOS;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -97,6 +134,7 @@
 		B21F76E621420EDB00DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76E721420EDB00DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B236BE45246C2F7B000AAC0A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E9A438CC233DC103005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
@@ -113,8 +151,9 @@
 				5CB55CC4246C135A00BAE550 /* UIKit.framework in Frameworks */,
 				5CB55CC6246C136900BAE550 /* GameController.framework in Frameworks */,
 				5CB55CC8246C136D00BAE550 /* MetalKit.framework in Frameworks */,
-				5CB55CC2246C134C00BAE550 /* libThe-Forge_iOS.a in Frameworks */,
 				5CB55CC0246C134700BAE550 /* Metal.framework in Frameworks */,
+				5CB55CC2246C134C00BAE550 /* libThe-Forge_iOS.a in Frameworks */,
+				B28DC8E02522B24E009B5FEF /* libLuaManager_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,6 +165,7 @@
 				B2087DF321421A66006F372D /* MetalKit.framework in Frameworks */,
 				B2087DF421421A66006F372D /* Metal.framework in Frameworks */,
 				5C172FB021414B730074EE71 /* libThe-Forge.a in Frameworks */,
+				B28DC8DB2522B22B009B5FEF /* libLuaManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -204,9 +244,19 @@
 			name = Shaders;
 			sourceTree = "<group>";
 		};
+		B28DC8142522AED4009B5FEF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B28DC8192522AED4009B5FEF /* libLuaManager.a */,
+				B28DC81B2522AED4009B5FEF /* libLuaManager_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */,
 				971BCF4F21701D38007F2B2F /* Shaders */,
 				5C172FA821414B680074EE71 /* The-Forge.xcodeproj */,
 				EA463C941EF81E8F005AC8C7 /* 15_Transparency */,
@@ -253,6 +303,8 @@
 			buildRules = (
 			);
 			dependencies = (
+				B28DC8E22522B25F009B5FEF /* PBXTargetDependency */,
+				B28DC8E42522B261009B5FEF /* PBXTargetDependency */,
 			);
 			name = 15_Transparency_iOS;
 			productName = 15_Transparency_iOS;
@@ -272,6 +324,7 @@
 			);
 			dependencies = (
 				5C172FAF21414B6D0074EE71 /* PBXTargetDependency */,
+				B28DC8DA2522B227009B5FEF /* PBXTargetDependency */,
 			);
 			name = 15_Transparency;
 			productName = 02_Texture;
@@ -308,6 +361,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = B28DC8142522AED4009B5FEF /* Products */;
+					ProjectRef = B28DC8132522AED4009B5FEF /* LuaManager.xcodeproj */;
+				},
+				{
 					ProductGroup = 5C172FA921414B680074EE71 /* Products */;
 					ProjectRef = 5C172FA821414B680074EE71 /* The-Forge.xcodeproj */;
 				},
@@ -333,6 +390,20 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C17305021414E980074EE71 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B28DC8192522AED4009B5FEF /* libLuaManager.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager.a;
+			remoteRef = B28DC8182522AED4009B5FEF /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B28DC81B2522AED4009B5FEF /* libLuaManager_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager_iOS.a;
+			remoteRef = B28DC81A2522AED4009B5FEF /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -373,7 +444,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/skybox/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/skybox/\" \"$DST/Textures/skybox/\"\nrsync -u -r \"$ASSETS/Textures/grid.dds\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/skybox/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/skybox/\" \"$DST/Textures/skybox/\"\nrsync -u -r \"$ASSETS/Textures/grid.dds\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 		5C61B5A424D2E52800EF5D20 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -390,7 +461,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/skybox/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/skybox/\" \"$DST/Textures/skybox/\"\nrsync -u -r \"$ASSETS/Textures/grid.ktx\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/skybox/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/Textures/skybox/\" \"$DST/Textures/skybox/\"\nrsync -u -r \"$ASSETS/Textures/grid.ktx\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -420,6 +491,21 @@
 			isa = PBXTargetDependency;
 			name = "The-Forge";
 			targetProxy = 5C172FAE21414B6D0074EE71 /* PBXContainerItemProxy */;
+		};
+		B28DC8DA2522B227009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LuaManager;
+			targetProxy = B28DC8D92522B227009B5FEF /* PBXContainerItemProxy */;
+		};
+		B28DC8E22522B25F009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = B28DC8E12522B25F009B5FEF /* PBXContainerItemProxy */;
+		};
+		B28DC8E42522B261009B5FEF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LuaManager_iOS;
+			targetProxy = B28DC8E32522B261009B5FEF /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -45,6 +45,7 @@
 #define _NET_WM_STATE_ADD    1
 #define _NET_WM_STATE_TOGGLE 2
 
+class setWindowRect;
 struct MWMHints 
 {
     unsigned long flags;
@@ -101,27 +102,7 @@ void requestShutdown()
     gQuit = true;
 }
 
-void toggleFullscreen(WindowsDesc* window)
-{
-    Atom wmState = XInternAtom(window->handle.display, "_NET_WM_STATE", False);
-    Atom wmStateFullscreen = XInternAtom(window->handle.display, "_NET_WM_STATE_FULLSCREEN", False);
 
-    ASSERT(wmState);
-    ASSERT(wmStateFullscreen);
-
-    XEvent xev = {};
-    xev.type = ClientMessage;
-    xev.xclient.window = window->handle.window;
-    xev.xclient.message_type = wmState;
-    xev.xclient.format = 32;
-    xev.xclient.data.l[0] = window->fullScreen ? _NET_WM_STATE_REMOVE : _NET_WM_STATE_ADD;
-    xev.xclient.data.l[1] = wmStateFullscreen;
-    xev.xclient.data.l[2] = 0;
-
-    XSendEvent(window->handle.display, DefaultRootWindow(window->handle.display), False, SubstructureNotifyMask, &xev);
-
-    window->fullScreen = !window->fullScreen;
-}
 
 float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
 /************************************************************************/
@@ -415,7 +396,8 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->windowedRect.left, winDesc->windowedRect.top,
 		winDesc->windowedRect.right - winDesc->windowedRect.left, winDesc->windowedRect.bottom - winDesc->windowedRect.top, 0,
 		visualInfo->depth, InputOutput, visualInfo->visual, CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
-    ASSERT(winDesc->handle.window);
+	winDesc->clientRect = winDesc->windowedRect;
+	ASSERT(winDesc->handle.window);
 
 	//Added
 	//set window title name
@@ -478,9 +460,11 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 	currentRect = rect;
 
-    XResizeWindow(winDesc->handle.display, winDesc->handle.window, rect.right - rect.left, rect.bottom - rect.top);
-    XMoveWindow(winDesc->handle.display, winDesc->handle.window, rect.left, rect.top);
-    XFlush(winDesc->handle.display);
+	winDesc->clientRect = rect;
+
+	XResizeWindow(winDesc->handle.display, winDesc->handle.window, rect.right - rect.left, rect.bottom - rect.top);
+	XMoveWindow(winDesc->handle.display, winDesc->handle.window, rect.left, rect.top);
+	XFlush(winDesc->handle.display);
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
@@ -494,10 +478,7 @@ void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 }
 
 void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
-{
-	if (winDesc->fullScreen)
-        return;
-   
+{ 
 	if (winDesc->borderlessWindow)
 	{
         Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
@@ -522,8 +503,26 @@ void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
 
     }
 
-    setWindowRect(winDesc, { 0, 0, (int32_t)width, (int32_t)height });
+	setWindowSize(winDesc, width, height);
     winDesc->borderlessWindow = !winDesc->borderlessWindow;
+}
+
+void toggleFullscreen(WindowsDesc* winDesc)
+{
+	winDesc->fullScreen = !winDesc->fullScreen;
+	
+	// Going fullscreen.
+	if(winDesc->fullScreen)
+	{
+		Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
+		toggleBorderless(winDesc, screen->width, screen->height);
+		setWindowRect(winDesc, { 0, 0, (int32_t)screen->width, (int32_t)screen->height });
+	}
+	else
+	{
+		toggleBorderless(winDesc, getRectWidth(winDesc->windowedRect), getRectHeight(winDesc->windowedRect));
+		setWindowRect(winDesc, winDesc->windowedRect);
+	}
 }
 
 void showWindow(WindowsDesc* winDesc)
@@ -767,20 +766,33 @@ bool handleMessages(WindowsDesc* winDesc)
 			}
 			case ConfigureNotify:
 			{
+				// Some window state has changed. Update the relevant attributes.
+				RectDesc rect = { 0 };
+				rect = { (int)event.xconfigure.x, (int)event.xconfigure.y, (int)event.xconfigure.width + (int)event.xconfigure.x,
+						 (int)event.xconfigure.height + (int)event.xconfigure.y };
+				
+				winDesc->clientRect = rect;
+			
+				if(!winDesc->fullScreen)
+				{
+					winDesc->windowedRect = rect;
+				}
+				else
+				{
+					winDesc->fullscreenRect = rect;
+				}
+				
 				// Handle Resize event
                 if (event.xconfigure.width != (int)pApp->mSettings.mWidth ||
                     event.xconfigure.height != (int)pApp->mSettings.mHeight)
 				{
-					RectDesc rect = { 0 };
-					rect = { (int)event.xconfigure.x, (int)event.xconfigure.y, (int)event.xconfigure.width + (int)event.xconfigure.x,
-							 (int)event.xconfigure.height + (int)event.xconfigure.y };
-					winDesc->windowedRect = rect;
-
 					onResize(winDesc, getRectWidth(rect), getRectHeight(rect));
 				}
 				break;
 			}
-			default: break;
+			default: {
+				break;
+				}
 		}
 	}
 
@@ -855,6 +867,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	}
 
 	gWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
+	gWindow.clientRect = rect;
 	gWindow.fullScreen = pSettings->mFullScreen;
 	openWindow(pApp->GetName(), &gWindow);
 
@@ -889,6 +902,13 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
+        // Graphics reset in cases where device has to be re-created.
+		if (pApp->mSettings.mResetGraphics) 
+		{
+			pApp->Unload();
+			pApp->Load();
+			pApp->mSettings.mResetGraphics = false;
+		}
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;
@@ -897,6 +917,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 #endif
 	}
 
+    pApp->mSettings.mQuit = true;
     restoreResolutions();
 
 	pApp->Unload();

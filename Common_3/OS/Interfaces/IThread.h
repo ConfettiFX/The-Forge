@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@
 #ifndef _THREAD_H_
 #define _THREAD_H_
 
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 typedef unsigned long ThreadID;
 #elif defined(NX64)
 #else
@@ -52,7 +52,7 @@ struct Mutex
 	bool TryAcquire();
 	void Release();
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 	CRITICAL_SECTION mHandle;
 #elif defined(NX64)
 	MutexTypeNX mMutexPlatformNX;
@@ -85,7 +85,7 @@ struct ConditionVariable
 	void WakeOne();
 	void WakeAll();
 
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 	void* pHandle;
 #elif defined(NX64)
 	ConditionVariableTypeNX mCondPlatformNX;	
@@ -111,7 +111,7 @@ struct ThreadDesc
 	void*          pData;
 };
 
-#if defined(_WIN32)
+#if defined(_WINDOWS) || defined(XBOX)
 typedef void* ThreadHandle;
 #elif !defined(NX64)
 typedef pthread_t ThreadHandle;
@@ -138,7 +138,7 @@ struct Thread
 #define MAX_THREAD_NAME_LENGTH 31
 #endif
 
-#ifdef _WIN32
+#if defined(_WINDOWS) || defined(XBOX)
 void sleep(unsigned mSec);
 #endif
 

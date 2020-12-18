@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -118,6 +118,10 @@ struct ShaderVariable
 
 	// name size
 	uint32_t name_size;
+
+#if defined(GLES)
+	GLenum type; // Needed to use the right glUniform(i) function to upload the data
+#endif
 };
 
 struct ShaderReflection

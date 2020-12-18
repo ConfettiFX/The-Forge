@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,8 +40,12 @@
 #include "../OS/Interfaces/ILog.h"
 #include "../OS/Interfaces/IThread.h"
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && defined(VULKAN)
 #include <shaderc/shaderc.h>
+#endif
+
+#if defined(GLES)
+#include "OpenGLES/GLESContextCreator.h"
 #endif
 
 #include "../OS/Core/TextureContainers.h"
@@ -94,10 +98,6 @@ extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffe
 #endif
 
 #define MAX_FRAMES 3U
-
-#ifdef DIRECT3D11
-Mutex gContextLock;
-#endif
 
 ResourceLoaderDesc gDefaultResourceLoaderDesc = { 8ull << 20, 2 };
 /************************************************************************/
@@ -324,7 +324,7 @@ typedef struct TextureUpdateDescInternal
 
 typedef struct CopyResourceSet
 {
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11)
 	Fence*                 pFence;
 #endif
 	Cmd*                   pCmd;
@@ -438,7 +438,7 @@ static uint32_t util_get_texture_subresource_alignment(Renderer* pRenderer, Tiny
 /// Return a new staging buffer
 static MappedMemoryRange allocateUploadMemory(Renderer* pRenderer, uint64_t memoryRequirement, uint32_t alignment)
 {
-#if defined(DIRECT3D11)
+#if defined(DIRECT3D11) || defined(GLES)
 	// There is no such thing as staging buffer in D3D11
 	// To keep code paths unified in update functions, we allocate space for a dummy buffer and the system memory for pCpuMappedAddress
 	Buffer* buffer = (Buffer*)tf_memalign(alignof(Buffer), sizeof(Buffer) + (size_t)memoryRequirement);
@@ -472,7 +472,7 @@ static void setupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine, uint32
 		tf_placement_new<CopyResourceSet>(pCopyEngine->resourceSets + i);
 
 		CopyResourceSet& resourceSet = pCopyEngine->resourceSets[i];
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11)
 		addFence(pRenderer, &resourceSet.pFence);
 #endif
 		CmdPoolDesc cmdPoolDesc = {};
@@ -500,7 +500,7 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 
 		removeCmd(pRenderer, resourceSet.pCmd);
 		removeCmdPool(pRenderer, resourceSet.pCmdPool);
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11)
 		removeFence(pRenderer, resourceSet.pFence);
 #endif
 		if (!resourceSet.mTempBuffers.empty())
@@ -522,7 +522,7 @@ static bool waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size
 	ASSERT(!pCopyEngine->isRecording);
 	CopyResourceSet& resourceSet = pCopyEngine->resourceSets[activeSet];
 	bool             completed = true;
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11)
 	FenceStatus status;
 	getFenceStatus(pRenderer, resourceSet.pFence, &status);
 	completed = status != FENCE_STATUS_INCOMPLETE;
@@ -572,13 +572,10 @@ static void streamerFlush(CopyEngine* pCopyEngine, size_t activeSet)
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
 		submitDesc.ppCmds = &resourceSet.pCmd;
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11)
 		submitDesc.pSignalFence = resourceSet.pFence;
 #endif
 		{
-#if defined(DIRECT3D11)
-			MutexLock lock(gContextLock);
-#endif
 			queueSubmit(pCopyEngine->pQueue, &submitDesc);
 		}
 		pCopyEngine->isRecording = false;
@@ -897,6 +894,10 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			textureDesc.mStartState = RESOURCE_STATE_COMMON;
 			textureDesc.mFlags |= pTextureDesc->mCreationFlag;
 			textureDesc.mNodeIndex = pTextureDesc->mNodeIndex;
+#if defined (VULKAN)
+			if (NULL != pTextureDesc->pDesc)
+				textureDesc.pVkSamplerYcbcrConversionInfo = pTextureDesc->pDesc->pVkSamplerYcbcrConversionInfo;
+#endif
 			addTexture(pRenderer, &textureDesc, pTextureDesc->ppTexture);
 
 			updateDesc.mStream = stream;
@@ -1509,6 +1510,12 @@ static void streamerThreadFunc(void* pThreadData)
 	ResourceLoader* pLoader = (ResourceLoader*)pThreadData;
 	ASSERT(pLoader);
 
+#if defined(GLES)
+	GLContext localContext;
+	if (!pLoader->mDesc.mSingleThreaded)
+		initGLContext(pLoader->pRenderer->pConfig, &localContext, pLoader->pRenderer->pContext);
+#endif
+
 	uint32_t linkedGPUCount = pLoader->pRenderer->mLinkedNodeCount;
 
 	SyncToken      maxToken = {};
@@ -1523,6 +1530,11 @@ static void streamerThreadFunc(void* pThreadData)
 
 		while (!areTasksAvailable(pLoader) && allTokensSignaled && pLoader->mRun)
 		{
+			// No waiting if not running dedicated resource loader thread.
+			if (pLoader->mDesc.mSingleThreaded)
+			{
+				return;
+			}
 			// Sleep until someone adds an update request to the queue
 			pLoader->mQueueCond.Wait(pLoader->mQueueMutex);
 		}
@@ -1624,18 +1636,27 @@ static void streamerThreadFunc(void* pThreadData)
 
 		SyncToken nextToken = max(maxToken, getLastTokenCompleted());
 		pLoader->mCurrentTokenState[pLoader->mNextSet] = nextToken;
+		if (pResourceLoader->mDesc.mSingleThreaded)
+		{
+			return;
+		}
 	}
 
 	for (uint32_t nodeIndex = 0; nodeIndex < linkedGPUCount; ++nodeIndex)
 	{
 		streamerFlush(&pLoader->pCopyEngines[nodeIndex], pLoader->mNextSet);
-#ifndef DIRECT3D11
+#if !defined(DIRECT3D11) && !defined(GLES)
 		waitQueueIdle(pLoader->pCopyEngines[nodeIndex].pQueue);
 #endif
 		cleanupCopyEngine(pLoader->pRenderer, &pLoader->pCopyEngines[nodeIndex]);
 	}
 
 	freeAllUploadMemory();
+
+#if defined(GLES)
+	if(!pResourceLoader->mDesc.mSingleThreaded)
+		removeGLContext(&localContext);
+#endif
 }
 
 static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, ResourceLoader** ppLoader)
@@ -1670,7 +1691,15 @@ static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, Re
 	pLoader->mThreadDesc.preferredCore = 1;
 #endif
 
-	pLoader->mThread = create_thread(&pLoader->mThreadDesc);
+#if defined(DIRECT3D11)
+	pLoader->mDesc.mSingleThreaded = true;
+#endif
+
+	// Create dedicated resource loader thread.
+	if (!pLoader->mDesc.mSingleThreaded)
+	{
+		pLoader->mThread = create_thread(&pLoader->mThreadDesc);
+	}
 
 	*ppLoader = pLoader;
 }
@@ -1678,8 +1707,17 @@ static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, Re
 static void removeResourceLoader(ResourceLoader* pLoader)
 {
 	pLoader->mRun = false;
-	pLoader->mQueueCond.WakeOne();
-	destroy_thread(pLoader->mThread);
+
+	if (pLoader->mDesc.mSingleThreaded)
+	{
+		streamerThreadFunc(pLoader);
+	}
+	else
+	{
+		pLoader->mQueueCond.WakeOne();
+		destroy_thread(pLoader->mThread);
+	}
+
 	pLoader->mQueueCond.Destroy();
 	pLoader->mTokenCond.Destroy();
 	pLoader->mQueueMutex.Destroy();
@@ -1781,6 +1819,10 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
 
 static void waitForToken(ResourceLoader* pLoader, const SyncToken* token)
 {
+	if (pLoader->mDesc.mSingleThreaded)
+	{
+		return;
+	}
 	pLoader->mTokenMutex.Acquire();
 	while (!isTokenCompleted(token))
 	{
@@ -1793,18 +1835,12 @@ static void waitForToken(ResourceLoader* pLoader, const SyncToken* token)
 /************************************************************************/
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {
-#ifdef DIRECT3D11
-	gContextLock.Init();
-#endif
 	addResourceLoader(pRenderer, pDesc, &pResourceLoader);
 }
 
 void exitResourceLoaderInterface(Renderer* pRenderer)
 {
 	removeResourceLoader(pResourceLoader);
-#ifdef DIRECT3D11
-	gContextLock.Destroy();
-#endif
 }
 
 void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
@@ -1909,6 +1945,10 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	{
 		TextureLoadDesc updateDesc = *pTextureDesc;
 		queueTextureLoad(pResourceLoader, &updateDesc, token);
+		if (pResourceLoader->mDesc.mSingleThreaded) 
+		{
+			streamerThreadFunc(pResourceLoader);
+		}
 	}
 }
 
@@ -1921,6 +1961,10 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
 	updateDesc.pVertexLayout = (VertexLayout*)tf_calloc(1, sizeof(VertexLayout));
 	memcpy(updateDesc.pVertexLayout, pDesc->pVertexLayout, sizeof(VertexLayout));
 	queueGeometryLoad(pResourceLoader, &updateDesc, token);
+	if (pResourceLoader->mDesc.mSingleThreaded)
+	{
+		streamerThreadFunc(pResourceLoader);
+	}
 }
 
 void removeResource(Buffer* pBuffer)
@@ -1991,6 +2035,10 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 	// Restore the state to before the beginUpdateResource call.
 	pBufferUpdate->pMappedData = NULL;
 	pBufferUpdate->mInternal = {};
+	if (pResourceLoader->mDesc.mSingleThreaded)
+	{
+		streamerThreadFunc(pResourceLoader);
+	}
 }
 
 void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
@@ -2036,6 +2084,10 @@ void endUpdateResource(TextureUpdateDesc* pTextureUpdate, SyncToken* token)
 	// Restore the state to before the beginUpdateResource call.
 	pTextureUpdate->pMappedData = NULL;
 	pTextureUpdate->mInternal = {};
+	if (pResourceLoader->mDesc.mSingleThreaded)
+	{
+		streamerThreadFunc(pResourceLoader);
+	}
 }
 
 SyncToken getLastTokenCompleted()
@@ -2067,7 +2119,7 @@ void waitForAllResourceLoads()
 /************************************************************************/
 // Shader loading
 /************************************************************************/
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && defined(VULKAN)
 // Translate Vulkan Shader Type to shaderc shader type
 shaderc_shader_kind getShadercShaderType(ShaderStage type)
 {
@@ -2353,6 +2405,10 @@ extern bool prospero_compileShader(
 	uint32_t macroCount, ShaderMacro* pMacros,
 	BinaryShaderStageDesc* pOut,
 	const char* pEntryPoint);
+#endif
+#if defined(GLES)
+extern void gl_compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
+	bool enablePrimitiveId, uint32_t macroCount, ShaderMacro* pMacros, BinaryShaderStageDesc* pOut, const char* pEntryPoint);
 #endif
 
 static eastl::string fsReadFromStreamSTLLine(FileStream* stream)
@@ -2641,6 +2697,7 @@ bool load_shader_stage_byte_code(
 	case RENDERER_API_D3D11: rendererApi = "D3D11"; break;
 	case RENDERER_API_VULKAN: rendererApi = "Vulkan"; break;
 	case RENDERER_API_METAL: rendererApi = "Metal"; break;
+	case RENDERER_API_GLES: rendererApi = "GLES"; break;
 	default: break;
 	}
 	char extension[FS_MAX_PATH] = { 0 };
@@ -2688,7 +2745,7 @@ bool load_shader_stage_byte_code(
 			pOut,
 			loadDesc.pEntryPointName);
 #else
-		if (pRenderer->mApi == RENDERER_API_METAL || pRenderer->mApi == RENDERER_API_VULKAN)
+		if (pRenderer->mApi == RENDERER_API_METAL || pRenderer->mApi == RENDERER_API_VULKAN || pRenderer->mApi == RENDERER_API_GLES)
 		{
 #if defined(VULKAN)
 #if defined(__ANDROID__)
@@ -2702,6 +2759,8 @@ bool load_shader_stage_byte_code(
 #endif
 #elif defined(METAL)
 			mtl_compileShader(pRenderer, metalShaderPath, binaryShaderComponent.c_str(), macroCount, pMacros, pOut, loadDesc.pEntryPointName);
+#elif defined(GLES)
+			gl_compileShader(pRenderer, target, stage, loadDesc.pFileName, (uint32_t)code.size(), code.c_str(), binaryShaderComponent.c_str(), macroCount, pMacros, pOut, loadDesc.pEntryPointName);
 #endif
 		}
 		else

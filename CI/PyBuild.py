@@ -354,8 +354,8 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory, maxDepth=-1)
 				if pathLastExt == extension:
 					filesPathList.append(root)
 		else:
-			for filename in fnmatch.filter(files, "*."+extension):
-				filesPathList.append(os.path.join(root,filename))
+			for filename in fnmatch.filter(files, "*." + extension):
+				filesPathList.append(os.path.join(root, filename))
 
 		if maxDepth == 0:
 			break
@@ -1059,8 +1059,20 @@ def TestXboxProjects():
 			print(line) 
 			break
 	
+	#Cleanup the shared folders before launching the test
 	crashdump_path = '\\\\'+consoleIP+"\SystemScratch\LocalDumps"
-	
+	shaderFolder = 	'\\\\'+consoleIP+"\SystemScratch\CompiledShaders"
+	cleanupList = ["CompiledShaders","PipelineCaches","SDF"]
+
+	def cleanupSharedFiles():
+		for dir in cleanupList:
+			fullDir = '\\\\'+consoleIP+"\SystemScratch\\"+dir
+			if os.path.exists(fullDir):
+				shutil.rmtree(fullDir)
+			os.makedirs(fullDir)
+
+	cleanupSharedFiles()
+
 	#Clean all apps
 	print ("Cleaning XBox apps and data (this will reboot the console)")
 	command = [gdkDir+'xbcleanup', '/U /D /P /C /L']
@@ -1085,20 +1097,24 @@ def TestXboxProjects():
 		crashDumpCount = 0
 	
 	#get paths for exe in Loose folder
-	projects = GetFilesPathByExtension("Xbox/Examples_3","exe",False)
+	projects = GetFilesPathByExtension("Xbox/Examples_3", "exe", False)
 	fileList = []
+	filenameList = []
 	for proj in projects:
 		if "XBOX Visual Studio 2017" in proj:# and "Release" in proj:
 			if "Loose" in proj:
 				fileList.append(os.path.dirname(proj))
+				filename = proj.split('\\')
+				filename = filename[len(filename)-1]
+				filenameList.append(filename)
 
-	#Deploy Loose folders and store app names
-	appList = []
+	#Register Loose folders and store app names
 	appRootList = []
+	appNameList = []
 	for filename in fileList:
-		#deploy app to xbox
-		print ("Deploying: " + filename)
-		command = [gdkDir+'xbapp',"deploy",filename,"/X"+consoleIP]
+		#register app on xbox
+		print ("Registering Network Share: " + filename)
+		command = [gdkDir+'xbapp',"registernetworkshare",filename]
 		output = XBoxCommand(command, False)
 
 		#Extract App Name from output
@@ -1106,18 +1122,18 @@ def TestXboxProjects():
 		for item in output:
 			if "Game" in item:
 				appName = item.strip()
-				appList.append(appName)
+				appNameList.append(appName)
 				appRootList.append(filename)
-				print ("Successfully deployed: " + appName)
+				print ("Successfully registered: " + appName)
 		if appName == "InvalidAppName":
-			print ("Failed to deploy: " + filename)
+			print ("Failed to register network share: " + filename)
 			failedTests.append({'name':filename, 'gpu':"", 'reason':"Invalid app name"})
 			errorOccured = True
 		print ("")
 
-	#Launch the deployed apps
-	for appName, appRoot in zip(appList, appRootList):
-		appFileName = appName.split("!")[0]
+	#Launch the registered apps
+	for filename, appRoot, appName in zip(filenameList, appRootList, appNameList):
+		filenameWithoutExe = filename.split('.exe')[0]
 
 		#wait for home to run. something is probably wrong by that point
 		command = [gdkDir+'xbapp', "query","/X"+consoleIP, homePackageName]
@@ -1182,19 +1198,23 @@ def TestXboxProjects():
 			while rc != 0:
 				rc = subprocess.call(command, stdin=None, stdout=FNULL, stderr=FNULL)
 			output = XBoxCommand(command, False)
-			
+
 			# Check if a new crash dump was generated
 			currentCrashDumpCount = len( [line for line in output if '.exe' in line] )
 			if (currentCrashDumpCount > crashDumpCount):
 				crashDumpCount = len(output) - 1
-				testingComplete = False
-		
-			# # get the memory leak file path
-			memleakPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'+'Titles'+'\\'
-			
-			memleakPath = memleakPath + appFileName
-			memleakPath = GetFilesPathByExtension(memleakPath,"exe",False)
-			memleakPath = memleakPath[0].split('.exe')[0]+".memleaks"
+				# Check if it is the current test
+				dumpFiles = GetFilesPathByExtension(crashdump_path, "dmp", False)
+				dumpFilePath = "Invalid"
+				for dump in dumpFiles:
+					if filenameNoExt in dump:
+						dumpFilePath = dump
+						testingComplete = False
+						break
+
+			# get the memory leak file path
+			memleakPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'
+			memleakPath = memleakPath + filenameWithoutExe + ".memleaks"
 			
 			leaksDetected = FindMemoryLeaks(memleakPath)
 			
@@ -1209,7 +1229,7 @@ def TestXboxProjects():
 				print ("Application Terminated Early: " + appName + "\n")
 				failedTests.append({'name': appName, 'gpu': "", 'reason': "Runtime failure"})
 		
-		logFilePath = GetFilesPathByExtension(f"\\\\{consoleIP}\\SystemScratch\\Titles\\{appFileName}", "exe", False)[0].split(".exe")[0] + ".log"
+		logFilePath = f"\\\\{consoleIP}\\SystemScratch\\" + filenameWithoutExe + ".log"
 		if os.path.exists(logFilePath) and os.path.isfile(logFilePath):
 			with open(logFilePath) as f:
 				print(f.read())
@@ -1222,11 +1242,6 @@ def TestXboxProjects():
 			def ExecuteCdb(commands: str, timeout: int, parseParagraph: bool = False, prefixToParse: str = None) -> str:
 				cdbPath = os.path.join("C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\kd.exe")
 				gdkSymbolPath = os.path.join(os.getenv("GXDKLatest"), "gameKit\\symbols")
-				titlesPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'+'Titles'+'\\'
-				titlesPath = titlesPath + appName.split("!")[0]
-				exeName = GetFilesPathByExtension(titlesPath, "exe", False)[0].split("\\")
-				exeName = exeName[len(exeName) - 1]
-				dumpFilePath = f"{crashdump_path}\\{exeName}.{pid}.dmp"
 				cdbCommand = [cdbPath, "-z", dumpFilePath, "-y", gdkSymbolPath, "-i", appRoot, "-c", f"{commands};qd"]
 				print(f"Executing CDB Command: {toCommandString(cdbCommand)}")
 				cdbOutput = subprocess.run(cdbCommand, capture_output=True, universal_newlines=True, timeout=timeout).stdout
@@ -1245,7 +1260,9 @@ def TestXboxProjects():
 			stackOutput = ExecuteCdb("!sym noisy;.lines -e;.reload /f;!analyze -v", 60, True, "STACK_TEXT:")
 			print(stackOutput)
 
-	#Copy crash dumps to PC and delete them from the console
+		cleanupSharedFiles()
+
+	#Copy crash dumps to PC and delete shared folders from the console
 	command = ["xcopy", crashdump_path, "C:\\dumptemp\\", "/s", "/e"]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 	copy_tree("C:\\dumptemp", "C:\\XboxOneCrashDumps")
@@ -1523,11 +1540,13 @@ def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 def TestAndroidProjects():
 	errorOccured = False
 
+	lowEndExamples = ["Transformations", "FontRendering", "ZipFileSystem", "UserInterface", "Audio"]
+
 	projects = GetFilesPathByExtension("./Examples_3/Unit_Tests/Android_VisualStudio2017","apk",False)
 	fileList = []
 
 	for proj in projects:
-		if "Android_VisualStudio2017" in proj and "Release" in proj and "Packaging" not in proj:
+		if "Android_VisualStudio2017" in proj and ("Release" in proj or "ReleaseGLES" in proj) and "Packaging" not in proj:
 			fileList.append(proj)
 
 	for proj in fileList:
@@ -1547,28 +1566,43 @@ def TestAndroidProjects():
 		apkName = proj.split(os.sep)[-1]
 		filenameNoExt = apkName.split('.')[0]
 		fullAppName = "com.forge.unittest." + filenameNoExt
-
+		nativeActivity = "/android.app.NativeActivity"
+		if filenameNoExt in lowEndExamples:
+			nativeActivity = "/.NativeDebug"
 		#change working directory to sln file
 		os.chdir(rootPath)
 		#origFilename = filename
-		unlockScreenCommand = ["adb","shell", "input", "keyevent", "82"]
+		#unlockScreenCommand = ["adb","shell", "input", "keyevent", "82"]
 		uninstallCommand = ["adb", "uninstall",fullAppName]
 		grepPSCommand = ["adb", "shell", "ps","| grep", fullAppName]
 		installCommand = ["adb", "install", "-r", apkName]
-		runCommand = ["adb", "shell", "am", "start", "-W", "-n", fullAppName + "/android.app.NativeActivity"]
+		runCommand = ["adb", "shell", "am", "start", "-W", "-n", fullAppName + nativeActivity]
 		stopAppCommand = ["adb", "shell", "am", "force-stop" , fullAppName]
 		logCatCommand = ["adb", "logcat","-d", "-s", "The-Forge", "the-forge-app"]
 		clearLogCatCommand = ["adb", "logcat", "-c"]
+		unlockScreenCommand = ["adb", "shell","input" ,"keyevent", "82", "&&", "adb", "shell", "input" ,"keyevent", "66"]
+		lockScreenCommand = ["adb", "shell","input" ,"keyevent", "82", "&&", "adb", "shell", "input" ,"keyevent", "26", "&&", "adb", "shell", "input" ,"keyevent", "26"]
+		
+		def GetAndroidKeyEventCmd(key):
+			return ["adb", "shell","input" ,"keyevent", key]
+			
+		def LockScreenCmd():
+			ExecuteCommand(GetAndroidKeyEventCmd("82"), None)
+			ExecuteCommand(GetAndroidKeyEventCmd("26"), None)
+			
+		def UnlockScreenCmd():
+			ExecuteCommand(GetAndroidKeyEventCmd("26"), None)
+			ExecuteCommand(GetAndroidKeyEventCmd("82"), None)
 		
 		# get the memory leak file path
 		# memleakFile = GetMemLeakFile(origFilename)
 		# delete the memory leak file before execute the app
 		# if os.path.exists(memleakFile):
 		# 	os.remove(memleakFile)
-		ExecuteCommand(unlockScreenCommand, None)
 		retCode = ExecuteCommand(uninstallCommand, None)
 		retCode = ExecuteCommand(installCommand, sys.stdout)
 		ExecuteCommand(clearLogCatCommand, None)
+		UnlockScreenCmd()
 		retCode = ExecuteTest(runCommand, filenameNoExt, True)
 		AndroidADBCheckRunningProcess(grepPSCommand, filenameNoExt, apkName)
 		time.sleep(2)
@@ -1583,6 +1617,7 @@ def TestAndroidProjects():
 		else : retCode = 0
 			
 		ExecuteCommand(stopAppCommand, sys.stdout)
+		LockScreenCmd()
 
 		#leaksDetected = FindMemoryLeaks(memleakFile)
 		# if retCode == 0:# and leaksDetected == True:
@@ -1603,15 +1638,16 @@ def TestAndroidProjects():
 def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
-
-	androidConfigurations = ["Debug", "Release"]
-	androidPlatform = ["ARM64"]
+	androidConfigurations = ["Debug", "Release", "DebugGLES", "ReleaseGLES"]
+	androidPlatform = ["ARM", "ARM64"]
 
 	if skipDebug:
 		androidConfigurations.remove("Debug")
+		androidConfigurations.remove("DebugGLES")
 	
 	if skipRelease:
 		androidConfigurations.remove("Release")
+		androidConfigurations.remove("ReleaseGLES")
 
 	if msBuildPath == "":
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
@@ -1656,10 +1692,12 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild):
 		for platform in androidPlatform:
 			if ".sln" in proj:
 				for conf in androidConfigurations:
+					if 'ARM' == platform and 'GLES' not in conf:
+						continue
 					command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
 					#print(command)
 					retCode = ExecuteBuild(command, filename, conf, platform)
-			elif ".buildproj" in proj:
+			elif ".buildproj" in proj and 'ARM64' == platform:
 				command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
 				retCode = ExecuteBuild(command, filename, "All Configurations", platform)
 		

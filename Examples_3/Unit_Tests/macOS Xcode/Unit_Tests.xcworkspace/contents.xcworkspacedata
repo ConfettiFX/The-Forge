@@ -55,6 +55,9 @@
       <FileRef
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
+      <FileRef
+         location = "group:32_Window/32_Window.xcodeproj">
+      </FileRef>
    </Group>
    <Group
       location = "container:"

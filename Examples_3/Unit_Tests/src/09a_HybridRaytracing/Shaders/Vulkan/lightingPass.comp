@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -35,9 +34,9 @@ layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass
 	uniform vec4	cameraPos;
 };
 
-layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D normalbuffer;
-layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D shadowbuffer;
-layout(UPDATE_FREQ_NONE, binding = 3, rgba32f) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D normalBuffer;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform texture2D shadowbuffer;
+layout(UPDATE_FREQ_NONE, binding = 5, rgba32f) uniform image2D outputRT;
 
 #define THREADX 16
 #define THREADY 16
@@ -53,7 +52,7 @@ void main()
 	const float lightIntensity = 5;
 	const vec3 lightColour = vec3(1, 1, 0.5);
 
-	vec3 normal = texelFetch(normalbuffer, ivec2(DTid.xy), 0).xyz;
+	vec3 normal = texelFetch(normalBuffer, ivec2(DTid.xy), 0).xyz;
 
 	float shadowFactor = texelFetch(shadowbuffer, ivec2(DTid.xy), 0).x;
 
