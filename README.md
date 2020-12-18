@@ -23,7 +23,7 @@ Particularly, the graphics layer of The Forge supports cross-platform
 
 The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
 - Resource Loader as shown in 10_PixelProjectedReflections, capable to load textures, buffers and geometry data asynchronously
-- [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
+- [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms
 - Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
@@ -34,7 +34,6 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Fast Entity Component System based on our internally developed ECS
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
-- Audio based on integrating [SoLoud](https://github.com/jarikomppa/soloud)
 - Shader Translator using a superset of HLSL as the shader language. There is a Wiki page on [how to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
@@ -55,6 +54,67 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.47 - December 18th, 2020 - OpenGL ES 2.0 Android support | Device Reset Support | DRED / Breadcrumb support | Lua driven functional tests | DX11 refactor | YUV support through Vulkan
+As the year winds slowly down, we finally found time to do another release. First of all, Happy Holidays and a happy new Year! 
+
+![Happy Holidays and a happy new Year!](Screenshots/Holidycard-2020-front.png)
+
+Most of us will take off over the Holiday season and spent time with their families. We should be back online in the middle of January 2021.
+* OpenGL ES 2.0: TF will run on probably several hundred million of mobile devices in the future. It will be the rendering layer of business application frameworks. For this usage case, we added OpenGL ES 2.0 support only for Android. The OpenGL ES 2.0 layer only supports unit tests 1, 5, 12 and 31 at the moment. 
+* Device change / reset: we finally implemented all the code that can deal with device changes, device resets or device removed scenarios on all platforms. The underlying design was always there but it took us 3+ years to finally add the functionality :-)
+When you go into any of the ```*OSBase.*``` files you can find a snippet of code that looks like this:
+
+```
+if (pApp->mSettings.mResetGraphics) 
+	{
+		pApp->Unload();
+		pApp->Load();
+		pApp->mSettings.mResetGraphics = false;
+	}
+  ```
+* DRED / Breadcrumb support: to be able to better tell what the reason behind a removed device is, we implemented DRED support on PC with DirectX 12 and XBOX. We integrated this into the first functional test 01_Transformations. Here is a screenshot. Look for the "Simulate crash" button:
+
+![Image of the Transformations Unit test](Screenshots/01_Transformations.PNG)
+
+Breadcrumb are user defined markers used to pinpoint which command has caused GPU to stall.
+In the Breadcrumb unit test, two markers get injected into the command list. 
+Pressing the crash button would result in a GPU hang. 
+In this situation, the first marker would be written before the draw command, but the second one would stall for the draw command to finish.
+Due to the infinite loop in the shader, the second marker won't be written, and we can reason that the draw command has caused the GPU to hang.
+We log the markers' information to verify this.
+Check out this link for more info: [D3D12 Device Removed Extended Data (DRED)](https://microsoft.github.io/DirectX-Specs/d3d/DeviceRemovedExtendedData.html)
+
+* More Lua Scripting support for all functional tests:
+  * For the scripted testing of the Unit Tests, this layer provides automated function registration of the UI elements to Lua State.
+  * Any UI elements added to the GUI will add a function or a pair of function(Getter/Setter) to the Lua state for using them in any script.
+Lua function name resolution will work like this:
+  * UI Widget "label" name will be included in the function name as follows,
+	- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", and event - OnEdited : "PressOnEdited"
+	- For Widget modifiers such as ints / floats: "Set" and "Get" function pair will be added as a prefix to label name e.g., "X" variable will have "SetX" and "GetX" pair of functions.
+ * After writing the scripts, you can let the layer know about the scripts using AddTestScripts() function call and run them on any frame by RunTestScript() defined in UIApp class. There are examples of these test scripts in most of the UTs showing how you can also add these scripts to UI and test them on runtime.
+
+ Here is how the current Lua support in the functional tests might look like:
+
+![Lua support](Screenshots/Lua_Support.png)
+
+* DX11 refactor: we re-wrote the DX11 run-time a few times. We ended up with the most straighforward version. This version only recently shipped in Hades along with the Vulkan run-time on PC. 
+
+* YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
+
+![YUV unit test](Screenshots/34_YUV.png)
+
+* Audio: we removed the audio functional test. It was the only test that was released unfinished and didn't run on all our platforms. Our customers show  love for FMOD ... would make more sense to show an integration of that.
+
+* GitHub issues fixed: 
+  * #188 - typo - lowercase L in first DepthStencilClearFlags constant "ClEAR_DEPTH"
+  * #186 - Ubuntu: Examples fail to build
+  * #182 - Flickering on master when vsync is off
+  * #176 - [08_GlftViewer] Application crash on missing resource
+
+Numerous other fixes ...
+
+
 
 
 ## Release 1.46 - October 1st, 2020 - Supergiant's Hades | Windows Management | AMD FX Stochastic SS Reflection
@@ -252,8 +312,17 @@ See the release notes from previous releases in the [Release section](https://gi
 2. Drivers
 * AMD / NVIDIA / Intel - latest drivers 
 
-3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
+3. Visual Studio 2017 with Windows SDK / DirectX (you need to get it via the Visual Studio Intaller)
+* Base version:
+  * The minimum Windows 10 version is 1803.
+  * The minimum SDK version is 1803 (10.0.17134.12).
+
+* To use Raytracing:
+  * The minimum Windows 10 version is 1809.
+  * The minimum SDK version is 1809 (10.0.17763.0).
+
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
+
 
 4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec  [1.1.114](https://vulkan.lunarg.com/sdk/home)
 
@@ -312,7 +381,7 @@ We are currently testing on:
 
 3. Workspace file is provided for [codelite 12.0.6](https://codelite.org/)
 
-4. Vulkan SDK Version 1.1.101: download the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/)
+4. Vulkan SDK Version 1.1.108: download the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/)
 
 
 5. The Forge is currently tested on Ubuntu with the following GPUs:
@@ -498,8 +567,27 @@ This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trac
 ![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
 
 
-## 10. Pixel-Projected Reflections
-This unit test shows reflections that are ray traced. It is an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
+## 10. Screen-Space Reflections
+This test offers two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
+
+Here are the screenshots of AMD's FX Stochastic Screen Space Reflections:
+
+Windows final scene:
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/SSSR_Scene_with_reflections.png)
+
+Without denoising:
+![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_only_defore_denoise.png)
+
+With denoising:
+![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_with_denoise.png)
+
+PS4:
+![AMD FX Stochastic Screen Space Reflections on PS4](Screenshots/SSSR/SSSR_on_PS4.png)
+
+macOS:
+![AMD FX Stochastic Screen Space Reflections on macOS](Screenshots/SSSR/SSSR_on_macOS.png)
+
+In case you pick Pixel-Projected Reflections, the application features an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
 
 ![Image of the Pixel-Projected Reflections Unit test](Screenshots/10_Pixel-ProjectedReflections.png)
 
@@ -649,10 +737,24 @@ Aim IK
 Two Bone IK
 ![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
 
-## 31. Audio Integration of SoLoud
-We integrated SoLoad. Here is a unit test that allow's you make noise ...
+## 32. Windows Management
+This test demonstrates windows management on Windows, Linux and macOS. 
+  * The window layout, position, and size are now driven by the client dimensions, meaning that
+the values that the client demands are the exact values the client area will be represented with, regardless of the window style. This allows for much greater flexibility
+and consistency, especially when working with a fullscreen window. 
+  * Multi-monitor support has also been improved significantly, offering smooth consistent transitions between client displays and guaranteeing correct window behavior and data retention. Media layer functionality has been expanded, allowing the client to control mouse positioning, mouse visibility, and mouse visual representation. 
+  * It is now possible to create independent mouse cursors to further customize the application.
 
-![Audio Integration](Screenshots/26_Audio.png)
+Here are the screenshots:
+
+Windows:
+![Windows Management for Windows](Screenshots/32_Window_Win.png)
+
+macOS:
+![Windows Management for macOS](Screenshots/32_Window_macOS.png)
+
+Linux:
+![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
 
 
 # Examples
@@ -740,6 +842,18 @@ Here is a screenshot of Hades running on Switch:
 Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
 Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
 
+## Bethesda's Creation Engine
+Bethesda based their rendering layer for their next-gen engine on The Forge. We helped integrate and optimize it. 
+
+![Bethesda's Creation Engine](Screenshots/Starfield-The-Elder-Scrolls-6-Bethesda.jpg)
+
+Here is more info about this game engine:
+
+[Todd Howard Teases Bethesda's New Game Engine Behind The Elder Scrolls 6 And Starfield](https://www.thegamer.com/starfield-the-elder-scrolls-6-new-game-engine/)
+
+[Bethesda's overhauling its engine for Starfield and The Elder Scrolls 6](https://www.gamesradar.com/bethesda-engine-starfield-elder-scrolls-6/)
+
+
 
 ## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
@@ -747,8 +861,9 @@ The Forge is used to build the StarVR One SDK:
 <a href="https://www.starvr.com" target="_blank"><img src="Screenshots/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
 
+
 ## Torque 3D
-The Forge is used as the rendering framework in Torque 3D:
+The Forge will be used as the rendering framework in Torque 3D:
 
 <a href="http://www.garagegames.com/products/torque-3d" target="_blank"><img src="Screenshots/Torque-Logo_H.png" 
 alt="Torque 3D" width="417" height="106" border="0" /></a>
