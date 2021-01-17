@@ -30,7 +30,7 @@
 
 #include "ozz/base/io/archive_traits.h"
 #include "ozz/base/platform.h"
-
+#include "ozz/base/span.h"
 //CONFFX_BEGIN
 #include "../../../../../../../../Common_3/OS/Math/MathTypes.h"
 //CONFFX_END
@@ -62,9 +62,9 @@ class Track {
   ~Track();
 
   // Keyframe accessors.
-  Range<const float> ratios() const { return ratios_; }
-  Range<const _ValueType> values() const { return values_; }
-  Range<const uint8_t> steps() const { return steps_; }
+  span<const float> ratios() const { return ratios_; }
+  span<const _ValueType> values() const { return values_; }
+  span<const uint8_t> steps() const { return steps_; }
 
   // Get the estimated track's size in bytes.
   size_t size() const;
@@ -90,13 +90,13 @@ class Track {
   void Deallocate();
 
   // Keyframe ratios (0 is the beginning of the track, 1 is the end).
-  Range<float> ratios_;
+  span<float> ratios_;
 
   // Keyframe values.
-  Range<_ValueType> values_;
+  span<_ValueType> values_;
 
   // Keyframe modes (1 bit per key): 1 for step, 0 for linear.
-  Range<uint8_t> steps_;
+  span<uint8_t> steps_;
 
   // Track name.
   char* name_;
@@ -109,8 +109,18 @@ struct TrackPolicy {
                                 float _alpha) {
     return lerp(_alpha, _a, _b);  // CONFFX_BEGIN
   }
+  inline static float Distance(const _ValueType& _a, const _ValueType& _b) {
+    return length(_a - _b);
+  }
   inline static _ValueType identity() { return _ValueType(0.f); }
 };
+
+// Specialization for float policy.
+template <>
+inline float TrackPolicy<float>::Distance(const float& _a, const float& _b) {
+  return std::abs(_a - _b);
+}
+
 // Specialization for quaternions policy.
 //CONFFX_BEGIN
 template <>
@@ -120,6 +130,15 @@ inline Quat TrackPolicy<Quat>::Lerp(
   // curve (key frame reduction), so "constant speed" interpolation can still be
   // approximated with a lower tolerance value if it matters.
   return normalize(lerp(_alpha, _a, _b));
+}
+template <>
+inline float TrackPolicy<Quat>::Distance(
+    const Quat& _a, const Quat& _b) {
+  const float cos_half_angle =
+      _a.getX() * _b.getX() + _a.getY() * _b.getY() + _a.getZ() * _b.getZ() + _a.getW() * _b.getW();
+  // Return value is 1 - half cosine, so the closer the quaternions, the closer
+  // to 0.
+  return 1.f - min(1.f, abs(cos_half_angle));
 }
 template <>
 inline Quat TrackPolicy<Quat>::identity() {

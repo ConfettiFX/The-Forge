@@ -36,32 +36,27 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
 	// Find the root index
 	for (unsigned int i = 0; i < mNumJoints; i++)
 	{
-		if (mSkeleton.joint_properties()[i].parent == ozz::animation::Skeleton::kNoParentIndex)
+		if (mSkeleton.joint_parents()[i] == ozz::animation::Skeleton::kNoParent)
 		{
 			mRootIndex = i;
 			break;
 		}
 	}
 
-	mJointWorldMats = eastl::vector<Matrix4>(mNumJoints, Matrix4::identity());
-	mBoneWorldMats = eastl::vector<Matrix4>(mNumJoints, Matrix4::identity());
-	mJointScales = eastl::vector<Vector3>(mNumJoints, Vector3(1.0f, 1.0f, 1.0f));
-
-	// Allocates joint model matrix buffer
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-	mJointModelMats = allocator->AllocateRange<Matrix4>(mNumJoints);
+	mJointWorldMats.resize(mNumJoints, Matrix4::identity());
+	mBoneWorldMats.resize(mNumJoints, Matrix4::identity());
+	mJointScales.resize(mNumJoints, Vector3(1.0f, 1.0f, 1.0f));
+	mJointModelMats.resize(mNumJoints, Matrix4::identity());
 }
 
 void Rig::Destroy()
 {
 	mSkeleton.Deallocate();
 
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-	allocator->Deallocate(mJointModelMats);
-
 	mJointWorldMats.set_capacity(0);
 	mBoneWorldMats.set_capacity(0);
 	mJointScales.set_capacity(0);
+	mJointModelMats.set_capacity(0);
 }
 
 void Rig::Pose(const Matrix4& rootTransform)
@@ -96,7 +91,7 @@ void Rig::Pose(const Matrix4& rootTransform)
 			}
 
 			// Get the index of the parent of childIndex
-			const int parentIndex = mSkeleton.joint_properties()[childIndex].parent;
+			const int parentIndex = mSkeleton.joint_parents()[childIndex];
 
 			// Selects joint matrices.
 			const mat4 parentMat = mJointModelMats[parentIndex];

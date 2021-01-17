@@ -36,75 +36,73 @@
 namespace ozz {
 namespace animation {
 
+LocalToModelJob::LocalToModelJob()
+    : skeleton(nullptr),
+      root(nullptr),
+      from(Skeleton::kNoParent),
+      to(Skeleton::kMaxJoints),
+      from_excluded(false) {}
+
 bool LocalToModelJob::Validate() const {
   // Don't need any early out, as jobs are valid in most of the performance
   // critical cases.
   // Tests are written in multiple lines in order to avoid branches.
   bool valid = true;
 
-  // Test for NULL begin pointers.
+  // Test for nullptr begin pointers.
   if (!skeleton) {
     return false;
   }
-  valid &= input.begin != NULL;
-  valid &= output.begin != NULL;
 
-  const int num_joints = skeleton->num_joints();
-  const int num_soa_joints = (num_joints + 3) / 4;
+  const size_t num_joints = static_cast<size_t>(skeleton->num_joints());
+  const size_t num_soa_joints = (num_joints + 3) / 4;
 
-  // Test input and output ranges, implicitly tests for NULL end pointers.
-  valid &= input.end - input.begin >= num_soa_joints;
-  valid &= output.end - output.begin >= num_joints;
+  // Test input and output ranges, implicitly tests for nullptr end pointers.
+  valid &= input.size() >= num_soa_joints;
+  valid &= output.size() >= num_joints;
 
   return valid;
 }
 
 //CONFFX_BEGIN
 bool LocalToModelJob::Run() const {
-
   if (!Validate()) {
     return false;
   }
 
-  // Early out if no joint.
-  const int num_joints = skeleton->num_joints();
-  if (num_joints == 0) {
-    return true;
-  }
-
-  // Fetch joint's properties.
-  Range<const Skeleton::JointProperties> properties =
-      skeleton->joint_properties();
-
-  // Output.
-  Matrix4* const model_matrices = output.begin;
+  const span<const int16_t>& parents = skeleton->joint_parents();
 
   // Initializes an identity matrix that will be used to compute roots model
   // matrices without requiring a branch.
   const Matrix4 identity = Matrix4::identity();
-  const Matrix4* root_matrix = (root == NULL) ? &identity : root;
+  const Matrix4* root_matrix = (root == nullptr) ? &identity : root;
 
-  for (int joint = 0; joint < num_joints;) {
+  // Applies hierarchical transformation.
+  // Loop ends after "to".
+  const int end = min(to + 1, skeleton->num_joints());
+  // Begins iteration from "from", or the next joint if "from" is excluded.
+  // Process next joint if end is not reach. parents[begin] >= from is true as
+  // long as "begin" is a child of "from".
+  for (int i = max(from + from_excluded, 0),
+           process = i < end && (!from_excluded || parents[i] >= from);
+       process;) {
     // Builds soa matrices from soa transforms.
-    const SoaTransform& transform = input.begin[joint / 4];
+    const SoaTransform& transform = input[i / 4];
     const SoaFloat4x4 local_soa_matrices = SoaFloat4x4::FromAffine(
         transform.translation, transform.rotation, transform.scale);
-    // Converts to aos matrices.
-    Vector4 local_aos_matrices[16];
-    transpose16x16(&local_soa_matrices.cols[0].x, local_aos_matrices);
 
-    // Applies hierarchical transformation.
-    const int proceed_up_to = joint + min(4, num_joints - joint);
-    const Vector4* local_aos_matrix = local_aos_matrices;
-    for (; joint < proceed_up_to; ++joint, local_aos_matrix += 4) {
-      const int parent = properties.begin[joint].parent;
+    // Converts to aos matrices.
+    Matrix4 local_aos_matrices[4];
+    transpose16x16(&local_soa_matrices.cols[0].x,
+                         &local_aos_matrices[0][0]);
+
+    // parents[i] >= from is true as long as "i" is a child of "from".
+    for (const int soa_end = (i + 4) & ~3; i < soa_end && process;
+         ++i, process = i < end && parents[i] >= from) {
+      const int parent = parents[i];
       const Matrix4* parent_matrix =
-          math::Select(parent == Skeleton::kNoParentIndex, root_matrix,
-                       &model_matrices[parent]);
-      const Matrix4 local_matrix = Matrix4(local_aos_matrix[0], local_aos_matrix[1],
-                                      local_aos_matrix[2],
-                                      local_aos_matrix[3]);
-      model_matrices[joint] = (*parent_matrix) * local_matrix;
+          parent == Skeleton::kNoParent ? root_matrix : &output[parent];
+      output[i] = *parent_matrix * local_aos_matrices[i & 3];
     }
   }
 

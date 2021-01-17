@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -51,7 +51,7 @@ static class GlobalRegistrer {
   ~GlobalRegistrer() {
     if (parser_) {
       parser_->~Parser();
-      parser_ = NULL;
+      parser_ = nullptr;
     }
   }
 
@@ -107,10 +107,10 @@ Registrer<_Option>::~Registrer() {
 }
 
 // Explicit instantiation of all supported types of Registrer.
-template class Registrer<TypedOption<bool> >;
-template class Registrer<TypedOption<int> >;
-template class Registrer<TypedOption<float> >;
-template class Registrer<TypedOption<const char*> >;
+template class Registrer<TypedOption<bool>>;
+template class Registrer<TypedOption<int>>;
+template class Registrer<TypedOption<float>>;
+template class Registrer<TypedOption<const char*>>;
 }  // namespace internal
 
 // Construct the parser if no option is registered.
@@ -128,7 +128,7 @@ ParseResult ParseCommandLine(int _argc, const char* const* _argv,
   return parser->Parse(_argc, _argv);
 }
 
-// A NULL parser means that no option is registered and that ParseCommandLine
+// A nullptr parser means that no option is registered and that ParseCommandLine
 // has not been called.
 std::string ParsedExecutablePath() {
   Parser* parser = internal::g_global_registrer.parser();
@@ -180,7 +180,7 @@ int StrNICmp(const char* _left, const char* _right, size_t _count) {
   return 0;
 }
 
-// Returns the first character after _option, or NULL if option has not been
+// Returns the first character after _option, or nullptr if option has not been
 // found.
 const char* ParseOption(const char* _argv, const char* _prefix,
                         const char* _option) {
@@ -189,14 +189,14 @@ const char* ParseOption(const char* _argv, const char* _prefix,
 
   // All options start with --.
   if (StrNICmp(_argv, _prefix, prefix_len) != 0) {
-    return NULL;
+    return nullptr;
   }
   _argv += prefix_len;
   if (!StrNICmp(_argv, _option, option_len)) {
     return _argv + option_len;
   }
 
-  return NULL;
+  return nullptr;
 }
 
 bool Parse(const char* _argv, const char* _option, bool* _value) {
@@ -391,15 +391,15 @@ Parser::Parser()
       executable_path_begin_(""),
       executable_path_end_(executable_path_begin_ + 1),
       executable_name_(""),
-      version_(NULL),
-      usage_(NULL),
+      version_(nullptr),
+      usage_(nullptr),
       builtin_version_("version", "Displays application version", false, false,
                        &ValidateExclusiveOption),
       builtin_help_("help", "Displays help", false, false,
                     &ValidateExclusiveOption) {
   // Set default values.
-  set_version(NULL);
-  set_usage(NULL);
+  set_version(nullptr);
+  set_usage(nullptr);
   // Registers built-in options.
   RegisterOption(&builtin_version_);
   RegisterOption(&builtin_help_);
@@ -597,9 +597,9 @@ bool Parser::RegisterOption(Option* _option) {
     return false;
   }
 
-  // Empty (or NULL) names aren't allowed.
+  // Empty (or nullptr) names aren't allowed.
   if (_option->name()[0] == '\0') {
-    std::cerr << "Empty (or NULL) names aren't allowed." << std::endl;
+    std::cerr << "Empty (or nullptr) names aren't allowed." << std::endl;
     return false;
   }
 

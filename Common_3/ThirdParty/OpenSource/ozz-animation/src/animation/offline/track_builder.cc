@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -30,7 +30,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
-#include <limits>
+//#include <limits>
 
 #include "ozz/base/memory/allocator.h"
 
@@ -99,15 +99,15 @@ void Fixup(_Keyframes* _keyframes) {
 // t = 0 and the last at t = 1. If at least one of those keys are not
 // in the RawAnimation then the builder creates it.
 template <typename _RawTrack, typename _Track>
-_Track* TrackBuilder::Build(const _RawTrack& _input) const {
+unique_ptr<_Track> TrackBuilder::Build(const _RawTrack& _input) const {
   // Tests _raw_animation validity.
   if (!_input.Validate()) {
-    return NULL;
+    return unique_ptr<_Track>();
   }
 
   // Everything is fine, allocates and fills the animation.
   // Nothing can fail now.
-  _Track* track = memory::default_allocator()->New<_Track>();
+  unique_ptr<_Track> track = make_unique<_Track>();
 
   // Copy data to temporary prepared data structure
   typename _RawTrack::Keyframes keyframes;
@@ -130,10 +130,10 @@ _Track* TrackBuilder::Build(const _RawTrack& _input) const {
   track->Allocate(keyframes.size(), _input.name.size());
 
   // Copy all keys to output.
-  assert(keyframes.size() == track->ratios_.count() &&
-         keyframes.size() == track->values_.count() &&
-         keyframes.size() <= track->steps_.count() * 8);
-  memset(track->steps_.begin, 0, track->steps_.size());
+  assert(keyframes.size() == track->ratios_.size() &&
+         keyframes.size() == track->values_.size() &&
+         keyframes.size() <= track->steps_.size() * 8);
+  memset(track->steps_.data(), 0, track->steps_.size_bytes());
   for (size_t i = 0; i < keyframes.size(); ++i) {
     const typename _RawTrack::Keyframe& src_key = keyframes[i];
     track->ratios_[i] = src_key.ratio;
@@ -150,23 +150,27 @@ _Track* TrackBuilder::Build(const _RawTrack& _input) const {
   return track;  // Success.
 }
 
-FloatTrack* TrackBuilder::operator()(const RawFloatTrack& _input) const {
+unique_ptr<FloatTrack> TrackBuilder::operator()(
+    const RawFloatTrack& _input) const {
   return Build<RawFloatTrack, FloatTrack>(_input);
 }
-Float2Track* TrackBuilder::operator()(const RawFloat2Track& _input) const {
+unique_ptr<Float2Track> TrackBuilder::operator()(
+    const RawFloat2Track& _input) const {
   return Build<RawFloat2Track, Float2Track>(_input);
 }
-Float3Track* TrackBuilder::operator()(const RawFloat3Track& _input) const {
+unique_ptr<Float3Track> TrackBuilder::operator()(
+    const RawFloat3Track& _input) const {
   return Build<RawFloat3Track, Float3Track>(_input);
 }
-Float4Track* TrackBuilder::operator()(const RawFloat4Track& _input) const {
+unique_ptr<Float4Track> TrackBuilder::operator()(
+    const RawFloat4Track& _input) const {
   return Build<RawFloat4Track, Float4Track>(_input);
 }
 
 namespace {
 // Fixes-up successive opposite quaternions that would fail to take the shortest
 // path during the lerp.
-//CONFFX_BEGIN
+// CONFFX_BEGIN
 template <>
 void Fixup<RawQuaternionTrack::Keyframes>(
     RawQuaternionTrack::Keyframes* _keyframes) {
@@ -177,12 +181,9 @@ void Fixup<RawQuaternionTrack::Keyframes>(
     RawQuaternionTrack::ValueType& src_key = _keyframes->at(i).value;
 
     // Normalizes input quaternion.
-    if (norm(src_key) != 0.f) 
-	{
+    if (norm(src_key) != 0.f) {
       src_key = normalize(src_key);
-    } 
-	else 
-	{
+    } else {
       src_key = identity;
     }
 
@@ -201,10 +202,10 @@ void Fixup<RawQuaternionTrack::Keyframes>(
     }
   }
 }
-//CONFFX_END
+// CONFFX_END
 }  // namespace
 
-QuaternionTrack* TrackBuilder::operator()(
+unique_ptr<QuaternionTrack> TrackBuilder::operator()(
     const RawQuaternionTrack& _input) const {
   return Build<RawQuaternionTrack, QuaternionTrack>(_input);
 }

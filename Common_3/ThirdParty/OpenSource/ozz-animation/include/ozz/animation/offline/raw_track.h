@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -90,12 +90,6 @@ struct RawTrack {
   typedef _ValueType ValueType;
   typedef RawTrackKeyframe<ValueType> Keyframe;
 
-  // Constructs a valid RawFloatTrack.
-  RawTrack();
-
-  // Deallocates track.
-  ~RawTrack();
-
   // Validates that all the following rules are respected:
   //  1. Keyframes' ratios are sorted in a strict ascending order.
   //  2. Keyframes' ratios are all within [0,1] range.
@@ -107,11 +101,11 @@ struct RawTrack {
   void Load(io::IArchive& _archive, uint32_t _version);
 
   // Sequence of keyframes, expected to be sorted.
-  typedef typename ozz::Vector<Keyframe>::Std Keyframes;
+  typedef typename ozz::vector<Keyframe> Keyframes;
   Keyframes keyframes;
 
   // Name of the track.
-  String::Std name;
+  string name;
 };
 }  // namespace internal
 

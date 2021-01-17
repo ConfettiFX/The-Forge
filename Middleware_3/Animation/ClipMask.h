@@ -26,7 +26,7 @@
 
 #include "../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
+#include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/containers/vector.h"
 
 #include "Rig.h"
 
@@ -51,7 +51,7 @@ class ClipMask
 	void SetAllChildrenOf(int jointIndex, float setValue);
 
 	// Get the joint weights
-	inline ozz::Range<Vector4> GetJointWeights() { return mJointWeights; };
+	inline ozz::span<Vector4> GetJointWeights() { return ozz::make_span(mJointWeights); };
 
 	private:
 	// Pointer to the rig that this clip mask corresponds to
@@ -60,5 +60,5 @@ class ClipMask
 	// Per-joint weights used to define the partial animation mask. Allows to
 	// select which joints are considered during blending, and their individual
 	// weight_setting.
-	ozz::Range<Vector4> mJointWeights;
+	eastl::vector<Vector4> mJointWeights;
 };

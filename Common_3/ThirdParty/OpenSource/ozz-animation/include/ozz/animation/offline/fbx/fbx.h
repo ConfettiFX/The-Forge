@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -114,11 +114,11 @@ class FbxSystemConverter {
   // systems, using _p' = C * _p operation.
   math::Float3 ConvertPoint(const FbxVector4& _p) const;
 
-  // Converts fbx FbxVector4 normal to an ozz Float3, in ozz axis and unit
+  // Converts fbx FbxVector4 vector to an ozz Float3, in ozz axis and unit
   // systems, using _p' = ((C-1)-T) * _p operation. Normals are converted
   // using the inverse transpose matrix to support non-uniform scale
   // transformations.
-  math::Float3 ConvertNormal(const FbxVector4& _p) const;
+  math::Float3 ConvertVector(const FbxVector4& _p) const;
 
  private:
   // The matrix used to convert from "from" axis/unit to ozz coordinate system
@@ -146,10 +146,10 @@ class FbxSceneLoader {
 
   ~FbxSceneLoader();
 
-  // Returns a valid scene if fbx import was successful, NULL otherwise.
+  // Returns a valid scene if fbx import was successful, nullptr otherwise.
   FbxScene* scene() const { return scene_; }
 
-  // Returns a valid converter if fbx import was successful, NULL otherwise.
+  // Returns a valid converter if fbx import was successful, nullptr otherwise.
   FbxSystemConverter* converter() { return converter_; }
 
  private:

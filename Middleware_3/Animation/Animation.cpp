@@ -30,8 +30,6 @@ void Animation::Initialize(AnimationDesc animationDesc)
 	mNumClips = min(animationDesc.mNumLayers, MAX_NUM_CLIPS);
 	mBlendType = animationDesc.mBlendType;
 
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-
 	for (unsigned int i = 0; i < mNumClips; i++)
 	{
 		// Save clip structures
@@ -54,31 +52,32 @@ void Animation::Initialize(AnimationDesc animationDesc)
 		// Prepare input and output of clip sampling
 
 		// Allocates sampler runtime buffers.
-		mClipLocalTrans[i] = allocator->AllocateRange<SoaTransform>(mRig->GetNumSoaJoints());
+		mClipLocalTrans[i].resize(mRig->GetNumSoaJoints(), SoaTransform::identity());
 
 		// Allocates a cache that matches animation requirements.
-		mClipSamplingCaches[i] = allocator->New<ozz::animation::SamplingCache>(mRig->GetNumJoints());
+		mClipSamplingCaches[i] = ozz::New<ozz::animation::SamplingCache>(mRig->GetNumJoints());
 	}
 
 	// Allocate the blend layers that will be set each sampling based on each clip's properties
-	mLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(mNumClips - mNumAdditiveClips);
-	mAdditiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(mNumAdditiveClips);
+	mLayers.resize(mNumClips - mNumAdditiveClips);
+	mAdditiveLayers.resize(mNumAdditiveClips);
 }
 
 void Animation::Destroy()
 {
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
+	mRig = nullptr;
 
 	for (unsigned int i = 0; i < mNumClips; i++)
 	{
-		allocator->Delete(mClipSamplingCaches[i]);
-		allocator->Deallocate(mClipLocalTrans[i]);
+		mClipLocalTrans[i].set_capacity(0);
+		ozz::Delete(mClipSamplingCaches[i]);
 	}
-	allocator->Deallocate(mLayers);
-	allocator->Deallocate(mAdditiveLayers);
+		
+	mLayers.set_capacity(0);
+	mAdditiveLayers.set_capacity(0);
 }
 
-bool Animation::Sample(float dt, ozz::Range<SoaTransform>& localTrans)
+bool Animation::Sample(float dt, ozz::vector<SoaTransform>& localTrans)
 {
 	//update blend and sample parameters
 	if (mAutoSetBlendParams)
@@ -96,7 +95,7 @@ bool Animation::Sample(float dt, ozz::Range<SoaTransform>& localTrans)
 		if (mClipControllers[i]->GetWeight() != 0.f)
 		{
 			//if (!mClips[i]->Sample(mClipControllers[i]->GetTimeRatio()))
-			if (!mClips[i]->Sample(mClipSamplingCaches[i], mClipLocalTrans[i], mClipControllers[i]->GetTimeRatio()))
+			if (!mClips[i]->Sample(mClipSamplingCaches[i], ozz::make_span(mClipLocalTrans[i]), mClipControllers[i]->GetTimeRatio()))
 				return false;
 		}
 	}
@@ -182,43 +181,43 @@ void Animation::UpdateBlendParameters()
 	}
 }
 
-bool Animation::Blend(ozz::Range<SoaTransform>& localTrans)
+bool Animation::Blend(ozz::vector<SoaTransform>& localTrans)
 {
 	unsigned int additiveIndex = 0;
 	for (unsigned int i = 0; i < mNumClips; i++)
 	{
 		if (mClipControllers[i]->IsAdditive())
 		{
-			mAdditiveLayers[additiveIndex].transform = mClipLocalTrans[i];
+			mAdditiveLayers[additiveIndex].transform = ozz::make_span(mClipLocalTrans[i]);
 			mAdditiveLayers[additiveIndex].weight = mClipControllers[i]->GetWeight();
 
 			if (mClipMasks[i])
 				mAdditiveLayers[additiveIndex].joint_weights = mClipMasks[i]->GetJointWeights();
 			else
-				mAdditiveLayers[additiveIndex].joint_weights = ozz::Range<const Vector4>();
+				mAdditiveLayers[additiveIndex].joint_weights = ozz::span<const Vector4>();
 
 			additiveIndex++;
 		}
 		else
 		{
-			mLayers[i].transform = mClipLocalTrans[i];
+			mLayers[i].transform = ozz::make_span(mClipLocalTrans[i]);
 			mLayers[i].weight = mClipControllers[i]->GetWeight();
 
 			if (mClipMasks[i])
 				mLayers[i].joint_weights = mClipMasks[i]->GetJointWeights();
 			else
-				mLayers[i].joint_weights = ozz::Range<const Vector4>();
+				mLayers[i].joint_weights = ozz::span<const Vector4>();
 		}
 	}
 
 	// Setups blending job.
 	ozz::animation::BlendingJob blendJob;
 	blendJob.threshold = mThreshold;
-	blendJob.layers = mLayers;
+	blendJob.layers = ozz::make_span(mLayers);
 	if (mNumAdditiveClips > 0)
-		blendJob.additive_layers = mAdditiveLayers;
-	blendJob.bind_pose = mRig->GetSkeleton()->bind_pose();
-	blendJob.output = localTrans;
+		blendJob.additive_layers = ozz::make_span(mAdditiveLayers);
+	blendJob.bind_pose = mRig->GetSkeleton()->joint_bind_poses();
+	blendJob.output = ozz::make_span(localTrans);
 
 	// Blends.
 	if (!blendJob.Run())

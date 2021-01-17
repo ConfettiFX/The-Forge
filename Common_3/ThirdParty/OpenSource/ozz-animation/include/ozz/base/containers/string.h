@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -31,8 +31,6 @@
 #include "../../../../../EASTL/string.h"
 
 namespace ozz {
-struct String {
-  typedef eastl::string Std;
-};
+using string = eastl::string;
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_STRING_H_

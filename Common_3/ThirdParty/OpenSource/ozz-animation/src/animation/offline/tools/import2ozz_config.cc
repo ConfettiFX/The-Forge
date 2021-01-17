@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -27,8 +27,13 @@
 
 #include "animation/offline/tools/import2ozz_config.h"
 
+#include <cstring>
 #include <fstream>
 #include <sstream>
+
+#include "animation/offline/tools/import2ozz_anim.h"
+#include "animation/offline/tools/import2ozz_track.h"
+#include "ozz/animation/offline/tools/import2ozz.h"
 
 #include "ozz/animation/offline/animation_optimizer.h"
 #include "ozz/animation/offline/track_optimizer.h"
@@ -67,6 +72,9 @@ OZZ_OPTIONS_DECLARE_STRING(
     config_dump_reference,
     "Dumps reference json configuration to specified file.", "", false)
 
+namespace ozz {
+namespace animation {
+namespace offline {
 namespace {
 
 template <typename _Type>
@@ -214,7 +222,6 @@ bool SanitizeSkeletonJointTypes(Json::Value& _root, bool _all_options) {
   MakeDefault(_root, "any", false,
               "Uses any node type as skeleton joints, including those listed "
               "above and any other.");
-
   return true;
 }
 
@@ -238,33 +245,38 @@ bool SanitizeSkeleton(Json::Value& _root, bool _all_options) {
               "reference during animations import.");
   MakeDefaultObject(_root, "import", "Define skeleton import settings.");
   SanitizeSkeletonImport(_root["import"], _all_options);
-
   return true;
 }
 
-bool SanitizeOptimizationTolerances(Json::Value& _root) {
-  MakeDefault(
-      _root, "translation",
-      ozz::animation::offline::AnimationOptimizer().translation_tolerance,
-      "Translation optimization tolerance, defined as the distance between two "
-      "translation values in meters.");
+bool SanitizeOptimizationSetting(Json::Value& _root) {
+  const AnimationOptimizer::Setting default_setting;
+  MakeDefault(_root, "tolerance", default_setting.tolerance,
+              "The maximum error that an optimization is allowed to generate "
+              "on a whole joint hierarchy.");
+  MakeDefault(_root, "distance", default_setting.distance,
+              "The distance (from the joint) at which error is measured. This "
+              "allows to emulate effect on skinning.");
+  return true;
+}
 
-  MakeDefault(_root, "rotation",
-              ozz::animation::offline::AnimationOptimizer().rotation_tolerance,
-              "Rotation optimization tolerance, ie: the angle between two "
-              "rotation values in radian.");
+bool SanitizeJointsSetting(Json::Value& _root) {
+  MakeDefault(_root, "name", "*",
+              "Joint name. Wildcard characters \'*\' and \'?\' are supported");
+  SanitizeOptimizationSetting(_root);
+  return true;
+}
 
-  MakeDefault(_root, "scale",
-              ozz::animation::offline::AnimationOptimizer().scale_tolerance,
-              "Scale optimization tolerance, ie: the norm of the difference of "
-              "two scales.");
+bool SanitizeOptimizationSettings(Json::Value& _root, bool _all_options) {
+  SanitizeOptimizationSetting(_root);
 
-  MakeDefault(
-      _root, "hierarchical",
-      ozz::animation::offline::AnimationOptimizer().hierarchical_tolerance,
-      "Hierarchical translation optimization tolerance, ie: the maximum error "
-      "(distance) that an optimization on a joint is allowed to generate on "
-      "its whole child hierarchy.");
+  MakeDefaultArray(_root, "override", "Per joint optimization setting override",
+                   !_all_options);
+  Json::Value& joints = _root["override"];
+  for (Json::ArrayIndex i = 0; i < joints.size(); ++i) {
+    if (!SanitizeJointsSetting(joints[i])) {
+      return false;
+    }
+  }
 
   return true;
 }
@@ -280,21 +292,22 @@ bool SanitizeTrackImport(Json::Value& _root) {
   MakeDefault(_root, "property_name", "*",
               "Name of the property to import. Wildcard characters '*' and '?' "
               "are supported.");
-  MakeDefault(_root, "type", 1,
-              "Type of the property, aka the number of floating point "
-              "components. 1 to 4 components are supported.");
-  const int components = _root["type"].asInt();
-  if (components < 1 || components > 4) {
-    ozz::log::Err() << "Invalid value \"" << components
-                    << "\" for import track type property. 1 to 4 components "
-                       "are supported."
+  MakeDefault(_root, "type", "float1",
+              "Type of the property, can be float1 to float4, point and vector "
+              "(aka float3 with scene unit and axis conversion).");
+  const char* type_name = _root["type"].asCString();
+  if (!PropertyTypeConfig::IsValidEnumName(type_name)) {
+    ozz::log::Err() << "Invalid value \"" << type_name
+                    << "\" for import track type property. Type can be float1 "
+                       "to float4, point and vector (aka float3 with scene "
+                       "unit and axis conversion)."
                     << std::endl;
     return false;
   }
+
   MakeDefault(_root, "raw", false, "Outputs raw track.");
   MakeDefault(_root, "optimize", true, "Activates keyframes optimization.");
-  MakeDefault(_root, "optimization_tolerance",
-              ozz::animation::offline::TrackOptimizer().tolerance,
+  MakeDefault(_root, "optimization_tolerance", TrackOptimizer().tolerance,
               "Optimization tolerance");
 
   return true;
@@ -309,7 +322,7 @@ bool SanitizeTrackMotion(Json::Value& _root) {
               "specify part(s) of the filename that should be replaced by the "
               "joint_name.");
   MakeDefault(_root, "optimization_tolerance",
-              ozz::animation::offline::TrackOptimizer().tolerance,
+              TrackOptimizer().tolerance,
               "Optimization tolerance");
   return true;
 }*/
@@ -349,6 +362,21 @@ bool SanitizeAnimation(Json::Value& _root, bool _all_options) {
   MakeDefault(
       _root, "additive", false,
       "Creates a delta animation that can be used for additive blending.");
+  MakeDefault(_root, "additive_reference", "animation",
+              "Select reference pose to use to build additive/delta animation. "
+              "Can be \"animation\" to use the 1st animation keyframe as "
+              "reference, or \"skeleton\" to use skeleton bind pose.");
+
+  if (!AdditiveReference::IsValidEnumName(
+          _root["additive_reference"].asCString())) {
+    ozz::log::Err() << "Invalid additive reference pose \""
+                    << _root["additive_reference"].asCString() << "\". \""
+                    << "Can be \"animation\" to use the 1st animation keyframe "
+                       "as reference, or \"skeleton\" to use skeleton bind "
+                       "pose."
+                    << std::endl;
+    return false;
+  }
 
   MakeDefault(_root, "sampling_rate", 0.f,
               "Selects animation sampling rate in hertz. Set a value <= 0 to "
@@ -357,9 +385,7 @@ bool SanitizeAnimation(Json::Value& _root, bool _all_options) {
   MakeDefault(_root, "optimize", true,
               "Activates keyframes reduction optimization.");
 
-  MakeDefaultObject(_root, "optimization_tolerances",
-                    "Optimization tolerances.");
-  SanitizeOptimizationTolerances(_root["optimization_tolerances"]);
+  SanitizeOptimizationSettings(_root["optimization_settings"], _all_options);
 
   MakeDefaultArray(_root, "tracks", "Tracks to build.", !_all_options);
   Json::Value& tracks = _root["tracks"];
@@ -391,7 +417,7 @@ bool SanitizeRoot(Json::Value& _root, bool _all_options) {
 }
 
 bool RecursiveCheck(const Json::Value& _root, const Json::Value& _expected,
-                    ozz::String::Std _name) {
+                    ozz::string _name) {
   if (!IsCompatibleType(_root.type(), _expected.type())) {
     // It's a failure to have a wrong member type.
     ozz::log::Err() << "Invalid type \"" << JsonTypeToString(_root.type())
@@ -451,6 +477,10 @@ bool DumpConfig(const char* _path, const Json::Value& _config) {
   return true;
 }
 }  // namespace
+
+bool CompareName(const char* _a, const char* _b) {
+  return std::strcmp(_a, _b) == 0;
+}
 
 bool ProcessConfiguration(Json::Value* _config) {
   if (!_config) {
@@ -517,3 +547,6 @@ bool ProcessConfiguration(Json::Value* _config) {
 
   return true;
 }
+}  // namespace offline
+}  // namespace animation
+}  // namespace ozz

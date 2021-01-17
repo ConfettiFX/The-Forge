@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -46,6 +46,8 @@
 #include "ozz/base/io/archive.h"
 #include "ozz/base/io/stream.h"
 
+#include "ozz/base/memory/unique_ptr.h"
+
 #include "ozz/base/log.h"
 
 #include <json/json.h>
@@ -56,7 +58,7 @@ namespace offline {
 namespace {
 
 // Uses a set to detect names uniqueness.
-typedef ozz::Set<const char*, ozz::str_less>::Std Names;
+typedef ozz::set<const char*, ozz::str_less> Names;
 
 bool ValidateJointNamesUniquenessRecurse(
     const RawSkeleton::Joint::Children& _joints, Names* _names) {
@@ -102,11 +104,11 @@ void LogHierarchy(const RawSkeleton::Joint::Children& _children,
     // Recurse
     LogHierarchy(joint.children, _depth + 1);
   }
-  ozz::log::LogV() << std::setprecision(pres);
+  ozz::log::LogV() << std::setprecision(static_cast<int>(pres));
 }
 }  // namespace
 
-bool ImportSkeleton(const Json::Value& _config, OzzImporter* _converter,
+bool ImportSkeleton(const Json::Value& _config, OzzImporter* _importer,
                     const ozz::Endianness _endianness) {
   const Json::Value& skeleton_config = _config["skeleton"];
   const Json::Value& import_config = skeleton_config["import"];
@@ -128,8 +130,8 @@ bool ImportSkeleton(const Json::Value& _config, OzzImporter* _converter,
   types.light = types_config["light"].asBool();
   types.any = types_config["any"].asBool();
 
-  ozz::animation::offline::RawSkeleton raw_skeleton;
-  if (!_converter->Import(&raw_skeleton, types)) {
+  RawSkeleton raw_skeleton;
+  if (!_importer->Import(&raw_skeleton, types)) {
     ozz::log::Err() << "Failed to import skeleton." << std::endl;
     return false;
   }
@@ -147,11 +149,11 @@ bool ImportSkeleton(const Json::Value& _config, OzzImporter* _converter,
 
   // Needs to be done before opening the output file, so that if it fails then
   // there's no invalid file outputted.
-  ozz::animation::Skeleton* skeleton = NULL;
+  unique_ptr<Skeleton> skeleton;
   if (!import_config["raw"].asBool()) {
     // Builds runtime skeleton.
     ozz::log::Log() << "Builds runtime skeleton." << std::endl;
-    ozz::animation::offline::SkeletonBuilder builder;
+    SkeletonBuilder builder;
     skeleton = builder(raw_skeleton);
     if (!skeleton) {
       ozz::log::Err() << "Failed to build runtime skeleton." << std::endl;
@@ -170,7 +172,6 @@ bool ImportSkeleton(const Json::Value& _config, OzzImporter* _converter,
     if (!file.opened()) {
       ozz::log::Err() << "Failed to open output file: \"" << filename << "\"."
                       << std::endl;
-      ozz::memory::default_allocator()->Delete(skeleton);
       return false;
     }
 
@@ -188,9 +189,6 @@ bool ImportSkeleton(const Json::Value& _config, OzzImporter* _converter,
     ozz::log::Log() << "Skeleton binary archive successfully outputted."
                     << std::endl;
   }
-
-  // Delete local objects.
-  ozz::memory::default_allocator()->Delete(skeleton);
 
   return true;
 }

@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -30,6 +30,7 @@
 
 //CONFFX_BEGIN
 #include "../../base/platform.h"
+#include "../../base/span.h"
 #include "../../../../../../../OS/Math/MathTypes.h"
 
 namespace ozz {
@@ -52,10 +53,10 @@ class Skeleton;
 // that cannot be represented as Transform object.
 struct LocalToModelJob {
   // Default constructor, initializes default values.
-  LocalToModelJob() : skeleton(NULL), root(NULL) {}
+  LocalToModelJob();
 
   // Validates job parameters. Returns true for a valid job, or false otherwise:
-  // -if any input pointer, including ranges, is NULL.
+  // -if any input pointer, including ranges, is nullptr.
   // -if the size of the input is smaller than the skeleton's number of joints.
   // Note that this input has a SoA format.
   // -if the size of of the output is smaller than the skeleton's number of
@@ -68,21 +69,47 @@ struct LocalToModelJob {
   // Returns false if job is not valid. See Validate() function.
   bool Run() const;
 
+  // Job input.
+
   // The Skeleton object describing the joint hierarchy used for local to
   // model space conversion.
   const Skeleton* skeleton;
 
-  // The root matrix will multiply to every model space matrices, default NULL
-  // means an identity matrix.
+  // The root matrix will multiply to every model space matrices, default nullptr
+  // means an identity matrix. This can be used to directly compute world-space
+  // transforms for example.
   const Matrix4* root; //CONFFX_BEGIN
 
-  // Job input.
+  // Defines "from" which joint the local-to-model conversion should start.
+  // Default value is ozz::Skeleton::kNoParent, meaning the whole hierarchy is
+  // updated. This parameter can be used to optimize update by limiting
+  // conversion to part of the joint hierarchy. Note that "from" parent should
+  // be a valid matrix, as it is going to be used as part of "from" joint
+  // hierarchy update.
+  int from;
+
+  // Defines "to" which joint the local-to-model conversion should go, "to"
+  // included. Update will end before "to" joint is reached if "to" is not part
+  // of the hierarchy starting from "from". Default value is
+  // ozz::animation::Skeleton::kMaxJoints, meaning the hierarchy (starting from
+  // "from") is updated to the last joint.
+  int to;
+
+  // If true, "from" joint is not updated during job execution. Update starts
+  // with all children of "from". This can be used to update a model-space
+  // transform independently from the local-space one. To do so: set "from"
+  // joint model-space transform matrix, and run this Job with "from_excluded"
+  // to update all "from" children.
+  // Default value is false.
+  bool from_excluded;
+
   // The input range that store local transforms.
-  Range<const SoaTransform> input; //CONFFX_BEGIN
+  span<const SoaTransform> input; //CONFFX_BEGIN
 
   // Job output.
-  // The output range to be filled with model matrices.
-  Range<Matrix4> output; //CONFFX_BEGIN
+
+  // The output range to be filled with model-space matrices.
+  span<Matrix4> output;
 };
 }  // namespace animation
 }  // namespace ozz

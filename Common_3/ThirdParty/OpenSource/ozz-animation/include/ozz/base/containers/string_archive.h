@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -35,13 +35,13 @@
 namespace ozz {
 namespace io {
 
-OZZ_IO_TYPE_NOT_VERSIONABLE(ozz::String::Std)
+OZZ_IO_TYPE_NOT_VERSIONABLE(ozz::string)
 
 template <>
-struct Extern<ozz::String::Std> {
-  static void Save(OArchive& _archive, const ozz::String::Std* _values,
+struct Extern<ozz::string> {
+  static void Save(OArchive& _archive, const ozz::string* _values,
                    size_t _count);
-  static void Load(IArchive& _archive, ozz::String::Std* _values, size_t _count,
+  static void Load(IArchive& _archive, ozz::string* _values, size_t _count,
                    uint32_t _version);
 };
 }  // namespace io

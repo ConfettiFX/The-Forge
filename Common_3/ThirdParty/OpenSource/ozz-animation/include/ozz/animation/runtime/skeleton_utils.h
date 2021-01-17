@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -30,51 +30,57 @@
 
 #include "skeleton.h"
 
+#include <cassert>
+
 namespace ozz {
 namespace animation {
 
 // Get bind-pose of a skeleton joint.
-AffineTransform GetJointLocalBindPose(const Skeleton& _skeleton, int _joint); //CONFFX_BEGIN
+AffineTransform GetJointLocalBindPose(const Skeleton& _skeleton,
+                                           int _joint);//CONFFX_BEGIN
 
-// Defines the iterator structure used by IterateJointsDF to traverse joint
-// hierarchy.
-struct JointsIterator {
-  uint16_t joints[Skeleton::kMaxJoints];
-  int num_joints;
-};
-
-// Fills _iterator with the index of the joints of _skeleton traversed in depth-
-// first order.
-// _from indicates the join from which the joint hierarchy traversal begins. Use
-// Skeleton::kNoParentIndex to traverse the whole hierarchy, even if there are
-// multiple roots.
-// This function does not use a recursive implementation, to enforce a
-// predictable stack usage, independent off the data (joint hierarchy) being
-// processed.
-void IterateJointsDF(const Skeleton& _skeleton, int _from,
-                     JointsIterator* _iterator);
+// Test if a joint is a leaf. _joint number must be in range [0, num joints].
+// "_joint" is a leaf if it's the last joint, or next joint's parent isn't
+// "_joint".
+inline bool IsLeaf(const Skeleton& _skeleton, int _joint) {
+  const int num_joints = _skeleton.num_joints();
+  assert(_joint >= 0 && _joint < num_joints && "_joint index out of range");
+  const span<const int16_t>& parents = _skeleton.joint_parents();
+  const int next = _joint + 1;
+  return next == num_joints || parents[next] != _joint;
+}
 
 // Applies a specified functor to each joint in a depth-first order.
 // _Fct is of type void(int _current, int _parent) where the first argument is
-// the child of the second argument. _parent is kNoParentIndex if the _current
-// joint is the root.
-// _from indicates the join from which the joint hierarchy traversal begins. Use
-// Skeleton::kNoParentIndex to traverse the whole hierarchy, even if there are
-// multiple joints.
-// This implementation is based on IterateJointsDF(*, *, JointsIterator$)
-// variant.
+// the child of the second argument. _parent is kNoParent if the
+// _current joint is a root. _from indicates the joint from which the joint
+// hierarchy traversal begins. Use Skeleton::kNoParent to traverse the
+// whole hierarchy, in case there are multiple roots.
 template <typename _Fct>
-inline _Fct IterateJointsDF(const Skeleton& _skeleton, int _from, _Fct _fct) {
-  // Iterates and fills iterator.
-  JointsIterator iterator;
-  IterateJointsDF(_skeleton, _from, &iterator);
+inline _Fct IterateJointsDF(const Skeleton& _skeleton, _Fct _fct,
+                            int _from = Skeleton::kNoParent) {
+  const span<const int16_t>& parents = _skeleton.joint_parents();
+  const int num_joints = _skeleton.num_joints();
+  //
+  // parents[i] >= _from is true as long as "i" is a child of "_from".
+  static_assert(Skeleton::kNoParent < 0,
+                "Algorithm relies on kNoParent being negative");
+  for (int i = _from < 0 ? 0 : _from, process = i < num_joints; process;
+       ++i, process = i < num_joints && parents[i] >= _from) {
+    _fct(i, parents[i]);
+  }
+  return _fct;
+}
 
-  // Consumes iterator and call _fct.
-  Range<const Skeleton::JointProperties> properties =
-      _skeleton.joint_properties();
-  for (int i = 0; i < iterator.num_joints; ++i) {
-    const int joint = iterator.joints[i];
-    _fct(joint, properties.begin[joint].parent);
+// Applies a specified functor to each joint in a reverse (from leaves to root)
+// depth-first order. _Fct is of type void(int _current, int _parent) where the
+// first argument is the child of the second argument. _parent is kNoParent if
+// the _current joint is a root.
+template <typename _Fct>
+inline _Fct IterateJointsDFReverse(const Skeleton& _skeleton, _Fct _fct) {
+  const span<const int16_t>& parents = _skeleton.joint_parents();
+  for (int i = _skeleton.num_joints() - 1; i >= 0; --i) {
+    _fct(i, parents[i]);
   }
   return _fct;
 }

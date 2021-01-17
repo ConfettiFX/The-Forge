@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -29,6 +29,7 @@
 #define OZZ_OZZ_GEOMETRY_RUNTIME_SKINNING_JOB_H_
 
 #include "ozz/base/platform.h"
+#include "ozz/base/span.h"
 
 namespace ozz {
 namespace math {
@@ -105,7 +106,7 @@ struct SkinningJob {
   int influences_count;
 
   // Array of matrices for each joint. Joint are indexed through indices array.
-  Range<const math::Float4x4> joint_matrices;
+  span<const math::Float4x4> joint_matrices;
 
   // Optional array of inverse transposed matrices for each joint. If provided,
   // this array is used to transform vectors (normals and tangents), otherwise
@@ -117,13 +118,13 @@ struct SkinningJob {
   // transforms points. Any rotation matrix is good though.
   // These matrices are optional as they might by costly to compute, and also
   // fall into a more costly code path in the skinning algorithm.
-  Range<const math::Float4x4> joint_inverse_transpose_matrices;
+  span<const math::Float4x4> joint_inverse_transpose_matrices;
 
   // Array of joints indices. This array is used to indexes matrices in joints
   // array.
   // Each vertex has influences_max number of indices, meaning that the size of
   // this array must be at least influences_max * vertex_count.
-  Range<const uint16_t> joint_indices;
+  span<const uint16_t> joint_indices;
   size_t joint_indices_stride;
 
   // Array of joints weights. This array is used to associate a weight to every
@@ -133,31 +134,31 @@ struct SkinningJob {
   // vertex is 1.
   // Each vertex has (influences_max - 1) number of weights, meaning that the
   // size of this array must be at least (influences_max - 1)* vertex_count.
-  Range<const float> joint_weights;
+  span<const float> joint_weights;
   size_t joint_weights_stride;
 
   // Input vertex positions array (3 float values per vertex) and stride (number
   // of bytes between each position).
   // Array length must be at least vertex_count * in_positions_stride.
-  Range<const float> in_positions;
+  span<const float> in_positions;
   size_t in_positions_stride;
 
   // Input vertex normals (3 float values per vertex) array and stride (number
   // of bytes between each normal).
   // Array length must be at least vertex_count * in_normals_stride.
-  Range<const float> in_normals;
+  span<const float> in_normals;
   size_t in_normals_stride;
 
   // Input vertex tangents (3 float values per vertex) array and stride (number
   // of bytes between each tangent).
   // Array length must be at least vertex_count * in_tangents_stride.
-  Range<const float> in_tangents;
+  span<const float> in_tangents;
   size_t in_tangents_stride;
 
   // Output vertex positions (3 float values per vertex) array and stride
   // (number of bytes between each position).
   // Array length must be at least vertex_count * out_positions_stride.
-  Range<float> out_positions;
+  span<float> out_positions;
   size_t out_positions_stride;
 
   // Output vertex normals (3 float values per vertex) array and stride (number
@@ -167,7 +168,7 @@ struct SkinningJob {
   // uniform scale, and if normals are re-normalized later in the rendering
   // pipeline (shader vertex transformation stage).
   // Array length must be at least vertex_count * out_normals_stride.
-  Range<float> out_normals;
+  span<float> out_normals;
   size_t out_normals_stride;
 
   // Output vertex positions (3 float values per vertex) array and stride
@@ -175,7 +176,7 @@ struct SkinningJob {
   // Like normals, Note that output tangents are not normalized by the skinning
   // job.
   // Array length must be at least vertex_count * out_tangents_stride.
-  Range<float> out_tangents;
+  span<float> out_tangents;
   size_t out_tangents_stride;
 };
 }  // namespace geometry

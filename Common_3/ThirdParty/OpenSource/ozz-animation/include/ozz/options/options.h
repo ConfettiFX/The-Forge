@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -214,9 +214,9 @@ class Option {
   typedef bool (*ValidateFn)(const Option& _option, int _argc);
 
   // Construct an option.
-  // _name and _help are set to an empty c string if NULL.
+  // _name and _help are set to an empty c string if nullptr.
   Option(const char* _name, const char* _help, bool _required,
-         ValidateFn _validate = NULL);
+         ValidateFn _validate = nullptr);
 
   // Destructor.
   virtual ~Option();
@@ -324,7 +324,7 @@ class Parser {
   // Returns true on success or false if:
   // - _option is not a valid option (ex: bad name...), or if an
   //   option with the same name already exists.
-  // - _option si NULL.
+  // - _option si nullptr.
   // - more than kMaxOptions were registered.
   bool RegisterOption(Option* _option);
 
@@ -399,7 +399,7 @@ class Registrer : public _Option {
  public:
   Registrer(const char* _name, const char* _help,
             typename _Option::Type _default, bool _required,
-            typename _Option::ValidateFn _fn = NULL);
+            typename _Option::ValidateFn _fn = nullptr);
   virtual ~Registrer();
 };
 }  // namespace internal

@@ -203,7 +203,7 @@ bool AssetPipeline::ProcessAnimations(ProcessAssetsSettings* settings)
 		{
 			char fileName[FS_MAX_PATH] = {};
 			fsGetPathFileName(file.c_str(), fileName);
-			if (!stricmp(fileName, "riggedmesh"))
+			if (stricmp(fileName, "riggedmesh") == 0)
 			{
 				// Add new animation asset named after the folder it is in
 				char assetName[FS_MAX_PATH] = {};
@@ -217,7 +217,7 @@ bool AssetPipeline::ProcessAnimations(ProcessAssetsSettings* settings)
 				{
 					char subDir[FS_MAX_PATH] = {};
 					fsGetPathFileName(assetSubDir.c_str(), subDir);
-					if (!stricmp(subDir, "animations"))
+					if (stricmp(subDir, "animations") == 0)
 					{
 						// Add all files in animations to the animation asset
 						filesInDirectory.clear();
@@ -1141,9 +1141,16 @@ bool AssetPipeline::CreateRuntimeAnimation(
 		return false;
 	}
 
-	// Build runtime animation from raw animation
-	ozz::animation::Animation animation;
-	if (!ozz::animation::offline::AnimationBuilder::Build(rawAnimation, &animation))
+	// Creates a AnimationBuilder instance.
+	ozz::animation::offline::AnimationBuilder builder;
+
+	// Executes the builder on the previously prepared RawAnimation, which returns
+	// a new runtime animation instance.
+	// This operation will fail and return an empty unique_ptr if the RawAnimation
+	// isn't valid.
+	ozz::unique_ptr<ozz::animation::Animation> animation = builder(rawAnimation);
+
+	if (!animation)
 	{
 		LOGF(LogLevel::eERROR, "Animation %s can not be created for %s.", animationName, skeletonName);
 		return false;
@@ -1156,10 +1163,10 @@ bool AssetPipeline::CreateRuntimeAnimation(
 		return false;
 
 	ozz::io::OArchive archive(&file);
-	archive << animation;
+	archive << *animation;
 	fsCloseStream(&file);
 	//Deallocate animation
-	animation.Deallocate();
+	animation->Deallocate();
 
 	return true;
 }

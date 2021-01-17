@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -54,69 +54,57 @@ bool SkinningJob::Validate() const {
   valid &= influences_count > 0;
 
   // Checks joints matrices, required.
-  valid &= joint_matrices.begin != NULL;
-  valid &= joint_matrices.end >= joint_matrices.begin;
-
-  // Checks optional inverse transpose matrices.
-  if (joint_inverse_transpose_matrices.begin) {
-    valid &= joint_inverse_transpose_matrices.begin != NULL;
-    valid &= joint_inverse_transpose_matrices.end >=
-             joint_inverse_transpose_matrices.begin;
-  }
+  valid &= !joint_matrices.empty();
 
   // Prepares local variables used to compute buffer size.
   const int vertex_count_minus_1 = vertex_count > 0 ? vertex_count - 1 : 0;
   const int vertex_count_at_least_1 = vertex_count > 0;
 
   // Checks indices, required.
-  valid &= joint_indices.begin != NULL;
-  valid &= joint_indices.size() >=
+  valid &= joint_indices.size_bytes() >=
            joint_indices_stride * vertex_count_minus_1 +
                sizeof(uint16_t) * influences_count * vertex_count_at_least_1;
 
   // Checks weights, required if influences_count > 1.
   if (influences_count != 1) {
-    valid &= joint_weights.begin != NULL;
     valid &=
-        joint_weights.size() >=
+        joint_weights.size_bytes() >=
         joint_weights_stride * vertex_count_minus_1 +
             sizeof(float) * (influences_count - 1) * vertex_count_at_least_1;
   }
 
   // Checks positions, mandatory.
-  valid &= in_positions.begin != NULL;
-  valid &=
-      in_positions.size() >= in_positions_stride * vertex_count_minus_1 +
-                                 sizeof(float) * 3 * vertex_count_at_least_1;
-  valid &= out_positions.begin != NULL;
-  valid &=
-      out_positions.size() >= out_positions_stride * vertex_count_minus_1 +
-                                  sizeof(float) * 3 * vertex_count_at_least_1;
+  valid &= in_positions.size_bytes() >=
+           in_positions_stride * vertex_count_minus_1 +
+               sizeof(float) * 3 * vertex_count_at_least_1;
+  valid &= !out_positions.empty();
+  valid &= out_positions.size_bytes() >=
+           out_positions_stride * vertex_count_minus_1 +
+               sizeof(float) * 3 * vertex_count_at_least_1;
 
   // Checks normals, optional.
-  if (in_normals.begin) {
-    valid &=
-        in_normals.size() >= in_normals_stride * vertex_count_minus_1 +
-                                 sizeof(float) * 3 * vertex_count_at_least_1;
-    valid &= out_normals.begin != NULL;
-    valid &=
-        out_normals.size() >= out_normals_stride * vertex_count_minus_1 +
-                                  sizeof(float) * 3 * vertex_count_at_least_1;
+  if (!in_normals.empty()) {
+    valid &= in_normals.size_bytes() >=
+             in_normals_stride * vertex_count_minus_1 +
+                 sizeof(float) * 3 * vertex_count_at_least_1;
+    valid &= !out_normals.empty();
+    valid &= out_normals.size_bytes() >=
+             out_normals_stride * vertex_count_minus_1 +
+                 sizeof(float) * 3 * vertex_count_at_least_1;
 
     // Checks tangents, optional but requires normals.
-    if (in_tangents.begin) {
-      valid &=
-          in_tangents.size() >= in_tangents_stride * vertex_count_minus_1 +
-                                    sizeof(float) * 3 * vertex_count_at_least_1;
-      valid &= out_tangents.begin != NULL;
-      valid &= out_tangents.size() >=
+    if (!in_tangents.empty()) {
+      valid &= in_tangents.size_bytes() >=
+               in_tangents_stride * vertex_count_minus_1 +
+                   sizeof(float) * 3 * vertex_count_at_least_1;
+      valid &= !out_tangents.empty();
+      valid &= out_tangents.size_bytes() >=
                out_tangents_stride * vertex_count_minus_1 +
                    sizeof(float) * 3 * vertex_count_at_least_1;
     }
   } else {
     // Tangents are not supported if normals are not there.
-    valid &= in_tangents.begin == NULL;
-    valid &= in_tangents.end == NULL;
+    valid &= in_tangents.empty();
   }
 
   return valid;
@@ -145,38 +133,37 @@ bool SkinningJob::Validate() const {
 #define SKINNING_FN_NAME(_type, _it, _inf) Skinning##_type##_it##_inf
 
 // Implements pre-conditions assertions.
-#define ASSERT_P()                                      \
-  assert(_job.vertex_count&& _job.in_positions.begin && \
-         !_job.in_normals.begin && !_job.in_tangents.begin);
+#define ASSERT_P()                                          \
+  assert(_job.vertex_count && !_job.in_positions.empty() && \
+         _job.in_normals.empty());
 
-#define ASSERT_PN()                                                          \
-  assert(                                                                    \
-      _job.vertex_count&& _job.in_positions.begin&& _job.in_normals.begin && \
-      !_job.in_tangents.begin);
+#define ASSERT_PN()                                         \
+  assert(_job.vertex_count && !_job.in_positions.empty() && \
+         !_job.in_normals.empty() && _job.in_tangents.empty());
 
-#define ASSERT_PNT()                                                   \
-  assert(_job.vertex_count&& _job.in_positions.begin&& _job.in_normals \
-             .begin&& _job.in_tangents.begin);
+#define ASSERT_PNT()                                        \
+  assert(_job.vertex_count && !_job.in_positions.empty() && \
+         !_job.in_normals.empty() && !_job.in_tangents.empty());
 
 #define ASSERT_NOIT()
 
-#define ASSERT_IT() assert(_job.joint_inverse_transpose_matrices.begin);
+#define ASSERT_IT() assert(!_job.joint_inverse_transpose_matrices.empty());
 
 // Implements loop initializations for positions, ...
-#define INIT_P()                                            \
-  const uint16_t* joint_indices = _job.joint_indices.begin; \
-  const float* in_positions = _job.in_positions.begin;      \
-  float* out_positions = _job.out_positions.begin;
+#define INIT_P()                                              \
+  const uint16_t* joint_indices = _job.joint_indices.begin(); \
+  const float* in_positions = _job.in_positions.begin();      \
+  float* out_positions = _job.out_positions.begin();
 
-#define INIT_PN()                                  \
-  INIT_P();                                        \
-  const float* in_normals = _job.in_normals.begin; \
-  float* out_normals = _job.out_normals.begin;
+#define INIT_PN()                                    \
+  INIT_P();                                          \
+  const float* in_normals = _job.in_normals.begin(); \
+  float* out_normals = _job.out_normals.begin();
 
-#define INIT_PNT()                                   \
-  INIT_PN();                                         \
-  const float* in_tangents = _job.in_tangents.begin; \
-  float* out_tangents = _job.out_tangents.begin;
+#define INIT_PNT()                                     \
+  INIT_PN();                                           \
+  const float* in_tangents = _job.in_tangents.begin(); \
+  float* out_tangents = _job.out_tangents.begin();
 
 // Implements loop initializations for weights.
 // Note that if the number of influences per vertex is 1, then there's no weight
@@ -185,7 +172,7 @@ bool SkinningJob::Validate() const {
 
 #define INIT_W2()                                        \
   const math::SimdFloat4 one = math::simd_float4::one(); \
-  const float* joint_weights = _job.joint_weights.begin;
+  const float* joint_weights = _job.joint_weights.begin();
 
 #define INIT_W3() INIT_W2()
 
@@ -494,14 +481,14 @@ bool SkinningJob::Run() const {
   }
 
   // Find skinning function index.
-  const size_t it = joint_inverse_transpose_matrices.begin != NULL;
+  const size_t it = !joint_inverse_transpose_matrices.empty();
   assert(it < OZZ_ARRAY_SIZE(kSkinningFct));
   const size_t inf =
       static_cast<size_t>(influences_count) > OZZ_ARRAY_SIZE(kSkinningFct[0])
           ? OZZ_ARRAY_SIZE(kSkinningFct[0]) - 1
           : influences_count - 1;
   assert(inf < OZZ_ARRAY_SIZE(kSkinningFct[0]));
-  const size_t fct = (in_normals.begin != NULL) + (in_tangents.begin != NULL);
+  const size_t fct = !in_normals.empty() + !in_tangents.empty();
   assert(fct < OZZ_ARRAY_SIZE(kSkinningFct[0][0]));
 
   // Calls skinning function. Cannot fail because job is valid.

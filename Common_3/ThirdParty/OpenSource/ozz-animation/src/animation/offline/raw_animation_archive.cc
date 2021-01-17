@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -32,6 +32,8 @@
 
 #include "ozz/base/containers/string_archive.h"
 #include "ozz/base/containers/vector_archive.h"
+//#include "ozz/base/log.h"
+#include "../../../../../Common_3/OS/Interfaces/ILog.h"
 
 namespace ozz {
 namespace io {
@@ -46,17 +48,19 @@ void Extern<animation::offline::RawAnimation>::Save(
     _archive << animation.name;
   }
 }
+
 void Extern<animation::offline::RawAnimation>::Load(
     IArchive& _archive, animation::offline::RawAnimation* _animations,
     size_t _count, uint32_t _version) {
-  (void)_version;
+  if (_version < 3) {    
+    LOGF(LogLevel::eERROR, "Unsupported RawAnimation version %d.", _version);
+    return;
+  }
   for (size_t i = 0; i < _count; ++i) {
     animation::offline::RawAnimation& animation = _animations[i];
     _archive >> animation.duration;
     _archive >> animation.tracks;
-    if (_version > 1) {
-      _archive >> animation.name;
-    }
+    _archive >> animation.name;
   }
 }
 

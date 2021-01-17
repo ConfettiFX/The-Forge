@@ -28,6 +28,11 @@
 #ifndef OZZ_OZZ_ANIMATION_OFFLINE_ADDITIVE_ANIMATION_BUILDER_H_
 #define OZZ_OZZ_ANIMATION_OFFLINE_ADDITIVE_ANIMATION_BUILDER_H_
 
+#include "ozz/base/platform.h"
+#include "ozz/base/span.h"
+
+#include "../../../../../../../../Common_3/OS/Math/MathTypes.h"
+
 namespace ozz {
 namespace animation {
 namespace offline {
@@ -46,10 +51,21 @@ class AdditiveAnimationBuilder {
   // Builds delta animation from _input..
   // Returns true on success and fills _output_animation with the delta
   // version of _input animation.
-  // *_output must be a valid RawAnimation instance.
-  // Returns false on failure and resets _output to an empty animation.
-  // See RawAnimation::Validate() for more details about failure reasons.
+  // *_output must be a valid RawAnimation instance. Uses first frame as
+  // reference pose Returns false on failure and resets _output to an empty
+  // animation. See RawAnimation::Validate() for more details about failure
+  // reasons.
   bool operator()(const RawAnimation& _input, RawAnimation* _output) const;
+
+  // Builds delta animation from _input..
+  // Returns true on success and fills _output_animation with the delta
+  // *_output must be a valid RawAnimation instance.
+  // version of _input animation.
+  // *_reference_pose used as the base pose to calculate deltas from
+  // Returns false on failure and resets _output to an empty animation.
+  bool operator()(const RawAnimation& _input,
+                  const span<AffineTransform>& _reference_pose,
+                  RawAnimation* _output) const;
 };
 }  // namespace offline
 }  // namespace animation

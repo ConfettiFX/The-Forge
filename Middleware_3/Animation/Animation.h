@@ -76,7 +76,7 @@ class Animation
 	void Destroy();
 
 	// Will sample the animation at dt, storing the local transform results in localTrans
-	bool Sample(float dt, ozz::Range<SoaTransform>& localTrans);
+	bool Sample(float dt, ozz::vector<SoaTransform>& localTrans);
 
 	// Set if UpdateBlendParameters() be called or not
 	inline void SetAutoSetBlendParams(bool setValue) { mAutoSetBlendParams = setValue; };
@@ -104,7 +104,7 @@ class Animation
 	void UpdateBlendParameters();
 
 	// Blend the sampled clips together based on their blend parameters
-	bool Blend(ozz::Range<SoaTransform>& localTrans);
+	bool Blend(eastl::vector<SoaTransform>& localTrans);
 
 	// Pointer to the rig that this animation corresponds to
 	Rig* mRig;
@@ -122,11 +122,11 @@ class Animation
 	ozz::animation::SamplingCache* mClipSamplingCaches[MAX_NUM_CLIPS];
 
 	// The buffer of local transforms that will be updated as output when each clip is sampled
-	ozz::Range<SoaTransform> mClipLocalTrans[MAX_NUM_CLIPS];
+	eastl::vector<SoaTransform> mClipLocalTrans[MAX_NUM_CLIPS];
 
 	// The blend layers that will be set each sampling based on each clip's properties
-	ozz::Range<ozz::animation::BlendingJob::Layer> mLayers;
-	ozz::Range<ozz::animation::BlendingJob::Layer> mAdditiveLayers;
+	eastl::vector<ozz::animation::BlendingJob::Layer> mLayers;
+	eastl::vector<ozz::animation::BlendingJob::Layer> mAdditiveLayers;
 
 	// Number of clips that make up this animation
 	unsigned int mNumClips = 0;

@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -59,13 +59,13 @@ struct RawSkeleton {
   // Offline skeleton joint type.
   struct Joint {
     // Type of the list of children joints.
-    typedef ozz::Vector<Joint>::Std Children;
+    typedef ozz::vector<Joint> Children;
 
     // Children joints.
     Children children;
 
     // The name of the joint.
-    ozz::String::Std name;
+    string name;
 
     // Joint bind pose transformation in local space.
     AffineTransform transform; //CONFFX_BEGIN
@@ -81,55 +81,58 @@ struct RawSkeleton {
   // and counts them.
   int num_joints() const;
 
-  // Applies a specified functor to each joint in a depth-first order.
-  // _Fct is of type void(const Joint& _current, const Joint* _parent) where the
-  // first argument is the child of the second argument. _parent is null if the
-  // _current joint is the root.
-  template <typename _Fct>
-  _Fct IterateJointsDF(_Fct _fct) const {
-    IterHierarchyDF(roots, NULL, _fct);
-    return _fct;
-  }
-
-  // Applies a specified functor to each joint in a breadth-first order.
-  // _Fct is of type void(const Joint& _current, const Joint* _parent) where the
-  // first argument is the child of the second argument. _parent is null if the
-  // _current joint is the root.
-  template <typename _Fct>
-  _Fct IterateJointsBF(_Fct _fct) const {
-    IterHierarchyBF(roots, NULL, _fct);
-    return _fct;
-  }
-
   // Declares the skeleton's roots. Can be empty if the skeleton has no joint.
   Joint::Children roots;
-
- private:
-  // Internal function used to iterate through joint hierarchy depth-first.
-  template <typename _Fct>
-  static void IterHierarchyDF(const RawSkeleton::Joint::Children& _children,
-                              const RawSkeleton::Joint* _parent, _Fct& _fct) {
-    for (size_t i = 0; i < _children.size(); ++i) {
-      const RawSkeleton::Joint& current = _children[i];
-      _fct(current, _parent);
-      IterHierarchyDF(current.children, &current, _fct);
-    }
-  }
-
-  // Internal function used to iterate through joint hierarchy breadth-first.
-  template <typename _Fct>
-  static void IterHierarchyBF(const RawSkeleton::Joint::Children& _children,
-                              const RawSkeleton::Joint* _parent, _Fct& _fct) {
-    for (size_t i = 0; i < _children.size(); ++i) {
-      const RawSkeleton::Joint& current = _children[i];
-      _fct(current, _parent);
-    }
-    for (size_t i = 0; i < _children.size(); ++i) {
-      const RawSkeleton::Joint& current = _children[i];
-      IterHierarchyBF(current.children, &current, _fct);
-    }
-  }
 };
+
+namespace {
+// Internal function used to iterate through joint hierarchy depth-first.
+template <typename _Fct>
+inline void _IterHierarchyRecurseDF(
+    const RawSkeleton::Joint::Children& _children,
+    const RawSkeleton::Joint* _parent, _Fct& _fct) {
+  for (size_t i = 0; i < _children.size(); ++i) {
+    const RawSkeleton::Joint& current = _children[i];
+    _fct(current, _parent);
+    _IterHierarchyRecurseDF(current.children, &current, _fct);
+  }
+}
+
+// Internal function used to iterate through joint hierarchy breadth-first.
+template <typename _Fct>
+inline void _IterHierarchyRecurseBF(
+    const RawSkeleton::Joint::Children& _children,
+    const RawSkeleton::Joint* _parent, _Fct& _fct) {
+  for (size_t i = 0; i < _children.size(); ++i) {
+    const RawSkeleton::Joint& current = _children[i];
+    _fct(current, _parent);
+  }
+  for (size_t i = 0; i < _children.size(); ++i) {
+    const RawSkeleton::Joint& current = _children[i];
+    _IterHierarchyRecurseBF(current.children, &current, _fct);
+  }
+}
+}  // namespace
+
+// Applies a specified functor to each joint in a depth-first order.
+// _Fct is of type void(const Joint& _current, const Joint* _parent) where the
+// first argument is the child of the second argument. _parent is null if the
+// _current joint is the root.
+template <typename _Fct>
+inline _Fct IterateJointsDF(const RawSkeleton& _skeleton, _Fct _fct) {
+  _IterHierarchyRecurseDF(_skeleton.roots, nullptr, _fct);
+  return _fct;
+}
+
+// Applies a specified functor to each joint in a breadth-first order.
+// _Fct is of type void(const Joint& _current, const Joint* _parent) where the
+// first argument is the child of the second argument. _parent is null if the
+// _current joint is the root.
+template <typename _Fct>
+inline _Fct IterateJointsBF(const RawSkeleton& _skeleton, _Fct _fct) {
+  _IterHierarchyRecurseBF(_skeleton.roots, nullptr, _fct);
+  return _fct;
+}
 }  // namespace offline
 }  // namespace animation
 namespace io {

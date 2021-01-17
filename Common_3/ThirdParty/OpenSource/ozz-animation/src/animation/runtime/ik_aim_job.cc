@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2019 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -39,14 +39,14 @@ IKAimJob::IKAimJob()
       pole_vector(Vector3::yAxis()),
       twist_angle(0.f),
       weight(1.f),
-      joint(NULL),
-      joint_correction(NULL),
-      reached(NULL) {}
+      joint(nullptr),
+      joint_correction(nullptr),
+      reached(nullptr) {}
 
 bool IKAimJob::Validate() const {
   bool valid = true;
-  valid &= joint != NULL;
-  valid &= joint_correction != NULL;
+  valid &= joint != nullptr;
+  valid &= joint_correction != nullptr;
   valid &= isNormalizedEst(forward);
   return valid;
 }
@@ -111,7 +111,7 @@ bool IKAimJob::Run() const {
   // Copies reachability result.
   // If offsetted forward vector doesn't exists, target position cannot be
   // aimed.
-  if (reached != NULL) {
+  if (reached != nullptr) {
     *reached = lreached;
   }
 

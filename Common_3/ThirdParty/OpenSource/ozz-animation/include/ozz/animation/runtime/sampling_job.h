@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -30,7 +30,7 @@
 
 //CONFFX_BEGIN
 #include "../../base/platform.h"
-
+#include "../../base/span.h"
 #include "../../../../../../../../Common_3/OS/Math/MathTypes.h"
 
 namespace ozz {
@@ -59,7 +59,7 @@ struct SamplingJob {
   SamplingJob();
 
   // Validates job parameters. Returns true for a valid job, or false otherwise:
-  // -if any input pointer is NULL
+  // -if any input pointer is nullptr
   // -if output range is invalid.
   bool Validate() const;
 
@@ -88,27 +88,35 @@ struct SamplingJob {
   // then remaining SoaTransform are left unchanged.
   // If there are more joints in the animation, then the last joints are not
   // sampled.
-  Range<SoaTransform> output; //CONFFX_BEGIN
+  span<SoaTransform> output; //CONFFX_BEGIN
 };
 
 namespace internal {
 // Soa hot data to interpolate.
-struct InterpSoaTranslation;
-struct InterpSoaRotation;
-struct InterpSoaScale;
+struct InterpSoaFloat3;
+struct InterpSoaQuaternion;
 }  // namespace internal
 
 // Declares the cache object used by the workload to take advantage of the
 // frame coherency of animation sampling.
 class SamplingCache {
  public:
-  // Construct a cache that can be used to sample any animation with at most
-  // _max_tracks tracks. _num_tracks is internally aligned to a multiple of
-  // soa size.
-  SamplingCache(int _max_tracks);
+  // Constructs an empty cache. The cache needs to be resized with the
+  // appropriate number of tracks before it can be used with a SamplingJob.
+  SamplingCache();
 
-  // Deallocate cache.
+  // Constructs a cache that can be used to sample any animation with at most
+  // _max_tracks tracks. _num_tracks is internally aligned to a multiple of
+  // soa size, which means max_tracks() can return a different (but bigger)
+  // value than _max_tracks.
+  explicit SamplingCache(int _max_tracks);
+
+  // Deallocates cache.
   ~SamplingCache();
+
+  // Resize the number of joints that the cache can support.
+  // This also implicitly invalidate the cache.
+  void Resize(int _max_tracks);
 
   // Invalidate the cache.
   // The SamplingJob automatically invalidates a cache when required
@@ -137,7 +145,7 @@ class SamplingCache {
   // cache is invalidated and reseted for the new _animation and _ratio.
   void Step(const Animation& _animation, float _ratio);
 
-  // The animation this cache refers to. NULL means that the cache is invalid.
+  // The animation this cache refers to. nullptr means that the cache is invalid.
   const Animation* animation_;
 
   // The current time ratio in the animation.
@@ -147,9 +155,9 @@ class SamplingCache {
   int max_soa_tracks_;
 
   // Soa hot data to interpolate.
-  internal::InterpSoaTranslation* soa_translations_;
-  internal::InterpSoaRotation* soa_rotations_;
-  internal::InterpSoaScale* soa_scales_;
+  internal::InterpSoaFloat3* soa_translations_;
+  internal::InterpSoaQuaternion* soa_rotations_;
+  internal::InterpSoaFloat3* soa_scales_;
 
   // Points to the keys in the animation that are valid for the current time
   // ratio.
@@ -163,9 +171,9 @@ class SamplingCache {
   int scale_cursor_;
 
   // Outdated soa entries. One bit per soa entry (32 joints per byte).
-  unsigned char* outdated_translations_;
-  unsigned char* outdated_rotations_;
-  unsigned char* outdated_scales_;
+  uint8_t* outdated_translations_;
+  uint8_t* outdated_rotations_;
+  uint8_t* outdated_scales_;
 };
 }  // namespace animation
 }  // namespace ozz

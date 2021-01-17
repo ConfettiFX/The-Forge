@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -43,7 +43,7 @@ OZZ_IO_TYPE_VERSION_T1(1, typename _ValueType,
                        animation::offline::RawTrackKeyframe<_ValueType>)
 
 template <typename _ValueType>
-struct Extern<animation::offline::RawTrackKeyframe<_ValueType> > {
+struct Extern<animation::offline::RawTrackKeyframe<_ValueType>> {
   static void Save(
       OArchive& _archive,
       const animation::offline::RawTrackKeyframe<_ValueType>* _keyframes,
@@ -79,12 +79,6 @@ namespace offline {
 namespace internal {
 
 template <typename _ValueType>
-RawTrack<_ValueType>::RawTrack() {}
-
-template <typename _ValueType>
-RawTrack<_ValueType>::~RawTrack() {}
-
-template <typename _ValueType>
 bool RawTrack<_ValueType>::Validate() const {
   float previous_ratio = -1.f;
   for (size_t k = 0; k < keyframes.size(); ++k) {
@@ -118,12 +112,12 @@ void RawTrack<_ValueType>::Load(io::IArchive& _archive, uint32_t _version) {
 
 // Explicitly instantiate supported raw tracks.
 template struct RawTrack<float>;
-//CONFFX_BEGIN
+// CONFFX_BEGIN
 template struct RawTrack<Vector2>;
 template struct RawTrack<Vector3>;
 template struct RawTrack<Vector4>;
 template struct RawTrack<Quat>;
-//CONFFX_END
+// CONFFX_END
 }  // namespace internal
 }  // namespace offline
 }  // namespace animation

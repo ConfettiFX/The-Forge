@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -61,21 +61,28 @@ OzzImporter::NodeProperties GetNodeProperties(FbxSceneLoader& _scene_loader,
                                               const char* _node_name);
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloatTrack* _track);
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloatTrack* _track);
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat2Track* _track);
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat2Track* _track);
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat3Track* _track);
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat3Track* _track);
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat4Track* _track);
-
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat4Track* _track);
 }  // namespace fbx
 }  // namespace offline
 }  // namespace animation

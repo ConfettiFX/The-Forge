@@ -40,7 +40,7 @@ void ClipController::Update(float dt)
 {
 	float newTime = mTimeRatio;
 
-	if (mPlay)
+	if (mPlay && mDuration > 0.f)
 	{
 		newTime = mTimeRatio + dt * (mPlaybackSpeed / mDuration);
 	}

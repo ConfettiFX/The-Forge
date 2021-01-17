@@ -43,7 +43,7 @@ namespace animation {
 namespace internal {
 
 template <typename _ValueType>
-Track<_ValueType>::Track() : name_(NULL) {}
+Track<_ValueType>::Track() : name_(nullptr) {}
 
 template <typename _ValueType>
 Track<_ValueType>::~Track() {
@@ -56,60 +56,53 @@ void Track<_ValueType>::Allocate(size_t _keys_count, size_t _name_len) {
 
   // Distributes buffer memory while ensuring proper alignment (serves larger
   // alignment values first).
-  OZZ_STATIC_ASSERT(OZZ_ALIGN_OF(_ValueType) >= OZZ_ALIGN_OF(float));
-  OZZ_STATIC_ASSERT(OZZ_ALIGN_OF(float) >= OZZ_ALIGN_OF(uint8_t));
+  static_assert(alignof(_ValueType) >= alignof(float) &&
+                    alignof(float) >= alignof(uint8_t),
+                "Must serve larger alignment values first)");
 
   // Compute overall size and allocate a single buffer for all the data.
   const size_t buffer_size = _keys_count * sizeof(_ValueType) +  // values
                              _keys_count * sizeof(float) +       // ratios
                              (_keys_count + 7) * sizeof(uint8_t) / 8 +  // steps
                              (_name_len > 0 ? _name_len + 1 : 0);
-  char* buffer = reinterpret_cast<char*>(memory::default_allocator()->Allocate(
-      buffer_size, OZZ_ALIGN_OF(_ValueType)));
+  span<char> buffer = {static_cast<char*>(memory::default_allocator()->Allocate(
+                           buffer_size, alignof(_ValueType))),
+                       buffer_size};
 
   // Fix up pointers. Serves larger alignment values first.
-  values_.begin = reinterpret_cast<_ValueType*>(buffer);
-  assert(math::IsAligned(values_.begin, OZZ_ALIGN_OF(_ValueType)));
-  buffer += _keys_count * sizeof(_ValueType);
-  values_.end = reinterpret_cast<_ValueType*>(buffer);
+  values_ = fill_span<_ValueType>(buffer, _keys_count);
+  ratios_ = fill_span<float>(buffer, _keys_count);
+  steps_ = fill_span<uint8_t>(buffer, (_keys_count + 7) / 8);
 
-  ratios_.begin = reinterpret_cast<float*>(buffer);
-  assert(math::IsAligned(ratios_.begin, OZZ_ALIGN_OF(float)));
-  buffer += _keys_count * sizeof(float);
-  ratios_.end = reinterpret_cast<float*>(buffer);
-
-  steps_.begin = reinterpret_cast<uint8_t*>(buffer);
-  assert(math::IsAligned(steps_.begin, OZZ_ALIGN_OF(uint8_t)));
-  buffer += (_keys_count + 7) * sizeof(uint8_t) / 8;
-  steps_.end = reinterpret_cast<uint8_t*>(buffer);
-
-  // Let name be NULL if track has no name. Allows to avoid allocating this
+  // Let name be nullptr if track has no name. Allows to avoid allocating this
   // buffer in the constructor of empty animations.
-  name_ = reinterpret_cast<char*>(_name_len > 0 ? buffer : NULL);
-  assert(math::IsAligned(name_, OZZ_ALIGN_OF(char)));
+  name_ =
+      _name_len > 0 ? fill_span<char>(buffer, _name_len + 1).data() : nullptr;
+
+  assert(buffer.empty() && "Whole buffer should be consumned");
 }
 
 template <typename _ValueType>
 void Track<_ValueType>::Deallocate() {
   // Deallocate everything at once.
-  memory::default_allocator()->Deallocate(values_.begin);
+  memory::default_allocator()->Deallocate(as_writable_bytes(values_).data());
 
-  values_.Clear();
-  ratios_.Clear();
-  steps_.Clear();
-  name_ = NULL;
+  values_ = {};
+  ratios_ = {};
+  steps_ = {};
+  name_ = nullptr;
 }
 
 template <typename _ValueType>
 size_t Track<_ValueType>::size() const {
-  const size_t size =
-      sizeof(*this) + values_.size() + ratios_.size() + steps_.size();
+  const size_t size = sizeof(*this) + values_.size_bytes() +
+                      ratios_.size_bytes() + steps_.size_bytes();
   return size;
 }
 
 template <typename _ValueType>
 void Track<_ValueType>::Save(ozz::io::OArchive& _archive) const {
-  uint32_t num_keys = static_cast<uint32_t>(ratios_.count());
+  uint32_t num_keys = static_cast<uint32_t>(ratios_.size());
   _archive << num_keys;
 
   const size_t name_len = name_ ? eastl::CharStrlen(name_) : 0;

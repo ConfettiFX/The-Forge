@@ -27,7 +27,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/ik_two_bone_job.h"
 
 namespace {
-void MultiplySoATransformQuaternion(int _index, const Quat& _quat, ozz::Range<SoaTransform>& _transforms)
+void MultiplySoATransformQuaternion(int _index, const Quat& _quat, ozz::vector<SoaTransform>& _transforms)
 {
 	SoaTransform& soa_transform_ref = _transforms[_index / 4];
 	Vector4       aos_quats[4];
@@ -46,16 +46,15 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 	mRig = rig;
 	mAnimation = animation;
 
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-
-	// Allocates sampler runtime buffer.
-	mLocalTrans = allocator->AllocateRange<SoaTransform>(rig->GetNumSoaJoints());
+	mLocalTrans.resize(rig->GetNumSoaJoints(), SoaTransform::identity());
 }
 
 void AnimatedObject::Destroy()
 {
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-	allocator->Deallocate(mLocalTrans);
+	mRig = nullptr;
+	mAnimation = nullptr;
+
+	mLocalTrans.set_capacity(0);
 }
 
 bool AnimatedObject::Update(float dt)
@@ -69,7 +68,7 @@ bool AnimatedObject::Update(float dt)
 	// Setup local-to-model conversion job.
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
-	ltmJob.input = mLocalTrans;
+	ltmJob.input = ozz::make_span(mLocalTrans);
 	ltmJob.output = mRig->GetJointModelMats();    // Save results in mRig's model mat buffer
 
 	// Runs ltm job.
@@ -81,7 +80,7 @@ bool AnimatedObject::Update(float dt)
 
 bool AnimatedObject::AimIK(AimIKDesc* params, Point3 target)
 {
-	ozz::Range<Matrix4> models = mRig->GetJointModelMats();
+	ozz::span<Matrix4> models = mRig->GetJointModelMats();
 
 	ozz::animation::IKAimJob ikJob;
 	ikJob.pole_vector = params->mPoleVector;
@@ -92,7 +91,7 @@ bool AnimatedObject::AimIK(AimIKDesc* params, Point3 target)
 	Quat correction;
 	ikJob.joint_correction = &correction;
 
-	int previous_joint = ozz::animation::Skeleton::kNoParentIndex;
+	int previous_joint = ozz::animation::Skeleton::kNoParent;
 	for (int i = 0, joint = params->mJointChain[0]; i < params->mJointChainLength;
 		 ++i, previous_joint = joint, joint = params->mJointChain[i])
 	{
@@ -127,7 +126,7 @@ bool AnimatedObject::AimIK(AimIKDesc* params, Point3 target)
 
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
-	ltmJob.input = mLocalTrans;
+	ltmJob.input = ozz::make_span(mLocalTrans);
 	ltmJob.output = mRig->GetJointModelMats();
 
 	if (!ltmJob.Run())
@@ -148,7 +147,7 @@ bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, Point3 target)
 	ik_job.soften = params->mSoften;
 	ik_job.twist_angle = params->mTwistAngle;
 
-	ozz::Range<Matrix4> models = mRig->GetJointModelMats();
+	ozz::span<Matrix4> models = mRig->GetJointModelMats();
 
 	ik_job.start_joint = &models[params->mJointChain[0]];
 	ik_job.mid_joint = &models[params->mJointChain[1]];
@@ -171,7 +170,7 @@ bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, Point3 target)
 
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
-	ltmJob.input = mLocalTrans;
+	ltmJob.input = ozz::make_span(mLocalTrans);
 	ltmJob.output = mRig->GetJointModelMats();
 
 	// Runs ltm job.
@@ -186,7 +185,7 @@ void AnimatedObject::PoseRigInBind()
 	// Setup local-to-model conversion job.
 	ozz::animation::LocalToModelJob ltmJob;
 	ltmJob.skeleton = mRig->GetSkeleton();
-	ltmJob.input = mRig->GetSkeleton()->bind_pose();    // Use the skeleton's bind pose
+	ltmJob.input = mRig->GetSkeleton()->joint_bind_poses();    // Use the skeleton's bind pose
 	ltmJob.output = mRig->GetJointModelMats();          // Save results in mRig's model mat buffer
 
 	// Runs ltm job.

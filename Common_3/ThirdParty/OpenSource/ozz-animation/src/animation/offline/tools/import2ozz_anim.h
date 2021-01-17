@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -25,11 +25,14 @@
 //                                                                            //
 //----------------------------------------------------------------------------//
 
-#ifndef OZZ_ANIMATION_OFFLINE_TOOLS_import2ozz_ANIM_H_
-#define OZZ_ANIMATION_OFFLINE_TOOLS_import2ozz_ANIM_H_
+#ifndef OZZ_ANIMATION_OFFLINE_TOOLS_IMPORT2OZZ_ANIM_H_
+#define OZZ_ANIMATION_OFFLINE_TOOLS_IMPORT2OZZ_ANIM_H_
 
 #include "ozz/base/endianness.h"
 #include "ozz/base/platform.h"
+
+#include "animation/offline/tools/import2ozz_config.h"
+#include "ozz/animation/offline/tools/import2ozz.h"
 
 namespace Json {
 class Value;
@@ -40,11 +43,18 @@ namespace animation {
 namespace offline {
 
 class OzzImporter;
-
-bool ImportAnimations(const Json::Value& _config, OzzImporter* _converter,
+bool ImportAnimations(const Json::Value& _config, OzzImporter* _importer,
                       const ozz::Endianness _endianness);
 
+// Additive reference enum to config string conversions.
+struct AdditiveReferenceEnum {
+  enum Value { kAnimation, kSkeleton };
+};
+struct AdditiveReference
+    : JsonEnum<AdditiveReference, AdditiveReferenceEnum::Value> {
+  static EnumNames GetNames();
+};
 }  // namespace offline
 }  // namespace animation
 }  // namespace ozz
-#endif  // OZZ_ANIMATION_OFFLINE_TOOLS_import2ozz_ANIM_H_
+#endif  // OZZ_ANIMATION_OFFLINE_TOOLS_IMPORT2OZZ_ANIM_H_

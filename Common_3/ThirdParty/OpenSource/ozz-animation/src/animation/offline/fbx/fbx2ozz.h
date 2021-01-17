@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -67,19 +67,23 @@ class Fbx2OzzImporter : public ozz::animation::offline::OzzImporter {
   virtual NodeProperties GetNodeProperties(const char* _node_name);
 
   virtual bool Import(const char* _animation_name, const char* _node_name,
-                      const char* _track_name, float _sampling_rate,
+                      const char* _track_name,
+                      NodeProperty::Type _expected_type, float _sampling_rate,
                       ozz::animation::offline::RawFloatTrack* _track);
 
   virtual bool Import(const char* _animation_name, const char* _node_name,
-                      const char* _track_name, float _sampling_rate,
+                      const char* _track_name,
+                      NodeProperty::Type _expected_type, float _sampling_rate,
                       ozz::animation::offline::RawFloat2Track* _track);
 
   virtual bool Import(const char* _animation_name, const char* _node_name,
-                      const char* _track_name, float _sampling_rate,
+                      const char* _track_name,
+                      NodeProperty::Type _expected_type, float _sampling_rate,
                       ozz::animation::offline::RawFloat3Track* _track);
 
   virtual bool Import(const char* _animation_name, const char* _node_name,
-                      const char* _track_name, float _sampling_rate,
+                      const char* _track_name,
+                      NodeProperty::Type _expected_type, float _sampling_rate,
                       ozz::animation::offline::RawFloat4Track* _track);
 
   // Fbx internal helpers

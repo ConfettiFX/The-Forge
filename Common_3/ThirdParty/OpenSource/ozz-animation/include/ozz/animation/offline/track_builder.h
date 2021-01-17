@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -27,6 +27,8 @@
 
 #ifndef OZZ_OZZ_ANIMATION_OFFLINE_TRACK_BUILDER_H_
 #define OZZ_OZZ_ANIMATION_OFFLINE_TRACK_BUILDER_H_
+
+#include "ozz/base/memory/unique_ptr.h"
 
 namespace ozz {
 namespace animation {
@@ -53,20 +55,21 @@ struct RawQuaternionTrack;
 // the data at all.
 class TrackBuilder {
  public:
-  // Creates a Track based on _raw_track and *this builder
-  // parameters.
-  // The returned instance will then need to be deleted using the default
-  // allocator Delete() function.
-  // See Raw*Track::Validate() for more details about failure reasons.
-  FloatTrack* operator()(const RawFloatTrack& _input) const;
-  Float2Track* operator()(const RawFloat2Track& _input) const;
-  Float3Track* operator()(const RawFloat3Track& _input) const;
-  Float4Track* operator()(const RawFloat4Track& _input) const;
-  QuaternionTrack* operator()(const RawQuaternionTrack& _input) const;
+  // Creates a Track based on _raw_track and *this builder parameters.
+  // Returns a track instance on success, an empty unique_ptr on failure. See
+  // Raw*Track::Validate() for more details about failure reasons.
+  // The track is returned as an unique_ptr as ownership is given back to the
+  // caller.
+  ozz::unique_ptr<FloatTrack> operator()(const RawFloatTrack& _input) const;
+  ozz::unique_ptr<Float2Track> operator()(const RawFloat2Track& _input) const;
+  ozz::unique_ptr<Float3Track> operator()(const RawFloat3Track& _input) const;
+  ozz::unique_ptr<Float4Track> operator()(const RawFloat4Track& _input) const;
+  ozz::unique_ptr<QuaternionTrack> operator()(
+      const RawQuaternionTrack& _input) const;
 
  private:
   template <typename _RawTrack, typename _Track>
-  _Track* Build(const _RawTrack& _input) const;
+  ozz::unique_ptr<_Track> Build(const _RawTrack& _input) const;
 };
 }  // namespace offline
 }  // namespace animation

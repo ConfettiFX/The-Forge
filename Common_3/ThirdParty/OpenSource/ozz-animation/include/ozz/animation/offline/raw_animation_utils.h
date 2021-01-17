@@ -29,8 +29,10 @@
 #define OZZ_OZZ_ANIMATION_OFFLINE_RAW_ANIMATION_UTILS_H_
 
 #include "ozz/animation/offline/raw_animation.h"
-//CONFFX_BEGIN
 
+#include "ozz/base/span.h"
+
+// CONFFX_BEGIN
 namespace ozz {
 namespace animation {
 namespace offline {
@@ -46,7 +48,45 @@ Quat LerpRotation(const Quat& _a,
 // Scale interpolation method.
 Vector3 LerpScale(const Vector3& _a, const Vector3& _b,
                        float _alpha);
+
+// Samples a RawAnimation track. This function shall be used for offline
+// purpose. Use ozz::animation::Animation and ozz::animation::SamplingJob for
+// runtime purpose.
+// Returns false if track is invalid.
+bool SampleTrack(const RawAnimation::JointTrack& _track, float _time,
+                 AffineTransform* _transform);
+
+// Samples a RawAnimation. This function shall be used for offline
+// purpose. Use ozz::animation::Animation and ozz::animation::SamplingJob for
+// runtime purpose.
+// _animation must be valid.
+// Returns false output range is too small or animation is invalid.
+bool SampleAnimation(const RawAnimation& _animation, float _time,
+                     const span<AffineTransform>& _transforms);
+
 //CONFFX_END
+
+// Implement fixed rate keyframe time iteration. This utility purpose is to
+// ensure that sampling goes strictly from 0 to duration, and that period
+// between consecutive time samples have a fixed period.
+// This sounds trivial, but floating point error could occur if keyframe time
+// was accumulated for a long duration.
+class FixedRateSamplingTime {
+ public:
+  FixedRateSamplingTime(float _duration, float _frequency);
+
+  float time(size_t _key) const {
+    assert(_key < num_keys_);
+    return min(_key * period_, duration_);
+  }
+
+  size_t num_keys() const { return num_keys_; }
+
+ private:
+  float duration_;
+  float period_;
+  size_t num_keys_;
+};
 }  // namespace offline
 }  // namespace animation
 }  // namespace ozz

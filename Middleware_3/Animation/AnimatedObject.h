@@ -123,7 +123,7 @@ class AnimatedObject
 	Animation* mAnimation;
 
 	// Buffer of local transforms as sampled from the animation.
-	ozz::Range<SoaTransform> mLocalTrans;
+	ozz::vector<SoaTransform> mLocalTrans;
 
 	// Transform to apply to entire rig
 	Matrix4 mRootTransform = Matrix4::identity();

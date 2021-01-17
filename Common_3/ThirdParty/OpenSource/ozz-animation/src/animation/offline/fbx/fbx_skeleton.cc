@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -96,7 +96,7 @@ RecurseReturn RecurseNode(FbxNode* _node, FbxSystemConverter* _converter,
                           RawSkeleton* _skeleton, RawSkeleton::Joint* _parent,
                           FbxAMatrix _parent_global_inv) {
   bool skeleton_found = false;
-  RawSkeleton::Joint* this_joint = NULL;
+  RawSkeleton::Joint* this_joint = nullptr;
 
   // Process this node as a new joint if it has a joint compatible attribute.
   FbxNodeAttribute* node_attribute = _node->GetNodeAttribute();
@@ -104,7 +104,7 @@ RecurseReturn RecurseNode(FbxNode* _node, FbxSystemConverter* _converter,
       IsTypeSelected(_types, node_attribute->GetAttributeType())) {
     skeleton_found = true;
 
-    RawSkeleton::Joint::Children* sibling = NULL;
+    RawSkeleton::Joint::Children* sibling = nullptr;
     if (_parent) {
       sibling = &_parent->children;
     } else {
@@ -151,7 +151,7 @@ bool ExtractSkeleton(FbxSceneLoader& _loader,
                      RawSkeleton* _skeleton) {
   RecurseReturn ret =
       RecurseNode(_loader.scene()->GetRootNode(), _loader.converter(), _types,
-                  _skeleton, NULL, FbxAMatrix());
+                  _skeleton, nullptr, FbxAMatrix());
   if (ret == kNoSkeleton) {
     ozz::log::Err() << "No skeleton found in Fbx scene." << std::endl;
     return false;

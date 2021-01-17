@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -70,44 +70,49 @@ Fbx2OzzImporter::NodeProperties Fbx2OzzImporter::GetNodeProperties(
 template <typename _RawTrack>
 bool ImportImpl(ozz::animation::offline::fbx::FbxSceneLoader* _scene_loader,
                 const char* _animation_name, const char* _node_name,
-                const char* _track_name, float _sampling_rate,
+                const char* _track_name,
+                Fbx2OzzImporter::NodeProperty::Type _type, float _sampling_rate,
                 _RawTrack* _track) {
   if (!_scene_loader) {
     return false;
   }
-  return ozz::animation::offline::fbx::ExtractTrack(_animation_name, _node_name,
-                                                    _track_name, *_scene_loader,
-                                                    _sampling_rate, _track);
+  return ozz::animation::offline::fbx::ExtractTrack(
+      _animation_name, _node_name, _track_name, _type, *_scene_loader,
+      _sampling_rate, _track);
 }
 
 bool Fbx2OzzImporter::Import(const char* _animation_name,
                              const char* _node_name, const char* _track_name,
+                             Fbx2OzzImporter::NodeProperty::Type _type,
                              float _sampling_rate,
                              ozz::animation::offline::RawFloatTrack* _track) {
   return ImportImpl(scene_loader_, _animation_name, _node_name, _track_name,
-                    _sampling_rate, _track);
+                    _type, _sampling_rate, _track);
 }
 
 bool Fbx2OzzImporter::Import(const char* _animation_name,
                              const char* _node_name, const char* _track_name,
+                             Fbx2OzzImporter::NodeProperty::Type _type,
                              float _sampling_rate,
                              ozz::animation::offline::RawFloat2Track* _track) {
   return ImportImpl(scene_loader_, _animation_name, _node_name, _track_name,
-                    _sampling_rate, _track);
+                    _type, _sampling_rate, _track);
 }
 
 bool Fbx2OzzImporter::Import(const char* _animation_name,
                              const char* _node_name, const char* _track_name,
+                             Fbx2OzzImporter::NodeProperty::Type _type,
                              float _sampling_rate,
                              ozz::animation::offline::RawFloat3Track* _track) {
   return ImportImpl(scene_loader_, _animation_name, _node_name, _track_name,
-                    _sampling_rate, _track);
+                    _type, _sampling_rate, _track);
 }
 
 bool Fbx2OzzImporter::Import(const char* _animation_name,
                              const char* _node_name, const char* _track_name,
+                             Fbx2OzzImporter::NodeProperty::Type _type,
                              float _sampling_rate,
                              ozz::animation::offline::RawFloat4Track* _track) {
   return ImportImpl(scene_loader_, _animation_name, _node_name, _track_name,
-                    _sampling_rate, _track);
+                    _type, _sampling_rate, _track);
 }

@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -32,63 +32,42 @@
 #include "../platform.h"
 
 namespace ozz {
-// Redirects std::vector to ozz::Vector
+// Redirects std::vector to ozz::vector in order to replace std default
+
+template <class _Ty, class _Allocator = EASTLAllocatorType >
+using vector = eastl::vector<_Ty, _Allocator>;
+
 // Extends std::vector with two functions that gives access to the begin and the
 // end of its array of elements.
-template <class _Ty, class _Allocator = EASTLAllocatorType >
-struct Vector {
-  typedef eastl::vector<_Ty, _Allocator> Std;
-};
 
-
-
-// Returns the mutable begin of the array of elements, or NULL if
+// Returns the mutable begin of the array of elements, or nullptr if
 // vector's empty.
 template <class _Ty, class _Allocator>
 inline _Ty* array_begin(eastl::vector<_Ty, _Allocator>& _vector) {
-  size_t size = _vector.size();
-  return size != 0 ? &_vector[0] : NULL;
+  return _vector.data();
 }
 
-// Returns the non-mutable begin of the array of elements, or NULL if
+// Returns the non-mutable begin of the array of elements, or nullptr if
 // vector's empty.
 template <class _Ty, class _Allocator>
 inline const _Ty* array_begin(const eastl::vector<_Ty, _Allocator>& _vector) {
-  size_t size = _vector.size();
-  return size != 0 ? &_vector[0] : NULL;
+  return _vector.data();
 }
 
-// Returns the mutable end of the array of elements, or NULL if
+// Returns the mutable end of the array of elements, or nullptr if
 // vector's empty. Array end is one element past the last element of the
 // array, it cannot be dereferenced.
 template <class _Ty, class _Allocator>
 inline _Ty* array_end(eastl::vector<_Ty, _Allocator>& _vector) {
-  size_t size = _vector.size();
-  return size != 0 ? (&_vector[size - 1]) + 1 : NULL;
+  return _vector.data() + _vector.size();
 }
 
-// Returns the non-mutable end of the array of elements, or NULL if
+// Returns the non-mutable end of the array of elements, or nullptr if
 // vector's empty. Array end is one element past the last element of the
 // array, it cannot be dereferenced.
 template <class _Ty, class _Allocator>
 inline const _Ty* array_end(const eastl::vector<_Ty, _Allocator>& _vector) {
-  size_t size = _vector.size();
-  return size != 0 ? (&_vector[size - 1]) + 1 : NULL;
-}
-
-// Returns a mutable ozz::Range from a vector.
-template <typename _Ty, class _Allocator>
-inline Range<_Ty> make_range(eastl::vector<_Ty, _Allocator>& _vector) {
-  const size_t size = _vector.size();
-  return Range<_Ty>(size != 0 ? &_vector[0] : NULL, size);
-}
-
-// Returns a non mutable ozz::Range from a vector.
-template <typename _Ty, class _Allocator>
-inline Range<const _Ty> make_range(
-    const eastl::vector<_Ty, _Allocator>& _vector) {
-  const size_t size = _vector.size();
-  return Range<const _Ty>(size != 0 ? &_vector[0] : NULL, size);
+  return _vector.data() + _vector.size();
 }
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_VECTOR_H_

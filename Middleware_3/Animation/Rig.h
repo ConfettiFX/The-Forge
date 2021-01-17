@@ -118,7 +118,7 @@ class Rig
 	};
 
 	// Gets the joint's model matricies so they can be set by animations
-	inline ozz::Range<Matrix4> GetJointModelMats() { return mJointModelMats; };
+	inline ozz::span<Matrix4> GetJointModelMats() { return ozz::make_span(mJointModelMats); };
 
 	// Gets the scale of joint at index
 	inline Vector3 GetJointScale(unsigned int index) { return mJointScales[index]; };
@@ -174,7 +174,7 @@ class Rig
 	eastl::vector<Matrix4> mBoneWorldMats;
 
 	// Buffer of joint model space matrices set by animations
-	ozz::Range<Matrix4> mJointModelMats;
+	eastl::vector<Matrix4> mJointModelMats;
 
 	// Scales to apply to each joint - will be proportional to length of its child's bone
 	eastl::vector<Vector3> mJointScales;

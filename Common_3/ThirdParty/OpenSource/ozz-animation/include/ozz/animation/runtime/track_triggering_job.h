@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -97,7 +97,7 @@ struct TrackTriggeringJob {
 // last edge has been reached.
 class TrackTriggeringJob::Iterator {
  public:
-  Iterator() : job_(NULL), outer_(0.f), inner_(0) {}
+  Iterator() : job_(nullptr), outer_(0.f), inner_(0) {}
 
   // Evaluate next edge.
   // Calling this function on an end iterator results in an assertion in debug,

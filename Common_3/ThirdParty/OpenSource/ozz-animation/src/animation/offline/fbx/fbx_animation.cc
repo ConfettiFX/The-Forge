@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -27,13 +27,17 @@
 
 #include "ozz/animation/offline/fbx/fbx_animation.h"
 
+#include "ozz/animation/offline/fbx/fbx.h"
+
 #include "ozz/animation/offline/raw_animation.h"
+#include "ozz/animation/offline/raw_animation_utils.h"
 #include "ozz/animation/offline/raw_track.h"
 #include "ozz/animation/runtime/skeleton.h"
 #include "ozz/animation/runtime/skeleton_utils.h"
 
 #include "ozz/base/log.h"
 
+#include "ozz/base/maths/math_ex.h"
 #include "ozz/base/maths/transform.h"
 
 namespace ozz {
@@ -46,7 +50,7 @@ struct SamplingInfo {
   float start;
   float end;
   float duration;
-  float period;
+  float frequency;
 };
 
 SamplingInfo ExtractSamplingInfo(FbxScene* _scene, FbxAnimStack* _anim_stack,
@@ -81,7 +85,7 @@ SamplingInfo ExtractSamplingInfo(FbxScene* _scene, FbxAnimStack* _anim_stack,
     log::LogV() << "Using scene sampling rate of " << sampling_rate << "hz."
                 << std::endl;
   }
-  info.period = 1.f / sampling_rate;
+  info.frequency = sampling_rate;
 
   // Get scene start and end.
   info.start = static_cast<float>(time_spawn.GetStart().GetSecondDouble());
@@ -106,58 +110,51 @@ bool ExtractAnimation(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
   // Set animation data.
   _animation->duration = _info.duration;
 
-  // Locates all skeleton nodes in the fbx scene. Some might be NULL.
-  ozz::Vector<FbxNode*>::Std nodes;
+  // Locates all skeleton nodes in the fbx scene. Some might be nullptr.
+  ozz::vector<FbxNode*> nodes;
   for (int i = 0; i < _skeleton.num_joints(); i++) {
     const char* joint_name = _skeleton.joint_names()[i];
     nodes.push_back(scene->FindNodeByName(joint_name));
   }
 
   // Preallocates and initializes world matrices.
-  const size_t max_keys =
-      static_cast<size_t>(3.f + (_info.end - _info.start) / _info.period);
-  ozz::Vector<float>::Std times;
-  times.reserve(max_keys);
-  ozz::Vector<ozz::Vector<ozz::math::Float4x4>::Std>::Std world_matrices;
+  const FixedRateSamplingTime fixed_it(_info.duration, _info.frequency);
+
+  ozz::vector<float> times;
+  times.resize(fixed_it.num_keys());
+  ozz::vector<ozz::vector<ozz::math::Float4x4>> world_matrices;
   world_matrices.resize(_skeleton.num_joints());
   for (int i = 0; i < _skeleton.num_joints(); i++) {
-    world_matrices[i].reserve(max_keys);
+    world_matrices[i].resize(fixed_it.num_keys());
   }
 
   // Goes through the whole timeline to compute animated word matrices.
   // Fbx sdk seems to compute nodes transformation for the whole scene, so it's
   // much faster to query all nodes at once for the same time t.
   FbxAnimEvaluator* evaluator = scene->GetAnimationEvaluator();
-  bool loop_again = true;
-  size_t num_keys = 0;
-  for (float t = _info.start; loop_again; t += _info.period) {
-    if (t >= _info.end) {
-      t = _info.end;
-      loop_again = false;
-    }
-    times.push_back(t - _info.start);
-    ++num_keys;
+  for (size_t k = 0; k < fixed_it.num_keys(); ++k) {
+    const float t = fixed_it.time(k);
+    times[k] = t;
 
     // Goes through all nodes.
     for (int i = 0; i < _skeleton.num_joints(); i++) {
       FbxNode* node = nodes[i];
       if (node) {
-        const FbxAMatrix fbx_matrix =
-            evaluator->GetNodeGlobalTransform(node, FbxTimeSeconds(t));
+        const FbxAMatrix fbx_matrix = evaluator->GetNodeGlobalTransform(
+            node, FbxTimeSeconds(t + _info.start));
         const math::Float4x4 matrix =
             _scene_loader.converter()->ConvertMatrix(fbx_matrix);
-        world_matrices[i].push_back(matrix);
+        world_matrices[i][k] = matrix;
       }
     }
   }
-  assert(num_keys <= max_keys);
 
   // Builds world matrices for non-animated joints.
   // Skeleton is order with parents first, so it can be traversed in order.
   for (int i = 0; i < _skeleton.num_joints(); i++) {
     // Initializes non-animated joints.
     FbxNode* node = nodes[i];
-    if (node == NULL) {
+    if (node == nullptr) {
       ozz::log::LogV() << "No animation track found for joint \""
                        << _skeleton.joint_names()[i]
                        << "\". Using skeleton bind pose instead." << std::endl;
@@ -172,33 +169,33 @@ bool ExtractAnimation(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
           math::simd_float4::Load3PtrU(&bind_pose.scale.x);
       const math::Float4x4 local_matrix = math::Float4x4::FromAffine(t, q, s);
 
-      ozz::Vector<math::Float4x4>::Std& node_matrices = world_matrices[i];
-      const uint16_t parent = _skeleton.joint_properties()[i].parent;
-      if (parent != Skeleton::kNoParentIndex) {
-        ozz::Vector<math::Float4x4>::Std& parent_matrices =
+      ozz::vector<math::Float4x4>& node_matrices = world_matrices[i];
+      const int16_t parent = _skeleton.joint_parents()[i];
+      if (parent != Skeleton::kNoParent) {
+        const ozz::vector<math::Float4x4>& parent_matrices =
             world_matrices[parent];
-        assert(num_keys == parent_matrices.size());
-        for (size_t p = 0; p < num_keys; ++p) {
-          node_matrices.push_back(parent_matrices[p] * local_matrix);
+        assert(fixed_it.num_keys() == parent_matrices.size());
+        for (size_t k = 0; k < fixed_it.num_keys(); ++k) {
+          node_matrices[k] = parent_matrices[k] * local_matrix;
         }
       } else {
-        for (size_t p = 0; p < num_keys; ++p) {
-          node_matrices.push_back(local_matrix);
+        for (size_t k = 0; k < fixed_it.num_keys(); ++k) {
+          node_matrices[k] = local_matrix;
         }
       }
     }
   }
 
   // Builds world inverse matrices.
-  ozz::Vector<ozz::Vector<ozz::math::Float4x4>::Std>::Std world_inv_matrices;
+  ozz::vector<ozz::vector<ozz::math::Float4x4>> world_inv_matrices;
   world_inv_matrices.resize(_skeleton.num_joints());
   for (int i = 0; i < _skeleton.num_joints(); i++) {
-    ozz::Vector<math::Float4x4>::Std& node_world_matrices = world_matrices[i];
-    ozz::Vector<math::Float4x4>::Std& node_world_inv_matrices =
+    const ozz::vector<math::Float4x4>& node_world_matrices = world_matrices[i];
+    ozz::vector<math::Float4x4>& node_world_inv_matrices =
         world_inv_matrices[i];
-    node_world_inv_matrices.reserve(num_keys);
-    for (size_t p = 0; p < num_keys; ++p) {
-      node_world_inv_matrices.push_back(Invert(node_world_matrices[p]));
+    node_world_inv_matrices.resize(fixed_it.num_keys());
+    for (size_t p = 0; p < fixed_it.num_keys(); ++p) {
+      node_world_inv_matrices[p] = Invert(node_world_matrices[p]);
     }
   }
 
@@ -209,19 +206,19 @@ bool ExtractAnimation(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
   _animation->tracks.resize(_skeleton.num_joints());
   for (int i = 0; i < _skeleton.num_joints(); i++) {
     RawAnimation::JointTrack& track = _animation->tracks[i];
-    track.rotations.reserve(num_keys);
-    track.translations.reserve(num_keys);
-    track.scales.reserve(num_keys);
+    track.rotations.resize(fixed_it.num_keys());
+    track.translations.resize(fixed_it.num_keys());
+    track.scales.resize(fixed_it.num_keys());
 
-    const uint16_t parent = _skeleton.joint_properties()[i].parent;
-    ozz::Vector<math::Float4x4>::Std& node_world_matrices = world_matrices[i];
-    ozz::Vector<math::Float4x4>::Std& node_world_inv_matrices =
-        world_inv_matrices[parent != Skeleton::kNoParentIndex ? parent : 0];
+    const int16_t parent = _skeleton.joint_parents()[i];
+    ozz::vector<math::Float4x4>& node_world_matrices = world_matrices[i];
+    ozz::vector<math::Float4x4>& node_world_inv_matrices =
+        world_inv_matrices[parent != Skeleton::kNoParent ? parent : 0];
 
-    for (size_t n = 0; n < num_keys; ++n) {
+    for (size_t n = 0; n < fixed_it.num_keys(); ++n) {
       // Builds local matrix;
       math::Float4x4 local_matrix;
-      if (parent != Skeleton::kNoParentIndex) {
+      if (parent != Skeleton::kNoParent) {
         local_matrix = node_world_inv_matrices[n] * node_world_matrices[n];
       } else {
         local_matrix = node_world_matrices[n];
@@ -244,11 +241,11 @@ bool ExtractAnimation(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
       // Fills corresponding track.
       const float time = times[n];
       const RawAnimation::TranslationKey tkey = {time, transform.translation};
-      track.translations.push_back(tkey);
+      track.translations[n] = tkey;
       const RawAnimation::RotationKey rkey = {time, transform.rotation};
-      track.rotations.push_back(rkey);
+      track.rotations[n] = rkey;
       const RawAnimation::ScaleKey skey = {time, transform.scale};
-      track.scales.push_back(skey);
+      track.scales[n] = skey;
     }
   }
   return _animation->Validate();
@@ -264,37 +261,51 @@ bool PropertyGetValueAsFloat(FbxPropertyValue& _property_value,
   return success;
 }
 
-bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
+bool GetValue(FbxSceneLoader& _scene_loader, FbxPropertyValue& _property_value,
+              EFbxType _fbx_type, OzzImporter::NodeProperty::Type _type,
               float* _value) {
-  switch (_type) {
+  (void)_scene_loader;
+  // Only supported types are enumerated, so this function should not be
+  // called for something else but kFloat1.
+  (void)_type;
+  assert(_type == OzzImporter::NodeProperty::kFloat1);
+
+  switch (_fbx_type) {
     case eFbxBool: {
-      return PropertyGetValueAsFloat<bool>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<bool>(_property_value, _fbx_type, _value);
     }
     case eFbxChar: {
-      return PropertyGetValueAsFloat<int8_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<int8_t>(_property_value, _fbx_type,
+                                             _value);
     }
     case eFbxUChar: {
-      return PropertyGetValueAsFloat<uint8_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<uint8_t>(_property_value, _fbx_type,
+                                              _value);
     }
     case eFbxShort: {
-      return PropertyGetValueAsFloat<int16_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<int16_t>(_property_value, _fbx_type,
+                                              _value);
     }
     case eFbxUShort: {
-      return PropertyGetValueAsFloat<uint16_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<uint16_t>(_property_value, _fbx_type,
+                                               _value);
     }
     case eFbxInt:
     case eFbxEnum:
     case eFbxEnumM: {
-      return PropertyGetValueAsFloat<int32_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<int32_t>(_property_value, _fbx_type,
+                                              _value);
     }
     case eFbxUInt: {
-      return PropertyGetValueAsFloat<uint32_t>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<uint32_t>(_property_value, _fbx_type,
+                                               _value);
     }
     case eFbxFloat: {
-      return PropertyGetValueAsFloat<float>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<float>(_property_value, _fbx_type, _value);
     }
     case eFbxDouble: {
-      return PropertyGetValueAsFloat<double>(_property_value, _type, _value);
+      return PropertyGetValueAsFloat<double>(_property_value, _fbx_type,
+                                             _value);
     }
     default: {
       // Only supported types are enumerated, so this function should not be
@@ -305,12 +316,17 @@ bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
   }
 }
 
-bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
+bool GetValue(FbxSceneLoader& _scene_loader, FbxPropertyValue& _property_value,
+              EFbxType _fbx_type, OzzImporter::NodeProperty::Type _type,
               ozz::math::Float2* _value) {
-  (void)_type;
+  (void)_scene_loader;
   // Only supported types are enumerated, so this function should not be
-  // called for something else but eFbxDouble2.
-  assert(_type == eFbxDouble2);
+  // called for something else but eFbxDouble2 / kFloat2.
+  (void)_type;
+  (void)_fbx_type;
+  assert(_fbx_type == eFbxDouble2 &&
+         _type == OzzImporter::NodeProperty::kFloat2);
+
   double dvalue[2];
   if (!_property_value.Get(&dvalue, eFbxDouble2)) {
     return false;
@@ -321,29 +337,57 @@ bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
   return true;
 }
 
-bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
+bool GetValue(FbxSceneLoader& _scene_loader, FbxPropertyValue& _property_value,
+              EFbxType _fbx_type, OzzImporter::NodeProperty::Type _type,
               ozz::math::Float3* _value) {
-  (void)_type;
   // Only supported types are enumerated, so this function should not be
-  // called for something else but eFbxDouble3.
-  assert(_type == eFbxDouble3);
-  double dvalue[3];
-  if (!_property_value.Get(&dvalue, eFbxDouble3)) {
+  // called for something else but eFbxDouble3 / (kFloat3, kPosision).
+  (void)_type;
+  (void)_fbx_type;
+  assert(_fbx_type == eFbxDouble3 &&
+         (_type == OzzImporter::NodeProperty::kFloat3 ||
+          _type == OzzImporter::NodeProperty::kPoint ||
+          _type == OzzImporter::NodeProperty::kVector));
+
+  FbxVector4 vec4;
+  if (!_property_value.Get(vec4.Buffer(), eFbxDouble3)) {
     return false;
   }
-  _value->x = static_cast<float>(dvalue[0]);
-  _value->y = static_cast<float>(dvalue[1]);
-  _value->z = static_cast<float>(dvalue[2]);
+
+  // Type needs scene / axis conversion
+  const FbxSystemConverter* conv = _scene_loader.converter();
+  switch (_type) {
+    default: {
+      // No conversion required
+      _value->x = static_cast<float>(vec4[0]);
+      _value->y = static_cast<float>(vec4[1]);
+      _value->z = static_cast<float>(vec4[2]);
+      break;
+    }
+    case OzzImporter::NodeProperty::kPoint: {
+      *_value = conv->ConvertPoint(vec4);
+      break;
+    }
+    case OzzImporter::NodeProperty::kVector: {
+      *_value = conv->ConvertVector(vec4);
+      break;
+    }
+  }
 
   return true;
-}
+}  // namespace
 
-bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
+bool GetValue(FbxSceneLoader& _scene_loader, FbxPropertyValue& _property_value,
+              EFbxType _fbx_type, OzzImporter::NodeProperty::Type _type,
               ozz::math::Float4* _value) {
-  (void)_type;
+  (void)_scene_loader;
   // Only supported types are enumerated, so this function should not be
-  // called for something else but eFbxDouble4.
-  assert(_type == eFbxDouble4);
+  // called for something else but eFbxDouble4 / kFloat4.
+  (void)_type;
+  (void)_fbx_type;
+  assert(_fbx_type == eFbxDouble4 &&
+         _type == OzzImporter::NodeProperty::kFloat4);
+
   double dvalue[4];
   if (!_property_value.Get(&dvalue, eFbxDouble4)) {
     return false;
@@ -358,9 +402,9 @@ bool GetValue(FbxPropertyValue& _property_value, EFbxType _type,
 
 template <typename _Track>
 bool ExtractCurve(FbxSceneLoader& _scene_loader, FbxProperty& _property,
-                  EFbxType _type, const SamplingInfo& _info, _Track* _track) {
+                  EFbxType _fbx_type, OzzImporter::NodeProperty::Type _type,
+                  const SamplingInfo& _info, _Track* _track) {
   assert(_track->keyframes.size() == 0);
-
   FbxScene* scene = _scene_loader.scene();
   assert(scene);
 
@@ -371,43 +415,35 @@ bool ExtractCurve(FbxSceneLoader& _scene_loader, FbxProperty& _property,
         evaluator->GetPropertyValue(_property, FbxTimeSeconds(0.));
 
     typename _Track::ValueType value;
-    bool success = GetValue(property_value, _type, &value);
-    (void)success;
-    assert(success);
+    if (!GetValue(_scene_loader, property_value, _fbx_type, _type, &value)) {
+      return false;
+    }
 
     // Build and push keyframe
     const typename _Track::Keyframe key = {RawTrackInterpolation::kStep, 0.f,
                                            value};
     _track->keyframes.push_back(key);
   } else {
-    // Reserve keys
-    const int max_keys =
-        static_cast<int>(3.f + (_info.end - _info.start) / _info.period);
-    _track->keyframes.reserve(max_keys);
+    const FixedRateSamplingTime fixed_it(_info.duration, _info.frequency);
+    _track->keyframes.resize(fixed_it.num_keys());
 
     // Evaluate values at the specified time.
-    // Make sure to include "end" time, and enter the loop once at least.
-    bool loop_again = true;
-    for (float t = _info.start; loop_again; t += _info.period) {
-      if (t >= _info.end) {
-        t = _info.end;
-        loop_again = false;
-      }
+    for (size_t k = 0; k < fixed_it.num_keys(); ++k) {
+      const float t = fixed_it.time(k);
 
-      FbxPropertyValue& property_value =
-          evaluator->GetPropertyValue(_property, FbxTimeSeconds(t));
+      FbxPropertyValue& property_value = evaluator->GetPropertyValue(
+          _property, FbxTimeSeconds(t + _info.start));
 
       // It shouldn't fail as property type is known.
       typename _Track::ValueType value;
-      bool success = GetValue(property_value, _type, &value);
-      (void)success;
-      assert(success);
+      if (!GetValue(_scene_loader, property_value, _fbx_type, _type, &value)) {
+        return false;
+      }
 
       // Build and push keyframe
       const typename _Track::Keyframe key = {RawTrackInterpolation::kLinear,
-                                             (t - _info.start) / _info.duration,
-                                             value};
-      _track->keyframes.push_back(key);
+                                             t / _info.duration, value};
+      _track->keyframes[k] = key;
     }
   }
 
@@ -455,7 +491,7 @@ const char* FbxTypeToString(EFbxType _type) {
     case eFbxEnumM:
       return "eFbxEnumM - Enumeration allowing duplicated items";
     case eFbxString:
-      return "eFbxString - String";
+      return "eFbxString - string";
     case eFbxTime:
       return "eFbxTime - Time value";
     case eFbxReference:
@@ -472,9 +508,11 @@ const char* FbxTypeToString(EFbxType _type) {
 }
 
 bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
-                     FbxProperty& _property, RawFloatTrack* _track) {
-  const EFbxType type = _property.GetPropertyDataType().GetType();
-  switch (type) {
+                     FbxProperty& _property,
+                     OzzImporter::NodeProperty::Type _type,
+                     RawFloatTrack* _track) {
+  const EFbxType fbx_type = _property.GetPropertyDataType().GetType();
+  switch (fbx_type) {
     case eFbxChar:
     case eFbxUChar:
     case eFbxShort:
@@ -486,56 +524,66 @@ bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
     case eFbxDouble:
     case eFbxEnum:
     case eFbxEnumM: {
-      return ExtractCurve(_scene_loader, _property, type, _info, _track);
+      return ExtractCurve(_scene_loader, _property, fbx_type, _type, _info,
+                          _track);
     }
     default: {
       log::Err() << "Float track can't be imported from a track of type: "
-                 << FbxTypeToString(type) << "\"" << std::endl;
+                 << FbxTypeToString(fbx_type) << "\"" << std::endl;
       return false;
     }
   }
 }
 
 bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
-                     FbxProperty& _property, RawFloat2Track* _track) {
-  const EFbxType type = _property.GetPropertyDataType().GetType();
-  switch (type) {
+                     FbxProperty& _property,
+                     OzzImporter::NodeProperty::Type _type,
+                     RawFloat2Track* _track) {
+  const EFbxType fbx_type = _property.GetPropertyDataType().GetType();
+  switch (fbx_type) {
     case eFbxDouble2: {
-      return ExtractCurve(_scene_loader, _property, type, _info, _track);
+      return ExtractCurve(_scene_loader, _property, fbx_type, _type, _info,
+                          _track);
     }
     default: {
       log::Err() << "Float2 track can't be imported from a track of type: "
-                 << FbxTypeToString(type) << "\"" << std::endl;
+                 << FbxTypeToString(fbx_type) << "\"" << std::endl;
       return false;
     }
   }
 }
 
 bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
-                     FbxProperty& _property, RawFloat3Track* _track) {
-  const EFbxType type = _property.GetPropertyDataType().GetType();
-  switch (type) {
+                     FbxProperty& _property,
+                     OzzImporter::NodeProperty::Type _type,
+                     RawFloat3Track* _track) {
+  const EFbxType fbx_type = _property.GetPropertyDataType().GetType();
+  switch (fbx_type) {
     case eFbxDouble3: {
-      return ExtractCurve(_scene_loader, _property, type, _info, _track);
+      return ExtractCurve(_scene_loader, _property, fbx_type, _type, _info,
+                          _track);
     }
     default: {
-      log::Err() << "Float6 track can't be imported from a track of type: "
-                 << FbxTypeToString(type) << "\"" << std::endl;
+      log::Err() << "Float3 track can't be imported from a track of type: "
+                 << FbxTypeToString(fbx_type) << "\"" << std::endl;
       return false;
     }
   }
 }
 
 bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
-                     FbxProperty& _property, RawFloat4Track* _track) {
-  const EFbxType type = _property.GetPropertyDataType().GetType();
-  switch (type) {
+                     FbxProperty& _property,
+                     OzzImporter::NodeProperty::Type _type,
+                     RawFloat4Track* _track) {
+  const EFbxType fbx_type = _property.GetPropertyDataType().GetType();
+  switch (fbx_type) {
     case eFbxDouble4: {
-      return ExtractCurve(_scene_loader, _property, type, _info, _track);
+      return ExtractCurve(_scene_loader, _property, fbx_type, _type, _info,
+                          _track);
     }
     default: {
       log::Err() << "Float4 track can't be imported from a track of type: "
-                 << FbxTypeToString(type) << "\"" << std::endl;
+                 << FbxTypeToString(fbx_type) << "\"" << std::endl;
       return false;
     }
   }
@@ -543,8 +591,10 @@ bool ExtractProperty(FbxSceneLoader& _scene_loader, const SamplingInfo& _info,
 
 template <typename _Track>
 bool ExtractTrackImpl(const char* _animation_name, const char* _node_name,
-                      const char* _track_name, FbxSceneLoader& _scene_loader,
-                      float _sampling_rate, _Track* _track) {
+                      const char* _track_name,
+                      OzzImporter::NodeProperty::Type _type,
+                      FbxSceneLoader& _scene_loader, float _sampling_rate,
+                      _Track* _track) {
   FbxScene* scene = _scene_loader.scene();
   assert(scene);
 
@@ -561,9 +611,6 @@ bool ExtractTrackImpl(const char* _animation_name, const char* _node_name,
   const SamplingInfo& info =
       ExtractSamplingInfo(scene, anim_stack, _sampling_rate);
 
-  ozz::log::Log() << "Extracting animation track \"" << _node_name << ":"
-                  << _track_name << "\"" << std::endl;
-
   FbxNode* node = scene->FindNodeByName(_node_name);
   if (!node) {
     ozz::log::Err() << "Invalid node name \"" << _node_name << "\""
@@ -578,7 +625,7 @@ bool ExtractTrackImpl(const char* _animation_name, const char* _node_name,
     return false;
   }
 
-  return ExtractProperty(_scene_loader, info, property, _track);
+  return ExtractProperty(_scene_loader, info, property, _type, _track);
 }
 }  // namespace
 
@@ -588,7 +635,7 @@ OzzImporter::AnimationNames GetAnimationNames(FbxSceneLoader& _scene_loader) {
   const FbxScene* scene = _scene_loader.scene();
   for (int i = 0; i < scene->GetSrcObjectCount<FbxAnimStack>(); ++i) {
     FbxAnimStack* anim_stack = scene->GetSrcObject<FbxAnimStack>(i);
-    names.push_back(ozz::String::Std(anim_stack->GetName()));
+    names.push_back(ozz::string(anim_stack->GetName()));
   }
 
   return names;
@@ -609,9 +656,6 @@ bool ExtractAnimation(const char* _animation_name,
     // Extract sampling info relative to the stack.
     const SamplingInfo& info =
         ExtractSamplingInfo(scene, anim_stack, _sampling_rate);
-
-    ozz::log::Log() << "Extracting animation \"" << anim_stack->GetName()
-                    << "\"" << std::endl;
 
     // Setup Fbx animation evaluator.
     scene->SetCurrentAnimationStack(anim_stack);
@@ -691,30 +735,38 @@ OzzImporter::NodeProperties GetNodeProperties(FbxSceneLoader& _scene_loader,
 }
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloatTrack* _track) {
-  return ExtractTrackImpl(_animation_name, _node_name, _track_name,
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloatTrack* _track) {
+  return ExtractTrackImpl(_animation_name, _node_name, _track_name, _type,
                           _scene_loader, _sampling_rate, _track);
 }
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat2Track* _track) {
-  return ExtractTrackImpl(_animation_name, _node_name, _track_name,
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat2Track* _track) {
+  return ExtractTrackImpl(_animation_name, _node_name, _track_name, _type,
                           _scene_loader, _sampling_rate, _track);
 }
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat3Track* _track) {
-  return ExtractTrackImpl(_animation_name, _node_name, _track_name,
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat3Track* _track) {
+  return ExtractTrackImpl(_animation_name, _node_name, _track_name, _type,
                           _scene_loader, _sampling_rate, _track);
 }
 
 bool ExtractTrack(const char* _animation_name, const char* _node_name,
-                  const char* _track_name, FbxSceneLoader& _scene_loader,
-                  float _sampling_rate, RawFloat4Track* _track) {
-  return ExtractTrackImpl(_animation_name, _node_name, _track_name,
+                  const char* _track_name,
+                  OzzImporter::NodeProperty::Type _type,
+                  FbxSceneLoader& _scene_loader, float _sampling_rate,
+                  RawFloat4Track* _track) {
+  return ExtractTrackImpl(_animation_name, _node_name, _track_name, _type,
                           _scene_loader, _sampling_rate, _track);
 }
 }  // namespace fbx

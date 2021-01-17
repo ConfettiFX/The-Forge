@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -35,12 +35,12 @@ namespace ozz {
 namespace animation {
 
 TrackTriggeringJob::TrackTriggeringJob()
-    : from(0.f), to(0.f), threshold(0.f), track(NULL), iterator(NULL) {}
+    : from(0.f), to(0.f), threshold(0.f), track(nullptr), iterator(nullptr) {}
 
 bool TrackTriggeringJob::Validate() const {
   bool valid = true;
-  valid &= track != NULL;
-  valid &= iterator != NULL;
+  valid &= track != nullptr;
+  valid &= iterator != nullptr;
   return valid;
 }
 
@@ -64,7 +64,7 @@ namespace {
 inline bool DetectEdge(ptrdiff_t _i0, ptrdiff_t _i1, bool _forward,
                        const TrackTriggeringJob& _job,
                        TrackTriggeringJob::Edge* _edge) {
-  const Range<const float>& values = _job.track->values();
+  const span<const float>& values = _job.track->values();
 
   const float vk0 = values[_i0];
   const float vk1 = values[_i1];
@@ -81,8 +81,8 @@ inline bool DetectEdge(ptrdiff_t _i0, ptrdiff_t _i1, bool _forward,
   }
 
   if (detected) {
-    const Range<const float>& ratios = _job.track->ratios();
-    const Range<const uint8_t>& steps = _job.track->steps();
+    const span<const float>& ratios = _job.track->ratios();
+    const span<const uint8_t>& steps = _job.track->steps();
 
     const bool step = (steps[_i0 / 8] & (1 << (_i0 & 7))) != 0;
     if (step) {
@@ -120,7 +120,7 @@ TrackTriggeringJob::Iterator::Iterator(const TrackTriggeringJob* _job)
   // complexity, but for consistency of forward and backward triggering, it's
   // better to let iterator ++ implementation filter included and excluded
   // edges.
-  inner_ = job_->from < job_->to ? 0 : _job->track->ratios().count() - 1;
+  inner_ = job_->from < job_->to ? 0 : _job->track->ratios().size() - 1;
 
   // Evaluates first edge.
   ++*this;
@@ -129,8 +129,8 @@ TrackTriggeringJob::Iterator::Iterator(const TrackTriggeringJob* _job)
 const TrackTriggeringJob::Iterator& TrackTriggeringJob::Iterator::operator++() {
   assert(*this != job_->end() && "Can't increment end iterator.");
 
-  const Range<const float>& ratios = job_->track->ratios();
-  const ptrdiff_t num_keys = ratios.count();
+  const span<const float>& ratios = job_->track->ratios();
+  const ptrdiff_t num_keys = ratios.size();
 
   if (job_->to > job_->from) {
     for (; outer_ < job_->to; outer_ += 1.f) {
@@ -168,7 +168,7 @@ const TrackTriggeringJob::Iterator& TrackTriggeringJob::Iterator::operator++() {
           break;
         }
       }
-      inner_ = ratios.count() - 1;  // Ready for next loop.
+      inner_ = ratios.size() - 1;  // Ready for next loop.
     }
   }
 

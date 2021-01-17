@@ -39,13 +39,13 @@ namespace internal {
 
 template <typename _Track>
 TrackSamplingJob<_Track>::TrackSamplingJob()
-    : ratio(0.f), track(NULL), result(NULL) {}
+    : ratio(0.f), track(nullptr), result(nullptr) {}
 
 template <typename _Track>
 bool TrackSamplingJob<_Track>::Validate() const {
   bool success = true;
-  success &= result != NULL;
-  success &= track != NULL;
+  success &= result != nullptr;
+  success &= track != nullptr;
   return success;
 }
 
@@ -59,27 +59,27 @@ bool TrackSamplingJob<_Track>::Run() const {
   const float clamped_ratio = math::Clamp(0.f, ratio, 1.f);
 
   // Search keyframes to interpolate.
-  const Range<const float> ratios = track->ratios();
-  const Range<const ValueType> values = track->values();
-  assert(ratios.count() == values.count() &&
-         track->steps().count() * 8 >= values.count());
+  const span<const float> ratios = track->ratios();
+  const span<const ValueType> values = track->values();
+  assert(ratios.size() == values.size() &&
+         track->steps().size() * 8 >= values.size());
 
   // Default track returns identity.
-  if (ratios.count() == 0) {
+  if (ratios.size() == 0) {
     *result = internal::TrackPolicy<ValueType>::identity();
     return true;
   }
 
   // Search for the first key frame with a ratio value greater than input ratio.
   // Our ratio is between this one and the previous one.
-  const float* ptk1 = eastl::upper_bound(ratios.begin, ratios.end, clamped_ratio);
+  const float* ptk1 = eastl::upper_bound(ratios.begin(), ratios.end(), clamped_ratio);
 
   // Deduce keys indices.
-  const size_t id1 = ptk1 - ratios.begin;
+  const size_t id1 = ptk1 - ratios.begin();
   const size_t id0 = id1 - 1;
 
   const bool id0step = (track->steps()[id0 / 8] & (1 << (id0 & 7))) != 0;
-  if (id0step || ptk1 == ratios.end) {
+  if (id0step || ptk1 == ratios.end()) {
     *result = values[id0];
   } else {
     // Lerp relevant keys.

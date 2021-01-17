@@ -46,7 +46,7 @@ class Clip
 	void Destroy();
 
 	// Will sample the clip at timeRatio [0,1], using cacheInput as input and saving results to localTransOutput
-	bool Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTransform>& localTransOutput, float timeRatio);
+	bool Sample(ozz::animation::SamplingCache* cacheInput, ozz::span<SoaTransform>& localTransOutput, float timeRatio);
 
 	// Get the length of the clip
 	inline float GetDuration() { return mAnimation.duration(); };

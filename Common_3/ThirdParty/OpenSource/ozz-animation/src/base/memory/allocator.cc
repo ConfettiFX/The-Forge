@@ -31,9 +31,8 @@
 #include "../../../include/ozz/base/memory/allocator.h"
 
 #include <memory.h>
-#if __cplusplus >= 201103L
+
 #include <atomic>
-#endif  // __cplusplus
 #include <cassert>
 //#include <cstdlib>
 
@@ -57,19 +56,9 @@ struct Header {
 // Will trace allocation count and assert in case of a memory leak.
 class HeapAllocator : public Allocator {
  public:
-  HeapAllocator() {
-#if __cplusplus >= 201103L
-    allocation_count_.store(0);
-#else  // __cplusplus
-    allocation_count_ = 0;
-#endif
-  }
+  HeapAllocator() { allocation_count_.store(0); }
   ~HeapAllocator() {
-#if __cplusplus >= 201103L
     assert(allocation_count_.load() == 0 && "Memory leak detected");
-#else  // __cplusplus
-    assert(allocation_count_ == 0 && "Memory leak detected");
-#endif
   }
 
  protected:
@@ -81,11 +70,11 @@ class HeapAllocator : public Allocator {
 	  char* unaligned = reinterpret_cast<char*>(tf_malloc(to_allocate));
 
 	  if (!unaligned) {
-		  return NULL;
+		  return nullptr;
 	  }
 	  char* aligned = ozz::math::Align(unaligned + sizeof(Header), _alignment);
 	  assert(aligned + _size <= unaligned + to_allocate);  // Don't overrun.
-														   // Set the header
+	  // Set the header
 	  Header* header = reinterpret_cast<Header*>(aligned - sizeof(Header));
 	  assert(reinterpret_cast<char*>(header) >= unaligned);
 	  header->unaligned = unaligned;
@@ -96,43 +85,6 @@ class HeapAllocator : public Allocator {
 //CONFFX_END
 
 //CONFFX_BEGIN
-
-  void* Reallocate(void* _block, size_t _size, size_t _alignment) {
-
-	  if (!_block) {
-		  return Allocate(_size, _alignment);
-	  }
-
-	  const size_t to_allocate = _size + sizeof(Header) + _alignment - 1;
-	  char* unaligned;
-
-	  Header* old_header = reinterpret_cast<Header*>(
-		  reinterpret_cast<char*>(_block) - sizeof(Header));
-
-	  unaligned = reinterpret_cast<char*>(tf_realloc(old_header->unaligned, to_allocate));
-
-	  if (!unaligned) {
-		  if (_block) {
-			  tf_free(old_header->unaligned);
-		  }
-		  return NULL;
-	  }
-
-	  char* aligned = ozz::math::Align(unaligned + sizeof(Header), _alignment);
-	  assert(aligned + _size <= unaligned + to_allocate);  // Don't overrun.
-														   // Set the header
-	  Header* header = reinterpret_cast<Header*>(aligned - sizeof(Header));
-	  assert(reinterpret_cast<char*>(header) >= unaligned);
-	  header->unaligned = unaligned;
-	  header->size = _size;
-	  // Allocation's succeeded.
-	  return aligned;
-
-  }
-//CONFFX_END
-
-//CONFFX_BEGIN
-
   void Deallocate(void* _block) {
 	  if (_block) {
 		  Header* header = reinterpret_cast<Header*>(
@@ -146,13 +98,9 @@ class HeapAllocator : public Allocator {
 
 
  private:
-// Internal allocation count used to track memory leaks.
-// Should equals 0 at destruction time.
-#if __cplusplus >= 201103L
+  // Internal allocation count used to track memory leaks.
+  // Should equals 0 at destruction time.
   std::atomic_int allocation_count_;
-#else   // __cplusplus
-  int allocation_count_;
-#endif  // __cplusplus
 };
 
 namespace {

@@ -28,8 +28,7 @@
 #ifndef OZZ_OZZ_ANIMATION_OFFLINE_SKELETON_BUILDER_H_
 #define OZZ_OZZ_ANIMATION_OFFLINE_SKELETON_BUILDER_H_
 
-#include "ozz/base/containers/string.h"
-#include "ozz/base/containers/vector.h"
+#include "ozz/base/memory/unique_ptr.h"
 
 //CONFFX_BEGIN
 #include "../../../../../../../OS/Math/MathTypes.h"
@@ -50,12 +49,14 @@ struct RawSkeleton;
 class SkeletonBuilder {
  public:
   // Creates a Skeleton based on _raw_skeleton and *this builder parameters.
-  // Returns a Skeleton instance on success which will then be deleted using
-  // the default allocator Delete() function.
-  // Returns NULL on failure. See RawSkeleton::Validate() for more details about
-  // failure reasons.
-  //Skeleton* operator()(const RawSkeleton& _raw_skeleton) const;	// Deleted because it causes problems with the memory allocator
-	 static bool Build(const RawSkeleton& _raw_skeleton, Skeleton* skeleton);
+  // Returns a Skeleton instance on success, an empty unique_ptr on failure. See
+  // RawSkeleton::Validate() for more details about failure reasons.
+  // The skeleton is returned as an unique_ptr as ownership is given back to the
+  // caller.
+  ozz::unique_ptr<ozz::animation::Skeleton> operator()(
+      const RawSkeleton& _raw_skeleton) const;
+
+  static bool Build(const RawSkeleton& _raw_skeleton, Skeleton* skeleton);
 };
 }  // namespace offline
 }  // namespace animation

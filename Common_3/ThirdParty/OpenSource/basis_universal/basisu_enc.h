@@ -22,6 +22,7 @@
 #include <functional>
 #include <thread>
 #include <unordered_map>
+#include <string>
 
 #if !defined(_WIN32) || defined(__MINGW32__)
 #include <libgen.h>
@@ -686,7 +687,7 @@ namespace basisu
 	{
 		std::string result(s);
 		for (size_t i = 0; i < result.size(); i++)
-			result[i] = (char)tolower((int)result[i]);
+			result[i] = (char)std::tolower((int)result[i]);
 		return result;
 	}
 

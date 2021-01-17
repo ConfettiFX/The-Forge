@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -36,7 +36,7 @@ namespace animation {
 namespace offline {
 namespace fbx {
 
-FbxManagerInstance::FbxManagerInstance() : fbx_manager_(NULL) {
+FbxManagerInstance::FbxManagerInstance() : fbx_manager_(nullptr) {
   // Instantiate Fbx manager, mostly a memory manager.
   fbx_manager_ = FbxManager::Create();
 
@@ -48,11 +48,11 @@ FbxManagerInstance::FbxManagerInstance() : fbx_manager_(NULL) {
 FbxManagerInstance::~FbxManagerInstance() {
   // Destroy the manager and all associated objects.
   fbx_manager_->Destroy();
-  fbx_manager_ = NULL;
+  fbx_manager_ = nullptr;
 }
 
 FbxDefaultIOSettings::FbxDefaultIOSettings(const FbxManagerInstance& _manager)
-    : io_settings_(NULL) {
+    : io_settings_(nullptr) {
   io_settings_ = FbxIOSettings::Create(_manager, IOSROOT);
   io_settings_->SetBoolProp(IMP_FBX_MATERIAL, false);
   io_settings_->SetBoolProp(IMP_FBX_TEXTURE, false);
@@ -64,7 +64,7 @@ FbxDefaultIOSettings::FbxDefaultIOSettings(const FbxManagerInstance& _manager)
 
 FbxDefaultIOSettings::~FbxDefaultIOSettings() {
   io_settings_->Destroy();
-  io_settings_ = NULL;
+  io_settings_ = nullptr;
 }
 
 FbxAnimationIOSettings::FbxAnimationIOSettings(
@@ -79,7 +79,7 @@ FbxSkeletonIOSettings::FbxSkeletonIOSettings(const FbxManagerInstance& _manager)
 FbxSceneLoader::FbxSceneLoader(const char* _filename, const char* _password,
                                const FbxManagerInstance& _manager,
                                const FbxDefaultIOSettings& _io_settings)
-    : scene_(NULL), converter_(NULL) {
+    : scene_(nullptr), converter_(nullptr) {
   // Create an importer.
   FbxImporter* importer = FbxImporter::Create(_manager, "ozz file importer");
   const bool initialized = importer->Initialize(_filename, -1, _io_settings);
@@ -93,11 +93,11 @@ FbxSceneLoader::FbxSceneLoader(const char* _filename, const char* _password,
 FbxSceneLoader::FbxSceneLoader(FbxStream* _stream, const char* _password,
                                const FbxManagerInstance& _manager,
                                const FbxDefaultIOSettings& _io_settings)
-    : scene_(NULL), converter_(NULL) {
+    : scene_(nullptr), converter_(nullptr) {
   // Create an importer.
   FbxImporter* importer = FbxImporter::Create(_manager, "ozz stream importer");
   const bool initialized =
-      importer->Initialize(_stream, NULL, -1, _io_settings);
+      importer->Initialize(_stream, nullptr, -1, _io_settings);
 
   ImportScene(importer, initialized, _password, _manager, _io_settings);
 
@@ -152,14 +152,14 @@ void FbxSceneLoader::ImportScene(FbxImporter* _importer,
     // Setup axis and system converter.
     if (imported) {
       FbxGlobalSettings& settings = scene_->GetGlobalSettings();
-      converter_ = ozz::memory::default_allocator()->New<FbxSystemConverter>(
-          settings.GetAxisSystem(), settings.GetSystemUnit());
+      converter_ = New<FbxSystemConverter>(settings.GetAxisSystem(),
+                                           settings.GetSystemUnit());
     }
 
     // Clear the scene if import failed.
     if (!imported) {
       scene_->Destroy();
-      scene_ = NULL;
+      scene_ = nullptr;
     }
   }
 }
@@ -167,12 +167,12 @@ void FbxSceneLoader::ImportScene(FbxImporter* _importer,
 FbxSceneLoader::~FbxSceneLoader() {
   if (scene_) {
     scene_->Destroy();
-    scene_ = NULL;
+    scene_ = nullptr;
   }
 
   if (converter_) {
-    ozz::memory::default_allocator()->Delete(converter_);
-    converter_ = NULL;
+    ozz::Delete(converter_);
+    converter_ = nullptr;
   }
 }
 
@@ -290,7 +290,7 @@ math::Float3 FbxSystemConverter::ConvertPoint(const FbxVector4& _p) const {
   return ret;
 }
 
-math::Float3 FbxSystemConverter::ConvertNormal(const FbxVector4& _p) const {
+math::Float3 FbxSystemConverter::ConvertVector(const FbxVector4& _p) const {
   const math::SimdFloat4 p_in = math::simd_float4::Load(
       static_cast<float>(_p[0]), static_cast<float>(_p[1]),
       static_cast<float>(_p[2]), 0.f);

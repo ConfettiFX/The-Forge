@@ -34,7 +34,7 @@ void Clip::Destroy()
 	mAnimation.Deallocate();
 }
 
-bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTransform>& localTransOutput, float timeRatio)
+bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::span<SoaTransform>& localTransOutput, float timeRatio)
 {
 	// Setup sampling job.
 	ozz::animation::SamplingJob samplingJob;

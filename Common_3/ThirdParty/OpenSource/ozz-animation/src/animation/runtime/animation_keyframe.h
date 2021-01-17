@@ -3,7 +3,7 @@
 // ozz-animation is hosted at http://github.com/guillaumeblanc/ozz-animation  //
 // and distributed under the MIT License (MIT).                               //
 //                                                                            //
-// Copyright (c) 2017 Guillaume Blanc                                         //
+// Copyright (c) Guillaume Blanc                                              //
 //                                                                            //
 // Permission is hereby granted, free of charge, to any person obtaining a    //
 // copy of this software and associated documentation files (the "Software"), //
@@ -28,6 +28,7 @@
 #ifndef OZZ_ANIMATION_RUNTIME_ANIMATION_KEYFRAME_H_
 #define OZZ_ANIMATION_RUNTIME_ANIMATION_KEYFRAME_H_
 
+#include "ozz/base/platform.h"
 #ifndef OZZ_INCLUDE_PRIVATE_HEADER
 #error "This header is private, it cannot be included from public headers."
 #endif  // OZZ_INCLUDE_PRIVATE_HEADER
@@ -42,10 +43,10 @@ namespace animation {
 // Decompression is efficient because it's done on SoA data and cached during
 // sampling.
 
-// Defines the translation key frame type.
+// Defines the float3 key frame type, used for translations and scales.
 // Translation values are stored as half precision floats with 16 bits per
 // component.
-struct TranslationKey {
+struct Float3Key {
   float ratio;
   uint16_t track;
   uint16_t value[3];
@@ -66,7 +67,7 @@ struct TranslationKey {
 // Quantization could be reduced to 11-11-10 bits as often used for animation
 // key frames, but in this case RotationKey structure would induce 16 bits of
 // padding.
-struct RotationKey {
+struct QuaternionKey {
   float ratio;
   uint16_t track : 13;   // The track this key frame belongs to.
   uint16_t largest : 2;  // The largest component of the quaternion.
@@ -74,14 +75,6 @@ struct RotationKey {
   int16_t value[3];      // The quantized value of the 3 smallest components.
 };
 
-// Defines the scale key frame type.
-// Scale values are stored as half precision floats with 16 bits per
-// component.
-struct ScaleKey {
-  float ratio;
-  uint16_t track;
-  uint16_t value[3];
-};
 }  // namespace animation
 }  // namespace ozz
 #endif  // OZZ_ANIMATION_RUNTIME_ANIMATION_KEYFRAME_H_
