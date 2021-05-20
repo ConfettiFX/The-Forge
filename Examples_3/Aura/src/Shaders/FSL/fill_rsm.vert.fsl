@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ *
+ * This is a part of Aura.
+ * 
+ * This file(code) is licensed under a 
+ * Creative Commons Attribution-NonCommercial 4.0 International License 
+ *
+ *   (https://creativecommons.org/licenses/by-nc/4.0/legalcode) 
+ *
+ * Based on a work at https://github.com/ConfettiFX/The-Forge.
+ * You may not use the material for commercial purposes.
+*/
+
+// USERMACRO: CLOTH_ID [0]
+
+#include "shader_defs.h"
+#include "vb_rsm_resources.h"
+#include "packing.h"
+#include "wind.h"
+
+STRUCT(VsIn)
+{
+	DATA(float3, position, POSITION);
+	DATA(uint,   texCoord, TEXCOORD0);
+	DATA(uint,   normal,   NORMAL);
+	DATA(uint,   tangent,  TANGENT);
+};
+
+STRUCT(VsOut)
+{
+	DATA(float4,      position,   SV_Position);
+	DATA(float2,      texCoord,   TEXCOORD0);
+	DATA(float3,      normal,     TEXCOORD1);
+	DATA(flat(float), materialID, TEXCOORD2);
+};
+
+VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
+{
+	INIT_MAIN;
+
+	VsOut Out;
+
+	uint matBaseSlot = BaseMaterialBuffer(false, Get(viewID));
+	Out.materialID   = float(Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()]); //In.meshID //IndirectMaterialBuffer[In.drawID]
+
+	float4 pos   = float4(In.position.xyz, 1.0f);
+	Out.normal   = decodeDir(unpackUnorm2x16(In.normal));
+	Out.position = mul(Get(transform)[Get(viewID)].mvp, pos);
+	Out.texCoord = unpack2Floats(In.texCoord);
+
+	RETURN(Out);
+}
