@@ -5,15 +5,16 @@ The Forge is a cross-platform rendering framework supporting
   * Windows 10 
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-     * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
+     * DirectX 11 Fallback Layer for Windows 7 support
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
-- Android Pie with Vulkan 1.1
+- Android Pie with 
+  * Vulkan 1.1
+  * OpenGL ES 2.0 fallback for large scale business application frameworks
 - macOS / iOS / iPad OS with Metal 2.2
-- XBOX One / XBOX One X / XBOX Series X (only available for accredited developers on request)
+- XBOX One / XBOX One X / XBOX Series S/X (only available for accredited developers on request)
 - PS4 / PS4 Pro (only available for accredited developers on request)
 - PS5 (only available for accredited developers on request)
 - Switch (only available for accredited developers on request)
-- Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
@@ -54,6 +55,100 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.48 - May 20th, 2021 - Aura | New FSL Shader Language Translator | Run-time API Switching | Variable Rate Shading | MSAA | OpenGL ES 2 Update | PVS Studio
+This is our biggest update since we started this repository more than three years ago. This update is one of those "what we have learned from the last couple of projects that are using TF" updates and a few more things.
+
+ - Aura - Dynamic Global Illumination - we developed this system in the 2010 / 2011 time frame. It is hard to believe it is 10 years ago now :-) ... it shipped in Agents of Mayhem at some point and was implemented and used in other games. We are just putting the "base" version without any game specific modifications in our commercial Middleware repository on GitHub. The games that used this system made specific modifications to the code base to align with their art asset and art style.
+ In today's standards this system still fulfills the requirement of a stable rasterizer based Global Illumination system. It runs efficiently on the original XBOX One, that was the original target platform, but might require art asset modifications in a game level. 
+ It works with an unlimited number of light sources with minimal memory footprint. You can also cache the reflective shadow maps for directional, point and spotlights the same way you currently cache shadow maps. At some point we did a demo running on a second generation integrated Intel GPU with 256 lights that emitted direct and indirect light and had shadow maps in 2011 at GDC? :-)
+ It is best to integrate that system in a custom game engine that can cache shadow maps in an intelligent way. 
+
+Aura - Windows DirectX 12 Geforce 980TI 1080p Driver 466.47
+
+![Aura on Windows DX12](Screenshots/Aura/W10-D3D12-GTX980Ti-Driver_466.47.png)
+
+
+Aura - Windows Vulkan Geforce 980TI 1080p Driver 466.47
+
+![Aura on Windows Vulkan](Screenshots/Aura/W10-Vulkan-GTX980Ti-Driver_466.47.png)
+
+Aura - Ubuntu Vulkan Geforce RTX 2080 1080p
+
+![Aura on Ubuntu Vulkan](Screenshots/Aura/ubuntu-Vulkan-RTX2080-Driver_.png)
+
+Aura - PS4
+
+![Aura on Ubuntu Vulkan](Screenshots/Aura/PS4.png)
+
+Aura - XBOX One original
+
+![Aura on Ubuntu Vulkan](Screenshots/Aura/XBoxOne.png)
+
+
+
+- Forge Shader Language (FSL) translator - after struggeling with writing a shader translator now for 1 1/2 years, we restarted from scratch. This time we developed everything in Python, because it is cross-platform. We also picked a really "low-tech keep it simple" approach. The idea is that a small game team can actually maintain the code base and write shaders efficiently. We wanted a shader translator that translates a FSL shader to the native shader language of each of the platforms. This way whatever shader compiler is used on that platform can take over the actual job of compiling the native code.
+The reason why we are doing this lies mostly in the unreliability of DXC and SPIR-V in general and also their lack of reliability if it comes to cross-platform translation. 
+
+  There is a Wiki entry that holds a FSL language primer and general information how this works here:
+
+  https://github.com/ConfettiFX/The-Forge/wiki
+
+- Run-Time API Switching - we had some sort of run-time API switching in an early version of The Forge. At the time we were not expecting this to be very useful because most game teams do not switch APIs on the fly. In the meantime we found a usage case on Android, where we have to reach a large number of devices. So we came up with a better solution that is more consistent with the overall architecture and works on at least PC and Android platforms. 
+On Windows PC one can switch between DX12, Vulkan and DX11 if all are supported. On Android one can switch between Vulkan and OpenGL ES 2.0. The later allows us to target a much larger group of devices for business application frameworks. We could extend this architecture to other platforms like consoles easily.
+This new API switching required us to change the rendering interfaces. So it is a breaking change to existing implementations but we think it is not much effort to upgrade and the resulting code is easier to read and maintain and overall improves the code base by being more consistent.
+
+- Device Reset - This was implemented together with API switching. Windows forces game developers to respond to a crashing device driver by resetting the device. We implemented the functionality already in the last update here on GitHub. This update integrates it better into the OS base layer. 
+We also verified that the life cycle management for Windows in each application based on the IApp interface works now for device change, device reset and for API switching so that we can cover all cases of losing and recovering the device.
+
+  The functions for API switching and device reload and reset are:
+```
+void onRequestReload();
+void onDeviceLost();
+void onAPISwitch();
+```
+- Variable Rate Shading (VRS) - we implemented VRS in a new unit test 35_VariableRateShading. It is only supported by DirectX 12 on Windows and XBOX Series S / X.
+In this demo, we demonstrate two main ways of setting the shading rate:
+
+  - Per-tile Shading Rate:
+Generating a shading rate lookup texture on-the-fly. Used for drawing the color palette which makes up the background. The rate decreases the further the pixels are located from the center. We can see artifacts becoming visible at aggressive rates, such as 4X4. There is also a slider in the UI to modify the center of the circle.
+
+![Per-tile Shading Rate](Screenshots/35_VRS_1.png)
+
+  - Per-draw Shading Rate:
+The cubes are drawn by a different shading rate. They are following the Per-draw rate, which can be changed via the dropdown menu in the UI.
+By using a combiner that overrides the screen rates, we ensure that cubes are drawn by an independent rate.
+
+![Per-draw Shading Rate](Screenshots/35_VRS_2.png)
+The cubes are using per-draw shading rate while the background is using per-tile shading rate.
+
+  - Notes:
+    - There is a debug view showing the shading rates and the tiles' size.
+    - Per-tile method may not be available on certain GPUs even if they support the Per-draw method.
+    - The tile size is enforced by the GPU and is readable, as shown in the example.
+    - The shading rates available can vary based on the active GPU.
+
+
+
+- Multi-Sample Anti-Aliasing (MSAA) - we added a dynamic way of picking MSAA to unit test 9 and the Visibility Buffer example on all platforms.
+
+PC
+![MSAA](Screenshots/MSAA.png)
+
+PS4
+![MSAA](Screenshots/MSAA_PS4.png)
+
+PS5
+![MSAA](Screenshots/MSAA_PS5.png)
+
+* Android & OpenGL ES 2 - the OpenGL ES 2 layer for Android is now more stable and tested and closer to production code. As mentioned above on an Android phone one can switch between Vulkan and OpenGL ES 2 dyanmically if both are supported.
+Now Android & OpenGL ES 2 support additionally unit test 17 - Entity Component System Test.
+In general we are testing many Android phones at the moment on the low and high end of the spectrum following the two Android projects we are currently working on, which are on both ends of the spectrum.
+
+* PVS Studio - we did another manual pass on the code base with PVS Studio -a static code analyzer- to increase code quality.
+
+
+
 
 ## Release 1.47 - December 18th, 2020 - OpenGL ES 2.0 Android support | Device Reset Support | DRED / Breadcrumb support | Lua driven functional tests | DX11 refactor | YUV support through Vulkan
 As the year winds slowly down, we finally found time to do another release. First of all, Happy Holidays and a happy new Year! 
@@ -168,140 +263,6 @@ macOS:
   * Issue #183 - VERTEX_ATTRIB_RATE_INSTANCE ignored on macOS 10.12, iOS 10.0
 
 
-
-## Release 1.45 - August 6th, 2020 - TressFX | File System Rewrite
-* TressFX: we upgraded TressFX a bit and retuned the lighting. 
-
-Here are the screenshots:
-![Black hair](Screenshots/TressFX/black_new.png) 
-
-![Blond hair](Screenshots/TressFX/blone_new.png) 
-
-![Brown hair](Screenshots/TressFX/brown_new.png) 
-
-![Red hair](Screenshots/TressFX/red_new.png) 
-
-* File system: our old file system was designed more for tools or Windows applications than for games. It consumed more memory than the whole rendering system and used Windows file methods extensively. That is the opposite of what you want in a game. It took us now several months to correct the mistake and come up with a file system that is tailored towards games. That means that the interface changed substantially. Thanks to all those who pointed this out. Sometimes it takes a couple of iterations to land on a design that is efficient.
-If you look at the new interface there are still path related functions in there. They will be removed step-by-step.
-Please check out the new file system interface and let us know what you think.
-
-* Android Vulkan: validation layer is now supported
-
-
-## Release 1.44 - July 16th, 2020 - Android | Linux
-* Mobile Devices: DPI scaling is properly handled now so we shouldn't see messed up UI anymore on mobile devices
-* Android: the following Unit-tests are now included for Android:
-    * 03_MultiThread
-![03_MultiThread](Screenshots/Android/03_MultiThread.png) 
-    * 04_ExecuteIndirect
-![04_ExecuteIndirect](Screenshots/Android/04_ExecuteIndirect.JPEG)
-    * 07_Tesselation
-![07_Tesselation](Screenshots/Android/07_Tesselation.JPEG)
-    * 10_PixelProjectedReflections
-![10_PixelProjectedReflections](Screenshots/Android/10_PixelProjectedReflections.png)
-    * 12_ZipFileSystem
-![12_ZipFileSystem](Screenshots/Android/12_ZipFileSystem.png)
-    * 13_UserInterface
-![13_UserInterface](Screenshots/Android/13_UserInterface.JPEG)
-    * 14_WaveIntrinsics
-![14_WaveIntrinsics](Screenshots/Android/14_WaveIntrinsics.jpg)
-    * 15_Transparency
-![15_Transparency](Screenshots/Android/15_Transparency.png)
-* gamepad support: tested with PS4 controller
-* sample size reduction
-* proper closing of apps with the back button
-* proper handling of vSync
-* .zip filesystem handling
-* shader compile #include directive support
-* overall stability improvements
-* improved swapchain creation process and proper handling of current frame index
-
-
-* Linux:
-  * Window management is improved
-  * Borderless fullscreen is supported
-  * Implemented full screen toggle (usually alt-enter)
-  * Cursor position is now correct
-  * Camera movement with mouse now works properly
-  * Resources are freed properly
-
-
-## Release 1.43 - May 22nd, 2020 - MTuner | macOS / iOS run-time
-* Filesystem: it turns out the file system is still confusing and not intuitive. It mixes up several concepts but is not consistent and somehow favors Windows folder naming conventions, that do not exist in most of our target platforms. We did a slight first step with this release. We need to make a deeper change with the next release.
-* DirectX 11: the DirectX 11 run-time gets a lot of mileage now. For one game it went now successfully through a test center. This release holds a wide range of changes especially for multi-threaded rendering.
-* [MTuner](https://github.com/milostosic/MTuner) : we are making another attempt on integrating MTuner into the framework. We need it to tune memory usage in some game titles. The current version only reliably supports Windows but we try to extend it to more platforms.
-  * Integrated Milos Tosic’s MTuner SDK into the Windows 10 runtime of The Forge. Combined with mmgr, this addition will provide the following features:
-    * Automatic generation of .MTuner capture file alongside existing .memleaks file. 
-    * In-depth analysis of the generated file using MTuner’s user-friendly UI app.
-    * Clear and efficient highlighting of memory leaks and usage hotspots.
-  * Support for additional platforms coming soon!
-
-MTuner
-MTuner was integrated into the Windows 10 runtime of The Forge following a request for more in-depth memory profiling capabilities by one of the developers we support. It has been adapted to work closely with our framework and its existing memory tracking capabilities to provide a complete picture of a given application’s memory usage. 
-
-To use The Forge’s MTuner functionality, simply drag and drop the .MTuner file generated alongside your application’s executable into the MTuner host app, and you can immediately begin analyzing your program’s memory usage. The intuitive interface and exhaustive supply of allocation info contained in a single capture file makes it easy to identify usage patterns and hotspots, as well as tracking memory leaks down to the file and line number. The full documentation of MTuner can be found [here](link: https://milostosic.github.io/MTuner/).
-
-Currently, this feature is only available on Windows 10, but support for additional platforms provided by The Forge is forthcoming.
-Here is a screenshot of an example capture done on our first Unit Test, 01_Transformations:
-![MTuner](Screenshots/MTuner.png) 
-
-* Multi-Threading system: especially for the Switch run-time we extended our multi-threading system to support a "preferred" core.
-* macOS / iOS run-time got another make over. This time we brought the overall architecture a bit closer to the rest of the rendering system and we are also working towards supporting lower end hardware like a 2015 MacBook Air and macOS 10.13.6. Those requirements were based on the [Steam Hardware Survey](https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam?platform=mac).
-* there are now functions that help you calcuate the memory usage supported by all APIs: look for caculateMemoryUse / freeMemoryStats
-* Windows management got a bit more flexible by offering borderless windows and more style attributes
-* 17_EntityComponentSystem runs now better on AMD CPUs ... there were some inefficiencies in the unit test ...
-
-
-## Release 1.42 - April 15th, 2020 - macOS / iOS run-time
-Most of us are working from home now due to the Covid-19 outbreak. We are all trying to balance life and work in new ways. Since the last release we made a thorough pass through the macOS / iOS run-time, so that it is easier to make macOS your main development environment for games.
-Unit-tests fixes:
-- Fixed wrong project ordering in XCode
-- Fixed build-time macOS / iOS warnings.
-- Fixed 03_Multithread until test not showing the appropriate charts for all threads
-- Fixed warnings in 06_MaterialPlayground due to wrong GLTF validation
-- Fixed visual artifacts in 08_GLTFViewer not producing correct normals due to wrong Metal shader.
-- Added missing projects to macOS / iOS workspace and removed unnecessary ones.
-- Fixed unit test 14_WaveIntrinsics macOS on AMD iMac. Implemented workaround for AMD driver issue on macOS.
-
-Metal runtime fixes:
-- Fixed Metal issue handling barriers: scheduled barriers were being ignored, introducing visual artifacts due to read-write race condition.
-
-Closed Issues:
-* #168 - 04_ExecuteInDirect poor performance on MacPro 2019, AMD Vega II, Catalina 10.15.3
-* #156 - Benchmark support?
-
-
-## Release 1.41 - March 5th, 2020 - Path Tracing Benchmark | CPU Cacheline alignment | Improved Profiler | D3D12 Memory Allocator
-* Based on request we are providing a Path Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
-  * Windows with DirectX 12 DXR
-  * Windows with Vulkan RTX
-  * Linux with Vulkan RTX
-
-  We believe that every benchmarking tool should be open-source, so that everyone can see what the source code is doing. We will extend this benchmark to the non-public platforms we support to compare the PC performance with console performance. 
-  The benchmark comes with batch files for all three platforms. Each run generates a HTML output file from the microprofiler that is integrated in TF. The default number of iterations is 64 but you can adjust that.  There is a Readme file in the 16_RayTracing folder that describes the options.
-
-Windows DirectX 12 DXR, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
-
-![Windows DXR output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_DX.PNG) 
-
-Windows Vulkan RTX, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
-
-![Windows RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile.PNG) 
-
-Linux Vulkan RTX, Geforce RTX 2060, 1920x1080, NVIDIA Driver 435.21
-
-![Linux RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_Linux.PNG) 
-
-We will adjust the output of the benchmark to what users request.
-
-* With this release we also aligned the whole renderer interface better to 64 byte CPU cache lines. We trimmed down all the structs substantially and removed many. This is a breaking change for the renderer interface and a major change to the whole code base.
-* DirectX 12
-  * [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator): we are using now AMD's D3D12 memory allocator for DirectX after having used the Vulkan equivalent for more than two years. We also extended it to support Multi-GPU.
-  * We upgraded to the latest dxgi factory interface in DirectX 12
-* Microprofiler: because we need the microprofiler to offer the QA department help in reporting performance problems for some of the games that will be shipping with TF (and the benchmark mentioned above), we did another pass on its functionality and ease of use, especially on console platforms. The idea is that QA can quickly and easily store a screenshot or HTML file in a bug report. This is still work in progress and with every shipping game will probably be improved.
-* Now that GDC 2020 was postponed, we will also postpone our GDC related activities. The user meeting and our GDC talk will be postponed until the next GDC happens. If there is a need we can also do a user meeting in an online conference room or in Discord in a private area. Let us know.
-* Renamed CustomMiddleware to Custom-Middleware back ...
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -329,7 +290,6 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
 * NVIDIA GeForce 9x, 10x. 20x GPUs (various)
-* Intel Skull Canyon
 
 
 # macOS Requirements:
@@ -344,7 +304,7 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * MacBook Pro 13 inch (MacBookPro13,2) 
 * Macbook Pro 13 inch (MacbookPro14,2)
 
-In the moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
 
 
@@ -414,9 +374,8 @@ At the moment, the Android run-time does not support the following unit tests du
 * Visibility Buffer 
 
 4. We are currently testing on 
-* [Samsung S10 Galaxy (Qualcomm Adreno 640 Graphics Cardv(Vulkan 1.1.87))](https://www.samsung.com/us/mobile/galaxy-s10/) with Android 9.0. Please note this is the version with the Qualcomm based chipset.
-* [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) (Vulkan 1.1.87) with Android 9.0 - Build PPR1.181005.034
-* [Oneplus 6T](https://www.oneplus.com/oneplus-6t-tmo) (Vulkan API 1.1.87) GPU Adreno 630. Driver version 512.408.0 with Android 10.0
+* [Samsung S20 Ultra (Qualcomm Snapdragon 865 (Vulkan 1.1.120))](https://www.gsmarena.com/samsung_galaxy_s20_ultra_5g-10040.php) with Android 10. Please note that this version uses the Qualcomm based chipset compared to the European version that uses the Exynos chipset.
+* [Samsung Galaxy Note9 (Qualcomm 845 Octa-Core (Vulkan 1.1.87))](https://www.samsung.com/us/business/support/owners/product/galaxy-note9-unlocked/) with Android 10.0. Please note this is the Qualcomm version only available in the US
 
 
 
@@ -756,6 +715,11 @@ macOS:
 Linux:
 ![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
 
+## 33. YUV Support
+YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
+
+![YUV unit test](Screenshots/34_YUV.png)
+
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -819,7 +783,7 @@ Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofi
 
 ## Shader Translator
 We provide a shader translator, that translates one shader language -a superset of HLSL called Forge Shader Language (FLS) - to the target shader language of all our target platforms. That includes the console and mobile platforms as well.
-We expect this shader translator to be an easier to maintain solution for smaller game teams because it allows to add additional data to the shader source file with less effort. Such data could be for example a bucket classification or different shaders for different capability levels of the underlying platform, descriptor memory requirements or resource memory requirements in general, material info or just information to easier pre-compile pipelines.
+It is written in Python. We expect this shader translator to be an easier to maintain solution for smaller game teams because it allows to add additional data to the shader source file with less effort. Such data could be for example a bucket classification or different shaders for different capability levels of the underlying platform, descriptor memory requirements or resource memory requirements in general, material info or just information to easier pre-compile pipelines.
 The actual shader compilation will be done by the native compiler of the target platform.
 
  [How to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
@@ -827,10 +791,10 @@ The actual shader compilation will be done by the native compiler of the target 
 
 
 # Releases / Maintenance
-Confetti will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
+The Forge Interactive Inc. will prepare releases when all the platforms are stable and running and push them to this GitHub repository. Up until a release, development will happen on internal servers. This is to sync up the console, mobile, macOS and PC versions of the source code.
 
 # Products
-We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far:
+We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far or we contributed to:
 
 ## Supergiant Games Hades
 [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
@@ -877,6 +841,7 @@ SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, 
 For contributions to The Forge we apply the following writing guidelines:
  * We limit all code to C++ 11 by setting the Clang and other compiler flags
  * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
+ * Please note that we are going to move towards C99 usage more and more because this language makes it easier to develop high-performance applications in a team. With the increased call numbers of modern APIs and the always performance-detoriating C++ features, C++ is becoming more and more a productivity and run-time performance challenge. C is also a better starting point to port to other languages like RUST. In case any of those languages become common in development.
 
 # User Group Meetings 
 There will be a user group meeting during GDC. In case you want to organize a user group meeting in your country / town at any other point in time, we would like to support this. We could send an engineer for a talk.
@@ -930,7 +895,6 @@ The Forge utilizes the following Open-Source libraries:
 * [Micro Profiler](https://github.com/zeux/microprofile)
 * [MTuner](https://github.com/milostosic/MTuner) 
 * [EASTL](https://github.com/electronicarts/EASTL/)
-* [SoLoud](https://github.com/jarikomppa/soloud)
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
