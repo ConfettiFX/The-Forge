@@ -29,6 +29,14 @@
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
+#define MAX_FUNCTION_NAME_LENGTH 128
+
+#ifdef _MSC_VER
+#define SAFE_STRCPY(dstStr, dstSize, srcStr) strcpy_s(dstStr, dstSize, srcStr)
+#else
+#define SAFE_STRCPY(dstStr, dstSize, srcStr) strcpy(dstStr, srcStr)
+#endif
+
 enum ScriptState
 {
 	FINISHED_OK,
@@ -42,7 +50,7 @@ struct ILuaStateWrap
 	virtual int           GetArgumentsCount() = 0;
 	virtual double        GetNumberArg(int argIdx) = 0;
 	virtual long long int GetIntegerArg(int argIdx) = 0;
-	virtual eastl::string GetStringArg(int argIdx) = 0;
+	virtual void		  GetStringArg(int argIdx, char* buffer) = 0;
 	virtual void          GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult) = 0;
 
 	virtual void PushResultNumber(double d) = 0;
@@ -52,11 +60,11 @@ struct ILuaStateWrap
 
 struct ILuaFunctionWrap
 {
-	ILuaFunctionWrap(const char* functionName): functionName(functionName){};
+	ILuaFunctionWrap(const char* functionName) { SAFE_STRCPY(this->functionName, MAX_FUNCTION_NAME_LENGTH, functionName); };
 	virtual ~ILuaFunctionWrap() {}
 	virtual int ExecuteFunction(ILuaStateWrap* luaState) { return 0; };
 
-	eastl::string functionName;
+	char functionName[MAX_FUNCTION_NAME_LENGTH]{};
 };
 
 template <class T>

@@ -38,7 +38,7 @@ class ClipMask
 	void Initialize(Rig* rig);
 
 	// Must be called to clean up if the clip mask was initialized
-	void Destroy();
+	void Exit();
 
 	// Will set the weight of all joints to 1.0f
 	void EnableAllJoints();

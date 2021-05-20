@@ -48,7 +48,6 @@
 
 //TinySTL
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 //Interfaces
@@ -98,7 +97,7 @@ struct UniformCompute
 	uint     mStartIndex;
 	uint     mEndIndex;
 	uint     mNumLODs;
-#if defined(METAL)
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 	uint     mIndexOffsets[MAX_LOD_OFFSETS + 1];
 #else
 	uint     mIndexOffsets[4 * MAX_LOD_OFFSETS + 1];    // Andrés: Do VK/DX samples work with this declaration? Doesn't match rootConstant.
@@ -118,17 +117,17 @@ struct UniformBasic
 struct IndirectArguments
 {
 	//16 - byte aligned
-#if defined(DIRECT3D12)
-	// Currently setting a root constant only works with Dx
-	uint32_t                   mDrawID;
-	IndirectDrawIndexArguments mDrawArgs;
-	uint32_t                   mPad[2];
-#else
+#if defined(ORBIS) || defined(PROSPERO)
 	IndirectDrawIndexArguments mDrawArgs;
 #if !defined(ORBIS)
 	// Padding not supported on Orbis
 	uint32_t                   mPad[3];
 #endif
+#else
+	// Currently setting a root constant only works with Dx
+	uint32_t                   mDrawID;
+	IndirectDrawIndexArguments mDrawArgs;
+	uint32_t                   mPad[2];
 #endif
 };
 
@@ -136,8 +135,8 @@ struct Subset
 {
 	CmdPool*           pCmdPools[gImageCount];
 	Cmd*               pCmds[gImageCount];
-	Buffer*            pAsteroidInstanceBuffer;
-	Buffer*            pSubsetIndirect;
+	Buffer*            pAsteroidInstanceBuffer[gImageCount];
+	Buffer*            pSubsetIndirect[gImageCount];
 	IndirectArguments* mIndirectArgs;
 };
 
@@ -243,19 +242,21 @@ Texture*          pSkyBoxTextures[6];
 DescriptorSet*    pDescriptorSetSkybox[2] = { NULL };
 DescriptorSet*    pDescriptorSetCompute[2] = { NULL };
 DescriptorSet*    pDescriptorSetIndirectDraw[2] = { NULL };
+DescriptorSet*    pDescriptorSetIndirectDrawForCompute = NULL;
 DescriptorSet*    pDescriptorSetDirectDraw[2] = { NULL };
 
 // Necessary buffers
 Buffer* pAsteroidVertexBuffer = NULL;
 Buffer* pAsteroidIndexBuffer = NULL;
 Buffer* pStaticAsteroidBuffer = NULL;
-Buffer* pDynamicAsteroidBuffer = NULL;
+Buffer* pDynamicAsteroidBuffer[gImageCount] = {};
 
 // UI
-UIApp              gAppUI;
+UIApp*             pAppUI = NULL;
 GuiComponent*      pGui;
+static uint32_t	   gSelectedApiIndex = 0;
 ICameraController* pCameraController = NULL;
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 
 uint32_t gFrameIndex = 0;
@@ -310,13 +311,7 @@ uint32_t                  numVerticesPerMesh;
 
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
-}
-
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
 class ExecuteIndirect: public IApp
@@ -349,13 +344,528 @@ class ExecuteIndirect: public IApp
 		CreateAsteroids(gVertices, gIndices, gAsteroidSim.numLODs, 1000, 123, numVerticesPerMesh, gAsteroidSim.indexOffsets);
 		gAsteroidSim.Init(123, gNumAsteroids, 1000, numVerticesPerMesh, gTextureCount);
 
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPools[i]);
+			cmdDesc.pPool = pComputeCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pComputeCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		for (int i = 0; i < 6; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+			textureDesc.pFileName = pSkyBoxImageFileNames[i];
+			textureDesc.ppTexture = &pSkyBoxTextures[i];
+			addResource(&textureDesc, NULL);
+		}
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+
+		if (!pVirtualJoystick)
+		{
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+			return false;
+		}
+
+		CreateTextures(gTextureCount);
+
+		CreateSubsets();
+
+		SamplerDesc samplerDesc = { FILTER_LINEAR,
+							FILTER_LINEAR,
+							MIPMAP_MODE_NEAREST,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pBasicSampler);
+		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
+
+		ShaderLoadDesc instanceShader = {};
+		instanceShader.mStages[0] = { "basic.vert", NULL, 0 };
+		instanceShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+		ShaderLoadDesc indirectShader = {};
+		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0 };
+		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0 };
+
+		ShaderLoadDesc skyShader = {};
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+
+		ShaderLoadDesc gpuUpdateShader = {};
+		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0 };
+
+		addShader(pRenderer, &instanceShader, &pBasicShader);
+		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+		addShader(pRenderer, &indirectShader, &pIndirectShader);
+		addShader(pRenderer, &gpuUpdateShader, &pComputeShader);
+
+		const char* pStaticSamplerNames[] = { "uSampler0", "uSampler1" };
+		Sampler* pStaticSamplers[] = { pBasicSampler, pSkyBoxSampler };
+		RootSignatureDesc basicRootDesc = { &pBasicShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc skyRootDesc = { &pSkyBoxDrawShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc computeRootDesc = { &pComputeShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc indirectRootDesc = { &pIndirectShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		addRootSignature(pRenderer, &basicRootDesc, &pBasicRoot);
+		addRootSignature(pRenderer, &skyRootDesc, &pSkyBoxRoot);
+		addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
+		addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
+
+		DescriptorSetDesc setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
+		setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
+		// GPU Culling
+		setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
+		setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
+		// Indirect Draw
+		setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[0]);
+		setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[1]);
+		// Indirect Draw when using a compute
+		setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDrawForCompute);
+		// Direct Draw
+		setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[0]);
+		setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_PER_BATCH, gNumSubsets * gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[1]);
+
+		/* Setup Pipelines */
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
+		computePipelineDesc.pShaderProgram = pComputeShader;
+		computePipelineDesc.pRootSignature = pComputeRoot;
+		addPipeline(pRenderer, &desc, &pComputePipeline);
+
+		/* Prepare buffers */
+
+		/* Prepare execute indirect command signatures and buffers */
+
+#if defined(ORBIS) || defined(PROSPERO)
+		IndirectArgumentDescriptor indirectArgDescs[1] = {};
+		indirectArgDescs[0].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
+
+#else
+		IndirectArgumentDescriptor indirectArgDescs[2] = {};
+		indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
+		indirectArgDescs[0].pName = "rootConstant";
+		indirectArgDescs[0].mByteSize = sizeof(uint32_t);
+		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
+#endif
+
+		CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs };
+		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectCommandSignature);
+		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectSubsetCommandSignature);
+
+		// initialize argument data
+		IndirectArguments* indirectInit =
+			(IndirectArguments*)tf_calloc(gNumAsteroids, sizeof(IndirectArguments));    // For use with compute shader
+		IndirectArguments* indirectSubsetInit =
+			(IndirectArguments*)tf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));    // For use with multithreading subsets
+		for (uint32_t i = 0; i < gNumAsteroids; i++)
+		{
+#if !defined(ORBIS) && !defined(PROSPERO)
+			indirectInit[i].mDrawID = i;
+#endif
+			indirectInit[i].mDrawArgs.mInstanceCount = 1;
+			indirectInit[i].mDrawArgs.mStartInstance = 0;
+			indirectInit[i].mDrawArgs.mStartIndex = 0;
+			indirectInit[i].mDrawArgs.mIndexCount = 60;
+			indirectInit[i].mDrawArgs.mVertexOffset = 0;
+		}
+		for (uint32_t i = 0; i < gNumAsteroidsPerSubset; i++)
+		{
+#if !defined(ORBIS) && !defined(PROSPERO)
+			indirectSubsetInit[i].mDrawID = i;
+#endif
+			indirectSubsetInit[i].mDrawArgs.mInstanceCount = 1;
+			indirectSubsetInit[i].mDrawArgs.mStartInstance = 0;
+			indirectSubsetInit[i].mDrawArgs.mStartIndex = 0;
+			indirectSubsetInit[i].mDrawArgs.mIndexCount = 60;
+			indirectSubsetInit[i].mDrawArgs.mVertexOffset = 0;
+		}
+
+		BufferLoadDesc indirectBufDesc = {};
+		indirectBufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
+		indirectBufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		indirectBufDesc.mDesc.pCounterBuffer = NULL;
+		indirectBufDesc.mDesc.mFirstElement = 0;
+		indirectBufDesc.mDesc.mElementCount = gNumAsteroids;
+		indirectBufDesc.mDesc.mStructStride = sizeof(IndirectArguments);
+		indirectBufDesc.mDesc.mStartState = RESOURCE_STATE_INDIRECT_ARGUMENT;
+		indirectBufDesc.mDesc.mSize = indirectBufDesc.mDesc.mStructStride * indirectBufDesc.mDesc.mElementCount;
+		indirectBufDesc.pData = indirectInit;
+		indirectBufDesc.ppBuffer = &pIndirectBuffer;
+		addResource(&indirectBufDesc, NULL);
+
+		indirectBufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
+		indirectBufDesc.mDesc.mSize = sizeof(IndirectArguments) * gNumAsteroidsPerSubset;
+
+		indirectBufDesc.pData = indirectSubsetInit;
+		for (uint32_t i = 0; i < gNumSubsets; i++)
+		{
+			for (uint32_t j = 0; j < gImageCount; j++)
+			{
+				indirectBufDesc.ppBuffer = &(gAsteroidSubsets[i].pSubsetIndirect[j]);
+				addResource(&indirectBufDesc, NULL);
+			}
+		}
+
+		BufferLoadDesc bufDesc;
+
+		uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		bufDesc.mDesc.mSize = skyBoxDataSize;
+		bufDesc.pData = skyBoxPoints;
+		bufDesc.ppBuffer = &pSkyBoxVertexBuffer;
+		addResource(&bufDesc, NULL);
+
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		bufDesc.mDesc.mSize = sizeof(UniformViewProj);
+		bufDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			bufDesc.ppBuffer = &pIndirectUniformBuffer[i];
+			addResource(&bufDesc, NULL);
+			bufDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+			addResource(&bufDesc, NULL);
+		}
+
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
+		bufDesc.mDesc.mFirstElement = 0;
+		bufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
+		bufDesc.mDesc.mStructStride = sizeof(UniformBasic);
+		bufDesc.mDesc.mSize = bufDesc.mDesc.mElementCount * bufDesc.mDesc.mStructStride;
+		bufDesc.mDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+		for (uint32_t i = 0; i < gNumSubsets; i++)
+		{
+			for (uint32_t j = 0; j < gImageCount; j++)
+			{
+				bufDesc.ppBuffer = &gAsteroidSubsets[i].pAsteroidInstanceBuffer[j];
+				addResource(&bufDesc, NULL);
+			}
+		}
+
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufDesc.mDesc.mSize = sizeof(UniformCompute);
+		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		bufDesc.pData = NULL;
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			bufDesc.ppBuffer = &pComputeUniformBuffer[i];
+			addResource(&bufDesc, NULL);
+		}
+
+		// Vertex Buffer
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)gVertices.size();
+		bufDesc.pData = gVertices.data();
+		bufDesc.ppBuffer = &pAsteroidVertexBuffer;
+		addResource(&bufDesc, NULL);
+
+		// Index Buffer
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)gIndices.size();
+		bufDesc.pData = gIndices.data();
+		bufDesc.ppBuffer = &pAsteroidIndexBuffer;
+		addResource(&bufDesc, NULL);
+
+		// Static Asteroid RW Buffer
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		bufDesc.mDesc.mSize = sizeof(AsteroidStatic) * gNumAsteroids;
+		bufDesc.mDesc.mFirstElement = 0;
+		bufDesc.mDesc.mElementCount = gNumAsteroids;
+		bufDesc.mDesc.mStructStride = sizeof(AsteroidStatic);
+		bufDesc.mDesc.pCounterBuffer = NULL;
+		bufDesc.pData = gAsteroidSim.asteroidsStatic.data();
+		bufDesc.ppBuffer = &pStaticAsteroidBuffer;
+		addResource(&bufDesc, NULL);
+
+		// Dynamic Asteroid RW Buffer
+		bufDesc = {};
+		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		bufDesc.mDesc.mSize = sizeof(AsteroidDynamic) * gNumAsteroids;
+		bufDesc.mDesc.mFirstElement = 0;
+		bufDesc.mDesc.mElementCount = gNumAsteroids;
+		bufDesc.mDesc.mStructStride = sizeof(AsteroidDynamic);
+		bufDesc.mDesc.pCounterBuffer = NULL;
+		bufDesc.pData = gAsteroidSim.asteroidsDynamic.data();
+		for (uint32_t i = 0; i < gImageCount; i++)
+		{
+			bufDesc.ppBuffer = &pDynamicAsteroidBuffer[i];
+			addResource(&bufDesc, NULL);
+		}
+
+		/* UI and Camera Setup */
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition += vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f);
+		pGui = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
+		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
+		/************************************************************************/
+		/************************************************************************/
+
+#if !defined(TARGET_IOS)
+		CheckboxWidget vSyncCheckbox;
+		vSyncCheckbox.pData = &gToggleVSync;
+		IWidget* pVSyncCheckbox = addGuiWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX);
+		addWidgetLua(pVSyncCheckbox);
+#endif
+		DropdownWidget renderModeDropdown;
+		renderModeDropdown.pData = &gRenderingMode;
+		for (uint32_t i = 0; i < 3; ++i)
+		{
+			renderModeDropdown.mValues.push_back(enumValues[i]);
+			renderModeDropdown.mNames.push_back((char*)enumNames[i]);
+		}
+
+		addWidgetLua(addGuiWidget(pGui, "Rendering Mode: ", &renderModeDropdown, WIDGET_TYPE_DROPDOWN));
+
+		CheckboxWidget multithreadCheckbox;
+		multithreadCheckbox.pData = &gUseThreads;
+		addWidgetLua(addGuiWidget(pGui, "Multithreaded CPU Update", &multithreadCheckbox, WIDGET_TYPE_CHECKBOX));
+
+		CheckboxWidget paniniCheckbox;
+		paniniCheckbox.pData = &gbPaniniEnabled;
+		addWidgetLua(addGuiWidget(pGui, "Enable Panini Projection", &paniniCheckbox, WIDGET_TYPE_CHECKBOX));
+		/************************************************************************/
+		// Panini props
+		/************************************************************************/
+#if !defined(TARGET_IOS)
+		SliderFloatWidget camHorFovSlider;
+		camHorFovSlider.pData = &gPaniniParams.FoVH;
+		camHorFovSlider.mMin = 30.0f;
+		camHorFovSlider.mMax = 179.0f;
+		camHorFovSlider.mStep = 1.0f;
+		addDynamicUIWidget(&gPaniniControls, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT);
+
+		SliderFloatWidget paniniSliderD;
+		paniniSliderD.pData = &gPaniniParams.D;
+		paniniSliderD.mMin = 0.0f;
+		paniniSliderD.mMax = 1.0f;
+		paniniSliderD.mStep = 0.001f;
+		addDynamicUIWidget(&gPaniniControls, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT);
+
+		SliderFloatWidget paniniSliderS;
+		paniniSliderS.pData = &gPaniniParams.S;
+		paniniSliderS.mMin = 0.0f;
+		paniniSliderS.mMax = 1.0f;
+		paniniSliderS.mStep = 0.001f;
+		addDynamicUIWidget(&gPaniniControls, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT);
+
+		SliderFloatWidget screenScaleSlider;
+		screenScaleSlider.pData = &gPaniniParams.scale;
+		screenScaleSlider.mMin = 1.0f;
+		screenScaleSlider.mMax = 10.0f;
+		screenScaleSlider.mStep = 0.01f;
+		addDynamicUIWidget(&gPaniniControls, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT);
+
+		if (gbPaniniEnabled)
+			showDynamicUIWidgets(&gPaniniControls, pGui);
+		else
+			hideDynamicUIWidgets(&gPaniniControls, pGui);
+#endif
+		DropdownWidget ddTestScripts;
+		ddTestScripts.pData = &gCurrentScriptIndex;
+		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+		{
+			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+		}
+		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+		ButtonWidget bRunScript;
+		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		pRunScript->pOnEdited = RunScript;
+		addWidgetLua(pRunScript);
+
+#if !defined(TARGET_IOS)
+		gPanini.Init(pRenderer);
+		gPanini.SetMaxDraws(1);
+#endif
+
+		waitForAllResourceLoads();
+		tf_free(indirectInit);
+		tf_free(indirectSubsetInit);
+
+		// Prepare descriptor sets
+		DescriptorData skyboxParams[6] = {};
+		skyboxParams[0].pName = "RightText";
+		skyboxParams[0].ppTextures = &pSkyBoxTextures[0];
+		skyboxParams[1].pName = "LeftText";
+		skyboxParams[1].ppTextures = &pSkyBoxTextures[1];
+		skyboxParams[2].pName = "TopText";
+		skyboxParams[2].ppTextures = &pSkyBoxTextures[2];
+		skyboxParams[3].pName = "BotText";
+		skyboxParams[3].ppTextures = &pSkyBoxTextures[3];
+		skyboxParams[4].pName = "FrontText";
+		skyboxParams[4].ppTextures = &pSkyBoxTextures[4];
+		skyboxParams[5].pName = "BackText";
+		skyboxParams[5].ppTextures = &pSkyBoxTextures[5];
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 6, skyboxParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			skyboxParams[0].pName = "uniformBlock";
+			skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyboxParams);
+		}
+
+		// Update dynamic asteroid positions using compute shader
+		DescriptorData computeParams[4] = {};
+		computeParams[0].pName = "asteroidsStatic";
+		computeParams[0].ppBuffers = &pStaticAsteroidBuffer;
+		// We just use one buffer when running the compute shader.
+		computeParams[1].pName = "asteroidsDynamic";
+		computeParams[1].ppBuffers = &pDynamicAsteroidBuffer[0];
+		computeParams[2].pName = "drawCmds";
+		computeParams[2].ppBuffers = &pIndirectBuffer;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			computeParams[0].pName = "uniformBlock";
+			computeParams[0].ppBuffers = &pComputeUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
+		}
+
+		DescriptorData indirectParams[5] = {};
+		indirectParams[0].pName = "asteroidsStatic";
+		indirectParams[0].ppBuffers = &pStaticAsteroidBuffer;
+		indirectParams[1].pName = "uTex0";
+		indirectParams[1].ppTextures = &pAsteroidTex;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetIndirectDraw[0], 2, indirectParams);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			indirectParams[0].pName = "uniformBlock";
+			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[i];
+			// Because "pDynamicAsteroidBuffer" is update on CPU we triple buffer it.
+			indirectParams[1].pName = "asteroidsDynamic";
+			indirectParams[1].ppBuffers = &pDynamicAsteroidBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetIndirectDraw[1], 2, indirectParams);
+
+			// Because "pDynamicAsteroidBuffer" is updated in GPU, we just need one buffer.
+			// But the shader expects a descriptorset with a per frame frequency. Because of this,
+			// we need point "asteroidsDynamic" to the same buffer (pDynamicAsteroidBuffer[0]).
+			indirectParams[1].ppBuffers = &pDynamicAsteroidBuffer[0];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetIndirectDrawForCompute, 2, indirectParams);
+		}
+
+		DescriptorData directParams[1] = {};
+		directParams[0].pName = "uTex0";
+		directParams[0].ppTextures = &pAsteroidTex;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetDirectDraw[0], 1, directParams);
+		for (uint32_t i = 0; i < gNumSubsets; ++i)
+		{
+			for (uint32_t j = 0; j < gImageCount; j++)
+			{
+				directParams[0].pName = "instanceBuffer";
+				directParams[0].ppBuffers = &gAsteroidSubsets[i].pAsteroidInstanceBuffer[j];
+				updateDescriptorSet(pRenderer, i*gImageCount + j, pDescriptorSetDirectDraw[1], 1, directParams);
+			}
+		}
+
 		/************************************************************************/
 		/************************************************************************/
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ -121.4f, 69.9f, -562.8f };
 		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -371,7 +881,7 @@ class ExecuteIndirect: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -380,9 +890,9 @@ class ExecuteIndirect: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -393,16 +903,20 @@ class ExecuteIndirect: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		gFrameIndex = 0; 
 	
 		return true;
 	}
 
 	void Exit()
 	{
-		shutdownThreadSystem(pThreadSystem);
+		waitThreadSystemIdle(pThreadSystem);
+
+		exitThreadSystem(pThreadSystem);
 		exitInputSystem();
 
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
 	
 		tf_free(gAsteroidSim.indexOffsets);
 		gAsteroidSim.Exit();
@@ -410,438 +924,128 @@ class ExecuteIndirect: public IApp
 		// Erase vertex/index buffer memory.
 		gVertices.set_capacity(0);
 		gIndices.set_capacity(0);
+
+#if !defined(TARGET_IOS)
+		removeDynamicUI(&gPaniniControls);
+		gPanini.Exit();
+#endif
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		exitProfilerUI();
+
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetIndirectDrawForCompute);
+		removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[1]);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pSkyboxUniformBuffer[i]);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pDynamicAsteroidBuffer[i]);
+
+		removeResource(pSkyBoxVertexBuffer);
+		removeResource(pAsteroidVertexBuffer);
+		removeResource(pAsteroidIndexBuffer);
+		removeResource(pStaticAsteroidBuffer);
+		removeResource(pIndirectBuffer);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pComputeUniformBuffer[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pIndirectUniformBuffer[i]);
+		removeResource(pAsteroidTex);
+
+		for (uint32_t i = 0; i < 6; ++i)
+			removeResource(pSkyBoxTextures[i]);
+
+
+		for (uint32_t i = 0; i < gNumSubsets; i++)
+		{
+			for (uint32_t j = 0; j < gImageCount; ++j)
+				removeResource(gAsteroidSubsets[i].pAsteroidInstanceBuffer[j]);
+			tf_free(gAsteroidSubsets[i].mIndirectArgs);
+			for (uint32_t j = 0; j < gImageCount; ++j)
+				removeResource(gAsteroidSubsets[i].pSubsetIndirect[j]);
+		}
+
+		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
+		removeIndirectCommandSignature(pRenderer, pIndirectSubsetCommandSignature);
+
+		removeShader(pRenderer, pBasicShader);
+		removeShader(pRenderer, pSkyBoxDrawShader);
+		removeShader(pRenderer, pIndirectShader);
+		removeShader(pRenderer, pComputeShader);
+
+		removePipeline(pRenderer, pComputePipeline);
+
+		removeRootSignature(pRenderer, pBasicRoot);
+		removeRootSignature(pRenderer, pSkyBoxRoot);
+		removeRootSignature(pRenderer, pIndirectRoot);
+		removeRootSignature(pRenderer, pComputeRoot);
+
+		removeSampler(pRenderer, pSkyBoxSampler);
+		removeSampler(pRenderer, pBasicSampler);
+
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmd(pRenderer, pUICmds[i]);
+			removeCmd(pRenderer, pComputeCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+			removeCmdPool(pRenderer, pUICmdPools[i]);
+			removeCmdPool(pRenderer, pComputeCmdPools[i]);
+		}
+
+		for (uint32_t i = 0; i < gNumSubsets; ++i)
+		{
+			for (uint32_t j = 0; j < gImageCount; ++j)
+			{
+				removeCmd(pRenderer, gAsteroidSubsets[i].pCmds[j]);
+				removeCmdPool(pRenderer, gAsteroidSubsets[i].pCmdPools[j]);
+			}
+		}
+
+		removeQueue(pRenderer, pGraphicsQueue);
+
+		exitResourceLoaderInterface(pRenderer);
+		exitRenderer(pRenderer);
+		gAsteroidSubsets.set_capacity(0);
+
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-				addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
-				cmdDesc.pPool = pUICmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
-
-				addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPools[i]);
-				cmdDesc.pPool = pComputeCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pComputeCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			for (int i = 0; i < 6; ++i)
-			{
-				TextureLoadDesc textureDesc = {};
-				textureDesc.pFileName = pSkyBoxImageFileNames[i];
-				textureDesc.ppTexture = &pSkyBoxTextures[i];
-				addResource(&textureDesc, NULL);
-			}
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			{
-				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-				return false;
-			}
-
-			CreateTextures(gTextureCount);
-
-			CreateSubsets();
-
-			SamplerDesc samplerDesc = { FILTER_LINEAR,
-								FILTER_LINEAR,
-								MIPMAP_MODE_NEAREST,
-								ADDRESS_MODE_CLAMP_TO_EDGE,
-								ADDRESS_MODE_CLAMP_TO_EDGE,
-								ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pBasicSampler);
-			addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
-
-			ShaderLoadDesc instanceShader = {};
-			instanceShader.mStages[0] = { "basic.vert", NULL, 0 };
-			instanceShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-			ShaderLoadDesc indirectShader = {};
-			indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0 };
-			indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0 };
-
-			ShaderLoadDesc skyShader = {};
-			skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-			skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
-
-			ShaderLoadDesc gpuUpdateShader = {};
-			gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0 };
-
-			addShader(pRenderer, &instanceShader, &pBasicShader);
-			addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-			addShader(pRenderer, &indirectShader, &pIndirectShader);
-			addShader(pRenderer, &gpuUpdateShader, &pComputeShader);
-
-			const char* pStaticSamplerNames[] = { "uSampler0", "uSampler1" };
-			Sampler* pStaticSamplers[] = { pBasicSampler, pSkyBoxSampler };
-			RootSignatureDesc basicRootDesc = { &pBasicShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
-			RootSignatureDesc skyRootDesc = { &pSkyBoxDrawShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
-			RootSignatureDesc computeRootDesc = { &pComputeShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
-			RootSignatureDesc indirectRootDesc = { &pIndirectShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
-			addRootSignature(pRenderer, &basicRootDesc, &pBasicRoot);
-			addRootSignature(pRenderer, &skyRootDesc, &pSkyBoxRoot);
-			addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
-			addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
-
-			DescriptorSetDesc setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
-			setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
-			// GPU Culling
-			setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
-			setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
-			// Indirect Draw
-			setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[0]);
-			setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[1]);
-			// Direct Draw
-			setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[0]);
-			setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_PER_BATCH, gNumSubsets };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[1]);
-
-			/* Setup Pipelines */
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
-			computePipelineDesc.pShaderProgram = pComputeShader;
-			computePipelineDesc.pRootSignature = pComputeRoot;
-			addPipeline(pRenderer, &desc, &pComputePipeline);
-
-			/* Prepare buffers */
-
-			BufferLoadDesc bufDesc;
-
-			uint64_t skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			bufDesc.mDesc.mSize = skyBoxDataSize;
-			bufDesc.pData = skyBoxPoints;
-			bufDesc.ppBuffer = &pSkyBoxVertexBuffer;
-			addResource(&bufDesc, NULL);
-
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			bufDesc.mDesc.mSize = sizeof(UniformViewProj);
-			bufDesc.pData = NULL;
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				bufDesc.ppBuffer = &pIndirectUniformBuffer[i];
-				addResource(&bufDesc, NULL);
-				bufDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-				addResource(&bufDesc, NULL);
-			}
-
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
-			bufDesc.mDesc.mFirstElement = 0;
-			bufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
-			bufDesc.mDesc.mStructStride = sizeof(UniformBasic);
-			bufDesc.mDesc.mSize = bufDesc.mDesc.mElementCount * bufDesc.mDesc.mStructStride;
-			bufDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-			for (uint32_t i = 0; i < gNumSubsets; i++)
-			{
-				bufDesc.ppBuffer = &gAsteroidSubsets[i].pAsteroidInstanceBuffer;
-				addResource(&bufDesc, NULL);
-			}
-
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufDesc.mDesc.mSize = sizeof(UniformCompute);
-			bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			bufDesc.pData = NULL;
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				bufDesc.ppBuffer = &pComputeUniformBuffer[i];
-				addResource(&bufDesc, NULL);
-			}
-
-			// Vertex Buffer
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)gVertices.size();
-			bufDesc.pData = gVertices.data();
-			bufDesc.ppBuffer = &pAsteroidVertexBuffer;
-			addResource(&bufDesc, NULL);
-
-			// Index Buffer
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)gIndices.size();
-			bufDesc.pData = gIndices.data();
-			bufDesc.ppBuffer = &pAsteroidIndexBuffer;
-			addResource(&bufDesc, NULL);
-
-			// Static Asteroid RW Buffer
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			bufDesc.mDesc.mSize = sizeof(AsteroidStatic) * gNumAsteroids;
-			bufDesc.mDesc.mFirstElement = 0;
-			bufDesc.mDesc.mElementCount = gNumAsteroids;
-			bufDesc.mDesc.mStructStride = sizeof(AsteroidStatic);
-			bufDesc.mDesc.pCounterBuffer = NULL;
-			bufDesc.pData = gAsteroidSim.asteroidsStatic.data();
-			bufDesc.ppBuffer = &pStaticAsteroidBuffer;
-			addResource(&bufDesc, NULL);
-
-			// Dynamic Asteroid RW Buffer
-			bufDesc = {};
-			bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-			bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			bufDesc.mDesc.mSize = sizeof(AsteroidDynamic) * gNumAsteroids;
-			bufDesc.mDesc.mFirstElement = 0;
-			bufDesc.mDesc.mElementCount = gNumAsteroids;
-			bufDesc.mDesc.mStructStride = sizeof(AsteroidDynamic);
-			bufDesc.mDesc.pCounterBuffer = NULL;
-			bufDesc.pData = gAsteroidSim.asteroidsDynamic.data();
-			bufDesc.ppBuffer = &pDynamicAsteroidBuffer;
-			addResource(&bufDesc, NULL);
-
-			/* Prepare execute indirect command signatures and buffers */
-
-#if defined(DIRECT3D12)
-			IndirectArgumentDescriptor indirectArgDescs[2] = {};
-			indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
-			indirectArgDescs[0].pName = "rootConstant";
-			indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
-#else
-		// Metal and Vulkan doesn't allow constants as part of command signature
-			IndirectArgumentDescriptor indirectArgDescs[1] = {};
-			indirectArgDescs[0].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
-#endif
-
-			CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs };
-			addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectCommandSignature);
-			addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectSubsetCommandSignature);
-
-			// initialize argument data
-			IndirectArguments* indirectInit =
-				(IndirectArguments*)tf_calloc(gNumAsteroids, sizeof(IndirectArguments));    // For use with compute shader
-			IndirectArguments* indirectSubsetInit =
-				(IndirectArguments*)tf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));    // For use with multithreading subsets
-			for (uint32_t i = 0; i < gNumAsteroids; i++)
-			{
-#if defined(DIRECT3D12)
-				indirectInit[i].mDrawID = i;
-#endif
-				indirectInit[i].mDrawArgs.mInstanceCount = 1;
-				indirectInit[i].mDrawArgs.mStartInstance = 0;
-				indirectInit[i].mDrawArgs.mStartIndex = 0;
-				indirectInit[i].mDrawArgs.mIndexCount = 60;
-				indirectInit[i].mDrawArgs.mVertexOffset = 0;
-			}
-			for (uint32_t i = 0; i < gNumAsteroidsPerSubset; i++)
-			{
-#if defined(DIRECT3D12)
-				indirectSubsetInit[i].mDrawID = i;
-#endif
-				indirectSubsetInit[i].mDrawArgs.mInstanceCount = 1;
-				indirectSubsetInit[i].mDrawArgs.mStartInstance = 0;
-				indirectSubsetInit[i].mDrawArgs.mStartIndex = 0;
-				indirectSubsetInit[i].mDrawArgs.mIndexCount = 60;
-				indirectSubsetInit[i].mDrawArgs.mVertexOffset = 0;
-			}
-
-			BufferLoadDesc indirectBufDesc = {};
-			indirectBufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
-			indirectBufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			indirectBufDesc.mDesc.pCounterBuffer = NULL;
-			indirectBufDesc.mDesc.mFirstElement = 0;
-			indirectBufDesc.mDesc.mElementCount = gNumAsteroids;
-			indirectBufDesc.mDesc.mStructStride = sizeof(IndirectArguments);
-			indirectBufDesc.mDesc.mSize = indirectBufDesc.mDesc.mStructStride * indirectBufDesc.mDesc.mElementCount;
-			indirectBufDesc.pData = indirectInit;
-			indirectBufDesc.ppBuffer = &pIndirectBuffer;
-			addResource(&indirectBufDesc, NULL);
-
-			indirectBufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
-			indirectBufDesc.mDesc.mSize = sizeof(IndirectArguments) * gNumAsteroidsPerSubset;
-
-			indirectBufDesc.pData = indirectSubsetInit;
-			for (uint32_t i = 0; i < gNumSubsets; i++)
-			{
-				indirectBufDesc.ppBuffer = &(gAsteroidSubsets[i].pSubsetIndirect);
-				addResource(&indirectBufDesc, NULL);
-			}
-
-			/* UI and Camera Setup */
-			if (!gAppUI.Init(pRenderer))
-				return false;
-			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition += vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f);
-			pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
-			static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
-			/************************************************************************/
-			/************************************************************************/
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pGui->AddWidget(testGPUReset);
-
-#if !defined(TARGET_IOS)
-			pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
-#endif
-
-			pGui->AddWidget(DropdownWidget("Rendering Mode: ", &gRenderingMode, enumNames, enumValues, 3));
-			pGui->AddWidget(CheckboxWidget("Multithreaded CPU Update", &gUseThreads));
-			pGui->AddWidget(CheckboxWidget("Enable Panini Projection", &gbPaniniEnabled));
-			/************************************************************************/
-			// Panini props
-			/************************************************************************/
-#if !defined(TARGET_IOS)
-			gPaniniControls.AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
-			gPaniniControls.AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
-			gPaniniControls.AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
-			gPaniniControls.AddWidget(SliderFloatWidget("Screen Scale", &gPaniniParams.scale, 1.0f, 10.0f, 0.01f));
-			if (gbPaniniEnabled)
-				gPaniniControls.ShowWidgets(pGui);
-			else
-				gPaniniControls.HideWidgets(pGui);
-#endif
-			DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-			ButtonWidget bRunScript("Run");
-			bRunScript.pOnEdited = RunScript;
-			pGui->AddWidget(ddTestScripts);
-			pGui->AddWidget(bRunScript);
-
-#if !defined(TARGET_IOS)
-			gPanini.Init(pRenderer);
-			gPanini.SetMaxDraws(1);
-#endif
-
-			waitForAllResourceLoads();
-			tf_free(indirectInit);
-			tf_free(indirectSubsetInit);
-
-			// Prepare descriptor sets
-			DescriptorData skyboxParams[6] = {};
-			skyboxParams[0].pName = "RightText";
-			skyboxParams[0].ppTextures = &pSkyBoxTextures[0];
-			skyboxParams[1].pName = "LeftText";
-			skyboxParams[1].ppTextures = &pSkyBoxTextures[1];
-			skyboxParams[2].pName = "TopText";
-			skyboxParams[2].ppTextures = &pSkyBoxTextures[2];
-			skyboxParams[3].pName = "BotText";
-			skyboxParams[3].ppTextures = &pSkyBoxTextures[3];
-			skyboxParams[4].pName = "FrontText";
-			skyboxParams[4].ppTextures = &pSkyBoxTextures[4];
-			skyboxParams[5].pName = "BackText";
-			skyboxParams[5].ppTextures = &pSkyBoxTextures[5];
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 6, skyboxParams);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				skyboxParams[0].pName = "uniformBlock";
-				skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyboxParams);
-			}
-
-			// Update dynamic asteroid positions using compute shader
-			DescriptorData computeParams[4] = {};
-			computeParams[0].pName = "asteroidsStatic";
-			computeParams[0].ppBuffers = &pStaticAsteroidBuffer;
-			computeParams[1].pName = "asteroidsDynamic";
-			computeParams[1].ppBuffers = &pDynamicAsteroidBuffer;
-			computeParams[2].pName = "drawCmds";
-			computeParams[2].ppBuffers = &pIndirectBuffer;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				computeParams[0].pName = "uniformBlock";
-				computeParams[0].ppBuffers = &pComputeUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
-			}
-
-			DescriptorData indirectParams[5] = {};
-			indirectParams[0].pName = "asteroidsStatic";
-			indirectParams[0].ppBuffers = &pStaticAsteroidBuffer;
-			indirectParams[1].pName = "asteroidsDynamic";
-			indirectParams[1].ppBuffers = &pDynamicAsteroidBuffer;
-			indirectParams[2].pName = "uTex0";
-			indirectParams[2].ppTextures = &pAsteroidTex;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetIndirectDraw[0], 3, indirectParams);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				indirectParams[0].pName = "uniformBlock";
-				indirectParams[0].ppBuffers = &pIndirectUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetIndirectDraw[1], 1, indirectParams);
-			}
-
-			DescriptorData directParams[1] = {};
-			directParams[0].pName = "uTex0";
-			directParams[0].ppTextures = &pAsteroidTex;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetDirectDraw[0], 1, directParams);
-			for (uint32_t i = 0; i < gNumSubsets; ++i)
-			{
-				directParams[0].pName = "instanceBuffer";
-				directParams[0].ppBuffers = &gAsteroidSubsets[i].pAsteroidInstanceBuffer;
-				updateDescriptorSet(pRenderer, i, pDescriptorSetDirectDraw[1], 1, directParams);
-			}
-		}
-
 		if (!addSwapChain())
 			return false;
 
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		VertexLayout vertexLayout = {};
@@ -931,9 +1135,9 @@ class ExecuteIndirect: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		removePipeline(pRenderer, pBasicPipeline);
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -946,116 +1150,9 @@ class ExecuteIndirect: public IApp
 #if !defined(TARGET_IOS)
 		gPanini.Unload();
 #endif
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			waitThreadSystemIdle(pThreadSystem);
-
-#if !defined(TARGET_IOS)
-			gPaniniControls.Destroy();
-			gPanini.Exit();
-#endif
-			gVirtualJoystick.Exit();
-
-			exitProfilerUI();
-
-			exitProfiler();
-
-			gAppUI.Exit();
-
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
-			removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
-			removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
-			removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
-			removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[0]);
-			removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[1]);
-			removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[0]);
-			removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[1]);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-				removeResource(pSkyboxUniformBuffer[i]);
-
-			removeResource(pSkyBoxVertexBuffer);
-			removeResource(pAsteroidVertexBuffer);
-			removeResource(pAsteroidIndexBuffer);
-			removeResource(pStaticAsteroidBuffer);
-			removeResource(pDynamicAsteroidBuffer);
-			removeResource(pIndirectBuffer);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeResource(pComputeUniformBuffer[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-				removeResource(pIndirectUniformBuffer[i]);
-			removeResource(pAsteroidTex);
-
-			for (uint32_t i = 0; i < 6; ++i)
-				removeResource(pSkyBoxTextures[i]);
-
-
-			for (uint32_t i = 0; i < gNumSubsets; i++)
-			{
-				removeResource(gAsteroidSubsets[i].pAsteroidInstanceBuffer);
-				tf_free(gAsteroidSubsets[i].mIndirectArgs);
-				removeResource(gAsteroidSubsets[i].pSubsetIndirect);
-			}
-
-			removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
-			removeIndirectCommandSignature(pRenderer, pIndirectSubsetCommandSignature);
-
-			removeShader(pRenderer, pBasicShader);
-			removeShader(pRenderer, pSkyBoxDrawShader);
-			removeShader(pRenderer, pIndirectShader);
-			removeShader(pRenderer, pComputeShader);
-
-			removePipeline(pRenderer, pComputePipeline);
-
-			removeRootSignature(pRenderer, pBasicRoot);
-			removeRootSignature(pRenderer, pSkyBoxRoot);
-			removeRootSignature(pRenderer, pIndirectRoot);
-			removeRootSignature(pRenderer, pComputeRoot);
-
-			removeSampler(pRenderer, pSkyBoxSampler);
-			removeSampler(pRenderer, pBasicSampler);
-
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmd(pRenderer, pUICmds[i]);
-				removeCmd(pRenderer, pComputeCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-				removeCmdPool(pRenderer, pUICmdPools[i]);
-				removeCmdPool(pRenderer, pComputeCmdPools[i]);
-			}
-
-			for (uint32_t i = 0; i < gNumSubsets; ++i)
-			{
-				for (uint32_t j = 0; j < gImageCount; ++j)
-				{
-					removeCmd(pRenderer, gAsteroidSubsets[i].pCmds[j]);
-					removeCmdPool(pRenderer, gAsteroidSubsets[i].pCmdPools[j]);
-				}
-			}
-
-			removeQueue(pRenderer, pGraphicsQueue);
-
-			exitResourceLoaderInterface(pRenderer);
-			removeRenderer(pRenderer);
-			gAsteroidSubsets.set_capacity(0);
-		}
 	}
 
-	float frameTime;
+	float frameTime = 0.0f;
 
 	void Update(float deltaTime)
 	{
@@ -1073,18 +1170,18 @@ class ExecuteIndirect: public IApp
 
 		pCameraController->update(deltaTime);
 
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 
 		static bool paniniEnabled = gbPaniniEnabled;
 		if (paniniEnabled != gbPaniniEnabled)
 		{
 			if (gbPaniniEnabled)
 			{
-				gPaniniControls.ShowWidgets(pGui);
+				showDynamicUIWidgets(&gPaniniControls, pGui);
 			}
 			else
 			{
-				gPaniniControls.HideWidgets(pGui);
+				hideDynamicUIWidgets(&gPaniniControls, pGui);
 			}
 
 			paniniEnabled = gbPaniniEnabled;
@@ -1116,6 +1213,11 @@ class ExecuteIndirect: public IApp
 		RenderTarget* pSceneRenderTarget = gbPaniniEnabled ? pIntermediateRenderTarget : pSwapchainRenderTarget;
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+
+		Semaphore* pWaitSemaphores[2];
+		uint32_t waitSemaphoresCount = 0;
+
+		pWaitSemaphores[waitSemaphoresCount++] = pImageAcquiredSemaphore;
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -1238,7 +1340,7 @@ class ExecuteIndirect: public IApp
 			computeUniformData.mCamPos = vec4(pCameraController->getViewPosition(), 1.0f);
 			computeUniformData.mViewProj = viewProjMat;
 			computeUniformData.mNumLODs = gAsteroidSim.numLODs;
-#if defined(METAL)    // Andrés: Check mIndexOffset declaration.
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)    // Andrés: Check mIndexOffset declaration.
 			for (uint32_t i = 0; i <= gAsteroidSim.numLODs + 1; i++)
 				computeUniformData.mIndexOffsets[i] = gAsteroidSim.indexOffsets[i];
 #else
@@ -1282,7 +1384,7 @@ class ExecuteIndirect: public IApp
 			const uint32_t asteroidStride = sizeof(Vertex);
             cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetIndirectDraw[0]);
-			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDraw[1]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDrawForCompute);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
 			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer, 0, NULL, 0);
@@ -1340,7 +1442,8 @@ class ExecuteIndirect: public IApp
 #endif
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 		const float txtOffset = 8.f;
 		float txtOrigY = txtOffset;
@@ -1348,13 +1451,13 @@ class ExecuteIndirect: public IApp
 		txtOrigY += txtSize.y + txtOffset;
 
 #ifndef TARGET_IOS
-		gAppUI.Gui(pGui);
+		appUIGui(pAppUI, pGui);
 #endif
 
         cmdDrawGpuProfile(cmd, float2(txtOffset, txtOrigY), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawProfilerUI();
-		gAppUI.Draw(cmd);
+		drawAppUI(pAppUI, cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1368,13 +1471,21 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		waitForAllResourceLoads();
 
+		// This call must be after "waitForAllResourceLoads" so we are sure that we get the semaphore for the last update.
+		Semaphore* updateSemaphore = getLastSemaphoreCompleted(0);
+		if (updateSemaphore)
+		{
+			// We will wait for this update operation to be completed before rendering.
+			pWaitSemaphores[waitSemaphoresCount++] = updateSemaphore;
+		}
+
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = (uint32_t)allCmds.size();
 		submitDesc.mSignalSemaphoreCount = 1;
-		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = waitSemaphoresCount;
 		submitDesc.ppCmds = allCmds.data();
 		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
-		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.ppWaitSemaphores = pWaitSemaphores;
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
@@ -1383,21 +1494,8 @@ class ExecuteIndirect: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -1568,9 +1666,7 @@ class ExecuteIndirect: public IApp
 			newIndices.insert(newIndices.end(), indices, indices + 12);
 		}
 
-		eastl::vector<uint16_t> temp(outIndices);
 		outIndices = newIndices;
-		newIndices = temp;
 	}
 
 	void Spherify(eastl::vector<Vertex>& out_vertices)
@@ -1670,7 +1766,7 @@ class ExecuteIndirect: public IApp
 
 			for (uint32_t j = 0; j < gNumAsteroidsPerSubset; j++)
 			{
-#if defined(DIRECT3D12)
+#if !defined(ORBIS) && !defined(PROSPERO)
 				subset.mIndirectArgs[j].mDrawID = j;
 #endif
 				subset.mIndirectArgs[j].mDrawArgs.mIndexCount = 60;
@@ -1734,7 +1830,7 @@ class ExecuteIndirect: public IApp
 
 		if (gRenderingMode == RenderingMode_Instanced)
 		{
-			BufferUpdateDesc uniformUpdate = { gAsteroidSubsets[index].pAsteroidInstanceBuffer };
+			BufferUpdateDesc uniformUpdate = { gAsteroidSubsets[index].pAsteroidInstanceBuffer[frameIdx] };
 			beginUpdateResource(&uniformUpdate);
 			UniformBasic* instanceData = (UniformBasic*)uniformUpdate.pMappedData;
 
@@ -1760,7 +1856,12 @@ class ExecuteIndirect: public IApp
 				uniformData.mTextureID = staticAsteroid.textureID;
 			}
 
-			endUpdateResource(&uniformUpdate, NULL);
+			SyncToken token = {};
+			endUpdateResource(&uniformUpdate, &token);
+			waitForToken(&token);
+
+			BufferBarrier bufferBarrier = { gAsteroidSubsets[index].pAsteroidInstanceBuffer[frameIdx], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE };
+			cmdResourceBarrier(cmd, 1, &bufferBarrier, 0, NULL, 0, NULL);
 
 			// Render all asteroids
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActionLoad, NULL, NULL, -1, -1);
@@ -1769,8 +1870,7 @@ class ExecuteIndirect: public IApp
 
             cmdBindPipeline(cmd, pBasicPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetDirectDraw[0]);
-			cmdBindDescriptorSet(cmd, index, pDescriptorSetDirectDraw[1]);
-            
+			cmdBindDescriptorSet(cmd, index * gImageCount + frameIdx, pDescriptorSetDirectDraw[1]);
 			const uint32_t asteroidStride = sizeof(Vertex);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
@@ -1783,19 +1883,23 @@ class ExecuteIndirect: public IApp
 				if (ShouldCullAsteroid(transform.getTranslation(), frustumPlanes))
 					continue;
 
-				cmdBindPushConstants(cmd, pBasicRoot, "rootConstant", &i);
+				uint32_t rcInd = i - startIdx;
+				cmdBindPushConstants(cmd, pBasicRoot, "rootConstant", &rcInd);
 				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
+
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, &loadActionLoad, NULL, NULL, -1, -1);
+			bufferBarrier = { gAsteroidSubsets[index].pAsteroidInstanceBuffer[frameIdx], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST };
+			cmdResourceBarrier(cmd, 1, &bufferBarrier, 0, NULL, 0, NULL);
 		}
 		else if (gRenderingMode == RenderingMode_ExecuteIndirect)
 		{
 			// Setup indirect draw arguments
 			uint32_t numToDraw = 0;
 
-			BufferUpdateDesc indirectBufferUpdate = { subset.pSubsetIndirect };
+			BufferUpdateDesc indirectBufferUpdate = { subset.pSubsetIndirect[frameIdx] };
 			beginUpdateResource(&indirectBufferUpdate);
 			IndirectArguments*        argData = (IndirectArguments*)indirectBufferUpdate.pMappedData;
-			eastl::vector<uint32_t> drawIDs;
 			for (uint32_t i = startIdx; i < endIdx; ++i)
 			{
 				AsteroidStatic  staticAsteroid = gAsteroidSim.asteroidsStatic[i];
@@ -1804,7 +1908,7 @@ class ExecuteIndirect: public IApp
 				if (ShouldCullAsteroid(dynamicAsteroid.transform.getTranslation(), frustumPlanes))
 					continue;
 
-#if defined(DIRECT3D12)
+#if !defined(ORBIS) && !defined(PROSPERO)
 				argData[numToDraw].mDrawID = i;
 #endif
 				argData[numToDraw].mDrawArgs.mInstanceCount = 1;
@@ -1813,14 +1917,12 @@ class ExecuteIndirect: public IApp
 				argData[numToDraw].mDrawArgs.mIndexCount = dynamicAsteroid.indexCount;
 				argData[numToDraw].mDrawArgs.mVertexOffset = staticAsteroid.vertexStart;
 				numToDraw++;
-
-				drawIDs.push_back(i);    // For vulkan and metal
 			}
 
 			// Update indirect arguments
 			endUpdateResource(&indirectBufferUpdate, NULL);
 
-			BufferUpdateDesc dynamicBufferUpdate = { pDynamicAsteroidBuffer, sizeof(AsteroidDynamic) * startIdx };
+			BufferUpdateDesc dynamicBufferUpdate = { pDynamicAsteroidBuffer[frameIdx], sizeof(AsteroidDynamic) * startIdx, sizeof(AsteroidDynamic) * (endIdx - startIdx) };
 			beginUpdateResource(&dynamicBufferUpdate);
 			memcpy(dynamicBufferUpdate.pMappedData, gAsteroidSim.asteroidsDynamic.data() + startIdx, sizeof(AsteroidDynamic) * (endIdx - startIdx));
 			endUpdateResource(&dynamicBufferUpdate, NULL);
@@ -1837,7 +1939,7 @@ class ExecuteIndirect: public IApp
 			const uint32_t asteroidStride = sizeof(Vertex);
             cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
-			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, NULL, 0);
+			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect[frameIdx], 0, NULL, 0);
 		}
 
 		endCmd(cmd);

@@ -11,19 +11,22 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{c9d35bd2-31a7-4923-85f7-ff9bf1a98b75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{6d95b499-db78-4cad-bcc0-af72e506c50f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\21_Playback\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\21_Playback\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\21_Playback\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\21_Playback\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

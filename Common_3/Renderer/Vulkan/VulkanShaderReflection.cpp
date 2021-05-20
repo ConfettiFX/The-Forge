@@ -146,7 +146,8 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	char* pCurrentName = namePool;
 
 	pOutReflection->pEntryPoint = pCurrentName;
-	memcpy(pCurrentName, cc.pEntryPoint, cc.EntryPointSize);
+	ASSERT(pCurrentName);
+	memcpy(pCurrentName, cc.pEntryPoint, cc.EntryPointSize); //-V575
 	pCurrentName += cc.EntryPointSize + 1;
 
 	VertexInput* pVertexInputs = NULL;
@@ -232,7 +233,8 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 			{
 				pVariables[j].offset = variable->offset;
 				pVariables[j].size = variable->size;
-				pVariables[j].parent_index = indexRemap[variable->parent_index];
+				ASSERT(indexRemap);
+				pVariables[j].parent_index = indexRemap[variable->parent_index]; //-V522
 
 				pVariables[j].name = pCurrentName;
 				pVariables[j].name_size = variable->name_size;

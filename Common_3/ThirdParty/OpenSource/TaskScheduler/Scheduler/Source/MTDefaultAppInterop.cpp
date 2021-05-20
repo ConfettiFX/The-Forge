@@ -29,6 +29,8 @@
 #include <xmmintrin.h>
 #endif
 
+#include "../../../../../OS/Interfaces/IMemory.h"
+
 
 
 
@@ -38,7 +40,21 @@ inline void ThrowException()
 {
 	__debugbreak();
 }
+#elif NX64
+#include <nn/os.h>
 
+inline void ThrowException()
+{
+	__builtin_trap();
+}
+
+
+#elif MT_PLATFORM_OSX || ORBIS
+
+inline void ThrowException()
+{
+	__builtin_trap();
+}
 #elif MT_PLATFORM_POSIX
 
 #include<signal.h>
@@ -48,13 +64,6 @@ inline void ThrowException()
 	// force access violation error
 	char* pBadAddr = (char*)0x0;
 	*pBadAddr = 0;
-}
-
-#elif MT_PLATFORM_OSX
-
-inline void ThrowException()
-{
-	__builtin_trap();
 }
 
 #else
@@ -74,10 +83,12 @@ namespace MT
 #if MT_SSE_INTRINSICS_SUPPORTED
 		p = _mm_malloc(size, align);
 #else
-        if (posix_memalign(&p, size, align) != 0)
-        {
-            p = nullptr;
-        }
+		//if ( p = conf_memalign(size, align) )
+  //      //if (posix_memalign(&p, size, align) != 0)
+  //      {
+  //          p = nullptr;
+  //      }
+		p = conf_memalign(align, size);
 #endif
 		MT_ASSERT(p, "Can't allocate memory");
 		return p;
@@ -88,7 +99,7 @@ namespace MT
 #if MT_SSE_INTRINSICS_SUPPORTED
 		_mm_free(p);
 #else
-		free(p);
+		conf_free(p);
 #endif
 	}
 
@@ -125,9 +136,15 @@ namespace MT
 		MT_USED_IN_ASSERT(res);
 		MT_ASSERT(res != 0, "Can't protect memory");
 
-#elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX
+#elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX || MT_PLATFORM_ORBIS
 
+#if ORBIS
+		int pageSize = getpagesize();
+#elif defined(NX64)
+		int pageSize = nn::os::MemoryPageSize;
+#else
 		int pageSize = (int)sysconf(_SC_PAGE_SIZE);
+#endif
 		int pagesCount = (int)(size / pageSize);
 
 		//need additional page for stack tail
@@ -140,16 +157,20 @@ namespace MT
 		pagesCount++;
 
 		desc.stackMemoryBytesCount = pagesCount * pageSize;
-		desc.stackMemory = (char*)mmap(NULL, desc.stackMemoryBytesCount, PROT_READ | PROT_WRITE,  MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+		desc.stackMemory = (char*)mmap(NULL, desc.stackMemoryBytesCount, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		// MAP_STACK yields MAP_FAILED on ORBIS
 
-		MT_ASSERT((void *)desc.stackMemory != (void *)-1, "Can't allocate memory");
+		MT_ASSERT((void *)desc.stackMemory != MAP_FAILED, "Can't allocate memory");
+		
 
 		desc.stackBottom = desc.stackMemory + pageSize;
 		desc.stackTop = desc.stackMemory + desc.stackMemoryBytesCount;
 
+#ifndef NX64
 		int res = mprotect(desc.stackMemory, pageSize, PROT_NONE);
 		MT_USED_IN_ASSERT(res);
 		MT_ASSERT(res == 0, "Can't protect memory");
+#endif
 #else
 		#error Platform is not supported!
 #endif
@@ -165,7 +186,7 @@ namespace MT
 		MT_USED_IN_ASSERT(res);
 		MT_ASSERT(res != 0, "Can't free memory");
 
-#elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX
+#elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX ||MT_PLATFORM_ORBIS
 
 		int res = munmap(desc.stackMemory, desc.stackMemoryBytesCount);
 		MT_USED_IN_ASSERT(res);

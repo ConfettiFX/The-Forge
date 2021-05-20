@@ -70,6 +70,18 @@
     <Filter Include="Dependencies\basisu">
       <UniqueIdentifier>{1b9bb678-230b-4300-af74-61eedf39a98e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Middleware_3\UI\Shaders">
+      <UniqueIdentifier>{d68184cf-25ed-4c72-b99c-32bdb9ac8da6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\Text\Shaders">
+      <UniqueIdentifier>{7313908c-8de3-4ccf-b5e9-a9cf11607ff7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\PaniniProjection">
+      <UniqueIdentifier>{064e6951-bfa4-475b-8f99-a8c266a7d0fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\PaniniProjection\Shaders">
+      <UniqueIdentifier>{8f2cab43-7e6f-456d-902b-4752136a399c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
@@ -334,5 +346,34 @@
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
       <Filter>utils</Filter>
     </Natvis>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.vert.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.frag.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.frag.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.vert.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash.frag.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash2D.vert.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash3D.vert.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

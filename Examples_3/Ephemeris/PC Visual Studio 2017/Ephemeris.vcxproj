@@ -1,20 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugDx|x64">
-      <Configuration>DebugDx</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|x64">
-      <Configuration>DebugVk</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseDx|x64">
-      <Configuration>ReleaseDx</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|x64">
-      <Configuration>ReleaseVk</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -37,127 +29,8 @@
     <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.geom" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\FXAA.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\present.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\Triangular.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\FXAA.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\present.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\Triangular.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurHorizontal.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurVertical.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\castShadow.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\composite.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\compositeOverlay.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyRT.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyTexture.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyWeatherTexture.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\gen3DtexMipmap.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genHighTopFreq3Dtex.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genLowTopFreq3Dtex.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godray.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godrayAdd.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSampling.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSamplingPR.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcess.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcessWithBlur.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\Triangular.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloudWithDepth.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud_2nd.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurHorizontal.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurVertical.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\castShadow.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\composite.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\compositeOverlay.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyRT.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyTexture.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyWeatherTexture.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\gen3DtexMipmap.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genHighTopFreq3Dtex.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genLowTopFreq3Dtex.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godray.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godrayAdd.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSampling.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSamplingPR.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcess.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcessWithBlur.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\Triangular.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.frag" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.vert" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloudWithDepth.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2nd.comp" />
-    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2ndWithDepth.comp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.h" />
-    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\SkyCommon.h" />
-    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\RenderSky.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\SkyCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Aurora.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\B_Spline.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CloudImpostor.h" />
@@ -172,15 +45,64 @@
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Sky.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\SkyCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\SkyDomeParams.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\SpaceObjectsCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\src\SpaceObjects.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\ExampleCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\Perlin.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\TerrainCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\HeightData.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Hemisphere.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Terrain.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Visibility.h" />
-    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.h" />
-    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloudsCommon.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\RenderSky.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\RenderSky.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Space.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Space.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Star.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Star.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Sun.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Sun.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\DepthLinearization.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\FXAA.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\Triangular.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\GenNormalMap.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\GenNormalMap.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\LightingTerrain.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\LightingTerrain.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\RenderTerrain.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\RenderTerrain.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\BlurHorizontal.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\BlurVertical.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Composite.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\CompositeOverlay.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\CopyRT.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\CopyTexture.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Gen3DtexMipmap.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\GenHighTopFreq3Dtex.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\GenLowTopFreq3Dtex.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Godray.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\GodrayAdd.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\HiZdownSampling.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\HiZdownSamplingPR.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\PostProcess.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\PostProcessWithBlur.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Reprojection.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Triangular.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloudWithDepth.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloudWithDepth.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2nd.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2nd.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2ndWithDepth.comp.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2ndWithDepth.frag.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{12E2663B-7168-466C-BBD1-07947D088409}</ProjectGuid>
@@ -190,26 +112,13 @@
     <ProjectName>Ephemeris</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
@@ -220,54 +129,34 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared" />
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug\;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release\;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -279,28 +168,16 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Fonts
+      <Command>:: Copy Fonts
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
-
-:: Copy Shader sources
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
 
 :: Copy Textures
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
@@ -309,8 +186,17 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\res
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
 
+:: Copy Shaders
+xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+
+xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
+
 :: Copy GPUCfg file
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+
+:: Copy Script file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Scripts\*.lua" "$(OutDir)Scripts\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -324,72 +210,13 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
       <Outputs>
       </Outputs>
     </CustomBuildStep>
+    <FSLShader>
+      <Language>VULKAN DIRECT3D12</Language>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Fonts
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
-
-:: Copy Shader sources
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-
-:: Copy Textures
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
-
-:: Copy GPUCfg file
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <CustomBuildStep>
-      <Command>
-      </Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Message>
-      </Message>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>
-      </Outputs>
-    </CustomBuildStep>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
@@ -397,7 +224,7 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -411,28 +238,16 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Fonts
+      <Command>:: Copy Fonts
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
-
-:: Copy Shader sources
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
 
 :: Copy Textures
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
@@ -441,8 +256,17 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\res
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
 
+:: Copy Shaders
+xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+
+xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
+
 :: Copy GPUCfg file
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+
+:: Copy Script file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Scripts\*.lua" "$(OutDir)Scripts\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -456,76 +280,14 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
       <Outputs>
       </Outputs>
     </CustomBuildStep>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Fonts
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
-
-:: Copy Shader sources
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-
-:: Copy Textures
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
-
-:: Copy GPUCfg file
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <CustomBuildStep>
-      <Command>
-      </Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Message>
-      </Message>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Outputs>
-      </Outputs>
-    </CustomBuildStep>
+    <FSLShader>
+      <Language>VULKAN DIRECT3D12</Language>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

@@ -1,4 +1,0 @@
-#define UPDATE_FREQ_NONE 	set=0
-#define UPDATE_FREQ_PER_FRAME	set=1
-#define UPDATE_FREQ_PER_BATCH	set=2
-#define UPDATE_FREQ_PER_DRAW    set=3

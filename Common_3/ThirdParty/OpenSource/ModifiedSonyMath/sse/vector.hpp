@@ -1636,7 +1636,7 @@ inline Vector4Int Load1(bool _x) {
 }
 
 inline Vector4Int LoadPtr(const int* _i) {
-  return _mm_load_si128(reinterpret_cast<const __m128i*>(_i));
+  return _mm_load_si128(reinterpret_cast<const __m128i*>(_i)); //-V1032
 }
 
 inline Vector4Int LoadXPtr(const int* _i) {
@@ -1645,12 +1645,12 @@ inline Vector4Int LoadXPtr(const int* _i) {
 
 inline Vector4Int Load1Ptr(const int* _i) {
   return _mm_shuffle_epi32(
-      _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i)),
+      _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i)), //-V1032
       _MM_SHUFFLE(0, 0, 0, 0));
 }
 
 inline Vector4Int Load2Ptr(const int* _i) {
-  return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i));
+  return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(_i)); //-V1032
 }
 
 inline Vector4Int Load3Ptr(const int* _i) {
@@ -1658,7 +1658,7 @@ inline Vector4Int Load3Ptr(const int* _i) {
 }
 
 inline Vector4Int LoadPtrU(const int* _i) {
-  return _mm_loadu_si128(reinterpret_cast<const __m128i*>(_i));
+  return _mm_loadu_si128(reinterpret_cast<const __m128i*>(_i)); //-V1032
 }
 
 inline Vector4Int LoadXPtrU(const int* _i) {
@@ -1739,7 +1739,7 @@ inline Vector4Int SetI(const Vector4Int _v, int _ith, int _i) {
 }
 
 inline void StorePtr(const Vector4Int _v, int* _i) {
-  _mm_store_si128(reinterpret_cast<__m128i*>(_i), _v);
+  _mm_store_si128(reinterpret_cast<__m128i*>(_i), _v); //-V1032
 }
 
 inline void Store1Ptr(const Vector4Int _v, int* _i) {
@@ -1758,7 +1758,7 @@ inline void Store3Ptr(const Vector4Int _v, int* _i) {
 }
 
 inline void StorePtrU(const Vector4Int _v, int* _i) {
-  _mm_storeu_si128(reinterpret_cast<__m128i*>(_i), _v);
+  _mm_storeu_si128(reinterpret_cast<__m128i*>(_i), _v); //-V1032
 }
 
 inline void Store1PtrU(const Vector4Int _v, int* _i) {

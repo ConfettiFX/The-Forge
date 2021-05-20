@@ -18,6 +18,20 @@
 		5C0F3AF421418C290088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF321418C290088BBB0 /* AppDelegate.m */; };
 		650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */; };
+		9732820125C31B8B0076E8FF /* compositePass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421025BF45F4009F2F2B /* compositePass.comp.fsl */; };
+		9732820325C31B8B0076E8FF /* display.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9420F25BF45F4009F2F2B /* display.frag.fsl */; };
+		9732820425C31B8B0076E8FF /* display.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421325BF45F4009F2F2B /* display.vert.fsl */; };
+		9732820625C31B8B0076E8FF /* gbufferPass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9420C25BF45F4009F2F2B /* gbufferPass.frag.fsl */; };
+		9732820725C31B8B0076E8FF /* gbufferPass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421125BF45F4009F2F2B /* gbufferPass.vert.fsl */; };
+		9732820825C31B8B0076E8FF /* lightingPass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421225BF45F4009F2F2B /* lightingPass.comp.fsl */; };
+		9732820925C31B8B0076E8FF /* raytracedShadowsPass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421525BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl */; };
+		97E9421625BF45F4009F2F2B /* gbufferPass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9420C25BF45F4009F2F2B /* gbufferPass.frag.fsl */; };
+		97E9421725BF45F4009F2F2B /* display.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9420F25BF45F4009F2F2B /* display.frag.fsl */; };
+		97E9421825BF45F4009F2F2B /* compositePass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421025BF45F4009F2F2B /* compositePass.comp.fsl */; };
+		97E9421925BF45F4009F2F2B /* gbufferPass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421125BF45F4009F2F2B /* gbufferPass.vert.fsl */; };
+		97E9421A25BF45F4009F2F2B /* lightingPass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421225BF45F4009F2F2B /* lightingPass.comp.fsl */; };
+		97E9421B25BF45F4009F2F2B /* display.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421325BF45F4009F2F2B /* display.vert.fsl */; };
+		97E9421C25BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9421525BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl */; };
 		B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF521421A6E006F372D /* MetalKit.framework */; };
 		B2087DF821421A6E006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF621421A6E006F372D /* Metal.framework */; };
 		B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EB21420EE900DF2297 /* UIKit.framework */; };
@@ -28,6 +42,35 @@
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		9732820025C31B5F0076E8FF /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.fsl";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
+			);
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+		};
+		97E9420B25BF45BF009F2F2B /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.fsl";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
+			);
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+		};
+/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		5C0F3AE321418BD30088BBB0 /* PBXContainerItemProxy */ = {
@@ -89,7 +132,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		0929533D2582AEEC00820D1B /* display_iOS.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = display_iOS.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/display_iOS.frag.metal; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 09a_HybridRaytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 09a_HybridRaytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -103,6 +145,16 @@
 		5C0F3AF321418C290088BBB0 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		97E9420C25BF45F4009F2F2B /* gbufferPass.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = gbufferPass.frag.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.frag.fsl; sourceTree = "<group>"; };
+		97E9420D25BF45F4009F2F2B /* raytracingCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = raytracingCommon.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/raytracingCommon.h; sourceTree = "<group>"; };
+		97E9420E25BF45F4009F2F2B /* gbuffer_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gbuffer_resources.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbuffer_resources.h; sourceTree = "<group>"; };
+		97E9420F25BF45F4009F2F2B /* display.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.frag.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/display.frag.fsl; sourceTree = "<group>"; };
+		97E9421025BF45F4009F2F2B /* compositePass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = compositePass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/compositePass.comp.fsl; sourceTree = "<group>"; };
+		97E9421125BF45F4009F2F2B /* gbufferPass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = gbufferPass.vert.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.vert.fsl; sourceTree = "<group>"; };
+		97E9421225BF45F4009F2F2B /* lightingPass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lightingPass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/lightingPass.comp.fsl; sourceTree = "<group>"; };
+		97E9421325BF45F4009F2F2B /* display.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.vert.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/display.vert.fsl; sourceTree = "<group>"; };
+		97E9421425BF45F4009F2F2B /* compute_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = compute_resources.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/compute_resources.h; sourceTree = "<group>"; };
+		97E9421525BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = raytracedShadowsPass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/raytracedShadowsPass.comp.fsl; sourceTree = "<group>"; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B20A6318213F8E2800FE4944 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
@@ -111,19 +163,10 @@
 		B21F76EB21420EE900DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = gbufferPass_iOS.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass_iOS.frag.metal; sourceTree = "<group>"; };
 		B28DC7E22522AE9C009B5FEF /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		D01089FC213CC5CB0038EA0F /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D01089FD213CC5CC0038EA0F /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
 		D01089FE213CC5CC0038EA0F /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		D0108A02213E6B510038EA0F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.vert.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
-		D0108A03213E6B510038EA0F /* compositePass.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = compositePass.comp.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/compositePass.comp.metal; sourceTree = "<group>"; };
-		D0108A04213E6B510038EA0F /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
-		D0108A05213E6B520038EA0F /* raytracingCommon.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = raytracingCommon.h; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/raytracingCommon.h; sourceTree = "<group>"; };
-		D0108A06213E6B520038EA0F /* gbufferPass.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = gbufferPass.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass.frag.metal; sourceTree = "<group>"; };
-		D0108A07213E6B520038EA0F /* gbufferPass.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = gbufferPass.vert.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass.vert.metal; sourceTree = "<group>"; };
-		D0108A08213E6B520038EA0F /* raytracedShadowsPass.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; lineEnding = 0; name = raytracedShadowsPass.comp.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/raytracedShadowsPass.comp.metal; sourceTree = "<group>"; };
-		D0108A09213E6B520038EA0F /* lightingPass.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = lightingPass.comp.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/lightingPass.comp.metal; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E9A438A4233DBE53005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
@@ -200,16 +243,16 @@
 		28A5AE2D201F7D82000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
-				0929533D2582AEEC00820D1B /* display_iOS.frag.metal */,
-				D0108A03213E6B510038EA0F /* compositePass.comp.metal */,
-				D0108A04213E6B510038EA0F /* display.frag.metal */,
-				D0108A02213E6B510038EA0F /* display.vert.metal */,
-				B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */,
-				D0108A06213E6B520038EA0F /* gbufferPass.frag.metal */,
-				D0108A07213E6B520038EA0F /* gbufferPass.vert.metal */,
-				D0108A09213E6B520038EA0F /* lightingPass.comp.metal */,
-				D0108A08213E6B520038EA0F /* raytracedShadowsPass.comp.metal */,
-				D0108A05213E6B520038EA0F /* raytracingCommon.h */,
+				97E9421025BF45F4009F2F2B /* compositePass.comp.fsl */,
+				97E9421425BF45F4009F2F2B /* compute_resources.h */,
+				97E9420F25BF45F4009F2F2B /* display.frag.fsl */,
+				97E9421325BF45F4009F2F2B /* display.vert.fsl */,
+				97E9420E25BF45F4009F2F2B /* gbuffer_resources.h */,
+				97E9420C25BF45F4009F2F2B /* gbufferPass.frag.fsl */,
+				97E9421125BF45F4009F2F2B /* gbufferPass.vert.fsl */,
+				97E9421225BF45F4009F2F2B /* lightingPass.comp.fsl */,
+				97E9421525BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl */,
+				97E9420D25BF45F4009F2F2B /* raytracingCommon.h */,
 			);
 			name = Shaders;
 			path = 09a_HybridRaytracing_iOS;
@@ -281,6 +324,7 @@
 				5CC5020324D2E05F003B62CC /* ShellScript */,
 			);
 			buildRules = (
+				9732820025C31B5F0076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
 				5C0F3AEE21418C0B0088BBB0 /* PBXTargetDependency */,
@@ -301,6 +345,7 @@
 				5CC5020224D2DFD4003B62CC /* ShellScript */,
 			);
 			buildRules = (
+				97E9420B25BF45BF009F2F2B /* PBXBuildRule */,
 			);
 			dependencies = (
 				E958921723415BC100B68D6A /* PBXTargetDependency */,
@@ -397,6 +442,13 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9732820125C31B8B0076E8FF /* compositePass.comp.fsl in Resources */,
+				9732820325C31B8B0076E8FF /* display.frag.fsl in Resources */,
+				9732820425C31B8B0076E8FF /* display.vert.fsl in Resources */,
+				9732820625C31B8B0076E8FF /* gbufferPass.frag.fsl in Resources */,
+				9732820725C31B8B0076E8FF /* gbufferPass.vert.fsl in Resources */,
+				9732820825C31B8B0076E8FF /* lightingPass.comp.fsl in Resources */,
+				9732820925C31B8B0076E8FF /* raytracedShadowsPass.comp.fsl in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
 			);
@@ -406,8 +458,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				97E9421B25BF45F4009F2F2B /* display.vert.fsl in Resources */,
+				97E9421C25BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl in Resources */,
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				97E9421825BF45F4009F2F2B /* compositePass.comp.fsl in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				97E9421625BF45F4009F2F2B /* gbufferPass.frag.fsl in Resources */,
+				97E9421A25BF45F4009F2F2B /* lightingPass.comp.fsl in Resources */,
+				97E9421925BF45F4009F2F2B /* gbufferPass.vert.fsl in Resources */,
+				97E9421725BF45F4009F2F2B /* display.frag.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -429,7 +488,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 		5CC5020324D2E05F003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -446,7 +505,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

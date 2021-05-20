@@ -352,7 +352,7 @@ uint32_t Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * fi
 	if (pLogger->mRecordFile && pos < buffer_size)
 	{
 		file = get_filename(file);
-		pos += snprintf(buffer + pos, buffer_size - pos, " %22.*s:%-5u ", FILENAME_NAME_LENGTH_LOG, file, line);
+		pos += snprintf(buffer + pos, buffer_size - pos, " %22.*s:%-5i ", FILENAME_NAME_LENGTH_LOG, file, line);
 	}
 
 	return pos;

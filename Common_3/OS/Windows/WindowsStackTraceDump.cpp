@@ -111,7 +111,14 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 	DWORD requiredSize;
 	EnumProcessModules(process, NULL, 0, &requiredSize);
 	DWORD numModules = requiredSize / sizeof(*pModuleHandles);
+
 	pModuleHandles = (HMODULE*)WindowsStackTrace::Alloc(requiredSize);
+	if (!pModuleHandles)
+	{
+		LOGF(LogLevel::eERROR, "Failed to allocate storage for pModuleHandles during stack trace dump");
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
 	EnumProcessModules(process, pModuleHandles, requiredSize, &requiredSize);
 
 	void* moduleBaseAddress = NULL;
@@ -154,13 +161,19 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 	DWORD imageType = pImageHeader->FileHeader.Machine;
 
 	const DWORD maxLength = 1024;
-	uint8_t symbolMem[sizeof(IMAGEHLP_SYMBOL64) + maxLength];
+	alignas(IMAGEHLP_SYMBOL64) uint8_t symbolMem[sizeof(IMAGEHLP_SYMBOL64) + maxLength];
 	IMAGEHLP_SYMBOL64* pSymbol = (IMAGEHLP_SYMBOL64*)symbolMem;
 
 	DWORD maxFunctionNameLength = 0;
 	int maxNumLines = 100;
 	int numLines = 0;
 	WindowsStackTraceLineInfo* stackTraceLines = (WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
+	if (!stackTraceLines)
+	{
+		LOGF(LogLevel::eERROR, "Failed to allocate WindowsStackTraceLineInfo");
+		return EXCEPTION_EXECUTE_HANDLER;
+	}
+
 	do
 	{
 		if (!StackWalk64(imageType, process, thread, &stackFrame, &context, NULL, &SymFunctionTableAccess64, &SymGetModuleBase64, NULL))

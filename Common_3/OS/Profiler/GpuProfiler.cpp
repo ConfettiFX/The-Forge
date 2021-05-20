@@ -48,8 +48,8 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IMemory.h"
 
-extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
+DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 GpuProfilerContainer* gGpuProfilerContainer = NULL;
 
@@ -140,7 +140,7 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
         if (S->nRunning && pRoot->mMicroProfileToken != PROFILE_INVALID_TOKEN)
         {
             ProfileLeaveGpu(pRoot->mMicroProfileToken, pRoot->mEndGpuTime, pGpuProfiler->pLog);
-        }
+        } //-V1020
     }
 }
 
@@ -153,7 +153,7 @@ double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 		elapsedTime += pGpuTimer->mGpuHistory[i];
 	}
 
-	return ((elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0;
+	return ((double)(elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / pGpuProfiler->mGpuTimeStampFrequency) * 1000.0;
 }
 
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char * pName)
@@ -173,11 +173,14 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
 
 	BufferDesc bufDesc = {};
-#if defined(DIRECT3D11) || defined(METAL)
+#if defined(METAL)
 	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 #else
 	bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
 #endif
+
+
+	
 	bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	bufDesc.mSize = GpuProfiler::MAX_TIMERS * sizeof(uint64_t) * 2;
 	bufDesc.pName = "GPU Profiler ReadBack Buffer";
@@ -266,7 +269,7 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
     // Record gpu time
     node->mIndex = pGpuProfiler->mCurrentTimerCount;
     node->pParent = isRoot ? NULL : pGpuProfiler->pCurrentNode;
-    node->mDepth = isRoot ? 0 : node->pParent->mDepth + 1;
+    node->mDepth = isRoot ? 0 : node->pParent->mDepth + 1; //-V522
     node->mStarted = true;
     node->mDebugMarker = addMarker;
 
@@ -386,11 +389,15 @@ void cmdBeginGpuFrameProfile(Cmd * pCmd, ProfileToken nProfileToken, bool bUseMa
         pGpuProfiler->mReset = false;
     }
 
+	// Use the max timer count so that Vulkan doesn't fail to reset queries dynamically removed and added at runtime.
+	if (pGpuProfiler->mMaxTimerCount < pGpuProfiler->mCurrentTimerCount)
+		pGpuProfiler->mMaxTimerCount = pGpuProfiler->mCurrentTimerCount;
+
     // resolve last frame
     cmdResolveQuery(
         pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 0,
         pGpuProfiler->mCurrentTimerCount * 2);
-    cmdResetQueryPool(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], 0, pGpuProfiler->mCurrentTimerCount * 2);
+    cmdResetQueryPool(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], 0, pGpuProfiler->mMaxTimerCount * 2);
 
     uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;
     pGpuProfiler->mBufferIndex = nextIndex;

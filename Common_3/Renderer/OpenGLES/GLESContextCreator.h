@@ -14,14 +14,16 @@ bool initGLContext(GLConfig config, GLContext* pOutContext, GLContext sharedCont
 
 void removeGLContext(GLContext* pContext);
 
-bool addGLSurface(GLConfig context, GLConfig config, const WindowHandle* pWindowHandle, GLSurface* pOutSurface);
+bool addGLSurface(GLContext context, GLConfig config, const WindowHandle* pWindowHandle, GLSurface* pOutSurface);
 
-void removeGLSurface(GLSurface* pSurface);
+void removeGLSurface(GLContext context, GLConfig config, GLSurface* pSurface);
 
 bool swapGLBuffers(GLSurface surface);
 
 void setGLSwapInterval(bool enableVsync);
 
 void getGLSurfaceSize(unsigned int* width, unsigned int* height);
+
+void* getExtensionsFunction(const char* pExtFunctionName);
 
 #endif

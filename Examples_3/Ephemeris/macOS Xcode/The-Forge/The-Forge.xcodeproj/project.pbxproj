@@ -142,6 +142,9 @@
 		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
 		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		B29ADA4F25DAB32C0036F86B /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B29ADA4E25DAB32C0036F86B /* Renderer.cpp */; };
+		B29ADA5025DAB32C0036F86B /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B29ADA4E25DAB32C0036F86B /* Renderer.cpp */; };
+		B29ADA5725DAB3B60036F86B /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B29ADA5525DAB3B60036F86B /* GPUConfig.h */; };
 		B2E562B323F57C72008479DE /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2E562B123F57C71008479DE /* zip.cpp */; };
 		B2E562B423F57C72008479DE /* zip.h in Headers */ = {isa = PBXBuildFile; fileRef = B2E562B223F57C71008479DE /* zip.h */; };
 		B2E562B523F57C7E008479DE /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2E562B123F57C71008479DE /* zip.cpp */; };
@@ -289,6 +292,8 @@
 		B274041822BC66AD00F7660D /* EntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EntityManager.h; path = ../../../../../Middleware_3/ECS/EntityManager.h; sourceTree = "<group>"; };
 		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
 		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
+		B29ADA4E25DAB32C0036F86B /* Renderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Renderer.cpp; sourceTree = "<group>"; };
+		B29ADA5525DAB3B60036F86B /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../../../../Common_3/OS/Core/GPUConfig.h; sourceTree = SOURCE_ROOT; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
 		B2E562B123F57C71008479DE /* zip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = zip.cpp; path = OpenSource/zip/zip.cpp; sourceTree = "<group>"; };
 		B2E562B223F57C71008479DE /* zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zip.h; path = OpenSource/zip/zip.h; sourceTree = "<group>"; };
@@ -666,6 +671,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				B29ADA4E25DAB32C0036F86B /* Renderer.cpp */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
 				65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */,
 				5C172F49214148830074EE71 /* CommonShaderReflection.cpp */,
@@ -722,6 +728,7 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				B29ADA5525DAB3B60036F86B /* GPUConfig.h */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
 			);
@@ -768,6 +775,7 @@
 				B21B9D5023F561A9003EBFAC /* ProfilerHTML.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
 				E967DE42233B0A520032E4BA /* CocoaFileSystem.h in Headers */,
+				B29ADA5725DAB3B60036F86B /* GPUConfig.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
 				B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */,
 				5C512C652141561E00E7A798 /* imgui_internal.h in Headers */,
@@ -805,6 +813,7 @@
 				5C5582DC21413D180019960B /* Sources */,
 				5C5582DD21413D180019960B /* Frameworks */,
 				5C5582DE21413D180019960B /* Headers */,
+				B296C8CB261486F50011E416 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -875,6 +884,26 @@
 		};
 /* End PBXReferenceProxy section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		B296C8CB261486F50011E416 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "MID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${MID}/UI/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\nfor fsl in \"${MID}/Text/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5C172FC421414C490074EE71 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -898,6 +927,7 @@
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
 				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */,
+				B29ADA5025DAB32C0036F86B /* Renderer.cpp in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
@@ -977,6 +1007,7 @@
 				5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */,
 				654D979F21E922F400113964 /* AnimatedObject.cpp in Sources */,
 				B21B9D4D23F561A9003EBFAC /* ProfilerWidgetsUI.cpp in Sources */,
+				B29ADA4F25DAB32C0036F86B /* Renderer.cpp in Sources */,
 				5CEE004824A9C4BD003A183A /* SystemRun.cpp in Sources */,
 				B21B9D4823F561A9003EBFAC /* GpuProfiler.cpp in Sources */,
 				81856F02229D729000F3A92B /* hashtable.cpp in Sources */,

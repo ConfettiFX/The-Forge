@@ -241,7 +241,7 @@ void FCR::StringVar::setValueFromComponent(void* const pVal)
 
 FCR::StringVar::StringVar()
 {
-
+	value[0] = '\0';
 }
 
 FCR::GeometryVar::GeometryVar()

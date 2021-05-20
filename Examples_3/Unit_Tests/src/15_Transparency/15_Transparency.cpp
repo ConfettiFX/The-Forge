@@ -44,7 +44,6 @@
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/sort.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
@@ -420,8 +419,9 @@ typedef enum TransparencyType
 	TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION,
 	TRANSPARENCY_TYPE_PHENOMENOLOGICAL,
 #if AOIT_ENABLE
-	TRANSPARENCY_TYPE_ADAPTIVE_OIT
+	TRANSPARENCY_TYPE_ADAPTIVE_OIT,
 #endif
+	TRANSPARENCY_TYPE_COUNT
 } TransparencyType;
 
 struct
@@ -431,7 +431,7 @@ struct
 
 /************************************************************************/
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 // Constants
 uint32_t     gFrameIndex = 0;
@@ -459,11 +459,13 @@ ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 
 /// UI
-UIApp         gAppUI;
+UIApp*        pAppUI = NULL;
 GuiComponent* pGuiWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-ProfileToken  gGpuProfileToken;
+ProfileToken  gCurrentGpuProfileTokens[TRANSPARENCY_TYPE_COUNT];
+ProfileToken gCurrentGpuProfileToken;
 HiresTimer    gCpuTimer;
+static uint32_t gSelectedApiIndex = 0;
 
 Renderer* pRenderer = NULL;
 
@@ -631,13 +633,7 @@ uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
-}
-
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
 class Transparency: public IApp
@@ -653,13 +649,106 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+
+		RendererDesc settings = { NULL };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		LoadModels();
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+			return false;
+
+		CreateSamplers();
+		CreateShaders();
+		CreateRootSignatures();
+		CreateResources();
+		CreateUniformBuffers();
+		CreateDescriptorSets();
+
+		CreateScene();
+
+		/************************************************************************/
+		// Add GPU profiler
+		/************************************************************************/
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		for (uint32_t i = 0; i < TRANSPARENCY_TYPE_COUNT; ++i)
+			gCurrentGpuProfileTokens[i] = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gCurrentGpuProfileToken = gCurrentGpuProfileTokens[gTransparencyType];
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+
+		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		GuiController::AddGui();
 	
 		CameraMotionParameters cmp{ 16.0f, 60.0f, 20.0f };
 		vec3                   camPos{ 0, 5, -15 };
 		vec3                   lookAt{ 0, 5, 0 };
 
-		pLightView = createGuiCameraController(camPos, lookAt);
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pLightView = initGuiCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
 		if (!initInputSystem(pWindow))
@@ -674,7 +763,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -683,9 +772,9 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -697,91 +786,70 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
 	void Exit() override
 	{
 		exitInputSystem();
-		destroyCameraController(pCameraController);
-		destroyCameraController(pLightView);
+		exitCameraController(pCameraController);
+		exitCameraController(pLightView);
+
+		GuiController::RemoveGui();
+
+		for (uint32_t i = 0; i < TRANSPARENCY_TYPE_COUNT; ++i)
+			removeGpuProfiler(gCurrentGpuProfileTokens[i]);
+
+		exitProfilerUI();
+
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
+			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
+
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		DestroySamplers();
+		DestroyShaders();
+		DestroyDescriptorSets();
+		DestroyRootSignatures();
+		DestroyResources();
+		DestroyUniformBuffers();
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
+
+		gScene.mParticleSystems.set_capacity(0);
+		gScene.mObjects.set_capacity(0);
+		gOpaqueDrawCalls.set_capacity(0);
+		gTransparentDrawCalls.set_capacity(0);
 	}
 
 	bool Load() override
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			RendererDesc settings = { NULL };
-			initRenderer(GetName(), &settings, &pRenderer);
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			LoadModels();
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-				return false;
-
-			CreateSamplers();
-			CreateShaders();
-			CreateRootSignatures();
-			CreateResources();
-			CreateUniformBuffers();
-			CreateDescriptorSets();
-
-			CreateScene();
-
-			/************************************************************************/
-			// Add GPU profiler
-			/************************************************************************/
-			if (!gAppUI.Init(pRenderer))
-				return false;
-			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-
-			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-			GuiController::AddGui();
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pGuiWindow->AddWidget(testGPUReset);
-		}
-
 		if (!CreateRenderTargetsAndSwapChain())
 			return false;
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		CreatePipelines();
@@ -797,57 +865,13 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		DestroyPipelines();
 
 		DestroyRenderTargetsAndSwapChian();
-
-		if (mSettings.mQuit || mSettings.mResetGraphics) 
-		{
-			GuiController::RemoveGui();
-			exitProfilerUI();
-
-			exitProfiler();
-
-			gAppUI.Exit();
-
-			for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
-				removeResource(gScene.mParticleSystems[i].pParticleBuffer);
-
-			gVirtualJoystick.Exit();
-
-			DestroySamplers();
-			DestroyShaders();
-			DestroyDescriptorSets();
-			DestroyRootSignatures();
-			DestroyResources();
-			DestroyUniformBuffers();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-
-			gScene.mParticleSystems.set_capacity(0);
-			gScene.mObjects.set_capacity(0);
-			gOpaqueDrawCalls.set_capacity(0);
-			gTransparentDrawCalls.set_capacity(0);
-		}
 	}
 
 	void Update(float deltaTime) override
@@ -914,7 +938,7 @@ public:
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
 
 		////////////////////////////////////////////////////////////////
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void UpdateParticleSystems(float deltaTime, mat4 viewMat, vec3 camPos)
@@ -1015,7 +1039,7 @@ public:
 
 		uint         instanceCount = 0;
 		uint         instanceOffset = 0;
-		MeshResource prevMesh = (MeshResource)0xFFFFFFFF;
+		MeshResource prevMesh = (MeshResource)-1;
 		for (uint i = 0; i < objectCount; ++i)
 		{
 			uint          sortedObjectIndex = (objectCount - i - 1) * sizeOfObject;
@@ -1169,7 +1193,7 @@ public:
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		cmdBeginDebugMarker(pCmd, 0, 0, 1, "Draw skybox");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Draw Skybox");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Draw Skybox");
 
 		cmdBindRenderTargets(pCmd, 1, &rt, NULL, &loadActions, NULL, NULL, -1, -1);
 
@@ -1184,7 +1208,7 @@ public:
 		cmdDraw(pCmd, 36, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1212,7 +1236,7 @@ public:
 
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw shadow map");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render shadow map");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render shadow map");
 
 		cmdBindPipeline(pCmd, pPipelineShadow);
 		cmdBindDescriptorSet(pCmd, UNIFORM_SET(gFrameIndex, VIEW_SHADOW, GEOM_OPAQUE), pDescriptorSetUniforms);
@@ -1265,7 +1289,7 @@ public:
 		}
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		barriers[0].pRenderTarget = pRenderTargetShadowVariance[0];
@@ -1296,7 +1320,7 @@ public:
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		// Copy depth buffer to shadow maps
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render stochastic shadow map", true);
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render stochastic shadow map", true);
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Copy shadow map");
 
 		for (uint32_t w = 0; w < 3; ++w)
@@ -1416,14 +1440,14 @@ public:
 		}
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 3, barriers);
 
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 #endif
 	}
 
 	void DrawObjects(Cmd* pCmd, eastl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature)
 	{
-		static MeshResource boundMesh = (MeshResource)0xFFFFFFFF;
+		static MeshResource boundMesh = (MeshResource)-1;
 		static uint         vertexCount = 0;
 		static uint         indexCount = 0;
 
@@ -1477,7 +1501,7 @@ public:
 
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw opaque geometry");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render opaque geometry");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render opaque geometry");
 
 		cmdBindPipeline(pCmd, pPipelineForward);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1516,7 +1540,7 @@ public:
 		}
 #endif
 
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1533,7 +1557,7 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry");
 
 		cmdBindPipeline(pCmd, pPipelineTransparentForward);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1541,7 +1565,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1574,7 +1598,7 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (WBOIT)");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (WBOIT)");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (WBOIT)");
 
 		cmdBindPipeline(pCmd, pShadePipeline);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1582,7 +1606,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite WBOIT buffers
@@ -1604,13 +1628,13 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite WBOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite WBOIT buffers");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite WBOIT buffers");
 
 		cmdBindPipeline(pCmd, pCompositePipeline);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetWBOITComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1640,13 +1664,13 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "PT Copy depth buffer");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "PT Copy depth buffer");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "PT Copy depth buffer");
 
 		cmdBindPipeline(pCmd, pPipelinePTCopyDepth);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTCopyDepth);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		textureBarriers[0].pRenderTarget = pRenderTargetDepth;
@@ -1681,7 +1705,7 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (PT)");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (PT)");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (PT)");
 
 		cmdBindPipeline(pCmd, pPipelinePTShade);
 		cmdBindDescriptorSet(pCmd, SHADE_PT, pDescriptorSetShade);
@@ -1689,7 +1713,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite PT buffers
@@ -1711,13 +1735,13 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite PT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite PT buffers");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite PT buffers");
 
 		cmdBindPipeline(pCmd, pPipelinePTComposite);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1744,13 +1768,13 @@ public:
 
 		// Draw fullscreen quad.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Clear AOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Clear AOIT buffers");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Clear AOIT buffers");
 
 		cmdBindPipeline(pCmd, pPipelineAOITClear);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITClear);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1765,7 +1789,7 @@ public:
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (AOIT)");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Render transparent geometry (AOIT)");
 
 		cmdBindPipeline(pCmd, pPipelineAOITShade);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITShade[0]);
@@ -1773,7 +1797,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite AOIT buffers
@@ -1794,13 +1818,13 @@ public:
 
 		// Draw fullscreen quad.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite AOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite AOIT buffers");
+		cmdBeginGpuTimestampQuery(pCmd, gCurrentGpuProfileToken, "Composite AOIT buffers");
 
 		cmdBindPipeline(pCmd, pPipelineAOITComposite);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(pCmd, gCurrentGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 #endif
@@ -1882,7 +1906,10 @@ public:
 
 		pRenderTargetScreen = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		beginCmd(pCmd);
-		cmdBeginGpuFrameProfile(pCmd, gGpuProfileToken);
+
+		gCurrentGpuProfileToken = gCurrentGpuProfileTokens[gTransparencyType];
+
+		cmdBeginGpuFrameProfile(pCmd, gCurrentGpuProfileToken);
 		RenderTargetBarrier barriers1[] = {
 			{ pRenderTargetScreen, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
@@ -1918,14 +1945,15 @@ public:
 
 
         float2 txtSize = cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(pCmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken);
+		cmdDrawGpuProfile(pCmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken);
 
-		gVirtualJoystick.Draw(pCmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, pCmd, &color);
 
 		cmdDrawProfilerUI();
 
-		gAppUI.Gui(pGuiWindow);
-		gAppUI.Draw(pCmd);
+		appUIGui(pAppUI, pGuiWindow);
+		drawAppUI(pAppUI, pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdEndDebugMarker(pCmd);
@@ -1934,7 +1962,7 @@ public:
 		barriers1[0] = { pRenderTargetScreen, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, barriers1);
 
-		cmdEndGpuFrameProfile(pCmd, gGpuProfileToken);
+		cmdEndGpuFrameProfile(pCmd, gCurrentGpuProfileToken);
 		endCmd(pCmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -1952,21 +1980,8 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -2138,7 +2153,7 @@ public:
 
 		// PT shade shader
 		ShaderMacro ptShaderMacros[numShaderMacros + 1];
-		for (int i = 0; i < numShaderMacros; ++i)
+		for (uint32_t i = 0; i < numShaderMacros; ++i)
 			ptShaderMacros[i] = shaderMacros[i];
 		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
@@ -2909,7 +2924,7 @@ public:
 		materialUBDesc.mDesc.mSize = sizeof(MaterialUniformBlock);
 		materialUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		materialUBDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			materialUBDesc.ppBuffer = &pBufferMaterials[i];
 			addResource(&materialUBDesc, NULL);
@@ -2921,12 +2936,12 @@ public:
 		ubDesc.mDesc.mSize = sizeof(ObjectInfoUniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferOpaqueObjectTransforms[i];
 			addResource(&ubDesc, NULL);
 		}
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferTransparentObjectTransforms[i];
 			addResource(&ubDesc, NULL);
@@ -2938,7 +2953,7 @@ public:
 		skyboxDesc.mDesc.mSize = sizeof(SkyboxUniformBlock);
 		skyboxDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			skyboxDesc.ppBuffer = &pBufferSkyboxUniform[i];
 			addResource(&skyboxDesc, NULL);
@@ -2950,7 +2965,7 @@ public:
 		camUniDesc.mDesc.mSize = sizeof(CameraUniform);
 		camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		camUniDesc.pData = &gCameraUniformData;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			camUniDesc.ppBuffer = &pBufferCameraUniform[i];
 			addResource(&camUniDesc, NULL);
@@ -2962,7 +2977,7 @@ public:
 		camLightUniDesc.mDesc.mSize = sizeof(CameraUniform);
 		camLightUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		camLightUniDesc.pData = &gCameraLightUniformData;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			camLightUniDesc.ppBuffer = &pBufferCameraLightUniform[i];
 			addResource(&camLightUniDesc, NULL);
@@ -2974,7 +2989,7 @@ public:
 		lightUniformDesc.mDesc.mSize = sizeof(LightUniformBlock);
 		lightUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lightUniformDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			lightUniformDesc.ppBuffer = &pBufferLightUniform[i];
 			addResource(&lightUniformDesc, NULL);
@@ -2985,7 +3000,7 @@ public:
 		wboitSettingsDesc.mDesc.mSize = max(sizeof(WBOITSettings), sizeof(WBOITVolitionSettings));
 		wboitSettingsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		wboitSettingsDesc.pData = NULL;
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			wboitSettingsDesc.ppBuffer = &pBufferWBOITSettings[i];
 			addResource(&wboitSettingsDesc, NULL);
@@ -2994,7 +3009,7 @@ public:
 
 	void DestroyUniformBuffers()
 	{
-		for (int i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pBufferMaterials[i]);
 			removeResource(pBufferOpaqueObjectTransforms[i]);
@@ -3228,9 +3243,6 @@ public:
 		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
 		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
 
-		RasterizerStateDesc rasterStateBackDesc = {};
-		rasterStateBackDesc.mCullMode = CULL_MODE_BACK;
-
 		RasterizerStateDesc rasterStateFrontDesc = {};
 		rasterStateFrontDesc.mCullMode = CULL_MODE_FRONT;
 
@@ -3326,17 +3338,6 @@ public:
 		blendStatePTShadeDesc.mRenderTargetMask |= BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
 		blendStatePTShadeDesc.mIndependentBlend = true;
 
-		BlendStateDesc blendStatePTMinDesc = {};
-		blendStatePTMinDesc.mSrcFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mDstFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mBlendModes[0] = BM_MIN;
-		blendStatePTMinDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mBlendAlphaModes[0] = BM_MIN;
-		blendStatePTMinDesc.mMasks[0] = RED | GREEN;
-		blendStatePTMinDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1 | BLEND_STATE_TARGET_2;
-		blendStatePTMinDesc.mIndependentBlend = false;
-
 #if AOIT_ENABLE
 		BlendStateDesc blendStateAOITShadeaDesc = {};
 		blendStateAOITShadeaDesc.mSrcFactors[0] = BC_ONE;
@@ -3408,6 +3409,17 @@ public:
 		addPipeline(pRenderer, &desc, &pPipelinePTGaussianBlur);
 		TinyImageFormat stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mFormat, pRenderTargetPTShadowVariance[1]->mFormat,
             pRenderTargetPTShadowVariance[2]->mFormat };
+			
+		BlendStateDesc blendStatePTMinDesc = {};
+		blendStatePTMinDesc.mSrcFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mDstFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mBlendModes[0] = BM_MIN;
+		blendStatePTMinDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mBlendAlphaModes[0] = BM_MIN;
+		blendStatePTMinDesc.mMasks[0] = RED | GREEN;
+		blendStatePTMinDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1 | BLEND_STATE_TARGET_2;
+		blendStatePTMinDesc.mIndependentBlend = false;
 
 		// Stochastic shadow pipeline
 		desc.mGraphicsDesc = {};
@@ -3726,18 +3738,18 @@ void GuiController::UpdateDynamicUI()
 	if (gTransparencyType != GuiController::currentTransparencyType)
 	{
 		if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			GuiController::alphaBlendDynamicWidgets.HideWidgets(pGuiWindow);
+			hideDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			GuiController::weightedBlendedOitDynamicWidgets.HideWidgets(pGuiWindow);
+			hideDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			GuiController::weightedBlendedOitVolitionDynamicWidgets.HideWidgets(pGuiWindow);
+			hideDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 
 		if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			GuiController::alphaBlendDynamicWidgets.ShowWidgets(pGuiWindow);
+			showDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			GuiController::weightedBlendedOitDynamicWidgets.ShowWidgets(pGuiWindow);
+			showDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowWidgets(pGuiWindow);
+			showDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 
 		GuiController::currentTransparencyType = (TransparencyType)gTransparencyType;
 	}
@@ -3773,103 +3785,156 @@ void GuiController::AddGui()
 		dropDownCount = 5;
 #endif
 
-	DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-	ButtonWidget bRunScript("Run");
-	bRunScript.pOnEdited = RunScript;
-	pGuiWindow->AddWidget(ddTestScripts);
-	pGuiWindow->AddWidget(bRunScript);
+	DropdownWidget ddTestScripts;
+	ddTestScripts.pData = &gCurrentScriptIndex;
+	for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+	{
+		ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+		ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+	}
+	addWidgetLua(addGuiWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
-	pGuiWindow->AddWidget(
-		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));
+	ButtonWidget bRunScript;
+	IWidget* pRunScript = addGuiWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+	pRunScript->pOnEdited = RunScript;
+	addWidgetLua(pRunScript);
+
+	DropdownWidget ddTransparency;
+	ddTransparency.pData = &gTransparencyType;
+	for (uint32_t i = 0; i < dropDownCount; ++i)
+	{
+		ddTransparency.mNames.push_back((char*)transparencyTypeNames[i]);
+		ddTransparency.mValues.push_back(transparencyTypeValues[i]);
+	}
+	addWidgetLua(addGuiWidget(pGuiWindow, "Transparency Type", &ddTransparency, WIDGET_TYPE_DROPDOWN));
 
 	// TRANSPARENCY_TYPE_ALPHA_BLEND Widgets
 	{
-		GuiController::alphaBlendDynamicWidgets.AddWidget(
-			LabelWidget("Blend Settings"));
+		LabelWidget blendLabel;
+		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
-		GuiController::alphaBlendDynamicWidgets.AddWidget(
-			CheckboxWidget("Sort Objects", &gAlphaBlendSettings.mSortObjects));
+		CheckboxWidget checkbox;
+		checkbox.pData = &gAlphaBlendSettings.mSortObjects;
+		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Sort Objects", &checkbox, WIDGET_TYPE_CHECKBOX));
 
-		GuiController::alphaBlendDynamicWidgets.AddWidget(
-			CheckboxWidget("Sort Particles", &gAlphaBlendSettings.mSortParticles));
+		checkbox.pData = &gAlphaBlendSettings.mSortParticles;
+		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Sort Particles", &checkbox, WIDGET_TYPE_CHECKBOX));
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT Widgets
 	{
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			LabelWidget("Blend Settings"));
+		LabelWidget blendLabel;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Color Resistance", &gWBOITSettingsData.mColorResistance, 1.0f, 25.0f));
+		SliderFloatWidget floatSlider;
+		floatSlider.pData = &gWBOITSettingsData.mColorResistance;
+		floatSlider.mMin = 1.0f;
+		floatSlider.mMax = 25.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Color Resistance", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Range Adjustment", &gWBOITSettingsData.mRangeAdjustment, 0.0f, 1.0f));
+		floatSlider.pData = &gWBOITSettingsData.mRangeAdjustment;
+		floatSlider.mMin = 0.0f;
+		floatSlider.mMax = 1.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Range Adjustment", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Depth Range", &gWBOITSettingsData.mDepthRange, 0.1f, 500.0f));
+		floatSlider.pData = &gWBOITSettingsData.mDepthRange;
+		floatSlider.mMin = 0.1f;
+		floatSlider.mMax = 500.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Depth Range", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Ordering Strength", &gWBOITSettingsData.mOrderingStrength, 0.1f, 25.0f));
+		floatSlider.pData = &gWBOITSettingsData.mOrderingStrength;
+		floatSlider.mMin = 0.1f;
+		floatSlider.mMax = 25.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Ordering Strength", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Underflow Limit", &gWBOITSettingsData.mUnderflowLimit, 1e-4f, 1e-1f, 1e-4f));
+		floatSlider.pData = &gWBOITSettingsData.mUnderflowLimit;
+		floatSlider.mMin = 1e-4f;
+		floatSlider.mMax = 1e-1f;
+		floatSlider.mStep = 1e-4f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Underflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(
-			SliderFloatWidget("Overflow Limit", &gWBOITSettingsData.mOverflowLimit, 3e1f, 3e4f));
+		floatSlider.pData = &gWBOITSettingsData.mOverflowLimit;
+		floatSlider.mMin = 3e1f;
+		floatSlider.mMax = 3e4f;
+		floatSlider.mStep = 0.01f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Overflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		ButtonWidget resetButton("Reset");
-		resetButton.pOnDeactivatedAfterEdit = ([]() { gWBOITSettingsData = WBOITSettings(); });
-		GuiController::weightedBlendedOitDynamicWidgets.AddWidget(resetButton);
+		ButtonWidget resetButton;
+		IWidget* pResetButton = addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
+		pResetButton->pOnDeactivatedAfterEdit = ([]() { gWBOITSettingsData = WBOITSettings(); });
+		addWidgetLua(pResetButton);
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION Widgets
 	{
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			LabelWidget("Blend Settings"));
+		LabelWidget blendLabel;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Opacity Sensitivity", &gWBOITVolitionSettingsData.mOpacitySensitivity, 1.0f, 25.0f));
+		SliderFloatWidget floatSlider;
+		floatSlider.pData = &gWBOITVolitionSettingsData.mOpacitySensitivity;
+		floatSlider.mMin = 1.0f;
+		floatSlider.mMax = 25.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Opacity Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Weight Bias", &gWBOITVolitionSettingsData.mWeightBias, 0.0f, 25.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mWeightBias;
+		floatSlider.mMin = 0.0f;
+		floatSlider.mMax = 25.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Weight Bias", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Precision Scalar", &gWBOITVolitionSettingsData.mPrecisionScalar, 100.0f, 100000.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mPrecisionScalar;
+		floatSlider.mMin = 100.0f;
+		floatSlider.mMax = 100000.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Precision Scalar", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Maximum Weight", &gWBOITVolitionSettingsData.mMaximumWeight, 0.1f, 100.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mMaximumWeight;
+		floatSlider.mMin = 0.1f;
+		floatSlider.mMax = 100.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Weight", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Maximum Color Value", &gWBOITVolitionSettingsData.mMaximumColorValue, 100.0f, 10000.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mMaximumColorValue;
+		floatSlider.mMin = 100.0f;
+		floatSlider.mMax = 10000.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Color Value", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Additive Sensitivity", &gWBOITVolitionSettingsData.mAdditiveSensitivity, 0.1f, 25.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mAdditiveSensitivity;
+		floatSlider.mMin = 0.1f;
+		floatSlider.mMax = 25.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Additive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(
-			SliderFloatWidget("Emissive Sensitivity", &gWBOITVolitionSettingsData.mEmissiveSensitivity, 0.01f, 1.0f));
+		floatSlider.pData = &gWBOITVolitionSettingsData.mEmissiveSensitivity;
+		floatSlider.mMin = 0.01f;
+		floatSlider.mMax = 1.0f;
+		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Emissive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
-		ButtonWidget resetButton("Reset");
-		resetButton.pOnDeactivatedAfterEdit = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.AddWidget(resetButton);
+		ButtonWidget resetButton;
+		IWidget* pResetButton = addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
+		pResetButton->pOnDeactivatedAfterEdit = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
+		addWidgetLua(pResetButton);
 	}
 
-	pGuiWindow->AddWidget(LabelWidget("Light Settings"));
+	LabelWidget settingsLabel;
+	addWidgetLua(addGuiWidget(pGuiWindow, "Light Settings", &settingsLabel, WIDGET_TYPE_LABEL));
 
 	const float3 lightPosBound(10.0f);
-	pGuiWindow->AddWidget(SliderFloat3Widget("Light Position", &gLightCpuSettings.mLightPosition, -lightPosBound, lightPosBound, float3(0.1f)));
+	SliderFloat3Widget lightPosSlider;
+	lightPosSlider.pData = &gLightCpuSettings.mLightPosition;
+	lightPosSlider.mMin = -lightPosBound;
+	lightPosSlider.mMax = lightPosBound;
+	lightPosSlider.mStep = float3(0.1f);
+	addWidgetLua(addGuiWidget(pGuiWindow, "Light Position", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3));
 
 	if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_ALPHA_BLEND;
-		GuiController::alphaBlendDynamicWidgets.ShowWidgets(pGuiWindow);
+		showDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT;
-		GuiController::weightedBlendedOitDynamicWidgets.ShowWidgets(pGuiWindow);
+		showDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION;
-		GuiController::weightedBlendedOitVolitionDynamicWidgets.ShowWidgets(pGuiWindow);
+		showDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
 	{
@@ -3885,9 +3950,9 @@ void GuiController::AddGui()
 
 void GuiController::RemoveGui()
 {
-	alphaBlendDynamicWidgets.Destroy();
-	weightedBlendedOitDynamicWidgets.Destroy();
-	weightedBlendedOitVolitionDynamicWidgets.Destroy();
+	removeDynamicUI(&alphaBlendDynamicWidgets);
+	removeDynamicUI(&weightedBlendedOitDynamicWidgets);
+	removeDynamicUI(&weightedBlendedOitVolitionDynamicWidgets);
 }
 
 DEFINE_APPLICATION_MAIN(Transparency)

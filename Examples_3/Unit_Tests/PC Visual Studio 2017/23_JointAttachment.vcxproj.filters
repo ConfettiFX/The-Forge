@@ -8,11 +8,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{aa69303b-b37b-4e79-af44-48cce271a694}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{75436a36-aa46-43ba-8715-ef1ff46a7705}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{1aa4d728-77a0-4eba-ac83-a8802c2b65c7}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{997e18c8-c3c2-4b73-8e01-d51060a54102}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -21,29 +18,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\23_JointAttachment\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\D3D12\plane.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\D3D12\plane.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\23_JointAttachment\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\23_JointAttachment\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\23_JointAttachment\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\23_JointAttachment\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\23_JointAttachment\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

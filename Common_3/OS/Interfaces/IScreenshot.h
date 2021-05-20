@@ -25,15 +25,9 @@
 #pragma once
 #include "../../Renderer/IRenderer.h"
 
-// Flip R and B channel by default or not.
-#if defined(_WINDOWS) || defined(ORBIS) || defined(XBOX) || defined(METAL)
-#define FLIP_REDBLUE_CHANNEL true
-#else
-#define FLIP_REDBLUE_CHANNEL false
-#endif
-
 void initScreenshotInterface(Renderer* pRenderer, Queue* pQueue);
 // Use one renderpass prior to calling captureScreenshot() to prepare pSwapChain for copy.
 bool prepareScreenshot(SwapChain* pSwapChain);
-void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool flipRedBlueChannel = FLIP_REDBLUE_CHANNEL);
+void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName);
+void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool noAlpha);
 void exitScreenshotInterface();

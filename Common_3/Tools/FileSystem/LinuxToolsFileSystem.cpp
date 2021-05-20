@@ -95,7 +95,7 @@ static void fswThreadFunc(void* data)
 			break;
 		}
 
-		size_t offset = 0;
+		ssize_t offset = 0;
 		while (offset < length)
 		{
 			struct inotify_event* event = (struct inotify_event*)(buffer + offset);
@@ -238,4 +238,70 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 	} while (entry != NULL);
 
 	closedir(directory);
+}
+
+bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	return !remove(filePath);
+}
+
+bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	char newfilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, newFileName, newfilePath);
+
+	return !rename(filePath, newfilePath);
+}
+
+bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir, const char* destFileName)
+{
+	const char* sourceResourcePath = fsGetResourceDirectory(sourceResourceDir);
+	const char* destResourcePath = fsGetResourceDirectory(destResourceDir);
+
+	char sourceFilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(sourceResourcePath, sourceFileName, sourceFilePath);
+
+	char destFilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(destResourcePath, destFileName, destFilePath);
+
+	int input, output;
+	if ((input = open(sourceFilePath, O_RDONLY)) == -1)
+	{
+		return -1;
+	}
+	if ((output = creat(destFilePath, 0660)) == -1)
+	{
+		close(input);
+		return -1;
+	}
+
+	off_t bytesCopied = 0;
+	struct stat fileinfo = { 0 };
+	fstat(input, &fileinfo);
+	int result = sendfile(output, input, &bytesCopied, fileinfo.st_size);
+	close(input);
+	close(output);
+	return result;
+}
+
+bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	struct stat s = {};
+	int res = stat(filePath, &s);
+	if (res != 0)
+		return false;
+	return true;
 }

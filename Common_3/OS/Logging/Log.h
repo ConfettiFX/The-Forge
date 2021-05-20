@@ -106,7 +106,6 @@ public:
 
 	static void Write(uint32_t level, const char * filename, int line_number, const char* message, ...);
 	static void WriteRaw(uint32_t level, bool error, const char* message, ...);
-
 private:
 	static void AddInitialLogFile(const char* appName);
 	static uint32_t WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line);

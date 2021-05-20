@@ -29,6 +29,8 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 
+#include <process.h>  // _beginthreadex
+
 bool Mutex::Init(uint32_t spinCount /* = kDefaultSpinCount */, const char* name /* = NULL */)
 {
 	return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mHandle, (DWORD)spinCount);
@@ -103,7 +105,8 @@ char * thread_name()
 
 void Thread::GetCurrentThreadName(char * buffer, int size)
 {
-	if (const char* name = thread_name())
+	const char* name = thread_name();
+	if (name[0])
 		snprintf(buffer, (size_t)size, "%s", name);
 	else
 		buffer[0] = 0;
@@ -119,7 +122,7 @@ bool Thread::IsMainThread()
 	return GetCurrentThreadID() == mainThreadID;
 }
 
-DWORD WINAPI ThreadFunctionStatic(void* data)
+unsigned WINAPI ThreadFunctionStatic(void* data)
 {
 	ThreadDesc* pDesc = (ThreadDesc*)data;
 	pDesc->pFunc(pDesc->pData);
@@ -141,7 +144,7 @@ unsigned int Thread::GetNumCPUCores(void)
 
 ThreadHandle create_thread(ThreadDesc* pDesc)
 {
-	ThreadHandle handle = CreateThread(0, 0, ThreadFunctionStatic, pDesc, 0, 0);
+	ThreadHandle handle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDesc, 0, 0);
 	ASSERT(handle != NULL);
 	return handle;
 }

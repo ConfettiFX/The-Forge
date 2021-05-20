@@ -7,11 +7,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{4c26721a-0e41-44aa-bf82-504ae9916ff5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{4ea6e913-8c39-4c8d-ab90-af48104ba225}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{73c7697d-0e9d-412c-8028-db7d1dc84b6e}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{9a3ff5fd-b30b-4b88-9b10-1cd66a09031e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,29 +17,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\magnify.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\magnify.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\wave.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\D3D12\wave.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

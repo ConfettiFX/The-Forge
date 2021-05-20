@@ -584,9 +584,9 @@ namespace gainput
 
 		inline void Free(size_t size)
 		{
-			if (offset >= size)
+			if (offset < size)
 			{
-				DLOGF(LogLevel::eERROR, "offset >= size");
+				DLOGF(LogLevel::eERROR, "offset < size");
 				return;
 			}
 			offset -= size;
@@ -1342,6 +1342,7 @@ namespace gainput
 							if (result != 0)
 							{
 								DLOGF(LogLevel::eERROR, "result!=0");
+								allocator.Free(size);
 								return;
 							}
 							result = GetRawInputDeviceInfo(raw.header.hDevice, RIDI_DEVICENAME, (void*)gamepadInfo.name, &bufferSize);
@@ -1355,6 +1356,8 @@ namespace gainput
 					}
 				}
 			}
+
+			allocator.Free(size);
 		}
 
 		void OnDeviceRemove(int index, void* handle)

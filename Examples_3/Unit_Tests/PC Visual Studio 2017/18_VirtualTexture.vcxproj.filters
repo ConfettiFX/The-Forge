@@ -7,11 +7,8 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{93ebb03e-ce7a-4fbb-bb15-4aaf5fcf7b74}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{2117641d-8a97-489d-963c-592af2a86562}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{a8553f5d-3f0c-41ef-9af7-e7f32db2250f}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{4c8f4ada-9561-4801-86b7-273fc8ccb8f5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,53 +17,32 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\fillPage.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\debug.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\debug.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\Vulkan\sun.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\debug.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\debug.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\fillPage.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\18_VirtualTexture\Shaders\D3D12\sun.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\debug.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\fillPage.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\sun.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\clearPageCounts.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\debug.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

@@ -31,9 +31,9 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 
 typedef struct ResourceDirectoryInfo
 {
-	IFileSystem* pIO;
+	IFileSystem* pIO = NULL;
 	char         mPath[FS_MAX_PATH] = {};
-	bool         mBundled;
+	bool         mBundled = false;
 } ResourceDirectoryInfo;
 
 static ResourceDirectoryInfo gResourceDirectories[RD_COUNT] = {};
@@ -369,10 +369,6 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 {
 	const size_t componentLength = strlen(pathComponent);
 	const size_t baseLength = strlen(basePath);
-	const size_t maxPathLength = baseLength + componentLength + 1;    // + 1 due to a possible added directory slash.
-
-	LOGF_IF(LogLevel::eERROR, maxPathLength >= FS_MAX_PATH, "Component path length '%d' greater than FS_MAX_PATH", maxPathLength);
-	ASSERT(maxPathLength < FS_MAX_PATH);
 
 	strncpy(output, basePath, baseLength);
 	size_t newPathLength = baseLength;
@@ -384,13 +380,14 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 	}
 
 	const char directorySeparator = fsGetDirectorySeparator();
+	const char directorySeparatorStr[2] = { directorySeparator, 0 };
 	const char forwardSlash = '/';    // Forward slash is accepted on all platforms as a path component.
 
 
 	if (newPathLength != 0 && output[newPathLength - 1] != directorySeparator)
 	{
 		// Append a trailing slash to the directory.
-		strncat(output, &directorySeparator, 1);
+		strncat(output, directorySeparatorStr, 1);
 		newPathLength += 1;
 		output[newPathLength] = '\0';
 	}
@@ -400,11 +397,14 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 
 	for (size_t i = 0; i < componentLength; i += 1)
 	{
+		LOGF_IF(LogLevel::eERROR, newPathLength >= FS_MAX_PATH, "Appended path length '%d' greater than FS_MAX_PATH, base: \"%s\", component: \"%s\"", newPathLength, basePath, pathComponent);
+		ASSERT(newPathLength < FS_MAX_PATH);
+
 		if ((pathComponent[i] == directorySeparator || pathComponent[i] == forwardSlash) &&
 			newPathLength != 0 && output[newPathLength - 1] != directorySeparator)
 		{
 			// We've encountered a new directory.
-			strncat(output, &directorySeparator, 1);
+			strncat(output, directorySeparatorStr, 1);
 			newPathLength += 1;
 			output[newPathLength] = '\0';
 			continue;
@@ -498,7 +498,6 @@ void fsAppendPathExtension(const char* basePath, const char* extension, char* ou
 
 	strncat(output, ".", 1);
 	strncat(output, extension, extensionLength);
-	output[strlen(output)] = '\0';
 }
 
 void fsReplacePathExtension(const char* path, const char* newExtension, char* output)
@@ -632,7 +631,7 @@ const char* fsGetResourceDirectory(ResourceDirectory resourceDir)
 {
 	const ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
-	if (!dir->mBundled || !dir->pIO)
+	if (!dir->pIO)
 	{
 		LOGF_IF(LogLevel::eERROR, !strlen(dir->mPath), "Trying to get an unset resource directory '%d', make sure the resourceDirectory is set on start of the application", resourceDir);
 		ASSERT(strlen(dir->mPath) != 0);
@@ -661,7 +660,7 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
 	strncpy(dir->mPath, resourcePath, FS_MAX_PATH);
 	dir->pIO = pIO;
 
-	if (!dir->mBundled)
+	if (!dir->mBundled && strlen(dir->mPath) != 0)
 	{
 		if (!fsCreateDirectory(resourceDir))
 		{

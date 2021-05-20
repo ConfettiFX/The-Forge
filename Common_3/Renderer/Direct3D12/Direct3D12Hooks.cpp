@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#ifdef DIRECT3D12
+
 #include "../IRenderer.h"
 #include "Direct3D12Hooks.h"
 
@@ -44,9 +46,9 @@ void hook_enable_debug_layer(Renderer* pRenderer)
 {
 	UNREF_PARAM(pRenderer);
 #if defined(ENABLE_GRAPHICS_DEBUG)
-	pRenderer->pDXDebug->EnableDebugLayer();
+	pRenderer->mD3D12.pDXDebug->EnableDebugLayer();
 	ID3D12Debug1* pDebug1 = NULL;
-	if (SUCCEEDED(pRenderer->pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
+	if (SUCCEEDED(pRenderer->mD3D12.pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
 	{
 		pDebug1->SetEnableGPUBasedValidation(pRenderer->mEnableGpuBasedValidation);
 		pDebug1->Release();
@@ -66,15 +68,15 @@ HRESULT hook_create_command_queue(ID3D12Device* pDevice, const D3D12_COMMAND_QUE
 
 HRESULT hook_create_copy_cmd(ID3D12Device* pDevice, uint32_t nodeMask, ID3D12CommandAllocator* pAlloc, Cmd* pCmd)
 {
-	return pDevice->CreateCommandList(nodeMask, D3D12_COMMAND_LIST_TYPE_COPY, pAlloc, NULL, IID_PPV_ARGS(&pCmd->pDxCmdList));
+	return pDevice->CreateCommandList(nodeMask, D3D12_COMMAND_LIST_TYPE_COPY, pAlloc, NULL, IID_PPV_ARGS(&pCmd->mD3D12.pDxCmdList));
 }
 
 void hook_remove_copy_cmd(Cmd* pCmd)
 {
-	if (pCmd->pDxCmdList)
+	if (pCmd->mD3D12.pDxCmdList)
 	{
-		pCmd->pDxCmdList->Release();
-		pCmd->pDxCmdList = NULL;
+		pCmd->mD3D12.pDxCmdList->Release();
+		pCmd->mD3D12.pDxCmdList = NULL;
 	}
 }
 
@@ -106,7 +108,7 @@ TinyImageFormat hook_get_recommended_swapchain_format(bool)
 
 uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain)
 {
-	return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex();
+	return pSwapChain->mD3D12.pDxSwapChain->GetCurrentBackBufferIndex();
 }
 
 HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*)
@@ -116,17 +118,17 @@ HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*)
 
 HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
 {
-	return pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
+	return pSwapChain->mD3D12.pDxSwapChain->Present(pSwapChain->mD3D12.mDxSyncInterval, 0);
 }
 
 void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
-	pCmd->pDxCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
+	pCmd->mD3D12.pDxCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
 void hook_signal(Queue* pQueue, ID3D12Fence* pDxFence, uint64_t fenceValue)
 {
-	pQueue->pDxQueue->Signal(pDxFence, fenceValue);
+	pQueue->mD3D12.pDxQueue->Signal(pDxFence, fenceValue);
 }
 
 extern void hook_fill_gpu_desc(Renderer* pRenderer, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc)
@@ -135,9 +137,9 @@ extern void hook_fill_gpu_desc(Renderer* pRenderer, D3D_FEATURE_LEVEL featureLev
 	D3D12_FEATURE_DATA_D3D12_OPTIONS  featureData = {};
 	D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureData1 = {};
 	// Query the level of support of Wave Intrinsics.
-	pRenderer->pDxDevice->CheckFeatureSupport(
+	pRenderer->mD3D12.pDxDevice->CheckFeatureSupport(
 		(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS, &featureData, sizeof(featureData));
-	pRenderer->pDxDevice->CheckFeatureSupport(
+	pRenderer->mD3D12.pDxDevice->CheckFeatureSupport(
 		(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &featureData1, sizeof(featureData1));
 
 	GpuDesc& gpuDesc = *pInOutDesc;
@@ -198,3 +200,4 @@ void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc
 {
 	pInOutDesc->ByteStride += padding;
 }
+#endif

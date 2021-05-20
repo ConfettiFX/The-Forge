@@ -125,8 +125,8 @@ public:
 	void SetParams(const PaniniParameters& params) { mParams = params; }
 
 private:
-	Renderer*         pRenderer;
-	PipelineCache*    pPipelineCache;
+	Renderer*         pRenderer = NULL;
+	PipelineCache*    pPipelineCache = NULL;
 
 	Shader*           pShader = NULL;
 	RootSignature*    pRootSignature = NULL;
@@ -138,8 +138,8 @@ private:
 	Buffer*           pIndexBufferTessellatedQuad = NULL;
 
 	PaniniParameters  mParams;
-	uint32_t          mIndex;
-	uint32_t          mMaxDraws;
+	uint32_t          mIndex = 0;
+	uint32_t          mMaxDraws = 0;
 
 	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
 	const uint32_t    mPaniniDistortionTessellation[2] = { 64, 32 };

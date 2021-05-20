@@ -1,20 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugDx|x64">
-      <Configuration>DebugDx</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|x64">
-      <Configuration>DebugVk</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseDx|x64">
-      <Configuration>ReleaseDx</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|x64">
-      <Configuration>ReleaseVk</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -24,1085 +16,50 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry.h" />
-    <ClInclude Include="..\src\Shaders\D3D12\packing.h" />
-    <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\D3D12\shading.h" />
-    <ClInclude Include="..\src\Shaders\Vulkan\non_uniform_resource_index.h" />
-    <ClInclude Include="..\src\Shaders\Vulkan\packing.h" />
-    <ClInclude Include="..\src\Shaders\Vulkan\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\Vulkan\shading.h" />
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h" />
+    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h" />
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h" />
+    <ClInclude Include="..\src\Shaders\FSL\packing.h" />
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h" />
+    <ClInclude Include="..\src\Shaders\FSL\shading.h" />
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\Shaders\Vulkan\HDAO.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\resolve.vert">
-      <FileType>Document</FileType>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </AdditionalInputs>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\Shaders\Vulkan\batch_compaction.comp">
-      <FileType>Document</FileType>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\clear_buffers.comp">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\clear_light_clusters.comp">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\cluster_lights.comp">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass.frag">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass_alpha.frag">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade.frag">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.frag">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\HDAO.frag">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 1 2 3 4
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" "-D AO_QUALITY=%%b" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_QUAL_%%b%(Extension).bin"
-  )
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 1 2 3 4
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" "-D AO_QUALITY=%%b" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_QUAL_%%b%(Extension).bin"
-  )
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 1 2 3 4
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" "-D AO_QUALITY=%%b" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_QUAL_%%b%(Extension).bin"
-  )
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 1 2 3 4
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" "-D AO_QUALITY=%%b" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_QUAL_%%b%(Extension).bin"
-  )
-)
-
-</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_QUAL_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_QUAL_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_QUAL_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_QUAL_1%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\resolve.frag">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a%(Extension).bin"
-)
-
-</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) -o "$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">copy %0 "$(TargetDir)RecompileShaders.bat
-set sample_count=1 2 4
-set ao= 0 1
-FOR %%b in (%ao%) do (
-  FOR %%a in (%sample_count%) DO (
-$(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity) "-D USE_AMBIENT_OCCLUSION=%%b" "-D SAMPLE_COUNT=%%a" -o "$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_%%a_AO_%%b%(Extension).bin"
-  )
-)
-</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">Compiling %(Identity) to spirv</Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">$(TargetDir)CompiledShaders\%(Filename)_SAMPLE_1_AO_0%(Extension).bin</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">%(FullPath)\..\shader_defs.h;%(FullPath)\..\shading.h;%(FullPath)\..\packing.h;%(FullPath)\..\non_uniform_resource_index.h;%(AdditionalInputs)</AdditionalInputs>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\Shaders\D3D12\batch_compaction.comp" />
-    <None Include="..\src\Shaders\D3D12\clear_buffers.comp" />
-    <None Include="..\src\Shaders\D3D12\clear_light_clusters.comp" />
-    <None Include="..\src\Shaders\D3D12\cluster_lights.comp" />
-    <None Include="..\src\Shaders\D3D12\CurveConversion.frag" />
-    <None Include="..\src\Shaders\D3D12\deferred_pass.frag" />
-    <None Include="..\src\Shaders\D3D12\deferred_pass.vert" />
-    <None Include="..\src\Shaders\D3D12\deferred_pass_alpha.frag" />
-    <None Include="..\src\Shaders\D3D12\deferred_shade.frag" />
-    <None Include="..\src\Shaders\D3D12\deferred_shade.vert" />
-    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.frag" />
-    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.vert" />
-    <None Include="..\src\Shaders\D3D12\display.frag" />
-    <None Include="..\src\Shaders\D3D12\display.vert" />
-    <None Include="..\src\Shaders\D3D12\godray.frag" />
-    <None Include="..\src\Shaders\D3D12\HDAO.frag" />
-    <None Include="..\src\Shaders\D3D12\HDAO.vert" />
-    <None Include="..\src\Shaders\D3D12\panoToCube.comp" />
-    <None Include="..\src\Shaders\D3D12\resolve.frag" />
-    <None Include="..\src\Shaders\D3D12\resolve.vert" />
-    <None Include="..\src\Shaders\D3D12\resolveGodray.frag" />
-    <None Include="..\src\Shaders\D3D12\shadow_pass.vert" />
-    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.frag" />
-    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.vert" />
-    <None Include="..\src\Shaders\D3D12\skybox.frag" />
-    <None Include="..\src\Shaders\D3D12\skybox.vert" />
-    <None Include="..\src\Shaders\D3D12\sun.frag" />
-    <None Include="..\src\Shaders\D3D12\sun.vert" />
-    <None Include="..\src\Shaders\D3D12\triangle_filtering.comp" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.frag" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.vert" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.frag" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.vert" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.frag" />
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.vert" />
-    <None Include="..\src\Shaders\Vulkan\CurveConversion.frag" />
-    <None Include="..\src\Shaders\Vulkan\display.frag" />
-    <None Include="..\src\Shaders\Vulkan\display.vert" />
-    <None Include="..\src\Shaders\Vulkan\godray.frag" />
-    <None Include="..\src\Shaders\Vulkan\panoToCube.comp" />
-    <None Include="..\src\Shaders\Vulkan\resolveGodray.frag" />
-    <None Include="..\src\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\src\Shaders\Vulkan\skybox.vert" />
-    <None Include="..\src\Shaders\Vulkan\sun.frag" />
-    <None Include="..\src\Shaders\Vulkan\sun.vert" />
+    <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade_pointlight.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade_pointlight.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\HDAO.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\HDAO.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\panoToCube.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\resolveGodray.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\sun.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\sun.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>
@@ -1112,26 +69,13 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <ProjectName>Visibility_Buffer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
@@ -1142,50 +86,32 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared" />
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);;</LibraryPath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <IncludePath>;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -1196,76 +122,37 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+      <Command>set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
 
 xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
 xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"
+
+if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
+if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
+xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
-
-xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
@@ -1273,7 +160,7 @@ xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -1286,83 +173,40 @@ xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <FxCompile>
-      <EntryPointName />
+      <EntryPointName>
+      </EntryPointName>
     </FxCompile>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+      <Command>set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
 
 xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
 xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /S /D "$(OutDir)\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>Full</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
-
-xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
-xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
-xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

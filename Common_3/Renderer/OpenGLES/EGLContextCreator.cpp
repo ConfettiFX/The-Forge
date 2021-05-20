@@ -8,10 +8,39 @@
 
 #include "../../OS/Interfaces/IMemory.h"
 
-void* gDisplay = nullptr;
-thread_local EGLSurface gStartSurface = EGL_NO_SURFACE;
+void* gDisplay = EGL_NO_DISPLAY;
+thread_local EGLSurface gPlaceholderSurface = EGL_NO_SURFACE;
 thread_local EGLint gSurfaceWidth;
 thread_local EGLint gSurfaceHeight;
+
+GLSurface util_egl_get_default_surface(GLConfig config)
+{
+	if (gPlaceholderSurface == EGL_NO_SURFACE)
+	{
+		EGLint surfaceAttribList[] =
+		{
+			EGL_HEIGHT, 4,
+			EGL_WIDTH, 4,
+			EGL_NONE
+		};
+
+		gPlaceholderSurface = eglCreatePbufferSurface(gDisplay, config, surfaceAttribList);
+		if (gPlaceholderSurface == EGL_NO_SURFACE)
+			LOGF(LogLevel::eERROR, "Failed to create default EGL! Error {%d}.", eglGetError());
+	}
+
+	return gPlaceholderSurface;
+}
+
+void util_egl_destroy_default_surface()
+{
+	if (gPlaceholderSurface != EGL_NO_SURFACE)
+	{
+		if (eglDestroySurface(gDisplay, gPlaceholderSurface) != EGL_TRUE)
+			LOGF(LogLevel::eERROR, "Failed to destroy default EGL surface! Error {%d}", eglGetError());
+		gPlaceholderSurface = EGL_NO_SURFACE;
+	}
+}
 
 void util_egl_get_surface_size(GLSurface surface)
 {
@@ -35,12 +64,22 @@ bool initGL(GLConfig* pOutConfig)
 	ASSERT(pOutConfig);
 
 	// EGL setup
-	gDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	EGLint major, minor;
-	if (eglInitialize(gDisplay, &major, &minor) == EGL_FALSE)
+	if (gDisplay == EGL_NO_DISPLAY)
 	{
-		LOGF(LogLevel::eERROR, "Failed to initialize EGL!");
-		return false;
+		gDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+		if (gDisplay == EGL_NO_DISPLAY)
+		{
+			LOGF(LogLevel::eERROR, "Get EGL display failed!");
+			return false;
+		}
+
+		EGLint major, minor;
+		if (eglInitialize(gDisplay, &major, &minor) == EGL_FALSE)
+		{
+			LOGF(LogLevel::eERROR, "Failed to initialize EGL!");
+			return false;
+		}
+		LOGF(LogLevel::eINFO, "Initialized EGL %d.%d", major, minor);
 	}
 
 	if (eglBindAPI(EGL_OPENGL_ES_API) != EGL_TRUE)
@@ -49,29 +88,105 @@ bool initGL(GLConfig* pOutConfig)
 		return false;
 	}
 
-	LOGF(LogLevel::eINFO, "Initialized EGL %d.%d", major, minor);
-
 	// Choose EGLConfig
 	EGLint attrs[] =
 	{
-		EGL_RED_SIZE,           8,
-		EGL_GREEN_SIZE,         8,
-		EGL_BLUE_SIZE,          8,
+		EGL_RED_SIZE,           5,
+		EGL_GREEN_SIZE,         6,
+		EGL_BLUE_SIZE,          5,
 		EGL_ALPHA_SIZE,         8,
-		EGL_DEPTH_SIZE,			16,
+		EGL_DEPTH_SIZE,         16,
 		EGL_STENCIL_SIZE,		8,
-		EGL_SAMPLES,			1,
+		EGL_BUFFER_SIZE,		16,
+		EGL_CONFIG_CAVEAT,		EGL_NONE,
+		EGL_SURFACE_TYPE,		EGL_WINDOW_BIT,
+		EGL_COLOR_BUFFER_TYPE,	EGL_RGB_BUFFER,
+		EGL_CONFORMANT,			EGL_OPENGL_ES2_BIT,
 		EGL_RENDERABLE_TYPE,    EGL_OPENGL_ES2_BIT,
-		EGL_SURFACE_TYPE,       EGL_WINDOW_BIT,
 		EGL_NONE
 	};
 
 	EGLint numconfigs;
-	if (eglChooseConfig(gDisplay, attrs, pOutConfig, 1, &numconfigs) == EGL_FALSE)
+	if (eglChooseConfig(gDisplay, attrs, NULL, 0, &numconfigs) == EGL_FALSE)
 	{
-		LOGF(LogLevel::eERROR, "Could not select desired EGLConfig!");
+		LOGF(LogLevel::eERROR, "eglChooseConfig failed with error: %d", eglGetError());
 		return false;
 	}
+
+	if (numconfigs < 1)
+	{
+		LOGF(LogLevel::eERROR, "eglChooseConfig could not find any matching configurations");
+		return false;
+	}
+
+	EGLConfig* pPossibleEGLConfigs = (EGLConfig*)tf_calloc(numconfigs, sizeof(EGLConfig));
+
+	if (eglChooseConfig(gDisplay, attrs, pPossibleEGLConfigs, numconfigs, &numconfigs) == EGL_FALSE)
+	{
+		LOGF(LogLevel::eERROR, "eglChooseConfig failed with error: %d", eglGetError());
+		return false;
+	}
+
+	int32_t bestConfigIndex = -1;
+	int32_t bestScore = 0;
+	for (uint32_t i = 0; i < numconfigs; ++i)
+	{
+		EGLConfig config = pPossibleEGLConfigs[i];
+		EGLint caveat, conformant, bufferSize, red, green, blue, alpha, alphaMask, depth, stencil, sampleBuffers, samples;
+		eglGetConfigAttrib(gDisplay, config, EGL_CONFIG_CAVEAT, &caveat);
+		eglGetConfigAttrib(gDisplay, config, EGL_CONFORMANT, &conformant);
+		eglGetConfigAttrib(gDisplay, config, EGL_BUFFER_SIZE, &bufferSize);
+		eglGetConfigAttrib(gDisplay, config, EGL_RED_SIZE, &red);
+		eglGetConfigAttrib(gDisplay, config, EGL_GREEN_SIZE, &green);
+		eglGetConfigAttrib(gDisplay, config, EGL_BLUE_SIZE, &blue);
+		eglGetConfigAttrib(gDisplay, config, EGL_ALPHA_SIZE, &alpha);
+		eglGetConfigAttrib(gDisplay, config, EGL_ALPHA_MASK_SIZE, &alphaMask);
+		eglGetConfigAttrib(gDisplay, config, EGL_DEPTH_SIZE, &depth);
+		eglGetConfigAttrib(gDisplay, config, EGL_STENCIL_SIZE, &stencil);
+		eglGetConfigAttrib(gDisplay, config, EGL_SAMPLE_BUFFERS, &sampleBuffers);
+		eglGetConfigAttrib(gDisplay, config, EGL_SAMPLES, &samples);
+
+		bool isGoodConfig = (depth == 24 || depth == 16);
+		isGoodConfig &= stencil == 8;
+		isGoodConfig &= sampleBuffers == 0;
+		isGoodConfig &= samples == 0;
+		if (!isGoodConfig)
+			continue;
+		uint32_t score = 0;
+
+		if ((bufferSize == 16) && (red == 5) && (green == 6) && (blue == 5) && (alpha == 0)) {
+			score += 1;
+		}
+		else if ((bufferSize == 32) && (red == 8) && (green == 8) && (blue == 8) && (alpha == 0)) {
+			score += 3;
+		}
+		else if ((bufferSize == 32) && (red == 8) && (green == 8) && (blue == 8) && (alpha == 8)) {
+			score += 2;
+		}
+		else if ((bufferSize == 24) && (red == 8) && (green == 8) && (blue == 8) && (alpha == 0)) {
+			score += 4;
+		}
+
+		score += (depth == 24 && stencil == 8);
+		score += (conformant & EGL_OPENGL_ES2_BIT) == EGL_OPENGL_ES2_BIT;
+		score += caveat == EGL_NONE;
+
+		if (score > bestScore)
+		{
+			bestScore = score;
+			bestConfigIndex = i;
+		}
+	}
+
+	if (bestConfigIndex < 0)
+	{
+		LOGF(LogLevel::eERROR, "No correct matching egl configuration found");
+		bestConfigIndex = 0;
+	}
+
+	*pOutConfig = pPossibleEGLConfigs[bestConfigIndex];
+
+	tf_free(pPossibleEGLConfigs);
 
 	return true;
 }
@@ -105,17 +220,9 @@ bool initGLContext(GLConfig config, GLContext* pOutContext, GLContext sharedCont
 		return false;
 	}
 
-	EGLint surfaceAttribList[] =
-	{
-		EGL_HEIGHT, 480,
-		EGL_WIDTH, 720,
-		EGL_NONE
-	};
+	GLSurface defaultSurface = util_egl_get_default_surface(config);
 
-	if(gStartSurface == EGL_NO_SURFACE)
-		gStartSurface = eglCreatePbufferSurface(gDisplay, config, surfaceAttribList);
-
-	if (eglMakeCurrent(gDisplay, gStartSurface, gStartSurface, *pOutContext) != EGL_TRUE)
+	if (eglMakeCurrent(gDisplay, defaultSurface, defaultSurface, *pOutContext) != EGL_TRUE)
 	{
 		EGLint error = eglGetError();
 		LOGF(LogLevel::eERROR, "Failed to bind context to EGL surface! Error {%d}", error);
@@ -129,6 +236,8 @@ void removeGLContext(GLContext* pContext)
 {
 	ASSERT(pContext);
 
+	util_egl_destroy_default_surface();
+
 	if (eglMakeCurrent(gDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) != EGL_TRUE)
 	{
 		EGLint error = eglGetError();
@@ -141,13 +250,22 @@ void removeGLContext(GLContext* pContext)
 		LOGF(LogLevel::eERROR, "Failed to remove EGL context! Error {%d}", error);
 	}
 
-	if (gStartSurface != EGL_NO_SURFACE)
-		removeGLSurface(&gStartSurface);
-
 	*pContext = nullptr;
 }
 
-bool addGLSurface(GLConfig context, GLConfig config, const WindowHandle* pWindowHandle, GLSurface* pOutSurface)
+void* getExtensionsFunction(const char* pExtFunctionName)
+{
+	void *p = (void*)eglGetProcAddress(pExtFunctionName);
+	if (!p)
+	{
+		DLOGF(LogLevel::eWARNING, "GLES extension function \"%s\" not available for this device", pExtFunctionName);
+		return nullptr;
+	}
+
+	return p;
+}
+
+bool addGLSurface(GLContext context, GLConfig config, const WindowHandle* pWindowHandle, GLSurface* pOutSurface)
 {
 	ASSERT(gDisplay);
 	ASSERT(context);
@@ -172,14 +290,24 @@ bool addGLSurface(GLConfig context, GLConfig config, const WindowHandle* pWindow
 		return false;
 	}
 
+	util_egl_destroy_default_surface();
+
 	util_egl_get_surface_size(*pOutSurface);
 
 	return true;
 }
 
-void removeGLSurface(GLSurface* pSurface)
+void removeGLSurface(GLContext context, GLConfig config, GLSurface* pSurface)
 {
 	ASSERT(pSurface);
+
+	GLSurface defaultSurface = util_egl_get_default_surface(config);
+	if (eglMakeCurrent(gDisplay, defaultSurface, defaultSurface, context) != EGL_TRUE)
+	{
+		EGLint error = eglGetError();
+		LOGF(LogLevel::eERROR, "Failed to bind default EGL surface! Error {%d}", error);
+	}
+
 	if (eglDestroySurface(gDisplay, *pSurface) != EGL_TRUE)
 	{
 		EGLint error = eglGetError();

@@ -90,7 +90,7 @@ class AnimatedObject
 	void Initialize(Rig* rig, Animation* animation);
 
 	// Must be called to clean up the system if it has been initialized
-	void Destroy();
+	void Exit();
 
 	// To be called every frame of the main application, handles sampling and updating the current animation
 	bool Update(float dt);
@@ -117,10 +117,10 @@ class AnimatedObject
 
 	private:
 	// The Rig the AnimatedObject will be posing
-	Rig* mRig;
+	Rig* mRig = NULL;
 
 	// Pointer to the animation we are sampling
-	Animation* mAnimation;
+	Animation* mAnimation = NULL;
 
 	// Buffer of local transforms as sampled from the animation.
 	ozz::Range<SoaTransform> mLocalTrans;

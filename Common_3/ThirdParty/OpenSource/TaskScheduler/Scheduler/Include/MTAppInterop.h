@@ -59,12 +59,18 @@ namespace MT
 			char* stackMemory;
 			size_t stackMemoryBytesCount;
 
+#if MT_PLATFORM_ORBIS || MT_PLATFORM_NX64
+			off_t physAddr;
+#endif
 
 			StackDesc()
 				: stackBottom(nullptr)
 				, stackTop(nullptr)
 				, stackMemory(nullptr)
 				, stackMemoryBytesCount(0)
+#if MT_PLATFORM_ORBIS || MT_PLATFORM_NX64
+				, physAddr(0)
+#endif
 			{
 			}
 

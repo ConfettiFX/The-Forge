@@ -77,7 +77,7 @@ public:
 	float zoom = 0.0f;
 };
 
-ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookAt)
+ICameraController* initFpsCameraController(vec3 startPosition, vec3 startLookAt)
 {
 	FpsCameraController* cc = tf_placement_new<FpsCameraController>(tf_calloc(1, sizeof(FpsCameraController)));
 	cc->moveTo(startPosition);
@@ -90,7 +90,7 @@ ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookA
 }
 
 // TODO: Move to common file
-void destroyCameraController(ICameraController* pCamera)
+void exitCameraController(ICameraController* pCamera)
 {
 	pCamera->~ICameraController();
 	tf_free(pCamera);
@@ -111,8 +111,6 @@ void FpsCameraController::update(float deltaTime)
 	deltaTime = max(deltaTime, 0.000001f);
 
     vec3 moveVec = { dx, 0, dz };
-	float drx = this->drx;
-	float dry = this->dry;
 	viewRotation += vec2(drx, dry) * k_RotationSpeed;
 	//divide by length to normalize if necessary
 	float lenS = lengthSqr(moveVec);
@@ -266,7 +264,7 @@ public:
 	VirtualJoystickUI* pVirtualJoystickUI;
 };
 
-ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookAt)
+ICameraController* initGuiCameraController(vec3 startPosition, vec3 startLookAt)
 {
 	GuiCameraController* cc = tf_placement_new<GuiCameraController>(tf_calloc(1, sizeof(GuiCameraController)));
 	cc->moveTo(startPosition);

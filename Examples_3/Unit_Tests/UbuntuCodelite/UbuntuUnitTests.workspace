@@ -38,8 +38,8 @@
   <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="29_InverseKinematic" Path="29_InverseKinematic/29_InverseKinematic.project" Active="No"/>
   <Project Name="18_VirtualTexture" Path="18_VirtualTexture/18_VirtualTexture.project" Active="No"/>
-  <Project Name="32_Window" Path="32_Window/32_Window.project" Active="Yes"/>
-  <Project Name="33_YUV" Path="33_YUV/33_YUV.project" Active="Yes"/>
+  <Project Name="32_Window" Path="32_Window/32_Window.project" Active="No"/>
+  <Project Name="33_YUV" Path="33_YUV/33_YUV.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>

@@ -7,11 +7,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{c2e84fd6-adae-4734-bc2a-4da88250b3e3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{c5d3607f-970b-4814-8ae2-327d3571d43e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{45acf34d-daa2-413e-b4a5-6476c2cf16a3}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{c35607d0-49cb-40d0-a770-90e3a689c1c7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,43 +17,28 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Graph.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Graph.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Particle.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Particle.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\03_MultiThread\Shaders\D3D12\Skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Graph.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Graph.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Particle.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </CustomBuild>
+    <ClInclude Include="..\src\03_MultiThread\Shaders\FSL\resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

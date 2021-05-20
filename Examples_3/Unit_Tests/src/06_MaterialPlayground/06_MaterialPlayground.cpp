@@ -34,7 +34,6 @@
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 //Interfaces
@@ -76,6 +75,7 @@
 #define MAX_NUM_DIRECTIONAL_LIGHTS 1    // >= 1
 #define HAIR_MAX_CAPSULE_COUNT 3
 #define HAIR_DEV_UI false
+#define MAX_FILENAME_LENGTH 128
 
 // when set, all the textures are a 2x2 white image
 // and the BRDF shader won't sample those textures
@@ -159,7 +159,9 @@ static const char* woodEnumNames[] = { "Wooden Plank 05", "Wooden Plank 06", "Wo
 static const uint32_t MATERIAL_INSTANCE_COUNT = sizeof(metalEnumNames) / sizeof(metalEnumNames[0]) - 1;
 
 const uint32_t gImageCount = 3;
-ProfileToken   gGpuProfileToken;
+ProfileToken   gHairGpuProfileToken;
+ProfileToken gMetalWoodGpuProfileToken;
+ProfileToken gCurrentGpuProfileToken;
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
 //--------------------------------------------------------------------------------------------
@@ -170,12 +172,12 @@ struct UniformCamData
 
 	vec3 mCamPos;
 
-	float fAmbientLightIntensity;
+	float fAmbientLightIntensity = 0.0f;
 
 	int bUseEnvMap = 0;
 	float fEnvironmentLightIntensity = 0.5f;
 	float fAOIntensity = 0.01f;
-	int iRenderMode;
+	int iRenderMode = 0;
 	float fNormalMapIntensity = 1.0f;
 };
 
@@ -239,13 +241,13 @@ struct DirectionalLight
 
 struct UniformDataPointLights
 {
-	PointLight mPointLights[MAX_NUM_POINT_LIGHTS];
+	PointLight mPointLights[MAX_NUM_POINT_LIGHTS] = {};
 	uint       mNumPointLights = 0;
 };
 
 struct UniformDataDirectionalLights
 {
-	DirectionalLight mDirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
+	DirectionalLight mDirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS] = {};
 	uint             mNumDirectionalLights = 0;
 };
 
@@ -259,8 +261,8 @@ struct Capsule
 
 struct NamedCapsule
 {
-	eastl::string mName;
-	Capsule         mCapsule;
+	const char*     mName = NULL;
+	Capsule         mCapsule = {};
 	int             mAttachedBone = -1;
 };
 
@@ -273,8 +275,8 @@ struct Transform
 
 struct NamedTransform
 {
-	eastl::string mName;
-	Transform       mTransform;
+	const char*     mName = NULL;
+	Transform       mTransform = {};
 	int             mAttachedBone = -1;
 };
 
@@ -339,17 +341,17 @@ struct HairBuffer
 	Buffer*                   pBufferHairSimulationVertexPositions[3] = { NULL };
 	Buffer*                   pUniformBufferHairShading[gImageCount] = { NULL };
 	Buffer*                   pUniformBufferHairSimulation[gImageCount] = { NULL };
-	UniformDataHairShading    mUniformDataHairShading;
-	UniformDataHairSimulation mUniformDataHairSimulation;
+	UniformDataHairShading    mUniformDataHairShading = {};
+	UniformDataHairSimulation mUniformDataHairSimulation = {};
 	uint                      mIndexCountHair = 0;
 	uint                      mTotalVertexCount = 0;
 	uint                      mNumGuideStrands = 0;
-	float                     mStrandRadius;
-	float                     mStrandSpacing;
-	uint                      mTransform;    // Index into gTransforms
-	bool                      mDisableRootColor;
+	float                     mStrandRadius = 0.0f;
+	float                     mStrandSpacing = 0.0f;
+	uint                      mTransform = 0;       // Index into gTransforms
+	bool                      mDisableRootColor = false;
 #if HAIR_MAX_CAPSULE_COUNT > 0
-	uint mCapsules[HAIR_MAX_CAPSULE_COUNT];    // World space capsules
+	uint mCapsules[HAIR_MAX_CAPSULE_COUNT] = {};    // World space capsules
 #endif
 };
 
@@ -420,7 +422,7 @@ VertexLayout gVertexLayoutDefault = {};
 //--------------------------------------------------------------------------------------------
 // THE FORGE OBJECTS
 //--------------------------------------------------------------------------------------------
-UIApp              gAppUI(256);
+UIApp*             pAppUI = NULL;
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 TextDrawDesc       gFrameTimeDraw = TextDrawDesc(0, 0xff00ff00, 18);
@@ -431,7 +433,7 @@ GuiComponent*      pGuiWindowMaterial = NULL;
 LuaManager         gLuaManager;
 ThreadSystem*      pIOThreads = NULL;
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 //--------------------------------------------------------------------------------------------
 // SAMPLERS
@@ -446,7 +448,7 @@ Sampler* pSamplerPoint = NULL;
 Shader* pShaderSkybox = NULL;
 Shader* pShaderBRDF = NULL;
 Shader* pShaderShadowPass = NULL;
-#if !defined(DIRECT3D11)
+
 Shader* pShaderHairClear = NULL;
 Shader* pShaderHairDepthPeeling = NULL;
 Shader* pShaderHairDepthResolve = NULL;
@@ -461,7 +463,7 @@ Shader* pShaderHairPreWarm = NULL;
 Shader* pShaderShowCapsules = NULL;
 Shader* pShaderSkeleton = NULL;
 Shader* pShaderHairShadow = NULL;
-#endif
+
 
 //--------------------------------------------------------------------------------------------
 // ROOT SIGNATURES
@@ -469,7 +471,7 @@ Shader* pShaderHairShadow = NULL;
 RootSignature* pRootSignatureSkybox = NULL;
 RootSignature* pRootSignatureBRDF = NULL;
 RootSignature* pRootSignatureShadowPass = NULL;
-#if !defined(DIRECT3D11)
+
 RootSignature* pRootSignatureHairClear = NULL;
 RootSignature* pRootSignatureHairDepthPeeling = NULL;
 RootSignature* pRootSignatureHairDepthResolve = NULL;
@@ -484,7 +486,7 @@ RootSignature* pRootSignatureHairPreWarm = NULL;
 RootSignature* pRootSignatureShowCapsules = NULL;
 RootSignature* pRootSignatureSkeleton = NULL;
 RootSignature* pRootSignatureHairShadow = NULL;
-#endif
+
 
 //--------------------------------------------------------------------------------------------
 // DESCRIPTOR SET
@@ -492,7 +494,7 @@ RootSignature* pRootSignatureHairShadow = NULL;
 DescriptorSet* pDescriptorSetShadow[2] = { NULL };
 DescriptorSet* pDescriptorSetSkybox[2] = { NULL };
 DescriptorSet* pDescriptorSetBRDF[3] = { NULL };
-#if !defined(DIRECT3D11)
+
 DescriptorSet* pDescriptorSetHairClear = { NULL };
 DescriptorSet* pDescriptorSetHairPreWarm = { NULL };
 DescriptorSet* pDescriptorSetHairIntegrate = { NULL };
@@ -506,7 +508,7 @@ DescriptorSet* pDescriptorSetHairDepthResolve = { NULL };
 DescriptorSet* pDescriptorSetHairFillColors[4] = { NULL };
 DescriptorSet* pDescriptorSetHairColorResolve = { NULL };
 DescriptorSet* pDescriptorSetShowCapsule = { NULL };
-#endif
+
 uint32_t gHairDynamicDescriptorSetCount = 0;
 //--------------------------------------------------------------------------------------------
 // PIPELINES
@@ -514,7 +516,7 @@ uint32_t gHairDynamicDescriptorSetCount = 0;
 Pipeline* pPipelineSkybox = NULL;
 Pipeline* pPipelineBRDF = NULL;
 Pipeline* pPipelineShadowPass = NULL;
-#if !defined(DIRECT3D11)
+
 Pipeline* pPipelineHairClear = NULL;
 Pipeline* pPipelineHairDepthPeeling = NULL;
 Pipeline* pPipelineHairDepthResolve = NULL;
@@ -529,7 +531,7 @@ Pipeline* pPipelineHairPreWarm = NULL;
 Pipeline* pPipelineShowCapsules = NULL;
 Pipeline* pPipelineSkeleton = NULL;
 Pipeline* pPipelineHairShadow = NULL;
-#endif
+
 
 //--------------------------------------------------------------------------------------------
 // RENDER TARGETS
@@ -606,7 +608,7 @@ UniformDataHairGlobal        gUniformDataHairGlobal;
 //--------------------------------------------------------------------------------------------
 // SKELETAL ANIMATION
 //--------------------------------------------------------------------------------------------
-#if !defined(DIRECT3D11)
+
 Clip            gAnimationClipNeckCrack;
 Clip            gAnimationClipStand;
 ClipController  gAnimationClipControllerNeckCrack[HAIR_TYPE_COUNT];
@@ -619,7 +621,7 @@ SkeletonBatcher gSkeletonBatcher;
 eastl::vector<NamedCapsule>   gCapsules;
 eastl::vector<NamedTransform> gTransforms;
 eastl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores the capsule transformed by the bone matrix
-#endif
+
 //--------------------------------------------------------------------------------------------
 // UI & OTHER
 //--------------------------------------------------------------------------------------------
@@ -634,6 +636,7 @@ uint32_t			gMaterialType = MATERIAL_METAL;
 uint32_t			gDiffuseReflectionModel = LAMBERT_REFLECTION;
 bool				gbLuaScriptingSystemLoadedSuccessfully = false;
 bool				gbAnimateCamera = false;
+static uint32_t		gSelectedApiIndex = 0;
 
 eastl::unordered_map< EMaterialTypes, EDiffuseReflectionModels > gMaterialLightingModelMap;
 
@@ -727,20 +730,16 @@ MaterialType                                       GuiController::currentMateria
 uint                                               GuiController::currentHairType = 0;
 
 const char* gTestScripts[] = { "Test_Metal.lua", "Test_Wood.lua",
-#if !defined(DIRECT3D11) && !defined(METAL)
+#if !defined(METAL)
 "Test_Hair.lua"
 #endif
 };
 
-uint32_t gScriptIndexes[] = { 0, 1
-#ifndef DIRECT3D11
-, 2
-#endif
-};
+uint32_t gScriptIndexes[] = { 0, 1, 2};
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
 class MaterialPlayground: public IApp
@@ -755,18 +754,21 @@ class MaterialPlayground: public IApp
 
 	struct StagingData
 	{
-		eastl::vector<eastl::string> mModelList;
-		eastl::vector<eastl::string> mMaterialNamesStorage;
-		eastl::vector<eastl::string> mGroundNamesStorage;
+		eastl::vector<char*> mModelList;
+		eastl::vector<const char*> mMaterialNamesStorage;
+		eastl::vector<const char*> mGroundNamesStorage;
 		float* pJointPoints;
 		float* pBonePoints;
 		~StagingData()
 		{
+			for (char* model : mModelList)
+				tf_free(model);
+
 			tf_free(pJointPoints);
 			tf_free(pBonePoints);
 		}
 	};
-	StagingData* pStagingData;
+	StagingData* pStagingData = NULL;
 
 	bool Init()
 	{
@@ -783,14 +785,101 @@ class MaterialPlayground: public IApp
 
 		initThreadSystem(&pIOThreads);
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			{
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
+		// INITIALIZE CAMERA & INPUT
+		//
+		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
+		vec3 camPos{ -0.21f, 12.2564745f, 59.3652649f };
+		vec3 lookAt{ 0, 0, 0 };
+
+		pCameraController = initFpsCameraController(camPos, lookAt);
+		pLightView = initGuiCameraController(f3Tov3(gDirectionalLightPosition), vec3(0, 0, 0));
+		pCameraController->setMotionParameters(camParameters);
+
+		// INITIALIZE SCRIPTING
+		//
+		gLuaManager.Init();
+		ICameraController* cameraLocalPtr = pCameraController;
+		gLuaManager.SetFunction("GetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
+			vec3 pos = cameraLocalPtr->getViewPosition();
+			state->PushResultNumber(pos.getX());
+			state->PushResultNumber(pos.getY());
+			state->PushResultNumber(pos.getZ());
+			return 3;    // return amount of arguments
+		});
+		gLuaManager.SetFunction("SetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
+			float x = (float)state->GetNumberArg(1);    //in Lua indexing starts from 1!
+			float y = (float)state->GetNumberArg(2);
+			float z = (float)state->GetNumberArg(3);
+			cameraLocalPtr->moveTo(vec3(x, y, z));
+			return 0;    // return amount of arguments
+		});
+		gLuaManager.SetFunction("LookAtWorldOrigin", [cameraLocalPtr](ILuaStateWrap* state) -> int {
+			cameraLocalPtr->lookAt(vec3(0, 0, 0));
+			return 0;    // return amount of arguments
+		});
+		gLuaManager.SetFunction("GetIsCameraAnimated", [](ILuaStateWrap* state) -> int {
+			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
+			return 1;    // return amount of arguments
+		});
+		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
+
+		// SET MATERIAL LIGHTING MODELS
+		//
+		gMaterialLightingModelMap[MATERIAL_METAL] = LAMBERT_REFLECTION;
+		gMaterialLightingModelMap[MATERIAL_WOOD] = OREN_NAYAR_REFLECTION;
+		// hair := custom shader. we still assign LAMBERT_REFLECTION to avoid branching logic when querying this map.
+		gMaterialLightingModelMap[MATERIAL_HAIR] = LAMBERT_REFLECTION;
+
+		// ... add more as new mateirals are introduced
+
+		LoadAnimations();
+
 		Timer t;
 		// INITIALIZE RENDERER, COMMAND BUFFERS
 		//
 		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)
 			return false;
-		
+
 		gGPUPresetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 
 		QueueDesc queueDesc = {};
@@ -818,22 +907,24 @@ class MaterialPlayground: public IApp
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		// INITIALIZE SCRIPTING & RESOURCE SYSTEMS
+		// INITIALIZE RESOURCE SYSTEMS
 		//
-		gLuaManager.Init();
+
 		initResourceLoaderInterface(pRenderer);
 		initScreenshotInterface(pRenderer, pGraphicsQueue);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
 			return false;
 
 		pStagingData = tf_new(StagingData);
 		// CREATE RENDERING RESOURCES
 		//
+
 		CreateShaders();
 
 		ComputePBRMaps();
-		
+
 		LoadModelsAndTextures();
 
 		CreateSamplers();
@@ -842,7 +933,28 @@ class MaterialPlayground: public IApp
 		CreateUniformBuffers();
 
 		CreateResources();
-		LoadAnimations();
+
+		// Create skeleton batcher
+		SkeletonRenderDesc skeletonRenderDesc = {};
+		skeletonRenderDesc.mRenderer = pRenderer;
+		skeletonRenderDesc.mSkeletonPipeline = pPipelineSkeleton;
+		skeletonRenderDesc.mRootSignature = pRootSignatureSkeleton;
+		skeletonRenderDesc.mJointVertexBuffer = pVertexBufferSkeletonJoint;
+		skeletonRenderDesc.mNumJointPoints = gVertexCountSkeletonJoint;
+		skeletonRenderDesc.mDrawBones = true;
+		skeletonRenderDesc.mBoneVertexBuffer = pVertexBufferSkeletonBone;
+		skeletonRenderDesc.mNumBonePoints = gVertexCountSkeletonBone;
+		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
+		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
+
+		gSkeletonBatcher.Initialize(skeletonRenderDesc);
+
+		// Load skeleton batcher rigs
+		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
+		{
+			gSkeletonBatcher.AddRig(&gAnimationRig[hairType]);
+		}
+
 		CreateDescriptorSets();
 
 		waitThreadSystemIdle(pIOThreads);
@@ -854,134 +966,109 @@ class MaterialPlayground: public IApp
 
 		// INITIALIZE UI
 		//
-		gAppUI.AddLuaManager(&gLuaManager);
-		if (!gAppUI.Init(pRenderer))
+		addAppUILuaManager(pAppUI, &gLuaManager);
+
+		UIAppDesc appUIDesc = {};
+		appUIDesc.fontAtlasSize = 256;
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
 			return false;
-		gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
 
-        initProfiler();
-		initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
 
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gMetalWoodGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gHairGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gCurrentGpuProfileToken = gMetalWoodGpuProfileToken;
 
-		GuiDesc guiDesc = {};		
+		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(5, 220.0f);
 		guiDesc.mStartSize = vec2(450, 600);
-		pGuiWindowMain = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-		
-		ButtonWidget screenshot("Screenshot");
-		screenshot.pOnEdited = takeScreenshot;
-		pGuiWindowMain->AddWidget(screenshot);
+		pGuiWindowMain = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		#if defined(DIRECT3D11)
+			"D3D11",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindowMain, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		ButtonWidget screenshot;
+		IWidget* pScreenshot = addGuiWidget(pGuiWindowMain, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
+		pScreenshot->pOnEdited = takeScreenshot;
+		addWidgetLua(pScreenshot);
 
 		//guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
 		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
-		pGuiWindowMaterial = gAppUI.AddGuiComponent("Material Properties", &guiDesc);
+		pGuiWindowMaterial = addAppUIGuiComponent(pAppUI, "Material Properties", &guiDesc);
 
 		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 200.0f);
 		guiDesc.mStartSize = vec2(450, 600);
-		pGuiWindowHairSimulation = gAppUI.AddGuiComponent("Hair simulation", &guiDesc);
+		pGuiWindowHairSimulation = addAppUIGuiComponent(pAppUI, "Hair simulation", &guiDesc);
 		GuiController::AddGui();
 
-		// INITIALIZE CAMERA & INPUT
-		//
-		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
-		vec3 camPos{ -0.21f, 12.2564745f, 59.3652649f };
-		vec3 lookAt{ 0, 0, 0 };
-
-		pCameraController = createFpsCameraController(camPos, lookAt);
-		pLightView = createGuiCameraController(f3Tov3(gDirectionalLightPosition), vec3(0,0,0));
-		pCameraController->setMotionParameters(camParameters);
-
-		ICameraController* cameraLocalPtr = pCameraController;
-		gLuaManager.SetFunction("GetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
-			vec3 pos = cameraLocalPtr->getViewPosition();
-			state->PushResultNumber(pos.getX());
-			state->PushResultNumber(pos.getY());
-			state->PushResultNumber(pos.getZ());
-			return 3;    // return amount of arguments
-		});
-		gLuaManager.SetFunction("SetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
-			float x = (float)state->GetNumberArg(1);    //in Lua indexing starts from 1!
-			float y = (float)state->GetNumberArg(2);
-			float z = (float)state->GetNumberArg(3);
-			cameraLocalPtr->moveTo(vec3(x, y, z));
-			return 0;    // return amount of arguments
-		});
-		gLuaManager.SetFunction("LookAtWorldOrigin", [cameraLocalPtr](ILuaStateWrap* state) -> int {
-			cameraLocalPtr->lookAt(vec3(0, 0, 0));
-			return 0;    // return amount of arguments
-		});
-		gLuaManager.SetFunction("GetIsCameraAnimated", [](ILuaStateWrap* state) -> int {
-			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
-			return 1;    // return amount of arguments
-		});
-		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
-		
-		// SET MATERIAL LIGHTING MODELS
-		//
-		gMaterialLightingModelMap[MATERIAL_METAL] = LAMBERT_REFLECTION;
-		gMaterialLightingModelMap[MATERIAL_WOOD]  = OREN_NAYAR_REFLECTION;
-		// hair := custom shader. we still assign LAMBERT_REFLECTION to avoid branching logic when querying this map.
-		gMaterialLightingModelMap[MATERIAL_HAIR] = LAMBERT_REFLECTION;
-
-		// ... add more as new mateirals are introduced.
-
-        if (!initInputSystem(pWindow))
-            return false;
-
-		// App Actions
-        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
-		addInputAction(&actionDesc);
-		actionDesc =
-		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
-		};
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
-			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
-			}
-			return true;
-		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
-		addInputAction(&actionDesc);
+		gFrameIndex = 0; 
 
 		return true;
 	}
 
 	void Exit()
 	{
+		DestroyAnimations();
+
 		exitInputSystem();
 		gLuaManager.Exit();
-		shutdownThreadSystem(pIOThreads);
+		exitThreadSystem(pIOThreads);
+		exitCameraController(pCameraController);
+		exitCameraController(pLightView);
 
-		waitQueueIdle(pGraphicsQueue);
+		gTextWorldMats.set_capacity(0);
+
+		gCapsules.set_capacity(0);
+		gTransforms.set_capacity(0);
+		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
+		{
+			gFinalCapsules[i].set_capacity(0);
+			gHairTypeIndices[i].set_capacity(0);
+		}
+
+		gMaterialLightingModelMap.clear(true); 
+		
+		gFirstHairSimulationFrame = true;
+		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
+			gHairTypeInfo[i] = {};
+		gHairDynamicDescriptorSetCount = 0;
+
+		removeGpuProfiler(gHairGpuProfileToken);
+		removeGpuProfiler(gMetalWoodGpuProfileToken);
 
 		exitProfilerUI();
 
 		exitProfiler();
-
-		destroyCameraController(pCameraController);
-		destroyCameraController(pLightView);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -991,7 +1078,10 @@ class MaterialPlayground: public IApp
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
 		DestroyUniformBuffers();
-		DestroyAnimations();
+
+		// Destroy skeleton batcher
+		gSkeletonBatcher.Exit();
+
 		DestroyResources();
 		DestroyDescriptorSets();
 		DestroyTextures();
@@ -1001,12 +1091,13 @@ class MaterialPlayground: public IApp
 		DestroyRootSignatures();
 		DestroyShaders();
 
+
 		DestroySamplers();
 
-		gVirtualJoystick.Exit();
+		exitVirtualJoystickUI(pVirtualJoystick);
 
 		GuiController::Exit();
-		gAppUI.Exit();
+		exitAppUI(pAppUI);
 
 		// Remove commands and command pool&
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1024,20 +1115,7 @@ class MaterialPlayground: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		exitScreenshotInterface();
 
-		removeRenderer(pRenderer);
-
-		gTextWorldMats.set_capacity(0);
-
-#if !defined(DIRECT3D11)
-		gCapsules.set_capacity(0);
-		gTransforms.set_capacity(0);
-		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
-		{
-			gFinalCapsules[i].set_capacity(0);
-			gHairTypeIndices[i].set_capacity(0);
-		}
-#endif
-		gMaterialLightingModelMap.clear(true);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
@@ -1046,10 +1124,10 @@ class MaterialPlayground: public IApp
 		CreatePipelines();
 
 		RenderTarget* pRenderTargets[] = { pSwapChain->ppRenderTargets[0], pRenderTargetDepth };
-		if (!gAppUI.Load(pRenderTargets, 2))
+		if (!addAppGUIDriver(pAppUI, pRenderTargets, 2))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		waitForAllResourceLoads();
@@ -1063,9 +1141,9 @@ class MaterialPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
 		DestroyPipelines();
 		DestroyRenderTargets();
@@ -1077,7 +1155,7 @@ class MaterialPlayground: public IApp
 
 		// UPDATE UI & CAMERA
 		//
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 		GuiController::UpdateDynamicUI();
 
 		pCameraController->update(deltaTime);
@@ -1162,7 +1240,7 @@ class MaterialPlayground: public IApp
 				objUniform.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_NONE;
 			}
 		}
-#if !defined(DIRECT3D11)
+
 		if (gMaterialType == MATERIAL_HAIR)
 		{
 			if (gHairColor != gLastHairColor)
@@ -1261,7 +1339,7 @@ class MaterialPlayground: public IApp
 				boneMatrix = mat4::identity();
 				for (uint i = 0; i < (uint)gTransforms.size(); ++i)
 				{
-					if (gTransforms[i].mName == "Head")
+					if (strcmp(gTransforms[i].mName, "Head") == 0)
 					{
 						GetCorrectedBoneTranformation(hairType, gTransforms[i].mAttachedBone, &boneMatrix, &boneRotation);
 						break;
@@ -1286,7 +1364,7 @@ class MaterialPlayground: public IApp
 				}
 			}
 		}
-#endif
+
 	}
 
 	void Draw()
@@ -1361,7 +1439,7 @@ class MaterialPlayground: public IApp
 		*(UniformDataHairGlobal*)hairGlobalBufferUpdateDesc.pMappedData = gUniformDataHairGlobal;
 		endUpdateResource(&hairGlobalBufferUpdateDesc, NULL);
 
-#if !defined(DIRECT3D11)
+
 		for (size_t i = 0; i < gHair.size(); ++i)
 		{
 			BufferUpdateDesc hairShadingBufferUpdateDesc = { gHair[i].pUniformBufferHairShading[gFrameIndex] };
@@ -1377,14 +1455,16 @@ class MaterialPlayground: public IApp
 
 		if (gMaterialType == MATERIAL_HAIR)
 			gSkeletonBatcher.SetPerInstanceUniforms(gFrameIndex);
-#endif
+
 
 		// Draw
 		eastl::vector<Cmd*> allCmds;
 		Cmd*                cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+		gCurrentGpuProfileToken = gMaterialType == MATERIAL_HAIR ? gHairGpuProfileToken : gMetalWoodGpuProfileToken;
+
+		cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
 
 		RenderTargetBarrier barriers[] =
 		{
@@ -1396,7 +1476,7 @@ class MaterialPlayground: public IApp
 
 		// DRAW DIRECTIONAL SHADOW MAP
 		//
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Shadow Pass");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Shadow Pass");
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
@@ -1440,13 +1520,13 @@ class MaterialPlayground: public IApp
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Shadow Pass
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Shadow Pass
 
 
 
 		// DRAW SKYBOX
 		//
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Skybox Pass");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Skybox Pass");
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
@@ -1465,7 +1545,7 @@ class MaterialPlayground: public IApp
 			cmdDraw(cmd, 36, 0);
 		}
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Skybox Pass
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Skybox Pass
 
 
 		// DRAW THE OBJECTS W/ MATERIALS
@@ -1497,7 +1577,7 @@ class MaterialPlayground: public IApp
 		//
 		if (gMaterialType != MATERIAL_HAIR)
 		{
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Lighting Pass");
 
 			// DRAW THE LABEL PLATES
 			//
@@ -1521,11 +1601,11 @@ class MaterialPlayground: public IApp
 			}
 #endif
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Lighting Pass
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Lighting Pass
 		}
-#if !defined(DIRECT3D11)
+
 		// Draw hair
-		else if (gMaterialType == MATERIAL_HAIR)
+		else // gMaterialType == MATERIAL_HAIR
 		{
 			//// draw the skeleton of the rig
 			gSkeletonBatcher.Draw(cmd, gFrameIndex);
@@ -1535,7 +1615,7 @@ class MaterialPlayground: public IApp
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 			// Hair simulation
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair simulation");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair simulation");
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
 				if (!gHairTypeInfo[hairType].mInView)
@@ -1664,10 +1744,10 @@ class MaterialPlayground: public IApp
 
 				gHairTypeInfo[hairType].mPreWarm = false;
 			}
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 			// Draw hair - shadow map
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair rendering");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair rendering");
 
 			uint32_t shadowDescriptorSetIndex[2] =
 			{
@@ -1680,7 +1760,7 @@ class MaterialPlayground: public IApp
 			BufferBarrier  bufferBarrier[1] = {};
 #endif
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair shadow");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair shadow");
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
@@ -1732,7 +1812,7 @@ class MaterialPlayground: public IApp
 			// Draw hair - clear hair depths texture
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 #ifndef METAL
 			textureBarriers[0].pTexture = pTextureHairDepth;
@@ -1746,7 +1826,7 @@ class MaterialPlayground: public IApp
 			cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 0, NULL);
 #endif
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair clear");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair clear");
 
 			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
@@ -1759,9 +1839,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair depth peeling");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair depth peeling");
 
 			// Draw hair - depth peeling and alpha accumulaiton
 			rtBarriers[0].pRenderTarget = pRenderTargetDepthPeeling;
@@ -1771,7 +1851,7 @@ class MaterialPlayground: public IApp
 
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 			loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mClearValue;
-			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
+			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD; //-V1048
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTargetDepthPeeling, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
@@ -1806,9 +1886,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair depth resolve");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair depth resolve");
 
 			// Draw hair - depth resolve
 #ifndef METAL
@@ -1830,9 +1910,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair fill colors");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair fill colors");
 
 			// Draw hair - fill colors
 			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
@@ -1891,9 +1971,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair resolve colors");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair resolve colors");
 
 			// Draw hair - color resolve
 			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
@@ -1914,9 +1994,9 @@ class MaterialPlayground: public IApp
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairColorResolve);
 			cmdDraw(cmd, 3, 0);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 			if (gShowCapsules)
@@ -1944,7 +2024,7 @@ class MaterialPlayground: public IApp
 
 			gFirstHairSimulationFrame = false;
 		}
-#endif
+
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -1954,7 +2034,7 @@ class MaterialPlayground: public IApp
 		cmd = pUICmds[gFrameIndex];
 		beginCmd(cmd);
 
-		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD; //-V1048
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
@@ -1962,7 +2042,7 @@ class MaterialPlayground: public IApp
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		// draw world-space text
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Text");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Text");
 		const char** ppMaterialNames = NULL;
 		switch (GuiController::currentMaterialType)
 		{
@@ -1980,52 +2060,54 @@ class MaterialPlayground: public IApp
 			default: ppMaterialNames = metalEnumNames; break;
 		}
 
-#if !defined(DIRECT3D11)
+
 		if (GuiController::currentMaterialType != MATERIAL_HAIR)
 		{
 			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
-				gAppUI.DrawTextInWorldSpace(cmd, ppMaterialNames[i], gTextWorldMats[i], gTextProjView, &gMaterialPropDraw);
+				drawAppUITextInWorldSpace(pAppUI, cmd, ppMaterialNames[i], &gTextWorldMats[i], &gTextProjView, &gMaterialPropDraw);
 			}
 		}
-#endif
+
 
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 		// draw HUD text
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
 
 		if (!gbLuaScriptingSystemLoadedSuccessfully)
 		{
-			gAppUI.DrawText(cmd, float2(8, 75), "Error loading LUA scripts!", &gErrMsgDrawDesc);
+			float2 screenCoords(8, 75);
+			drawAppUIText(pAppUI, cmd, &screenCoords, "Error loading LUA scripts!", &gErrMsgDrawDesc);
 		}
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// HUD Text
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// HUD Text
 
 
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "UI");
-		gAppUI.Gui(pGuiWindowMain);
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
+		appUIGui(pAppUI, pGuiWindowMain);
 		if (GuiController::currentMaterialType == MATERIAL_HAIR)
-			gAppUI.Gui(pGuiWindowHairSimulation);
+			appUIGui(pAppUI, pGuiWindowHairSimulation);
 		else
-			gAppUI.Gui(pGuiWindowMaterial);
+			appUIGui(pAppUI, pGuiWindowMaterial);
 
 		cmdDrawProfilerUI();
 
-		gAppUI.Draw(cmd);
+		drawAppUI(pAppUI, cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// UI
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// UI
 
 		// PRESENT THE GFX QUEUE
 		//
 		// Transition our texture to present state
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdEndGpuFrameProfile(cmd, gCurrentGpuProfileToken);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -2058,12 +2140,13 @@ class MaterialPlayground: public IApp
 
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "06_MaterialPlayground"; }
 
-#if !defined(DIRECT3D11)
+
 	void GetCorrectedBoneTranformation(uint rigIndex, uint boneIndex, mat4* boneMatrix, mat3* boneRotation)
 	{
 		(*boneMatrix) = gAnimationRig[rigIndex].GetJointWorldMat(boneIndex);
@@ -2087,7 +2170,7 @@ class MaterialPlayground: public IApp
 		// Create new bone matrix without scale, with fixed rotations
 		(*boneMatrix) = mat4((*boneRotation), bonePosition);
 	}
-#endif
+
 	//--------------------------------------------------------------------------------------------
 	// INIT FUNCTIONS
 	//--------------------------------------------------------------------------------------------
@@ -2153,7 +2236,7 @@ class MaterialPlayground: public IApp
 		addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
 
 
-#if !defined(DIRECT3D11)
+
 		char maxCapsuleCountMacroBuffer[4] = {}; sprintf(maxCapsuleCountMacroBuffer, "%i", HAIR_MAX_CAPSULE_COUNT);
 
 		const uint  macroCount = 4;
@@ -2163,67 +2246,67 @@ class MaterialPlayground: public IApp
 		shaderMacros[3] = { "SHORT_CUT_CLEAR", "" };
 		ShaderLoadDesc hairClearShaderDesc = {};
 		hairClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairClearShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairClearShaderDesc.mStages[1] = { "hair_short_cut_clear.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairClearShaderDesc, &pShaderHairClear);
 
 		shaderMacros[3] = { "SHORT_CUT_DEPTH_PEELING", "" };
 		ShaderLoadDesc hairDepthPeelingShaderDesc = {};
 		hairDepthPeelingShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
-		hairDepthPeelingShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairDepthPeelingShaderDesc.mStages[1] = { "hair_short_cut_depth_peeling.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairDepthPeelingShaderDesc, &pShaderHairDepthPeeling);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_DEPTH", "" };
 		ShaderLoadDesc hairDepthResolveShaderDesc = {};
 		hairDepthResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairDepthResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairDepthResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_depth.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairDepthResolveShaderDesc, &pShaderHairDepthResolve);
 
 		shaderMacros[3] = { "SHORT_CUT_FILL_COLOR", "" };
 		ShaderLoadDesc hairFillColorShaderDesc = {};
 		hairFillColorShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
-		hairFillColorShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairFillColorShaderDesc.mStages[1] = { "hair_short_cut_fill_color.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairFillColorShaderDesc, &pShaderHairFillColors);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_COLOR", "" };
 		ShaderLoadDesc hairColorResolveShaderDesc = {};
 		hairColorResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairColorResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairColorResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_color.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairColorResolveShaderDesc, &pShaderHairResolveColor);
 
 		shaderMacros[3] = { "HAIR_SHADOW", "" };
 		ShaderLoadDesc hairShadowShaderDesc = {};
-		hairShadowShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
-		hairShadowShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
+		hairShadowShaderDesc.mStages[0] = { "hair_shadow.vert", shaderMacros, macroCount};
+		hairShadowShaderDesc.mStages[1] = { "hair_shadow.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairShadowShaderDesc, &pShaderHairShadow);
 
 		shaderMacros[3] = { "HAIR_INTEGRATE", "" };
 		ShaderLoadDesc hairIntegrateShaderDesc = {};
-		hairIntegrateShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairIntegrateShaderDesc.mStages[0] = { "hair_integrate.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairIntegrateShaderDesc, &pShaderHairIntegrate);
 
 		shaderMacros[3] = { "HAIR_SHOCK_PROPAGATION", "" };
 		ShaderLoadDesc hairShockPropagationShaderDesc = {};
-		hairShockPropagationShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairShockPropagationShaderDesc.mStages[0] = { "hair_shock_propagation.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairShockPropagationShaderDesc, &pShaderHairShockPropagation);
 
 		shaderMacros[3] = { "HAIR_LOCAL_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLocalConstraintsShaderDesc = {};
-		hairLocalConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairLocalConstraintsShaderDesc.mStages[0] = { "hair_local_constraints.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairLocalConstraintsShaderDesc, &pShaderHairLocalConstraints);
 
 		shaderMacros[3] = { "HAIR_LENGTH_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLengthConstraintsShaderDesc = {};
-		hairLengthConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairLengthConstraintsShaderDesc.mStages[0] = { "hair_length_constraints.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairLengthConstraintsShaderDesc, &pShaderHairLengthConstraints);
 
 		shaderMacros[3] = { "HAIR_UPDATE_FOLLOW_HAIRS", "" };
 		ShaderLoadDesc hairUpdateFollowHairsShaderDesc = {};
-		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair_update_follow_hairs.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairUpdateFollowHairsShaderDesc, &pShaderHairUpdateFollowHairs);
 
 		shaderMacros[3] = { "HAIR_PRE_WARM", "" };
 		ShaderLoadDesc hairPreWarmShaderDesc = {};
-		hairPreWarmShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
+		hairPreWarmShaderDesc.mStages[0] = { "hair_pre_warm.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairPreWarmShaderDesc, &pShaderHairPreWarm);
 
 		ShaderLoadDesc showCapsulesShaderDesc = {};
@@ -2235,7 +2318,7 @@ class MaterialPlayground: public IApp
 		skeletonShaderDesc.mStages[0] = { "skeleton.vert", NULL, 0};
 		skeletonShaderDesc.mStages[1] = { "skeleton.frag", NULL, 0};
 		addShader(pRenderer, &skeletonShaderDesc, &pShaderSkeleton);
-#endif
+
 	}
 
 	void DestroyShaders()
@@ -2243,7 +2326,7 @@ class MaterialPlayground: public IApp
 		removeShader(pRenderer, pShaderBRDF);
 		removeShader(pRenderer, pShaderSkybox);
 		removeShader(pRenderer, pShaderShadowPass);
-#if !defined(DIRECT3D11)
+
 		removeShader(pRenderer, pShaderHairClear);
 		removeShader(pRenderer, pShaderHairDepthPeeling);
 		removeShader(pRenderer, pShaderHairDepthResolve);
@@ -2258,7 +2341,7 @@ class MaterialPlayground: public IApp
 		removeShader(pRenderer, pShaderShowCapsules);
 		removeShader(pRenderer, pShaderSkeleton);
 		removeShader(pRenderer, pShaderHairShadow);
-#endif
+
 	}
 
 	void CreateRootSignatures()
@@ -2283,7 +2366,6 @@ class MaterialPlayground: public IApp
 		shadowPassRootDesc.mStaticSamplerCount = 0;
 		addRootSignature(pRenderer, &shadowPassRootDesc, &pRootSignatureShadowPass);
 
-#if !defined(DIRECT3D11)
 		RootSignatureDesc hairClearRootSignatureDesc = {};
 		hairClearRootSignatureDesc.ppShaders = &pShaderHairClear;
 		hairClearRootSignatureDesc.mShaderCount = 1;
@@ -2359,7 +2441,6 @@ class MaterialPlayground: public IApp
 		hairShadowRootSignatureDesc.ppShaders = &pShaderHairShadow;
 		hairShadowRootSignatureDesc.mShaderCount = 1;
 		addRootSignature(pRenderer, &hairShadowRootSignatureDesc, &pRootSignatureHairShadow);
-#endif
 	}
 
 	void CreateDescriptorSets()
@@ -2381,7 +2462,7 @@ class MaterialPlayground: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[1]);
 		setDesc = { pRootSignatureBRDF, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (1 + MATERIAL_INSTANCE_COUNT) + (gImageCount * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[2]);
-#if !defined(DIRECT3D11)
+
 		// Hair Simulation
 		setDesc = { pRootSignatureHairClear, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetHairClear);
@@ -2425,7 +2506,7 @@ class MaterialPlayground: public IApp
 		// Debug
 		setDesc = { pRootSignatureShowCapsules, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetShowCapsule);
-#endif
+
 	}
 
 	void DestroyDescriptorSets()
@@ -2437,7 +2518,7 @@ class MaterialPlayground: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[2]);
-#if !defined(DIRECT3D11)
+
 		removeDescriptorSet(pRenderer, pDescriptorSetHairClear);
 		removeDescriptorSet(pRenderer, pDescriptorSetHairPreWarm);
 		removeDescriptorSet(pRenderer, pDescriptorSetHairIntegrate);
@@ -2457,7 +2538,7 @@ class MaterialPlayground: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetHairFillColors[3]);
 		removeDescriptorSet(pRenderer, pDescriptorSetHairColorResolve);
 		removeDescriptorSet(pRenderer, pDescriptorSetShowCapsule);
-#endif
+
 	}
 
 	// Bake as many descriptor sets upfront as possible to avoid updates during runtime
@@ -2585,7 +2666,7 @@ class MaterialPlayground: public IApp
 			}
 		}
 		// Hair
-#if !defined(DIRECT3D11)
+
 		{
 			DescriptorData hairParams[7] = {};
 			hairParams[0].pName = "DepthsTexture";
@@ -2737,7 +2818,7 @@ class MaterialPlayground: public IApp
 						ppShadowMaps[i] = pRenderTargetHairShadows[hairType][i]->pTexture;
 
 					hairParams[0].pName = "DirectionalLightShadowMaps";
-					hairParams[0].ppTextures = ppShadowMaps;
+					hairParams[0].ppTextures = ppShadowMaps; //-V507
 					hairParams[0].mCount = MAX_NUM_DIRECTIONAL_LIGHTS;
 					hairParams[1].pName = "cbDirectionalLightShadowCameras";
 					hairParams[1].ppBuffers = pUniformBufferCameraHairShadows[f][hairType];
@@ -2793,7 +2874,7 @@ class MaterialPlayground: public IApp
 				updateDescriptorSet(pRenderer, i, pDescriptorSetShowCapsule, 1, params);
 			}
 		}
-#endif
+
 	}
 
 	void DestroyRootSignatures()
@@ -2801,7 +2882,7 @@ class MaterialPlayground: public IApp
 		removeRootSignature(pRenderer, pRootSignatureBRDF);
 		removeRootSignature(pRenderer, pRootSignatureSkybox);
 		removeRootSignature(pRenderer, pRootSignatureShadowPass);
-#if !defined(DIRECT3D11)
+
 		removeRootSignature(pRenderer, pRootSignatureHairClear);
 		removeRootSignature(pRenderer, pRootSignatureHairDepthPeeling);
 		removeRootSignature(pRenderer, pRootSignatureHairDepthResolve);
@@ -2816,7 +2897,7 @@ class MaterialPlayground: public IApp
 		removeRootSignature(pRenderer, pRootSignatureShowCapsules);
 		removeRootSignature(pRenderer, pRootSignatureSkeleton);
 		removeRootSignature(pRenderer, pRootSignatureHairShadow);
-#endif
+
 	}
 
 	void DestroyPBRMaps()
@@ -2848,7 +2929,8 @@ class MaterialPlayground: public IApp
 
 		bool modelsAreLoaded = false;
 		gLuaManager.SetFunction("LoadModel", [this](ILuaStateWrap* state) -> int {
-			eastl::string filename = state->GetStringArg(1);    //indexing in Lua starts from 1 (NOT 0) !!
+			char* filename = (char*)tf_calloc(MAX_FILENAME_LENGTH, sizeof(char));
+			state->GetStringArg(1, filename);    //indexing in Lua starts from 1 (NOT 0) !!
 			pStagingData->mModelList.push_back(filename);
 			//this->LoadModel(filename);
 			return 0;    //return amount of arguments that we want to send back to script
@@ -2856,20 +2938,23 @@ class MaterialPlayground: public IApp
         
 		gLuaManager.AddAsyncScript("loadModels.lua", [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
-		while (!modelsAreLoaded)
+		while (!modelsAreLoaded) //-V776 //-V712
 			Thread::Sleep(0);
 
 		uintptr_t meshCount = pStagingData->mModelList.size();
 		gMeshes.resize(meshCount);
 
-#if !defined(DIRECT3D11)
-		addThreadSystemRangeTask(pIOThreads, &memberTaskFunc<MaterialPlayground, &MaterialPlayground::LoadModel>, this, meshCount);
-#else
-		for (uint32_t i = 0; i < meshCount; ++i)
+		if (!isResourceLoaderSingleThreaded())
 		{
-			LoadModel(i);
+			addThreadSystemRangeTask(pIOThreads, &memberTaskFunc<MaterialPlayground, &MaterialPlayground::LoadModel>, this, meshCount);
 		}
-#endif
+		else
+		{
+			for (uint32_t i = 0; i < meshCount; ++i)
+			{
+				LoadModel(i);
+			}
+		}
 
 		bool texturesAreLoaded = false;
 		gLuaManager.SetFunction("GetTextureResolution", [](ILuaStateWrap* state) -> int {
@@ -2893,20 +2978,23 @@ class MaterialPlayground: public IApp
        
 		gLuaManager.AddAsyncScript("loadTextures.lua", [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
         
-		while (!texturesAreLoaded)
+		while (!texturesAreLoaded) //-V776 //-V712
 			Thread::Sleep(0);
 
 		uintptr_t materialTextureCount = pStagingData->mMaterialNamesStorage.size();
 		gTextureMaterialMaps.resize(materialTextureCount);
 
-#if !defined(DIRECT3D11)
-		addThreadSystemRangeTask(pIOThreads, LoadMaterialTexturesTask, pStagingData, materialTextureCount);
-#else
-		for (uint32_t i = 0; i < materialTextureCount; ++i)
+		if (!isResourceLoaderSingleThreaded())
 		{
-			LoadMaterialTexturesTask(pStagingData, i);
+			addThreadSystemRangeTask(pIOThreads, LoadMaterialTexturesTask, pStagingData, materialTextureCount);
 		}
-#endif
+		else
+		{
+			for (uint32_t i = 0; i < materialTextureCount; ++i)
+			{
+				LoadMaterialTexturesTask(pStagingData, i);
+			}
+		}
 
 		bool groundTexturesAreLoaded = false;
 		//This is how we can replace function in runtime.
@@ -2924,27 +3012,30 @@ class MaterialPlayground: public IApp
 		gLuaManager.AddAsyncScript(
 			"loadGroundTextures.lua", [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
 
-		while (!groundTexturesAreLoaded)
+		while (!groundTexturesAreLoaded) //-V776 //-V712
 			Thread::Sleep(0);
 
 		uintptr_t groundTextureCount = pStagingData->mGroundNamesStorage.size();
 		gTextureMaterialMapsGround.resize(groundTextureCount);
 
-#if !defined(DIRECT3D11)
-		addThreadSystemRangeTask(pIOThreads, &LoadGroundTexturesTask, pStagingData, groundTextureCount);
-#else
-		for (uint32_t i = 0; i < groundTextureCount; ++i)
+		if (!isResourceLoaderSingleThreaded())
 		{
-			LoadGroundTexturesTask(pStagingData, i);
+			addThreadSystemRangeTask(pIOThreads, &LoadGroundTexturesTask, pStagingData, groundTextureCount);
 		}
-#endif
+		else
+		{
+			for (uint32_t i = 0; i < groundTextureCount; ++i)
+			{
+				LoadGroundTexturesTask(pStagingData, i);
+			}
+		}
 	}
 
 	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
 	{
         StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-        desc.pFileName = pTaskData->mMaterialNamesStorage[i].c_str();
+        desc.pFileName = pTaskData->mMaterialNamesStorage[i];
 		desc.ppTexture = &gTextureMaterialMaps[i];
 		addResource(&desc, NULL);
 	}
@@ -2953,7 +3044,7 @@ class MaterialPlayground: public IApp
 	{
         StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-        desc.pFileName = pTaskData->mGroundNamesStorage[i].c_str();
+        desc.pFileName = pTaskData->mGroundNamesStorage[i];
 		desc.ppTexture = &gTextureMaterialMapsGround[i];
 		addResource(&desc, NULL);
 	}
@@ -3296,7 +3387,7 @@ class MaterialPlayground: public IApp
 	void LoadModel(uintptr_t i)
 	{
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFileName = pStagingData->mModelList[i].c_str();
+		loadDesc.pFileName = pStagingData->mModelList[i];
 		loadDesc.ppGeometry = &gMeshes[i];
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
 		addResource(&loadDesc, NULL);
@@ -3361,10 +3452,12 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
 		addResource(&skyboxVbDesc, NULL);
 
-#if !defined(DIRECT3D11)
+
 		// Load hair models
 		gUniformDataHairGlobal.mGravity = float4(0.0f, -9.81f, 0.0f, 0.0f);
 		gUniformDataHairGlobal.mWind = float4(0.0f);
+
+    gCapsules.clear();
 
 		NamedCapsule headCapsule = {};
 		headCapsule.mName = "Head";
@@ -3394,6 +3487,8 @@ class MaterialPlayground: public IApp
 		rightShoulderCapsule.mAttachedBone = 11;
 		gCapsules.push_back(rightShoulderCapsule);
 #endif
+
+    gTransforms.clear();
 
 		NamedTransform headTransform = {};
 		headTransform.mName = "Head";
@@ -3462,6 +3557,9 @@ class MaterialPlayground: public IApp
 		staticHairSimulationParameters.mGlobalConstraintRange = 1.0f;
 		staticHairSimulationParameters.mGlobalConstraintStiffness = 1.0f;
 
+    for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
+      gHairTypeIndices[i].clear();
+
 		AddHairMesh(
 			HAIR_TYPE_PONYTAIL, "ponytail", "Hair/tail.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
 			&ponytailHairShadingParameters, &ponytailHairSimulationParameters);
@@ -3489,7 +3587,7 @@ class MaterialPlayground: public IApp
 		AddHairMesh(
 			HAIR_TYPE_FEMALE_6, "female hair 6 tail", "Hair/female_hair_6_tail.gltf", (uint)(5 * gpuPresetScore),
 			0.5f, 0, &ponytailHairShadingParameters, &ponytailHairSimulationParameters);
-#endif
+
 
 		// Create skeleton buffers
 		const int   sphereResolution = 30;                  // Increase for higher resolution joint spheres
@@ -3659,17 +3757,15 @@ class MaterialPlayground: public IApp
 	void InitializeUniformBuffers()
 	{
 		// Update the uniform buffer for the objects
-		float baseX = 4.5f;
+		float baseX = 22.0f;
 		float baseY = -1.8f;
 		float baseZ = 12.0f;
-		float offsetX = 0.1f;
-		float scaleVal = 1.0f;
+		float offsetX = 8.0f;
+		float scaleVal = 4.0f;
 		float roughDelta = 1.0f;
 		float materialPlateOffset = 4.0f;
 
-		baseX = 22.0f;
-		offsetX = 8.0f;
-		scaleVal = 4.0f;
+		gTextWorldMats.clear();
 
 		for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 		{
@@ -3972,27 +4068,11 @@ class MaterialPlayground: public IApp
 
 	void LoadAnimations()
 	{
-#if !defined(DIRECT3D11)
-		// Create skeleton batcher
-		SkeletonRenderDesc skeletonRenderDesc = {};
-		skeletonRenderDesc.mRenderer = pRenderer;
-		skeletonRenderDesc.mSkeletonPipeline = pPipelineSkeleton;
-		skeletonRenderDesc.mRootSignature = pRootSignatureSkeleton;
-		skeletonRenderDesc.mJointVertexBuffer = pVertexBufferSkeletonJoint;
-		skeletonRenderDesc.mNumJointPoints = gVertexCountSkeletonJoint;
-		skeletonRenderDesc.mDrawBones = true;
-		skeletonRenderDesc.mBoneVertexBuffer = pVertexBufferSkeletonBone;
-		skeletonRenderDesc.mNumBonePoints = gVertexCountSkeletonBone;
-		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
-		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
-
-		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// Load rigs
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			gAnimationRig[hairType].Initialize(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
-			gSkeletonBatcher.AddRig(&gAnimationRig[hairType]);
 		}
 
 		// Load clips
@@ -4025,27 +4105,26 @@ class MaterialPlayground: public IApp
 			// Create animated object
 			gAnimatedObject[hairType].Initialize(&gAnimationRig[hairType], &gAnimation[hairType]);
 		}
-#endif
+
 	}
 
 	void DestroyAnimations()
 	{
-#if !defined(DIRECT3D11)
+
 		// Destroy clips
-		gAnimationClipNeckCrack.Destroy();
-		gAnimationClipStand.Destroy();
+		gAnimationClipNeckCrack.Exit();
+		gAnimationClipStand.Exit();
 
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			// Destroy rigs, animations and animated objects
-			gAnimationRig[hairType].Destroy();
-			gAnimation[hairType].Destroy();
-			gAnimatedObject[hairType].Destroy();
+			gAnimationRig[hairType].Exit();
+			gAnimation[hairType].Exit();
+			gAnimatedObject[hairType].Exit();
+			gAnimationClipControllerNeckCrack[hairType].Reset();
+			gAnimationClipControllerStand[hairType].Reset();
 		}
 
-		// Destroy skeleton batcher
-		gSkeletonBatcher.Destroy();
-#endif
 	}
 
 	//--------------------------------------------------------------------------------------------
@@ -4194,7 +4273,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineBRDF);
 
-#if !defined(DIRECT3D11)
+
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 0;
@@ -4344,7 +4423,7 @@ class MaterialPlayground: public IApp
 		gSkeletonBatcher.LoadPipeline(pPipelineSkeleton);
 
 		gUniformDataHairGlobal.mViewport = float4(0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight);
-#endif
+
 	}
 
 	void DestroyPipelines()
@@ -4352,7 +4431,7 @@ class MaterialPlayground: public IApp
 		removePipeline(pRenderer, pPipelineSkybox);
 		removePipeline(pRenderer, pPipelineBRDF);
 		removePipeline(pRenderer, pPipelineShadowPass);
-#if !defined(DIRECT3D11)
+
 		removePipeline(pRenderer, pPipelineHairClear);
 		removePipeline(pRenderer, pPipelineHairDepthPeeling);
 		removePipeline(pRenderer, pPipelineHairDepthResolve);
@@ -4367,7 +4446,7 @@ class MaterialPlayground: public IApp
 		removePipeline(pRenderer, pPipelineShowCapsules);
 		removePipeline(pRenderer, pPipelineSkeleton);
 		removePipeline(pRenderer, pPipelineHairShadow);
-#endif
+
 	}
 
 	void CreateRenderTargets()
@@ -4549,39 +4628,39 @@ void GuiController::UpdateDynamicUI()
 
 		if (gMaterialType != MATERIAL_HAIR)
 		{
-			GuiController::hairShadingDynamicWidgets.HideWidgets(pGuiWindowMain);
-			GuiController::hairSimulationDynamicWidgets.HideWidgets(pGuiWindowHairSimulation);
+			hideDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+			hideDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
-			GuiController::hairDynamicWidgets[gHairType].hairShading.HideWidgets(pGuiWindowMain);
-			GuiController::hairDynamicWidgets[gHairType].hairSimulation.HideWidgets(pGuiWindowHairSimulation);
+			hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+			hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 		}
 
 		if (gMaterialType == MATERIAL_HAIR)
 		{
-			GuiController::hairShadingDynamicWidgets.ShowWidgets(pGuiWindowMain);
-			GuiController::hairSimulationDynamicWidgets.ShowWidgets(pGuiWindowHairSimulation);
+			showDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+			showDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
-			GuiController::hairDynamicWidgets[gHairType].hairShading.ShowWidgets(pGuiWindowMain);
-			GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
+			showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+			showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 			gFirstHairSimulationFrame = true;
 		}
 
 		if (gMaterialType == MATERIAL_WOOD)
-			GuiController::materialDynamicWidgets.ShowWidgets(pGuiWindowMaterial);
+			showDynamicUIWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
 		else
-			GuiController::materialDynamicWidgets.HideWidgets(pGuiWindowMaterial);
+			hideDynamicUIWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
 
 		GuiController::currentMaterialType = (MaterialType)gMaterialType;
 	}
 
 	if (gHairType != GuiController::currentHairType)
 	{
-		GuiController::hairDynamicWidgets[gHairType].hairShading.HideWidgets(pGuiWindowMain);
-		GuiController::hairDynamicWidgets[gHairType].hairSimulation.HideWidgets(pGuiWindowHairSimulation);
+		hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 
 		gHairType = GuiController::currentHairType;
-		GuiController::hairDynamicWidgets[gHairType].hairShading.ShowWidgets(pGuiWindowMain);
-		GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
+		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 	}
 
 #if !defined(TARGET_IOS) && !defined(__ANDROID__)
@@ -4607,9 +4686,6 @@ void GuiController::AddGui()
 		MATERIAL_HAIR,
 	};
 	uint32_t dropDownCount = (sizeof(materialTypeNames) / sizeof(materialTypeNames[0]));
-#ifdef DIRECT3D11
-	--dropDownCount;
-#endif
 
 	static const char* diffuseReflectionNames[] = 
 	{
@@ -4634,39 +4710,120 @@ void GuiController::AddGui()
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
 	// SCENE GUI
-#if !defined(TARGET_IOS) && !defined(__ANDROID__)
-	pGuiWindowMain->AddWidget(CheckboxWidget("V-Sync", &gVSyncEnabled));
+	CheckboxWidget checkbox;
+	SliderFloatWidget sliderFloat;
+	SliderFloat3Widget sliderFloat3;
+#if HAIR_DEV_UI
+	SliderUintWidget sliderUint;
+	SliderIntWidget sliderInt;
 #endif
-	pGuiWindowMain->AddWidget(DropdownWidget("Material Type", &gMaterialType, materialTypeNames, materialTypeValues, dropDownCount));
 
-	pGuiWindowMain->AddWidget(CheckboxWidget("Animate Camera", &gbAnimateCamera));
-	ButtonWidget ReloadScriptButton("Reload script");
-	ReloadScriptButton.pOnDeactivatedAfterEdit = ReloadScriptButtonCallback;
-	pGuiWindowMain->AddWidget(ReloadScriptButton);
+#if !defined(TARGET_IOS) && !defined(__ANDROID__)
+	checkbox.pData = &gVSyncEnabled;
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "V-Sync", &checkbox, WIDGET_TYPE_CHECKBOX));
+#endif
+	DropdownWidget ddMatType;
+	ddMatType.pData = &gMaterialType;
+	for (uint32_t i = 0; i < dropDownCount; ++i)
+	{
+		ddMatType.mNames.push_back((char*)materialTypeNames[i]);
+		ddMatType.mValues.push_back(materialTypeValues[i]);
+	}
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "Material Type", &ddMatType, WIDGET_TYPE_DROPDOWN));
 
-	pGuiWindowMain->AddWidget(CheckboxWidget("Skybox", &gDrawSkybox));
+	checkbox.pData = &gbAnimateCamera;
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "Animate Camera", &checkbox, WIDGET_TYPE_CHECKBOX));
 	
-	CollapsingHeaderWidget SunLightWidgets("Lighting Options");
-	SunLightWidgets.AddSubWidget(CheckboxWidget("Environment Lighting", &gEnvironmentLighting));
-	SunLightWidgets.AddSubWidget(SliderFloatWidget("Environment Light Intensity", &gEnvironmentLightingIntensity, 0.0f, 1.0f, 0.005f));
-	SunLightWidgets.AddSubWidget(SliderFloatWidget("Ambient Light Intensity", &gAmbientLightIntensity, 0.0f, 1.0f, 0.005f));
-	SunLightWidgets.AddSubWidget(SliderFloatWidget("Directional Light Intensity", &gDirectionalLightIntensity, 0.0f, 150.0f, 0.10f));
-	SunLightWidgets.AddSubWidget(SliderFloat3Widget("Light Position", &gDirectionalLightPosition, float3(-100.0f), float3(100.0f)));
-	SunLightWidgets.AddSubWidget(ColorPickerWidget("Light Color", &gDirectionalLightColor));
-	pGuiWindowMain->AddWidget(SunLightWidgets);
+	ButtonWidget ReloadScriptButton;
+	IWidget* pReloadScript = addGuiWidget(pGuiWindowMain, "Reload script", &ReloadScriptButton, WIDGET_TYPE_BUTTON);
+	pReloadScript->pOnDeactivatedAfterEdit = ReloadScriptButtonCallback;
+	addWidgetLua(pReloadScript);
+
+	checkbox.pData = &gDrawSkybox;
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "Skybox", &checkbox, WIDGET_TYPE_CHECKBOX));
+	
+	CollapsingHeaderWidget SunLightWidgets;
+
+	checkbox.pData = &gEnvironmentLighting;
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Lighting", &checkbox, WIDGET_TYPE_CHECKBOX);
+	
+	sliderFloat.pData = &gEnvironmentLightingIntensity;
+	sliderFloat.mMin = 0.0f;
+	sliderFloat.mMax = 1.0f;
+	sliderFloat.mStep = 0.005f;
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+	
+	sliderFloat.pData = &gAmbientLightIntensity;
+	sliderFloat.mMin = 0.0f;
+	sliderFloat.mMax = 1.0f;
+	sliderFloat.mStep = 0.005f;
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Ambient Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+
+	sliderFloat.pData = &gDirectionalLightIntensity;
+	sliderFloat.mMin = 0.0f;
+	sliderFloat.mMax = 150.0f;
+	sliderFloat.mStep = 0.1f;
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Directional Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+
+	sliderFloat3.pData = &gDirectionalLightPosition;
+	sliderFloat3.mMin = float3(-100.0f);
+	sliderFloat3.mMax = float3(100.0f);
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Light Position", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+
+	ColorPickerWidget colorPicker;
+	colorPicker.pData = &gDirectionalLightColor;
+	addCollapsingHeaderSubWidget(&SunLightWidgets, "Light Color", &colorPicker, WIDGET_TYPE_COLOR_PICKER);
+
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "Lighting Options", &SunLightWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
 
 	// MATERIAL PROPERTIES GUI
-	GuiController::materialDynamicWidgets.AddWidget(
-		DropdownWidget("Diffuse Reflection Model", &gDiffuseReflectionModel, diffuseReflectionNames, diffuseReflectionValues, dropDownCount2));
-	pGuiWindowMaterial->AddWidget(DropdownWidget("Render Mode", &gRenderMode, renderModeNames, renderModeVals, dropDownCount3));
+	DropdownWidget ddReflModel;
+	ddReflModel.pData = &gDiffuseReflectionModel;
+	for (uint32_t i = 0; i < dropDownCount2; ++i)
+	{
+		ddReflModel.mNames.push_back((char*)diffuseReflectionNames[i]);
+		ddReflModel.mValues.push_back(diffuseReflectionValues[i]);
+	}
+	addDynamicUIWidget(&GuiController::materialDynamicWidgets, "Diffuse Reflection Model", &ddReflModel, WIDGET_TYPE_DROPDOWN);
+
+	DropdownWidget ddRenderMode;
+	ddRenderMode.pData = &gRenderMode;
+	for (uint32_t i = 0; i < dropDownCount3; ++i)
+	{
+		ddRenderMode.mNames.push_back((char*)renderModeNames[i]);
+		ddRenderMode.mValues.push_back(renderModeVals[i]);
+	}
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
+	
 	//pGuiWindowMaterial->AddWidget(sDiffuseReflModelDropdownWgt);
-	pGuiWindowMaterial->AddWidget(CheckboxWidget("Override Roughness", &gOverrideRoughnessTextures));
-	pGuiWindowMaterial->AddWidget(SliderFloatWidget("Roughness", &gRoughnessOverride, 0.04f, 1.0f));
-	pGuiWindowMaterial->AddWidget(CheckboxWidget("Disable Normal Maps", &gDisableNormalMaps));
-	pGuiWindowMaterial->AddWidget(SliderFloatWidget("Normal Map Intensity", &gNormalMapIntensity, 0.0f, 1.0f, 0.01f));
-	pGuiWindowMaterial->AddWidget(CheckboxWidget("Disable AO Maps", &gDisableAOMaps));
-	pGuiWindowMaterial->AddWidget(SliderFloatWidget("AO Intensity", &gAOIntensity, 0.0f, 1.0f, 0.001f));
+
+	checkbox.pData = &gOverrideRoughnessTextures;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Override Roughness", &checkbox, WIDGET_TYPE_CHECKBOX));
+	
+	sliderFloat.pData = &gRoughnessOverride;
+	sliderFloat.mMin = 0.04f;
+	sliderFloat.mMax = 1.0f;
+	sliderFloat.mStep = 0.01f;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Roughness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+
+	checkbox.pData = &gDisableNormalMaps;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Disable Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+	
+	sliderFloat.pData = &gNormalMapIntensity;
+	sliderFloat.mMin = 0.0f;
+	sliderFloat.mMax = 1.0f;
+	sliderFloat.mStep = 0.01f;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Normal Map Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+	
+	checkbox.pData = &gDisableAOMaps;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Disable AO Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+	
+	sliderFloat.pData = &gAOIntensity;
+	sliderFloat.mMin = 0.0f;
+	sliderFloat.mMax = 1.0f;
+	sliderFloat.mStep = 0.001f;
+	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "AO Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 	// HAIR GUI
 	{
@@ -4677,8 +4834,17 @@ void GuiController::AddGui()
 		static const uint32_t hairColorValues[HAIR_COLOR_COUNT] = { HAIR_COLOR_BROWN, HAIR_COLOR_BLONDE, HAIR_COLOR_BLACK, HAIR_COLOR_RED };
 
 		// Hair shading widgets
-		GuiController::hairShadingDynamicWidgets.AddWidget(LabelWidget("Hair Shading"));
-		GuiController::hairShadingDynamicWidgets.AddWidget(DropdownWidget("Hair Color", &gHairColor, hairColorNames, hairColorValues, HAIR_COLOR_COUNT));
+		LabelWidget hairLabel;
+		addDynamicUIWidget(&GuiController::hairShadingDynamicWidgets, "Hair Shading", &hairLabel, WIDGET_TYPE_LABEL);
+
+		DropdownWidget ddHairColor;
+		ddHairColor.pData = &gHairColor;
+		for (uint32_t i = 0; i < HAIR_COLOR_COUNT; ++i)
+		{
+			ddHairColor.mNames.push_back((char*)hairColorNames[i]);
+			ddHairColor.mValues.push_back(hairColorValues[i]);
+		}
+		addDynamicUIWidget(&GuiController::hairShadingDynamicWidgets, "Hair Color", &ddHairColor, WIDGET_TYPE_DROPDOWN);
 
 #if HAIR_DEV_UI
 		static const char* hairNames[HAIR_TYPE_COUNT] = { "Ponytail", "Female hair 1", "Female hair 2", "Female hair 3", "Female hair 6" };
@@ -4686,108 +4852,175 @@ void GuiController::AddGui()
 		static const uint32_t hairTypeValues[HAIR_TYPE_COUNT] = { HAIR_TYPE_PONYTAIL, HAIR_TYPE_FEMALE_1, HAIR_TYPE_FEMALE_2,
 																  HAIR_TYPE_FEMALE_3, HAIR_TYPE_FEMALE_6 };
 
-		GuiController::hairShadingDynamicWidgets.AddWidget(DropdownWidget("Hair type", &GuiController::currentHairType, hairNames, hairTypeValues, HAIR_TYPE_COUNT));
+		DropdownWidget ddHairType;
+		ddHairType.pData = &GuiController::currentHairType;
+		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
+		{
+			ddHairType.mNames.push_back((char*)hairNames[i]);
+			ddHairType.mValues.push_back(hairTypeValues[i]);
+		}
+		addDynamicUIWidget(&GuiController::hairShadingDynamicWidgets, "Hair type", &ddHairType, WIDGET_TYPE_DROPDOWN);
 
 		for (uint i = 0; i < HAIR_TYPE_COUNT; ++i)
 		{
 			for (size_t j = 0; j < gHairTypeIndices[i].size(); ++j)
 			{
 				uint                    k = gHairTypeIndices[i][j];
-				CollapsingHeaderWidget* header =
-					(CollapsingHeaderWidget*)GuiController::hairDynamicWidgets[i].hairShading.AddWidget(CollapsingHeaderWidget(gHair[k].mName));
 				UniformDataHairShading* hair = &gHair[k].mUniformDataHairShading;
 
-				ColorSliderWidget rootColor("Root Color", &hair->mRootColor);
-				header->AddSubWidget(rootColor);
+				CollapsingHeaderWidget header;
 
-				ColorSliderWidget strandColor("Strand Color", &hair->mStrandColor);
-				header->AddSubWidget(strandColor);
+				ColorSliderWidget rootColor;
+				rootColor.pData = &hair->mRootColor;
+				addCollapsingHeaderSubWidget(&header, "Root Color", &rootColor, WIDGET_TYPE_COLOR_SLIDER);
 
-				SliderFloatWidget colorBias("Color Bias", &hair->mColorBias, 0.0f, 10.0f);
-				header->AddSubWidget(colorBias);
+				ColorSliderWidget strandColor;
+				strandColor.pData = &hair->mStrandColor;
+				addCollapsingHeaderSubWidget(&header, "Strand Color", &strandColor, WIDGET_TYPE_COLOR_SLIDER);
 
-				SliderFloatWidget diffuse("Kd", &hair->mKDiffuse, 0.0f, 1.0f);
-				header->AddSubWidget(diffuse);
+				sliderFloat.pData = &hair->mColorBias;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 10.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Color Bias", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget specular1("Ks1", &hair->mKSpecular1, 0.0f, 0.1f, 0.001f);
-				header->AddSubWidget(specular1);
+				sliderFloat.pData = &hair->mKDiffuse;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				addCollapsingHeaderSubWidget(&header, "Kd", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget exponent1("Ex1", &hair->mKExponent1, 0.0f, 128.0f);
-				header->AddSubWidget(exponent1);
+				sliderFloat.pData = &hair->mKSpecular1;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 0.1f;
+				sliderFloat.mStep = 0.001f;
+				addCollapsingHeaderSubWidget(&header, "Ks1", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget specular2("Ks2", &hair->mKSpecular2, 0.0f, 0.1f, 0.001f);
-				header->AddSubWidget(specular2);
+				sliderFloat.pData = &hair->mKExponent1;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 128.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Ex1", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget exponent2("Ex2", &hair->mKExponent2, 0.0f, 128.0f);
-				header->AddSubWidget(exponent2);
+				sliderFloat.pData = &hair->mKSpecular2;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 0.1f;
+				sliderFloat.mStep = 0.001f;
+				addCollapsingHeaderSubWidget(&header, "Ks2", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget fiberRadius("Strand Radius", &gHair[k].mStrandRadius, 0.0f, 1.0f, 0.01f);
-				header->AddSubWidget(fiberRadius);
+				sliderFloat.pData = &hair->mKExponent2;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 128.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Ex2", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget fiberSpacing("Strand Spacing", &gHair[k].mStrandSpacing, 0.0f, 1.0f, 0.01f);
-				header->AddSubWidget(fiberSpacing);
+				sliderFloat.pData = &gHair[k].mStrandRadius;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				addCollapsingHeaderSubWidget(&header, "Strand Radius", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+
+				sliderFloat.pData = &gHair[k].mStrandSpacing;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				addCollapsingHeaderSubWidget(&header, "Strand Spacing", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+
+				addDynamicUIWidget(&GuiController::hairDynamicWidgets[i].hairShading, ""/*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 			}
 		}
 #endif
 
 		// Hair simulation widgets
-		GuiController::hairSimulationDynamicWidgets.AddWidget(LabelWidget("Hair Simulation"));
-		GuiController::hairSimulationDynamicWidgets.AddWidget(SliderFloat3Widget("Gravity", (float3*)&gUniformDataHairGlobal.mGravity, float3(-10.0f), float3(10.0f)));
-		GuiController::hairSimulationDynamicWidgets.AddWidget(SliderFloat3Widget("Wind", (float3*)&gUniformDataHairGlobal.mWind, float3(-1024.0f), float3(1024.0f)));
+		LabelWidget hairSim;
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Hair Simulation", &hairSim, WIDGET_TYPE_LABEL);
+
+		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mGravity; //-V641 //-V1027
+		sliderFloat3.mMin = float3(-10.0f);
+		sliderFloat3.mMax = float3(10.0f);
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Gravity", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+
+		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mWind; //-V641 //-V1027
+		sliderFloat3.mMin = float3(-1024.0f);
+		sliderFloat3.mMax = float3(1024.0f);
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Wind", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
-		GuiController::hairSimulationDynamicWidgets.AddWidget(CheckboxWidget("Show Collision Capsules", &gShowCapsules));
+		checkbox.pData = &gShowCapsules;
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Show Collision Capsules", &checkbox, WIDGET_TYPE_CHECKBOX);
 #endif
 
 #if HAIR_DEV_UI
-		CollapsingHeaderWidget* transformHeader = (CollapsingHeaderWidget*)GuiController::hairSimulationDynamicWidgets.AddWidget(CollapsingHeaderWidget("Transforms"));
+		CollapsingHeaderWidget transformHeader;
 
 		for (size_t i = 0; i < gTransforms.size(); ++i)
 		{
-			CollapsingHeaderWidget header(gTransforms[i].mName);
+			CollapsingHeaderWidget header;
 			Transform*             transform = &gTransforms[i].mTransform;
 
-			SliderFloat3Widget position("Position", (float3*)&transform->mPosition, float3(-10.0f), float3(10.0f));
-			header.AddSubWidget(position);
+			sliderFloat3.pData = (float3*)&transform->mPosition;
+			sliderFloat3.mMin = float3(-10.0f);
+			sliderFloat3.mMax = float3(10.0f);
+			addCollapsingHeaderSubWidget(&header, "Position", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
-			SliderFloat3Widget orientation("Orientation", (float3*)&transform->mOrientation, float3(-PI * 2.0f), float3(PI * 2.0f));
-			header.AddSubWidget(orientation);
+			sliderFloat3.pData = (float3*)&transform->mOrientation;
+			sliderFloat3.mMin = float3(-PI * 2.0f);
+			sliderFloat3.mMax = float3(PI * 2.0f);
+			addCollapsingHeaderSubWidget(&header, "Orientation", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
-			SliderFloatWidget scale("Scale", &transform->mScale, 0.001f, 1.0f, 0.001f);
-			header.AddSubWidget(scale);
+			sliderFloat.pData = &transform->mScale;
+			sliderFloat.mMin = 0.001f;
+			sliderFloat.mMax = 1.0f;
+			sliderFloat.mStep = 0.001f;
+			addCollapsingHeaderSubWidget(&header, "Scale", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			SliderIntWidget attachedBone("Attached To Bone", &gTransforms[i].mAttachedBone, -1, gAnimationRig[0].GetNumJoints() - 1);
-			header.AddSubWidget(attachedBone);
+			sliderInt.pData = &gTransforms[i].mAttachedBone;
+			sliderInt.mMin = -1;
+			sliderInt.mMax = gAnimationRig[0].GetNumJoints() - 1;
+			addCollapsingHeaderSubWidget(&header, "Attached To Bone", &sliderInt, WIDGET_TYPE_SLIDER_INT);
 
-			transformHeader->AddSubWidget(header);
+			addCollapsingHeaderSubWidget(&transformHeader, gTransforms[i].mName, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 		}
 
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Transforms", &transformHeader, WIDGET_TYPE_COLLAPSING_HEADER);
+
 #if HAIR_MAX_CAPSULE_COUNT > 0
-		CollapsingHeaderWidget* capsuleHeader = (CollapsingHeaderWidget*)
-		GuiController::hairSimulationDynamicWidgets.AddWidget(CollapsingHeaderWidget("Capsules"));
+
+		 CollapsingHeaderWidget capsuleHeader;
 
 		for (size_t i = 0; i < gCapsules.size(); ++i)
 		{
-			CollapsingHeaderWidget header(gCapsules[i].mName);
+			CollapsingHeaderWidget header;
 			Capsule*               capsule = &gCapsules[i].mCapsule;
 
-			SliderFloat3Widget center0("Center0", &capsule->mCenter0, float3(-10.0f), float3(10.0f));
-			header.AddSubWidget(center0);
+			sliderFloat3.pData = &capsule->mCenter0;
+			sliderFloat3.mMin = float3(-10.0f);
+			sliderFloat3.mMax = float3(10.0f);
+			addCollapsingHeaderSubWidget(&header, "Center0", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
-			SliderFloatWidget radius0("Radius0", &capsule->mRadius0, 0.0f, 10.0f);
-			header.AddSubWidget(radius0);
+			sliderFloat.pData = &capsule->mRadius0;
+			sliderFloat.mMin = 0.0f;
+			sliderFloat.mMax = 10.0f;
+			sliderFloat.mStep = 0.01f;
+			addCollapsingHeaderSubWidget(&header, "Radius0", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			SliderFloat3Widget center1("Center1", &capsule->mCenter1, float3(-10.0f), float3(10.0f));
-			header.AddSubWidget(center1);
+			sliderFloat3.pData = &capsule->mCenter1;
+			sliderFloat3.mMin = float3(-10.0f);
+			sliderFloat3.mMax = float3(10.0f);
+			addCollapsingHeaderSubWidget(&header, "Center1", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
-			SliderFloatWidget radius1("Radius1", &capsule->mRadius1, 0.0f, 10.0f);
-			header.AddSubWidget(radius1);
+			sliderFloat.pData = &capsule->mRadius1;
+			sliderFloat.mMin = 0.0f;
+			sliderFloat.mMax = 10.0f;
+			sliderFloat.mStep = 0.01f;
+			addCollapsingHeaderSubWidget(&header, "Radius1", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			SliderIntWidget attachedBone("Attached To Bone", &gCapsules[i].mAttachedBone, -1, gAnimationRig[0].GetNumJoints() - 1);
-			header.AddSubWidget(attachedBone);
+			sliderInt.pData = &gCapsules[i].mAttachedBone;
+			sliderInt.mMin = -1;
+			sliderInt.mMax = gAnimationRig[0].GetNumJoints() - 1;
+			addCollapsingHeaderSubWidget(&header, "Attached To Bone", &sliderInt, WIDGET_TYPE_SLIDER_INT);
 
-			capsuleHeader->AddSubWidget(header);
+			addCollapsingHeaderSubWidget(&capsuleHeader, gCapsules[i].mName, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 		}
+
+		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Capsules", &capsuleHeader, WIDGET_TYPE_COLLAPSING_HEADER);
 #endif
 
 		for (uint i = 0; i < HAIR_TYPE_COUNT; ++i)
@@ -4795,35 +5028,58 @@ void GuiController::AddGui()
 			for (size_t j = 0; j < gHairTypeIndices[i].size(); ++j)
 			{
 				uint                    k = gHairTypeIndices[i][j];
-				CollapsingHeaderWidget* header = (CollapsingHeaderWidget*)
-				GuiController::hairDynamicWidgets[i].hairSimulation.AddWidget(CollapsingHeaderWidget(gHair[k].mName));
 				UniformDataHairSimulation* hair = &gHair[k].mUniformDataHairSimulation;
 
-				SliderFloatWidget damping("Damping", &hair->mDamping, 0.0f, 0.1f, 0.001f);
-				header->AddSubWidget(damping);
+				CollapsingHeaderWidget header;
 
-				SliderFloatWidget globalConstraintStiffness(
-					"Global Constraint Stiffness", &hair->mGlobalConstraintStiffness, 0.0f, 0.1f, 0.001f);
-				header->AddSubWidget(globalConstraintStiffness);
+				sliderFloat.pData = &hair->mDamping;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 0.1f;
+				sliderFloat.mStep = 0.001f;
+				addCollapsingHeaderSubWidget(&header, "Damping", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget globalConstraintRange("Global Constraint Range", &hair->mGlobalConstraintRange, 0.0f, 1.0f);
-				header->AddSubWidget(globalConstraintRange);
+				sliderFloat.pData = &hair->mGlobalConstraintStiffness;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 0.1f;
+				sliderFloat.mStep = 0.001f;
+				addCollapsingHeaderSubWidget(&header, "Global Constraint Stiffness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget vspStrength("Shock Propagation Strength", &hair->mShockPropagationStrength, 0.0f, 1.0f);
-				header->AddSubWidget(vspStrength);
+				sliderFloat.pData = &hair->mGlobalConstraintRange;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Global Constraint Range", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget vspAccelerationThreshold(
-					"Shock Propagation Acceleration Threshold", &hair->mShockPropagationAccelerationThreshold, 0.0f, 10.0f);
-				header->AddSubWidget(vspAccelerationThreshold);
+				sliderFloat.pData = &hair->mShockPropagationStrength;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Shock Propagation Strength", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderFloatWidget localStiffness("Local Stiffness", &hair->mLocalStiffness, 0.0f, 1.0f);
-				header->AddSubWidget(localStiffness);
+				sliderFloat.pData = &hair->mShockPropagationAccelerationThreshold;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 10.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Shock Propagation Acceleration Threshold", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderUintWidget localConstraintIterations("Local Constraint Iterations", &hair->mLocalConstraintIterations, 0, 32);
-				header->AddSubWidget(localConstraintIterations);
+				sliderFloat.pData = &hair->mLocalStiffness;
+				sliderFloat.mMin = 0.0f;
+				sliderFloat.mMax = 1.0f;
+				sliderFloat.mStep = 0.01f;
+				addCollapsingHeaderSubWidget(&header, "Local Stiffness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				SliderUintWidget lengthConstraintIterations("Length Constraint Iterations", &hair->mLengthConstraintIterations, 1, 32);
-				header->AddSubWidget(lengthConstraintIterations);
+				sliderUint.pData = &hair->mLocalConstraintIterations;
+				sliderUint.mMin = 0;
+				sliderUint.mMax = 32;
+				sliderUint.mStep = 1;
+				addCollapsingHeaderSubWidget(&header, "Local Constraint Iterations", &sliderUint, WIDGET_TYPE_SLIDER_UINT);
+
+				sliderUint.pData = &hair->mLengthConstraintIterations;
+				sliderUint.mMin = 1;
+				sliderUint.mMax = 32;
+				addCollapsingHeaderSubWidget(&header, "Length Constraint Iterations", &sliderUint, WIDGET_TYPE_SLIDER_UINT);
+
+				addDynamicUIWidget(&GuiController::hairDynamicWidgets[i].hairSimulation, ""/*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 			}
 		}
 #endif
@@ -4832,28 +5088,36 @@ void GuiController::AddGui()
 	if (gMaterialType == MaterialType::MATERIAL_HAIR)
 	{
 		GuiController::currentMaterialType = MaterialType::MATERIAL_HAIR;
-		GuiController::hairShadingDynamicWidgets.ShowWidgets(pGuiWindowMain);
-		GuiController::hairSimulationDynamicWidgets.ShowWidgets(pGuiWindowHairSimulation);
-		GuiController::hairDynamicWidgets[gHairType].hairShading.ShowWidgets(pGuiWindowMain);
-		GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
+		showDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+		showDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
+		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 	}
 
-	DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-	ButtonWidget bRunScript("Run");
-	bRunScript.pOnEdited = RunScript;
-	pGuiWindowMain->AddWidget(ddTestScripts);
-	pGuiWindowMain->AddWidget(bRunScript);
+	DropdownWidget ddTestScripts;
+	ddTestScripts.pData = &gCurrentScriptIndex;
+	for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+	{
+		ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+		ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+	}
+	addWidgetLua(addGuiWidget(pGuiWindowMain, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+	ButtonWidget bRunScript;
+	IWidget* pRunScript = addGuiWidget(pGuiWindowMain, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+	pRunScript->pOnEdited = RunScript;
+	addWidgetLua(pRunScript);
 }
 
 void GuiController::Exit()
 {
-	hairShadingDynamicWidgets.Destroy();
-	hairSimulationDynamicWidgets.Destroy();
-	materialDynamicWidgets.Destroy();
+	removeDynamicUI(&hairShadingDynamicWidgets);
+	removeDynamicUI(&hairSimulationDynamicWidgets);
+	removeDynamicUI(&materialDynamicWidgets);
 	for (HairDynamicWidgets& w : hairDynamicWidgets)
 	{
-		w.hairShading.Destroy();
-		w.hairSimulation.Destroy();
+		removeDynamicUI(&w.hairShading);
+		removeDynamicUI(&w.hairSimulation);
 	}
 	hairDynamicWidgets.set_capacity(0);
 }

@@ -451,6 +451,7 @@ struct InputSystemImpl : public gainput::InputListener
 	const eastl::unordered_map<uint32_t, CompositeControl> mGamepadCompositeMap
 	{
 		{ InputBindings::FLOAT_LEFTSTICK, { { gainput::KeyD, gainput::KeyA, gainput::KeyW, gainput::KeyS }, 4 } },
+		{ InputBindings::FLOAT_RIGHTSTICK, { { gainput::KeyL, gainput::KeyJ, gainput::KeyI, gainput::KeyK }, 4 } },
 	};
 #endif
 
@@ -490,16 +491,16 @@ struct InputSystemImpl : public gainput::InputListener
 	void*                                    pGainputView = NULL;
 #endif
 
-	InputDeviceType*                         pDeviceTypes;
-	gainput::DeviceId*                       pGamepadDeviceIDs;
-	gainput::DeviceId                        mMouseDeviceID;
-	gainput::DeviceId                        mRawMouseDeviceID;
-	gainput::DeviceId                        mKeyboardDeviceID;
-	gainput::DeviceId                        mTouchDeviceID;
+	InputDeviceType*                         pDeviceTypes = NULL;
+	gainput::DeviceId*                       pGamepadDeviceIDs = NULL;
+	gainput::DeviceId                        mMouseDeviceID = {};
+	gainput::DeviceId                        mRawMouseDeviceID = {};
+	gainput::DeviceId                        mKeyboardDeviceID = {};
+	gainput::DeviceId                        mTouchDeviceID = {};
 
-	bool                                     mVirtualKeyboardActive;
-	bool                                     mInputCaptured;
-	bool                                     mDefaultCapture;
+	bool                                     mVirtualKeyboardActive = false;
+	bool                                     mInputCaptured = false;
+	bool                                     mDefaultCapture = false;
 
 	bool Init(WindowsDesc* window)
 	{
@@ -809,7 +810,7 @@ struct InputSystemImpl : public gainput::InputListener
 				mControls[mMouseDeviceID][mouseIt->second].emplace_back(pControl);
 #endif
 		}
-		else if (InputBindings::FLOAT_BINDINGS_BEGIN <= control && InputBindings::FLOAT_BINDINGS_END >= control)
+		else if (InputBindings::FLOAT_BINDINGS_BEGIN <= control && InputBindings::FLOAT_BINDINGS_END >= control) //-V560
 		{
 			if (InputBindings::FLOAT_DPAD == control)
 			{
@@ -1221,7 +1222,7 @@ struct InputSystemImpl : public gainput::InputListener
 						if (deviceButton == pControl->mControls[index])
 							break;
 
-					const uint32_t axis = (index > 1);
+					const uint32_t axis = (index > 1) ? 1 : 0;
 					if (newValue)
 					{
 						pControl->mPressedVal[index] = 1;
@@ -1307,6 +1308,7 @@ struct InputSystemImpl : public gainput::InputListener
 
 						mFloatDeltaControlCancelQueue.insert(pControl);
 					}
+					break;
 				}
 #if TOUCH_INPUT
 				case CONTROL_VIRTUAL_JOYSTICK:
@@ -1473,21 +1475,28 @@ struct InputSystemImpl : public gainput::InputListener
 					const uint32_t axis = (deviceButton - pControl->mStartButton);
 
 					pControl->mNewValue[axis] = newValue;
-					bool equal = true;
-					for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
-						equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
-
 					pControl->mPerformed |= (1 << axis);
-					pControl->mValue[axis] = pControl->mNewValue[axis];
 
-					if (pControl->mPerformed == pControl->mTarget && pDesc->pFunction)
+					if (pControl->mPerformed == pControl->mTarget)
 					{
-						ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-						ctx.mFloat3 = pControl->mValue;
-						executeNext = pDesc->pFunction(&ctx) && executeNext;
-					}
+						bool equal = true;
+						for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
+							equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
 
-					if (pControl->mPerformed != pControl->mTarget)
+						pControl->mValue = pControl->mNewValue;
+
+						if (pDesc->pFunction)
+						{
+							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+							ctx.mFloat3 = pControl->mValue;
+
+							if (!equal)
+							{
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+						}
+					}
+					else
 						continue;
 
 					pControl->mPerformed = 0;

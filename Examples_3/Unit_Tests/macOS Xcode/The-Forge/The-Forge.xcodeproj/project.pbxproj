@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C172F4E214148840074EE71 /* IResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* IResourceLoader.h */; };
 		5C172F50214148840074EE71 /* IRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
 		5C172F52214148840074EE71 /* IShaderReflection.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F48214148830074EE71 /* IShaderReflection.h */; };
 		5C172F53214148840074EE71 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F49214148830074EE71 /* CommonShaderReflection.cpp */; };
@@ -123,6 +122,10 @@
 		81856F14229D72EF00F3A92B /* assert.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F12229D72EF00F3A92B /* assert.cpp */; };
 		81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
 		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
+		B22CEE9225D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
+		B22CEE9325D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
+		B22CEEDA25D686980062036A /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B22CEED925D686980062036A /* GPUConfig.h */; };
+		B22CEF6A25D68BA30062036A /* IResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* IResourceLoader.h */; };
 		B231A24823F40207006D7450 /* ProfilerBase.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24023F40207006D7450 /* ProfilerBase.h */; };
 		B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24223F40207006D7450 /* GpuProfiler.cpp */; };
 		B231A24D23F40207006D7450 /* GpuProfiler.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24323F40207006D7450 /* GpuProfiler.h */; };
@@ -275,6 +278,8 @@
 		81856EFF229D729000F3A92B /* fixed_pool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fixed_pool.cpp; path = OpenSource/EASTL/fixed_pool.cpp; sourceTree = "<group>"; };
 		81856F12229D72EF00F3A92B /* assert.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = assert.cpp; path = OpenSource/EASTL/assert.cpp; sourceTree = "<group>"; };
 		81FF8E292237A9D30009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
+		B22CEE9125D682460062036A /* Renderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Renderer.cpp; sourceTree = "<group>"; };
+		B22CEED925D686980062036A /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUConfig.h; sourceTree = "<group>"; };
 		B231A24023F40207006D7450 /* ProfilerBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerBase.h; sourceTree = "<group>"; };
 		B231A24223F40207006D7450 /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GpuProfiler.cpp; sourceTree = "<group>"; };
 		B231A24323F40207006D7450 /* GpuProfiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuProfiler.h; sourceTree = "<group>"; };
@@ -615,6 +620,7 @@
 		E9F5E30B23446A500036861A /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				B22CEED925D686980062036A /* GPUConfig.h */,
 				B2CE780D25664A9600A0FF1B /* Screenshot.cpp */,
 				D205E2831F9F9EC600040CCE /* RingBuffer.h */,
 			);
@@ -671,6 +677,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				B22CEE9125D682460062036A /* Renderer.cpp */,
 				5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
 				65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */,
@@ -759,9 +766,10 @@
 				5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */,
 				B231A24D23F40207006D7450 /* GpuProfiler.h in Headers */,
 				E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */,
+				B22CEF6A25D68BA30062036A /* IResourceLoader.h in Headers */,
 				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
-				5C172F4E214148840074EE71 /* IResourceLoader.h in Headers */,
+				B22CEEDA25D686980062036A /* GPUConfig.h in Headers */,
 				654D97A121E922F400113964 /* Clip.h in Headers */,
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
@@ -791,6 +799,7 @@
 				5C172FC421414C490074EE71 /* Sources */,
 				5C172FC521414C490074EE71 /* Frameworks */,
 				5C172FC621414C490074EE71 /* Copy Files */,
+				9732805E25C1AFCF0076E8FF /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -809,6 +818,7 @@
 				5C5582DC21413D180019960B /* Sources */,
 				5C5582DD21413D180019960B /* Frameworks */,
 				5C5582DE21413D180019960B /* Headers */,
+				97C908C225BF3B47003C978D /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -879,6 +889,43 @@
 		};
 /* End PBXReferenceProxy section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		9732805E25C1AFCF0076E8FF /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "MID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${MID}/UI/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\nfor fsl in \"${MID}/Text/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\nfor fsl in \"${MID}/PaniniProjection/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\n";
+		};
+		97C908C225BF3B47003C978D /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "MID=\"$SRCROOT/../../../../Middleware_3\"\nfor fsl in \"${MID}/UI/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\nfor fsl in \"${MID}/Text/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\nfor fsl in \"${MID}/PaniniProjection/Shaders/FSL/\"*.fsl; do\n    echo ${fsl}\n    python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${fsl}\" -d \"${PROJECT_DIR}/Shaders/\" -b \"${PROJECT_DIR}/Shaders/Binary\" -l METAL\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5C172FC421414C490074EE71 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -932,6 +979,7 @@
 				B2DC6E9923F27C6600D48312 /* zip.cpp in Sources */,
 				81856F07229D729000F3A92B /* string.cpp in Sources */,
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
+				B22CEE9325D682460062036A /* Renderer.cpp in Sources */,
 				81856F09229D729000F3A92B /* thread_support.cpp in Sources */,
 				B2CE780F25664A9600A0FF1B /* Screenshot.cpp in Sources */,
 				81856F0F229D729000F3A92B /* numeric_limits.cpp in Sources */,
@@ -1008,6 +1056,7 @@
 				E9B6292D23388D7D009DD4AB /* UnixFileSystem.cpp in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				B2B2F1C42472F7BF00B483FF /* rmem_hook.cpp in Sources */,
+				B22CEE9225D682460062036A /* Renderer.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				E967DE3A233B0A2C0032E4BA /* DarwinThread.cpp in Sources */,
 				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
@@ -1266,6 +1315,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include";
 			};

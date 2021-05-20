@@ -248,7 +248,7 @@ void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* 
 	pThreadSystem->mQueueCond.WakeAll();
 }
 
-void shutdownThreadSystem(ThreadSystem* pThreadSystem)
+void exitThreadSystem(ThreadSystem* pThreadSystem)
 {
 	pThreadSystem->mQueueMutex.Acquire();
 	pThreadSystem->mRun = false;

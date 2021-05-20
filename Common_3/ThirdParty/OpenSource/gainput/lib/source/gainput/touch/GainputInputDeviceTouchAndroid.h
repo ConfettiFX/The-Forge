@@ -53,8 +53,6 @@ public:
 			GAINPUT_ASSERT(i < TouchPointCount);
 			const float x = AMotionEvent_getX(event, i);
 			const float y = AMotionEvent_getY(event, i);
-			const int32_t w = manager_.GetDisplayWidth();
-			const int32_t h = manager_.GetDisplayHeight();
 			HandleFloat(Touch0X + i*TouchDataElems, x);
 			HandleFloat(Touch0Y + i*TouchDataElems, y);
 			const int motionAction = AMotionEvent_getAction(event);
@@ -62,6 +60,8 @@ public:
 			HandleBool(Touch0Down + i*TouchDataElems, down);
 			HandleFloat(Touch0Pressure + i*TouchDataElems, AMotionEvent_getPressure(event, i));
 #ifdef GAINPUT_DEBUG
+			const int32_t w = manager_.GetDisplayWidth();
+			const int32_t h = manager_.GetDisplayHeight();
 			GAINPUT_LOG("Touch %i) x: %f, y: %f, w: %i, h: %i, action: %d\n", i, x, y, w, h, motionAction);
 #endif
 		}

@@ -52,7 +52,7 @@ void AnimatedObject::Initialize(Rig* rig, Animation* animation)
 	mLocalTrans = allocator->AllocateRange<SoaTransform>(rig->GetNumSoaJoints());
 }
 
-void AnimatedObject::Destroy()
+void AnimatedObject::Exit()
 {
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 	allocator->Deallocate(mLocalTrans);

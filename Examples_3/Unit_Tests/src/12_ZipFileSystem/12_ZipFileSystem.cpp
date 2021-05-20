@@ -94,7 +94,7 @@ RootSignature* pRootSignature = NULL;
 Sampler* pSamplerSkybox = NULL;
 Texture* pSkyboxTextures[6];
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 //Zip File Test Texture
 Texture* pZipTexture[1];
@@ -116,7 +116,8 @@ UniformBlock		gUniformData;
 ICameraController* pCameraController = NULL;
 
 /// UI
-UIApp gAppUI;
+UIApp* pAppUI = NULL;
+static uint32_t		  gSelectedApiIndex = 0;
 
 const char* pSkyboxImageFileNames[] = { "Skybox/Skybox_right1",  "Skybox/Skybox_left2",  "Skybox/Skybox_top3",
 										"Skybox/Skybox_bottom4", "Skybox/Skybox_front5", "Skybox/Skybox_back6" };
@@ -136,7 +137,7 @@ GuiComponent* pGui_ZipData = NULL;
 //Zip file for testing
 const char* pZipFiles = "28-ZipFileSystem.zip";
 
-eastl::vector<eastl::string> gTextDataVector;
+eastl::vector<char*> gTextDataVector;
 
 //structures for loaded model 
 Geometry* pMesh;
@@ -146,12 +147,6 @@ const char* pMTunerOut = "testout.txt";
 IFileSystem gZipFileSystem = {};
 bool fsOpenZipFile(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, IFileSystem* pOut);
 bool fsCloseZipFile(IFileSystem* pZip);
-
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
-}
 
 class FileSystemUnitTest : public IApp
 {
@@ -173,6 +168,7 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,"CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,     "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_ZIP_TEXT,       "");
 		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_TEXTURES,       "Textures");
 		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_MESHES,         "Meshes");
@@ -213,19 +209,280 @@ public:
 			return false;
 		}
 		pDataOfFile[textFile0Size] = 0;
+
+		for (char* text : gTextDataVector)
+			tf_free(text);
 		gTextDataVector.clear();
 		gTextDataVector.push_back(pDataOfFile);
 
-		//Free the data buffer which was malloc'ed
-		if (pDataOfFile != NULL)
+		// window and renderer setup
+		pRenderer = NULL;
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			tf_free(pDataOfFile);
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
 		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		// Initialize microprofiler and its UI.
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		// Gpu profiler can only be added after initProfile.
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		//Load Zip file texture
+		TextureLoadDesc textureDescZip = {};
+		textureDescZip.pFileName = pCubeTextureName[0];
+		textureDescZip.ppTexture = &pZipTexture[0];
+		addResource(&textureDescZip, NULL);
+
+		// Loads Skybox Textures
+		for (int i = 0; i < 6; ++i)
+		{
+			TextureLoadDesc textureDesc = {};
+			textureDesc.pFileName = pSkyboxImageFileNames[i];
+			textureDesc.ppTexture = &pSkyboxTextures[i];
+			addResource(&textureDesc, NULL);
+		}
+
+		GeometryLoadDesc loadDesc = {};
+		loadDesc.pFileName = pModelFileName[0];
+		loadDesc.ppGeometry = &pMesh;
+		loadDesc.pVertexLayout = &gVertexLayoutDefault;
+		addResource(&loadDesc, NULL);
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+		{
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+			return false;
+		}
+
+		ShaderLoadDesc skyShader = {};
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+		ShaderLoadDesc zipTextureShader = {};
+		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0 };
+		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0 };
+
+		addShader(pRenderer, &skyShader, &pSkyboxShader);
+		addShader(pRenderer, &basicShader, &pBasicShader);
+		addShader(pRenderer, &zipTextureShader, &pZipTextureShader);
+
+		SamplerDesc samplerDesc = { FILTER_LINEAR,
+									FILTER_LINEAR,
+									MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pSamplerSkybox);
+
+		Shader* shaders[] = { pSkyboxShader, pBasicShader, pZipTextureShader };
+
+		const char* pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
+		skyboxRootDesc.mStaticSamplerCount = 1;
+		skyboxRootDesc.ppStaticSamplerNames = pStaticSamplers;
+		skyboxRootDesc.ppStaticSamplers = &pSamplerSkybox;
+		skyboxRootDesc.mShaderCount = 3;
+		skyboxRootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignature);
+
+		// Generate Cuboid Vertex Buffer
+
+		float widthCube = 1.0f;
+		float heightCube = 1.0f;
+		float depthCube = 1.0f;
+
+		float CubePoints[] =
+		{
+			//Position				        //Normals				//TexCoords
+			-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
+			 widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 0.0f,
+			 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
+			 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
+			-widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 1.0f,
+			-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
+
+			-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
+			 widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,
+			 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
+			 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
+			-widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,
+			-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
+
+			-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
+			-widthCube,  heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,
+			-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
+			-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
+			-widthCube, -heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,
+			-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
+
+			 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
+			 widthCube,  heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 1.0f,
+			 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
+			 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
+			 widthCube, -heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 0.0f,
+			 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
+
+			-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
+			 widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 1.0f,
+			 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
+			 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
+			-widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 0.0f,
+			-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
+
+			-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,
+			 widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 1.0f,
+			 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
+			 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
+			-widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,
+			-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f
+		};
+
+		uint64_t       cubiodDataSize = 288 * sizeof(float);
+		BufferLoadDesc cubiodVbDesc = {};
+		cubiodVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		cubiodVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		cubiodVbDesc.mDesc.mSize = cubiodDataSize;
+		cubiodVbDesc.pData = CubePoints;
+		cubiodVbDesc.ppBuffer = &pZipTextureVertexBuffer;
+		addResource(&cubiodVbDesc, NULL);
+
+		//Generate sky box vertex buffer
+		float skyBoxPoints[] = {
+			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
+			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
+			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
+
+			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
+			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
+			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
+
+			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
+			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
+			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
+
+			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
+			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
+			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
+
+			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
+			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
+			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
+
+			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
+			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
+			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
+		};
+
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		BufferLoadDesc skyboxVbDesc = {};
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+		skyboxVbDesc.pData = skyBoxPoints;
+		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
+		addResource(&skyboxVbDesc, NULL);
+
+		BufferLoadDesc ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(UniformBlock);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
+			addResource(&ubDesc, NULL);
+		}
+		waitForAllResourceLoads();
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
+
+		//--------------------------------
+
+		//Gui for Showing the Text of the File
+		pGui_TextData = addAppUIGuiComponent(pAppUI, "Opened Document", &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(GLES)
+			"GLES",
+		#endif
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		#if defined(DIRECT3D11)
+			"D3D11",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGui_TextData, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		LabelWidget textWidget;
+		addWidgetLua(addGuiWidget(pGui_TextData, gTextDataVector[0], &textWidget, WIDGET_TYPE_LABEL));
+
+		//--------------------------------
+
 		//CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 		//requestMouseCapture(true);
 
 		if (!initInputSystem(pWindow))
@@ -240,7 +497,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -249,9 +506,9 @@ public:
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -263,6 +520,8 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
@@ -271,12 +530,62 @@ public:
 		// Close the Zip file
 		fsCloseZipFile(&gZipFileSystem);
 
+		for (char* text : gTextDataVector)
+			tf_free(text);
 		gTextDataVector.clear();
 		gTextDataVector.set_capacity(0);
 
 		exitInputSystem();
 
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
+
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		exitProfilerUI();
+
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pProjViewUniformBuffer[i]);
+		}
+
+		removeResource(pSkyboxVertexBuffer);
+		removeResource(pZipTextureVertexBuffer);
+
+		for (uint i = 0; i < 6; ++i)
+			removeResource(pSkyboxTextures[i]);
+
+		//remove loaded zip test texture
+		removeResource(pZipTexture[0]);
+
+		//remove loaded zip test models
+		removeResource(pMesh);
+
+		removeSampler(pRenderer, pSamplerSkybox);
+		removeShader(pRenderer, pBasicShader);
+		removeShader(pRenderer, pSkyboxShader);
+		removeShader(pRenderer, pZipTextureShader);
+		removeRootSignature(pRenderer, pRootSignature);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 
@@ -330,248 +639,16 @@ public:
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// window and renderer setup
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			// Initialize microprofiler and its UI.
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			// Gpu profiler can only be added after initProfile.
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-				//Load Zip file texture
-			TextureLoadDesc textureDescZip = {};
-			textureDescZip.pFileName = pCubeTextureName[0];
-			textureDescZip.ppTexture = &pZipTexture[0];
-			addResource(&textureDescZip, NULL);
-
-			// Loads Skybox Textures
-			for (int i = 0; i < 6; ++i)
-			{
-				TextureLoadDesc textureDesc = {};
-				textureDesc.pFileName = pSkyboxImageFileNames[i];
-				textureDesc.ppTexture = &pSkyboxTextures[i];
-				addResource(&textureDesc, NULL);
-			}
-
-			GeometryLoadDesc loadDesc = {};
-			loadDesc.pFileName = pModelFileName[0];
-			loadDesc.ppGeometry = &pMesh;
-			loadDesc.pVertexLayout = &gVertexLayoutDefault;
-			addResource(&loadDesc, NULL);
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			{
-				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-				return false;
-			}
-
-			ShaderLoadDesc skyShader = {};
-			skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-			skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
-			ShaderLoadDesc basicShader = {};
-			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-			ShaderLoadDesc zipTextureShader = {};
-			zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0 };
-			zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0 };
-
-			addShader(pRenderer, &skyShader, &pSkyboxShader);
-			addShader(pRenderer, &basicShader, &pBasicShader);
-			addShader(pRenderer, &zipTextureShader, &pZipTextureShader);
-
-			SamplerDesc samplerDesc = { FILTER_LINEAR,
-										FILTER_LINEAR,
-										MIPMAP_MODE_NEAREST,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pSamplerSkybox);
-
-			Shader* shaders[] = { pSkyboxShader, pBasicShader, pZipTextureShader };
-
-			const char* pStaticSamplers[] = { "uSampler0" };
-			RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
-			skyboxRootDesc.mStaticSamplerCount = 1;
-			skyboxRootDesc.ppStaticSamplerNames = pStaticSamplers;
-			skyboxRootDesc.ppStaticSamplers = &pSamplerSkybox;
-			skyboxRootDesc.mShaderCount = 3;
-			skyboxRootDesc.ppShaders = shaders;
-			addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignature);
-
-			// Generate Cuboid Vertex Buffer
-
-			float widthCube = 1.0f;
-			float heightCube = 1.0f;
-			float depthCube = 1.0f;
-
-			float CubePoints[] =
-			{
-				//Position				        //Normals				//TexCoords
-				-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
-				 widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 0.0f,
-				 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
-				 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
-				-widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 1.0f,
-				-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
-
-				-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
-				 widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,
-				 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
-				 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
-				-widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,
-				-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
-
-				-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
-				-widthCube,  heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,
-				-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-				-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-				-widthCube, -heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,
-				-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
-
-				 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
-				 widthCube,  heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 1.0f,
-				 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
-				 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
-				 widthCube, -heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 0.0f,
-				 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
-
-				-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
-				 widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 1.0f,
-				 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
-				 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
-				-widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 0.0f,
-				-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
-
-				-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,
-				 widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 1.0f,
-				 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
-				 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
-				-widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,
-				-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f
-			};
-
-			uint64_t       cubiodDataSize = 288 * sizeof(float);
-			BufferLoadDesc cubiodVbDesc = {};
-			cubiodVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			cubiodVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			cubiodVbDesc.mDesc.mSize = cubiodDataSize;
-			cubiodVbDesc.pData = CubePoints;
-			cubiodVbDesc.ppBuffer = &pZipTextureVertexBuffer;
-			addResource(&cubiodVbDesc, NULL);
-
-			//Generate sky box vertex buffer
-			float skyBoxPoints[] = {
-				10.0f,  -10.0f, -10.0f, 6.0f,    // -z
-				-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
-				-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
-
-				-10.0f, -10.0f, 10.0f,  2.0f,    //-x
-				-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
-				-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
-
-				10.0f,  -10.0f, -10.0f, 1.0f,    //+x
-				10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
-				10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
-
-				-10.0f, -10.0f, 10.0f,  5.0f,    // +z
-				-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
-				10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
-
-				-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
-				10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
-				10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
-
-				10.0f,  -10.0f, 10.0f,  4.0f,    //-y
-				10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
-				-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
-			};
-
-			uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-			BufferLoadDesc skyboxVbDesc = {};
-			skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-			skyboxVbDesc.pData = skyBoxPoints;
-			skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-			addResource(&skyboxVbDesc, NULL);
-
-			BufferLoadDesc ubDesc = {};
-			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			ubDesc.mDesc.mSize = sizeof(UniformBlock);
-			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			ubDesc.pData = NULL;
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-				addResource(&ubDesc, NULL);
-			}
-			waitForAllResourceLoads();
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
-
-			//--------------------------------
-
-			//Gui for Showing the Text of the File
-			pGui_TextData = gAppUI.AddGuiComponent("Opened Document", &guiDesc);
-			pGui_TextData->AddWidget(LabelWidget(gTextDataVector[0]));
-
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pGui_TextData->AddWidget(testGPUReset);
-			//--------------------------------
-		}
-
 		if (!addSwapChain())
 			return false;
 
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for zip model draw
@@ -579,7 +656,6 @@ public:
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
 		RasterizerStateDesc cubeRasterizerStateDesc = {};
-		cubeRasterizerStateDesc = {};
 		cubeRasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
 		RasterizerStateDesc sphereRasterizerStateDesc = {};
@@ -657,11 +733,11 @@ public:
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-		gAppUI.Unload();
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.Unload();
-#endif
+		removeAppGUIDriver(pAppUI);
+
+		removeVirtualJoystickUIPipeline(pVirtualJoystick); 
+
 		DestroyDescriptorSets();
 
 		removePipeline(pRenderer, pZipTexturePipeline);
@@ -670,57 +746,6 @@ public:
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
-
-		if(mSettings.mResetGraphics || mSettings.mQuit)
-		{
-			gVirtualJoystick.Exit();
-
-			exitProfilerUI();
-
-			exitProfiler();
-
-			gAppUI.Exit();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeResource(pProjViewUniformBuffer[i]);
-			}
-
-			removeResource(pSkyboxVertexBuffer);
-			removeResource(pZipTextureVertexBuffer);
-
-			for (uint i = 0; i < 6; ++i)
-				removeResource(pSkyboxTextures[i]);
-
-			//remove loaded zip test texture
-			removeResource(pZipTexture[0]);
-
-			//remove loaded zip test models
-			removeResource(pMesh);
-
-			removeSampler(pRenderer, pSamplerSkybox);
-			removeShader(pRenderer, pBasicShader);
-			removeShader(pRenderer, pSkyboxShader);
-			removeShader(pRenderer, pZipTextureShader);
-			removeRootSignature(pRenderer, pRootSignature);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -767,7 +792,7 @@ public:
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 
 	}
 
@@ -861,7 +886,8 @@ public:
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-			gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+			float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+			drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 #if !defined(__ANDROID__)
 			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
@@ -870,11 +896,11 @@ public:
 			cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 #endif
 
-			gAppUI.Gui(pGui_TextData);
+			appUIGui(pAppUI, pGui_TextData);
 
 			cmdDrawProfilerUI();
 
-			gAppUI.Draw(cmd);
+			drawAppUI(pAppUI, cmd);
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		}
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -900,21 +926,8 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

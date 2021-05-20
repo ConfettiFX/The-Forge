@@ -23,11 +23,12 @@
 */
 
 #pragma once
+#ifdef DIRECT3D11
 
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
-inline void utils_caps_builder(Renderer* pRenderer)
+inline void d3d11_utils_caps_builder(Renderer* pRenderer)
 {
 	pRenderer->pCapBits = (GPUCapBits*)tf_calloc(1, sizeof(GPUCapBits));
 
@@ -38,9 +39,10 @@ inline void utils_caps_builder(Renderer* pRenderer)
 
 		UINT formatSupport = 0;
 
-		pRenderer->pDxDevice->CheckFormatSupport(fmt, &formatSupport);
+		pRenderer->mD3D11.pDxDevice->CheckFormatSupport(fmt, &formatSupport);
 		pRenderer->pCapBits->canShaderReadFrom[i] = (formatSupport & D3D11_FORMAT_SUPPORT_SHADER_SAMPLE) != 0;
 		pRenderer->pCapBits->canShaderWriteTo[i] = (formatSupport & D3D11_FORMAT_SUPPORT_TYPED_UNORDERED_ACCESS_VIEW) != 0;
 		pRenderer->pCapBits->canRenderTargetWriteTo[i] = (formatSupport & D3D11_FORMAT_SUPPORT_RENDER_TARGET) != 0;
 	}
 }
+#endif

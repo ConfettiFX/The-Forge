@@ -103,3 +103,4 @@ public:
 	uint32_t Component_::getTypeStatic() {  return Component_##typeHash; } \
 	uint32_t Component_::getType() const { return Component_::getTypeStatic(); } \
 	BaseComponent* Component_::GenerateComponent() { return tf_new(Component_); }
+	

@@ -1,0 +1,25 @@
+<Rule Name="ConfigurationFSLShader" 
+      DisplayName="FSLShader" 
+      PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <Rule.DataSource>
+        <DataSource Persistence="ProjectFile" ItemType="FSLShader" HasConfigurationCondition="true"  />
+    </Rule.DataSource>
+    <EnumProperty Name="Language" Default="Auto">
+        <EnumValue Name="Auto" DisplayName="Auto"/>
+        <EnumValue Name="DIRECT3D11" DisplayName="DIRECT3D11"/>
+        <EnumValue Name="DIRECT3D12" DisplayName="DIRECT3D12"/>
+        <EnumValue Name="VULKAN" DisplayName="VULKAN"/>
+        <!-- METAL -->
+        <EnumValue Name="ORBIS" DisplayName="ORBIS"/>
+        <EnumValue Name="PROSPERO" DisplayName="PROSPERO"/>
+        <EnumValue Name="XBOX" DisplayName="XBOX"/>
+        <EnumValue Name="SCARLETT" DisplayName="SCARLETT"/>
+        <EnumValue Name="GLES" DisplayName="GLES"/>
+    </EnumProperty>
+    <!-- <StringProperty Subtype="file" Name="RootSignature" DisplayName="RootSignature"/> -->
+    <StringProperty Subtype="folder" Name="OutDir" DisplayName="OutDir" Default="$(OutDir)/Shaders/"/>
+    <StringProperty Subtype="folder" Name="BinaryOutDir" DisplayName="BinaryOutDir" Default="$(OutDir)/Shaders/Binary"/>
+    <BoolProperty Name="Compile" DisplayName="Compile shader after generation"/>
+    <BoolProperty Name="Verbose" DisplayName="Verbose shader generation"/>
+</Rule>

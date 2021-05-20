@@ -27,8 +27,10 @@
 void Animation::Initialize(AnimationDesc animationDesc)
 {
 	mRig = animationDesc.mRig;
-	mNumClips = min(animationDesc.mNumLayers, MAX_NUM_CLIPS);
 	mBlendType = animationDesc.mBlendType;
+	mNumClips = min(animationDesc.mNumLayers, MAX_NUM_CLIPS);
+
+	mNumAdditiveClips = 0;
 
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 
@@ -65,7 +67,7 @@ void Animation::Initialize(AnimationDesc animationDesc)
 	mAdditiveLayers = allocator->AllocateRange<ozz::animation::BlendingJob::Layer>(mNumAdditiveClips);
 }
 
-void Animation::Destroy()
+void Animation::Exit()
 {
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 

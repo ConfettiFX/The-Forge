@@ -59,6 +59,8 @@ static float2 gRetinaScale = { 1.0f, 1.0f };
 static int gDeviceWidth;
 static int gDeviceHeight;
 
+static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+
 static eastl::vector<MonitorDesc> monitors;
 
 void requestShutdown() {}
@@ -75,6 +77,21 @@ int getTouchEvent()
 }
 
 void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight }; }
+
+void onRequestReload()
+{
+	gResetScenario |= RESET_SCENARIO_RELOAD;
+}
+
+void onDeviceLost()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
+void onAPISwitch()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
 
 /************************************************************************/
 // Time Related Functions
@@ -297,6 +314,8 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
 
 - (void)drawRectResized:(CGSize)size;
 
+- (void)onFocusChanged:(BOOL)focused;
+
 - (void)update;
 
 - (void)shutdown;
@@ -395,6 +414,21 @@ GameController* pMainViewController;
 }
 @end
 
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
+{
+#ifndef AUTOMATED_TESTING
+	UIAlertController * alert = [UIAlertController
+								alertControllerWithTitle:[NSString stringWithUTF8String:title]
+								message:[NSString stringWithUTF8String:msg]
+								preferredStyle:UIAlertControllerStyleAlert];
+
+	UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
+	
+	[alert addAction:okAction];
+	UIViewController *vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+	[vc presentViewController:alert animated:YES completion:nil];
+#endif
+}
 /************************************************************************/
 // MetalKitApplication implementation
 /************************************************************************/
@@ -496,13 +530,31 @@ uint32_t testingMaxFrameCount = 120;
 	
 	if (needToUpdateApp)
 	{
-		pApp->Unload();
-		pApp->Load();
+		onRequestReload();
 	}
+}
+
+- (void)onFocusChanged:(BOOL)focused
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
 }
 
 - (void)update
 {
+	if (gResetScenario & RESET_SCENARIO_RELOAD)
+	{
+		pApp->Unload();
+		pApp->Load();
+	
+		gResetScenario &= ~RESET_SCENARIO_RELOAD;
+		return;
+	}
+	
 	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 	if (deltaTime > 0.15f)
@@ -511,13 +563,6 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Update(deltaTime);
 	pApp->Draw();
 
-	// Graphics reset in cases where device has to be re-created.
-	if (pApp->mSettings.mResetGraphics) 
-	{
-		pApp->Unload();
-		pApp->Load();
-		pApp->mSettings.mResetGraphics = false;
-	}
 #ifdef AUTOMATED_TESTING
 		testingCurrentFrameCount++;
 	if (testingCurrentFrameCount >= testingMaxFrameCount)

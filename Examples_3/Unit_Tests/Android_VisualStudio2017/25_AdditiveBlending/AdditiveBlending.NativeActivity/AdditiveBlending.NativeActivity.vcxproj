@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|ARM64">
-      <Configuration>Debug</Configuration>
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM64">
-      <Configuration>Release</Configuration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -20,14 +20,14 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
@@ -39,26 +39,26 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -78,9 +78,7 @@
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y /d
 $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
     </PostBuildEvent>
@@ -88,8 +86,13 @@ $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-
       <Command>
       </Command>
     </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -111,15 +114,18 @@ $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
@@ -129,12 +135,13 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_AdditiveBlending\Scrip
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\basic.frag" />
-    <None Include="..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\plane.frag" />
-    <None Include="..\..\..\src\25_AdditiveBlending\Shaders\Vulkan\plane.vert" />
+    <FSLShader Include="..\..\..\src\25_AdditiveBlending\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\..\src\25_AdditiveBlending\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\..\src\25_AdditiveBlending\Shaders\FSL\plane.frag.fsl" />
+    <FSLShader Include="..\..\..\src\25_AdditiveBlending\Shaders\FSL\plane.vert.fsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

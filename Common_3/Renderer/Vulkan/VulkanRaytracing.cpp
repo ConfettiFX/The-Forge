@@ -92,8 +92,8 @@ struct VkGeometryInstanceNV
 	uint64_t       accelerationStructureHandle;
 };
 
-extern void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
+DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
+DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
@@ -102,12 +102,12 @@ VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flag
 VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags);
 VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags);
 
-bool isRaytracingSupported(Renderer* pRenderer)
+bool vk_isRaytracingSupported(Renderer* pRenderer)
 {
-	return pRenderer->mRaytracingExtension == 1;
+	return pRenderer->mVulkan.mRaytracingExtension == 1;
 }
 
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppRaytracing);
@@ -122,7 +122,7 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 
 	VkPhysicalDeviceRayTracingPropertiesNV gpuRaytracingProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV };
 	VkPhysicalDeviceProperties2KHR gpuProperties = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR, &gpuRaytracingProperties };
-	vkGetPhysicalDeviceProperties2KHR(pRenderer->pVkActiveGPU, &gpuProperties);
+	vkGetPhysicalDeviceProperties2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuProperties);
 
 	pRaytracing->pRenderer = pRenderer;
 	pRaytracing->mRayTracingProperties = gpuRaytracingProperties;
@@ -131,7 +131,7 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 	return true;
 }
 
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void vk_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 	//Do nothing here because in case of Vulkan struct Raytracing contains
 	//only shorthands
@@ -174,7 +174,7 @@ VkResult createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDesc
 			ibDesc.ppBuffer = &blas.pIndexBuffer;
 			addResource(&ibDesc, NULL);
 
-			pGeometry->geometry.triangles.indexData = blas.pIndexBuffer->pVkBuffer;
+			pGeometry->geometry.triangles.indexData = blas.pIndexBuffer->mVulkan.pVkBuffer;
 			pGeometry->geometry.triangles.indexOffset = 0;
 			pGeometry->geometry.triangles.indexCount = (uint32_t)ibDesc.mDesc.mSize /
 				(pGeom->mIndexType == INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t));
@@ -197,7 +197,7 @@ VkResult createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDesc
 		vbDesc.ppBuffer = &blas.pVertexBuffer;
 		addResource(&vbDesc, NULL);
 
-		pGeometry->geometry.triangles.vertexData = blas.pVertexBuffer->pVkBuffer;
+		pGeometry->geometry.triangles.vertexData = blas.pVertexBuffer->mVulkan.pVkBuffer;
 		pGeometry->geometry.triangles.vertexOffset = 0;
 		pGeometry->geometry.triangles.vertexCount = (uint32_t)vbDesc.mDesc.mSize / sizeof(float3);
 		pGeometry->geometry.triangles.vertexStride = sizeof(float3);
@@ -232,7 +232,7 @@ VkResult createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDesc
 	createInfo.info				= accelerationStructInfo;
 	createInfo.compactedSize	= 0;
 
-	CHECK_VKRESULT(vkCreateAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, &createInfo, &gVkAllocationCallbacks, &blas.pAccelerationStructure));
+	CHECK_VKRESULT(vkCreateAccelerationStructureNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &createInfo, &gVkAllocationCallbacks, &blas.pAccelerationStructure));
 
 	VkAccelerationStructureMemoryRequirementsInfoNV memReqInfo = {};
 	memReqInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
@@ -240,15 +240,15 @@ VkResult createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDesc
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
 
 	VkMemoryRequirements2KHR memReq = {};
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
-	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
+	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size; //-V547
 		
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV;
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
 	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
 
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
 	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
 
 	BufferDesc bufferDesc = {};
@@ -270,7 +270,7 @@ VkResult createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDesc
 	bindInfo.deviceIndexCount		= 0;
 	bindInfo.pDeviceIndices			= nullptr;
 
-	vkBindAccelerationStructureMemoryNV(pRaytracing->pRenderer->pVkDevice, 1, &bindInfo);
+	vkBindAccelerationStructureMemoryNV(pRaytracing->pRenderer->mVulkan.pVkDevice, 1, &bindInfo);
 
 	*pScratchBufferSize = scratchBufferSize;
 	*pOut = blas;
@@ -305,7 +305,7 @@ VkResult createTopAS(Raytracing* pRaytracing,
 	createInfo.info = accelerationStructureInfo;
 	createInfo.compactedSize = 0;
 
-	CHECK_VKRESULT(vkCreateAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, &createInfo, &gVkAllocationCallbacks, pAccelerationStructure));
+	CHECK_VKRESULT(vkCreateAccelerationStructureNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &createInfo, &gVkAllocationCallbacks, pAccelerationStructure));
 
 	VkAccelerationStructureMemoryRequirementsInfoNV memReqInfo = {};
 	memReqInfo.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_NV;
@@ -313,16 +313,16 @@ VkResult createTopAS(Raytracing* pRaytracing,
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_BUILD_SCRATCH_NV;
 
 	VkMemoryRequirements2KHR memReq = {};
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
 	VkDeviceSize accelerationStructureSize = memReq.memoryRequirements.size;
-	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
+	scratchBufferSize = scratchBufferSize > accelerationStructureSize ? (uint32_t)scratchBufferSize : (uint32_t)accelerationStructureSize;
 
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_UPDATE_SCRATCH_NV;
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
 	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
 
 	memReqInfo.type = VK_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_TYPE_OBJECT_NV;
-	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->pVkDevice, &memReqInfo, &memReq);
+	vkGetAccelerationStructureMemoryRequirementsNV(pRaytracing->pRenderer->mVulkan.pVkDevice, &memReqInfo, &memReq);
 	scratchBufferSize = scratchBufferSize > memReq.memoryRequirements.size ? (uint32_t)scratchBufferSize : (uint32_t)memReq.memoryRequirements.size;
 	/************************************************************************/
 	/*  Construct buffer with instances descriptions                        */
@@ -333,7 +333,7 @@ VkResult createTopAS(Raytracing* pRaytracing,
 		AccelerationStructureInstanceDesc* pInst = &pDesc->pInstanceDescs[i];
 
 		uint64_t accelerationStructureHandle = 0;
-		VkResult error = vkGetAccelerationStructureHandleNV(pRaytracing->pRenderer->pVkDevice,
+		VkResult error = vkGetAccelerationStructureHandleNV(pRaytracing->pRenderer->mVulkan.pVkDevice,
 			pASBottom[pInst->mAccelerationStructureIndex].pAccelerationStructure, sizeof(uint64_t), &accelerationStructureHandle);
 		ASSERT(error == VK_SUCCESS);
 
@@ -361,10 +361,10 @@ VkResult createTopAS(Raytracing* pRaytracing,
 	BufferLoadDesc loadDesc = {};
 	Buffer* pTopASBuffer = {};
 	BufferDesc& bufferDesc = loadDesc.mDesc;
-	bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_RAY_TRACING;
+	bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
-	bufferDesc.mSize = accelerationStructureSize;
+	bufferDesc.mSize = scratchBufferSize;
 	bufferDesc.mStartState = RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	loadDesc.ppBuffer = &pTopASBuffer;
 	addResource(&loadDesc, NULL);
@@ -374,7 +374,7 @@ VkResult createTopAS(Raytracing* pRaytracing,
 	bindInfo.accelerationStructure = *pAccelerationStructure;
 	bindInfo.memory = get_vk_device_memory(pRaytracing->pRenderer, pTopASBuffer);
 	bindInfo.memoryOffset = get_vk_device_memory_offset(pRaytracing->pRenderer, pTopASBuffer);
-	vkBindAccelerationStructureMemoryNV(pRaytracing->pRenderer->pVkDevice, 1, &bindInfo);
+	vkBindAccelerationStructureMemoryNV(pRaytracing->pRenderer->mVulkan.pVkDevice, 1, &bindInfo);
 
 	*pScratchBufferSize = scratchBufferSize;
 	*ppOut = pTopASBuffer;
@@ -382,7 +382,7 @@ VkResult createTopAS(Raytracing* pRaytracing,
 	return VK_SUCCESS;
 }
 
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
 {
 	ASSERT(pRaytracing);
 	ASSERT(pDesc);
@@ -408,7 +408,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 
 	//Create scratch buffer
 	BufferLoadDesc scratchBufferDesc = {};
-	scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+	scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_RAY_TRACING;
 	scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	scratchBufferDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
@@ -454,7 +454,7 @@ void util_build_acceleration_structure(VkCommandBuffer pCmd, VkBuffer pScratchBu
 	vkCmdPipelineBarrier(pCmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, 1, &memoryBarrier, 0, 0, 0, 0);
 }
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void vk_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
 	ASSERT(pDesc);
 	ASSERT(pDesc->ppAccelerationStructures);
@@ -464,8 +464,8 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 		uint32_t index = pDesc->pBottomASIndices[i];
 		AccelerationStructure* pAccelerationStructure = pDesc->ppAccelerationStructures[index];
 
-		util_build_acceleration_structure(pCmd->pVkCmdBuf,
-			pAccelerationStructure->pScratchBuffer->pVkBuffer,
+		util_build_acceleration_structure(pCmd->mVulkan.pVkCmdBuf,
+			pAccelerationStructure->pScratchBuffer->mVulkan.pVkBuffer,
 			pAccelerationStructure->mBottomAS.pAccelerationStructure,
 			VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV,
 			pAccelerationStructure->mBottomAS.mFlags,
@@ -478,18 +478,18 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 	{
 		AccelerationStructure* pAccelerationStructure = pDesc->ppAccelerationStructures[i];
 
-		util_build_acceleration_structure(pCmd->pVkCmdBuf,
-			pAccelerationStructure->pScratchBuffer->pVkBuffer,
+		util_build_acceleration_structure(pCmd->mVulkan.pVkCmdBuf,
+			pAccelerationStructure->pScratchBuffer->mVulkan.pVkBuffer,
 			pAccelerationStructure->mAccelerationStructure,
 			VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV,
 			pAccelerationStructure->mFlags,
 			NULL, 0,
-			pAccelerationStructure->pInstanceDescBuffer->pVkBuffer,
+			pAccelerationStructure->pInstanceDescBuffer->mVulkan.pVkBuffer,
 			pAccelerationStructure->mInstanceDescCount);
 	}
 }
 
-void CalculateMaxShaderRecordSize(const char* const* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
+void vk_CalculateMaxShaderRecordSize(const char* const* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
 {
 }
 
@@ -504,11 +504,11 @@ void FillShaderIdentifiers(	const char* const* pRecords, uint32_t shaderCount,
 	{
 		uint32_t index = -1;
 		eastl::string nameStr(pRecords[idx]);
-		const char** it = eastl::find(pipeline->ppShaderStageNames, pipeline->ppShaderStageNames + pipeline->mShaderStageCount, nameStr.c_str(),
+		const char** it = eastl::find(pipeline->mVulkan.ppShaderStageNames, pipeline->mVulkan.ppShaderStageNames + pipeline->mVulkan.mShaderStageCount, nameStr.c_str(),
 			[](const char* a, const char* b) { return strcmp(a, b) == 0; });
-		if (it != pipeline->ppShaderStageNames + pipeline->mShaderStageCount)
+		if (it != pipeline->mVulkan.ppShaderStageNames + pipeline->mVulkan.mShaderStageCount)
 		{
-			index = (uint32_t)(it - pipeline->ppShaderStageNames);
+			index = (uint32_t)(it - pipeline->mVulkan.ppShaderStageNames);
 		}
 		else
 		{
@@ -527,7 +527,7 @@ void FillShaderIdentifiers(	const char* const* pRecords, uint32_t shaderCount,
 	}
 }
 
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable) 
+void vk_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable) 
 {
 	ASSERT(pRaytracing);
 	ASSERT(pDesc);
@@ -545,9 +545,9 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	/************************************************************************/
 	// Calculate max size for each element in the shader table
 	/************************************************************************/
-	CalculateMaxShaderRecordSize(&pDesc->pRayGenShader, 1, maxShaderTableSize);
-	CalculateMaxShaderRecordSize(pDesc->pMissShaders, pDesc->mMissShaderCount, maxShaderTableSize);
-	CalculateMaxShaderRecordSize(pDesc->pHitGroups, pDesc->mHitGroupCount, maxShaderTableSize);
+	vk_CalculateMaxShaderRecordSize(&pDesc->pRayGenShader, 1, maxShaderTableSize);
+	vk_CalculateMaxShaderRecordSize(pDesc->pMissShaders, pDesc->mMissShaderCount, maxShaderTableSize);
+	vk_CalculateMaxShaderRecordSize(pDesc->pHitGroups, pDesc->mHitGroupCount, maxShaderTableSize);
 	/************************************************************************/
 	// Align max size
 	/************************************************************************/
@@ -566,11 +566,11 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	/************************************************************************/
 	// Copy shader identifiers into the buffer
 	/************************************************************************/
-	uint32_t groupCount = (uint32_t)pDesc->pPipeline->mShaderStageCount;
+	uint32_t groupCount = (uint32_t)pDesc->pPipeline->mVulkan.mShaderStageCount;
 	uint8_t* shaderHandleStorage = (uint8_t*)tf_calloc(groupCount, sizeof(uint8_t) * groupHandleSize);
 
-	vkGetRayTracingShaderGroupHandlesNV(pRaytracing->pRenderer->pVkDevice,
-										pDesc->pPipeline->pVkPipeline, 0, groupCount,
+	vkGetRayTracingShaderGroupHandlesNV(pRaytracing->pRenderer->mVulkan.pVkDevice,
+										pDesc->pPipeline->mVulkan.pVkPipeline, 0, groupCount,
 										groupHandleSize * groupCount, shaderHandleStorage);
 
 	pTable->mHitMissLocalData.resize(pDesc->mMissShaderCount + pDesc->mHitGroupCount + 1);
@@ -593,20 +593,20 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	*ppTable = pTable;
 }
 
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
+void vk_cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
 	RaytracingShaderTable* table = pDesc->pShaderTable;
 	vkCmdTraceRaysNV(
-		pCmd->pVkCmdBuf,
-		table->pBuffer->pVkBuffer, 0,
-		table->pBuffer->pVkBuffer, table->mMaxEntrySize, table->mMaxEntrySize,
-		table->pBuffer->pVkBuffer, table->mMaxEntrySize + table->mMissRecordSize, table->mMaxEntrySize,
+		pCmd->mVulkan.pVkCmdBuf,
+		table->pBuffer->mVulkan.pVkBuffer, 0,
+		table->pBuffer->mVulkan.pVkBuffer, table->mMaxEntrySize, table->mMaxEntrySize,
+		table->pBuffer->mVulkan.pVkBuffer, table->mMaxEntrySize + table->mMissRecordSize, table->mMaxEntrySize,
 		VK_NULL_HANDLE, 0, 0,
 		pDesc->mWidth, pDesc->mHeight, 1
 	);
 }
 
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) 
+void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) 
 {
 	ASSERT(pRaytracing);
 	ASSERT(pAccelerationStructure);
@@ -614,19 +614,24 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pASBuffer);
 	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pInstanceDescBuffer);
 	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pScratchBuffer);
-	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->mAccelerationStructure, &gVkAllocationCallbacks);
+	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->mVulkan.pVkDevice, pAccelerationStructure->mAccelerationStructure, &gVkAllocationCallbacks);
 
 	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->mBottomAS.pASBuffer);
 	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->mBottomAS.pVertexBuffer);
-	if (pAccelerationStructure->mBottomAS.pIndexBuffer->pVkBuffer != VK_NULL_HANDLE)
+	if (pAccelerationStructure->mBottomAS.pIndexBuffer->mVulkan.pVkBuffer != VK_NULL_HANDLE)
 		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->mBottomAS.pIndexBuffer);
-	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->mBottomAS.pAccelerationStructure, &gVkAllocationCallbacks);
+	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->mVulkan.pVkDevice, pAccelerationStructure->mBottomAS.pAccelerationStructure, &gVkAllocationCallbacks);
 
 	tf_free(pAccelerationStructure->mBottomAS.pGeometryDescs);
 	tf_free(pAccelerationStructure);
 }
 
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable) 
+void vk_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+	//NOT IMPLEMENTED
+}
+
+void vk_removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable) 
 {
 	ASSERT(pRaytracing);
 	ASSERT(pTable);
@@ -679,15 +684,15 @@ VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanc
 	return ret;
 }
 
-void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
+void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 {
 	const RaytracingPipelineDesc* pDesc = &pMainDesc->mRaytracingDesc;
-	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->pCache : VK_NULL_HANDLE;
+	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->mVulkan.pCache : VK_NULL_HANDLE;
 
 	Pipeline* pResult = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pResult);
 
-	pResult->mType = PIPELINE_TYPE_RAYTRACING;
+	pResult->mVulkan.mType = PIPELINE_TYPE_RAYTRACING;
 	eastl::vector<VkPipelineShaderStageCreateInfo> stages;
 	eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
 	/************************************************************************/
@@ -695,8 +700,8 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 	/************************************************************************/
 	stages.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
 	groups.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
-	pResult->mShaderStageCount = 0;
-	pResult->ppShaderStageNames = (const char**)tf_calloc(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount * 3, sizeof(char*));
+	pResult->mVulkan.mShaderStageCount = 0;
+	pResult->mVulkan.ppShaderStageNames = (const char**)tf_calloc(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount * 3, sizeof(char*));
 	//////////////////////////////////////////////////////////////////////////
 	//1. Ray-gen shader
 	{
@@ -704,15 +709,15 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 		stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		stageCreateInfo.pNext = nullptr;
 		stageCreateInfo.stage = VK_SHADER_STAGE_RAYGEN_BIT_NV;
-		stageCreateInfo.module = pDesc->pRayGenShader->pShaderModules[0];
+		stageCreateInfo.module = pDesc->pRayGenShader->mVulkan.pShaderModules[0];
 		//nVidia comment: This member has to be 'main', regardless of the actual entry point of the shader
 		stageCreateInfo.pName = "main";
 		stageCreateInfo.flags = 0;
 		stageCreateInfo.pSpecializationInfo = nullptr;
 		stages.push_back(stageCreateInfo);
 		//stagesNames.push_back(pDesc->pRayGenShader->mName);
-		pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pRayGenShader->pEntryNames[0];
-		pResult->mShaderStageCount += 1;
+		pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pRayGenShader->mVulkan.pEntryNames[0];
+		pResult->mVulkan.mShaderStageCount += 1;
 
 		VkRayTracingShaderGroupCreateInfoNV groupInfo;
 		groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
@@ -748,11 +753,11 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 		groupInfo.intersectionShader = VK_SHADER_UNUSED_NV;
 		for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 		{
-			stageCreateInfo.module = pDesc->ppMissShaders[i]->pShaderModules[0];
+			stageCreateInfo.module = pDesc->ppMissShaders[i]->mVulkan.pShaderModules[0];
 			stages.push_back(stageCreateInfo);
 			//stagesNames.push_back(pDesc->ppMissShaders[i]->mName);
-			pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->ppMissShaders[i]->pEntryNames[0];
-			pResult->mShaderStageCount += 1;
+			pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->ppMissShaders[i]->mVulkan.pEntryNames[0];
+			pResult->mVulkan.mShaderStageCount += 1;
 
 			groupInfo.generalShader = (uint32_t)stages.size() - 1;
 			groups.push_back(groupInfo);
@@ -787,10 +792,10 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 			if (pDesc->pHitGroups[i].pIntersectionShader)
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_NV;
-				stageCreateInfo.module = pDesc->pHitGroups[i].pIntersectionShader->pShaderModules[0];
+				stageCreateInfo.module = pDesc->pHitGroups[i].pIntersectionShader->mVulkan.pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
-				pResult->mShaderStageCount += 1;
+				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mVulkan.mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
 				groupInfo.intersectionShader = (uint32_t)stages.size() - 1;
@@ -798,10 +803,10 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 			if (pDesc->pHitGroups[i].pAnyHitShader)
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
-				stageCreateInfo.module = pDesc->pHitGroups[i].pAnyHitShader->pShaderModules[0];
+				stageCreateInfo.module = pDesc->pHitGroups[i].pAnyHitShader->mVulkan.pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
-				pResult->mShaderStageCount += 1;
+				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mVulkan.mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.anyHitShader = (uint32_t)stages.size() - 1;
@@ -809,10 +814,10 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 			if (pDesc->pHitGroups[i].pClosestHitShader)
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
-				stageCreateInfo.module = pDesc->pHitGroups[i].pClosestHitShader->pShaderModules[0];
+				stageCreateInfo.module = pDesc->pHitGroups[i].pClosestHitShader->mVulkan.pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
-				pResult->mShaderStageCount += 1;
+				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mVulkan.mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.closestHitShader = (uint32_t)stages.size() - 1;
@@ -831,11 +836,11 @@ void addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 	createInfo.groupCount = (uint32_t)groups.size(); //ray-gen groups
 	createInfo.pGroups = groups.data();
 	createInfo.maxRecursionDepth = pDesc->mMaxTraceRecursionDepth;
-	createInfo.layout = pDesc->pGlobalRootSignature->pPipelineLayout;
+	createInfo.layout = pDesc->pGlobalRootSignature->mVulkan.pPipelineLayout;
 	createInfo.basePipelineHandle = VK_NULL_HANDLE;
 	createInfo.basePipelineIndex = 0;
 
-	CHECK_VKRESULT(vkCreateRayTracingPipelinesNV(pDesc->pRaytracing->pRenderer->pVkDevice, psoCache, 1, &createInfo, &gVkAllocationCallbacks, &pResult->pVkPipeline));
+	CHECK_VKRESULT(vkCreateRayTracingPipelinesNV(pDesc->pRaytracing->pRenderer->mVulkan.pVkDevice, psoCache, 1, &createInfo, &gVkAllocationCallbacks, &pResult->mVulkan.pVkPipeline));
 
 	*ppPipeline = pResult;
 }
@@ -849,50 +854,73 @@ void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationS
 	pWriteNV->pAccelerationStructures = &pAccelerationStructure->mAccelerationStructure;
 }
 #else
-bool isRaytracingSupported(Renderer* pRenderer)
+bool vk_isRaytracingSupported(Renderer* pRenderer)
 {
 	return false;
 }
 
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
 	return false;
 }
 
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void vk_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 }
 
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+void vk_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
 {
 }
 
-void cmdBuildTopAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void vk_cmdBuildTopAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
 }
 
-void cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure, unsigned bottomASIndex)
+void vk_cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure, unsigned bottomASIndex)
 {
 }
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void vk_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
 }
 
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
+void vk_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
 {
 }
 
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
+void vk_cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
 }
 
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline)
 {
 }
 
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+}
+
+void vk_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+}
+
+void vk_removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
 {
 }
 #endif
+
+void initVulkanRaytracingFunctions()
+{
+	isRaytracingSupported = vk_isRaytracingSupported;
+	initRaytracing = vk_initRaytracing;
+	removeRaytracing = vk_removeRaytracing;
+	addAccelerationStructure = vk_addAccelerationStructure;
+	removeAccelerationStructure = vk_removeAccelerationStructure;
+	removeAccelerationStructureScratch = vk_removeAccelerationStructureScratch;
+	addRaytracingShaderTable = vk_addRaytracingShaderTable;
+	removeRaytracingShaderTable = vk_removeRaytracingShaderTable;
+	cmdBuildAccelerationStructure = vk_cmdBuildAccelerationStructure;
+	cmdDispatchRays = vk_cmdDispatchRays;
+}
+
 #endif

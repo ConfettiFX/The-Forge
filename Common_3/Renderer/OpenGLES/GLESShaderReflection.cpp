@@ -137,175 +137,10 @@ ShaderResource* util_get_parent_resource(char* uniformName, ShaderReflection* pR
 	return nullptr;
 }
 
-const uint32_t gMaxStructs = 32;
-struct ShaderStruct
-{
-	char* pName;
-	uint32_t mVariableCount;
-	uint32_t mUsageCount;
-	char* ppVariables[gMaxStructs] = {};
-	char* ppStructNames[gMaxStructs] = {};
-};
-
-struct ShaderStuctContainer
-{
-	uint32_t mStructCount;
-	ShaderStruct pShaderStructs[gMaxStructs];
-};
-
-uint32_t util_get_struct_offset(const char* pUniformName, const char* pVariableName, const ShaderStuctContainer* pShaderStructContainer)
-{
-	for (uint32_t i = 0; i < pShaderStructContainer->mStructCount; ++i)
-	{
-		const ShaderStruct* pStruct = &pShaderStructContainer->pShaderStructs[i];
-		{
-			for (uint32_t u = 0; u < pStruct->mUsageCount; ++u)
-			{
-				if (strcmp(pStruct->ppStructNames[u], pUniformName) != 0)
-					continue;
-
-				for (uint32_t v = 0; v < pStruct->mVariableCount; ++v)
-				{
-					if (strcmp(pStruct->ppVariables[v], pVariableName) != 0)
-						continue;
-
-					return v;
-				}
-			}
-		}
-	}
-
-	LOGF(LogLevel::eERROR, "Could not find variable offset for \"%s\" in \"%s\"", pVariableName, pUniformName);
-	return 0;
-}
-
-void gles_freeShaderStructs(ShaderStuctContainer* pShaderStructContainer)
-{
-	for (uint32_t i = 0; i < pShaderStructContainer->mStructCount; ++i)
-	{
-		ShaderStruct* pStruct = &pShaderStructContainer->pShaderStructs[i];
-		tf_free(pStruct->pName);
-
-		for (uint32_t u = 0; u < pStruct->mUsageCount; ++u)
-		{
-			tf_free(pStruct->ppStructNames[u]);
-		}
-
-		for (uint32_t v = 0; v < pStruct->mVariableCount; ++v)
-		{
-			tf_free(pStruct->ppVariables[v]);
-		}
-	}
-}
-
-// Extract shader struct layout and usage from shader code
-void gles_extractShaderStructs(const char* shaderCode, ShaderStuctContainer* pStructContainer)
-{
-	static const char* structChars = "struct";
-	static uint32_t structLen = strlen(structChars);
-	static const char* seps = "\t\n\v\f\r ";
-
-	// Find all structs in shader code
-	const char* pStruct = strstr(shaderCode, structChars);
-	while(pStruct)
-	{
-		if (pStructContainer->mStructCount == gMaxStructs)
-		{
-			LOGF(LogLevel::eWARNING, "Maximum struct storage reached {%u}", gMaxStructs);
-			break;
-		}
-
-		ShaderStruct& shStruct = pStructContainer->pShaderStructs[pStructContainer->mStructCount++];
-		shStruct.mVariableCount = 0;
-		shStruct.mUsageCount = 0;
-		pStruct += structLen + 1;
-
-		const char* pStructContent = strchr(pStruct, '{');
-		ASSERT(pStructContent);
-		const char* pStructEnd = strchr(pStructContent, '}');
-		int contentLen = strlen(pStructContent) - strlen(pStructEnd);
-
-		// Get struct name
-		int nameLen = strlen(pStruct) - strlen(pStructContent);
-		while (nameLen > 0 && strchr(seps, pStruct[nameLen -1]) != nullptr) // remove seperators
-		{
-			--nameLen;
-		}
-		shStruct.pName = (char*)tf_calloc(nameLen + 1, 1);
-		strncpy(shStruct.pName, pStruct, nameLen);
-		shStruct.pName[nameLen] = '\0';
-
-		// Find struct usages
-		const char* pStructUsage = pStructEnd;
-		while ((pStructUsage = strstr(pStructUsage, shStruct.pName)))
-		{
-			if (shStruct.mUsageCount == gMaxStructs)
-			{
-				LOGF(LogLevel::eWARNING, "Maximum struct usage storage reached {%u} for \"%s\"", gMaxStructs, shStruct.pName);
-				break;
-			}
-
-			pStructUsage += nameLen + 1;
-			int length = strcspn(pStructUsage, ";");
-			shStruct.ppStructNames[shStruct.mUsageCount] = (char*)tf_calloc(length + 1, 1);
-			char* pStructName = shStruct.ppStructNames[shStruct.mUsageCount++];
-			strncpy(pStructName, pStructUsage, length);
-			pStructName[length] = '\0';
-			pStructUsage += length;
-
-			if (strchr(pStructName, '['))  // Remove array specifer 
-			{
-				strchr(pStructName, '[')[0] = '\0';
-			}
-		}
-
-		// Find struct variables
-		const char* pVariableEnd;
-		while ((pVariableEnd = strchr(pStructContent, ';')))
-		{
-			if (shStruct.mVariableCount == gMaxStructs)
-			{
-				LOGF(LogLevel::eWARNING, "Maximum struct variable storage reached {%u} for \"%s\"", gMaxStructs, shStruct.pName);
-				break;
-			}
-
-			// Check found location is within bounds of the struct content
-			int difLen = strlen(pStructContent) - strlen(pVariableEnd);
-			if (contentLen <= difLen)
-				break;
-
-			int variableLen = difLen;
-			while (difLen >= 0 &&  ' ' != pStructContent[difLen])
-			{
-				--difLen;
-			}
-			++difLen; // include space
-
-			pStructContent += difLen;
-			contentLen -= difLen;
-			variableLen -= difLen;
-			shStruct.ppVariables[shStruct.mVariableCount] = (char*)tf_calloc(variableLen + 1, 1);
-			char* pVariable = shStruct.ppVariables[shStruct.mVariableCount++];
-			strncpy(pVariable, pStructContent, variableLen );
-			pVariable[variableLen] = '\0';
-
-			if (strchr(pVariable, '[')) // Remove array specifer 
-			{
-				strchr(pVariable, '[')[0] = '\0';
-			}
-
-			pStructContent += variableLen + 1;
-			contentLen = contentLen - variableLen - 1;
-		};
-
-		pStruct = strstr(pStruct, structChars);
-	}
-}
-
 void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflection, const BinaryShaderDesc* pDesc)
 {
 	ASSERT(pProgram);
-	const GLuint glProgram = pProgram->mProgram;
+	const GLuint glProgram = pProgram->mGLES.mProgram;
 	if (glProgram == GL_NONE)
 	{
 		LOGF(LogLevel::eERROR, "Create Shader Refection failed. Invalid GL program!");
@@ -317,10 +152,6 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 		LOGF(LogLevel::eERROR, "Create Shader Refection failed. Invalid reflection output!");
 		return;
 	}
-	ShaderStuctContainer shaderStructContainer;
-	shaderStructContainer.mStructCount = 0;
-	gles_extractShaderStructs((const char*)pDesc->mVert.pByteCode, &shaderStructContainer);
-	gles_extractShaderStructs((const char*)pDesc->mFrag.pByteCode, &shaderStructContainer);
 
 	ShaderReflection reflection = {};
 	reflection.pVertexInputs = NULL;
@@ -472,7 +303,6 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 					shaderResource.set = GL_NONE; 
 					shaderResource.reg = location;
 					shaderResource.size = size;
-					//shaderResource.used_stages = stage;
 
 					shaderResource.name_size = strlen(uniformName);
 					shaderResource.name = pCurrentName;
@@ -498,7 +328,6 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 				shaderResource.set = uniformType;
 				shaderResource.reg = location;
 				shaderResource.size = size;
-				//shaderResource.used_stages = stage;
 
 				shaderResource.name_size = strlen(uniformName);
 				shaderResource.name = pCurrentName;
@@ -559,7 +388,7 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 
 				util_extract_array_index(splitName);
 				shaderVariable.parent_index = util_get_parent_index(uniformName, &reflection);
-				shaderVariable.offset = util_get_struct_offset(uniformName, splitName, &shaderStructContainer);// location - pResource->reg; // GL Uniform Buffer Object offset
+				shaderVariable.offset = location - pResource->reg; // GL Uniform Buffer Object offset
 				shaderVariable.size = size;
 				shaderVariable.type = uniformType;
 				shaderVariable.name = pCurrentName;
@@ -582,7 +411,6 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 	}
 	tf_free(shaderResourceName);
 
-	gles_freeShaderStructs(&shaderStructContainer);
 
 	//Copy the shader reflection data to the output variable
 	*pOutReflection = reflection;

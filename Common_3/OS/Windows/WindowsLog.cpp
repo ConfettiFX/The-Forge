@@ -105,7 +105,7 @@ void _PrintUnicode(const char* str, bool error)
 		if (error)
 			printf("%s", str);    // use this for now because WriteCosnoleW sometimes cause blocking
 		else
-			printf("%s", str);
+			printf("%s", str);    //-V523
 	}
 
 	_OutputDebugString(str);

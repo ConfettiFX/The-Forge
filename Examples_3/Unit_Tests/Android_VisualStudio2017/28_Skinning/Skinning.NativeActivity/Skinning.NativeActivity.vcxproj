@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|ARM64">
-      <Configuration>Debug</Configuration>
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM64">
-      <Configuration>Release</Configuration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -20,14 +20,14 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
@@ -39,26 +39,26 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -75,8 +75,8 @@
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
-"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
+      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=Debug /p:Platform=x64 /p:BuildInParallel=true /t:Build 
+"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\Debug\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
 
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\*.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y  /d
@@ -84,17 +84,20 @@ $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy "$(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\" /s /y /d</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -113,8 +116,8 @@ $(systemroot)\System32\xcopy "$(VS_NdkRoot)\sources\third_party\vulkan\src\build
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
-"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
+      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=Release /p:Platform=x64 /p:BuildInParallel=true /t:Build 
+"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\Release\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
 
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\*.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y  /d
@@ -122,31 +125,36 @@ $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Animation\
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulkan\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+    <ClInclude Include="..\..\..\src\28_Skinning\Shaders\FSL\skinning.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\28_Skinning\28_Skinning.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\basic.frag" />
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\plane.frag" />
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\plane.vert" />
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\skinning.frag" />
-    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\skinning.vert" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\plane.frag.fsl" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\plane.vert.fsl" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl" />
+    <FSLShader Include="..\..\..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

@@ -27,7 +27,6 @@
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -115,7 +114,7 @@ struct Light
 struct UniformLightData
 {
 	// Used to tell our shaders how many lights are currently present
-	Light mLights[16];    // array of lights seem to be broken so just a single light for now
+	Light mLights[16] = {};    // array of lights seem to be broken so just a single light for now
 	int   mCurrAmountOfLights = 0;
 };
 
@@ -355,11 +354,13 @@ const char* pMaterialImageFileNames[] = {
 };
 
 const uint32_t gImageCount = 3;
-ProfileToken   gGpuProfileToken;
+ProfileToken   gPPRGpuProfileToken;
+ProfileToken   gSSSRGpuProfileToken;
+ProfileToken   gCurrentGpuProfileToken;
 bool           gToggleVSync = false;
 
 Renderer* pRenderer = NULL;
-UIApp     gAppUI;
+UIApp*    pAppUI = NULL;
 
 Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPools[gImageCount];
@@ -385,6 +386,7 @@ DescriptorSet* pDescriptorSetBRDF[2] = { NULL };
 Buffer*        pSkyboxVertexBuffer = NULL;
 Shader*        pSkyboxShader = NULL;
 Pipeline*      pSkyboxPipeline = NULL;
+Pipeline*      pSkyboxWithClearTexturesPipeline = NULL;
 RootSignature* pSkyboxRootSignature = NULL;
 DescriptorSet* pDescriptorSetSkybox[2] = { NULL };
 
@@ -478,9 +480,9 @@ Buffer*  pSSSR_DenoiserArgsBuffer = NULL;
 Buffer*  pSSSR_SobolBuffer = NULL;
 Buffer*  pSSSR_RankingTileBuffer = NULL;
 Buffer*  pSSSR_ScramblingTileBuffer = NULL;
-Texture* pSSSR_TemporalResults[2] = { NULL };
+RenderTarget* pSSSR_TemporalResults[2] = { NULL };
 Texture* pSSSR_TemporalVariance = NULL;
-Texture* pSSSR_RayLength = NULL;
+RenderTarget* pSSSR_RayLength = NULL;
 Texture* pSSSR_DepthHierarchy = NULL;
 
 Buffer* pScreenQuadVertexBuffer = NULL;
@@ -505,7 +507,7 @@ eastl::vector<int> gSponzaTextureIndexforMaterial;
 //For clearing Intermediate Buffer
 eastl::vector<uint32_t> gInitializeVal;
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 UniformObjData gUniformDataMVP;
 
@@ -566,6 +568,7 @@ GuiComponent*    pGui = NULL;
 GuiComponent*    pLoadingGui = NULL;
 DynamicUIWidgets PPR_Widgets;
 DynamicUIWidgets SSSR_Widgets;
+static uint32_t	 gSelectedApiIndex = 0;
 
 SyncToken gResourceSyncStartToken = {};
 SyncToken gResourceSyncToken = {};
@@ -584,13 +587,16 @@ VertexLayout gVertexLayoutModel = {};
 
 void assignSponzaTextures();
 
+bool gHasReset = false;
 const char* gTestScripts[] = { "Test_RenderScene.lua", "Test_RenderReflections.lua", "Test_RenderSceneReflections.lua", "Test_RenderSceneExReflections.lua" };
-uint32_t gScriptIndexes[] = { 0, 1, 2, 3 };
+uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
+
+bool gClearTextures = false;
 
 class ScreenSpaceReflections: public IApp
 {
@@ -617,6 +623,7 @@ class ScreenSpaceReflections: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
 		settings.mShaderTarget = shader_target_6_0;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -624,9 +631,9 @@ class ScreenSpaceReflections: public IApp
 			return false;
 
 		gSSSRSupported = (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) &&
-						 (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
-						 (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT) &&
-						 (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
 
 		gLastReflectionType = gReflectionType = gSSSRSupported ? SSS_REFLECTION : PP_REFLECTION;
 
@@ -660,32 +667,65 @@ class ScreenSpaceReflections: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
 			return false;
 
 		// Create UI
-		if (!gAppUI.Init(pRenderer))
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
 			return false;
-		gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+		if (!gHasReset)
+			addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-		pGui = gAppUI.AddGuiComponent("Screen Space Reflections", &guiDesc);
+		pGui = addAppUIGuiComponent(pAppUI, "Screen Space Reflections", &guiDesc); 
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+			static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
 
 		initProfiler();
-		initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
 
-		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gPPRGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gSSSRGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gCurrentGpuProfileToken = gSSSRGpuProfileToken;
+
 		ComputePBRMaps();
 
 		SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
-									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+					ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &samplerDesc, &pSamplerBilinear);
 
 		SamplerDesc nearstSamplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
-										  ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+						ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &nearstSamplerDesc, &pSamplerNearest);
 
 		// GBuffer
@@ -693,15 +733,16 @@ class ScreenSpaceReflections: public IApp
 		sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
 		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 		ShaderLoadDesc gBuffersShaderDesc = {};
-		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0 };
 
 		if (!gUseTexturesFallback)
 		{
+			gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", &totalImagesShaderMacro, 1 };
 			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1 };
 		}
 		else
 		{
-			gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0 };
+			gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0 };
+			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", NULL, 0 };
 		}
 		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
 
@@ -752,6 +793,9 @@ class ScreenSpaceReflections: public IApp
 		addShader(pRenderer, &PPR_ProjectionShaderDesc, &pPPR_ProjectionShader);
 
 		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
+		PPR_PRootDesc.mStaticSamplerCount = 1;
+		PPR_PRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		PPR_PRootDesc.ppStaticSamplers = pStaticSamplers;
 		addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
 
 		//PPR_Reflection
@@ -808,69 +852,9 @@ class ScreenSpaceReflections: public IApp
 			RootSignatureDesc GenerateMipShaderDescRootDesc = { &pGenerateMipShader, 1 };
 			addRootSignature(pRenderer, &GenerateMipShaderDescRootDesc, &pGenerateMipRootSignature);
 
-			ShaderMacro SSSR_ShaderMacros[11] = {
-#if defined(DIRECT3D12) || defined(METAL)
-				{ "FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_ROUGHNESS_UNPACK_FUNCTION",
-				  "float FfxSssrUnpackRoughness(FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT _packed) { return _packed.r; }" },
-				{ "FFX_SSSR_NORMALS_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_NORMALS_UNPACK_FUNCTION",
-				  "float3 FfxSssrUnpackNormals(FFX_SSSR_NORMALS_TEXTURE_FORMAT _packed) { return normalize(_packed.xyz); }" },
-				{ "FFX_SSSR_DEPTH_TEXTURE_FORMAT", "float" },
-				{ "FFX_SSSR_DEPTH_UNPACK_FUNCTION", "float FfxSssrUnpackDepth(FFX_SSSR_DEPTH_TEXTURE_FORMAT _packed) { return _packed; }" },
-				{ "FFX_SSSR_SCENE_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_SCENE_RADIANCE_UNPACK_FUNCTION",
-				  "float3 FfxSssrUnpackSceneRadiance(FFX_SSSR_SCENE_TEXTURE_FORMAT _packed) { return _packed.xyz; }" },
-				{ "FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT", "float2" },
-				{ "FFX_SSSR_MOTION_VECTOR_UNPACK_FUNCTION",
-				  "float2 FfxSssrUnpackMotionVectors(FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT _packed) { return _packed.xy * float2(0.5, "
-				  "-0.5); "
-				  "}" },
-				{ "FFX_SSSR_EAW_STRIDE",
-				  "2" }
-#elif defined(ORBIS) || defined(PROSPERO)
-				{ "FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_ROUGHNESS_UNPACK_FUNCTION",
-				  "\"float FfxSssrUnpackRoughness(FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT _packed) { return _packed.r; }\"" },
-				{ "FFX_SSSR_NORMALS_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_NORMALS_UNPACK_FUNCTION",
-				  "\"float3 FfxSssrUnpackNormals(FFX_SSSR_NORMALS_TEXTURE_FORMAT _packed) { return normalize(_packed.xyz); }\"" },
-				{ "FFX_SSSR_DEPTH_TEXTURE_FORMAT", "float" },
-				{ "FFX_SSSR_DEPTH_UNPACK_FUNCTION", "\"float FfxSssrUnpackDepth(FFX_SSSR_DEPTH_TEXTURE_FORMAT _packed) { return _packed; }\"" },
-				{ "FFX_SSSR_SCENE_TEXTURE_FORMAT", "float4" },
-				{ "FFX_SSSR_SCENE_RADIANCE_UNPACK_FUNCTION",
-				  "\"float3 FfxSssrUnpackSceneRadiance(FFX_SSSR_SCENE_TEXTURE_FORMAT _packed) { return _packed.xyz; }\"" },
-				{ "FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT", "float2" },
-				{ "FFX_SSSR_MOTION_VECTOR_UNPACK_FUNCTION",
-				  "\"float2 FfxSssrUnpackMotionVectors(FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT _packed) { return _packed.xy * float2(0.5, "
-				  "-0.5); "
-				  "}\"" },
-				{ "FFX_SSSR_EAW_STRIDE",
-				  "2" }
-#elif defined(VULKAN)
-				{ "FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT", "vec4" },
-				{ "FFX_SSSR_ROUGHNESS_UNPACK_FUNCTION",
-				  "float FfxSssrUnpackRoughness(FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT _packed) { return _packed.x; }" },
-				{ "FFX_SSSR_NORMALS_TEXTURE_FORMAT", "vec4" },
-				{ "FFX_SSSR_NORMALS_UNPACK_FUNCTION",
-				  "vec3 FfxSssrUnpackNormals(FFX_SSSR_NORMALS_TEXTURE_FORMAT _packed) { return normalize(_packed.xyz); }" },
-				{ "FFX_SSSR_DEPTH_TEXTURE_FORMAT", "float" },
-				{ "FFX_SSSR_DEPTH_UNPACK_FUNCTION",
-				  "float FfxSssrUnpackDepth(FFX_SSSR_DEPTH_TEXTURE_FORMAT _packed) { return _packed.x; }" },
-				{ "FFX_SSSR_SCENE_TEXTURE_FORMAT", "vec4" },
-				{ "FFX_SSSR_SCENE_RADIANCE_UNPACK_FUNCTION",
-				  "vec3 FfxSssrUnpackSceneRadiance(FFX_SSSR_SCENE_TEXTURE_FORMAT _packed) { return _packed.xyz; }" },
-				{ "FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT", "vec2" },
-				{ "FFX_SSSR_MOTION_VECTOR_UNPACK_FUNCTION",
-				  "vec2 FfxSssrUnpackMotionVectors(FFX_SSSR_MOTION_VECTOR_TEXTURE_FORMAT _packed) { return _packed.xy * vec2(0.5, -0.5); "
-				  "}" },
-				{ "FFX_SSSR_EAW_STRIDE", "2" }
-#endif
-			};
-
 			// SSSR
 			ShaderLoadDesc SSSR_ClassifyTilesShaderDesc = {};
-			SSSR_ClassifyTilesShaderDesc.mStages[0] = { "SSSR_ClassifyTiles.comp", SSSR_ShaderMacros, 10 };
+			SSSR_ClassifyTilesShaderDesc.mStages[0] = { "SSSR_ClassifyTiles.comp", NULL, 0 };
 			SSSR_ClassifyTilesShaderDesc.mTarget = shader_target_6_0;
 			addShader(pRenderer, &SSSR_ClassifyTilesShaderDesc, &pSSSR_ClassifyTilesShader);
 
@@ -885,7 +869,7 @@ class ScreenSpaceReflections: public IApp
 			addRootSignature(pRenderer, &SSSR_PrepareIndirectArgsRootDesc, &pSSSR_PrepareIndirectArgsRootSignature);
 
 			ShaderLoadDesc SSSR_IntersectShaderDesc = {};
-			SSSR_IntersectShaderDesc.mStages[0] = { "SSSR_Intersect.comp", SSSR_ShaderMacros, 10 };
+			SSSR_IntersectShaderDesc.mStages[0] = { "SSSR_Intersect.comp", NULL, 0 };
 			SSSR_IntersectShaderDesc.mTarget = shader_target_6_0;
 			addShader(pRenderer, &SSSR_IntersectShaderDesc, &pSSSR_IntersectShader);
 
@@ -896,11 +880,11 @@ class ScreenSpaceReflections: public IApp
 			indirectArgDescs[0].mType = INDIRECT_DISPATCH;
 
 			CommandSignatureDesc cmdSignatureDesc = { pSSSR_IntersectRootSignature, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
-													  indirectArgDescs, true };
+									indirectArgDescs, true };
 			addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pSSSR_IntersectCommandSignature);
 
 			ShaderLoadDesc SSSR_ResolveSpatialShaderDesc = {};
-			SSSR_ResolveSpatialShaderDesc.mStages[0] = { "SSSR_ResolveSpatial.comp", SSSR_ShaderMacros, 10 };
+			SSSR_ResolveSpatialShaderDesc.mStages[0] = { "SSSR_ResolveSpatial.comp", NULL, 0 };
 			SSSR_ResolveSpatialShaderDesc.mTarget = shader_target_6_0;
 			addShader(pRenderer, &SSSR_ResolveSpatialShaderDesc, &pSSSR_ResolveSpatialShader);
 
@@ -908,58 +892,58 @@ class ScreenSpaceReflections: public IApp
 			addRootSignature(pRenderer, &SSSR_ResolveSpatialRootDesc, &pSSSR_ResolveSpatialRootSignature);
 
 			CommandSignatureDesc cmdResolveSpatialSignatureDesc = { pSSSR_ResolveSpatialRootSignature,
-																	sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
-																	indirectArgDescs, true };
+										sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
+										indirectArgDescs, true };
 			addIndirectCommandSignature(pRenderer, &cmdResolveSpatialSignatureDesc, &pSSSR_ResolveSpatialCommandSignature);
 
 			ShaderLoadDesc SSSR_ResolveTemporalShaderDesc = {};
-			SSSR_ResolveTemporalShaderDesc.mStages[0] = { "SSSR_ResolveTemporal.comp", SSSR_ShaderMacros, 10 };
+			SSSR_ResolveTemporalShaderDesc.mStages[0] = { "SSSR_ResolveTemporal.comp", NULL, 0 };
 			addShader(pRenderer, &SSSR_ResolveTemporalShaderDesc, &pSSSR_ResolveTemporalShader);
 
 			RootSignatureDesc SSSR_ResolveTemporalRootDesc = { &pSSSR_ResolveTemporalShader, 1 };
 			addRootSignature(pRenderer, &SSSR_ResolveTemporalRootDesc, &pSSSR_ResolveTemporalRootSignature);
 
 			CommandSignatureDesc cmdResolveTemporalSignatureDesc = { pSSSR_ResolveTemporalRootSignature,
-																	 sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
-																	 indirectArgDescs, true };
+											sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
+											indirectArgDescs, true };
 			addIndirectCommandSignature(pRenderer, &cmdResolveTemporalSignatureDesc, &pSSSR_ResolveTemporalCommandSignature);
 
 			ShaderLoadDesc SSSR_ResolveEAWShaderDesc = {};
-			SSSR_ResolveEAWShaderDesc.mStages[0] = { "SSSR_ResolveEaw.comp", SSSR_ShaderMacros, 10 };
+			SSSR_ResolveEAWShaderDesc.mStages[0] = { "SSSR_ResolveEaw.comp", NULL, 0 };
 			addShader(pRenderer, &SSSR_ResolveEAWShaderDesc, &pSSSR_ResolveEAWShader);
 
 			RootSignatureDesc SSSR_ResolveEAWRootDesc = { &pSSSR_ResolveEAWShader, 1 };
 			addRootSignature(pRenderer, &SSSR_ResolveEAWRootDesc, &pSSSR_ResolveEAWRootSignature);
 
 			CommandSignatureDesc cmdResolveEAWSignatureDesc = { pSSSR_ResolveEAWRootSignature,
-																sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs,
-																true };
+										sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs,
+										true };
 			addIndirectCommandSignature(pRenderer, &cmdResolveEAWSignatureDesc, &pSSSR_ResolveEAWCommandSignature);
 
 			ShaderLoadDesc SSSR_ResolveEAWStride2ShaderDesc = {};
-			SSSR_ResolveEAWStride2ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", SSSR_ShaderMacros, 11 };
+			SSSR_ResolveEAWStride2ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", NULL, 0 };
 			addShader(pRenderer, &SSSR_ResolveEAWStride2ShaderDesc, &pSSSR_ResolveEAWStride2Shader);
 
 			RootSignatureDesc SSSR_ResolveEAWStride2RootDesc = { &pSSSR_ResolveEAWStride2Shader, 1 };
 			addRootSignature(pRenderer, &SSSR_ResolveEAWStride2RootDesc, &pSSSR_ResolveEAWStride2RootSignature);
 
 			CommandSignatureDesc cmdResolveEAWStride2SignatureDesc = { pSSSR_ResolveEAWStride2RootSignature,
-																	   sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
-																	   indirectArgDescs, true };
+											sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
+											indirectArgDescs, true };
 			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride2SignatureDesc, &pSSSR_ResolveEAWStride2CommandSignature);
 
-			SSSR_ShaderMacros[10].value = "4";
+			ShaderMacro SSSR_ShaderMacro = { "FFX_SSSR_EAW_STRIDE", "4" };
 
 			ShaderLoadDesc SSSR_ResolveEAWStride4ShaderDesc = {};
-			SSSR_ResolveEAWStride4ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", SSSR_ShaderMacros, 11 };
+			SSSR_ResolveEAWStride4ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", &SSSR_ShaderMacro, 1 };
 			addShader(pRenderer, &SSSR_ResolveEAWStride4ShaderDesc, &pSSSR_ResolveEAWStride4Shader);
 
 			RootSignatureDesc SSSR_ResolveEAWStride4RootDesc = { &pSSSR_ResolveEAWStride4Shader, 1 };
 			addRootSignature(pRenderer, &SSSR_ResolveEAWStride4RootDesc, &pSSSR_ResolveEAWStride4RootSignature);
 
 			CommandSignatureDesc cmdResolveEAWStride4SignatureDesc = { pSSSR_ResolveEAWStride4RootSignature,
-																	   sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
-																	   indirectArgDescs, true };
+											sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]),
+											indirectArgDescs, true };
 			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride4SignatureDesc, &pSSSR_ResolveEAWStride4CommandSignature);
 		}
 		// Skybox
@@ -1004,8 +988,6 @@ class ScreenSpaceReflections: public IApp
 
 		if (gSSSRSupported)
 		{
-			setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
 			// Copy depth
 			setDesc = { pCopyDepthRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorCopyDepth);
@@ -1375,81 +1357,173 @@ class ScreenSpaceReflections: public IApp
 		static const uint32_t enumRenderModes[] = { SCENE_ONLY, REFLECTIONS_ONLY, SCENE_WITH_REFLECTIONS, SCENE_EXCLU_REFLECTIONS, 0 };
 
 		static const char* enumRenderModeNames[] = { "Render Scene Only", "Render Reflections Only", "Render Scene with Reflections",
-													 "Render Scene with exclusive Reflections", NULL };
+								"Render Scene with exclusive Reflections", NULL };
 
 		static const uint32_t enumReflectionType[] = { PP_REFLECTION, SSS_REFLECTION, 0 };
 
 		static const char* enumReflectionTypeNames[] = { "Pixel Projected Reflections", "Stochastic Screen Space Reflections", NULL };
 
 #if !defined(TARGET_IOS)
-		pGui->AddWidget(OneLineCheckboxWidget("Toggle VSync", &gToggleVSync, 0xFFFFFFFF));
+		OneLineCheckboxWidget vSyncCheckbox;
+		vSyncCheckbox.pData = &gToggleVSync;
+		vSyncCheckbox.mColor = 0xFFFFFFFF;
+		addWidgetLua(addGuiWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
 #endif
+		DropdownWidget ddRenderMode;
+		ddRenderMode.pData = &gRenderMode;
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			ddRenderMode.mNames.push_back((char*)enumRenderModeNames[i]);
+			ddRenderMode.mValues.push_back(enumRenderModes[i]);
+		}
+		addWidgetLua(addGuiWidget(pGui, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
 
-		pGui->AddWidget(DropdownWidget("Render Mode", &gRenderMode, enumRenderModeNames, enumRenderModes, 4));
-		pGui->AddWidget(DropdownWidget("Reflection Type", &gReflectionType, enumReflectionTypeNames, enumReflectionType, 2));
+		DropdownWidget ddReflType;
+		ddReflType.pData = &gReflectionType;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			ddReflType.mNames.push_back((char*)enumReflectionTypeNames[i]);
+			ddReflType.mValues.push_back(enumReflectionType[i]);
+		}
+		addWidgetLua(addGuiWidget(pGui, "Reflection Type", &ddReflType, WIDGET_TYPE_DROPDOWN));
 
-		PPR_Widgets.AddWidget(CheckboxWidget("Use Holepatching", &gUseHolePatching));
-		PPR_Widgets.AddWidget(CheckboxWidget("Use Expensive Holepatching", &gUseExpensiveHolePatching));
+		CheckboxWidget holePatchCheck;
+		holePatchCheck.pData = &gUseHolePatching;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Use Holepatching", &holePatchCheck, WIDGET_TYPE_CHECKBOX));
+
+		CheckboxWidget holePatchExpCheck;
+		holePatchExpCheck.pData = &gUseExpensiveHolePatching;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Use Expensive Holepatching", &holePatchExpCheck, WIDGET_TYPE_CHECKBOX));
 
 		//pGui->AddWidget(CheckboxWidget("Use Normalmap", &gUseNormalMap));
 
-		PPR_Widgets.AddWidget(CheckboxWidget("Use Fade Effect", &gUseFadeEffect));
+		CheckboxWidget fadeCheck;
+		fadeCheck.pData = &gUseFadeEffect;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Use Fade Effect", &fadeCheck, WIDGET_TYPE_CHECKBOX));
 
-		PPR_Widgets.AddWidget(SliderFloatWidget("Intensity of PPR", &gRRP_Intensity, 0.0f, 1.0f));
-		PPR_Widgets.AddWidget(SliderUintWidget("Number of Planes", &gPlaneNumber, 1, 4));
-		PPR_Widgets.AddWidget(SliderFloatWidget("Size of Main Plane", &gPlaneSize, 5.0f, 100.0f));
+		SliderFloatWidget pprIntensitySlider;
+		pprIntensitySlider.pData = &gRRP_Intensity;
+		pprIntensitySlider.mMin = 0.0f;
+		pprIntensitySlider.mMax = 1.0f;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Intensity of PPR", &pprIntensitySlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+		SliderUintWidget numPlanesSlider;
+		numPlanesSlider.pData = &gPlaneNumber;
+		numPlanesSlider.mMin = 1;
+		numPlanesSlider.mMax = 4;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Number of Planes", &numPlanesSlider, WIDGET_TYPE_SLIDER_UINT));
+
+		SliderFloatWidget mainPlaneSizeSlider;
+		mainPlaneSizeSlider.pData = &gPlaneSize;
+		mainPlaneSizeSlider.mMin = 5.0f;
+		mainPlaneSizeSlider.mMax = 100.0f;
+		addWidgetLua(addDynamicUIWidget(&PPR_Widgets, "Size of Main Plane", &mainPlaneSizeSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		if (gSSSRSupported)
 		{
-			SSSR_Widgets.AddWidget(OneLineCheckboxWidget("Use Singlepass Downsampler", &gUseSPD, 0xFFFFFFFF));
-			SSSR_Widgets.AddWidget(OneLineCheckboxWidget("Show Intersection Results", &gSSSR_SkipDenoiser, 0xFFFFFFFF));
-			SSSR_Widgets.AddWidget(SliderUintWidget("Max Traversal Iterations", &gSSSR_MaxTravelsalIntersections, 0, 256));
-			SSSR_Widgets.AddWidget(SliderUintWidget("Min Traversal Occupancy", &gSSSR_MinTravelsalOccupancy, 0, 32));
-			SSSR_Widgets.AddWidget(SliderUintWidget("Most Detailed Level", &gSSSR_MostDetailedMip, 0, 5));
-			SSSR_Widgets.AddWidget(SliderFloatWidget("Depth Buffer Thickness", &gSSSR_DepthThickness, 0.0f, 0.3f));
-			SSSR_Widgets.AddWidget(SliderFloatWidget("Roughness Threshold", &gSSSR_RougnessThreshold, 0.0f, 1.0f));
-			SSSR_Widgets.AddWidget(SliderFloatWidget("Temporal Stability", &pSSSR_TemporalStability, 0.0f, 1.0f));
-			SSSR_Widgets.AddWidget(OneLineCheckboxWidget("Enable Variance Guided Tracing", &gSSSR_TemporalVarianceEnabled, 0xFFFFFFFF));
-			SSSR_Widgets.AddWidget(RadioButtonWidget("1 Sample  Per Quad", &gSSSR_SamplesPerQuad, 1));
-			SSSR_Widgets.AddWidget(RadioButtonWidget("2 Samples Per Quad", &gSSSR_SamplesPerQuad, 2));
-			SSSR_Widgets.AddWidget(RadioButtonWidget("4 Samples Per Quad", &gSSSR_SamplesPerQuad, 4));
-			SSSR_Widgets.AddWidget(RadioButtonWidget("1 EAW Pass", &gSSSR_EAWPassCount, 1));
-			SSSR_Widgets.AddWidget(RadioButtonWidget("3 EAW Pass", &gSSSR_EAWPassCount, 3));
+			OneLineCheckboxWidget olCheckbox;
+			olCheckbox.pData = &gUseSPD;
+			olCheckbox.mColor = 0xFFFFFFFF;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Use Singlepass Downsampler", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
+
+			olCheckbox.pData = &gSSSR_SkipDenoiser;
+			olCheckbox.mColor = 0xFFFFFFFF;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Show Intersection Results", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
+
+			SliderUintWidget uintSlider;
+			uintSlider.pData = &gSSSR_MaxTravelsalIntersections;
+			uintSlider.mMin = 0;
+			uintSlider.mMax = 256;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Max Traversal Iterations", &uintSlider, WIDGET_TYPE_SLIDER_UINT));
+
+			uintSlider.pData = &gSSSR_MinTravelsalOccupancy;
+			uintSlider.mMin = 0;
+			uintSlider.mMax = 32;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Min Traversal Occupancy", &uintSlider, WIDGET_TYPE_SLIDER_UINT));
+
+			uintSlider.pData = &gSSSR_MostDetailedMip;
+			uintSlider.mMin = 0;
+			uintSlider.mMax = 5;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Most Detailed Level", &uintSlider, WIDGET_TYPE_SLIDER_UINT));
+
+			SliderFloatWidget floatSlider;
+			floatSlider.pData = &gSSSR_DepthThickness;
+			floatSlider.mMin = 0.0f;
+			floatSlider.mMax = 0.3f;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Depth Buffer Thickness", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			floatSlider.pData = &gSSSR_RougnessThreshold;
+			floatSlider.mMin = 0.0f;
+			floatSlider.mMax = 1.0f;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Roughness Threshold", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			floatSlider.pData = &pSSSR_TemporalStability;
+			floatSlider.mMin = 0.0f;
+			floatSlider.mMax = 1.0f;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Temporal Stability", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			olCheckbox.pData = &gSSSR_TemporalVarianceEnabled;
+			olCheckbox.mColor = 0xFFFFFFFF;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Enable Variance Guided Tracing", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
+
+			RadioButtonWidget radiobutton;
+			radiobutton.pData = &gSSSR_SamplesPerQuad;
+			radiobutton.mRadioId = 1;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "1 Sample Per Quad", &radiobutton, WIDGET_TYPE_RADIO_BUTTON));
+
+			radiobutton.pData = &gSSSR_SamplesPerQuad;
+			radiobutton.mRadioId = 2;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "2 Sample Per Quad", &radiobutton, WIDGET_TYPE_RADIO_BUTTON));
+
+			radiobutton.pData = &gSSSR_SamplesPerQuad;
+			radiobutton.mRadioId = 4;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "4 Sample Per Quad", &radiobutton, WIDGET_TYPE_RADIO_BUTTON));
+
+			radiobutton.pData = &gSSSR_EAWPassCount;
+			radiobutton.mRadioId = 1;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "1 EAW Pass", &radiobutton, WIDGET_TYPE_RADIO_BUTTON));
+
+			radiobutton.pData = &gSSSR_EAWPassCount;
+			radiobutton.mRadioId = 3;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "3 EAW Pass", &radiobutton, WIDGET_TYPE_RADIO_BUTTON));
 		}
 		else
 		{
-			SSSR_Widgets.AddWidget(LabelWidget("Not supported by your GPU"));
+			LabelWidget notSupportedLabel;
+			addWidgetLua(addDynamicUIWidget(&SSSR_Widgets, "Not supported by your GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
 
-		DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		ButtonWidget bRunScript("Run");
-		bRunScript.pOnEdited = RunScript;
-		pGui->AddWidget(ddTestScripts);
-		pGui->AddWidget(bRunScript);
+		DropdownWidget ddTestScripts;
+		ddTestScripts.pData = &gCurrentScriptIndex;
+		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+		{
+			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+		}
+		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+		ButtonWidget bRunScript;
+		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		pRunScript->pOnEdited = RunScript;
+		addWidgetLua(pRunScript);
 
 		if (gReflectionType == PP_REFLECTION)
 		{
-			PPR_Widgets.ShowWidgets(pGui);
+			showDynamicUIWidgets(&PPR_Widgets, pGui);
 		}
 		else if (gReflectionType == SSS_REFLECTION)
 		{
-			SSSR_Widgets.ShowWidgets(pGui);
+			showDynamicUIWidgets(&SSSR_Widgets, pGui);
 		}
 
 		GuiDesc guiDesc2 = {};
 		guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.25f);
-		pLoadingGui = gAppUI.AddGuiComponent("Loading", &guiDesc2);
+		pLoadingGui = addAppUIGuiComponent(pAppUI, "Loading", &guiDesc2);
 
-		ProgressBarWidget ProgressBar("               [ProgressBar]               ", &mProgressBarValue, mProgressBarValueMax);
-		pLoadingGui->AddWidget(ProgressBar);
-
-		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
-		vec3                   camPos{ 20.0f, -2.0f, 0.9f };
-		vec3                   lookAt{ 0.0f, -2.0f, 0.9f };
-
-		pCameraController = createFpsCameraController(camPos, lookAt);
-
-		pCameraController->setMotionParameters(camParameters);
+		ProgressBarWidget ProgressBar;
+		ProgressBar.pData = &mProgressBarValue;
+		ProgressBar.mMaxProgress = mProgressBarValueMax;
+		addWidgetLua(addGuiWidget(pLoadingGui, "               [ProgressBar]               ", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
 
 		// fill Gbuffers
 		// Create vertex layout
@@ -1475,66 +1549,10 @@ class ScreenSpaceReflections: public IApp
 		gVertexLayoutModel.mAttribs[2].mBinding = 0;
 		gVertexLayoutModel.mAttribs[2].mOffset = 6 * sizeof(float);    // first attribute contains 3 floats
 
-		for (size_t i = 0; i < TOTAL_IMGS; i += 1)
-		{
-			loadTexture(i);
-		}
-
 		for (size_t i = 0; i < 2; i += 1)
 		{
 			loadMesh(i);
 		}
-
-		gResourceSyncStartToken = getLastTokenCompleted();
-
-		assignSponzaTextures();
-
-		if (!initInputSystem(pWindow))
-			return false;
-
-		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
-									   [](InputActionContext* ctx) {
-										   toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
-										   return true;
-									   },
-									   this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
-						  requestShutdown();
-						  return true;
-					  } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-					   [](InputActionContext* ctx) {
-						   bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-						   return true;
-					   },
-					   this };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
-			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
-			}
-			return true;
-		};
-		actionDesc = {
-			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f
-		};
-		addInputAction(&actionDesc);
-		actionDesc = {
-			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
-		};
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
-						  pCameraController->resetView();
-						  return true;
-					  } };
-		addInputAction(&actionDesc);
 
 		// Prepare descriptor sets
 		DescriptorData skyParams[1] = {};
@@ -1548,23 +1566,83 @@ class ScreenSpaceReflections: public IApp
 			updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyParams);
 		}
 
+		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
+		vec3                   camPos{ 20.0f, -2.0f, 0.9f };
+		vec3                   lookAt{ 0.0f, -2.0f, 0.9f };
+
+		pCameraController = initFpsCameraController(camPos, lookAt);
+		pCameraController->setMotionParameters(camParameters);
+
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+			[](InputActionContext* ctx) {
+			toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
+			return true;
+			},
+			this 
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+			requestShutdown();
+			return true;
+		} };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_ANY,
+			[](InputActionContext* ctx) {
+			bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+			setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+			return true;
+			},
+			this 
+		};
+		addInputAction(&actionDesc);
+		typedef bool(*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			{
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = {
+			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f
+		};
+		addInputAction(&actionDesc);
+		actionDesc = {
+			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
+			pCameraController->resetView();
+			return true;
+		} };
+		addInputAction(&actionDesc);
+
+		assignSponzaTextures();
+
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
 	void Exit()
 	{
-		waitQueueIdle(pGraphicsQueue);
-
-		// Remove streamer before removing any actual resources
-		// otherwise we might delete a resource while uploading to it.
-		waitForToken(&gResourceSyncToken);
-		waitForAllResourceLoads();
-
 		exitInputSystem();
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
+		gSponzaTextureIndexforMaterial.set_capacity(0);
+		gInitializeVal.set_capacity(0);
+
+		gFrameIndex = 0;
+		gFrameFlipFlop = 0;
+
+		removeGpuProfiler(gSSSRGpuProfileToken);
+		removeGpuProfiler(gPPRGpuProfileToken);
 
 		exitProfilerUI();
-
 		exitProfiler();
 
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
@@ -1582,7 +1660,6 @@ class ScreenSpaceReflections: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[1]);
 		if (gSSSRSupported)
 		{
-			removeDescriptorSet(pRenderer, pDescriptorSPD);
 			removeDescriptorSet(pRenderer, pDescriptorCopyDepth);
 			removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
 			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ClassifyTiles);
@@ -1619,7 +1696,7 @@ class ScreenSpaceReflections: public IApp
 		removeResource(pSSSR_RankingTileBuffer);
 		removeResource(pSSSR_ScramblingTileBuffer);
 
-		gVirtualJoystick.Exit();
+		exitVirtualJoystickUI(pVirtualJoystick);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -1639,9 +1716,9 @@ class ScreenSpaceReflections: public IApp
 		for (Geometry*& model : gModels)
 			removeResource(model);
 
-		PPR_Widgets.Destroy();
-		SSSR_Widgets.Destroy();
-		gAppUI.Exit();
+		removeDynamicUI(&PPR_Widgets);
+		removeDynamicUI(&SSSR_Widgets);
+		exitAppUI(pAppUI);
 
 		if (gSSSRSupported)
 		{
@@ -1703,20 +1780,9 @@ class ScreenSpaceReflections: public IApp
 
 		removeQueue(pRenderer, pGraphicsQueue);
 
-		for (uint i = 0; i < TOTAL_IMGS; ++i)
-		{
-			if (pMaterialTextures[i])
-			{
-				removeResource(pMaterialTextures[i]);
-			}
-		}
-
 		// Remove resource loader and renderer
 		exitResourceLoaderInterface(pRenderer);
-		removeRenderer(pRenderer);
-
-		gSponzaTextureIndexforMaterial.set_capacity(0);
-		gInitializeVal.set_capacity(0);
+		exitRenderer(pRenderer);
 	}
 
 	void ComputePBRMaps()
@@ -2070,6 +2136,20 @@ class ScreenSpaceReflections: public IApp
 
 	bool Load()
 	{
+		for (size_t i = 0; i < TOTAL_IMGS; i += 1)
+		{
+			loadTexture(i);
+		}
+
+		gResourceSyncStartToken = getLastTokenCompleted();
+
+		if (gSSSRSupported)
+		{
+			// This desc set contains mip level data which is dependent on window dimensions
+			DescriptorSetDesc setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
+		}
+
 		if (!addSwapChain())
 			return false;
 
@@ -2088,10 +2168,10 @@ class ScreenSpaceReflections: public IApp
 		if (!addIntermeditateBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		/************************************************************************/
@@ -2142,7 +2222,6 @@ class ScreenSpaceReflections: public IApp
 
 		deferredPassPipelineSettings = {};
 		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
 		deferredPassPipelineSettings.pDepthState = NULL;
 
 		deferredPassPipelineSettings.mRenderTargetCount = 1;
@@ -2156,6 +2235,16 @@ class ScreenSpaceReflections: public IApp
 		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSkybox;
 		deferredPassPipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pSkyboxPipeline);
+
+		TinyImageFormat formats[4] = {};
+		formats[0] = pRenderTargetDeferredPass[0][0]->mFormat;
+		formats[1] = pSSSR_TemporalResults[0]->mFormat;
+		formats[2] = pSSSR_TemporalResults[1]->mFormat;
+		formats[3] = pSSSR_RayLength->mFormat;
+
+		deferredPassPipelineSettings.mRenderTargetCount = 4;
+		deferredPassPipelineSettings.pColorFormats = formats;
+		addPipeline(pRenderer, &desc, &pSkyboxWithClearTexturesPipeline);
 
 		// BRDF
 		//Position
@@ -2294,7 +2383,9 @@ class ScreenSpaceReflections: public IApp
 			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride4Pipeline);
 		}
 
-		PrepareDescriptorSets(false);
+		waitForAllResourceLoads();
+
+		PrepareDescriptorSets(true);
 
 		return true;
 	}
@@ -2302,15 +2393,23 @@ class ScreenSpaceReflections: public IApp
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		// Remove streamer before removing any actual resources
+		// otherwise we might delete a resource while uploading to it.
+		waitForToken(&gResourceSyncToken);
 		waitForAllResourceLoads();
 
-		waitForAllResourceLoads();
+		gResourceSyncToken = 0;
 
-		gAppUI.Unload();
+		if (gSSSRSupported)
+			removeDescriptorSet(pRenderer, pDescriptorSPD);
 
-		gVirtualJoystick.Unload();
+		removeAppGUIDriver(pAppUI);
+
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
 		removePipeline(pRenderer, pPipelineBRDF);
+		removePipeline(pRenderer, pSkyboxWithClearTexturesPipeline);
 		removePipeline(pRenderer, pSkyboxPipeline);
 		removePipeline(pRenderer, pPPR_ProjectionPipeline);
 		removePipeline(pRenderer, pPPR_ReflectionPipeline);
@@ -2335,11 +2434,11 @@ class ScreenSpaceReflections: public IApp
 		removeRenderTarget(pRenderer, pSceneBuffer);
 		removeRenderTarget(pRenderer, pReflectionBuffer);
 		removeResource(pIntermediateBuffer);
-		removeResource(pSSSR_TemporalResults[0]);
-		removeResource(pSSSR_TemporalResults[1]);
+		removeRenderTarget(pRenderer, pSSSR_TemporalResults[0]);
+		removeRenderTarget(pRenderer, pSSSR_TemporalResults[1]);
 		removeResource(pSSSR_DepthHierarchy);
 		removeResource(pSSSR_TemporalVariance);
-		removeResource(pSSSR_RayLength);
+		removeRenderTarget(pRenderer, pSSSR_RayLength);
 		removeResource(pSSSR_RayListBuffer);
 		removeResource(pSSSR_TileListBuffer);
 
@@ -2350,6 +2449,14 @@ class ScreenSpaceReflections: public IApp
 		removeRenderTarget(pRenderer, pRenderTargetDeferredPass[1][2]);
 
 		removeSwapChain(pRenderer, pSwapChain);
+
+		for (uint i = 0; i < TOTAL_IMGS; ++i)
+		{
+			if (pMaterialTextures[i])
+			{
+				removeResource(pMaterialTextures[i]);
+			}
+		}
 	}
 
 	void Update(float deltaTime)
@@ -2439,19 +2546,7 @@ class ScreenSpaceReflections: public IApp
 		gUniformDataPlaneInfo.planeInfo[1].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -80.0f);
 		gUniformDataPlaneInfo.planeInfo[2].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -100.0f);
 		gUniformDataPlaneInfo.planeInfo[3].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * 90.0f);
-		;
 
-#if defined(DIRECT3D12) || defined(ORBIS) || defined(PROSPERO)
-
-		// Need to check why this should be transposed on DX12
-		// Even view or proj matrices work well....
-
-		gUniformDataPlaneInfo.planeInfo[0].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[0].rotMat);
-		gUniformDataPlaneInfo.planeInfo[1].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[1].rotMat);
-		gUniformDataPlaneInfo.planeInfo[2].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[2].rotMat);
-		gUniformDataPlaneInfo.planeInfo[3].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[3].rotMat);
-
-#endif
 		gUniformSSSRConstantsData.g_prev_view_proj =
 			transpose(transpose(gUniformSSSRConstantsData.g_proj) * transpose(gUniformSSSRConstantsData.g_view));
 		gUniformSSSRConstantsData.g_inv_view_proj = transpose(gUniformDataExtenedCamera.mInvViewProjMat);
@@ -2478,19 +2573,19 @@ class ScreenSpaceReflections: public IApp
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 
 		if (gReflectionType != gLastReflectionType)
 		{
 			if (gReflectionType == PP_REFLECTION)
 			{
-				PPR_Widgets.ShowWidgets(pGui);
-				SSSR_Widgets.HideWidgets(pGui);
+				showDynamicUIWidgets(&PPR_Widgets, pGui);
+				hideDynamicUIWidgets(&SSSR_Widgets, pGui);
 			}
 			else if (gReflectionType == SSS_REFLECTION)
 			{
-				SSSR_Widgets.ShowWidgets(pGui);
-				PPR_Widgets.HideWidgets(pGui);
+				showDynamicUIWidgets(&SSSR_Widgets, pGui);
+				hideDynamicUIWidgets(&PPR_Widgets, pGui);
 			}
 			gLastReflectionType = gReflectionType;
 		}
@@ -2547,21 +2642,20 @@ class ScreenSpaceReflections: public IApp
 		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+		gCurrentGpuProfileToken = gReflectionType == PP_REFLECTION ? gPPRGpuProfileToken : gSSSRGpuProfileToken;
+
+		cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
 
 		//Clear G-buffers and Depth buffer
 		LoadActionsDesc loadActions = {};
-		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
-		{
-			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[i] = pRenderTargetDeferredPass[0][i]->mClearValue;
-		}
-
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
+		loadActions.mClearColorValues[0] = pRenderTargetDeferredPass[0][0]->mClearValue;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { { 1.0f, 0.0f } };    // Clear depth to the far plane and stencil to 0
 
 		// Transfer G-buffers to render target state for each buffer
-		RenderTargetBarrier rtBarriers[DEFERRED_RT_COUNT + 2] = {};
+		RenderTargetBarrier rtBarriers[DEFERRED_RT_COUNT + 4] = {};
+		uint32_t rtBarriersCount = DEFERRED_RT_COUNT + 1;
 		rtBarriers[0] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
@@ -2569,53 +2663,90 @@ class ScreenSpaceReflections: public IApp
 								  RESOURCE_STATE_RENDER_TARGET };
 		}
 
-		// Transfer DepthBuffer to a DephtWrite State
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 1, rtBarriers);
+		RenderTarget* renderTargets[4] = {};
+		uint32_t rtCount = 1;
+		renderTargets[0] = *(pRenderTargetDeferredPass[gFrameFlipFlop]);
 
-		cmdBindRenderTargets(cmd, 1, pRenderTargetDeferredPass[gFrameFlipFlop], pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		Pipeline* skyboxPipeline = pSkyboxPipeline;
+
+		if (gClearTextures)
+		{
+			for (uint32_t i = 0; i < 3; ++i)
+			{
+				loadActions.mLoadActionsColor[1 + i] = LOAD_ACTION_CLEAR;
+				loadActions.mClearColorValues[1 + i] = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+			}
+
+			rtBarriers[DEFERRED_RT_COUNT + 1] = { pSSSR_TemporalResults[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+			rtBarriers[DEFERRED_RT_COUNT + 2] = { pSSSR_TemporalResults[1], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+			rtBarriers[DEFERRED_RT_COUNT + 3] = { pSSSR_RayLength , RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+			rtBarriersCount += 3;
+
+			renderTargets[1] = pSSSR_TemporalResults[0];
+			renderTargets[2] = pSSSR_TemporalResults[1];
+			renderTargets[3] = pSSSR_RayLength;
+			rtCount += 3;
+
+			skyboxPipeline = pSkyboxWithClearTexturesPipeline;
+		}
+
+		// Transfer DepthBuffer to a DephtWrite State
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, rtBarriersCount, rtBarriers);
+
+		cmdBindRenderTargets(cmd, rtCount, renderTargets, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
 			cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0][0]->mWidth, (float)pRenderTargetDeferredPass[0][0]->mHeight, 1.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0][0]->mWidth, pRenderTargetDeferredPass[0][0]->mHeight);
 
 		// Draw the skybox.
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Render SkyBox");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Render SkyBox");
 
 		const uint32_t skyboxStride = sizeof(float) * 4;
-		cmdBindPipeline(cmd, pSkyboxPipeline);
+		cmdBindPipeline(cmd, skyboxPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
+
+		if (gClearTextures)
+		{
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, &loadActions, NULL, NULL, -1, -1);
+			
+			RenderTargetBarrier barriers[3] = {};
+			barriers[0] = { pSSSR_TemporalResults[0], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_UNORDERED_ACCESS };
+			barriers[1] = { pSSSR_TemporalResults[1], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_UNORDERED_ACCESS };
+			barriers[2] = { pSSSR_RayLength, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_UNORDERED_ACCESS };
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
+
+			gClearTextures = false;
+		}
+
 		cmdSetViewport(
 			cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0][0]->mWidth, (float)pRenderTargetDeferredPass[0][0]->mHeight, 0.0f, 1.0f);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		for (uint32_t i = 1; i < DEFERRED_RT_COUNT; ++i)
+		{
+			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
+			loadActions.mClearColorValues[i] = pRenderTargetDeferredPass[0][i]->mClearValue;
+		}
 		cmdBindRenderTargets(
 			cmd, DEFERRED_RT_COUNT, pRenderTargetDeferredPass[gFrameFlipFlop], pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
 			cmd, 0.0f, 0.0f, (float)pRenderTargetDeferredPass[0][0]->mWidth, (float)pRenderTargetDeferredPass[0][0]->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetDeferredPass[0][0]->mWidth, pRenderTargetDeferredPass[0][0]->mHeight);
 
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 		// Draw Sponza
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Fill GBuffers");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Fill GBuffers");
 		//The default code path we have if not iOS uses an array of texture of size 81
 		//iOS only supports 31 max texture units in a fragment shader for most devices.
 		//so fallback to binding every texture for every draw call (max of 5 textures)
-
-		static bool prevDataLoaded = false;
 
 		//SyncToken lastCompletedToken = getLastTokenCompleted();
 		bool dataLoaded = isTokenCompleted(&gResourceSyncToken);
 		if (dataLoaded)
 		{
-			if (prevDataLoaded != dataLoaded)
-			{
-				prevDataLoaded = dataLoaded;
-				waitQueueIdle(pGraphicsQueue);
-				PrepareDescriptorSets(true);
-			}
-
 			Geometry& sponzaMesh = *gModels[SPONZA_MODEL];
 
 			cmdBindIndexBuffer(cmd, sponzaMesh.pIndexBuffer, sponzaMesh.mIndexType, 0);
@@ -2723,7 +2854,7 @@ class ScreenSpaceReflections: public IApp
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -2749,7 +2880,7 @@ class ScreenSpaceReflections: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneBuffer->mWidth, (float)pSceneBuffer->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSceneBuffer->mWidth, pSceneBuffer->mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Render BRDF");
+		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Render BRDF");
 
 		const uint32_t quadStride = sizeof(float) * 5;
 		cmdBindPipeline(cmd, pPipelineBRDF);
@@ -2758,15 +2889,15 @@ class ScreenSpaceReflections: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
 		cmdDraw(cmd, 3, 0);
 		//#endif
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		if (gReflectionType == PP_REFLECTION || !gSSSRSupported)
 		{
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Pixel-Projected Reflections");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Pixel-Projected Reflections");
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "ProjectionPass");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "ProjectionPass");
 
 			cmdBindPipeline(cmd, pPPR_ProjectionPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR_Projection[0]);
@@ -2774,7 +2905,7 @@ class ScreenSpaceReflections: public IApp
 			const uint32_t* pThreadGroupSize = pPPR_ProjectionShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(cmd, (mSettings.mWidth * mSettings.mHeight / pThreadGroupSize[0]) + 1, 1, 1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 			// Transfer current render target to a render target state
 			rtBarriers[0] = { pSceneBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
@@ -2790,7 +2921,7 @@ class ScreenSpaceReflections: public IApp
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pReflectionBuffer->mWidth, (float)pReflectionBuffer->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pReflectionBuffer->mWidth, pReflectionBuffer->mHeight);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "ReflectionPass");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "ReflectionPass");
 			cmdBindPipeline(cmd, pPPR_ReflectionPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetPPR_Reflection[0]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetPPR_Reflection[1]);
@@ -2800,16 +2931,16 @@ class ScreenSpaceReflections: public IApp
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 			//End ReflectionPass
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "HolePatching");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "HolePatching");
 			rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
 		}
 		else if (gReflectionType == SSS_REFLECTION)
 		{
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Stochastic Screen Space Reflections");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Stochastic Screen Space Reflections");
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Depth mips generation");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Depth mips generation");
 
 			uint32_t dim_x = (pDepthBuffer->mWidth + 7) / 8;
 			uint32_t dim_y = (pDepthBuffer->mHeight + 7) / 8;
@@ -2853,9 +2984,9 @@ class ScreenSpaceReflections: public IApp
 				}
 			}
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR Classify");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR Classify");
 
 			BufferBarrier bufferBarriers[4] = {};
 			bufferBarriers[0] = { pSSSR_RayCounterBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -2864,7 +2995,7 @@ class ScreenSpaceReflections: public IApp
 			bufferBarriers[3] = { pSSSR_TileListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 			rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 			textureBarriers[0] = { pSSSR_TemporalVariance, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-			textureBarriers[1] = { pSSSR_TemporalResults[gFrameFlipFlop], RESOURCE_STATE_UNORDERED_ACCESS,
+			textureBarriers[1] = { pSSSR_TemporalResults[gFrameFlipFlop]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
 								   RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 4, bufferBarriers, 2, textureBarriers, 1, rtBarriers);
 
@@ -2872,9 +3003,9 @@ class ScreenSpaceReflections: public IApp
 			cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ClassifyTiles);
 			cmdDispatch(cmd, dim_x, dim_y, 1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR Prepare Indirect");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR Prepare Indirect");
 
 			bufferBarriers[0] = { pSSSR_RayCounterBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 			bufferBarriers[1] = { pSSSR_TileCounterBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -2887,15 +3018,15 @@ class ScreenSpaceReflections: public IApp
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetSSSR_PrepareIndirectArgs);
 			cmdDispatch(cmd, 1, 1, 1);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR Intersect");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR Intersect");
 
 			bufferBarriers[0] = { pSSSR_IntersectArgsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT };
 			bufferBarriers[1] = { pSSSR_DenoiserArgsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT };
 			bufferBarriers[2] = { pSSSR_RayListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 			textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
-			textureBarriers[1] = { pSSSR_RayLength, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+			textureBarriers[1] = { pSSSR_RayLength->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 			rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 			rtBarriers[1] = { pSceneBuffer, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
 			cmdResourceBarrier(cmd, 3, bufferBarriers, 2, textureBarriers, 2, rtBarriers);
@@ -2904,15 +3035,15 @@ class ScreenSpaceReflections: public IApp
 			cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_Intersect);
 			cmdExecuteIndirect(cmd, pSSSR_IntersectCommandSignature, 1, pSSSR_IntersectArgsBuffer, 0, NULL, 0);
 
-			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 			if (!gSSSR_SkipDenoiser)
 			{
-				cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR Spatial Denoise");
+				cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR Spatial Denoise");
 
 				bufferBarriers[0] = { pSSSR_TileListBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-				textureBarriers[0] = { pSSSR_RayLength, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-				textureBarriers[1] = { pSSSR_TemporalResults[gFrameFlipFlop], RESOURCE_STATE_UNORDERED_ACCESS,
+				textureBarriers[0] = { pSSSR_RayLength->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+				textureBarriers[1] = { pSSSR_TemporalResults[gFrameFlipFlop]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
 									   RESOURCE_STATE_UNORDERED_ACCESS };
 				textureBarriers[2] = { pSSSR_TemporalVariance, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -2922,14 +3053,14 @@ class ScreenSpaceReflections: public IApp
 				cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ResolveSpatial);
 				cmdExecuteIndirect(cmd, pSSSR_ResolveSpatialCommandSignature, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
-				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+				cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-				cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR Temporal Denoise");
+				cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR Temporal Denoise");
 
-				textureBarriers[0] = { pSSSR_TemporalResults[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-				textureBarriers[1] = { pSSSR_TemporalResults[1], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+				textureBarriers[0] = { pSSSR_TemporalResults[0]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+				textureBarriers[1] = { pSSSR_TemporalResults[1]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				textureBarriers[2] = { pSSSR_TemporalVariance, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
-				textureBarriers[3] = { pSSSR_RayLength, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+				textureBarriers[3] = { pSSSR_RayLength->pTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(cmd, 0, NULL, 4, textureBarriers, 1, rtBarriers);
 
@@ -2937,11 +3068,11 @@ class ScreenSpaceReflections: public IApp
 				cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ResolveTemporal);
 				cmdExecuteIndirect(cmd, pSSSR_ResolveTemporalCommandSignature, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
-				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+				cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-				cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR EAW Denoise Pass 1");
+				cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR EAW Denoise Pass 1");
 
-				textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop], RESOURCE_STATE_UNORDERED_ACCESS,
+				textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
 									   RESOURCE_STATE_UNORDERED_ACCESS };
 				rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
@@ -2950,13 +3081,13 @@ class ScreenSpaceReflections: public IApp
 				cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ResolveEAW);
 				cmdExecuteIndirect(cmd, pSSSR_ResolveEAWCommandSignature, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
-				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+				cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 				if (gSSSR_EAWPassCount == 3)
 				{
-					cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR EAW Denoise Pass 2");
+					cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR EAW Denoise Pass 2");
 
-					textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop], RESOURCE_STATE_UNORDERED_ACCESS,
+					textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
 										   RESOURCE_STATE_UNORDERED_ACCESS };
 					rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
@@ -2965,11 +3096,11 @@ class ScreenSpaceReflections: public IApp
 					cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ResolveEAWStride2);
 					cmdExecuteIndirect(cmd, pSSSR_ResolveEAWStride2CommandSignature, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
-					cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+					cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
-					cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "SSSR EAW Denoise Pass 3");
+					cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "SSSR EAW Denoise Pass 3");
 
-					textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop], RESOURCE_STATE_UNORDERED_ACCESS,
+					textureBarriers[0] = { pSSSR_TemporalResults[gFrameFlipFlop]->pTexture, RESOURCE_STATE_UNORDERED_ACCESS,
 										   RESOURCE_STATE_UNORDERED_ACCESS };
 					rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
@@ -2978,10 +3109,10 @@ class ScreenSpaceReflections: public IApp
 					cmdBindDescriptorSet(cmd, gFrameFlipFlop * gImageCount + gFrameIndex, pDescriptorSetSSSR_ResolveEAWStride4);
 					cmdExecuteIndirect(cmd, pSSSR_ResolveEAWStride4CommandSignature, 1, pSSSR_DenoiserArgsBuffer, 0, NULL, 0);
 
-					cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+					cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 				}
 			}
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Apply Reflections");
+			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Apply Reflections");
 			rtBarriers[0] = { pReflectionBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
 		}
 
@@ -3005,9 +3136,9 @@ class ScreenSpaceReflections: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
 		cmdDraw(cmd, 3, 0);
 
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 		// End Reflections
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
 
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -3015,21 +3146,22 @@ class ScreenSpaceReflections: public IApp
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gCurrentGpuProfileToken);
 
 		if (!dataLoaded)
-			gAppUI.Gui(pLoadingGui);
+			appUIGui(pAppUI, pLoadingGui);
 #ifndef TARGET_IOS
 		else
-			gAppUI.Gui(pGui);
+			appUIGui(pAppUI, pGui);
 #endif
 
 		cmdDrawProfilerUI();
 
-		gAppUI.Draw(cmd);
+		drawAppUI(pAppUI, cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -3037,7 +3169,7 @@ class ScreenSpaceReflections: public IApp
 		// Transition our texture to present state
 		rtBarriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
-		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdEndGpuFrameProfile(cmd, gCurrentGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -3056,6 +3188,7 @@ class ScreenSpaceReflections: public IApp
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
+
 		flipProfiler();
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
@@ -3226,7 +3359,7 @@ class ScreenSpaceReflections: public IApp
 				SSSR_ClassifyTilesParams[3].pName = "g_tile_counter";
 				SSSR_ClassifyTilesParams[3].ppBuffers = &pSSSR_TileCounterBuffer;
 				SSSR_ClassifyTilesParams[4].pName = "g_ray_lengths";
-				SSSR_ClassifyTilesParams[4].ppTextures = &pSSSR_RayLength;
+				SSSR_ClassifyTilesParams[4].ppTextures = &pSSSR_RayLength->pTexture;
 				SSSR_ClassifyTilesParams[5].pName = "g_temporal_variance";
 				SSSR_ClassifyTilesParams[5].ppTextures = &pSSSR_TemporalVariance;
 				SSSR_ClassifyTilesParams[6].pName = "g_denoised_reflections";
@@ -3234,7 +3367,7 @@ class ScreenSpaceReflections: public IApp
 				for (uint32_t i = 0; i < 2; ++i)
 				{
 					SSSR_ClassifyTilesParams[7].pName = "g_temporally_denoised_reflections";
-					SSSR_ClassifyTilesParams[7].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ClassifyTilesParams[7].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					SSSR_ClassifyTilesParams[8].pName = "g_roughness";
 					SSSR_ClassifyTilesParams[8].ppTextures = &pRenderTargetDeferredPass[i][2]->pTexture;
 					for (uint32_t j = 0; j < gImageCount; ++j)
@@ -3271,7 +3404,7 @@ class ScreenSpaceReflections: public IApp
 				SSSR_IntersectParams[4].pName = "g_scrambling_tile_buffer";
 				SSSR_IntersectParams[4].ppBuffers = &pSSSR_ScramblingTileBuffer;
 				SSSR_IntersectParams[5].pName = "g_ray_lengths";
-				SSSR_IntersectParams[5].ppTextures = &pSSSR_RayLength;
+				SSSR_IntersectParams[5].ppTextures = &pSSSR_RayLength->pTexture;
 				SSSR_IntersectParams[6].pName = "g_denoised_reflections";
 				SSSR_IntersectParams[6].ppTextures = &pReflectionBuffer->pTexture;
 				SSSR_IntersectParams[7].pName = "g_ray_list";
@@ -3279,7 +3412,7 @@ class ScreenSpaceReflections: public IApp
 				for (uint32_t i = 0; i < 2; ++i)
 				{
 					SSSR_IntersectParams[8].pName = "g_intersection_result";
-					SSSR_IntersectParams[8].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_IntersectParams[8].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					SSSR_IntersectParams[9].pName = "g_normal";
 					SSSR_IntersectParams[9].ppTextures = &pRenderTargetDeferredPass[i][1]->pTexture;
 					SSSR_IntersectParams[10].pName = "g_roughness";
@@ -3299,7 +3432,7 @@ class ScreenSpaceReflections: public IApp
 				SSSR_ResolveSpatialParams[1].pName = "g_spatially_denoised_reflections";
 				SSSR_ResolveSpatialParams[1].ppTextures = &pReflectionBuffer->pTexture;
 				SSSR_ResolveSpatialParams[2].pName = "g_ray_lengths";
-				SSSR_ResolveSpatialParams[2].ppTextures = &pSSSR_RayLength;
+				SSSR_ResolveSpatialParams[2].ppTextures = &pSSSR_RayLength->pTexture;
 				SSSR_ResolveSpatialParams[3].pName = "g_has_ray";
 				SSSR_ResolveSpatialParams[3].ppTextures = &pSSSR_TemporalVariance;
 				SSSR_ResolveSpatialParams[4].pName = "g_tile_list";
@@ -3307,7 +3440,7 @@ class ScreenSpaceReflections: public IApp
 				for (uint32_t i = 0; i < 2; ++i)
 				{
 					SSSR_ResolveSpatialParams[5].pName = "g_intersection_result";
-					SSSR_ResolveSpatialParams[5].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ResolveSpatialParams[5].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					SSSR_ResolveSpatialParams[6].pName = "g_normal";
 					SSSR_ResolveSpatialParams[6].ppTextures = &pRenderTargetDeferredPass[i][1]->pTexture;
 					SSSR_ResolveSpatialParams[7].pName = "g_roughness";
@@ -3330,7 +3463,7 @@ class ScreenSpaceReflections: public IApp
 				SSSR_ResolveTemporalParams[2].pName = "g_temporal_variance";
 				SSSR_ResolveTemporalParams[2].ppTextures = &pSSSR_TemporalVariance;
 				SSSR_ResolveTemporalParams[3].pName = "g_ray_lengths";
-				SSSR_ResolveTemporalParams[3].ppTextures = &pSSSR_RayLength;
+				SSSR_ResolveTemporalParams[3].ppTextures = &pSSSR_RayLength->pTexture;
 				SSSR_ResolveTemporalParams[4].pName = "g_tile_list";
 				SSSR_ResolveTemporalParams[4].ppBuffers = &pSSSR_TileListBuffer;
 				for (uint32_t i = 0; i < 2; ++i)
@@ -3346,9 +3479,9 @@ class ScreenSpaceReflections: public IApp
 					SSSR_ResolveTemporalParams[9].pName = "g_motion_vectors";
 					SSSR_ResolveTemporalParams[9].ppTextures = &pRenderTargetDeferredPass[i][3]->pTexture;
 					SSSR_ResolveTemporalParams[10].pName = "g_temporally_denoised_reflections";
-					SSSR_ResolveTemporalParams[10].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ResolveTemporalParams[10].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					SSSR_ResolveTemporalParams[11].pName = "g_temporally_denoised_reflections_history";
-					SSSR_ResolveTemporalParams[11].ppTextures = &pSSSR_TemporalResults[1 - i];
+					SSSR_ResolveTemporalParams[11].ppTextures = &pSSSR_TemporalResults[1 - i]->pTexture;
 					for (uint32_t j = 0; j < gImageCount; ++j)
 					{
 						SSSR_ResolveTemporalParams[12].pName = "Constants";
@@ -3369,7 +3502,7 @@ class ScreenSpaceReflections: public IApp
 					SSSR_ResolveEAWParams[2].pName = "g_roughness";
 					SSSR_ResolveEAWParams[2].ppTextures = &pRenderTargetDeferredPass[i][2]->pTexture;
 					SSSR_ResolveEAWParams[3].pName = "g_temporally_denoised_reflections";
-					SSSR_ResolveEAWParams[3].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ResolveEAWParams[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					for (uint32_t j = 0; j < gImageCount; ++j)
 					{
 						SSSR_ResolveEAWParams[4].pName = "Constants";
@@ -3389,7 +3522,7 @@ class ScreenSpaceReflections: public IApp
 					SSSR_ResolveEAWStride2Params[2].pName = "g_roughness";
 					SSSR_ResolveEAWStride2Params[2].ppTextures = &pRenderTargetDeferredPass[i][2]->pTexture;
 					SSSR_ResolveEAWStride2Params[3].pName = "g_denoised_reflections";
-					SSSR_ResolveEAWStride2Params[3].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ResolveEAWStride2Params[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					for (uint32_t j = 0; j < gImageCount; ++j)
 					{
 						SSSR_ResolveEAWStride2Params[4].pName = "Constants";
@@ -3410,7 +3543,7 @@ class ScreenSpaceReflections: public IApp
 					SSSR_ResolveEAWStride4Params[2].pName = "g_roughness";
 					SSSR_ResolveEAWStride4Params[2].ppTextures = &pRenderTargetDeferredPass[i][2]->pTexture;
 					SSSR_ResolveEAWStride4Params[3].pName = "g_temporally_denoised_reflections";
-					SSSR_ResolveEAWStride4Params[3].ppTextures = &pSSSR_TemporalResults[i];
+					SSSR_ResolveEAWStride4Params[3].ppTextures = &pSSSR_TemporalResults[i]->pTexture;
 					for (uint32_t j = 0; j < gImageCount; ++j)
 					{
 						SSSR_ResolveEAWStride4Params[4].pName = "Constants";
@@ -3526,25 +3659,16 @@ class ScreenSpaceReflections: public IApp
 		deferredRTDesc.mClearValue = { { 1.0f, 0.0f, 0.0f, 0.0f } };
 		addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[1][2]);
 
-#ifdef VULKAN
-		beginCmd(pCmds[0]);
+		for (int i1 = 0; i1 < 2; i1++)
+		{
+			for (int i2 = 0; i2 < DEFERRED_RT_COUNT; i2++)
+			{
+				if (pRenderTargetDeferredPass[i1][i2] == NULL)
+					return false;
+			}
+		}
 
-		RenderTargetBarrier rtBarriers[2] = {};
-		rtBarriers[0] = { pRenderTargetDeferredPass[1][1], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
-		rtBarriers[1] = { pRenderTargetDeferredPass[1][2], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
-		cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, 2, rtBarriers);
-
-		endCmd(pCmds[0]);
-
-		QueueSubmitDesc submitDesc = {};
-		submitDesc.mCmdCount = 1;
-		submitDesc.ppCmds = pCmds;
-		submitDesc.pSignalFence = pRenderCompleteFences[0];
-		submitDesc.mSubmitDone = true;
-		queueSubmit(pGraphicsQueue, &submitDesc);
-		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
-#endif
-		return pRenderTargetDeferredPass[0] != NULL;
+		return true;
 	}
 
 	bool addDepthBuffer()
@@ -3615,7 +3739,7 @@ class ScreenSpaceReflections: public IApp
 		if (pSSSR_DepthHierarchy == NULL)
 			return false;
 
-		TextureDesc intersectResultsDesc = {};
+		RenderTargetDesc intersectResultsDesc = {};
 		intersectResultsDesc.mArraySize = 1;
 		intersectResultsDesc.mDepth = 1;
 		intersectResultsDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
@@ -3623,20 +3747,16 @@ class ScreenSpaceReflections: public IApp
 		intersectResultsDesc.mWidth = mSettings.mWidth;
 		intersectResultsDesc.mMipLevels = 1;
 		intersectResultsDesc.mSampleCount = SAMPLE_COUNT_1;
-		intersectResultsDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		intersectResultsDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		intersectResultsDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
 		intersectResultsDesc.pName = "pSSSR_TemporalResults";
-
-		TextureLoadDesc intersectResultsLoadDesc = {};
-		intersectResultsLoadDesc.pDesc = &intersectResultsDesc;
-		intersectResultsLoadDesc.ppTexture = &pSSSR_TemporalResults[0];
-		addResource(&intersectResultsLoadDesc, NULL);
+		intersectResultsDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		addRenderTarget(pRenderer, &intersectResultsDesc, &pSSSR_TemporalResults[0]);
 
 		if (pSSSR_TemporalResults[0] == NULL)
 			return false;
 
-		intersectResultsLoadDesc.ppTexture = &pSSSR_TemporalResults[1];
-		addResource(&intersectResultsLoadDesc, NULL);
+		addRenderTarget(pRenderer, &intersectResultsDesc, &pSSSR_TemporalResults[1]);
 
 		if (pSSSR_TemporalResults[1] == NULL)
 			return false;
@@ -3661,7 +3781,7 @@ class ScreenSpaceReflections: public IApp
 		if (pSSSR_TemporalVariance == NULL)
 			return false;
 
-		TextureDesc rayLengthDesc = {};
+		RenderTargetDesc rayLengthDesc = {};
 		rayLengthDesc.mArraySize = 1;
 		rayLengthDesc.mDepth = 1;
 		rayLengthDesc.mFormat = TinyImageFormat_R16_SFLOAT;
@@ -3669,17 +3789,16 @@ class ScreenSpaceReflections: public IApp
 		rayLengthDesc.mWidth = mSettings.mWidth;
 		rayLengthDesc.mMipLevels = 1;
 		rayLengthDesc.mSampleCount = SAMPLE_COUNT_1;
-		rayLengthDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		rayLengthDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		rayLengthDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
 		rayLengthDesc.pName = "SSSR_RayLength";
-
-		TextureLoadDesc rayLengthLoadDesc = {};
-		rayLengthLoadDesc.pDesc = &rayLengthDesc;
-		rayLengthLoadDesc.ppTexture = &pSSSR_RayLength;
-		addResource(&rayLengthLoadDesc, NULL);
+		rayLengthDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+		addRenderTarget(pRenderer, &rayLengthDesc, &pSSSR_RayLength);
 
 		if (pSSSR_RayLength == NULL)
 			return false;
+
+		gClearTextures = true;
 
 		BufferLoadDesc SSSR_RayListDesc = {};
 		SSSR_RayListDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;

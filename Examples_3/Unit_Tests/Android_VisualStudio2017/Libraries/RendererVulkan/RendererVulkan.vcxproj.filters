@@ -21,5 +21,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

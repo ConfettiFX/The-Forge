@@ -23,7 +23,7 @@
 */
 
 #pragma once
-
+#ifdef DIRECT3D12
 typedef struct GpuDesc
 {
 	Renderer*                         pRenderer = NULL;
@@ -33,14 +33,14 @@ typedef struct GpuDesc
 	IDXGIAdapter4*                    pGpu = NULL;
 #endif
 	D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
-	D3D12_FEATURE_DATA_D3D12_OPTIONS  mFeatureDataOptions;
-	D3D12_FEATURE_DATA_D3D12_OPTIONS1 mFeatureDataOptions1;
+	D3D12_FEATURE_DATA_D3D12_OPTIONS  mFeatureDataOptions = {};
+	D3D12_FEATURE_DATA_D3D12_OPTIONS1 mFeatureDataOptions1 = {};
 	SIZE_T                            mDedicatedVideoMemory = 0;
-	char                              mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
-	char                              mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
-	char                              mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];
-	char                              mName[MAX_GPU_VENDOR_STRING_LENGTH];
-	GPUPresetLevel                    mPreset;
+	char                              mVendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char                              mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char                              mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char                              mName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	GPUPresetLevel                    mPreset = {};
 } GpuDesc;
 
 extern HMODULE hook_get_d3d12_module_handle();
@@ -79,3 +79,4 @@ extern void hook_modify_texture_resource_flags(TextureCreationFlags creationFlag
 extern void hook_modify_shader_compile_flags(uint32_t stage, bool enablePrimitiveId, const WCHAR** pData, uint32_t* pInOutNumFlags);
 extern void hook_modify_rootsignature_flags(uint32_t stages, D3D12_ROOT_SIGNATURE_FLAGS* pInOutFlags);
 extern void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding);
+#endif

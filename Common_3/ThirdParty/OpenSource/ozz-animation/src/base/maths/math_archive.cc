@@ -25,12 +25,12 @@
 //                                                                            //
 //----------------------------------------------------------------------------//
 
+// CONFFX_BEGIN
+/*
 #include "ozz/base/maths/math_archive.h"
 
 #include <cassert>
 
-//CONFFX_BEGIN
-/*
 
 #include "ozz/base/io/archive.h"
 #include "ozz/base/maths/box.h"

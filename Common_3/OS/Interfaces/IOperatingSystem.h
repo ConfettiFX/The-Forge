@@ -198,8 +198,50 @@ typedef struct
 	bool              modeChanged;
 } MonitorDesc;
 
+#if defined(_WINDOWS)
+typedef enum ResetScenario
+{
+
+	RESET_SCENARIO_NONE = 0x0,
+	RESET_SCENARIO_RELOAD = 0x1,
+	RESET_SCENARIO_DEVICE_LOST = 0x2,
+	RESET_SCENARIO_API_SWITCH = 0x4,
+
+} ResetScenario;
+
+void onRequestReload();
+void onDeviceLost();
+void onAPISwitch();
+#elif defined(__ANDROID__)
+typedef enum ResetScenario
+{
+
+	RESET_SCENARIO_NONE = 0x0,
+	RESET_SCENARIO_RELOAD = 0x1,
+	RESET_SCENARIO_API_SWITCH = 0x2,
+
+} ResetScenario;
+
+void onRequestReload();
+void onDeviceLost();
+void onAPISwitch();
+#else
+typedef enum ResetScenario
+{
+
+	RESET_SCENARIO_NONE = 0x0,
+	RESET_SCENARIO_RELOAD = 0x1,
+
+} ResetScenario;
+
+void onRequestReload();
+void onDeviceLost();
+void onAPISwitch();
+#endif
+
 // API functions
 void requestShutdown();
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle = 0);
 
 // Custom processing of OS pipe messages
 typedef int32_t(*CustomMessageProcessor)(WindowsDesc* pWindow, void* msg);

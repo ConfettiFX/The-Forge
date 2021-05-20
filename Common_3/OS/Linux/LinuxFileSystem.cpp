@@ -51,6 +51,9 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	ASSERT(pDesc);
 	pSystemFileIO->GetResourceMount = getResourceMount;
 
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+		gResourceMounts[i] = "";
+
 	// Get application directory
 	char applicationFilePath[FS_MAX_PATH] = {};
 	readlink("/proc/self/exe", applicationFilePath, FS_MAX_PATH);
@@ -63,8 +66,8 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	{
 		gHomedir = getpwuid(getuid())->pw_dir;
 	}
-	gResourceMounts[RM_SAVE_0] = gHomedir;
-
+	gResourceMounts[RM_DOCUMENTS] = gHomedir;
+	
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)
 	{

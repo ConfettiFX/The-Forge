@@ -43,6 +43,7 @@ void ComponentRegistrator::destroyInstance()
 	if (ComponentRegistrator::instance)
 	{
 		tf_delete(instance);
+		instance = NULL;
 	}
 }
 

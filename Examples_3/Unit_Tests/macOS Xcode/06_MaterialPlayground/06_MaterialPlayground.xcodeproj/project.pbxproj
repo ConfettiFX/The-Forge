@@ -22,6 +22,67 @@
 		654D978021E9219800113964 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977821E9218B00113964 /* ozz_base.a */; };
 		654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977C21E9218B00113964 /* ozz_base_IOS.a */; };
 		654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977A21E9218B00113964 /* ozz_animation_IOS.a */; };
+		973281C325C1D3A40076E8FF /* BRDFIntegration.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */; };
+		973281C425C1D3A40076E8FF /* computeIrradianceMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */; };
+		973281C525C1D3A40076E8FF /* computeSpecularMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */; };
+		973281C625C1D3A40076E8FF /* fullscreen.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */; };
+		973281C725C1D3A40076E8FF /* hair_integrate.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */; };
+		973281C825C1D3A40076E8FF /* hair_length_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */; };
+		973281C925C1D3A40076E8FF /* hair_local_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */; };
+		973281CA25C1D3A40076E8FF /* hair_pre_warm.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */; };
+		973281CB25C1D3A40076E8FF /* hair_shadow.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */; };
+		973281CC25C1D3A40076E8FF /* hair_shadow.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */; };
+		973281CD25C1D3A40076E8FF /* hair_shock_propagation.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */; };
+		973281CE25C1D3A40076E8FF /* hair_short_cut_clear.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */; };
+		973281CF25C1D3A40076E8FF /* hair_short_cut_depth_peeling.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */; };
+		973281D025C1D3A40076E8FF /* hair_short_cut_fill_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */; };
+		973281D125C1D3A40076E8FF /* hair_short_cut_resolve_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */; };
+		973281D225C1D3A40076E8FF /* hair_short_cut_resolve_depth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */; };
+		973281D325C1D3A40076E8FF /* hair_update_follow_hairs.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */; };
+		973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093625BF40B6003C978D /* hair.frag.fsl */; };
+		973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091B25BF40B4003C978D /* hair.vert.fsl */; };
+		973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */; };
+		973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */; };
+		973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */; };
+		973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */; };
+		973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */; };
+		973281DD25C1D3A50076E8FF /* renderSceneShadows.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */; };
+		973281DE25C1D3A50076E8FF /* showCapsules.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093925BF40B6003C978D /* showCapsules.frag.fsl */; };
+		973281DF25C1D3A50076E8FF /* showCapsules.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092025BF40B4003C978D /* showCapsules.vert.fsl */; };
+		973281E025C1D3A50076E8FF /* skeleton.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092825BF40B5003C978D /* skeleton.frag.fsl */; };
+		973281E125C1D3A50076E8FF /* skeleton.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092D25BF40B5003C978D /* skeleton.vert.fsl */; };
+		973281E225C1D3A50076E8FF /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093225BF40B5003C978D /* skybox.frag.fsl */; };
+		973281E325C1D3A50076E8FF /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093825BF40B6003C978D /* skybox.vert.fsl */; };
+		97C9093B25BF40B6003C978D /* hair_shock_propagation.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */; };
+		97C9093C25BF40B6003C978D /* hair.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091B25BF40B4003C978D /* hair.vert.fsl */; };
+		97C9093D25BF40B6003C978D /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */; };
+		97C9093E25BF40B6003C978D /* hair_short_cut_fill_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */; };
+		97C9093F25BF40B6003C978D /* renderSceneBRDF.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */; };
+		97C9094025BF40B6003C978D /* hair_short_cut_resolve_depth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */; };
+		97C9094125BF40B6003C978D /* showCapsules.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092025BF40B4003C978D /* showCapsules.vert.fsl */; };
+		97C9094225BF40B6003C978D /* hair_shadow.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */; };
+		97C9094325BF40B6003C978D /* hair_short_cut_resolve_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */; };
+		97C9094425BF40B6003C978D /* hair_shadow.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */; };
+		97C9094525BF40B6003C978D /* hair_length_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */; };
+		97C9094625BF40B6003C978D /* hair_pre_warm.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */; };
+		97C9094725BF40B6003C978D /* hair_short_cut_clear.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */; };
+		97C9094825BF40B6003C978D /* skeleton.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092825BF40B5003C978D /* skeleton.frag.fsl */; };
+		97C9094925BF40B6003C978D /* hair_integrate.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */; };
+		97C9094A25BF40B6003C978D /* renderSceneShadows.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */; };
+		97C9094B25BF40B6003C978D /* hair_local_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */; };
+		97C9094C25BF40B6003C978D /* computeIrradianceMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */; };
+		97C9094D25BF40B6003C978D /* skeleton.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092D25BF40B5003C978D /* skeleton.vert.fsl */; };
+		97C9094E25BF40B6003C978D /* hair_short_cut_depth_peeling.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */; };
+		97C9094F25BF40B6003C978D /* renderSceneShadows.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */; };
+		97C9095025BF40B6003C978D /* renderSceneBRDF.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */; };
+		97C9095125BF40B6003C978D /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093225BF40B5003C978D /* skybox.frag.fsl */; };
+		97C9095225BF40B6003C978D /* BRDFIntegration.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */; };
+		97C9095325BF40B6003C978D /* hair_update_follow_hairs.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */; };
+		97C9095425BF40B6003C978D /* hair.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093625BF40B6003C978D /* hair.frag.fsl */; };
+		97C9095525BF40B6003C978D /* computeSpecularMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */; };
+		97C9095625BF40B6003C978D /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093825BF40B6003C978D /* skybox.vert.fsl */; };
+		97C9095725BF40B6003C978D /* showCapsules.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093925BF40B6003C978D /* showCapsules.frag.fsl */; };
+		97C9095825BF40B6003C978D /* fullscreen.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
 		B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D321420EB300DF2297 /* UIKit.framework */; };
@@ -32,6 +93,35 @@
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		973281C225C1D37A0076E8FF /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.fsl";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
+			);
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+		};
+		97C9095925BF40C2003C978D /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.fsl";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
+			);
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+		};
+/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		5C172F8321414A0B0074EE71 /* PBXContainerItemProxy */ = {
@@ -173,35 +263,48 @@
 		5C17303A21414E500074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		5C17303B21414E500074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5CABF3752141543F00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		5CD97D4124641023009C74F9 /* hair.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = hair.h; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.h; sourceTree = "<group>"; };
-		5CD97D42246412AF009C74F9 /* renderSceneBRDF.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = renderSceneBRDF.h; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneBRDF.h; sourceTree = "<group>"; };
 		5CE86AC221D0F56100B4778F /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
-		65DB597721F65C7500636935 /* skeleton.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skeleton.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skeleton.vert.metal; sourceTree = "<group>"; };
-		65DB597821F65C7500636935 /* hair.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = hair.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.comp.metal; sourceTree = "<group>"; };
-		65DB597921F65C7500636935 /* hair.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = hair.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.vert.metal; sourceTree = "<group>"; };
-		65DB597A21F65C7500636935 /* showCapsules.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = showCapsules.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/showCapsules.vert.metal; sourceTree = "<group>"; };
-		65DB597B21F65C7500636935 /* fullscreen.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = fullscreen.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/fullscreen.vert.metal; sourceTree = "<group>"; };
-		65DB597C21F65C7500636935 /* skeleton.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skeleton.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skeleton.frag.metal; sourceTree = "<group>"; };
-		65DB597D21F65C7500636935 /* showCapsules.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = showCapsules.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/showCapsules.frag.metal; sourceTree = "<group>"; };
-		65DB597E21F65C7500636935 /* hair.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = hair.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.frag.metal; sourceTree = "<group>"; };
-		977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = renderSceneShadows.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.frag.metal; sourceTree = "<group>"; };
-		977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = renderSceneShadows.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneShadows.vert.metal; sourceTree = "<group>"; };
+		97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shock_propagation.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shock_propagation.comp.fsl; sourceTree = "<group>"; };
+		97C9091B25BF40B4003C978D /* hair.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.vert.fsl; sourceTree = "<group>"; };
+		97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
+		97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_fill_color.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_fill_color.frag.fsl; sourceTree = "<group>"; };
+		97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneBRDF.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.frag.fsl; sourceTree = "<group>"; };
+		97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_resolve_depth.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_resolve_depth.frag.fsl; sourceTree = "<group>"; };
+		97C9092025BF40B4003C978D /* showCapsules.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = showCapsules.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.vert.fsl; sourceTree = "<group>"; };
+		97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shadow.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shadow.frag.fsl; sourceTree = "<group>"; };
+		97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_resolve_color.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_resolve_color.frag.fsl; sourceTree = "<group>"; };
+		97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shadow.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shadow.vert.fsl; sourceTree = "<group>"; };
+		97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_length_constraints.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_length_constraints.comp.fsl; sourceTree = "<group>"; };
+		97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_pre_warm.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_pre_warm.comp.fsl; sourceTree = "<group>"; };
+		97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_clear.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_clear.frag.fsl; sourceTree = "<group>"; };
+		97C9092725BF40B5003C978D /* hair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.h; sourceTree = "<group>"; };
+		97C9092825BF40B5003C978D /* skeleton.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.frag.fsl; sourceTree = "<group>"; };
+		97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_integrate.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_integrate.comp.fsl; sourceTree = "<group>"; };
+		97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.vert.fsl; sourceTree = "<group>"; };
+		97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_local_constraints.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_local_constraints.comp.fsl; sourceTree = "<group>"; };
+		97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeIrradianceMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeIrradianceMap.comp.fsl; sourceTree = "<group>"; };
+		97C9092D25BF40B5003C978D /* skeleton.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.vert.fsl; sourceTree = "<group>"; };
+		97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_depth_peeling.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_depth_peeling.frag.fsl; sourceTree = "<group>"; };
+		97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = renderSceneBRDF_resources.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF_resources.h; sourceTree = "<group>"; };
+		97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.frag.fsl; sourceTree = "<group>"; };
+		97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneBRDF.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.vert.fsl; sourceTree = "<group>"; };
+		97C9093225BF40B5003C978D /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
+		97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = BRDFIntegration.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/BRDFIntegration.comp.fsl; sourceTree = "<group>"; };
+		97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_update_follow_hairs.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_update_follow_hairs.comp.fsl; sourceTree = "<group>"; };
+		97C9093525BF40B5003C978D /* hair.comp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.comp.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.comp.h; sourceTree = "<group>"; };
+		97C9093625BF40B6003C978D /* hair.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.frag.fsl; sourceTree = "<group>"; };
+		97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeSpecularMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeSpecularMap.comp.fsl; sourceTree = "<group>"; };
+		97C9093825BF40B6003C978D /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
+		97C9093925BF40B6003C978D /* showCapsules.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = showCapsules.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.frag.fsl; sourceTree = "<group>"; };
+		97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = fullscreen.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/fullscreen.vert.fsl; sourceTree = "<group>"; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76D321420EB300DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76D421420EB300DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76D521420EB300DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B2637CB420C9A2DB00D76037 /* computeIrradianceMap.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = computeIrradianceMap.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/computeIrradianceMap.comp.metal; sourceTree = "<group>"; };
-		B2637CB520C9A2DB00D76037 /* BRDFIntegration.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = BRDFIntegration.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/BRDFIntegration.comp.metal; sourceTree = "<group>"; };
-		B2637CB620C9A2DB00D76037 /* skybox.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skybox.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skybox.vert.metal; sourceTree = "<group>"; };
-		B2637CB720C9A2DB00D76037 /* renderSceneBRDF.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = renderSceneBRDF.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneBRDF.frag.metal; sourceTree = "<group>"; };
-		B2637CB820C9A2DB00D76037 /* computeSpecularMap.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = computeSpecularMap.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/computeSpecularMap.comp.metal; sourceTree = "<group>"; };
-		B2637CB920C9A2DB00D76037 /* panoToCube.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = panoToCube.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/panoToCube.comp.metal; sourceTree = "<group>"; };
-		B2637CBA20C9A2DC00D76037 /* renderSceneBRDF.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = renderSceneBRDF.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneBRDF.vert.metal; sourceTree = "<group>"; };
-		B2637CBB20C9A2DC00D76037 /* skybox.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skybox.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skybox.frag.metal; sourceTree = "<group>"; };
 		B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 06_MaterialPlayground.cpp; path = ../../../src/06_MaterialPlayground/06_MaterialPlayground.cpp; sourceTree = "<group>"; };
 		D0D223BD20CB877C00910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		D0D223BE20CB877C00910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
@@ -266,26 +369,39 @@
 		28A5AD68201F72EB000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
-				977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */,
-				977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */,
-				65DB597B21F65C7500636935 /* fullscreen.vert.metal */,
-				65DB597821F65C7500636935 /* hair.comp.metal */,
-				65DB597E21F65C7500636935 /* hair.frag.metal */,
-				65DB597921F65C7500636935 /* hair.vert.metal */,
-				65DB597D21F65C7500636935 /* showCapsules.frag.metal */,
-				65DB597A21F65C7500636935 /* showCapsules.vert.metal */,
-				65DB597C21F65C7500636935 /* skeleton.frag.metal */,
-				65DB597721F65C7500636935 /* skeleton.vert.metal */,
-				B2637CB520C9A2DB00D76037 /* BRDFIntegration.comp.metal */,
-				B2637CB420C9A2DB00D76037 /* computeIrradianceMap.comp.metal */,
-				B2637CB820C9A2DB00D76037 /* computeSpecularMap.comp.metal */,
-				B2637CB920C9A2DB00D76037 /* panoToCube.comp.metal */,
-				B2637CB720C9A2DB00D76037 /* renderSceneBRDF.frag.metal */,
-				B2637CBA20C9A2DC00D76037 /* renderSceneBRDF.vert.metal */,
-				B2637CBB20C9A2DC00D76037 /* skybox.frag.metal */,
-				B2637CB620C9A2DB00D76037 /* skybox.vert.metal */,
-				5CD97D4124641023009C74F9 /* hair.h */,
-				5CD97D42246412AF009C74F9 /* renderSceneBRDF.h */,
+				97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */,
+				97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */,
+				97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */,
+				97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */,
+				97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */,
+				97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */,
+				97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */,
+				97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */,
+				97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */,
+				97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */,
+				97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */,
+				97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */,
+				97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */,
+				97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */,
+				97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */,
+				97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */,
+				97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */,
+				97C9093525BF40B5003C978D /* hair.comp.h */,
+				97C9093625BF40B6003C978D /* hair.frag.fsl */,
+				97C9092725BF40B5003C978D /* hair.h */,
+				97C9091B25BF40B4003C978D /* hair.vert.fsl */,
+				97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */,
+				97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */,
+				97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */,
+				97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */,
+				97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */,
+				97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */,
+				97C9093925BF40B6003C978D /* showCapsules.frag.fsl */,
+				97C9092025BF40B4003C978D /* showCapsules.vert.fsl */,
+				97C9092825BF40B5003C978D /* skeleton.frag.fsl */,
+				97C9092D25BF40B5003C978D /* skeleton.vert.fsl */,
+				97C9093225BF40B5003C978D /* skybox.frag.fsl */,
+				97C9093825BF40B6003C978D /* skybox.vert.fsl */,
 			);
 			name = Shaders;
 			path = 06_MaterialPlayground_iOS;
@@ -394,6 +510,7 @@
 				5CC501C624D219F8003B62CC /* ShellScript */,
 			);
 			buildRules = (
+				973281C225C1D37A0076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
 				E95891F723415A2B00B68D6A /* PBXTargetDependency */,
@@ -416,6 +533,7 @@
 				5C13A4D924D1A6480023D339 /* ShellScript */,
 			);
 			buildRules = (
+				97C9095925BF40C2003C978D /* PBXBuildRule */,
 			);
 			dependencies = (
 				E95891F923415A3200B68D6A /* PBXTargetDependency */,
@@ -560,6 +678,37 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				973281C325C1D3A40076E8FF /* BRDFIntegration.comp.fsl in Resources */,
+				973281C425C1D3A40076E8FF /* computeIrradianceMap.comp.fsl in Resources */,
+				973281C525C1D3A40076E8FF /* computeSpecularMap.comp.fsl in Resources */,
+				973281C625C1D3A40076E8FF /* fullscreen.vert.fsl in Resources */,
+				973281C725C1D3A40076E8FF /* hair_integrate.comp.fsl in Resources */,
+				973281C825C1D3A40076E8FF /* hair_length_constraints.comp.fsl in Resources */,
+				973281C925C1D3A40076E8FF /* hair_local_constraints.comp.fsl in Resources */,
+				973281CA25C1D3A40076E8FF /* hair_pre_warm.comp.fsl in Resources */,
+				973281CB25C1D3A40076E8FF /* hair_shadow.frag.fsl in Resources */,
+				973281CC25C1D3A40076E8FF /* hair_shadow.vert.fsl in Resources */,
+				973281CD25C1D3A40076E8FF /* hair_shock_propagation.comp.fsl in Resources */,
+				973281CE25C1D3A40076E8FF /* hair_short_cut_clear.frag.fsl in Resources */,
+				973281CF25C1D3A40076E8FF /* hair_short_cut_depth_peeling.frag.fsl in Resources */,
+				973281D025C1D3A40076E8FF /* hair_short_cut_fill_color.frag.fsl in Resources */,
+				973281D125C1D3A40076E8FF /* hair_short_cut_resolve_color.frag.fsl in Resources */,
+				973281D225C1D3A40076E8FF /* hair_short_cut_resolve_depth.frag.fsl in Resources */,
+				973281D325C1D3A40076E8FF /* hair_update_follow_hairs.comp.fsl in Resources */,
+				973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */,
+				973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */,
+				973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */,
+				973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h in Resources */,
+				973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */,
+				973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */,
+				973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */,
+				973281DD25C1D3A50076E8FF /* renderSceneShadows.vert.fsl in Resources */,
+				973281DE25C1D3A50076E8FF /* showCapsules.frag.fsl in Resources */,
+				973281DF25C1D3A50076E8FF /* showCapsules.vert.fsl in Resources */,
+				973281E025C1D3A50076E8FF /* skeleton.frag.fsl in Resources */,
+				973281E125C1D3A50076E8FF /* skeleton.vert.fsl in Resources */,
+				973281E225C1D3A50076E8FF /* skybox.frag.fsl in Resources */,
+				973281E325C1D3A50076E8FF /* skybox.vert.fsl in Resources */,
 				28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AD55201F7276000E571F /* Assets.xcassets in Resources */,
 			);
@@ -570,7 +719,37 @@
 			buildActionMask = 2147483647;
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				97C9093E25BF40B6003C978D /* hair_short_cut_fill_color.frag.fsl in Resources */,
+				97C9095425BF40B6003C978D /* hair.frag.fsl in Resources */,
+				97C9095525BF40B6003C978D /* computeSpecularMap.comp.fsl in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				97C9093B25BF40B6003C978D /* hair_shock_propagation.comp.fsl in Resources */,
+				97C9094A25BF40B6003C978D /* renderSceneShadows.vert.fsl in Resources */,
+				97C9094525BF40B6003C978D /* hair_length_constraints.comp.fsl in Resources */,
+				97C9095825BF40B6003C978D /* fullscreen.vert.fsl in Resources */,
+				97C9095325BF40B6003C978D /* hair_update_follow_hairs.comp.fsl in Resources */,
+				97C9095625BF40B6003C978D /* skybox.vert.fsl in Resources */,
+				97C9095025BF40B6003C978D /* renderSceneBRDF.vert.fsl in Resources */,
+				97C9094B25BF40B6003C978D /* hair_local_constraints.comp.fsl in Resources */,
+				97C9095225BF40B6003C978D /* BRDFIntegration.comp.fsl in Resources */,
+				97C9094925BF40B6003C978D /* hair_integrate.comp.fsl in Resources */,
+				97C9093D25BF40B6003C978D /* panoToCube.comp.fsl in Resources */,
+				97C9095125BF40B6003C978D /* skybox.frag.fsl in Resources */,
+				97C9093C25BF40B6003C978D /* hair.vert.fsl in Resources */,
+				97C9094825BF40B6003C978D /* skeleton.frag.fsl in Resources */,
+				97C9094325BF40B6003C978D /* hair_short_cut_resolve_color.frag.fsl in Resources */,
+				97C9095725BF40B6003C978D /* showCapsules.frag.fsl in Resources */,
+				97C9093F25BF40B6003C978D /* renderSceneBRDF.frag.fsl in Resources */,
+				97C9094125BF40B6003C978D /* showCapsules.vert.fsl in Resources */,
+				97C9094225BF40B6003C978D /* hair_shadow.frag.fsl in Resources */,
+				97C9094025BF40B6003C978D /* hair_short_cut_resolve_depth.frag.fsl in Resources */,
+				97C9094625BF40B6003C978D /* hair_pre_warm.comp.fsl in Resources */,
+				97C9094725BF40B6003C978D /* hair_short_cut_clear.frag.fsl in Resources */,
+				97C9094C25BF40B6003C978D /* computeIrradianceMap.comp.fsl in Resources */,
+				97C9094425BF40B6003C978D /* hair_shadow.vert.fsl in Resources */,
+				97C9094F25BF40B6003C978D /* renderSceneShadows.frag.fsl in Resources */,
+				97C9094D25BF40B6003C978D /* skeleton.vert.fsl in Resources */,
+				97C9094E25BF40B6003C978D /* hair_short_cut_depth_peeling.frag.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -592,7 +771,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.dds\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.dds\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 		5CC501C624D219F8003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -609,7 +788,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.ktx\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.ktx\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -711,6 +890,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
@@ -754,6 +934,7 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
+				EXCLUDED_ARCHS = "";
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,

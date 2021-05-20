@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="Animation">
       <File Name="../../../../Middleware_3/Animation/AnimatedObject.cpp"/>
@@ -47,6 +52,7 @@
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/Timer.cpp"/>
+    <File Name="../../../../Common_3/OS/Core/GPUConfig.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Input">
     <File Name="../../../../Common_3/OS/Input/InputSystem.cpp"/>
@@ -115,7 +121,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=c++14;$(shell pkg-config --cflags gtk+-3.0)" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
@@ -146,7 +152,16 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC_UI = $(WorkspacePath)/../../../Middleware_3/UI/Shaders/FSL/
+SRC_TEXT = $(WorkspacePath)/../../../Middleware_3/Text/Shaders/FSL/
+
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -156,7 +171,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-std=c++14" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-std=c++14;$(shell pkg-config --cflags gtk+-3.0)" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
@@ -187,7 +202,17 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC_UI = $(WorkspacePath)/../../../Middleware_3/UI/Shaders/FSL/
+SRC_TEXT = $(WorkspacePath)/../../../Middleware_3/Text/Shaders/FSL/
+
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

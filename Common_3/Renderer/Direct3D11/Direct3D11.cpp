@@ -189,14 +189,15 @@ D3D11_FILL_MODE gFillModeTranslator[MAX_FILL_MODES] =
 
 // Internal utility functions (may become external one day)
 //uint64_t					  util_dx_determine_storage_counter_offset(uint64_t buffer_size);
-DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT util_to_dx_dsv_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT util_to_dx_srv_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat);
-D3D11_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
-D3D11_TEXTURE_ADDRESS_MODE util_to_dx_texture_address_mode(AddressMode addressMode);
+DXGI_FORMAT util_to_dx11_uav_format(DXGI_FORMAT defaultFormat);
+DXGI_FORMAT util_to_dx11_dsv_format(DXGI_FORMAT defaultFormat);
+DXGI_FORMAT util_to_dx11_srv_format(DXGI_FORMAT defaultFormat);
+DXGI_FORMAT util_to_dx11_stencil_format(DXGI_FORMAT defaultFormat);
+DXGI_FORMAT util_to_dx11_swapchain_format(TinyImageFormat format);
+D3D11_FILTER util_to_dx11_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
+D3D11_TEXTURE_ADDRESS_MODE util_to_dx11_texture_address_mode(AddressMode addressMode);
 
-D3D11_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled)
+D3D11_FILTER util_to_dx11_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled)
 {
 	if (aniso)
 		return comparisonFilterEnabled ? D3D11_FILTER_COMPARISON_ANISOTROPIC : D3D11_FILTER_ANISOTROPIC;
@@ -210,7 +211,7 @@ D3D11_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMa
 	return (D3D11_FILTER)(baseFilter + filter);
 }
 
-D3D11_TEXTURE_ADDRESS_MODE util_to_dx_texture_address_mode(AddressMode addressMode)
+D3D11_TEXTURE_ADDRESS_MODE util_to_dx11_texture_address_mode(AddressMode addressMode)
 {
 	switch (addressMode)
 	{
@@ -222,7 +223,7 @@ D3D11_TEXTURE_ADDRESS_MODE util_to_dx_texture_address_mode(AddressMode addressMo
 	}
 }
 
-DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
+DXGI_FORMAT util_to_dx11_uav_format(DXGI_FORMAT defaultFormat)
 {
 	switch (defaultFormat)
 	{
@@ -258,7 +259,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 	}
 }
 
-DXGI_FORMAT util_to_dx_dsv_format(DXGI_FORMAT defaultFormat)
+DXGI_FORMAT util_to_dx11_dsv_format(DXGI_FORMAT defaultFormat)
 {
 	switch (defaultFormat)
 	{
@@ -291,7 +292,7 @@ DXGI_FORMAT util_to_dx_dsv_format(DXGI_FORMAT defaultFormat)
 	}
 }
 
-DXGI_FORMAT util_to_dx_srv_format(DXGI_FORMAT defaultFormat)
+DXGI_FORMAT util_to_dx11_srv_format(DXGI_FORMAT defaultFormat)
 {
 	switch (defaultFormat)
 	{
@@ -326,7 +327,7 @@ DXGI_FORMAT util_to_dx_srv_format(DXGI_FORMAT defaultFormat)
 	}
 }
 
-DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat)
+DXGI_FORMAT util_to_dx11_stencil_format(DXGI_FORMAT defaultFormat)
 {
 	switch (defaultFormat)
 	{
@@ -347,7 +348,7 @@ DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat)
 	}
 }
 
-DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
+DXGI_FORMAT util_to_dx11_swapchain_format(TinyImageFormat format)
 {
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
@@ -355,9 +356,9 @@ DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
 	switch (format)
 	{
 		case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
-		case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
-		case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+		case TinyImageFormat_B8G8R8A8_UNORM:
 		case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
+		case TinyImageFormat_R8G8B8A8_UNORM:
 		case TinyImageFormat_R8G8B8A8_SRGB: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
 		case TinyImageFormat_R10G10B10A2_UNORM: result = DXGI_FORMAT_R10G10B10A2_UNORM; break;
 		default: break;
@@ -372,7 +373,7 @@ DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
 }
 
 /************************************************************************/
-// Gloabals
+// Globals
 /************************************************************************/
 static const uint32_t gDescriptorTableDWORDS = 1;
 static const uint32_t gRootDescriptorDWORDS = 2;
@@ -536,7 +537,7 @@ static void add_rtv(
 		default: break;
 	}
 
-	pRenderer->pDxDevice->CreateRenderTargetView(pResource, &rtvDesc, pHandle);
+	pRenderer->mD3D11.pDxDevice->CreateRenderTargetView(pResource, &rtvDesc, pHandle);
 }
 
 static void add_dsv(
@@ -631,34 +632,34 @@ static void add_dsv(
 		default: break;
 	}
 
-	pRenderer->pDxDevice->CreateDepthStencilView(pResource, &dsvDesc, pHandle);
+	pRenderer->mD3D11.pDxDevice->CreateDepthStencilView(pResource, &dsvDesc, pHandle);
 }
 /************************************************************************/
 // Functions not exposed in IRenderer but still need to be exported in dll
 /************************************************************************/
 // clang-format off
-API_INTERFACE void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void FORGE_CALLCONV addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-API_INTERFACE void FORGE_CALLCONV removeTexture(Renderer* pRenderer, Texture* pTexture);
-API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
-API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
-
+DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
+DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
+DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
+DECLARE_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRenderer, VirtualTexture* pTexture)
 // clang-format on
-void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void d3d11_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
 	//TODO: Use CopySubresource region to update the contents of the destination buffer without mapping them to cpu.
 
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
-	ASSERT(pSrcBuffer);
 	ASSERT(pBuffer);
-	ASSERT(pBuffer->pDxResource);
+	ASSERT(pBuffer->mD3D11.pDxResource);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	D3D11_MAPPED_SUBRESOURCE sub = {};
 	D3D11_BOX dstBox = { (UINT)dstOffset, 0, 0, (UINT)(dstOffset + size), 1, 1 };
@@ -666,7 +667,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	// Not persistently mapped buffer.
 	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		pContext->Map(pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+		pContext->Map(pSrcBuffer->mD3D11.pDxResource, 0, D3D11_MAP_READ, 0, &sub);
 	}
 	else
 	{
@@ -674,31 +675,31 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	}
 
 	pContext->UpdateSubresource(
-		pBuffer->pDxResource, 0, &dstBox, (uint8_t*)sub.pData + srcOffset, (UINT)size, 0);
+		pBuffer->mD3D11.pDxResource, 0, &dstBox, (uint8_t*)sub.pData + srcOffset, (UINT)size, 0);
 
 
 	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		pContext->Unmap(pSrcBuffer->pDxResource, 0);
+		pContext->Unmap(pSrcBuffer->mD3D11.pDxResource, 0);
 	}
 }
 
-void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
+void d3d11_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
 {
 	ASSERT(pCmd);
 	ASSERT(pSubresourceDesc);
 	ASSERT(pSrcBuffer);
-	ASSERT(pTexture->pDxResource);
+	ASSERT(pTexture->mD3D11.pDxResource);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	D3D11_MAPPED_SUBRESOURCE sub = {};
 	UINT subresource = D3D11CalcSubresource(pSubresourceDesc->mMipLevel, pSubresourceDesc->mArrayLayer, (uint32_t)pTexture->mMipLevels);
 
 	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		pContext->Map(pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+		pContext->Map(pSrcBuffer->mD3D11.pDxResource, 0, D3D11_MAP_READ, 0, &sub);
 	}
 	else
 	{
@@ -706,12 +707,12 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, cons
 	}
 
 	pContext->UpdateSubresource(
-		pTexture->pDxResource, subresource, NULL, (uint8_t*)sub.pData + pSubresourceDesc->mSrcOffset,
+		pTexture->mD3D11.pDxResource, subresource, NULL, (uint8_t*)sub.pData + pSubresourceDesc->mSrcOffset,
 		pSubresourceDesc->mRowPitch, pSubresourceDesc->mSlicePitch);
 
 	if (!pSrcBuffer->pCpuMappedAddress)
 	{
-		pContext->Unmap(pSrcBuffer->pDxResource, 0);
+		pContext->Unmap(pSrcBuffer->mD3D11.pDxResource, 0);
 	}
 }
 /************************************************************************/
@@ -719,7 +720,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, cons
 /************************************************************************/
 static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 {
-	int levelIndex = pDesc->mUseDx10 ? 2 : 0;
+	int levelIndex = pDesc->mD3D11.mUseDx10 ? 2 : 0;
 	D3D_FEATURE_LEVEL featureLevels[] =
 	{
 		D3D_FEATURE_LEVEL_11_1,
@@ -733,12 +734,12 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	IDXGIAdapter1* dxgiAdapter = NULL;
 
-	if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pRenderer->pDXGIFactory)))
+	if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)&pRenderer->mD3D11.pDXGIFactory)))
 	{
 		LOGF(LogLevel::eERROR, "Could not create DXGI factory.");
 		return false;
 	}
-	ASSERT(pRenderer->pDXGIFactory);
+	ASSERT(pRenderer->mD3D11.pDXGIFactory);
 
 	// Enumerate all adapters
 	typedef struct GpuDesc
@@ -762,7 +763,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	IDXGIAdapter1* adapter = NULL;
 	bool foundSoftwareAdapter = false;
 
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
+	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->mD3D11.pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
 	{
 		DECLARE_ZERO(DXGI_ADAPTER_DESC1, desc);
 		adapter->GetDesc1(&desc);
@@ -809,7 +810,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	memset(gpuDesc, 0, gpuCount * sizeof(GpuDesc));
 	gpuCount = 0;
 
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
+	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->mD3D11.pDXGIFactory->EnumAdapters1(i, (IDXGIAdapter1**)&adapter); ++i)
 	{
 		DECLARE_ZERO(DXGI_ADAPTER_DESC1, desc);
 		adapter->GetDesc1(&desc);
@@ -832,17 +833,17 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 				if (SUCCEEDED(hr))
 				{
 					hr = D3D11CreateDevice(
-						adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION, &pRenderer->pDxDevice,
+						adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION, &pRenderer->mD3D11.pDxDevice,
 						&featLevelOut, NULL);
 
 					if (E_INVALIDARG == hr)
 					{
 						hr = D3D11CreateDevice(
-							adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, &featureLevels[levelIndex + 1], featureLevelCount - 1, D3D11_SDK_VERSION, &pRenderer->pDxDevice,
+							adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, &featureLevels[levelIndex + 1], featureLevelCount - 1, D3D11_SDK_VERSION, &pRenderer->mD3D11.pDxDevice,
 							&featLevelOut, NULL);
 					}
 
-					if (!pRenderer->pDxDevice)
+					if (!pRenderer->mD3D11.pDxDevice)
 					{
 						LOGF(eERROR, "Device creation failed for adapter %s with code %u", gpuDesc[gpuCount].mName, (uint32_t)hr);
 						++gpuCount;
@@ -850,12 +851,12 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 					}
 
 					D3D11_FEATURE_DATA_D3D11_OPTIONS featureData = {};
-					hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &featureData, sizeof(featureData));
+					hr = pRenderer->mD3D11.pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &featureData, sizeof(featureData));
 					if (FAILED(hr))
 						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS error 0x%x", hr);
 #if WINVER > _WIN32_WINNT_WINBLUE
 					D3D11_FEATURE_DATA_D3D11_OPTIONS2 featureData2 = {};
-					hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
+					hr = pRenderer->mD3D11.pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
 					if (FAILED(hr))
 						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS2 error 0x%x", hr);
 
@@ -884,10 +885,10 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 					//char sName[MAX_PATH];
 					wcstombs(gpuDesc[gpuCount].mName, desc.Description, FS_MAX_PATH);
 					++gpuCount;
-					SAFE_RELEASE(pRenderer->pDxDevice);
+					SAFE_RELEASE(pRenderer->mD3D11.pDxDevice);
 
 					// Default GPU is the first GPU received in EnumAdapters
-					if (pDesc->mUseDefaultGpu)
+					if (pDesc->mD3D11.mUseDefaultGpu)
 					{
 						break;
 					}
@@ -981,12 +982,12 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 #endif
 
 	// Get the latest and greatest feature level gpu
-	gpuDesc[gpuIndex].pGpu->QueryInterface(&pRenderer->pDxActiveGPU);
-	ASSERT(pRenderer->pDxActiveGPU != NULL);
+	gpuDesc[gpuIndex].pGpu->QueryInterface(&pRenderer->mD3D11.pDxActiveGPU);
+	ASSERT(pRenderer->mD3D11.pDxActiveGPU != NULL);
 	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 	*pRenderer->pActiveGpuSettings = gpuSettings[gpuIndex];
 	pRenderer->mLinkedNodeCount = 1;
-	pRenderer->mPartialUpdateConstantBufferSupported = gpuDesc[gpuIndex].mFeatureDataOptions.ConstantBufferPartialUpdate;
+	pRenderer->mD3D11.mPartialUpdateConstantBufferSupported = gpuDesc[gpuIndex].mFeatureDataOptions.ConstantBufferPartialUpdate;
 
 	char driverVer[MAX_GPU_VENDOR_STRING_LENGTH];
 	char driverDate[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -1028,18 +1029,18 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	D3D_FEATURE_LEVEL featureLevel;
 	hr = D3D11CreateDevice(
-		pRenderer->pDxActiveGPU, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, deviceFlags, &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION,
-		&pRenderer->pDxDevice,
+		pRenderer->mD3D11.pDxActiveGPU, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, deviceFlags, &featureLevels[levelIndex], featureLevelCount, D3D11_SDK_VERSION,
+		&pRenderer->mD3D11.pDxDevice,
 		&featureLevel,    // max feature level
-		&pRenderer->pDxContext);
+		&pRenderer->mD3D11.pDxContext);
 
 	if (E_INVALIDARG == hr)
 	{
 		hr = D3D11CreateDevice(
-			pRenderer->pDxActiveGPU, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, deviceFlags, &featureLevels[levelIndex + 1], featureLevelCount - 1, D3D11_SDK_VERSION,
-			&pRenderer->pDxDevice,
+			pRenderer->mD3D11.pDxActiveGPU, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, deviceFlags, &featureLevels[levelIndex + 1], featureLevelCount - 1, D3D11_SDK_VERSION,
+			&pRenderer->mD3D11.pDxDevice,
 			&featureLevel,    // max feature level
-			&pRenderer->pDxContext);
+			&pRenderer->mD3D11.pDxContext);
 	}
 	ASSERT(SUCCEEDED(hr));
 	if (FAILED(hr))
@@ -1050,14 +1051,14 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 		SAFE_RELEASE(gpuDesc[i].pGpu);
 	}
 
-	pRenderer->mFeatureLevel = featureLevel;
+	pRenderer->mD3D11.mFeatureLevel = featureLevel;
 
 #if defined(USE_NSIGHT_AFTERMATH)
-	SetAftermathDevice(pRenderer->pDxDevice);
+	SetAftermathDevice(pRenderer->mD3D11.pDxDevice);
 #endif
 
 #if defined(ENABLE_PERFORMANCE_MARKER)
-	hr = pRenderer->pDxContext->QueryInterface(__uuidof(pRenderer->pUserDefinedAnnotation), (void**)(&pRenderer->pUserDefinedAnnotation));
+	hr = pRenderer->mD3D11.pDxContext->QueryInterface(__uuidof(pRenderer->pUserDefinedAnnotation), (void**)(&pRenderer->pUserDefinedAnnotation));
 	if (FAILED(hr))
 		LOGF(LogLevel::eERROR, "Failed to query interface ID3DUserDefinedAnnotation.");
 #endif
@@ -1067,14 +1068,14 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-	SAFE_RELEASE(pRenderer->pDXGIFactory);
-	SAFE_RELEASE(pRenderer->pDxActiveGPU);
+	SAFE_RELEASE(pRenderer->mD3D11.pDXGIFactory);
+	SAFE_RELEASE(pRenderer->mD3D11.pDxActiveGPU);
 
-	SAFE_RELEASE(pRenderer->pDxContext);
+	SAFE_RELEASE(pRenderer->mD3D11.pDxContext);
 #if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
 	ID3D11Debug* pDebugDevice = NULL;
-	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
-	SAFE_RELEASE(pRenderer->pDxDevice);
+	pRenderer->mD3D11.pDxDevice->QueryInterface(&pDebugDevice);
+	SAFE_RELEASE(pRenderer->mD3D11.pDxDevice);
 
 	if (pDebugDevice)
 	{
@@ -1088,7 +1089,7 @@ static void RemoveDevice(Renderer* pRenderer)
 #endif
 	}
 #else
-	SAFE_RELEASE(pRenderer->pDxDevice);
+	SAFE_RELEASE(pRenderer->mD3D11.pDxDevice);
 #endif
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 
@@ -1154,7 +1155,7 @@ static ID3D11BlendState* util_to_blend_state(Renderer* pRenderer, const BlendSta
 	}
 
 	ID3D11BlendState* out = NULL;
-	if (FAILED(pRenderer->pDxDevice->CreateBlendState(&desc, &out)))
+	if (FAILED(pRenderer->mD3D11.pDxDevice->CreateBlendState(&desc, &out)))
 		LOGF(LogLevel::eERROR, "Failed to create blend state.");
 
 	return out;
@@ -1191,7 +1192,7 @@ static ID3D11DepthStencilState* util_to_depth_state(Renderer* pRenderer, const D
 	desc.FrontFace.StencilPassOp = gStencilOpTranslator[pDesc->mStencilBackPass];
 
 	ID3D11DepthStencilState* out = NULL;
-	if (FAILED(pRenderer->pDxDevice->CreateDepthStencilState(&desc, &out)))
+	if (FAILED(pRenderer->mD3D11.pDxDevice->CreateDepthStencilState(&desc, &out)))
 		LOGF(LogLevel::eERROR, "Failed to create depth state.");
 
 	return out;
@@ -1218,7 +1219,7 @@ static ID3D11RasterizerState* util_to_rasterizer_state(Renderer* pRenderer, cons
 	desc.ScissorEnable = pDesc->mScissor;
 
 	ID3D11RasterizerState* out = NULL;
-	if (FAILED(pRenderer->pDxDevice->CreateRasterizerState(&desc, &out)))
+	if (FAILED(pRenderer->mD3D11.pDxDevice->CreateRasterizerState(&desc, &out)))
 		LOGF(LogLevel::eERROR, "Failed to create depth state.");
 
 	return out;
@@ -1234,7 +1235,7 @@ static void add_default_resources(Renderer* pRenderer)
 	blendStateDesc.mMasks[0] = ALL;
 	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
 	blendStateDesc.mIndependentBlend = false;
-	pRenderer->pDefaultBlendState = util_to_blend_state(pRenderer, &blendStateDesc);
+	pRenderer->mD3D11.pDefaultBlendState = util_to_blend_state(pRenderer, &blendStateDesc);
 
 	DepthStateDesc depthStateDesc = {};
 	depthStateDesc.mDepthFunc = CMP_LEQUAL;
@@ -1244,23 +1245,23 @@ static void add_default_resources(Renderer* pRenderer)
 	depthStateDesc.mStencilFrontFunc = CMP_ALWAYS;
 	depthStateDesc.mStencilReadMask = 0xFF;
 	depthStateDesc.mStencilWriteMask = 0xFF;
-	pRenderer->pDefaultDepthState = util_to_depth_state(pRenderer, &depthStateDesc);
+	pRenderer->mD3D11.pDefaultDepthState = util_to_depth_state(pRenderer, &depthStateDesc);
 
 	RasterizerStateDesc rasterizerStateDesc = {};
 	rasterizerStateDesc.mCullMode = CULL_MODE_BACK;
-	pRenderer->pDefaultRasterizerState = util_to_rasterizer_state(pRenderer, &rasterizerStateDesc);
+	pRenderer->mD3D11.pDefaultRasterizerState = util_to_rasterizer_state(pRenderer, &rasterizerStateDesc);
 }
 
 static void remove_default_resources(Renderer* pRenderer)
 {
-	SAFE_RELEASE(pRenderer->pDefaultBlendState);
-	SAFE_RELEASE(pRenderer->pDefaultDepthState);
-	SAFE_RELEASE(pRenderer->pDefaultRasterizerState);
+	SAFE_RELEASE(pRenderer->mD3D11.pDefaultBlendState);
+	SAFE_RELEASE(pRenderer->mD3D11.pDefaultDepthState);
+	SAFE_RELEASE(pRenderer->mD3D11.pDefaultRasterizerState);
 }
 /************************************************************************/
 // Renderer Init Remove
 /************************************************************************/
-void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
+void d3d11_initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
 {
 	ASSERT(ppRenderer);
 	ASSERT(settings);
@@ -1273,7 +1274,6 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	pRenderer->mGpuMode = settings->mGpuMode;
 	pRenderer->mShaderTarget = shader_target_5_0;
 	pRenderer->mEnableGpuBasedValidation = settings->mEnableGPUBasedValidation;
-	pRenderer->mApi = RENDERER_API_D3D11;
 
 	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	strcpy(pRenderer->pName, appName);
@@ -1291,7 +1291,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		{
 			//have the condition in the assert as well so its cleared when the assert message box appears
 
-			ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+			ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);  //-V547
 
 			SAFE_FREE(pRenderer->pName);
 
@@ -1309,7 +1309,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		}
 	}
 
-	utils_caps_builder(pRenderer);
+	d3d11_utils_caps_builder(pRenderer);
 
 	add_default_resources(pRenderer);
 
@@ -1317,7 +1317,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	*ppRenderer = pRenderer;
 }
 
-void removeRenderer(Renderer* pRenderer)
+void d3d11_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
 
@@ -1334,7 +1334,7 @@ void removeRenderer(Renderer* pRenderer)
 /************************************************************************/
 // Resource Creation Functions
 /************************************************************************/
-void addFence(Renderer* pRenderer, Fence** ppFence)
+void d3d11_addFence(Renderer* pRenderer, Fence** ppFence)
 {
 	//ASSERT that renderer is valid
 	ASSERT(pRenderer);
@@ -1347,26 +1347,26 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	D3D11_QUERY_DESC desc = {};
 	desc.Query = D3D11_QUERY_EVENT;
 
-	CHECK_HRESULT(pRenderer->pDxDevice->CreateQuery(&desc, &pFence->pDX11Query));
+	CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateQuery(&desc, &pFence->mD3D11.pDX11Query));
 
-	pFence->mSubmitted = false;
+	pFence->mD3D11.mSubmitted = false;
 
 	*ppFence = pFence;
 }
 
-void removeFence(Renderer* pRenderer, Fence* pFence)
+void d3d11_removeFence(Renderer* pRenderer, Fence* pFence)
 {
 	//ASSERT that renderer is valid
 	ASSERT(pRenderer);
 	//ASSERT that given fence to remove is valid
 	ASSERT(pFence);
 
-	SAFE_RELEASE(pFence->pDX11Query);
+	SAFE_RELEASE(pFence->mD3D11.pDX11Query);
 
 	SAFE_FREE(pFence);
 }
 
-void addSemaphore(Renderer* pRenderer, Semaphore** pSemaphore)
+void d3d11_addSemaphore(Renderer* pRenderer, Semaphore** pSemaphore)
 {
 	// NOTE: We will still use it to be able to generate
 	// a dependency graph to serialize parallel GPU workload.
@@ -1376,13 +1376,13 @@ void addSemaphore(Renderer* pRenderer, Semaphore** pSemaphore)
 	ASSERT(pSemaphore);
 }
 
-void removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
+void d3d11_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
 	//ASSERT that renderer and given semaphore are valid
 	ASSERT(pRenderer);
 }
 
-void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
+void d3d11_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -1397,26 +1397,26 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	// Provided description for queue creation.
 	// Note these don't really mean much w/ DX11 but we can use it for debugging
 	// what the client is intending to do.
-	pQueue->pDxContext = pRenderer->pDxContext;
+	pQueue->mD3D11.pDxContext = pRenderer->mD3D11.pDxContext;
 	pQueue->mNodeIndex = pDesc->mNodeIndex;
 	pQueue->mType = pDesc->mType;
-	pQueue->pDxDevice = pRenderer->pDxDevice;
+	pQueue->mD3D11.pDxDevice = pRenderer->mD3D11.pDxDevice;
 	//eastl::string queueType = "DUMMY QUEUE FOR DX11 BACKEND";
 
 	*ppQueue = pQueue;
 }
 
-void removeQueue(Renderer* pRenderer, Queue* pQueue)
+void d3d11_removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
 	ASSERT(pRenderer);
 	ASSERT(pQueue);
 
-	pQueue->pDxContext = NULL;
+	pQueue->mD3D11.pDxContext = NULL;
 
 	SAFE_FREE(pQueue);
 }
 
-void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
+void d3d11_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -1426,7 +1426,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + pDesc->mImageCount * sizeof(RenderTarget*));
 	ASSERT(pSwapChain);
 
-	pSwapChain->mDxSyncInterval = pDesc->mEnableVsync ? 1 : 0;
+	pSwapChain->mD3D11.mDxSyncInterval = pDesc->mEnableVsync ? 1 : 0;
 	pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
 	ASSERT(pSwapChain->ppRenderTargets);
 
@@ -1435,7 +1435,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	DXGI_SWAP_CHAIN_DESC desc = {};
 	desc.BufferDesc.Width = pDesc->mWidth;
 	desc.BufferDesc.Height = pDesc->mHeight;
-	desc.BufferDesc.Format = util_to_dx_swapchain_format(pDesc->mColorFormat);
+	desc.BufferDesc.Format = util_to_dx11_swapchain_format(pDesc->mColorFormat);
 	desc.BufferDesc.RefreshRate.Numerator = 1;
 	desc.BufferDesc.RefreshRate.Denominator = 60;
 	desc.SampleDesc.Count = 1;    // If multisampling is needed, we'll resolve it later
@@ -1463,10 +1463,10 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	for (; i < swapEffectsCount; ++i)
 	{
 		desc.SwapEffect = swapEffects[i];
-		hres = pRenderer->pDXGIFactory->CreateSwapChain(pRenderer->pDxDevice, &desc, &swapchain);
+		hres = pRenderer->mD3D11.pDXGIFactory->CreateSwapChain(pRenderer->mD3D11.pDxDevice, &desc, &swapchain);
 		if (SUCCEEDED(hres))
 		{
-			pSwapChain->mSwapEffect = swapEffects[i];
+			pSwapChain->mD3D11.mSwapEffect = swapEffects[i];
 			LOGF(eINFO, "Swapchain creation SUCCEEDED with SwapEffect %d", swapEffects[i]);
 			break;
 		}
@@ -1477,9 +1477,9 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		ASSERT(false);
 	}
 
-	CHECK_HRESULT(pRenderer->pDXGIFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
+	CHECK_HRESULT(pRenderer->mD3D11.pDXGIFactory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
 
-	CHECK_HRESULT(swapchain->QueryInterface(__uuidof(pSwapChain->pDxSwapChain), (void**)&(pSwapChain->pDxSwapChain)));
+	CHECK_HRESULT(swapchain->QueryInterface(__uuidof(pSwapChain->mD3D11.pDxSwapChain), (void**)&(pSwapChain->mD3D11.pDxSwapChain)));
 	swapchain->Release();
 
 	ID3D11Resource** buffers = (ID3D11Resource**)alloca(pDesc->mImageCount * sizeof(ID3D11Resource*));
@@ -1487,7 +1487,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	// Create rendertargets from swapchain
 	for (uint32_t i = 0; i < pDesc->mImageCount; ++i)
 	{
-		CHECK_HRESULT(pSwapChain->pDxSwapChain->GetBuffer(0, IID_ARGS(&buffers[i])));
+		CHECK_HRESULT(pSwapChain->mD3D11.pDxSwapChain->GetBuffer(0, IID_ARGS(&buffers[i])));
 	}
 
 	RenderTargetDesc descColor = {};
@@ -1508,28 +1508,28 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	}
 
 	pSwapChain->mImageCount = pDesc->mImageCount;
-	pSwapChain->mImageIndex = 0;
+	pSwapChain->mD3D11.mImageIndex = 0;
 	pSwapChain->mEnableVsync = pDesc->mEnableVsync;
 
 	*ppSwapChain = pSwapChain;
 }
 
-void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
+void d3d11_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
 	for (uint32_t i = 0; i < pSwapChain->mImageCount; ++i)
 	{
-		ID3D11Resource* resource = pSwapChain->ppRenderTargets[i]->pTexture->pDxResource;
+		ID3D11Resource* resource = pSwapChain->ppRenderTargets[i]->pTexture->mD3D11.pDxResource;
 		removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
 		SAFE_RELEASE(resource);
 	}
 
-	SAFE_RELEASE(pSwapChain->pDxSwapChain);
+	SAFE_RELEASE(pSwapChain->mD3D11.pDxSwapChain);
 	SAFE_FREE(pSwapChain);
 }
 /************************************************************************/
 // Command Pool Functions
 /************************************************************************/
-void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
+void d3d11_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
 	// NOTE: We will still use cmd pools to be able to generate
 	// a dependency graph to serialize parallel GPU workload.
@@ -1548,7 +1548,7 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	*ppCmdPool = pCmdPool;
 }
 
-void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void d3d11_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	//check validity of given renderer and command pool
 	ASSERT(pRenderer);
@@ -1557,7 +1557,7 @@ void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 	SAFE_FREE(pCmdPool);
 }
 
-void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
+void d3d11_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
 	//verify that given pool is valid
 	ASSERT(pRenderer);
@@ -1573,19 +1573,26 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	*ppCmd = pCmd;
 }
 
-void removeCmd(Renderer* pRenderer, Cmd* pCmd)
+void d3d11_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 {
 	//verify that given command and pool are valid
 	ASSERT(pRenderer);
 	ASSERT(pCmd);
 
-	SAFE_RELEASE(pCmd->pRootConstantBuffer);
-	SAFE_RELEASE(pCmd->pTransientConstantBuffer);
-	SAFE_FREE(pCmd->pDescriptorCache);
+	SAFE_RELEASE(pCmd->mD3D11.pRootConstantBuffer);
+	if (pCmd->mD3D11.pTransientConstantBuffers[0])
+	{
+		const uint32_t transientConstantBufferCount = sizeof(pCmd->mD3D11.pTransientConstantBuffers) / sizeof(pCmd->mD3D11.pTransientConstantBuffers[0]);
+		for (uint32_t i = 0; i < transientConstantBufferCount; ++i)
+		{
+			SAFE_RELEASE(pCmd->mD3D11.pTransientConstantBuffers[i]);
+		}
+	}
+	SAFE_FREE(pCmd->mD3D11.pDescriptorCache);
 	SAFE_FREE(pCmd);
 }
 
-void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
+void d3d11_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
 	//verify that ***cmd is valid
 	ASSERT(pRenderer);
@@ -1605,7 +1612,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	*pppCmd = ppCmds;
 }
 
-void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
+void d3d11_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 {
 	//verify that given command list is valid
 	ASSERT(ppCmds);
@@ -1622,7 +1629,7 @@ void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 /************************************************************************/
 // All buffer, texture loading handled by resource system -> IResourceLoader.
 /************************************************************************/
-void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
+void d3d11_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -1646,9 +1653,9 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	ASSERT(pRenderTarget);
 
 	if (isDepth)
-		pRenderTarget->pDxDsvSliceDescriptors = (ID3D11DepthStencilView**)(pRenderTarget + 1);
+		pRenderTarget->mD3D11.pDxDsvSliceDescriptors = (ID3D11DepthStencilView**)(pRenderTarget + 1);
 	else
-		pRenderTarget->pDxRtvSliceDescriptors = (ID3D11RenderTargetView**)(pRenderTarget + 1);
+		pRenderTarget->mD3D11.pDxRtvSliceDescriptors = (ID3D11RenderTargetView**)(pRenderTarget + 1);
 
 	//add to gpu
 	DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->mFormat);
@@ -1687,9 +1694,9 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 	if (isDepth)
-		add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxDsvDescriptor);
+		add_dsv(pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, 0, -1, &pRenderTarget->mD3D11.pDxDsvDescriptor);
 	else
-		add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxRtvDescriptor);
+		add_rtv(pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, 0, -1, &pRenderTarget->mD3D11.pDxRtvDescriptor);
 
 	for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 	{
@@ -1701,20 +1708,20 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 			{
 				if (isDepth)
 					add_dsv(
-						pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
-						&pRenderTarget->pDxDsvSliceDescriptors[i * depthOrArraySize + j]);
+						pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, i, j,
+						&pRenderTarget->mD3D11.pDxDsvSliceDescriptors[i * depthOrArraySize + j]);
 				else
 					add_rtv(
-						pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
-						&pRenderTarget->pDxRtvSliceDescriptors[i * depthOrArraySize + j]);
+						pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, i, j,
+						&pRenderTarget->mD3D11.pDxRtvSliceDescriptors[i * depthOrArraySize + j]);
 			}
 		}
 		else
 		{
 			if (isDepth)
-				add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxDsvSliceDescriptors[i]);
+				add_dsv(pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, i, -1, &pRenderTarget->mD3D11.pDxDsvSliceDescriptors[i]);
 			else
-				add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxRtvSliceDescriptors[i]);
+				add_rtv(pRenderer, pRenderTarget->pTexture->mD3D11.pDxResource, dxFormat, i, -1, &pRenderTarget->mD3D11.pDxRtvSliceDescriptors[i]);
 		}
 	}
 
@@ -1731,7 +1738,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	*ppRenderTarget = pRenderTarget;
 }
 
-void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
+void d3d11_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
 	bool const isDepth = TinyImageFormat_HasDepth(pRenderTarget->mFormat);
 
@@ -1739,11 +1746,11 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 
 	if (isDepth)
 	{
-		SAFE_RELEASE(pRenderTarget->pDxDsvDescriptor);
+		SAFE_RELEASE(pRenderTarget->mD3D11.pDxDsvDescriptor);
 	}
 	else
 	{
-		SAFE_RELEASE(pRenderTarget->pDxRtvDescriptor);
+		SAFE_RELEASE(pRenderTarget->mD3D11.pDxRtvDescriptor);
 	}
 
 	const uint32_t depthOrArraySize = pRenderTarget->mArraySize * pRenderTarget->mDepth;
@@ -1756,11 +1763,11 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 			{
 				if (isDepth)
 				{
-					SAFE_RELEASE(pRenderTarget->pDxDsvSliceDescriptors[i * depthOrArraySize + j]);
+					SAFE_RELEASE(pRenderTarget->mD3D11.pDxDsvSliceDescriptors[i * depthOrArraySize + j]);
 				}
 				else
 				{
-					SAFE_RELEASE(pRenderTarget->pDxRtvSliceDescriptors[i * depthOrArraySize + j]);
+					SAFE_RELEASE(pRenderTarget->mD3D11.pDxRtvSliceDescriptors[i * depthOrArraySize + j]);
 				}
 			}
 		}
@@ -1771,11 +1778,11 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 		{
 			if (isDepth)
 			{
-				SAFE_RELEASE(pRenderTarget->pDxDsvSliceDescriptors[i]);
+				SAFE_RELEASE(pRenderTarget->mD3D11.pDxDsvSliceDescriptors[i]);
 			}
 			else
 			{
-				SAFE_RELEASE(pRenderTarget->pDxRtvSliceDescriptors[i]);
+				SAFE_RELEASE(pRenderTarget->mD3D11.pDxRtvSliceDescriptors[i]);
 			}
 		}
 	}
@@ -1783,10 +1790,10 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	SAFE_FREE(pRenderTarget);
 }
 
-void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
+void d3d11_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
 {
 	ASSERT(pRenderer);
-	ASSERT(pRenderer->pDxDevice);
+	ASSERT(pRenderer->mD3D11.pDxDevice);
 	ASSERT(pDesc->mCompareFunc < MAX_COMPARE_MODES);
 	ASSERT(ppSampler);
 
@@ -1796,12 +1803,12 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 
 	//add sampler to gpu
 	D3D11_SAMPLER_DESC desc;
-	desc.Filter = util_to_dx_filter(
+	desc.Filter = util_to_dx11_filter(
 		pDesc->mMinFilter, pDesc->mMagFilter, pDesc->mMipMapMode, pDesc->mMaxAnisotropy > 0.0f,
 		(pDesc->mCompareFunc != CMP_NEVER ? true : false));
-	desc.AddressU = util_to_dx_texture_address_mode(pDesc->mAddressU);
-	desc.AddressV = util_to_dx_texture_address_mode(pDesc->mAddressV);
-	desc.AddressW = util_to_dx_texture_address_mode(pDesc->mAddressW);
+	desc.AddressU = util_to_dx11_texture_address_mode(pDesc->mAddressU);
+	desc.AddressV = util_to_dx11_texture_address_mode(pDesc->mAddressV);
+	desc.AddressW = util_to_dx11_texture_address_mode(pDesc->mAddressW);
 	desc.MipLODBias = pDesc->mMipLodBias;
 	desc.MaxAnisotropy = max((UINT)pDesc->mMaxAnisotropy, 1U);
 	desc.ComparisonFunc = gComparisonFuncTranslator[pDesc->mCompareFunc];
@@ -1812,25 +1819,25 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	desc.MinLOD = 0.0f;
 	desc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	if (FAILED(pRenderer->pDxDevice->CreateSamplerState(&desc, &pSampler->pSamplerState)))
+	if (FAILED(pRenderer->mD3D11.pDxDevice->CreateSamplerState(&desc, &pSampler->mD3D11.pSamplerState)))
 		LOGF(LogLevel::eERROR, "Failed to create sampler state.");
 
 	*ppSampler = pSampler;
 }
 
-void removeSampler(Renderer* pRenderer, Sampler* pSampler)
+void d3d11_removeSampler(Renderer* pRenderer, Sampler* pSampler)
 {
 	ASSERT(pRenderer);
 	ASSERT(pSampler);
 
-	SAFE_RELEASE(pSampler->pSamplerState);
+	SAFE_RELEASE(pSampler->mD3D11.pSamplerState);
 	SAFE_FREE(pSampler);
 }
 
 /************************************************************************/
 // Shader Functions
 /************************************************************************/
-void compileShader(
+void d3d11_compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
 	bool, uint32_t macroCount, ShaderMacro* pMacros, BinaryShaderStageDesc* pOut, const char* pEntryPoint)
 {
@@ -1848,7 +1855,7 @@ void compileShader(
 	compile_flags |= (D3DCOMPILE_DEBUG);
 #endif
 
-	bool featureLevel11 = pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
+	bool featureLevel11 = pRenderer->mD3D11.mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
 
 	int major = featureLevel11 ? 5 : 4;
 	int minor = 0;
@@ -1869,7 +1876,7 @@ void compileShader(
 		// Exclude compute shaders as well since there are many restrictions like no typed UAVs in SM 4.0
 		if (stage != SHADER_STAGE_VERT && stage != SHADER_STAGE_FRAG)
 		{
-			LOGF(eERROR, "%s profile not supported in feature level %u", target, pRenderer->mFeatureLevel);
+			LOGF(eERROR, "%s profile not supported in feature level %u", target, pRenderer->mD3D11.mFeatureLevel);
 			ASSERT(false);
 			return;
 		}
@@ -1885,11 +1892,15 @@ void compileShader(
 	}
 	macros[macroCount + 1] = { NULL, NULL };
 
+	// provide path to source file to enable shader includes
+	char relativeSourceName[FS_MAX_PATH] = { 0 };
+	fsAppendPathComponent(fsGetResourceDirectory(RD_SHADER_SOURCES), fileName, relativeSourceName);
+
 	const char*     entryPoint = pEntryPoint ? pEntryPoint : "main";
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-		code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
+		code, (size_t)codeSize, relativeSourceName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
 		0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
@@ -1910,7 +1921,7 @@ void compileShader(
 	SAFE_RELEASE(compiled_code);
 }
 
-void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+void d3d11_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mStages);
@@ -1920,7 +1931,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	ASSERT(pShaderProgram);
 
 	pShaderProgram->mStages = pDesc->mStages;
-	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
+	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1); //-V1027
 
 	uint32_t reflectionCount = 0;
 
@@ -1936,50 +1947,55 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_VERT:
 				{
 					pStage = &pDesc->mVert;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreateVertexShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxVertexShader));
-					CHECK_HRESULT(D3DGetInputSignatureBlob(pStage->pByteCode, pStage->mByteCodeSize, &pShaderProgram->pDxInputSignature));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateVertexShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxVertexShader));
+					CHECK_HRESULT(D3DGetInputSignatureBlob(pStage->pByteCode, pStage->mByteCodeSize, &pShaderProgram->mD3D11.pDxInputSignature));
 				}
 				break;
 				case SHADER_STAGE_HULL:
 				{
 					pStage = &pDesc->mHull;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreateHullShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxHullShader));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateHullShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxHullShader));
 				}
 				break;
 				case SHADER_STAGE_DOMN:
 				{
 					pStage = &pDesc->mDomain;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreateDomainShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxDomainShader));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateDomainShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxDomainShader));
 				}
 				break;
 				case SHADER_STAGE_GEOM:
 				{
 					pStage = &pDesc->mGeom;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreateGeometryShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxGeometryShader));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateGeometryShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxGeometryShader));
 				}
 				break;
 				case SHADER_STAGE_FRAG:
 				{
 					pStage = &pDesc->mFrag;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreatePixelShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxPixelShader));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreatePixelShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxPixelShader));
 				}
 				break;
 				case SHADER_STAGE_COMP:
 				{
 					pStage = &pDesc->mComp;
-					CHECK_HRESULT(pRenderer->pDxDevice->CreateComputeShader(
-						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->pDxComputeShader));
+					CHECK_HRESULT(pRenderer->mD3D11.pDxDevice->CreateComputeShader(
+						pStage->pByteCode, pStage->mByteCodeSize, NULL, &pShaderProgram->mD3D11.pDxComputeShader));
+				}
+				break;
+				default:
+				{
+					LOGF(LogLevel::eERROR, "Unknown shader stage %i", stage_mask);
 				}
 				break;
 			}
 
 			d3d11_createShaderReflection(
-				(uint8_t*)(pStage->pByteCode), (uint32_t)pStage->mByteCodeSize, stage_mask,
+				(uint8_t*)(pStage->pByteCode), (uint32_t)pStage->mByteCodeSize, stage_mask, //-V522
 				&pShaderProgram->pReflection->mStageReflections[reflectionCount]);
 
 			reflectionCount++;
@@ -1991,7 +2007,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	*ppShaderProgram = pShaderProgram;
 }
 
-void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
+void d3d11_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
 	UNREF_PARAM(pRenderer);
 
@@ -2000,16 +2016,16 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 
 	if (pShaderProgram->mStages & SHADER_STAGE_COMP)
 	{
-		SAFE_RELEASE(pShaderProgram->pDxComputeShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxComputeShader);
 	}
 	else
 	{
-		SAFE_RELEASE(pShaderProgram->pDxVertexShader);
-		SAFE_RELEASE(pShaderProgram->pDxPixelShader);
-		SAFE_RELEASE(pShaderProgram->pDxGeometryShader);
-		SAFE_RELEASE(pShaderProgram->pDxDomainShader);
-		SAFE_RELEASE(pShaderProgram->pDxHullShader);
-		SAFE_RELEASE(pShaderProgram->pDxInputSignature);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxVertexShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxPixelShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxGeometryShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxDomainShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxHullShader);
+		SAFE_RELEASE(pShaderProgram->mD3D11.pDxInputSignature);
 	}
 
 	SAFE_FREE(pShaderProgram);
@@ -2077,14 +2093,14 @@ D3D11_USAGE util_to_dx_usage(ResourceMemoryUsage mem)
 	switch (mem)
 	{
 		case RESOURCE_MEMORY_USAGE_GPU_ONLY: return D3D11_USAGE_DEFAULT;
-		case RESOURCE_MEMORY_USAGE_CPU_ONLY: return D3D11_USAGE_STAGING;
 		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: return D3D11_USAGE_DYNAMIC;
+		case RESOURCE_MEMORY_USAGE_CPU_ONLY:
 		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU: return D3D11_USAGE_STAGING;
 		default: ASSERT(false && "Invalid Memory Usage"); return D3D11_USAGE_DEFAULT;
 	}
 }
 
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
+void d3d11_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 {
 	//verify renderer validity
 	ASSERT(pRenderer);
@@ -2122,7 +2138,13 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	}
 	desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
 	desc.StructureByteStride = (UINT)((desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS) ? 0 : pDesc->mStructStride);
-	CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateBuffer(&desc, NULL, &pBuffer->pDxResource));
+	// Structured buffer need to align to 4 bytes and not use invalid bind flags
+	if (desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+	{
+		desc.StructureByteStride = (UINT)round_up_64(pDesc->mStructStride, 4);
+		desc.BindFlags &= ~(D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_INDEX_BUFFER | D3D11_BIND_CONSTANT_BUFFER | D3D11_BIND_STREAM_OUTPUT | D3D11_BIND_RENDER_TARGET | D3D11_BIND_DEPTH_STENCIL);
+	}
+	CHECK_HRESULT_DEVICE(pRenderer->mD3D11.pDxDevice, pRenderer->mD3D11.pDxDevice->CreateBuffer(&desc, NULL, &pBuffer->mD3D11.pDxResource));
 
 	if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) &&
 		!(pDesc->mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
@@ -2157,7 +2179,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 			}
 		}
 
-		pRenderer->pDxDevice->CreateShaderResourceView(pBuffer->pDxResource, &srvDesc, &pBuffer->pDxSrvHandle);
+		pRenderer->mD3D11.pDxDevice->CreateShaderResourceView(pBuffer->mD3D11.pDxResource, &srvDesc, &pBuffer->mD3D11.pDxSrvHandle);
 	}
 
 	if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) &&
@@ -2181,7 +2203,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 			uavDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->mFormat);
 		}
 
-		pRenderer->pDxDevice->CreateUnorderedAccessView(pBuffer->pDxResource, &uavDesc, &pBuffer->pDxUavHandle);
+		pRenderer->mD3D11.pDxDevice->CreateUnorderedAccessView(pBuffer->mD3D11.pDxResource, &uavDesc, &pBuffer->mD3D11.pDxUavHandle);
 	}
 
 	if (pDesc->pName)
@@ -2193,23 +2215,24 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	pBuffer->mMemoryUsage = pDesc->mMemoryUsage;
 	pBuffer->mNodeIndex = pDesc->mNodeIndex;
 	pBuffer->mDescriptors = pDesc->mDescriptors;
+	pBuffer->mD3D11.mFlags = pDesc->mFlags;
 
 	*ppBuffer = pBuffer;
 }
 
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void d3d11_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	UNREF_PARAM(pRenderer);
 	ASSERT(pRenderer);
 	ASSERT(pBuffer);
 
-	SAFE_RELEASE(pBuffer->pDxSrvHandle);
-	SAFE_RELEASE(pBuffer->pDxUavHandle);
-	SAFE_RELEASE(pBuffer->pDxResource);
+	SAFE_RELEASE(pBuffer->mD3D11.pDxSrvHandle);
+	SAFE_RELEASE(pBuffer->mD3D11.pDxUavHandle);
+	SAFE_RELEASE(pBuffer->mD3D11.pDxResource);
 	SAFE_FREE(pBuffer);
 }
 
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+void d3d11_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
 	UNREF_PARAM(pRange);
 
@@ -2228,7 +2251,7 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 			{
 				if (pRange == NULL)
 					mapType = D3D11_MAP_WRITE_DISCARD;
-				else if (pRenderer->mPartialUpdateConstantBufferSupported)
+				else if (pRenderer->mD3D11.mPartialUpdateConstantBufferSupported)
 					mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
 				else
 					LOGF(LogLevel::eERROR, "Device doesn't support partial uniform buffer updates");
@@ -2242,17 +2265,17 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 		default: break;
 	}
 	D3D11_MAPPED_SUBRESOURCE sub = {};
-	CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxContext->Map(pBuffer->pDxResource, 0, mapType, 0, &sub));
+	CHECK_HRESULT_DEVICE(pRenderer->mD3D11.pDxDevice, pRenderer->mD3D11.pDxContext->Map(pBuffer->mD3D11.pDxResource, 0, mapType, 0, &sub));
 	pBuffer->pCpuMappedAddress = sub.pData;
 }
 
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void d3d11_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
-	pRenderer->pDxContext->Unmap(pBuffer->pDxResource, 0);
+	pRenderer->mD3D11.pDxContext->Unmap(pBuffer->mD3D11.pDxResource, 0);
 	pBuffer->pCpuMappedAddress = nullptr;
 }
 
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+void d3d11_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
@@ -2274,12 +2297,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	ASSERT(pTexture);
 
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
-		pTexture->pDxUAVDescriptors = (ID3D11UnorderedAccessView**)(pTexture + 1);
+		pTexture->mD3D11.pDxUAVDescriptors = (ID3D11UnorderedAccessView**)(pTexture + 1);
 
 	if (pDesc->pNativeHandle)
 	{
 		pTexture->mOwnsImage = false;
-		pTexture->pDxResource = (ID3D11Resource*)pDesc->pNativeHandle;
+		pTexture->mD3D11.pDxResource = (ID3D11Resource*)pDesc->pNativeHandle;
 	}
 	else
 	{
@@ -2291,7 +2314,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	DescriptorType descriptors = pDesc->mDescriptors;
 	D3D11_RESOURCE_DIMENSION res_dim = {};
 
-	bool featureLevel11 = pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
+	bool featureLevel11 = pRenderer->mD3D11.mFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
 
 	if (!featureLevel11)
 	{
@@ -2323,7 +2346,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
-	if (NULL == pTexture->pDxResource)
+	if (NULL == pTexture->mD3D11.pDxResource)
 	{
 		switch (res_dim)
 		{
@@ -2339,8 +2362,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 				desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
 				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
 				desc.Width = pDesc->mWidth;
-				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D));
-				pTexture->pDxResource = pTex1D;
+				CHECK_HRESULT_DEVICE(pRenderer->mD3D11.pDxDevice, pRenderer->mD3D11.pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D));
+				pTexture->mD3D11.pDxResource = pTex1D;
 				break;
 			}
 			case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
@@ -2358,8 +2381,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 				desc.SampleDesc.Quality = pDesc->mSampleQuality;
 				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
 				desc.Width = pDesc->mWidth;
-				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture2D(&desc, NULL, &pTex2D));
-				pTexture->pDxResource = pTex2D;
+				CHECK_HRESULT_DEVICE(pRenderer->mD3D11.pDxDevice, pRenderer->mD3D11.pDxDevice->CreateTexture2D(&desc, NULL, &pTex2D));
+				pTexture->mD3D11.pDxResource = pTex2D;
 				break;
 			}
 			case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
@@ -2377,8 +2400,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 					desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 				desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
 				desc.Width = pDesc->mWidth;
-				CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex3D));
-				pTexture->pDxResource = pTex3D;
+				CHECK_HRESULT_DEVICE(pRenderer->mD3D11.pDxDevice, pRenderer->mD3D11.pDxDevice->CreateTexture3D(&desc, NULL, &pTex3D));
+				pTexture->mD3D11.pDxResource = pTex3D;
 				break;
 			}
 			default:
@@ -2388,27 +2411,27 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	else
 	{
 		D3D11_RESOURCE_DIMENSION type = {};
-		pTexture->pDxResource->GetType(&type);
+		pTexture->mD3D11.pDxResource->GetType(&type);
 		switch (type)
 		{
 			case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
 			{
 				D3D11_TEXTURE1D_DESC desc = {};
-				((ID3D11Texture1D*)pTexture->pDxResource)->GetDesc(&desc);
+				((ID3D11Texture1D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 				dxFormat = desc.Format;
 				break;
 			}
 			case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
 			{
 				D3D11_TEXTURE2D_DESC desc = {};
-				((ID3D11Texture2D*)pTexture->pDxResource)->GetDesc(&desc);
+				((ID3D11Texture2D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 				dxFormat = desc.Format;
 				break;
 			}
 			case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
 			{
 				D3D11_TEXTURE3D_DESC desc = {};
-				((ID3D11Texture3D*)pTexture->pDxResource)->GetDesc(&desc);
+				((ID3D11Texture3D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 				dxFormat = desc.Format;
 				break;
 			}
@@ -2420,14 +2443,14 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 
 	D3D11_RESOURCE_DIMENSION type = {};
-	pTexture->pDxResource->GetType(&type);
+	pTexture->mD3D11.pDxResource->GetType(&type);
 
 	switch (type)
 	{
 		case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
 		{
 			D3D11_TEXTURE1D_DESC desc = {};
-			((ID3D11Texture1D*)pTexture->pDxResource)->GetDesc(&desc);
+			((ID3D11Texture1D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 
 			if (desc.ArraySize > 1)
 			{
@@ -2458,7 +2481,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
 		{
 			D3D11_TEXTURE2D_DESC desc = {};
-			((ID3D11Texture2D*)pTexture->pDxResource)->GetDesc(&desc);
+			((ID3D11Texture2D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 			if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE))
 			{
 				ASSERT(desc.ArraySize % 6 == 0);
@@ -2538,7 +2561,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
 		{
 			D3D11_TEXTURE3D_DESC desc = {};
-			((ID3D11Texture3D*)pTexture->pDxResource)->GetDesc(&desc);
+			((ID3D11Texture3D*)pTexture->mD3D11.pDxResource)->GetDesc(&desc);
 
 			srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
 			uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
@@ -2558,17 +2581,17 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	{
 		ASSERT(srvDesc.ViewDimension != D3D11_SRV_DIMENSION_UNKNOWN);
 
-		srvDesc.Format = util_to_dx_srv_format(dxFormat);
-		pRenderer->pDxDevice->CreateShaderResourceView(pTexture->pDxResource, &srvDesc, &pTexture->pDxSRVDescriptor);
+		srvDesc.Format = util_to_dx11_srv_format(dxFormat);
+		pRenderer->mD3D11.pDxDevice->CreateShaderResourceView(pTexture->mD3D11.pDxResource, &srvDesc, &pTexture->mD3D11.pDxSRVDescriptor);
 	}
 
 	if (descriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
 	{
-		uavDesc.Format = util_to_dx_uav_format(dxFormat);
+		uavDesc.Format = util_to_dx11_uav_format(dxFormat);
 		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
 			uavDesc.Texture1DArray.MipSlice = i;
-			pRenderer->pDxDevice->CreateUnorderedAccessView(pTexture->pDxResource, &uavDesc, &pTexture->pDxUAVDescriptors[i]);
+			pRenderer->mD3D11.pDxDevice->CreateUnorderedAccessView(pTexture->mD3D11.pDxResource, &uavDesc, &pTexture->mD3D11.pDxUAVDescriptors[i]);
 		}
 	}
 
@@ -2589,27 +2612,36 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	*ppTexture = pTexture;
 }
 
-void removeTexture(Renderer* pRenderer, Texture* pTexture)
+void d3d11_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
 
-	SAFE_RELEASE(pTexture->pDxSRVDescriptor);
-	if (pTexture->pDxUAVDescriptors)
+	SAFE_RELEASE(pTexture->mD3D11.pDxSRVDescriptor);
+	if (pTexture->mD3D11.pDxUAVDescriptors)
 	{
 		for (uint32_t i = 0; i < pTexture->mMipLevels; ++i)
-			SAFE_RELEASE(pTexture->pDxUAVDescriptors[i]);
+			SAFE_RELEASE(pTexture->mD3D11.pDxUAVDescriptors[i]);
 	}
 
 	if (pTexture->mOwnsImage)
-		SAFE_RELEASE(pTexture->pDxResource);
+		SAFE_RELEASE(pTexture->mD3D11.pDxResource);
 
 	SAFE_FREE(pTexture);
 }
+
+void d3d11_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
+{
+}
+
+void d3d11_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
+{
+}
+
 /************************************************************************/
 // Pipeline Functions
 /************************************************************************/
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void d3d11_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRootSignatureDesc);
@@ -2729,8 +2761,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		pRootSignature->mDescriptorCount = (uint32_t)shaderResources.size();
 	}
 
-	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
-	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount);
+	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1); //-V1027
+	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount); //-V1027
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
 	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
 
@@ -2754,10 +2786,10 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 		DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
 
-		pDesc->mReg = pRes->reg;
+		pDesc->mD3D11.mReg = pRes->reg;
 		pDesc->mSize = pRes->size;
 		pDesc->mType = pRes->type;
-		pDesc->mUsedStages = pRes->used_stages;
+		pDesc->mD3D11.mUsedStages = pRes->used_stages;
 		pDesc->mUpdateFrequency = updateFreq;
 		pDesc->pName = pRes->name;
 		pDesc->mHandleIndex = 0;
@@ -2821,37 +2853,37 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			pDesc->mHandleIndex = cbvCount++;
 	}
 
-	pRootSignature->mSrvCount = srvCount;
-	pRootSignature->mUavCount = uavCount;
-	pRootSignature->mCbvCount = cbvCount;
-	pRootSignature->mSamplerCount = samplerCount;
-	pRootSignature->mDynamicCbvCount = dynamicCbvCount;
+	pRootSignature->mD3D11.mSrvCount = srvCount;
+	pRootSignature->mD3D11.mUavCount = uavCount;
+	pRootSignature->mD3D11.mCbvCount = cbvCount;
+	pRootSignature->mD3D11.mSamplerCount = samplerCount;
+	pRootSignature->mD3D11.mDynamicCbvCount = dynamicCbvCount;
 
-	pRootSignature->mStaticSamplerCount = (uint32_t)staticSamplers.size();
-	pRootSignature->ppStaticSamplers = (ID3D11SamplerState**)tf_calloc(staticSamplers.size(), sizeof(ID3D11SamplerState*));
-	pRootSignature->pStaticSamplerStages = (ShaderStage*)tf_calloc(staticSamplers.size(), sizeof(ShaderStage));
-	pRootSignature->pStaticSamplerSlots = (uint32_t*)tf_calloc(staticSamplers.size(), sizeof(uint32_t));
-	for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+	pRootSignature->mD3D11.mStaticSamplerCount = (uint32_t)staticSamplers.size();
+	pRootSignature->mD3D11.ppStaticSamplers = (ID3D11SamplerState**)tf_calloc(staticSamplers.size(), sizeof(ID3D11SamplerState*));
+	pRootSignature->mD3D11.pStaticSamplerStages = (ShaderStage*)tf_calloc(staticSamplers.size(), sizeof(ShaderStage));
+	pRootSignature->mD3D11.pStaticSamplerSlots = (uint32_t*)tf_calloc(staticSamplers.size(), sizeof(uint32_t));
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mStaticSamplerCount; ++i)
 	{
-		pRootSignature->ppStaticSamplers[i] = staticSamplers[i].second->pSamplerState;
-		pRootSignature->pStaticSamplerStages[i] = (ShaderStage)staticSamplers[i].first->mUsedStages;
-		pRootSignature->pStaticSamplerSlots[i] = staticSamplers[i].first->mReg;
+		pRootSignature->mD3D11.ppStaticSamplers[i] = staticSamplers[i].second->mD3D11.pSamplerState;
+		pRootSignature->mD3D11.pStaticSamplerStages[i] = (ShaderStage)staticSamplers[i].first->mD3D11.mUsedStages;
+		pRootSignature->mD3D11.pStaticSamplerSlots[i] = staticSamplers[i].first->mD3D11.mReg;
 	}
 
 	*ppRootSignature = pRootSignature;
 }
 
-void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
+void d3d11_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
 	pRootSignature->pDescriptorNameToIndexMap->mMap.clear(true);
 
-	SAFE_FREE(pRootSignature->ppStaticSamplers);
-	SAFE_FREE(pRootSignature->pStaticSamplerStages);
-	SAFE_FREE(pRootSignature->pStaticSamplerSlots);
+	SAFE_FREE(pRootSignature->mD3D11.ppStaticSamplers);
+	SAFE_FREE(pRootSignature->mD3D11.pStaticSamplerStages);
+	SAFE_FREE(pRootSignature->mD3D11.pStaticSamplerSlots);
 	SAFE_FREE(pRootSignature);
 }
 
-void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
+void addGraphicsPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppPipeline);
@@ -2865,28 +2897,28 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
-	pPipeline->mType = PIPELINE_TYPE_GRAPHICS;
+	pPipeline->mD3D11.mType = PIPELINE_TYPE_GRAPHICS;
 
 	//add to gpu
 	if (pShaderProgram->mStages & SHADER_STAGE_VERT)
 	{
-		pPipeline->pDxVertexShader = pShaderProgram->pDxVertexShader;
+		pPipeline->mD3D11.pDxVertexShader = pShaderProgram->mD3D11.pDxVertexShader;
 	}
 	if (pShaderProgram->mStages & SHADER_STAGE_FRAG)
 	{
-		pPipeline->pDxPixelShader = pShaderProgram->pDxPixelShader;
+		pPipeline->mD3D11.pDxPixelShader = pShaderProgram->mD3D11.pDxPixelShader;
 	}
 	if (pShaderProgram->mStages & SHADER_STAGE_HULL)
 	{
-		pPipeline->pDxHullShader = pShaderProgram->pDxHullShader;
+		pPipeline->mD3D11.pDxHullShader = pShaderProgram->mD3D11.pDxHullShader;
 	}
 	if (pShaderProgram->mStages & SHADER_STAGE_DOMN)
 	{
-		pPipeline->pDxDomainShader = pShaderProgram->pDxDomainShader;
+		pPipeline->mD3D11.pDxDomainShader = pShaderProgram->mD3D11.pDxDomainShader;
 	}
 	if (pShaderProgram->mStages & SHADER_STAGE_GEOM)
 	{
-		pPipeline->pDxGeometryShader = pShaderProgram->pDxGeometryShader;
+		pPipeline->mD3D11.pDxGeometryShader = pShaderProgram->mD3D11.pDxGeometryShader;
 	}
 
 	uint32_t input_elementCount = 0;
@@ -2919,6 +2951,8 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 					case SEMANTIC_COLOR: sprintf_s(name, "COLOR"); break;
 					case SEMANTIC_TANGENT: sprintf_s(name, "TANGENT"); break;
 					case SEMANTIC_BITANGENT: sprintf_s(name, "BINORMAL"); break;
+					case SEMANTIC_JOINTS: sprintf_s(name, "JOINTS"); break;
+					case SEMANTIC_WEIGHTS: sprintf_s(name, "WEIGHTS"); break;
 					case SEMANTIC_TEXCOORD0: sprintf_s(name, "TEXCOORD"); break;
 					case SEMANTIC_TEXCOORD1: sprintf_s(name, "TEXCOORD"); break;
 					case SEMANTIC_TEXCOORD2: sprintf_s(name, "TEXCOORD"); break;
@@ -2971,25 +3005,25 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	}
 	if (input_elementCount)
 	{
-		pRenderer->pDxDevice->CreateInputLayout(
-			input_elements, input_elementCount, pDesc->pShaderProgram->pDxInputSignature->GetBufferPointer(),
-			pDesc->pShaderProgram->pDxInputSignature->GetBufferSize(), &pPipeline->pDxInputLayout);
+		pRenderer->mD3D11.pDxDevice->CreateInputLayout(
+			input_elements, input_elementCount, pDesc->pShaderProgram->mD3D11.pDxInputSignature->GetBufferPointer(),
+			pDesc->pShaderProgram->mD3D11.pDxInputSignature->GetBufferSize(), &pPipeline->mD3D11.pDxInputLayout);
 	}
 
 	if (pDesc->pRasterizerState)
-		pPipeline->pRasterizerState = util_to_rasterizer_state(pRenderer, pDesc->pRasterizerState);
+		pPipeline->mD3D11.pRasterizerState = util_to_rasterizer_state(pRenderer, pDesc->pRasterizerState);
 	else
-		pRenderer->pDefaultRasterizerState->QueryInterface(&pPipeline->pRasterizerState);
+		pRenderer->mD3D11.pDefaultRasterizerState->QueryInterface(&pPipeline->mD3D11.pRasterizerState);
 
 	if (pDesc->pDepthState)
-		pPipeline->pDepthState = util_to_depth_state(pRenderer, pDesc->pDepthState);
+		pPipeline->mD3D11.pDepthState = util_to_depth_state(pRenderer, pDesc->pDepthState);
 	else
-		pRenderer->pDefaultDepthState->QueryInterface(&pPipeline->pDepthState);
+		pRenderer->mD3D11.pDefaultDepthState->QueryInterface(&pPipeline->mD3D11.pDepthState);
 
 	if (pDesc->pBlendState)
-		pPipeline->pBlendState = util_to_blend_state(pRenderer, pDesc->pBlendState);
+		pPipeline->mD3D11.pBlendState = util_to_blend_state(pRenderer, pDesc->pBlendState);
 	else
-		pRenderer->pDefaultBlendState->QueryInterface(&pPipeline->pBlendState);
+		pRenderer->mD3D11.pDefaultBlendState->QueryInterface(&pPipeline->mD3D11.pBlendState);
 
 	D3D_PRIMITIVE_TOPOLOGY topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	switch (pDesc->mPrimitiveTopo)
@@ -3010,12 +3044,12 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 		default: break;
 	}
 	ASSERT(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED != topology);
-	pPipeline->mDxPrimitiveTopology = topology;
+	pPipeline->mD3D11.mDxPrimitiveTopology = topology;
 
 	*ppPipeline = pPipeline;
 }
 
-void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+void d3d11_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppPipeline);
@@ -3030,14 +3064,14 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 
 			Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 			ASSERT(ppPipeline);
-			pPipeline->mType = PIPELINE_TYPE_COMPUTE;
-			pPipeline->pDxComputeShader = pDesc->mComputeDesc.pShaderProgram->pDxComputeShader;
+			pPipeline->mD3D11.mType = PIPELINE_TYPE_COMPUTE;
+			pPipeline->mD3D11.pDxComputeShader = pDesc->mComputeDesc.pShaderProgram->mD3D11.pDxComputeShader;
 			*ppPipeline = pPipeline;
 			break;
 		}
 		case(PIPELINE_TYPE_GRAPHICS):
 		{
-			addPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+			addGraphicsPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
 			break;
 		}
 		case(PIPELINE_TYPE_RAYTRACING):
@@ -3050,34 +3084,34 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 	}
 }
 
-void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
+void d3d11_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipeline);
 
 	//delete pipeline from device
-	SAFE_RELEASE(pPipeline->pDxInputLayout);
-	SAFE_RELEASE(pPipeline->pBlendState);
-	SAFE_RELEASE(pPipeline->pDepthState);
-	SAFE_RELEASE(pPipeline->pRasterizerState);
+	SAFE_RELEASE(pPipeline->mD3D11.pDxInputLayout);
+	SAFE_RELEASE(pPipeline->mD3D11.pBlendState);
+	SAFE_RELEASE(pPipeline->mD3D11.pDepthState);
+	SAFE_RELEASE(pPipeline->mD3D11.pRasterizerState);
 	SAFE_FREE(pPipeline);
 }
 
-void addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**)
+void d3d11_addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**)
 {
 }
 
-void removePipelineCache(Renderer*, PipelineCache*)
+void d3d11_removePipelineCache(Renderer*, PipelineCache*)
 {
 }
 
-void getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*)
+void d3d11_getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*)
 {
 }
 /************************************************************************/
 // Descriptor Set Implementation
 /************************************************************************/
-const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
+const DescriptorInfo* d3d11_get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
 	using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
 	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->mMap.find(pResName);
@@ -3116,7 +3150,7 @@ typedef struct DescriptorDataArray
 	struct DescriptorHandle*    pSamplers;
 } DescriptorDataArray;
 
-void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
+void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -3133,59 +3167,59 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 
 	for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
 	{
-		totalSize += pRootSignature->mSrvCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mUavCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mSamplerCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mCbvCount * sizeof(CBV);
+		totalSize += pRootSignature->mD3D11.mSrvCount * sizeof(DescriptorHandle);
+		totalSize += pRootSignature->mD3D11.mUavCount * sizeof(DescriptorHandle);
+		totalSize += pRootSignature->mD3D11.mSamplerCount * sizeof(DescriptorHandle);
+		totalSize += pRootSignature->mD3D11.mCbvCount * sizeof(CBV);
 	}
 
 	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
-	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
-	pDescriptorSet->pRootSignature = pRootSignature;
+	pDescriptorSet->mD3D11.mMaxSets = pDesc->mMaxSets;
+	pDescriptorSet->mD3D11.pRootSignature = pRootSignature;
 
-	pDescriptorSet->pHandles = (DescriptorDataArray*)(pDescriptorSet + 1);
-	pDescriptorSet->pDynamicCBVs = (CBV**)(pDescriptorSet->pHandles + pDesc->mMaxSets);
-	pDescriptorSet->pDynamicCBVsCount = (uint32_t*)(pDescriptorSet->pDynamicCBVs + pDesc->mMaxSets);
-	pDescriptorSet->pDynamicCBVsCapacity = (uint32_t*)(pDescriptorSet->pDynamicCBVsCount + pDesc->mMaxSets);
-	pDescriptorSet->pDynamicCBVsPrevCount = (uint32_t*)(pDescriptorSet->pDynamicCBVsCapacity + pDesc->mMaxSets);
+	pDescriptorSet->mD3D11.pHandles = (DescriptorDataArray*)(pDescriptorSet + 1); //-V1027
+	pDescriptorSet->mD3D11.pDynamicCBVs = (CBV**)(pDescriptorSet->mD3D11.pHandles + pDesc->mMaxSets);
+	pDescriptorSet->mD3D11.pDynamicCBVsCount = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVs + pDesc->mMaxSets);
+	pDescriptorSet->mD3D11.pDynamicCBVsCapacity = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVsCount + pDesc->mMaxSets);
+	pDescriptorSet->mD3D11.pDynamicCBVsPrevCount = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVsCapacity + pDesc->mMaxSets);
 
-	uint8_t* mem = (uint8_t*)(pDescriptorSet->pDynamicCBVsPrevCount + pDesc->mMaxSets);
+	uint8_t* mem = (uint8_t*)(pDescriptorSet->mD3D11.pDynamicCBVsPrevCount + pDesc->mMaxSets);
 
 	for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
 	{
-		pDescriptorSet->pHandles[i].pSRVs = (DescriptorHandle*)mem;
-		mem += pRootSignature->mSrvCount * sizeof(DescriptorHandle);
+		pDescriptorSet->mD3D11.pHandles[i].pSRVs = (DescriptorHandle*)mem;
+		mem += pRootSignature->mD3D11.mSrvCount * sizeof(DescriptorHandle);
 
-		pDescriptorSet->pHandles[i].pUAVs = (DescriptorHandle*)mem;
-		mem += pRootSignature->mUavCount * sizeof(DescriptorHandle);
+		pDescriptorSet->mD3D11.pHandles[i].pUAVs = (DescriptorHandle*)mem;
+		mem += pRootSignature->mD3D11.mUavCount * sizeof(DescriptorHandle);
 
-		pDescriptorSet->pHandles[i].pSamplers = (DescriptorHandle*)mem;
-		mem += pRootSignature->mSamplerCount * sizeof(DescriptorHandle);
+		pDescriptorSet->mD3D11.pHandles[i].pSamplers = (DescriptorHandle*)mem;
+		mem += pRootSignature->mD3D11.mSamplerCount * sizeof(DescriptorHandle);
 
-		pDescriptorSet->pHandles[i].pCBVs = (CBV*)mem;
-		mem += pRootSignature->mCbvCount * sizeof(CBV);
+		pDescriptorSet->mD3D11.pHandles[i].pCBVs = (CBV*)mem;
+		mem += pRootSignature->mD3D11.mCbvCount * sizeof(CBV);
 
-		if (pRootSignature->mDynamicCbvCount)
+		if (pRootSignature->mD3D11.mDynamicCbvCount)
 		{
-			pDescriptorSet->pDynamicCBVsCapacity[i] = 16;
-			pDescriptorSet->pDynamicCBVs[i] = (CBV*)tf_calloc(pDescriptorSet->pDynamicCBVsCapacity[i], sizeof(CBV));
+			pDescriptorSet->mD3D11.pDynamicCBVsCapacity[i] = 16;
+			pDescriptorSet->mD3D11.pDynamicCBVs[i] = (CBV*)tf_calloc(pDescriptorSet->mD3D11.pDynamicCBVsCapacity[i], sizeof(CBV));
 		}
 	}
 
 	*ppDescriptorSet = pDescriptorSet;
 }
 
-void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+void d3d11_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 {
-	for (uint32_t i = 0; i < pDescriptorSet->mMaxSets; ++i)
+	for (uint32_t i = 0; i < pDescriptorSet->mD3D11.mMaxSets; ++i)
 	{
-		SAFE_FREE(pDescriptorSet->pDynamicCBVs[i]);
+		SAFE_FREE(pDescriptorSet->mD3D11.pDynamicCBVs[i]);
 	}
 
 	SAFE_FREE(pDescriptorSet);
 }
 
-void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+void d3d11_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
@@ -3202,15 +3236,22 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
-	ASSERT(index < pDescriptorSet->mMaxSets);
+	ASSERT(index < pDescriptorSet->mD3D11.mMaxSets);
 
-	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+	const RootSignature* pRootSignature = pDescriptorSet->mD3D11.pRootSignature;
 
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam = pParams + i;
 		uint32_t paramIndex = pParam->mIndex;
-		const DescriptorInfo* pDesc = (paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		const DescriptorInfo* pDesc = (paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : d3d11_get_descriptor(pRootSignature, pParam->pName);
+
+		if (!pDesc)
+		{
+			LOGF(LogLevel::eERROR, "Unable to get DescriptorInfo for descriptor param %u", i);
+			continue;
+		}
+
 		paramIndex = pDesc->mHandleIndex;
 		const DescriptorType type = (DescriptorType)pDesc->mType;
 		const uint32_t arrayCount = max(1U, pParam->mCount);
@@ -3230,11 +3271,11 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->pHandles[index].pSamplers[paramIndex] = (DescriptorHandle
+					pDescriptorSet->mD3D11.pHandles[index].pSamplers[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppSamplers[arr]->pSamplerState,
-							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr
+							pParam->ppSamplers[arr]->mD3D11.pSamplerState,
+							(ShaderStage)pDesc->mD3D11.mUsedStages,
+							pDesc->mD3D11.mReg + arr
 						});
 				}
 				break;
@@ -3247,11 +3288,11 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
+					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppTextures[arr]->pDxSRVDescriptor,
-							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr
+							pParam->ppTextures[arr]->mD3D11.pDxSRVDescriptor,
+							(ShaderStage)pDesc->mD3D11.mUsedStages,
+							pDesc->mD3D11.mReg + arr
 						});
 				}
 				break;
@@ -3267,11 +3308,11 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 					VALIDATE_DESCRIPTOR(mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
 						pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
 
-					pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
+					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppTextures[arr]->pDxUAVDescriptors[pParam->mUAVMipSlice],
-							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr
+							pParam->ppTextures[arr]->mD3D11.pDxUAVDescriptors[pParam->mUAVMipSlice],
+							(ShaderStage)pDesc->mD3D11.mUsedStages,
+							pDesc->mD3D11.mReg + arr
 						});
 				}
 				break;
@@ -3285,11 +3326,11 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
+					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppBuffers[arr]->pDxSrvHandle,
-							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr
+							pParam->ppBuffers[arr]->mD3D11.pDxSrvHandle,
+							(ShaderStage)pDesc->mD3D11.mUsedStages,
+							pDesc->mD3D11.mReg + arr
 						});
 				}
 				break;
@@ -3303,11 +3344,11 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
+					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex] = (DescriptorHandle
 						{
-							pParam->ppBuffers[arr]->pDxUavHandle,
-							(ShaderStage)pDesc->mUsedStages,
-							pDesc->mReg + arr
+							pParam->ppBuffers[arr]->mD3D11.pDxUavHandle,
+							(ShaderStage)pDesc->mD3D11.mUsedStages,
+							pDesc->mD3D11.mReg + arr
 						});
 				}
 				break;
@@ -3327,26 +3368,30 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 						pParam->pSizes[0],
 						65536);
 
+					// buffers with NO_DESCRIPTOR_VIEW_CREATION flag should not be added to the descriptor set
+					if (pParam->ppBuffers[0]->mD3D11.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION) 
+						break;
+
 					uint32_t offset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
 					uint32_t size = (uint32_t)pParam->pSizes[0];
 					CBV cbv =
 					{
-						pParam->ppBuffers[0]->pDxResource,
+						pParam->ppBuffers[0]->mD3D11.pDxResource,
 						offset,
 						size,
-						(ShaderStage)pDesc->mUsedStages,
-						pDesc->mReg
+						(ShaderStage)pDesc->mD3D11.mUsedStages,
+						pDesc->mD3D11.mReg
 					};
 
-					uint32_t dynamicCbvCount = pDescriptorSet->pDynamicCBVsCount[index];
-					if ((dynamicCbvCount + 1) >= pDescriptorSet->pDynamicCBVsCapacity[index])
+					uint32_t dynamicCbvCount = pDescriptorSet->mD3D11.pDynamicCBVsCount[index];
+					if ((dynamicCbvCount + 1) >= pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index])
 					{
-						pDescriptorSet->pDynamicCBVsCapacity[index] <<= 1;
-						pDescriptorSet->pDynamicCBVs[index] = (CBV*)tf_realloc(pDescriptorSet->pDynamicCBVs[index], pDescriptorSet->pDynamicCBVsCapacity[index] * sizeof(CBV));
+						pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index] <<= 1;
+						pDescriptorSet->mD3D11.pDynamicCBVs[index] = (CBV*)tf_realloc(pDescriptorSet->mD3D11.pDynamicCBVs[index], pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index] * sizeof(CBV));
 					}
 
-					pDescriptorSet->pDynamicCBVs[index][dynamicCbvCount++] = cbv;
-					pDescriptorSet->pDynamicCBVsCount[index] = dynamicCbvCount;
+					pDescriptorSet->mD3D11.pDynamicCBVs[index][dynamicCbvCount++] = cbv;
+					pDescriptorSet->mD3D11.pDynamicCBVsCount[index] = dynamicCbvCount;
 				}
 				else
 				{
@@ -3363,13 +3408,13 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 								65536);
 						}
 
-						pDescriptorSet->pHandles[index].pCBVs[paramIndex] = (CBV
+						pDescriptorSet->mD3D11.pHandles[index].pCBVs[paramIndex] = (CBV
 							{
-								pParam->ppBuffers[arr]->pDxResource,
+								pParam->ppBuffers[arr]->mD3D11.pDxResource,
 								pParam->pOffsets ? (uint32_t)pParam->pOffsets[i] : 0U,
 								pParam->pSizes ? (uint32_t)pParam->pSizes[i] : 0U,
-								(ShaderStage)pDesc->mUsedStages,
-								pDesc->mReg + arr,
+								(ShaderStage)pDesc->mD3D11.mUsedStages,
+								pDesc->mD3D11.mReg + arr,
 							});
 					}
 				}
@@ -3383,18 +3428,18 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 /************************************************************************/
 // Command buffer Functions
 /************************************************************************/
-void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void d3d11_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	UNREF_PARAM(pRenderer);
 	UNREF_PARAM(pCmdPool);
 }
 
-void beginCmd(Cmd* pCmd)
+void d3d11_beginCmd(Cmd* pCmd)
 {
   //TODO: Maybe put lock here if required.
 }
 
-void endCmd(Cmd* pCmd)
+void d3d11_endCmd(Cmd* pCmd)
 {
   //TODO: Maybe put unlock here if required.
 }
@@ -3428,7 +3473,7 @@ void set_shader_resources(
 }
 
 // Beginning of the rendering pass.
-void cmdBindRenderTargets(
+void d3d11_cmdBindRenderTargets(
 	Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
 	const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice,
 	uint32_t depthMipSlice)
@@ -3439,7 +3484,7 @@ void cmdBindRenderTargets(
 		return;
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	// Reset any shader settings left from previous render passes.
 	reset_shader_resources(pContext);
@@ -3455,7 +3500,7 @@ void cmdBindRenderTargets(
 	{
 		if (!pColorMipSlices && !pColorArraySlices)
 		{
-			ppDxTargets[i] = ppRenderTargets[i]->pDxRtvDescriptor;
+			ppDxTargets[i] = ppRenderTargets[i]->mD3D11.pDxRtvDescriptor;
 		}
 		else
 		{
@@ -3476,7 +3521,7 @@ void cmdBindRenderTargets(
 				handle = pColorArraySlices[i];
 			}
 
-			ppDxTargets[i] = ppRenderTargets[i]->pDxRtvSliceDescriptors[handle];
+			ppDxTargets[i] = ppRenderTargets[i]->mD3D11.pDxRtvSliceDescriptors[handle];
 		}
 	}
 
@@ -3487,7 +3532,7 @@ void cmdBindRenderTargets(
 	{
 		if (-1 == depthMipSlice && -1 == depthArraySlice)
 		{
-			pDxDepthStencilTarget = pDepthStencil->pDxDsvDescriptor;
+			pDxDepthStencilTarget = pDepthStencil->mD3D11.pDxDsvDescriptor;
 		}
 		else
 		{
@@ -3503,7 +3548,7 @@ void cmdBindRenderTargets(
 			{
 				handle = depthArraySlice;
 			}
-			pDxDepthStencilTarget = pDepthStencil->pDxDsvSliceDescriptors[handle];
+			pDxDepthStencilTarget = pDepthStencil->mD3D11.pDxDsvSliceDescriptors[handle];
 		}
 	}
 
@@ -3541,12 +3586,16 @@ void cmdBindRenderTargets(
 	}
 }
 
-void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
+void d3d11_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
+{
+}
+
+void d3d11_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	D3D11_VIEWPORT viewport = {};
 	viewport.Width = width;
@@ -3558,12 +3607,12 @@ void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, floa
 	pContext->RSSetViewports(1, &viewport);
 }
 
-void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+void d3d11_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	D3D11_RECT scissor = {};
 	scissor.left = x;
@@ -3573,12 +3622,12 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	pContext->RSSetScissorRects(1, &scissor);
 }
 
-void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+void d3d11_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	ID3D11DepthStencilState* pDepth = NULL;
 	uint32_t value = 0;
@@ -3594,36 +3643,36 @@ void reset_uavs(ID3D11DeviceContext* pContext)
 	pContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, pNullUAV, NULL);
 }
 
-void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
+void d3d11_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
 	ASSERT(pCmd);
 	ASSERT(pPipeline);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	static const float dummyClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	if (pCmd->pRenderer->mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
+	if (pCmd->pRenderer->mD3D11.mFeatureLevel >= D3D_FEATURE_LEVEL_11_0)
 	{
 		reset_uavs(pContext);
 	}
 
-	if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
+	if (pPipeline->mD3D11.mType == PIPELINE_TYPE_GRAPHICS)
 	{
 	  // Set InputAssembly, Raster and Output state settings.
-		pContext->IASetPrimitiveTopology(pPipeline->mDxPrimitiveTopology);
-		pContext->IASetInputLayout(pPipeline->pDxInputLayout);
-		pContext->RSSetState(pPipeline->pRasterizerState);
-		pContext->OMSetDepthStencilState(pPipeline->pDepthState, 0);
-		pContext->OMSetBlendState(pPipeline->pBlendState, dummyClearColor, ~0);
+		pContext->IASetPrimitiveTopology(pPipeline->mD3D11.mDxPrimitiveTopology);
+		pContext->IASetInputLayout(pPipeline->mD3D11.pDxInputLayout);
+		pContext->RSSetState(pPipeline->mD3D11.pRasterizerState);
+		pContext->OMSetDepthStencilState(pPipeline->mD3D11.pDepthState, 0);
+		pContext->OMSetBlendState(pPipeline->mD3D11.pBlendState, dummyClearColor, ~0);
 
 		// Set shaders.
-		pContext->VSSetShader(pPipeline->pDxVertexShader, NULL, 0);
-		pContext->PSSetShader(pPipeline->pDxPixelShader, NULL, 0);
-		pContext->GSSetShader(pPipeline->pDxGeometryShader, NULL, 0);
-		pContext->DSSetShader(pPipeline->pDxDomainShader, NULL, 0);
-		pContext->HSSetShader(pPipeline->pDxHullShader, NULL, 0);
+		pContext->VSSetShader(pPipeline->mD3D11.pDxVertexShader, NULL, 0);
+		pContext->PSSetShader(pPipeline->mD3D11.pDxPixelShader, NULL, 0);
+		pContext->GSSetShader(pPipeline->mD3D11.pDxGeometryShader, NULL, 0);
+		pContext->DSSetShader(pPipeline->mD3D11.pDxDomainShader, NULL, 0);
+		pContext->HSSetShader(pPipeline->mD3D11.pDxHullShader, NULL, 0);
 	}
 	else
 	{
@@ -3631,7 +3680,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 		pContext->OMSetDepthStencilState(NULL, 0);
 		pContext->OMSetBlendState(NULL, dummyClearColor, ~0);
 		reset_shader_resources(pContext);
-		pContext->CSSetShader(pPipeline->pDxComputeShader, NULL, 0);
+		pContext->CSSetShader(pPipeline->mD3D11.pDxComputeShader, NULL, 0);
 	}
 }
 
@@ -3669,68 +3718,78 @@ void set_constant_buffers(ID3D11DeviceContext* pContext, ShaderStage used_stages
 
 void set_dynamic_constant_buffer(Cmd* pCmd, ID3D11DeviceContext* pContext, const CBV* pHandle)
 {
-	if (!pCmd->pTransientConstantBuffer)
-	{
-		Buffer* buffer = {};
-		BufferDesc bufDesc = {};
-		bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		// Max Constant Buffer Size
-		bufDesc.mSize = 65536;
-		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-		pCmd->pTransientConstantBuffer = buffer->pDxResource;
-		SAFE_FREE(buffer);
-	}
+	ASSERT(pCmd);
+	ASSERT(pContext);
+	ASSERT(pHandle);
 
+	const uint32_t transientConstantBufferCount = sizeof(pCmd->mD3D11.pTransientConstantBuffers) / sizeof(pCmd->mD3D11.pTransientConstantBuffers[0]);
+	if (!pCmd->mD3D11.pTransientConstantBuffers[0])
+	{
+		pCmd->mD3D11.mTransientConstantBufferIndex = 0;
+		for (uint32_t i = 0; i < transientConstantBufferCount; ++i)
+		{
+			Buffer* buffer = {};
+			BufferDesc bufDesc = {};
+			bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+			// Max Constant Buffer Size
+			bufDesc.mSize = 65536;
+			addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
+			pCmd->mD3D11.pTransientConstantBuffers[i] = buffer->mD3D11.pDxResource;
+			SAFE_FREE(buffer);
+		}
+	}
+	const uint32_t transientConstantBufferIndex = pCmd->mD3D11.mTransientConstantBufferIndex++ % transientConstantBufferCount;
+	ID3D11Buffer* pTransientConstantBuffer = pCmd->mD3D11.pTransientConstantBuffers[transientConstantBufferIndex];
 	D3D11_MAPPED_SUBRESOURCE read = {};
-	pContext->Map(pHandle->pHandle, 0, D3D11_MAP_READ, 0, &read);
+	pContext->Map(pHandle->pHandle, 0, D3D11_MAP_READ, 0, &read); //-V522
 	D3D11_MAPPED_SUBRESOURCE sub = {};
-	pContext->Map(pCmd->pTransientConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	pContext->Map(pTransientConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
 	memcpy(sub.pData, (uint8_t*)read.pData + pHandle->mOffset, pHandle->mSize);
-	pContext->Unmap(pCmd->pTransientConstantBuffer, 0);
+	pContext->Unmap(pTransientConstantBuffer, 0);
 	pContext->Unmap(pHandle->pHandle, 0);
-	set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, &pCmd->pTransientConstantBuffer);
+	set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, &pTransientConstantBuffer);
 }
 
-void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
+void d3d11_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
 	ASSERT(pCmd);
 	ASSERT(pDescriptorSet);
-	ASSERT(index < pDescriptorSet->mMaxSets);
+	ASSERT(index < pDescriptorSet->mD3D11.mMaxSets);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+	const RootSignature* pRootSignature = pDescriptorSet->mD3D11.pRootSignature;
 
 	// Texture samplers.
-	for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mStaticSamplerCount; ++i)
 	{
 		set_samplers(
-			pContext, pRootSignature->pStaticSamplerStages[i], pRootSignature->pStaticSamplerSlots[i], 1,
-			&pRootSignature->ppStaticSamplers[i]);
+			pContext, pRootSignature->mD3D11.pStaticSamplerStages[i], pRootSignature->mD3D11.pStaticSamplerSlots[i], 1,
+			&pRootSignature->mD3D11.ppStaticSamplers[i]);
 	}
 
 	// Shader resources.
-	for (uint32_t i = 0; i < pRootSignature->mSrvCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mSrvCount; ++i)
 	{
-		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSRVs[i];
+		DescriptorHandle* pHandle = &pDescriptorSet->mD3D11.pHandles[index].pSRVs[i];
 		if (pHandle->pHandle)
 			set_shader_resources(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11ShaderResourceView**)&pHandle->pHandle);
 	}
 
 	// UAVs
-	for (uint32_t i = 0; i < pRootSignature->mUavCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mUavCount; ++i)
 	{
-		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pUAVs[i];
+		DescriptorHandle* pHandle = &pDescriptorSet->mD3D11.pHandles[index].pUAVs[i];
 		if (pHandle->pHandle)
 			pContext->CSSetUnorderedAccessViews(pHandle->mBinding, 1, (ID3D11UnorderedAccessView**)&pHandle->pHandle, NULL);
 	}
 
 	// Constant buffers(Uniform buffers)
-	for (uint32_t i = 0; i < pRootSignature->mCbvCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mCbvCount; ++i)
 	{
-		CBV* pHandle = &pDescriptorSet->pHandles[index].pCBVs[i];
+		CBV* pHandle = &pDescriptorSet->mD3D11.pHandles[index].pCBVs[i];
 		if (pHandle->pHandle)
 		{
 			if (pHandle->mOffset || pHandle->mSize)
@@ -3738,55 +3797,55 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
 				set_dynamic_constant_buffer(pCmd, pContext, pHandle);
 			}
 			else
-			{
-				set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11Buffer**)&pHandle->pHandle);
-			}
+		{
+			set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11Buffer**)&pHandle->pHandle);
 		}
+	}
 	}
 
 	uint32_t dynamicCBVCount = 0;
 	CBV* pDynamicCBVs = 0;
 
-	if (pDescriptorSet->pDynamicCBVsCount[index] != pDescriptorSet->pDynamicCBVsPrevCount[index])
+	if (pDescriptorSet->mD3D11.pDynamicCBVsCount[index] != pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index])
 	{
 	  // Create descriptor pool for storing the descriptor data
-		if (!pCmd->pDescriptorCache)
+		if (!pCmd->mD3D11.pDescriptorCache)
 		{
-			pCmd->pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
+			pCmd->mD3D11.pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
 		}
 
-		dynamicCBVCount = (uint32_t)(pDescriptorSet->pDynamicCBVsCount[index] - pDescriptorSet->pDynamicCBVsPrevCount[index]);
-		pDynamicCBVs = (CBV*)(pCmd->pDescriptorCache + pCmd->mDescriptorCacheOffset);
-		pCmd->mDescriptorCacheOffset += sizeof(CBV) * dynamicCBVCount;
+		dynamicCBVCount = (uint32_t)(pDescriptorSet->mD3D11.pDynamicCBVsCount[index] - pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index]);
+		pDynamicCBVs = (CBV*)(pCmd->mD3D11.pDescriptorCache + pCmd->mD3D11.mDescriptorCacheOffset);
+		pCmd->mD3D11.mDescriptorCacheOffset += sizeof(CBV) * dynamicCBVCount;
 
 		for (uint32_t i = 0; i < dynamicCBVCount; ++i)
 		{
 			CBV* pCbv = (CBV*)pDynamicCBVs + i;
-			*pCbv = pDescriptorSet->pDynamicCBVs[index][pDescriptorSet->pDynamicCBVsPrevCount[index] + i];
+			*pCbv = pDescriptorSet->mD3D11.pDynamicCBVs[index][pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] + i];
 		}
 
-		pDescriptorSet->pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->pDynamicCBVsCount[index];
+		pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->mD3D11.pDynamicCBVsCount[index];
 	}
 
 	for (uint32_t i = 0; i < dynamicCBVCount; ++i)
 	{
-		CBV* pHandle = (CBV*)pDynamicCBVs + i;
+		CBV* pHandle = (CBV*)pDynamicCBVs + i; //-V769
 		set_dynamic_constant_buffer(pCmd, pContext, pHandle);
 	}
 
-	for (uint32_t i = 0; i < pRootSignature->mSamplerCount; ++i)
+	for (uint32_t i = 0; i < pRootSignature->mD3D11.mSamplerCount; ++i)
 	{
-		DescriptorHandle* pHandle = &pDescriptorSet->pHandles[index].pSamplers[i];
+		DescriptorHandle* pHandle = &pDescriptorSet->mD3D11.pHandles[index].pSamplers[i];
 		if (pHandle->pHandle)
 			set_samplers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11SamplerState**)&pHandle->pHandle);
 	}
 
-	pDescriptorSet->pDynamicCBVsCount[index] = 0;
-	pDescriptorSet->pDynamicCBVsPrevCount[index] = 0;
+	pDescriptorSet->mD3D11.pDynamicCBVsCount[index] = 0;
+	pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] = 0;
 
 }
 
-void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void d3d11_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pName);
@@ -3794,9 +3853,9 @@ void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* 
 	ASSERT(pRootSignature);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	if (!pCmd->pRootConstantBuffer)
+	if (!pCmd->mD3D11.pRootConstantBuffer)
 	{
 		Buffer* buffer = {};
 		BufferDesc bufDesc = {};
@@ -3804,20 +3863,21 @@ void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* 
 		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mSize = 256;
 		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-		pCmd->pRootConstantBuffer = buffer->pDxResource;
+		pCmd->mD3D11.pRootConstantBuffer = buffer->mD3D11.pDxResource;
 		SAFE_FREE(buffer);
 	}
 
 	D3D11_MAPPED_SUBRESOURCE sub = {};
-	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
+	const DescriptorInfo* pDesc = d3d11_get_descriptor(pRootSignature, pName);
+	ASSERT(pDesc);
 
-	pContext->Map(pCmd->pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t));
-	pContext->Unmap(pCmd->pRootConstantBuffer, 0);
-	set_constant_buffers(pContext, (ShaderStage)pDesc->mUsedStages, pDesc->mReg, 1, &pCmd->pRootConstantBuffer);
+	pContext->Map(pCmd->mD3D11.pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t)); //-V522
+	pContext->Unmap(pCmd->mD3D11.pRootConstantBuffer, 0);
+	set_constant_buffers(pContext, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg, 1, &pCmd->mD3D11.pRootConstantBuffer);
 }
 
-void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void d3d11_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -3825,9 +3885,9 @@ void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint3
 	ASSERT(paramIndex >= 0 && paramIndex < pRootSignature->mDescriptorCount);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	if (!pCmd->pRootConstantBuffer)
+	if (!pCmd->mD3D11.pRootConstantBuffer)
 	{
 		Buffer* buffer = {};
 		BufferDesc bufDesc = {};
@@ -3835,34 +3895,34 @@ void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint3
 		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mSize = 256;
 		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-		pCmd->pRootConstantBuffer = buffer->pDxResource;
+		pCmd->mD3D11.pRootConstantBuffer = buffer->mD3D11.pDxResource;
 		SAFE_FREE(buffer);
 	}
 
 	D3D11_MAPPED_SUBRESOURCE sub = {};
 	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
 
-	pContext->Map(pCmd->pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	pContext->Map(pCmd->mD3D11.pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
 	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t));
-	pContext->Unmap(pCmd->pRootConstantBuffer, 0);
-	set_constant_buffers(pContext, (ShaderStage)pDesc->mUsedStages, pDesc->mReg, 1, &pCmd->pRootConstantBuffer);
+	pContext->Unmap(pCmd->mD3D11.pRootConstantBuffer, 0);
+	set_constant_buffers(pContext, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg, 1, &pCmd->mD3D11.pRootConstantBuffer);
 }
 
-void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
+void d3d11_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
 {
 	ASSERT(pCmd);
-	ASSERT(pBuffer->pDxResource);
+	ASSERT(pBuffer->mD3D11.pDxResource);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->IASetIndexBuffer(
-		(ID3D11Buffer*)pBuffer->pDxResource,
+		(ID3D11Buffer*)pBuffer->mD3D11.pDxResource,
 		INDEX_TYPE_UINT16 == indexType ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT,
 		(uint32_t)offset);
 }
 
-void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
+void d3d11_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
 {
 	ASSERT(pCmd);
 	ASSERT(bufferCount);
@@ -3870,14 +3930,14 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 	ASSERT(pStrides);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	ID3D11Buffer** ppDxBuffers = (ID3D11Buffer**)tf_calloc(bufferCount, sizeof(ID3D11Buffer*));
 	uint32_t* pDxOffsets = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
 
 	for (uint32_t i = 0; i < bufferCount; ++i)
 	{
-		ppDxBuffers[i] = ppBuffers[i]->pDxResource;
+		ppDxBuffers[i] = ppBuffers[i]->mD3D11.pDxResource;
 		pDxOffsets[i] = (uint32_t)(pOffsets ? pOffsets[i] : 0);
 	}
 
@@ -3889,45 +3949,45 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 	tf_free(pDxOffsets);
 }
 
-void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
+void d3d11_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->Draw(vertexCount, firstVertex);
 }
 
-void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
+void d3d11_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->DrawInstanced(
 		vertexCount, instanceCount, firstVertex,
 		firstInstance);
 }
 
-void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
+void d3d11_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->DrawIndexed(indexCount, firstIndex, firstVertex);
 }
 
-void cmdDrawIndexedInstanced(
+void d3d11_cmdDrawIndexedInstanced(
 	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->DrawIndexedInstanced(
 		indexCount, instanceCount,
@@ -3935,19 +3995,24 @@ void cmdDrawIndexedInstanced(
 		firstInstance);
 }
 
-void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+void d3d11_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
 	ASSERT(pCmd);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	pContext->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
+
+void d3d11_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
+{
+}
+
 /************************************************************************/
 // Transition Commands
 /************************************************************************/
-void cmdResourceBarrier(Cmd* pCmd,
+void d3d11_cmdResourceBarrier(Cmd* pCmd,
 	uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
 	uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
 	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
@@ -3956,55 +4021,57 @@ void cmdResourceBarrier(Cmd* pCmd,
 /************************************************************************/
 // Queue Fence Semaphore Functions
 /************************************************************************/
-void acquireNextImage(
+void d3d11_acquireNextImage(
 	Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pSwapChainImageIndex)
 {
 	// We only have read/write access to the first buffer.
-	pSwapChain->mImageIndex = 0;
-	*pSwapChainImageIndex = pSwapChain->mImageIndex;
+	pSwapChain->mD3D11.mImageIndex = 0;
+	*pSwapChainImageIndex = pSwapChain->mD3D11.mImageIndex;
 }
 
 static void util_wait_for_fence(ID3D11DeviceContext* pDxContext, Fence* pFence)
 {
 	HRESULT hres = S_FALSE;
-	while (hres != S_OK && pFence->mSubmitted)
+	while (hres != S_OK && pFence->mD3D11.mSubmitted)
 	{
-		hres = pDxContext->GetData(pFence->pDX11Query, NULL, 0, 0);
+		hres = pDxContext->GetData(pFence->mD3D11.pDX11Query, NULL, 0, 0);
 		Thread::Sleep(0);
 	}
-	pFence->mSubmitted = false;
+	pFence->mD3D11.mSubmitted = false;
 }
 
-void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
+void d3d11_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	Fence* pFence = pDesc->pSignalFence;
 	Cmd** ppCmds = pDesc->ppCmds;
-	pQueue->pFence = pFence;
-	ID3D11DeviceContext* pContext = ppCmds[0]->pRenderer->pDxContext;
+	pQueue->mD3D11.pFence = pFence;
+	ID3D11DeviceContext* pContext = ppCmds[0]->pRenderer->mD3D11.pDxContext;
 
 	if (pFence)
 	{
 		util_wait_for_fence(pContext, pFence);
-		pFence->mSubmitted = true;
-		pContext->End(pFence->pDX11Query);
+		pFence->mD3D11.mSubmitted = true;
+		pContext->End(pFence->mD3D11.pDX11Query);
 	}
 }
 
-PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+void d3d11_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
-	PresentStatus status = PRESENT_STATUS_FAILED;
 	if (pDesc->pSwapChain)
 	{
-		HRESULT hr = pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0);
+		HRESULT hr = pDesc->pSwapChain->mD3D11.pDxSwapChain->Present(pDesc->pSwapChain->mD3D11.mDxSyncInterval, 0);
 		if (!SUCCEEDED(hr))
 		{
 			LOGF(eERROR, "%s: FAILED with HRESULT: %u", "pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0)", (uint32_t)hr);
-			
+
+#if defined(_WINDOWS)
 			if (hr == DXGI_ERROR_DEVICE_REMOVED) 
 			{
-				LOGF(eERROR, "ERROR_DEVICE_REMOVED: %u", (uint32_t)pQueue->pDxDevice->GetDeviceRemovedReason());
-				status = PRESENT_STATUS_DEVICE_RESET;
+				LOGF(eERROR, "ERROR_DEVICE_REMOVED: %u", (uint32_t)pQueue->mD3D11.pDxDevice->GetDeviceRemovedReason());
+				Thread::Sleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
+				onDeviceLost();
 			}
+#endif
 
 #if defined(USE_NSIGHT_AFTERMATH)
 			// DXGI_ERROR error notification is asynchronous to the NVIDIA display
@@ -4015,25 +4082,19 @@ PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
 			ASSERT(false);
 		}
-		else 
-		{
-			status = PRESENT_STATUS_SUCCESS;
-		}
 	}
-
-	return status;
 }
 
-void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+void d3d11_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
 {
 	UNREF_PARAM(pRenderer);
 
-	if (pFence->mSubmitted)
+	if (pFence->mD3D11.mSubmitted)
 	{
-		HRESULT hres = pRenderer->pDxContext->GetData(pFence->pDX11Query, NULL, 0, 0);
+		HRESULT hres = pRenderer->mD3D11.pDxContext->GetData(pFence->mD3D11.pDX11Query, NULL, 0, 0);
 		if (hres == S_OK)
 		{
-			pFence->mSubmitted = false;
+			pFence->mD3D11.mSubmitted = false;
 			*pFenceStatus = FENCE_STATUS_COMPLETE;
 		}
 		else
@@ -4047,23 +4108,23 @@ void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatu
 	}
 }
 
-void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+void d3d11_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
 	for (uint32_t i = 0; i < fenceCount; ++i)
 	{
-		util_wait_for_fence(pRenderer->pDxContext, ppFences[i]);
+		util_wait_for_fence(pRenderer->mD3D11.pDxContext, ppFences[i]);
 	}
 }
 
-void waitQueueIdle(Queue* pQueue)
+void d3d11_waitQueueIdle(Queue* pQueue)
 {
-	if (pQueue && pQueue->pFence && pQueue->pFence->mSubmitted)
+	if (pQueue && pQueue->mD3D11.pFence && pQueue->mD3D11.pFence->mD3D11.mSubmitted)
 	{
-		util_wait_for_fence(pQueue->pDxContext, pQueue->pFence);
+		util_wait_for_fence(pQueue->mD3D11.pDxContext, pQueue->mD3D11.pFence);
 	}
 }
 
-void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
+void d3d11_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 {
 	UNREF_PARAM(pRenderer);
 	// Initial vsync value is passed in with the desc when client creates a swapchain.
@@ -4071,23 +4132,23 @@ void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 	(*ppSwapChain)->mEnableVsync = !(*ppSwapChain)->mEnableVsync;
 
 	//toggle vsync present flag (this can go up to 4 but we don't need to refresh on nth vertical sync)
-	(*ppSwapChain)->mDxSyncInterval = ((*ppSwapChain)->mDxSyncInterval + 1) % 2;
+	(*ppSwapChain)->mD3D11.mDxSyncInterval = ((*ppSwapChain)->mD3D11.mDxSyncInterval + 1) % 2;
 }
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat getRecommendedSwapchainFormat(bool hintHDR)
+TinyImageFormat d3d11_getRecommendedSwapchainFormat(bool hintHDR)
 {
 	return TinyImageFormat_B8G8R8A8_UNORM;
 }
 /************************************************************************/
 // Indirect Draw functions
 /************************************************************************/
-void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature) {}
+void d3d11_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature) {}
 
-void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature) {}
+void d3d11_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature) {}
 
-void cmdExecuteIndirect(
+void d3d11_cmdExecuteIndirect(
 	Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
@@ -4106,9 +4167,9 @@ D3D11_QUERY util_to_dx_query(QueryType type)
 	}
 }
 
-void getTimestampFrequency(Queue* pQueue, double* pFrequency)
+void d3d11_getTimestampFrequency(Queue* pQueue, double* pFrequency)
 {
-	ID3D11DeviceContext* pContext = pQueue->pDxContext;
+	ID3D11DeviceContext* pContext = pQueue->mD3D11.pDxContext;
 	ID3D11Device* pDevice = NULL;
 	ID3D11Query*         pDisjointQuery = NULL;
 	D3D11_QUERY_DESC     desc = {};
@@ -4129,7 +4190,7 @@ void getTimestampFrequency(Queue* pQueue, double* pFrequency)
 	SAFE_RELEASE(pDisjointQuery);
 }
 
-void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
+void d3d11_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -4139,9 +4200,9 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	ASSERT(pQueryPool);
 
 	pQueryPool->mCount = pDesc->mQueryCount;
-	pQueryPool->mType = util_to_dx_query(pDesc->mType);
+	pQueryPool->mD3D11.mType = util_to_dx_query(pDesc->mType);
 
-	pQueryPool->ppDxQueries = (ID3D11Query**)(pQueryPool + 1);
+	pQueryPool->mD3D11.ppDxQueries = (ID3D11Query**)(pQueryPool + 1);
 
 	D3D11_QUERY_DESC desc = {};
 	desc.MiscFlags = 0;
@@ -4149,23 +4210,23 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 
 	for (uint32_t i = 0; i < pDesc->mQueryCount; ++i)
 	{
-		pRenderer->pDxDevice->CreateQuery(&desc, &pQueryPool->ppDxQueries[i]);
+		pRenderer->mD3D11.pDxDevice->CreateQuery(&desc, &pQueryPool->mD3D11.ppDxQueries[i]);
 	}
 
 	*ppQueryPool = pQueryPool;
 }
 
-void removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
+void d3d11_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
 	UNREF_PARAM(pRenderer);
 	for (uint32_t i = 0; i < pQueryPool->mCount; ++i)
 	{
-		SAFE_RELEASE(pQueryPool->ppDxQueries[i]);
+		SAFE_RELEASE(pQueryPool->mD3D11.ppDxQueries[i]);
 	}
 	SAFE_FREE(pQueryPool);
 }
 
-void cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+void d3d11_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
 {
 	UNREF_PARAM(pCmd);
 	UNREF_PARAM(pQueryPool);
@@ -4173,63 +4234,63 @@ void cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, ui
 	UNREF_PARAM(queryCount);
 }
 
-void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void d3d11_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
 	ASSERT(pCmd);
 	ASSERT(pQuery);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	pContext->End(pQueryPool->ppDxQueries[pQuery->mIndex]);
+	pContext->End(pQueryPool->mD3D11.ppDxQueries[pQuery->mIndex]);
 }
 
-void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void d3d11_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) //-V524
 {
 	ASSERT(pCmd);
 	ASSERT(pQuery);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	pContext->End(pQueryPool->ppDxQueries[pQuery->mIndex]);
+	pContext->End(pQueryPool->mD3D11.ppDxQueries[pQuery->mIndex]);
 }
 
-void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+void d3d11_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
 	ASSERT(pCmd);
 	ASSERT(pReadbackBuffer);
 
 	Renderer* pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->pDxContext;
+	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
 	if (queryCount)
 	{
 		D3D11_MAPPED_SUBRESOURCE sub = {};
-		pContext->Map(pReadbackBuffer->pDxResource, 0, D3D11_MAP_WRITE, 0, &sub);
+		pContext->Map(pReadbackBuffer->mD3D11.pDxResource, 0, D3D11_MAP_READ, 0, &sub);
 		uint64_t* pResults = (uint64_t*)sub.pData;
 
 		for (uint32_t i = startQuery; i < startQuery + queryCount; ++i)
 		{
-			while (pContext->GetData(pQueryPool->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
+			while (pContext->GetData(pQueryPool->mD3D11.ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
 				Thread::Sleep(0);
 		}
 
-		pContext->Unmap(pReadbackBuffer->pDxResource, 0);
+		pContext->Unmap(pReadbackBuffer->mD3D11.pDxResource, 0);
 	}
 }
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
-void calculateMemoryStats(Renderer* pRenderer, char** stats) {}
+void d3d11_calculateMemoryStats(Renderer* pRenderer, char** stats) {}
 
-void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes) {}
+void d3d11_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes) {}
 
-void freeMemoryStats(Renderer* pRenderer, char* stats) {}
+void d3d11_freeMemoryStats(Renderer* pRenderer, char* stats) {}
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
-void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void d3d11_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #if defined(ENABLE_PERFORMANCE_MARKER)
 	wchar_t markerName[256] = { 0 };
@@ -4239,14 +4300,14 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 #endif
 }
 
-void cmdEndDebugMarker(Cmd* pCmd)
+void d3d11_cmdEndDebugMarker(Cmd* pCmd)
 {
 #if defined(ENABLE_PERFORMANCE_MARKER)
 	pCmd->pRenderer->pUserDefinedAnnotation->EndEvent();
 #endif
 }
 
-void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #if defined(ENABLE_PERFORMANCE_MARKER)
 	wchar_t markerName[256] = { 0 };
@@ -4256,14 +4317,18 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 #endif
 
 #if defined(USE_NSIGHT_AFTERMATH)
-	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->pDxContext, pName);
+	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->mD3D11.pDxContext, pName);
 #endif
 }
 
+uint32_t d3d11_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+{
+	return 0;
+}
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+void d3d11_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
 	ASSERT(pRenderer);
@@ -4271,11 +4336,11 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 	ASSERT(pName);
 
 	UNREF_PARAM(pRenderer);
-	pBuffer->pDxResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32_t)strlen(pName) + 1, pName);
+	pBuffer->mD3D11.pDxResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32_t)strlen(pName) + 1, pName);
 #endif
 }
 
-void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+void d3d11_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
 	ASSERT(pRenderer);
@@ -4283,19 +4348,150 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 	ASSERT(pName);
 
 	UNREF_PARAM(pRenderer);
-	pTexture->pDxResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32_t)strlen(pName) + 1u, pName);
+	pTexture->mD3D11.pDxResource->SetPrivateData(WKPDID_D3DDebugObjectName, (uint32_t)strlen(pName) + 1u, pName);
 #endif
 }
 
-void setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
+void d3d11_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
 {
 	setTextureName(pRenderer, pRenderTarget->pTexture, pName);
 }
 
-void setPipelineName(Renderer*, Pipeline*, const char*)
+void d3d11_setPipelineName(Renderer*, Pipeline*, const char*)
 {
 }
-
-
 #endif
+
+void initD3D11Renderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
+{
+	// API functions
+	exitRenderer = d3d11_exitRenderer;
+	addFence = d3d11_addFence;
+	removeFence = d3d11_removeFence;
+	addSemaphore = d3d11_addSemaphore;
+	removeSemaphore = d3d11_removeSemaphore;
+	addQueue = d3d11_addQueue;
+	removeQueue = d3d11_removeQueue;
+	addSwapChain = d3d11_addSwapChain;
+	removeSwapChain = d3d11_removeSwapChain;
+
+	// command pool functions
+	addCmdPool = d3d11_addCmdPool;
+	removeCmdPool = d3d11_removeCmdPool;
+	addCmd = d3d11_addCmd;
+	removeCmd = d3d11_removeCmd;
+	addCmd_n = d3d11_addCmd_n;
+	removeCmd_n = d3d11_removeCmd_n;
+
+	addRenderTarget = d3d11_addRenderTarget;
+	removeRenderTarget = d3d11_removeRenderTarget;
+	addSampler = d3d11_addSampler;
+	removeSampler = d3d11_removeSampler;
+
+	// Resource Load functions
+	addBuffer = d3d11_addBuffer;
+	removeBuffer = d3d11_removeBuffer;
+	mapBuffer = d3d11_mapBuffer;
+	unmapBuffer = d3d11_unmapBuffer;
+	cmdUpdateBuffer = d3d11_cmdUpdateBuffer;
+	cmdUpdateSubresource = d3d11_cmdUpdateSubresource;
+	addTexture = d3d11_addTexture;
+	removeTexture = d3d11_removeTexture;
+	addVirtualTexture = d3d11_addVirtualTexture;
+	removeVirtualTexture = d3d11_removeVirtualTexture;
+
+	// shader functions
+	addShaderBinary = d3d11_addShaderBinary;
+	removeShader = d3d11_removeShader;
+
+	addRootSignature = d3d11_addRootSignature;
+	removeRootSignature = d3d11_removeRootSignature;
+
+	// pipeline functions
+	addPipeline = d3d11_addPipeline;
+	removePipeline = d3d11_removePipeline;
+	addPipelineCache = d3d11_addPipelineCache;
+	getPipelineCacheData = d3d11_getPipelineCacheData;
+	removePipelineCache = d3d11_removePipelineCache;
+
+	// Descriptor Set functions
+	addDescriptorSet = d3d11_addDescriptorSet;
+	removeDescriptorSet = d3d11_removeDescriptorSet;
+	updateDescriptorSet = d3d11_updateDescriptorSet;
+
+	// command buffer functions
+	resetCmdPool = d3d11_resetCmdPool;
+	beginCmd = d3d11_beginCmd;
+	endCmd = d3d11_endCmd;
+	cmdBindRenderTargets = d3d11_cmdBindRenderTargets;
+	cmdSetShadingRate = d3d11_cmdSetShadingRate;
+	cmdSetViewport = d3d11_cmdSetViewport;
+	cmdSetScissor = d3d11_cmdSetScissor;
+	cmdSetStencilReferenceValue = d3d11_cmdSetStencilReferenceValue;
+	cmdBindPipeline = d3d11_cmdBindPipeline;
+	cmdBindDescriptorSet = d3d11_cmdBindDescriptorSet;
+	cmdBindPushConstants = d3d11_cmdBindPushConstants;
+	cmdBindPushConstantsByIndex = d3d11_cmdBindPushConstantsByIndex;
+	cmdBindIndexBuffer = d3d11_cmdBindIndexBuffer;
+	cmdBindVertexBuffer = d3d11_cmdBindVertexBuffer;
+	cmdDraw = d3d11_cmdDraw;
+	cmdDrawInstanced = d3d11_cmdDrawInstanced;
+	cmdDrawIndexed = d3d11_cmdDrawIndexed;
+	cmdDrawIndexedInstanced = d3d11_cmdDrawIndexedInstanced;
+	cmdDispatch = d3d11_cmdDispatch;
+
+	// Transition Commands
+	cmdResourceBarrier = d3d11_cmdResourceBarrier;
+	// Virtual Textures
+	cmdUpdateVirtualTexture = d3d11_cmdUpdateVirtualTexture;
+
+	// queue/fence/swapchain functions
+	acquireNextImage = d3d11_acquireNextImage;
+	queueSubmit = d3d11_queueSubmit;
+	queuePresent = d3d11_queuePresent;
+	waitQueueIdle = d3d11_waitQueueIdle;
+	getFenceStatus = d3d11_getFenceStatus;
+	waitForFences = d3d11_waitForFences;
+	toggleVSync = d3d11_toggleVSync;
+
+	getRecommendedSwapchainFormat = d3d11_getRecommendedSwapchainFormat;
+
+	//indirect Draw functions
+	addIndirectCommandSignature = d3d11_addIndirectCommandSignature;
+	removeIndirectCommandSignature = d3d11_removeIndirectCommandSignature;
+	cmdExecuteIndirect = d3d11_cmdExecuteIndirect;
+
+	/************************************************************************/
+	// GPU Query Interface
+	/************************************************************************/
+	getTimestampFrequency = d3d11_getTimestampFrequency;
+	addQueryPool = d3d11_addQueryPool;
+	removeQueryPool = d3d11_removeQueryPool;
+	cmdResetQueryPool = d3d11_cmdResetQueryPool;
+	cmdBeginQuery = d3d11_cmdBeginQuery;
+	cmdEndQuery = d3d11_cmdEndQuery;
+	cmdResolveQuery = d3d11_cmdResolveQuery;
+	/************************************************************************/
+	// Stats Info Interface
+	/************************************************************************/
+	calculateMemoryStats = d3d11_calculateMemoryStats;
+	calculateMemoryUse = d3d11_calculateMemoryUse;
+	freeMemoryStats = d3d11_freeMemoryStats;
+	/************************************************************************/
+	// Debug Marker Interface
+	/************************************************************************/
+	cmdBeginDebugMarker = d3d11_cmdBeginDebugMarker;
+	cmdEndDebugMarker = d3d11_cmdEndDebugMarker;
+	cmdAddDebugMarker = d3d11_cmdAddDebugMarker;
+	cmdWriteMarker = d3d11_cmdWriteMarker;
+	/************************************************************************/
+	// Resource Debug Naming Interface
+	/************************************************************************/
+	setBufferName = d3d11_setBufferName;
+	setTextureName = d3d11_setTextureName;
+	setRenderTargetName = d3d11_setRenderTargetName;
+	setPipelineName = d3d11_setPipelineName;
+
+	d3d11_initRenderer(appName, pSettings, ppRenderer);
+}
 #endif

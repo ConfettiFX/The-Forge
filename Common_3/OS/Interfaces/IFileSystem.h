@@ -39,6 +39,8 @@ typedef enum ResourceMount
 	RM_CONTENT = 0,
 	/// For storing debug data such as log files. To be used only during development
 	RM_DEBUG,
+	/// Documents directory
+	RM_DOCUMENTS,
 	/// Save game data mount 0
 	RM_SAVE_0,
 	RM_COUNT,
@@ -150,8 +152,8 @@ typedef struct FileStream
 
 typedef struct FileSystemInitDesc
 {
-	const char* pAppName;
-	void*       pPlatformData;
+	const char* pAppName = NULL;
+	void*       pPlatformData = NULL;
 	const char* pResourceMounts[RM_COUNT] = {};
 } FileSystemInitDesc;
 

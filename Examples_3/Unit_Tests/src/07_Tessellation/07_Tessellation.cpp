@@ -29,7 +29,6 @@
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -140,11 +139,12 @@ eastl::vector<Blade> gBlades;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
-UIApp         gAppUI = {};
+UIApp*        pAppUI = NULL;
 GuiComponent* pGui;
 
 const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
+static uint32_t	gSelectedApiIndex = 0;
 
 Renderer* pRenderer = NULL;
 
@@ -193,7 +193,7 @@ RootSignature* pGrassRootSignature = NULL;
 RootSignature* pGrassVertexHullRootSignature = NULL;
 #endif
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
@@ -223,13 +223,7 @@ uint32_t gScriptIndexes[] = { 0 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
-}
-
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
 class Tessellation: public IApp
@@ -261,11 +255,386 @@ class Tessellation: public IApp
 		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
 		gGrassUniformData.mWindMode = gWindMode;
 
+		BladeDrawIndirect indirectDraw;
+		indirectDraw.mVertexCount = NUM_BLADES;
+		indirectDraw.mInstanceCount = 1;
+		indirectDraw.mFirstVertex = 0;
+		indirectDraw.mFirstInstance = 0;
+
+		// renderer for swapchains
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+		{
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+			return false;
+		}
+
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+#if !defined(METAL)
+			ShaderLoadDesc grassShader = {};
+			grassShader.mStages[0] = { "grass.vert", NULL, 0 };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0 };
+			grassShader.mStages[2] = { "grass.tesc", NULL, 0 };
+			grassShader.mStages[3] = { "grass.tese", NULL, 0 };
+#else
+			ShaderLoadDesc grassVertexHullShader = {};
+			grassVertexHullShader.mStages[0] = { "grass.tesc.comp", NULL, 0 };
+
+			ShaderLoadDesc grassShader = {};
+			grassShader.mStages[0] = { "grass.tese.vert", NULL, 0 };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0 };
+#endif
+
+			addShader(pRenderer, &grassShader, &pGrassShader);
+
+			RootSignatureDesc grassRootDesc = { &pGrassShader, 1 };
+			addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
+
+			DescriptorSetDesc setDesc = { pGrassRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrass);
+
+#ifdef METAL
+			addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
+
+			RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
+			addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
+
+			setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[0]);
+			setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[1]);
+
+			PipelineDesc pipelineDesc = {};
+			pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& grassVertexHullPipelineDesc = pipelineDesc.mComputeDesc;
+			grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
+			grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
+			addPipeline(pRenderer, &pipelineDesc, &pGrassVertexHullPipeline);
+#endif
+		}
+
+		ShaderLoadDesc computeShader = {};
+		computeShader.mStages[0] = { "compute.comp", NULL, 0 };
+		addShader(pRenderer, &computeShader, &pComputeShader);
+
+		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
+		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
+
+		DescriptorSetDesc setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
+
+		PipelineDesc pipelineDesc = {};
+		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = pipelineDesc.mComputeDesc;
+		computePipelineDesc.pRootSignature = pComputeRootSignature;
+		computePipelineDesc.pShaderProgram = pComputeShader;
+		addPipeline(pRenderer, &pipelineDesc, &pComputePipeline);
+
+		SamplerDesc samplerDesc = { FILTER_NEAREST,
+									FILTER_NEAREST,
+									MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		BufferLoadDesc ubGrassDesc = {};
+		ubGrassDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubGrassDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubGrassDesc.mDesc.mSize = sizeof(GrassUniformBlock);
+		ubGrassDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubGrassDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubGrassDesc.ppBuffer = &pGrassUniformBuffer[i];
+			addResource(&ubGrassDesc, NULL);
+		}
+
+		BufferLoadDesc sbBladeDesc = {};
+		sbBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+		sbBladeDesc.mDesc.mFirstElement = 0;
+		sbBladeDesc.mDesc.mElementCount = NUM_BLADES;
+		sbBladeDesc.mDesc.mStructStride = sizeof(Blade);
+		sbBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		sbBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
+
+		sbBladeDesc.pData = gBlades.data();
+		sbBladeDesc.ppBuffer = &pBladeStorageBuffer;
+		addResource(&sbBladeDesc, NULL);
+
+		BufferLoadDesc sbCulledBladeDesc = {};
+		sbCulledBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		sbCulledBladeDesc.mDesc.mFirstElement = 0;
+		sbCulledBladeDesc.mDesc.mElementCount = NUM_BLADES;
+		sbCulledBladeDesc.mDesc.mStructStride = sizeof(Blade);
+		sbCulledBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		sbCulledBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
+		sbCulledBladeDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+
+		sbCulledBladeDesc.pData = gBlades.data();
+		sbCulledBladeDesc.ppBuffer = &pCulledBladeStorageBuffer;
+		addResource(&sbCulledBladeDesc, NULL);
+
+		BufferLoadDesc sbBladeNumDesc = {};
+		sbBladeNumDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
+		sbBladeNumDesc.mDesc.mFirstElement = 0;
+		sbBladeNumDesc.mDesc.mElementCount = 1;
+		sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
+		sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		sbBladeNumDesc.mDesc.mSize = sizeof(BladeDrawIndirect);
+		sbBladeNumDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		sbBladeNumDesc.pData = &indirectDraw;
+		sbBladeNumDesc.ppBuffer = &pBladeNumBuffer;
+		addResource(&sbBladeNumDesc, NULL);
+
+#ifdef METAL
+		BufferLoadDesc tessFactorBufferDesc = {};
+		tessFactorBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+		tessFactorBufferDesc.mDesc.mFirstElement = 0;
+		tessFactorBufferDesc.mDesc.mElementCount = NUM_BLADES;
+		tessFactorBufferDesc.mDesc.mStructStride = sizeof(PatchTess);
+		tessFactorBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		tessFactorBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(PatchTess);
+		tessFactorBufferDesc.pData = NULL;
+		tessFactorBufferDesc.ppBuffer = &pTessFactorsBuffer;
+		addResource(&tessFactorBufferDesc, NULL);
+
+		BufferLoadDesc hullOutputBufferDesc = {};
+		hullOutputBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+		hullOutputBufferDesc.mDesc.mFirstElement = 0;
+		hullOutputBufferDesc.mDesc.mElementCount = NUM_BLADES;
+		hullOutputBufferDesc.mDesc.mStructStride = sizeof(HullOut);
+		hullOutputBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		hullOutputBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(HullOut);
+		hullOutputBufferDesc.pData = NULL;
+		hullOutputBufferDesc.ppBuffer = &pHullOutputBuffer;
+		addResource(&hullOutputBufferDesc, NULL);
+#endif
+
+		IndirectArgumentDescriptor indirectArgDescs[1] = {};
+		indirectArgDescs[0] = {};
+		indirectArgDescs[0].mType = INDIRECT_DRAW;    // Indirect Index Draw Arguments
+		CommandSignatureDesc cmdSigDesc = {};
+		cmdSigDesc.mIndirectArgCount = sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]);
+		cmdSigDesc.pArgDescs = indirectArgDescs;
+		cmdSigDesc.pRootSignature = pGrassRootSignature;
+		addIndirectCommandSignature(pRenderer, &cmdSigDesc, &pIndirectCommandSignature);
+
+		// GUI
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		pGui = addAppUIGuiComponent(pAppUI, "Tessellation Properties", &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			static const char* enumNames[] = {
+				"SOLID",
+				"WIREFRAME",
+			};
+			static const uint32_t enumValues[] = {
+				FILL_MODE_SOLID,
+				FILL_MODE_WIREFRAME,
+			};
+
+			static const char* enumWindNames[] = {
+				"STRAIGHT",
+				"RADIAL",
+			};
+			static const uint32_t enumWindValues[] = {
+				WIND_MODE_STRAIGHT,
+				WIND_MODE_RADIAL,
+			};
+
+			DropdownWidget fillModeDropdown;
+			fillModeDropdown.pData = &gFillMode;
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				fillModeDropdown.mNames.push_back((char*)enumNames[i]);
+				fillModeDropdown.mValues.push_back(enumValues[i]);
+			}
+			addWidgetLua(addGuiWidget(pGui, "Fill Mode : ", &fillModeDropdown, WIDGET_TYPE_DROPDOWN));
+
+			DropdownWidget windModeDropdown;
+			windModeDropdown.pData = &gWindMode;
+			for (uint32_t i = 0; i < 2; ++i)
+			{
+				windModeDropdown.mNames.push_back((char*)enumWindNames[i]);
+				windModeDropdown.mValues.push_back(enumWindValues[i]);
+			}
+			addWidgetLua(addGuiWidget(pGui, "Wind Mode : ", &windModeDropdown, WIDGET_TYPE_DROPDOWN));
+
+			SliderFloatWidget windSpeedSlider;
+			windSpeedSlider.pData = &gWindSpeed;
+			windSpeedSlider.mMin = 1.0f;
+			windSpeedSlider.mMax = 100.0f;
+			addWidgetLua(addGuiWidget(pGui, "Wind Speed : ", &windSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			SliderFloatWidget waveWidthSlider;
+			waveWidthSlider.pData = &gWindWidth;
+			waveWidthSlider.mMin = 1.0f;
+			waveWidthSlider.mMax = 20.0f;
+			addWidgetLua(addGuiWidget(pGui, "Wave Width : ", &waveWidthSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			SliderFloatWidget windStrengthSlider;
+			windStrengthSlider.pData = &gWindStrength;
+			windStrengthSlider.mMin = 1.0f;
+			windStrengthSlider.mMax = 100.0f;
+			addWidgetLua(addGuiWidget(pGui, "Wind Strength : ", &windStrengthSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			SliderUintWidget maxTesLevel;
+			maxTesLevel.pData = &gMaxTessellationLevel;
+			maxTesLevel.mMin = 1;
+			maxTesLevel.mMax = 10;
+			addWidgetLua(addGuiWidget(pGui, "Max Tessellation Level : ", &maxTesLevel, WIDGET_TYPE_SLIDER_UINT));
+
+#if !defined(TARGET_IOS)
+			CheckboxWidget vSyncCheckbox;
+			vSyncCheckbox.pData = &gToggleVSync;
+			addWidgetLua(addGuiWidget(pGui, "Toggle Vsync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
+#endif
+		}
+		else
+		{
+			LabelWidget notSupportedLabel;
+			addWidgetLua(addGuiWidget(pGui, "Tessellation is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+		}
+
+		DropdownWidget ddTestScripts;
+		ddTestScripts.pData = &gCurrentScriptIndex;
+		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+		{
+			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+		}
+		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+		ButtonWidget bRunScript;
+		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		pRunScript->pOnEdited = RunScript;
+		addWidgetLua(pRunScript);
+
+		// Profiler
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		waitForAllResourceLoads();
+
+		// Prepare descriptor sets
+		DescriptorData computeParams[4] = {};
+		computeParams[0].pName = "Blades";
+		computeParams[0].ppBuffers = &pBladeStorageBuffer;
+		computeParams[1].pName = "CulledBlades";
+		computeParams[1].ppBuffers = &pCulledBladeStorageBuffer;
+		computeParams[2].pName = "NumBlades";
+		computeParams[2].ppBuffers = &pBladeNumBuffer;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			computeParams[0].pName = "GrassUniformBlock";
+			computeParams[0].ppBuffers = &pGrassUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
+			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+			{
+				updateDescriptorSet(pRenderer, i, pDescriptorSetGrass, 1, computeParams);
+#ifdef METAL
+				updateDescriptorSet(pRenderer, i, pDescriptorSetGrassVertexHull[1], 1, computeParams);
+#endif
+			}
+		}
+
+#ifdef METAL
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			DescriptorData vertexHullParams[4] = {};
+			vertexHullParams[0].pName = "vertexInput";
+			vertexHullParams[0].ppBuffers = &pCulledBladeStorageBuffer;
+			vertexHullParams[1].pName = "drawInfo";
+			vertexHullParams[1].ppBuffers = &pBladeNumBuffer;
+			vertexHullParams[2].pName = "tessellationFactorBuffer";
+			vertexHullParams[2].ppBuffers = &pTessFactorsBuffer;
+			vertexHullParams[3].pName = "hullOutputBuffer";
+			vertexHullParams[3].ppBuffers = &pHullOutputBuffer;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetGrassVertexHull[0], 4, vertexHullParams);
+		}
+#endif
+
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -281,7 +650,7 @@ class Tessellation: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -290,9 +659,9 @@ class Tessellation: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -304,339 +673,100 @@ class Tessellation: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
 	void Exit()
 	{
 		exitInputSystem();
-		destroyCameraController(pCameraController);
-		gBlades.set_capacity(0);
+		exitCameraController(pCameraController);
+		gBlades.set_capacity(0); 
+		
+		exitProfilerUI();
+		exitProfiler();
+		exitAppUI(pAppUI);
+
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorSetGrass);
+
+#ifdef METAL
+			removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[0]);
+			removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[1]);
+
+			removeShader(pRenderer, pGrassVertexHullShader);
+			removePipeline(pRenderer, pGrassVertexHullPipeline);
+			removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
+#endif
+
+			removeShader(pRenderer, pGrassShader);
+			removeRootSignature(pRenderer, pGrassRootSignature);
+		}
+
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
+
+		removeResource(pBladeStorageBuffer);
+		removeResource(pCulledBladeStorageBuffer);
+
+		removeResource(pBladeNumBuffer);
+
+#ifdef METAL
+		removeResource(pTessFactorsBuffer);
+		removeResource(pHullOutputBuffer);
+#endif
+
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+
+			removeCmd(pRenderer, pUICmds[i]);
+			removeCmdPool(pRenderer, pUICmdPools[i]);
+		}
+
+		removeSampler(pRenderer, pSampler);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pGrassUniformBuffer[i]);
+
+		removeShader(pRenderer, pComputeShader);
+
+		removePipeline(pRenderer, pComputePipeline);
+
+		removeRootSignature(pRenderer, pComputeRootSignature);
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			BladeDrawIndirect indirectDraw;
-			indirectDraw.mVertexCount = NUM_BLADES;
-			indirectDraw.mInstanceCount = 1;
-			indirectDraw.mFirstVertex = 0;
-			indirectDraw.mFirstInstance = 0;
-			
-			// renderer for swapchains
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-				addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
-				cmdDesc.pPool = pUICmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			{
-				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-				return false;
-			}
-
-			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
-			{
-#if !defined(METAL)
-				ShaderLoadDesc grassShader = {};
-				grassShader.mStages[0] = { "grass.vert", NULL, 0 };
-				grassShader.mStages[1] = { "grass.frag", NULL, 0 };
-				grassShader.mStages[2] = { "grass.tesc", NULL, 0 };
-				grassShader.mStages[3] = { "grass.tese", NULL, 0 };
-#else
-				ShaderLoadDesc grassVertexHullShader = {};
-				grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0 };
-
-				ShaderLoadDesc grassShader = {};
-				grassShader.mStages[0] = { "grass.domain.vert", NULL, 0 };
-				grassShader.mStages[1] = { "grass.frag", NULL, 0 };
-#endif
-
-				addShader(pRenderer, &grassShader, &pGrassShader);
-
-				RootSignatureDesc grassRootDesc = { &pGrassShader, 1 };
-				addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
-
-				DescriptorSetDesc setDesc = { pGrassRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrass);
-
-#ifdef METAL
-				addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
-
-				RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
-				addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
-
-				setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[0]);
-				setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[1]);
-
-				PipelineDesc pipelineDesc = {};
-				pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-				ComputePipelineDesc& grassVertexHullPipelineDesc = pipelineDesc.mComputeDesc;
-				grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
-				grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
-				addPipeline(pRenderer, &pipelineDesc, &pGrassVertexHullPipeline);
-#endif
-			}
-
-			ShaderLoadDesc computeShader = {};
-			computeShader.mStages[0] = { "compute.comp", NULL, 0 };
-			addShader(pRenderer, &computeShader, &pComputeShader);
-
-			RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
-			addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
-
-			DescriptorSetDesc setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
-			setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
-
-			PipelineDesc pipelineDesc = {};
-			pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& computePipelineDesc = pipelineDesc.mComputeDesc;
-			computePipelineDesc.pRootSignature = pComputeRootSignature;
-			computePipelineDesc.pShaderProgram = pComputeShader;
-			addPipeline(pRenderer, &pipelineDesc, &pComputePipeline);
-
-			SamplerDesc samplerDesc = { FILTER_NEAREST,
-										FILTER_NEAREST,
-										MIPMAP_MODE_NEAREST,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pSampler);
-
-			BufferLoadDesc ubGrassDesc = {};
-			ubGrassDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubGrassDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			ubGrassDesc.mDesc.mSize = sizeof(GrassUniformBlock);
-			ubGrassDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			ubGrassDesc.pData = NULL;
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				ubGrassDesc.ppBuffer = &pGrassUniformBuffer[i];
-				addResource(&ubGrassDesc, NULL);
-			}
-
-			BufferLoadDesc sbBladeDesc = {};
-			sbBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-			sbBladeDesc.mDesc.mFirstElement = 0;
-			sbBladeDesc.mDesc.mElementCount = NUM_BLADES;
-			sbBladeDesc.mDesc.mStructStride = sizeof(Blade);
-			sbBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			sbBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
-
-			sbBladeDesc.pData = gBlades.data();
-			sbBladeDesc.ppBuffer = &pBladeStorageBuffer;
-			addResource(&sbBladeDesc, NULL);
-
-			BufferLoadDesc sbCulledBladeDesc = {};
-			sbCulledBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			sbCulledBladeDesc.mDesc.mFirstElement = 0;
-			sbCulledBladeDesc.mDesc.mElementCount = NUM_BLADES;
-			sbCulledBladeDesc.mDesc.mStructStride = sizeof(Blade);
-			sbCulledBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			sbCulledBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
-			sbCulledBladeDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-
-			sbCulledBladeDesc.pData = gBlades.data();
-			sbCulledBladeDesc.ppBuffer = &pCulledBladeStorageBuffer;
-			addResource(&sbCulledBladeDesc, NULL);
-
-			BufferLoadDesc sbBladeNumDesc = {};
-			sbBladeNumDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
-			sbBladeNumDesc.mDesc.mFirstElement = 0;
-			sbBladeNumDesc.mDesc.mElementCount = 1;
-			sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
-			sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			sbBladeNumDesc.mDesc.mSize = sizeof(BladeDrawIndirect);
-			sbBladeNumDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-			sbBladeNumDesc.pData = &indirectDraw;
-			sbBladeNumDesc.ppBuffer = &pBladeNumBuffer;
-			addResource(&sbBladeNumDesc, NULL);
-
-#ifdef METAL
-			BufferLoadDesc tessFactorBufferDesc = {};
-			tessFactorBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-			tessFactorBufferDesc.mDesc.mFirstElement = 0;
-			tessFactorBufferDesc.mDesc.mElementCount = NUM_BLADES;
-			tessFactorBufferDesc.mDesc.mStructStride = sizeof(PatchTess);
-			tessFactorBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			tessFactorBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(PatchTess);
-			tessFactorBufferDesc.pData = NULL;
-			tessFactorBufferDesc.ppBuffer = &pTessFactorsBuffer;
-			addResource(&tessFactorBufferDesc, NULL);
-
-			BufferLoadDesc hullOutputBufferDesc = {};
-			hullOutputBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
-			hullOutputBufferDesc.mDesc.mFirstElement = 0;
-			hullOutputBufferDesc.mDesc.mElementCount = NUM_BLADES;
-			hullOutputBufferDesc.mDesc.mStructStride = sizeof(HullOut);
-			hullOutputBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			hullOutputBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(HullOut);
-			hullOutputBufferDesc.pData = NULL;
-			hullOutputBufferDesc.ppBuffer = &pHullOutputBuffer;
-			addResource(&hullOutputBufferDesc, NULL);
-#endif
-
-			IndirectArgumentDescriptor indirectArgDescs[1] = {};
-			indirectArgDescs[0] = {};
-			indirectArgDescs[0].mType = INDIRECT_DRAW;    // Indirect Index Draw Arguments
-			CommandSignatureDesc cmdSigDesc = {};
-			cmdSigDesc.mIndirectArgCount = sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]);
-			cmdSigDesc.pArgDescs = indirectArgDescs;
-			cmdSigDesc.pRootSignature = pGrassRootSignature;
-			addIndirectCommandSignature(pRenderer, &cmdSigDesc, &pIndirectCommandSignature);
-
-			// GUI
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-			pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
-
-			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
-			{
-				static const char* enumNames[] = {
-					"SOLID",
-					"WIREFRAME",
-				};
-				static const uint32_t enumValues[] = {
-					FILL_MODE_SOLID,
-					FILL_MODE_WIREFRAME,
-				};
-
-				static const char* enumWindNames[] = {
-					"STRAIGHT",
-					"RADIAL",
-				};
-				static const uint32_t enumWindValues[] = {
-					WIND_MODE_STRAIGHT,
-					WIND_MODE_RADIAL,
-				};
-
-				// Reset graphics with a button.
-				ButtonWidget testGPUReset("ResetGraphicsDevice");
-				testGPUReset.pOnEdited = testGraphicsReset;
-				pGui->AddWidget(testGPUReset);
-
-				pGui->AddWidget(DropdownWidget("Fill Mode : ", &gFillMode, enumNames, enumValues, 2));
-				pGui->AddWidget(DropdownWidget("Wind Mode", &gWindMode, enumWindNames, enumWindValues, 2));
-
-				pGui->AddWidget(SliderFloatWidget("Wind Speed : ", &gWindSpeed, 1.0f, 100.0f));
-				pGui->AddWidget(SliderFloatWidget("Wave Width : ", &gWindWidth, 1.0f, 20.0f));
-				pGui->AddWidget(SliderFloatWidget("Wind Strength : ", &gWindStrength, 1.0f, 100.0f));
-
-				pGui->AddWidget(SliderUintWidget("Max Tessellation Level : ", &gMaxTessellationLevel, 1, 10));
-
-#if !defined(TARGET_IOS)
-				pGui->AddWidget(CheckboxWidget("Toggle Vsync", &gToggleVSync));
-#endif
-			}
-			else
-			{
-				pGui->AddWidget(LabelWidget("Tessellation is not supported on this GPU"));
-			}
-
-			DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-			ButtonWidget bRunScript("Run");
-			bRunScript.pOnEdited = RunScript;
-			pGui->AddWidget(ddTestScripts);
-			pGui->AddWidget(bRunScript);
-
-			// Profiler
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			waitForAllResourceLoads();
-
-			// Prepare descriptor sets
-			DescriptorData computeParams[4] = {};
-			computeParams[0].pName = "Blades";
-			computeParams[0].ppBuffers = &pBladeStorageBuffer;
-			computeParams[1].pName = "CulledBlades";
-			computeParams[1].ppBuffers = &pCulledBladeStorageBuffer;
-			computeParams[2].pName = "NumBlades";
-			computeParams[2].ppBuffers = &pBladeNumBuffer;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				computeParams[0].pName = "GrassUniformBlock";
-				computeParams[0].ppBuffers = &pGrassUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
-				if (pRenderer->pActiveGpuSettings->mTessellationSupported)
-				{
-					updateDescriptorSet(pRenderer, i, pDescriptorSetGrass, 1, computeParams);
-#ifdef METAL
-					updateDescriptorSet(pRenderer, i, pDescriptorSetGrassVertexHull[1], 1, computeParams);
-#endif
-				}
-			}
-
-#ifdef METAL
-			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
-			{
-				DescriptorData vertexHullParams[4] = {};
-				vertexHullParams[0].pName = "vertexInput";
-				vertexHullParams[0].ppBuffers = &pCulledBladeStorageBuffer;
-				vertexHullParams[1].pName = "drawInfo";
-				vertexHullParams[1].ppBuffers = &pBladeNumBuffer;
-				vertexHullParams[2].pName = "tessellationFactorBuffer";
-				vertexHullParams[2].ppBuffers = &pTessFactorsBuffer;
-				vertexHullParams[3].pName = "hullOutputBuffer";
-				vertexHullParams[3].ppBuffers = &pHullOutputBuffer;
-				updateDescriptorSet(pRenderer, 0, pDescriptorSetGrassVertexHull[0], 4, vertexHullParams);
-			}
-#endif
-		}
-
-
 		if (!addSwapChain())
 			return false;
 
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
@@ -723,9 +853,9 @@ class Tessellation: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
@@ -735,79 +865,6 @@ class Tessellation: public IApp
 
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeSwapChain(pRenderer, pSwapChain);
-
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			exitProfilerUI();
-			exitProfiler();
-			gAppUI.Exit();
-
-			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
-			{
-				removeDescriptorSet(pRenderer, pDescriptorSetGrass);
-
-#ifdef METAL
-				removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[0]);
-				removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[1]);
-
-				removeShader(pRenderer, pGrassVertexHullShader);
-				removePipeline(pRenderer, pGrassVertexHullPipeline);
-				removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
-#endif
-
-				removeShader(pRenderer, pGrassShader);
-				removeRootSignature(pRenderer, pGrassRootSignature);
-			}
-
-			removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
-			removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
-
-			removeResource(pBladeStorageBuffer);
-			removeResource(pCulledBladeStorageBuffer);
-
-			removeResource(pBladeNumBuffer);
-
-#ifdef METAL
-			removeResource(pTessFactorsBuffer);
-			removeResource(pHullOutputBuffer);
-#endif
-
-			gVirtualJoystick.Exit();
-
-			removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-
-				removeCmd(pRenderer, pUICmds[i]);
-				removeCmdPool(pRenderer, pUICmdPools[i]);
-			}
-
-			removeSampler(pRenderer, pSampler);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-				removeResource(pGrassUniformBuffer[i]);
-
-			removeShader(pRenderer, pComputeShader);
-
-			removePipeline(pRenderer, pComputePipeline);
-
-			removeRootSignature(pRenderer, pComputeRootSignature);
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -856,7 +913,7 @@ class Tessellation: public IApp
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 		/************************************************************************/
 		/************************************************************************/
 	}
@@ -988,14 +1045,16 @@ class Tessellation: public IApp
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
         cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawProfilerUI();
 
-		gAppUI.Gui(pGui);
-		gAppUI.Draw(cmd);
+		appUIGui(pAppUI, pGui);
+		drawAppUI(pAppUI, cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1021,21 +1080,8 @@ class Tessellation: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

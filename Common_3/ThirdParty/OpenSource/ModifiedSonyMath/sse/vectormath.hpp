@@ -107,7 +107,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Vector3() { }
+    inline Vector3() { } //-V730
 
     // Construct a 3-D vector from x, y, and z elements
     //
@@ -477,7 +477,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Vector4() { }
+    inline Vector4() { } //-V730
 
     // Construct a 4-D vector from x, y, z, and w elements
     //
@@ -952,7 +952,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Point3() { }
+    inline Point3() { } //-V730
 
     // Construct a 3-D point from x, y, and z elements
     //
@@ -1224,7 +1224,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Quat() { }
+    inline Quat() { } //-V730
 
     // Construct a quaternion from x, y, z, and w elements
     //
@@ -2088,7 +2088,8 @@ public:
     // Construct an orthographic projection matrix
     //
     static inline const Matrix4 orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
-
+    static inline const Matrix4 orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar);
+    
 	//========================================= #TheForgeMathExtensionsBegin ================================================
 	// Construct an reversed orthographic projection matrix
 	//
@@ -2097,12 +2098,14 @@ public:
 	// Construct a perspective projection matrix using horizontal fov
 	// 
 	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
+    static inline const Matrix4 perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar);
 	static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);
 
-	static inline const Matrix4 cubeProjection(const float zNear, const float zFar);
+    static inline const Matrix4 cubeProjection(const float zNear, const float zFar);
+	static inline const Matrix4 cubeProjectionRH(const float zNear, const float zFar);
 	static inline const Matrix4 cubeView(const unsigned int side);
 	static void inline extractFrustumClipPlanes(const Matrix4& vp, Vector4& rcp, Vector4& lcp, Vector4& tcp, Vector4& bcp, Vector4& fcp, Vector4& ncp, bool const normalizePlanes);
 	//========================================= #TheForgeMathExtensionsEnd ==================================================
@@ -2931,7 +2934,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline IVector3() {}
+	inline IVector3() {} //-V730
 
 	// Construct a 3-D vector from x, y, and z elements
 	//
@@ -3124,7 +3127,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline UVector3() {}
+	inline UVector3() {} //-V730
 
 	// Construct a 3-D vector from x, y, and z elements
 	//
@@ -3309,7 +3312,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline IVector4() {}
+	inline IVector4() {} //-V730
 
 	// Construct a 4-D vector from x, y, z and w elements
 	//
@@ -3502,7 +3505,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline UVector4() {}
+	inline UVector4() {} //-V730
 
 	// Construct a 4-D vector from x, y, z and welements
 	//

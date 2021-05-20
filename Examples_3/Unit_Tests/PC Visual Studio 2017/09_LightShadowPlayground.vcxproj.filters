@@ -7,11 +7,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{88f2ace1-2f58-4313-a1dd-3988f3eddb37}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{6c778489-ae61-44f1-9fe0-c716260e32b7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{e709093c-5257-4d1b-abe9-7a286b60474f}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{a709c98c-d5a0-40a3-a6c5-4e96f5780494}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -23,238 +20,115 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDepthQuads.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDepthQuads.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\quad.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\quad.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fill_Indirection.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fill_Indirection.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDEMQuads.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDEMQuads.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\generateAsmDEM.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\generateAsmDEM.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPass.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\triangleFiltering.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\batchCompaction.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPassAlpha.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPassAlpha.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPassAlpha.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPassAlpha.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\updateRegion3DTexture.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visualizeSDFMesh.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\clearVisibilityBuffers.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\bakedSDFMeshShadow.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\upsampleSDFShadow.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\upsampleSDFShadow.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\panoToCube.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\display.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\display.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\bakedSDFMeshShadow.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\updateRegion3DTexture.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visualizeSDFMesh.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferShade.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferShade.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\clearVisibilityBuffers.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\triangleFiltering.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\batchCompaction.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPassAlpha.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPassAlpha.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPass.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPassAlpha.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPassAlpha.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\display.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\display.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\upsampleSDFShadow.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\upsampleSDFShadow.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\panoToCube.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\quad.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\quad.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDEMQuads.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDEMQuads.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDepthQuads.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDepthQuads.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fill_Indirection.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fill_Indirection.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\generateAsmDEM.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\generateAsmDEM.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferShade.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferShade.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\bakedSDFMeshShadow.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\batchCompaction.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\clearVisibilityBuffers.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\copyDEMQuads.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\copyDEMQuads.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\copyDepthQuads.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\copyDepthQuads.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\display.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\display.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\fill_Indirection.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\fill_Indirection.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\generateAsmDEM.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\generateAsmDEM.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPassAlpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\meshDepthPassAlpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\panoToCube.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\quad.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\quad.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\triangleFiltering.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\updateRegion3DTexture.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\upsampleSDFShadow.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\upsampleSDFShadow.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPassAlpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferPassAlpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferShade.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visibilityBufferShade.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\visualizeSDFMesh.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\resolve.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\resolve.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Shader_Defs.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\Shader_Defs.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Packing.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\Packing.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\non_uniform_resource_index.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shading.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shading.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\ASMShader_Defs.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\ASMShader_Defs.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\SDF_Constant.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\SDF_Constant.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\cgltf\GLTFLoader.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\FSL\Shader_Defs.h">
+      <Filter>Shaders\FSL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

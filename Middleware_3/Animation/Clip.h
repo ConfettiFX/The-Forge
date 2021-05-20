@@ -43,7 +43,7 @@ class Clip
 	void Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig);
 
 	// Must be called to clean up if the clip was initialized
-	void Destroy();
+	void Exit();
 
 	// Will sample the clip at timeRatio [0,1], using cacheInput as input and saving results to localTransOutput
 	bool Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTransform>& localTransOutput, float timeRatio);

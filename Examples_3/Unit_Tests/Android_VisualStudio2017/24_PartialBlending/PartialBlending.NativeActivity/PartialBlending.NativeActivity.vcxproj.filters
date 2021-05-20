@@ -11,19 +11,22 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{0ff1c0d1-e65b-41fb-a9d7-b0393de48e3d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{ba77df70-3855-4ef5-b9da-b5f695fdbc84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\24_PartialBlending\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\24_PartialBlending\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\24_PartialBlending\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\24_PartialBlending\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\24_PartialBlending\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\24_PartialBlending\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\24_PartialBlending\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\24_PartialBlending\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

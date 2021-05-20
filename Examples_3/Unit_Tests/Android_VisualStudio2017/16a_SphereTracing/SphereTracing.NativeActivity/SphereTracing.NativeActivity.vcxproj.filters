@@ -11,13 +11,16 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{97028d05-c873-4dc4-9202-8e958de8afd2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{f6fbe746-8731-4215-8c75-d1303b31224a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\16a_SphereTracing\Shaders\Vulkan\rt.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\16a_SphereTracing\Shaders\Vulkan\fstri.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\16a_SphereTracing\Shaders\FSL\rt.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\16a_SphereTracing\Shaders\FSL\fstri.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

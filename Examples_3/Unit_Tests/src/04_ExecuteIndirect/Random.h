@@ -22,7 +22,8 @@
  * under the License.
 */
 
-#pragma once
+#ifndef RANDOM_H
+#define RANDOM_H
 
 #include <cstdlib>
 #include <cmath>
@@ -67,3 +68,5 @@ class MyRandom
 		return (mean + stdDev * u * s);
 	}
 };
+
+#endif //RANDOM_H

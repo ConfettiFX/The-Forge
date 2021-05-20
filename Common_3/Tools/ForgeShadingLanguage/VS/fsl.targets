@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+    <ItemGroup>
+        <PropertyPageSchema Include="
+            $(MSBuildThisFileDirectory)fsl.xml;
+            $(MSBuildThisFileDirectory)fsl_rules.xml
+        "/>
+        <AvailableItemName Include="FSLShader">
+            <Targets>FSL</Targets>
+        </AvailableItemName>
+    </ItemGroup>
+
+    <ItemDefinitionGroup>
+        <FSLShader>
+            <!-- <Language>Auto</Language> -->
+            <!-- <OutDir>$(OutDir)/Shaders</OutDir> -->
+            <!-- <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir> -->
+            <Verbose>true</Verbose>
+            <Compile>true</Compile>
+            <RootSignature>None</RootSignature>
+        </FSLShader>
+    </ItemDefinitionGroup>
+
+    <Target Name="FSL" Condition="'@(FSLShader)' != ''" BeforeTargets="ClCompile">
+
+        <ItemGroup>
+            <FSLShader>
+                <Command>
+                    set PYTHON_PATH="$(MSBuildThisFileDirectory)../../../../Tools/python-3.6.0-embed-amd64/python"
+                    %PYTHON_PATH% "$(MSBuildThisFileDirectory)/fsl_vs_call_helper.py" "$(WindowsSDK_ExecutablePath)" "%(FSLShader.OutDir)" "%(FSLShader.BinaryOutDir)" "%(Identity)" "%(FSLShader.Language)" "%(FSLShader.Compile)" "%(FSLShader.Verbose)" "$(Configuration)"
+					if not exist "$(IntDir)\fsl" mkdir "$(IntDir)\fsl"
+                    >NUL copy NUL "$(IntDir)\fsl\%(FSLShader.Language)%(Filename)"
+                </Command>
+                <Outputs>$(IntDir)\fsl\%(FSLShader.Language)%(Filename)</Outputs>
+                <LinkObjects>false</LinkObjects>
+            </FSLShader>
+            <FileWrites Include="$(IntDir)\fsl\%(FSLShader.Language)%(Filename)"/>
+        </ItemGroup>
+
+        <!-- Compile by forwarding to the Custom Build Tool infrastructure -->
+        <CustomBuild Condition ="'%(FSLShader.ExcludedFromBuild)' != 'true'" Sources="@(FSLShader)" MinimalRebuildFromTracking="true" TrackerLogDirectory="$(TLogLocation)"/>
+
+    </Target>
+</Project>
+

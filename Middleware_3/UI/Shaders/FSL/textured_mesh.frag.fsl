@@ -1,0 +1,22 @@
+
+RES(Tex2D(float4), uTex, UPDATE_FREQ_NONE, t1, binding = 1);
+RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s2, binding = 2);
+PUSH_CONSTANT(uRootConstants, b1)
+{
+	DATA(float4, color, None);
+	DATA(float2, scaleBias, None);
+};
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texcoord, TEXCOORD0);
+};
+
+float4 PS_MAIN( PsIn In )
+{
+	INIT_MAIN;
+	float4 Out;
+	Out = SampleTex2D(Get(uTex), Get(uSampler), In.texcoord) * Get(color);
+	RETURN(Out);
+}

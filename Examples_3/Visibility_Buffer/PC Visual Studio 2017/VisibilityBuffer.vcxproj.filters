@@ -9,255 +9,147 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Shaders\Vulkan\non_uniform_resource_index.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\Vulkan\packing.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\D3D12\packing.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\D3D12\shading.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\Vulkan\shader_defs.h">
-      <Filter>Shaders\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h">
-      <Filter>Shaders\D3D12</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Geometry.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\Vulkan\shading.h">
-      <Filter>Shaders\Vulkan</Filter>
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h">
+      <Filter>Shaders\FSL</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\Shaders\D3D12\batch_compaction.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\clear_buffers.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\CurveConversion.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\godray.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\display.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\display.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\clear_light_clusters.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\cluster_lights.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\CurveConversion.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_pass.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_pass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_pass_alpha.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_shade.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_shade.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\deferred_shade_pointlight.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\display.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\display.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\godray.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\HDAO.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\HDAO.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\sun.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\sun.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\sun.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\sun.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\shadow_pass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\shadow_pass_alpha.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_pass_alpha.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\visibilityBuffer_shade.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\panoToCube.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\panoToCube.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\resolve.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\resolve.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\resolveGodray.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\resolveGodray.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\D3D12\triangle_filtering.comp">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\batch_compaction.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\clear_buffers.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\clear_light_clusters.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\cluster_lights.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_pass_alpha.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\deferred_shade_pointlight.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\HDAO.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\HDAO.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\resolve.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\Shaders\Vulkan\resolve.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\packing.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\shading.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{bf5a700d-2455-46d7-97e8-9da032819921}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{7f019b0f-28d0-4456-b91b-85ac20c6dc44}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{20357e3d-fb9f-4641-93ac-07eba8305e22}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{d99956da-02f9-46e2-90ef-a1bab065934f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{c35607d0-49cb-40d0-a770-90e3a689c1c7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\Shaders\FSL\clear_light_clusters.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\cluster_lights.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\CurveConversion.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade_pointlight.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\deferred_shade_pointlight.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\display.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\godray.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\HDAO.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\HDAO.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\panoToCube.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\resolveGodray.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\sun.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\sun.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\triangle_filtering.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\visibilityBuffer_shade.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

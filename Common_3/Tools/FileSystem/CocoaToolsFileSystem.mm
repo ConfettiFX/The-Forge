@@ -230,3 +230,60 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 		out.push_back(result);
     }
 }
+
+bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	return !remove(filePath);
+}
+
+bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	char newfilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, newFileName, newfilePath);
+
+	return !rename(filePath, newfilePath);
+}
+
+bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir, const char* destFileName)
+{
+	const char* sourceResourcePath = fsGetResourceDirectory(sourceResourceDir);
+	const char* destResourcePath = fsGetResourceDirectory(destResourceDir);
+	
+	char sourceFilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(sourceResourcePath, sourceFileName, sourceFilePath);
+	
+	char destFilePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(destResourcePath, destFileName, destFilePath);
+	
+	NSString *nsSourceFileName = [NSString stringWithUTF8String:sourceFilePath];
+	NSString *nsDestFileName = [NSString stringWithUTF8String:destFilePath];
+	
+	NSFileManager *fileManager = [NSFileManager defaultManager];
+	if ([fileManager copyItemAtPath:nsSourceFileName toPath:nsDestFileName  error:NULL])
+	{
+		return true;
+	}
+	
+	return false;
+}
+
+bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+	
+	NSFileManager *fileManager = [NSFileManager defaultManager];
+	NSString *nsFilePath = [NSString stringWithUTF8String:filePath];
+	if([fileManager fileExistsAtPath:nsFilePath ])
+		return true;
+	return false;
+}

@@ -1285,9 +1285,10 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
 // The DirectX convention maps the Z coordinate into [ 0, 1] range based on zNear and zFar.
 // Read more here: http://justinctlam.com/2015/05/10/opengl-vs-directx-perspective-matrix/
 //
-// Sony uses OpenGL convention by default.
-// The Forge will be using DirectX convention for perspective and orthographic projection matrices.
-#define USE_DIRECTX_PROJECTION_MATRIX_CONVENTION 1
+// Sony uses OpenGL convention by default, i.e: RH system.
+// The Forge has both RH and LH functions.
+// The default functions are using DirectX convention for perspective and orthographic projection matrices.
+// The RH functions have RH suffix in their name.
 
 
 // The default constructor of mat4 uses the vec4 arguments as columns.
@@ -1335,13 +1336,53 @@ inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse
 	f = ::tanf(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
 #endif
 
-	// DirectX: Z -> [0, 1]
-  // OpenGL: Z -> [-1, +1]
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
+	// Lh - DirectX: Z -> [0, 1]
 	rangeInv = 1.0f / (zFar - zNear);
-#else 
-  rangeInv = 1.0f / (zNear - zFar);
+
+    const __m128 zero = _mm_setzero_ps();
+    tmp.m128 = zero;
+    tmp.f[0] = f;
+    col0 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[1] = f / aspectInverse;
+    col1 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[2] = (zFar)* rangeInv;
+    tmp.f[3] = +1.0f;
+    col2 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[2] = -zNear * zFar * rangeInv;
+    col3 = tmp.m128;
+
+	return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
+}
+#if USE_VERTICAL_FIELD_OF_VIEW
+inline const Matrix4 Matrix4::perspectiveRH(float fovyRadians, float aspect, float zNear, float zFar)
+#else
+inline const Matrix4 Matrix4::perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar)
 #endif
+{
+	static const float VECTORMATH_PI_OVER_2 = 1.570796327f;
+
+	float f, rangeInv;
+	SSEFloat tmp;
+	__m128 col0, col1, col2, col3;
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+    float aspectInverse = 1.f / aspect;
+    float fovxRadians = fovyRadians * aspectInverse;
+#endif
+
+#if defined(__linux__)
+// linux build uses c++11 standard
+	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
+#else
+	f = ::tanf(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
+#endif
+
+    // RH - OpenGL: Z -> [-1, +1] 
+    rangeInv = 1.0f / (zNear - zFar);
+
 	const __m128 zero = _mm_setzero_ps();
 	tmp.m128 = zero;
 	tmp.f[0] = f;
@@ -1350,20 +1391,15 @@ inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse
 	tmp.f[1] = f / aspectInverse;
 	col1 = tmp.m128;
 	tmp.m128 = zero;
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
-	tmp.f[2] = (zFar)* rangeInv;
-  tmp.f[3] = +1.0f;
-#else
-  tmp.f[2] = (zNear + zFar) * rangeInv; 
-  tmp.f[3] = -1.0f;
-#endif
+
+    tmp.f[2] = (zNear + zFar) * rangeInv; 
+    tmp.f[3] = -1.0f;
+
 	col2 = tmp.m128;
 	tmp.m128 = zero;
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
-	tmp.f[2] = -zNear * zFar * rangeInv;
-#else
-  tmp.f[2] = zNear * zFar * rangeInv * 2.0f;
-#endif
+
+    tmp.f[2] = zNear * zFar * rangeInv * 2.0f;
+
 	col3 = tmp.m128;
 
 	return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
@@ -1396,8 +1432,7 @@ inline const Matrix4 Matrix4::perspectiveReverseZ(float fovxRadians, float aspec
 
 inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom, float top, float zNear, float zFar)
 {
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION	
-	// DirectX: Z -> [0, 1]
+	// LH - DirectX: Z -> [0, 1]
 	__m128 lbn, rtf;
 	__m128 diff, sum, inv_diff, neg_inv_diff;
 	__m128 diagonal, column;
@@ -1427,8 +1462,10 @@ inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom
 					Vector4(sseSelect(zero, diagonal, select_y)),
 					Vector4(sseSelect(zero, diagonal, select_z)),
 					Vector4(sseSelect(column, _mm_set1_ps(1.0f), select_w)));
-#else
-	// OpenGL: Z -> [-1, +1]
+}
+inline const Matrix4 Matrix4::orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar)
+{
+	// RH - OpenGL: Z -> [-1, +1]
     /* function implementation based on code from STIDC SDK:           */
     /* --------------------------------------------------------------  */
     /* PLEASE DO NOT MODIFY THIS SECTION                               */
@@ -1470,7 +1507,6 @@ inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom
                    Vector4(sseSelect(zero, diagonal, select_y)),
                    Vector4(sseSelect(zero, diagonal, select_z)),
                    Vector4(sseSelect(column, _mm_set1_ps(1.0f), select_w)));
-#endif
 }
 
 inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
@@ -1487,23 +1523,22 @@ inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, floa
 
 inline const Matrix4 Matrix4::cubeProjection(const float zNear, const float zFar)
 {
-#if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION
-	// DirectX
+	// LH - DirectX
 	return CONSTRUCT_TRANSPOSED_MAT4(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, zFar / (zFar - zNear), (zFar * zNear) / (zNear - zFar),
 		0, 0, 1, 0);
-#else
-	// OpenGL
+}
+inline const Matrix4 Matrix4::cubeProjectionRH(const float zNear, const float zFar)
+{
+	// RH - OpenGL
 	return CONSTRUCT_TRANSPOSED_MAT4(
 		1, 0, 0, 0,
 		0, -1, 0, 0,
 		0, 0, (zFar + zNear) / (zFar - zNear), -(2 * zFar * zNear) / (zFar - zNear),
 		0, 0, 1, 0);
-#endif
 }
-
 inline const Matrix4 Matrix4::cubeView(const unsigned int side)
 {
 	switch (side)

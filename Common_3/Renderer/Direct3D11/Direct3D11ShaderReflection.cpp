@@ -44,6 +44,21 @@ static DescriptorType sD3D11_TO_DESCRIPTOR[] = {
 	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
 };
 
+// Remove '[#n]' from uniform name and return '#n'
+int util_extract_array_index(char* uniformName)
+{
+	if (char* block = strrchr(uniformName, '['))
+	{
+		block[0] = '\0';
+		++block;
+		block[strlen(block) - 1] = '\0';
+		int arrayIndex = atoi(block);
+		return arrayIndex;
+	}
+
+	return 0;
+}
+
 void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
 	//Check to see if parameters are valid
@@ -82,6 +97,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	{
 		D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 		d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
+		util_extract_array_index((char*)bindDesc.Name);
 		reflection.mNamePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
 	}
 
@@ -181,7 +197,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		{
 			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 			d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
-
+			util_extract_array_index((char*)bindDesc.Name);
 			uint32_t len = (uint32_t)strlen(bindDesc.Name);
 
 			reflection.pShaderResources[i].type = sD3D11_TO_DESCRIPTOR[bindDesc.Type];

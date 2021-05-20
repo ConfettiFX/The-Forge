@@ -7,11 +7,8 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{77fbe15c-5117-4577-9345-2b49677bbe5a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{c58154f7-044a-48b2-8794-d9f962c5fd98}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{55583728-6408-4426-abb9-37beda2155bb}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{7bc67ed6-4ca6-4e4f-a9da-b8ae3cc5df69}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -20,82 +17,49 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\FXAA.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\Triangular.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\vignette.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\watermark.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\watermark.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\zPass.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\zPassFloor.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basicMOBILE.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floor.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floor.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\watermark.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\zPass.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\zPassFloor.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\floor.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\floor.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\FXAA.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Triangular.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\vignette.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\watermark.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\watermark.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\zPass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\zPassFloor.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\cgltf\cgltf.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\08_GltfViewer\Shaders\FSL\resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\08_GltfViewer\Shaders\FSL\shadowSamples.h">
+      <Filter>Shaders\FSL</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

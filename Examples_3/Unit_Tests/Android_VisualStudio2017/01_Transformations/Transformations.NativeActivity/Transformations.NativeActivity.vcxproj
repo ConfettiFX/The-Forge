@@ -9,8 +9,8 @@
       <Configuration>DebugGLES</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|ARM64">
-      <Configuration>Debug</Configuration>
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="ReleaseGLES|ARM">
@@ -21,9 +21,17 @@
       <Configuration>ReleaseGLES</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM64">
-      <Configuration>Release</Configuration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
       <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugVk|ARM">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -36,7 +44,7 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
@@ -60,7 +68,7 @@
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
@@ -89,7 +97,7 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="PropertySheets">
@@ -98,7 +106,7 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="PropertySheets">
     <Import Project="..\..\ARM.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <Import Project="..\..\ARM64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="PropertySheets">
@@ -108,48 +116,52 @@
     <Import Project="..\..\ARM.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin</ExecutablePath>
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin</ExecutablePath>
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
     <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
     <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin</ExecutablePath>
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
-      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;ANDROID_ARM_NEON;_DEBUG;USE_MEMORY_TRACKING;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;_DEBUG;USE_MEMORY_TRACKING;</PreprocessorDefinitions>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
@@ -164,14 +176,19 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d
+</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
     <ClCompile>
@@ -193,17 +210,17 @@ $(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=Vulkan
-if $(Configuration) == DebugGLES set SHADER_DIR=GLES
-if $(Configuration) == ReleaseGLES set SHADER_DIR=GLES
-
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
     <ClCompile>
@@ -225,25 +242,24 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=Vulkan
-if $(Configuration) == DebugGLES set SHADER_DIR=GLES
-if $(Configuration) == ReleaseGLES set SHADER_DIR=GLES
-
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
     </ClCompile>
@@ -257,13 +273,19 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d
+</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
     <ClCompile>
@@ -285,17 +307,17 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=Vulkan
-if $(Configuration) == DebugGLES set SHADER_DIR=GLES
-if $(Configuration) == ReleaseGLES set SHADER_DIR=GLES
-
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
     <ClCompile>
@@ -317,17 +339,16 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=Vulkan
-if $(Configuration) == DebugGLES set SHADER_DIR=GLES
-if $(Configuration) == ReleaseGLES set SHADER_DIR=GLES
-
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\Skybox_*.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\GLES\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shaders\%SHADER_DIR%\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d</Command>
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
@@ -337,16 +358,13 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\basic.frag" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\basic.vert" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\skybox.frag" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\GLES\skybox.vert" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.frag" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.vert" />
+    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\..\..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

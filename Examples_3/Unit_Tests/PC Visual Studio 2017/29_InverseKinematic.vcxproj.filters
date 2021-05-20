@@ -8,38 +8,23 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{0f7c17de-097d-4975-9115-6acd59ae682c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{144cf7a6-3889-40ef-b7b7-9e22f787d84f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{37f3928e-8d58-4486-803e-6d324993a412}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{88face54-0040-4a4d-95fb-c50500ae5d59}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\plane.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\plane.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\29_InverseKinematic\29_InverseKinematic.cpp">

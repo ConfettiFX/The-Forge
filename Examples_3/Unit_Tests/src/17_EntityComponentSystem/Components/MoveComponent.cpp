@@ -33,7 +33,9 @@ FORGE_IMPLEMENT_COMPONENT(MoveComponent)
 static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
 static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 
-MoveComponent::MoveComponent()
+MoveComponent::MoveComponent() 
+	:velx(0.0f),
+	vely(0.0f)
 {
 
 }

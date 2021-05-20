@@ -14,6 +14,7 @@
     <File Name="../../../../Common_3/Renderer/IShaderReflection.h"/>
     <File Name="../../../../Common_3/Renderer/ResourceLoader.cpp"/>
     <File Name="../../../../Common_3/Renderer/IResourceLoader.h"/>
+    <File Name="../../../../Common_3/Renderer/Renderer.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">
     <File Name="../../../../Common_3/Renderer/Vulkan/Vulkan.cpp"/>

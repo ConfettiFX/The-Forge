@@ -1697,17 +1697,20 @@ public:
     // Construct an orthographic projection matrix
     //
     static inline const Matrix4 orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
+    static inline const Matrix4 orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar);
 
 	//========================================= #TheForgeMathExtensionsBegin ================================================
 	// Construct a perspective projection matrix using horizontal fov
 	// 
 	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
-  static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
+    static inline const Matrix4 perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar);
+    static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);
 
 	static inline const Matrix4 cubeProjection(const float zNear, const float zFar);
+    static inline const Matrix4 cubeProjectionRH(const float zNear, const float zFar);
 	static inline const Matrix4 cubeView(const unsigned int side);
 	static void inline extractFrustumClipPlanes(const Matrix4& vp, Vector4& rcp, Vector4& lcp, Vector4& tcp, Vector4& bcp, Vector4& fcp, Vector4& ncp, bool const normalizePlanes);
 	//========================================= #TheForgeMathExtensionsEnd ==================================================

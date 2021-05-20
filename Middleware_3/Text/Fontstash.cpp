@@ -51,16 +51,6 @@
 class _Impl_FontStash
 {
 public:
-	_Impl_FontStash()
-	{
-		pCurrentTexture = {};
-		mWidth = 0;
-		mHeight = 0;
-		pContext = NULL;
-
-		mText3D = false;
-	}
-
 	bool init(Renderer* renderer, int width_, int height_, uint32_t ringSizeBytes)
 	{
 		pRenderer = renderer;
@@ -542,8 +532,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		data.color = color;
 		data.scaleBias.x = -data.scaleBias.x;
 
-		GPURingBufferOffset uniformBlock = {};
-		uniformBlock = getGPURingBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
+		GPURingBufferOffset uniformBlock = getGPURingBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
 		BufferUpdateDesc updateDesc = { uniformBlock.pBuffer, uniformBlock.mOffset };
 		beginUpdateResource(&updateDesc);
 		*((mat4*)updateDesc.pMappedData) = mvp;

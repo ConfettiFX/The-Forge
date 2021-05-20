@@ -262,7 +262,7 @@ struct RaysDispatchUniformBuffer
 };
 
 //struct used in shaders. Here it is declared to use its sizeof() for rayStride
-struct Ray {
+struct RayStruct {
 	float3 origin;
 	uint mask;
 	float3 direction;
@@ -320,13 +320,13 @@ struct API_AVAILABLE(macos(10.14), ios(12.0)) RaytracingPipeline
 //implemented in MetalRenderer.mm
 extern void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 
-bool isRaytracingSupported(Renderer* pRenderer)
+bool mtl_isRaytracingSupported(Renderer* pRenderer)
 {
 	return true;
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool mtl_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
 	Raytracing* pRaytracing = tf_new(Raytracing);
 	// Create a raytracer for our Metal device
@@ -334,7 +334,7 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 	
 	MPSRayOriginMinDistanceDirectionMaxDistance s;
 	pRaytracing->pIntersector.rayDataType = MPSRayDataTypeOriginMaskDirectionMaxDistance;
-	pRaytracing->pIntersector.rayStride = sizeof(Ray);
+	pRaytracing->pIntersector.rayStride = sizeof(RayStruct);
 	pRaytracing->pIntersector.rayMaskOptions = MPSRayMaskOptionPrimitive;
 	pRaytracing->pRenderer = pRenderer;
 	
@@ -641,7 +641,7 @@ void createHitGroupIndicesBuffer (Raytracing* pRaytracing, const AccelerationStr
 //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////
 API_AVAILABLE(macos(10.14), ios(12.0))
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+void mtl_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
 {
 	ASSERT(pRaytracing);
 	ASSERT(pRaytracing->pRenderer);
@@ -733,7 +733,7 @@ void cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure*
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void mtl_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
 	for (unsigned i = 0; i < pDesc->mBottomASIndicesCount; ++i)
 	{
@@ -748,7 +748,7 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void mtl_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 	ASSERT(pRaytracing);
 	pRaytracing->mClassificationPipeline = nil;
@@ -958,7 +958,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 	pPipeline->mIntersector = [[MPSRayIntersector alloc] initWithDevice:pRaytracing->pRenderer->pDevice];
 	
 	pPipeline->mIntersector.rayDataType     = MPSRayDataTypeOriginMaskDirectionMaxDistance;
-	pPipeline->mIntersector.rayStride       = sizeof(Ray);
+	pPipeline->mIntersector.rayStride       = sizeof(RayStruct);
 	pPipeline->mIntersector.rayMaskOptions  = MPSRayMaskOptionInstance;
 	
 	//MPSIntersectionDistancePrimitiveIndexInstanceIndexCoordinates
@@ -1088,7 +1088,7 @@ void removeRaytracingPipeline(RaytracingPipeline* pPipeline)
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void mtl_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
 	pAccelerationStructure->pSharedGroup = nil;
 	pAccelerationStructure->pBottomAS = nil;
@@ -1105,8 +1105,12 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	tf_free(pAccelerationStructure);
 }
 
+void mtl_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+}
+
 API_AVAILABLE(macos(10.14), ios(12.0))
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
+void mtl_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
 {
 	ASSERT(pRaytracing);
 	ASSERT(pDesc);
@@ -1189,7 +1193,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+void mtl_removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
 {
 	ASSERT(pTable);
 	
@@ -1374,7 +1378,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
+void mtl_cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
 	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
@@ -1463,7 +1467,7 @@ struct SSVGFDenoiser
 	id mtlDenoiser; // MPSSVGFDenoiser*
 };
 
-void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
+void mtl_addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
 {
 	if (@available(macOS 10.15, iOS 13, *))
 	{
@@ -1477,7 +1481,7 @@ void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
 	}
 }
 
-void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
+void mtl_removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
 {
 	if (!pDenoiser)
 	{
@@ -1488,7 +1492,7 @@ void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
 	tf_free(pDenoiser);
 }
 
-void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
+void mtl_clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
 {
 	ASSERT(pDenoiser);
 	
@@ -1498,7 +1502,7 @@ void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
 	}
 }
 
-void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
+void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
 {
 	ASSERT(pDenoiser);
 	
@@ -1543,21 +1547,21 @@ void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTextur
 }
 
 #else
-bool isRaytracingSupported(Renderer* pRenderer)
+bool mtl_isRaytracingSupported(Renderer* pRenderer)
 {
 	return false;
 }
 
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+bool mtl_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
 	return false;
 }
 
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+void mtl_removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 }
 
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+void mtl_addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
 {
 }
 
@@ -1569,25 +1573,65 @@ void cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure*
 {
 }
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+void mtl_cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
 }
 
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
+void mtl_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
 {
 }
 
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
+void mtl_cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
 }
 
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void mtl_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
 }
 
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+void mtl_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+}
+
+void mtl_removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+{
+}
+
+void mtl_addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
+{
+}
+
+void mtl_removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
+{
+}
+
+void mtl_clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
+{
+}
+
+void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
 {
 }
 #endif
+
+void initMetalRaytracingFunctions()
+{
+	isRaytracingSupported = mtl_isRaytracingSupported;
+	initRaytracing = mtl_initRaytracing;
+	removeRaytracing = mtl_removeRaytracing;
+	addAccelerationStructure = mtl_addAccelerationStructure;
+	removeAccelerationStructure = mtl_removeAccelerationStructure;
+	removeAccelerationStructureScratch = mtl_removeAccelerationStructureScratch;
+	addRaytracingShaderTable = mtl_addRaytracingShaderTable;
+	removeRaytracingShaderTable = mtl_removeRaytracingShaderTable;
+	cmdBuildAccelerationStructure = mtl_cmdBuildAccelerationStructure;
+	cmdDispatchRays = mtl_cmdDispatchRays;
+
+	addSSVGFDenoiser = mtl_addSSVGFDenoiser;
+	removeSSVGFDenoiser = mtl_removeSSVGFDenoiser;
+	clearSSVGFDenoiserTemporalHistory = mtl_clearSSVGFDenoiserTemporalHistory;
+	cmdSSVGFDenoise = mtl_cmdSSVGFDenoise;
+}
+
 #endif
 

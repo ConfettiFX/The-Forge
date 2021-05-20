@@ -27,12 +27,15 @@
 #endif
 
 #include "../../ThirdParty/OpenSource/EASTL/EABase/eabase.h"
+#include "../../ThirdParty/OpenSource/ModifiedSonyMath/vectormath_settings.hpp"
 
 #include <stdlib.h>
 #include <memory.h>
 
-#define ALIGN_TO(size, alignment) (size + alignment - 1) & ~(alignment - 1)
-#define MIN_ALLOC_ALIGNMENT EA_PLATFORM_MIN_MALLOC_ALIGNMENT
+#define MEM_MAX(a, b) ((a) > (b) ? (a) : (b))
+
+#define ALIGN_TO(size, alignment) (((size) + (alignment) - 1) & ~((alignment) - 1))
+#define MIN_ALLOC_ALIGNMENT MEM_MAX(VECTORMATH_MIN_ALIGN, EA_PLATFORM_MIN_MALLOC_ALIGNMENT)
 
 #if USE_MTUNER
 #define MTUNER_ALLOC(_handle, _ptr, _size, _overhead)                  rmemAlloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead))
@@ -137,7 +140,7 @@ void* tf_calloc(size_t count, size_t size)
 #ifdef _MSC_VER
 	size_t sz = count * size;
 	void* ptr = tf_malloc(sz);
-	memset(ptr, 0, sz);
+	memset(ptr, 0, sz); //-V575
 #else
 	void* ptr = calloc(count, size);
 	MTUNER_ALLOC(0, ptr, count * size, 0);
@@ -169,19 +172,9 @@ void* tf_calloc_memalign(size_t count, size_t alignment, size_t size)
 	size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
 	size_t totalBytes = count * alignedArrayElementSize;
 
-#ifdef _MSC_VER
-	void* ptr = _aligned_malloc(totalBytes, alignment);
-#else
-	void* ptr;
-	if (posix_memalign(&ptr, alignment, totalBytes))
-	{
-		ptr = NULL;
-	}
-#endif
+	void* ptr = tf_memalign(alignment, totalBytes);
 
-	MTUNER_ALIGNED_ALLOC(0, ptr, totalBytes, 0, alignment);
-
-	memset(ptr, 0, totalBytes);
+	memset(ptr, 0, totalBytes); //-V575
 	return ptr;
 }
 

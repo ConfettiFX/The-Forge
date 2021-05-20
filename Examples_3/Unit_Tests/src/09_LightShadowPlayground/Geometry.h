@@ -25,6 +25,7 @@
 #ifndef Geometry_h
 #define Geometry_h
 
+#define MAX_MESH_NAME_LEN 128
 
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 //EA stl
@@ -36,45 +37,16 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
+#define NO_FSL_DEFINITIONS
+#include "Shaders/FSL/Shader_Defs.h"
+#include "Shaders/FSL/ASMShader_Defs.h"
+#include "Shaders/FSL/SDF_Constant.h"
+
 namespace eastl
 {
 	template <>
 	struct has_equality<vec3> : eastl::false_type {};
 }
-
-//#define NO_HLSL_DEFINITIONS 1
-//#include "Shader_Defs.h"
-#if defined(METAL)
-#include "Shaders/Metal/Shader_Defs.h"
-#include "Shaders/Metal/ASMConstant.h"
-#include "Shaders/Metal/SDF_Constant.h"
-#elif defined(DIRECT3D12) || defined(XBOX)
-#define NO_HLSL_DEFINITIONS
-#include "Shaders/D3D12/Shader_Defs.h"
-#include "Shaders/D3D12/ASMShader_Defs.h"
-#include "Shaders/D3D12/SDF_Constant.h"
-#elif defined(VULKAN)
-#define NO_GLSL_DEFINITIONS
-#include "Shaders/Vulkan/Shader_Defs.h"
-#include "Shaders/Vulkan/ASMShader_Defs.h"
-#include "Shaders/Vulkan/SDF_Constant.h"
-#elif defined(ORBIS)
-#define NO_ORBIS_DEFINITIONS
-#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/Shader_Defs.h"
-#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/ASMShader_Defs.h"
-#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/SDF_Constant.h"
-#elif defined(PROSPERO)
-#define NO_PROSPERO_DEFINITIONS
-#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/Shader_Defs.h"
-#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/ASMShader_Defs.h"
-#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/SDF_Constant.h"
-#endif
-
-
-struct Buffer;
-struct ThreadSystem;
-
-struct SDFVolumeData;
 
 typedef struct ClusterCompact
 {
@@ -90,6 +62,13 @@ typedef struct Cluster
 	float  distanceFromCamera;
 	bool   valid;
 } Cluster;
+
+typedef struct ClusterContainer
+{
+	uint32_t        clusterCount;
+	ClusterCompact* clusterCompacts;
+	Cluster*        clusters;
+} ClusterContainer;
 
 struct FilterBatchData
 {
@@ -109,144 +88,68 @@ struct FilterBatchChunk
 	uint32_t			currentDrawCallCount;
 };
 
-
-
 /************************************************************************/
 // Meshes
 /************************************************************************/
+struct SDFVolumeData;
+struct MeshInfo;
 
+typedef uint32_t MaterialFlags;
+typedef eastl::vector<SDFVolumeData*> BakedSDFVolumeInstances;
+typedef bool(*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, MeshInfo*);
 
-typedef struct SceneVertexPos
+enum MaterialFlagBits
 {
-	float x, y, z;
+	MATERIAL_FLAG_NONE              = 0,
+	MATERIAL_FLAG_TWO_SIDED         = (1 << 0),
+	MATERIAL_FLAG_ALPHA_TESTED      = (1 << 1),
+	MATERIAL_FLAG_DOUBLE_VOXEL_SIZE = (1 << 2),
+	MATERIAL_FLAG_ALL = MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED | MATERIAL_FLAG_DOUBLE_VOXEL_SIZE
+};
 
-	static vec3 ToVec3(const SceneVertexPos& v)
-	{
-		return vec3(v.x, v.y, v.z);
-	}
-
-} SceneVertexPos;
-
-typedef struct ClusterContainer
+struct MeshInfo
 {
-	uint32_t        clusterCount;
-	ClusterCompact* clusterCompacts;
-	Cluster*        clusters;
-} ClusterContainer;
-
-typedef struct Material
-{
-	bool twoSided;
-	bool alphaTested;
-} Material;
+	const char*   name = NULL;
+	MaterialFlags materialFlags = MATERIAL_FLAG_NONE;
+	float         twoSidedWorldSpaceBias = 0.0f;
+	bool          sdfGenerated = false;
+};
 
 typedef struct Scene
 {
-	Geometry*                          geom;
-	Material*                          materials;
-	char**                             textures;
-	char**                             normalMaps;
-	char**                             specularMaps;
+	Geometry*      geom;
+	MaterialFlags* materialFlags;
+	char**         textures;
+	char**         normalMaps;
+	char**         specularMaps;
 } Scene;
-
-struct SDFCustomSubMeshData;
-
-struct SDFCustomSubMeshData
-{
-	struct GLTFMesh* m_PSubMesh;
-	eastl::string mMeshName;
-	bool mIsSDFMesh;
-	bool mIsTwoSided;
-	bool mUseDoubleVoxelSize;
-	bool mIsAlphaTested;
-	float mTwoSidedWorldSpaceBias;
-
-
-	bool mIsAStack;
-	eastl::vector<SDFCustomSubMeshData> mStacks;
-	eastl::string mStackStrID = "";
-};
-
-
-struct SDFMesh;
-
-struct SDFMeshInstance
-{
-	uint32_t mMaterialId;
-	uint32_t mIndexCount;
-	uint32_t mStartIndex;
-	uint32_t mStartVertex;
-
-	AABB mLocalBoundingBox = AABB(vec3(FLT_MAX), vec3(-FLT_MAX));
-	SDFMesh* mMainMesh = NULL;
-
-	bool mHasGeneratedSDFVolumeData = false;
-
-	bool mIsAlphaTested = false;
-	eastl::vector<SDFMeshInstance> mStackInstances;
-};
-
-typedef eastl::vector<SDFMeshInstance> SDFMeshInstances;
-typedef eastl::vector<SDFVolumeData*> BakedSDFVolumeInstances;
-typedef eastl::vector<SDFCustomSubMeshData> CustomSDFSubMeshDataList;
-
 
 struct SDFMesh
 {
-	eastl::vector<SceneVertexPos>      mPositions;
-	
-	eastl::vector<vec2> mUncompressedTexCoords;
-	eastl::vector<vec3> mUncompressedNormals;
-	eastl::vector<uint32_t> mIndices;
-
-	eastl::vector<SDFMeshInstance> mMeshInstances;
-	CustomSDFSubMeshDataList mCustomSubMeshDataList;
-
-	uint32_t mTotalSDFMeshes = 0;
-	uint32_t mTotalGeneratedSDFMeshes = 0;
+	Geometry* pGeometry = NULL;
+	MeshInfo* pSubMeshesInfo = NULL;
+	uint32_t* pSubMeshesGroupsSizes = NULL;
+	uint32_t* pSubMeshesIndices = NULL;
+	uint32_t  numSubMeshesGroups = 0;
+	uint32_t  numGeneratedSDFMeshes = 0;
 };
-
-
-struct Vertex
-{
-	float3 mPos;
-	float3 mNormal;
-	float3 mTangent;
-	float2 mUV;
-};
-
-
-typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const eastl::string&, float);
-
 
 void adjustAABB(AABB* ownerAABB, const vec3& point);
 void adjustAABB(AABB* ownerAABB, const AABB& otherAABB);
+void alignAABB(AABB* ownerAABB, float alignment);
 vec3 calculateAABBSize(const AABB* ownerAABB);
 vec3 calculateAABBExtent(const AABB* ownerAABB);
 vec3 calculateAABBCenter(const AABB* ownerAABB);
 
-void alignAABB(AABB* ownerAABB, float alignment);
-
+void createClusters(bool twoSided, const Scene* scene, IndirectDrawIndexArguments* draw, ClusterContainer* subMesh);
 void destroyClusters(ClusterContainer* pMesh);
-Scene* loadScene(const char* fileName, SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ);
-	
-void   removeScene(Scene* scene);
-
-void   createClusters(bool twoSided, const Scene* scene, IndirectDrawIndexArguments* draw, ClusterContainer* subMesh);
-
-
-void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData,
-	BakedSDFVolumeInstances& sdfMeshInstances, 
-	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
-
-void loadSDFMesh(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfMeshInstances,
-	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
-
-
-void addClusterToBatchChunk(
-	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
+void addClusterToBatchChunk(const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex, 
 	FilterBatchChunk* batchChunk, FilterBatchData* batches);
+
+Scene* loadScene(const char* fileName, SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ);
+void removeScene(Scene* scene);
+	
+void loadBakedSDFData(SDFMesh* outMesh, uint32_t startIdx, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances,
+	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 
 #endif
