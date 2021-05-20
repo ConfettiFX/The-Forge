@@ -30,6 +30,11 @@
 FORGE_IMPLEMENT_COMPONENT(SpriteComponent)
 
 SpriteComponent::SpriteComponent()
+	:colorR(1.0f),
+	colorG(1.0f),
+	colorB(1.0f),
+	spriteIndex(0),
+	scale(1.0f)
 {
 
 }

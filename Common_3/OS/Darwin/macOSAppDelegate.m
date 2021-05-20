@@ -27,6 +27,7 @@
 
 @interface GameController: NSViewController
 -(void)draw;
+-(void)onFocusChanged:(BOOL)focused;
 @end
 
 @interface AppDelegate ()
@@ -85,6 +86,16 @@
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
 {
 	return YES;
+}
+
+- (void)applicationDidEnterBackground:(NSNotification*)aNotification
+{
+	[myController onFocusChanged:FALSE];
+}
+
+- (void)applicationWillEnterForeground:(NSNotification*)aNotification
+{
+	[myController onFocusChanged:TRUE];
 }
 
 @end

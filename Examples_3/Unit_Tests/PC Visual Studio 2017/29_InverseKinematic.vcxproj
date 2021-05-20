@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugDx|x64">
-      <Configuration>DebugDx</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|x64">
-      <Configuration>DebugVk</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseDx|x64">
-      <Configuration>ReleaseDx</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|x64">
-      <Configuration>ReleaseVk</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -25,21 +17,12 @@
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -49,58 +32,40 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-    <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-    <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <ClCompile>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
@@ -113,129 +78,37 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D11\*.*" "$(OutDir)Shaders\DIRECT3D11\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
-    <ClCompile>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-      <OutputManifestFile>$(IntDir)$(TargetName)$(TargetExt).embed.manifest</OutputManifestFile>
-    </Manifest>
-    <ManifestResourceCompile>
-      <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
-    </ManifestResourceCompile>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <ClCompile>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <TreatWarningAsError>true</TreatWarningAsError>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <DiagnosticsFormat>Classic</DiagnosticsFormat>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -243,7 +116,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;ozz_base.lib;ozz_animation.lib;Renderer.lib;OS.lib;%(AdditionalDependencies);</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
@@ -253,32 +126,32 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D11\*.*" "$(OutDir)Shaders\DIRECT3D11\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+    </FSLShader>
+    <FSLShader>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12 DIRECT3D11</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\basic.frag" />
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\basic.vert" />
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\plane.frag" />
-    <None Include="..\src\29_InverseKinematic\Shaders\D3D12\plane.vert" />
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\basic.frag" />
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\basic.vert" />
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\plane.frag" />
-    <None Include="..\src\29_InverseKinematic\Shaders\Vulkan\plane.vert" />
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\plane.frag.fsl" />
+    <FSLShader Include="..\src\29_InverseKinematic\Shaders\FSL\plane.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\29_InverseKinematic\29_InverseKinematic.cpp" />
@@ -290,5 +163,6 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
 </Project>

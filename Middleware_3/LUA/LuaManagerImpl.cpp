@@ -66,12 +66,25 @@ Luna<LuaManagerImpl>::FunctionType LuaManagerImpl::methods[] = { { NULL, NULL } 
 
 Luna<LuaManagerImpl>::PropertyType LuaManagerImpl::properties[] = { { NULL, NULL } };
 
-LuaManagerImpl::LuaManagerImpl(lua_State* L): m_SyncLuaState(nullptr) { memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*)); }
-
-LuaManagerImpl::LuaManagerImpl(): m_SyncLuaState(nullptr), m_AsyncScriptsCounter(0)
+LuaManagerImpl::LuaManagerImpl(lua_State* L)
+	:m_UpdatableScriptLuaState(nullptr),
+	m_SyncLuaState(nullptr),
+	m_AsyncLuaStates(),
+	m_AsyncLuaStatesMutex(),
+	m_AddAsyncScriptMutex(),
+	m_UpdatableScriptFile(nullptr),
+	m_AsyncScriptsCounter(0)
 {
 	memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*));
+}
 
+LuaManagerImpl::LuaManagerImpl()
+	:m_UpdatableScriptLuaState(nullptr),
+	m_SyncLuaState(nullptr),
+	m_AsyncLuaStates(),
+	m_UpdatableScriptFile(nullptr),
+	m_AsyncScriptsCounter(0)
+{
 	Register();
 	
 	for (uint32_t i = 0; i <  MAX_LUA_WORKERS; ++i)
@@ -86,8 +99,8 @@ LuaManagerImpl::~LuaManagerImpl()
 
 	if (m_UpdatableScriptLuaState != nullptr)
 	{
-		if (m_UpdatableScriptExitName.size() > 0)
-			ExitScript(m_UpdatableScriptLuaState, m_UpdatableScriptExitName.c_str());
+		if (strlen(m_UpdatableScriptExitName) > 0)
+			ExitScript(m_UpdatableScriptLuaState, m_UpdatableScriptExitName);
 		DestroyLuaState(m_UpdatableScriptLuaState);
 		m_UpdatableScriptLuaState = nullptr;
 	}
@@ -151,7 +164,7 @@ const char* luaReaderFunction(lua_State *L, void *ud, size_t *sz)
 	return buffer;
 }
 
-int RunScriptFile(const char* scriptFile, lua_State* L)
+bool RunScriptFile(const char* scriptFile, lua_State* L)
 {
 	//int loadfile_error = luaL_loadfile(L, scriptFile);
 	lua_Reader reader = luaReaderFunction;
@@ -200,8 +213,8 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptFile, const char* upda
 {
 	if (m_UpdatableScriptLuaState != nullptr)
 	{
-		if (m_UpdatableScriptExitName.size() > 0)
-			ExitScript(m_UpdatableScriptLuaState, m_UpdatableScriptExitName.c_str());
+		if (strlen(m_UpdatableScriptExitName) > 0)
+			ExitScript(m_UpdatableScriptLuaState, m_UpdatableScriptExitName);
 		DestroyLuaState(m_UpdatableScriptLuaState);
 	}
 
@@ -209,9 +222,11 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptFile, const char* upda
 	RegisterLuaManagerForLuaState(m_UpdatableScriptLuaState);
 	RegisterFunctionsForState(m_UpdatableScriptLuaState);
 
-	m_UpdateFunctonName = updateFunctionName;
+	SAFE_STRCPY(m_UpdateFunctonName, MAX_FUNCTION_NAME_LENGTH, updateFunctionName);
     m_UpdatableScriptFile = scriptFile;
-	m_UpdatableScriptExitName = exitFunctionName;
+
+	memset(m_UpdatableScriptExitName, 0, MAX_SCRIPT_NAME_LENGTH);
+	strcpy(m_UpdatableScriptExitName, exitFunctionName);
 	//int loadfile_error = luaL_loadfile(m_UpdatableScriptLuaState, m_UpdatableScriptName.c_str());
 	lua_Reader reader = luaReaderFunction;
 	//int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, open_file(scriptFile, "rb"), NULL, NULL);
@@ -242,16 +257,14 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptFile, const char* upda
 bool LuaManagerImpl::ReloadUpdatableScript()
 {
 	ASSERT(m_UpdatableScriptFile);
-	if (!m_UpdatableScriptFile)
-		return false;
-	return SetUpdatableScript(m_UpdatableScriptFile, m_UpdateFunctonName.c_str(), m_UpdatableScriptExitName.c_str());
+	return SetUpdatableScript(m_UpdatableScriptFile, m_UpdateFunctonName, m_UpdatableScriptExitName);
 }
 
 void LuaManagerImpl::RegisterFunctionsForState(lua_State* state)
 {
 	for (size_t i = 0; i < m_Functions.size(); ++i)
 	{
-		Luna<LuaManagerImpl>::RegisterMethod(state, m_Functions[i]->functionName.c_str(), (int)i);
+		Luna<LuaManagerImpl>::RegisterMethod(state, m_Functions[i]->functionName, (int)i);
 	}
 }
 
@@ -266,8 +279,8 @@ bool LuaManagerImpl::Update(float deltaTime, const char* updateFunctionName)
 		lua_getglobal(m_UpdatableScriptLuaState, updateFunctionName); /* function to be called */
 	else
 	{
-		ASSERT(m_UpdateFunctonName.size() > 0);
-		lua_getglobal(m_UpdatableScriptLuaState, m_UpdateFunctonName.c_str());
+		ASSERT(strlen(m_UpdateFunctonName) > 0);
+		lua_getglobal(m_UpdatableScriptLuaState, m_UpdateFunctonName);
 	}
 	if (lua_isfunction(m_UpdatableScriptLuaState, -1))
 	{
@@ -280,8 +293,8 @@ bool LuaManagerImpl::Update(float deltaTime, const char* updateFunctionName)
 
 bool LuaManagerImpl::RunScript(const char* scriptFile)
 {
-	int status = RunScriptFile(scriptFile, m_SyncLuaState);
-	return status == 0;
+	bool status = RunScriptFile(scriptFile, m_SyncLuaState);
+	return !status;  // Compatibility: If the script fails, RunScript (this function) returns true
 }
 
 void AsyncScriptExecute(void* pData)
@@ -364,7 +377,7 @@ void LuaManagerImpl::SetFunction(ILuaFunctionWrap* wrap)
 	//use string compare. We can implement more fast search if needed
 	for (size_t i = 0; i < m_Functions.size(); ++i)
 	{
-		if (m_Functions[i]->functionName == wrap->functionName)
+		if (strcmp(m_Functions[i]->functionName, wrap->functionName) == 0)
 		{
 			m_Functions[i]->~ILuaFunctionWrap();
 			tf_free(m_Functions[i]);
@@ -374,15 +387,15 @@ void LuaManagerImpl::SetFunction(ILuaFunctionWrap* wrap)
 	}
 	//2.
 	m_Functions.push_back(wrap);
-	Luna<LuaManagerImpl>::RegisterMethod(m_SyncLuaState, wrap->functionName.c_str(), (int)m_Functions.size() - 1);
+	Luna<LuaManagerImpl>::RegisterMethod(m_SyncLuaState, wrap->functionName, (int)m_Functions.size() - 1);
 	//m_UpdatableScriptLuaState is created in LuaManagerImpl::SetUpdatableScript() so it may not exist here.
 	//When LuaManagerImpl::SetUpdatableScript() is invoked all these functions will be registered in new state.
 	if (m_UpdatableScriptLuaState != nullptr)
-		Luna<LuaManagerImpl>::RegisterMethod(m_UpdatableScriptLuaState, wrap->functionName.c_str(), (int)m_Functions.size() - 1);
+		Luna<LuaManagerImpl>::RegisterMethod(m_UpdatableScriptLuaState, wrap->functionName, (int)m_Functions.size() - 1);
 	for (int i = 0; i < MAX_LUA_WORKERS; ++i)
 	{
 		MutexLock lock(m_AsyncLuaStatesMutex[i]);
-		Luna<LuaManagerImpl>::RegisterMethod(m_AsyncLuaStates[i], wrap->functionName.c_str(), (int)m_Functions.size() - 1);
+		Luna<LuaManagerImpl>::RegisterMethod(m_AsyncLuaStates[i], wrap->functionName, (int)m_Functions.size() - 1);
 	}
 }
 
@@ -410,8 +423,6 @@ void LuaManagerImpl::Register()
 {
 	//Only one instance of this class is allowed
 	ASSERT(m_registered == false);
-	if (m_registered)
-		return;
 
 	//create Lua states
 	m_SyncLuaState = CreateLuaState();
@@ -465,10 +476,9 @@ double LuaStateWrap::GetNumberArg(int argIdx) { return lua_tonumber(luaState, ar
 
 long long int LuaStateWrap::GetIntegerArg(int argIdx) { return lua_tointeger(luaState, argIdx); }
 
-eastl::string LuaStateWrap::GetStringArg(int argIdx)
+void LuaStateWrap::GetStringArg(int argIdx, char* result)
 {
-	eastl::string result(lua_tostring(luaState, argIdx));
-	return result;
+	strcpy(result, lua_tostring(luaState, argIdx));
 }
 
 void LuaStateWrap::GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult)

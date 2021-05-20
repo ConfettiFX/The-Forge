@@ -26,9 +26,6 @@
 
 // Unit Test for testing Compute Shaders
 // using Julia 4D demonstration
-//tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -111,14 +108,15 @@ DescriptorSet*    pDescriptorSetUniforms = NULL;
 DescriptorSet*    pDescriptorSetComputeTexture = NULL;
 DescriptorSet*    pDescriptorSetTexture = NULL;
 
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 uint32_t     gFrameIndex = 0;
 ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 UniformBlock gUniformData;
 
-UIApp              gAppUI;
+UIApp*              pAppUI = NULL;
 ICameraController* pCameraController = NULL;
+static uint32_t		  gSelectedApiIndex = 0;
 
 struct ObjectProperty
 {
@@ -128,11 +126,6 @@ struct ObjectProperty
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 GuiComponent* pGuiWindow = 0;
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
-}
 
 class Compute: public IApp
 {
@@ -152,14 +145,171 @@ class Compute: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
-        
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,			"Scripts");
+
 		initNoise();
+
+		// window and renderer setup
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+		{
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+			return false;
+		}
+
+		ShaderLoadDesc displayShader = {};
+		displayShader.mStages[0] = { "display.vert", NULL, 0 };
+		displayShader.mStages[1] = { "display.frag", NULL, 0 };
+		ShaderLoadDesc computeShader = {};
+		computeShader.mStages[0] = { "compute.comp", NULL, 0 };
+
+		addShader(pRenderer, &displayShader, &pShader);
+		addShader(pRenderer, &computeShader, &pComputeShader);
+
+		SamplerDesc samplerDesc = { FILTER_NEAREST,
+									FILTER_NEAREST,
+									MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		const char*       pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSampler;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pShader;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		RootSignatureDesc computeRootDesc = {};
+		computeRootDesc.mShaderCount = 1;
+		computeRootDesc.ppShaders = &pComputeShader;
+		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
+
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetComputeTexture);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
+		computePipelineDesc.pRootSignature = pComputeRootSignature;
+		computePipelineDesc.pShaderProgram = pComputeShader;
+		addPipeline(pRenderer, &desc, &pComputePipeline);
+
+		BufferLoadDesc ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(UniformBlock);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pUniformBuffer[i];
+			addResource(&ubDesc, NULL);
+		}
+
+		// Width and height needs to be same as Texture's
+		gUniformData.mHeight = mSettings.mHeight;
+		gUniformData.mWidth = mSettings.mWidth;
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		// Initialize profile
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		#if defined(DIRECT3D11)
+			"D3D11",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		waitForAllResourceLoads();
+
+		DescriptorData params[1] = {};
+		params[0].pName = "uniformBlock";
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -175,7 +325,7 @@ class Compute: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -184,9 +334,9 @@ class Compute: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -198,6 +348,8 @@ class Compute: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0;
+
 		return true;
 	}
 
@@ -205,152 +357,60 @@ class Compute: public IApp
 	{
 		exitInputSystem();
 
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
+
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		exitProfilerUI();
+
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+			removeResource(pUniformBuffer[i]);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		removeSampler(pRenderer, pSampler);
+
+		removeShader(pRenderer, pShader);
+		removeShader(pRenderer, pComputeShader);
+		removePipeline(pRenderer, pComputePipeline);
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetComputeTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pComputeRootSignature);
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// window and renderer setup
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			{
-				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-				return false;
-			}
-
-			ShaderLoadDesc displayShader = {};
-			displayShader.mStages[0] = { "display.vert", NULL, 0 };
-			displayShader.mStages[1] = { "display.frag", NULL, 0 };
-			ShaderLoadDesc computeShader = {};
-			computeShader.mStages[0] = { "compute.comp", NULL, 0 };
-
-			addShader(pRenderer, &displayShader, &pShader);
-			addShader(pRenderer, &computeShader, &pComputeShader);
-
-			SamplerDesc samplerDesc = { FILTER_NEAREST,
-										FILTER_NEAREST,
-										MIPMAP_MODE_NEAREST,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pSampler);
-
-			const char*       pStaticSamplers[] = { "uSampler0" };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSampler;
-			rootDesc.mShaderCount = 1;
-			rootDesc.ppShaders = &pShader;
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-			RootSignatureDesc computeRootDesc = {};
-			computeRootDesc.mShaderCount = 1;
-			computeRootDesc.ppShaders = &pComputeShader;
-			addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
-
-			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-			setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetComputeTexture);
-			setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
-
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
-			computePipelineDesc.pRootSignature = pComputeRootSignature;
-			computePipelineDesc.pShaderProgram = pComputeShader;
-			addPipeline(pRenderer, &desc, &pComputePipeline);
-
-			BufferLoadDesc ubDesc = {};
-			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			ubDesc.mDesc.mSize = sizeof(UniformBlock);
-			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			ubDesc.pData = NULL;
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				ubDesc.ppBuffer = &pUniformBuffer[i];
-				addResource(&ubDesc, NULL);
-			}
-
-			// Width and height needs to be same as Texture's
-			gUniformData.mHeight = mSettings.mHeight;
-			gUniformData.mWidth = mSettings.mWidth;
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			// Initialize profile
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pGuiWindow->AddWidget(testGPUReset);
-
-			waitForAllResourceLoads();
-
-			DescriptorData params[1] = {};
-			params[0].pName = "uniformBlock";
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-			}
-		}
-
 		if (!addSwapChain())
 			return false;
 
 		if (!addJuliaFractalUAV())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		waitForAllResourceLoads();
@@ -387,56 +447,14 @@ class Compute: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		removePipeline(pRenderer, pPipeline);
 
 		removeResource(pTextureComputeOutput);
 		removeSwapChain(pRenderer, pSwapChain);
-
-		if (mSettings.mResetGraphics || mSettings.mQuit)
-		{
-			gVirtualJoystick.Exit();
-
-			exitProfilerUI();
-
-			exitProfiler();
-
-			gAppUI.Exit();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-				removeResource(pUniformBuffer[i]);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			removeSampler(pRenderer, pSampler);
-
-			removeShader(pRenderer, pShader);
-			removeShader(pRenderer, pComputeShader);
-			removePipeline(pRenderer, pComputePipeline);
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-			removeDescriptorSet(pRenderer, pDescriptorSetComputeTexture);
-			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-			removeRootSignature(pRenderer, pRootSignature);
-			removeRootSignature(pRenderer, pComputeRootSignature);
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -481,7 +499,7 @@ class Compute: public IApp
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -553,15 +571,16 @@ class Compute: public IApp
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 		const float	txtIndent = 8.f;
 		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 		cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
         cmdDrawProfilerUI();
-		gAppUI.Gui(pGuiWindow);
-		gAppUI.Draw(cmd);
+		appUIGui(pAppUI, pGuiWindow);
+		drawAppUI(pAppUI, cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -587,21 +606,8 @@ class Compute: public IApp
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

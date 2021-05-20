@@ -88,12 +88,21 @@ public:
 			return;
 		}
 
-		UINT dwSize = sizeof(RAWINPUT);
-		static BYTE lpb[sizeof(RAWINPUT)];
-	    
-		GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, &lpb, &dwSize, sizeof(RAWINPUTHEADER));
-	    
-		RAWINPUT* raw = (RAWINPUT*)&lpb;
+		// Swapped to querying size as statically inputing the size mis-IDed the events
+		UINT size = 0;
+		UINT result = GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+		if (result)
+			return;
+
+		// Must be x4.66 at minimum due to the size of gamepad events
+		static const UINT capacity = sizeof(RAWINPUT) * 8;
+		static BYTE data[capacity];
+
+		GAINPUT_ASSERT(size <= capacity);
+
+		GetRawInputData((HRAWINPUT)msg.lParam, RID_INPUT, data, &size, sizeof(RAWINPUTHEADER));
+
+		RAWINPUT* raw = (RAWINPUT*)&data;
 	    
 		if (raw->header.dwType == RIM_TYPEMOUSE) 
 		{

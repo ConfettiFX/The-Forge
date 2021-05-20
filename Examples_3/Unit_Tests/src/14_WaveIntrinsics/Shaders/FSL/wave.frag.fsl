@@ -1,0 +1,205 @@
+/*
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "resources.h"
+
+ENABLE_WAVEOPS()
+
+STRUCT(PSInput)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float4, color, COLOR);
+};
+
+// use this to generate grid-like texture
+float texPattern(float2 position)
+{
+	float scale = 0.13;
+	float t = sin(position.x * scale) + cos(position.y * scale);
+	float c = smoothstep(0.0, 0.2, t*t);
+
+	return c;
+}
+
+float4 PS_MAIN( PSInput In )
+{
+	INIT_MAIN;
+	float4 Out;
+	
+	float4 outputColor;
+
+	// Add grid-like texture pattern on top of the color
+	float texP = texPattern(In.position.xy);
+	outputColor = texP * In.color;
+
+	switch (Get(renderMode))
+	{
+		case 1:
+		{
+			// Just pass through the color we generate before
+			break;
+		}
+		case 2:
+		{
+			// Example of query intrinsics: WaveGetLaneIndex
+			// Gradiently color the wave block by their lane id. Black for the smallest lane id and White for the largest lane id.
+			outputColor = WaveGetLaneIndex() / f4(Get(laneSize));
+			break;
+		}
+		case 3:
+		{
+			// Example of query intrinsics: WaveIsFirstLane
+			// Mark the first lane as white pixel
+#ifndef TARGET_IOS
+			if (WaveIsFirstLane())
+				outputColor = f4(1);
+#endif
+			break;
+		}
+		case 4:
+		{
+			// example of query intrinsics: waveisfirstlane
+			// mark the first active lane as white pixel. mark the last active lane as red pixel.
+#ifndef TARGET_IOS
+			if (WaveIsFirstLane())
+				outputColor = f4(1);
+			if (WaveGetLaneIndex() == WaveGetMaxActiveIndex())
+				outputColor = float4(1., 0., 0., 1.);
+#endif
+			break;
+		}
+		case 5:
+		{
+
+			// Example of vote intrinsics: WaveActiveBallot
+			// Active lanes ratios (# of total activelanes / # of total lanes).
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS)
+			ballot_t activeLaneMask = WaveActiveBallot(true);
+			uint numActiveLanes = CountBallot(activeLaneMask);
+			float activeRatio = float(numActiveLanes) / float(Get(laneSize));
+			outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0);
+#endif
+						
+			break;
+		}
+		case 6:
+		{
+			// Example of wave broadcast intrinsics: WaveReadLaneFirst
+			// Broadcast the color in first lan to the wave.
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+			outputColor = WaveReadLaneFirst(outputColor);
+#endif
+			// switch/xboxone only support scalar broadcast
+#if defined(TARGET_SWITCH) || defined(TARGET_XBOX_ONE)
+			outputColor = float4(
+                WaveReadLaneFirst(outputColor.r),
+                WaveReadLaneFirst(outputColor.g),
+                WaveReadLaneFirst(outputColor.b),
+                WaveReadLaneFirst(outputColor.a)
+            );
+#endif
+			break;
+		}
+
+		case 7:
+		{
+			// Example of wave reduction intrinsics: WaveActiveSum
+			// Paint the wave with the averaged color inside the wave.
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS)
+			ballot_t activeLaneMask = WaveActiveBallot(true);
+			uint numActiveLanes = CountBallot(activeLaneMask);
+			float4 avgColor = WaveActiveSum(outputColor) / float(numActiveLanes);
+			outputColor = avgColor;
+#endif
+			break;
+		}
+
+		case 8:
+		{
+
+			// Example of wave scan intrinsics: WavePrefixSum
+			// First, compute the prefix sum of distance each lane to first lane.
+			// Then, use the prefix sum value to color each pixel.
+
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+			float4 basePos = WaveReadLaneFirst(In.position);
+			float4 prefixSumPos = WavePrefixSum(In.position - basePos);
+			
+			// Get the number of total active lanes.
+			ballot_t activeLaneMask = WaveActiveBallot(true);
+			uint numActiveLanes = CountBallot(activeLaneMask);
+			
+			outputColor = prefixSumPos / numActiveLanes;
+#endif
+			
+			break;
+		}
+
+		case 9:
+		{
+			// Example of Quad-Wide shuffle intrinsics: QuadReadAcrossX and QuadReadAcrossY
+			// Color pixels based on their quad id:
+			//  q0 -> red
+			//  q1 -> green
+			//  q2 -> blue
+			//  q3 -> white
+			//
+			//   -------------> x
+			//  |   [0] [1]
+			//  |   [2] [3]
+			//  V
+			//  Y
+			//
+
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+			float dx = QuadReadAcrossX(In.position.x) - In.position.x;
+			float dy = QuadReadAcrossY(In.position.y) - In.position.y;
+
+			// q0
+			if (dx > 0 && dy > 0)
+				outputColor = float4(1, 0, 0, 1);
+			// q1
+			else if (dx < 0 && dy > 0)
+				outputColor = float4(0, 1, 0, 1);
+			// q2
+			else if (dx > 0 && dy < 0)
+				outputColor = float4(0, 0, 1, 1);
+			// q3
+			else if (dx < 0 && dy < 0)
+				outputColor = float4(1, 1, 1, 1);
+			else
+				outputColor = float4(0, 0, 0, 1);
+			break;
+#endif
+		}
+
+		default:
+		{
+			break;
+		}
+	}
+
+	Out = outputColor;
+	RETURN(Out);
+}

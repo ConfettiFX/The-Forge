@@ -9,6 +9,14 @@
       <Configuration>DebugGLES</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
@@ -20,6 +28,22 @@
     <ProjectConfiguration Include="ReleaseGLES|ARM64">
       <Configuration>ReleaseGLES</Configuration>
       <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugVk|ARM">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
@@ -87,6 +111,14 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -108,6 +140,14 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-23</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
   </PropertyGroup>
@@ -138,7 +178,10 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings" />
   <ImportGroup Label="Shared" />
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
     <Import Project="..\..\..\ARM64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="PropertySheets">
@@ -147,7 +190,10 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="PropertySheets">
     <Import Project="..\..\..\ARM.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
     <Import Project="..\..\..\ARM64.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="PropertySheets">
@@ -157,6 +203,12 @@
     <Import Project="..\..\..\ARM.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <UseMultiToolTask>true</UseMultiToolTask>
     <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
@@ -177,6 +229,12 @@
     <LibraryPath>
     </LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <UseMultiToolTask>true</UseMultiToolTask>
     <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
@@ -195,6 +253,19 @@
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
   </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -229,6 +300,19 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Disabled</ExceptionHandling>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <WarningLevel>EnableAllWarnings</WarningLevel>

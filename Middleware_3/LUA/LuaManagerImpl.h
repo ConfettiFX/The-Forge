@@ -33,7 +33,6 @@ extern "C"
 #include "../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.h"
 }
 
-#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
@@ -44,13 +43,15 @@ extern "C"
 #include "../../Common_3/OS/Interfaces/IThread.h"
 
 #define MAX_LUA_WORKERS 4
+#define MAX_FUNCTION_NAME_LENGTH 128
+#define MAX_SCRIPT_NAME_LENGTH 128
 
 struct LuaStateWrap: public ILuaStateWrap
 {
 	virtual int             GetArgumentsCount() override;
 	virtual double          GetNumberArg(int argIdx) override;
 	virtual long long int   GetIntegerArg(int argIdx) override;
-	virtual eastl::string GetStringArg(int argIdx) override;
+	virtual void			GetStringArg(int argIdx, char* result) override;
 	virtual void            GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult) override;
 
 	virtual void PushResultNumber(double d) override;
@@ -99,9 +100,9 @@ class LuaManagerImpl
 	Mutex       m_AddAsyncScriptMutex;
 
 	eastl::vector<ILuaFunctionWrap*> m_Functions;
-	eastl::string                    m_UpdateFunctonName;
+	char							 m_UpdateFunctonName[MAX_FUNCTION_NAME_LENGTH]{};
 	const char*                      m_UpdatableScriptFile;
-	eastl::string                    m_UpdatableScriptExitName;
+	char							 m_UpdatableScriptExitName[MAX_SCRIPT_NAME_LENGTH]{};
 
 	uint32_t m_AsyncScriptsCounter;
 

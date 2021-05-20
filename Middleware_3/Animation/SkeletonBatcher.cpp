@@ -47,6 +47,8 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 		mNumBonePoints = skeletonRenderDesc.mNumBonePoints;
 	}
 
+	mNumRigs = 0;
+	mNumActiveRigs = 0; 
 	mInstanceCount = 0;
 
 	// Initialize all the buffer that will be used for each batch per each frame index
@@ -84,7 +86,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 	}
 }
 
-void SkeletonBatcher::Destroy()
+void SkeletonBatcher::Exit()
 {
 	removeDescriptorSet(mRenderer, pDescriptorSet);
 	for (uint32_t i = 0; i < ImageCount; ++i)

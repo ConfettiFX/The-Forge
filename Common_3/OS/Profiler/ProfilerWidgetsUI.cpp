@@ -40,11 +40,11 @@ void toggleProfilerUI() {}
 
 #define MAX_DETAILED_TIMERS_DRAW 2048
 #define MAX_TIME_STR_LEN 32
-#define MAX_TITLE_STR_LEN 128
+#define MAX_TITLE_STR_LEN 256
 #define FRAME_HISTORY_LEN 128
 #define CRITICAL_COLOR_THRESHOLD 0.5f
 #define WARNING_COLOR_THRESHOLD 0.3f
-#define MAX_TOOLTIP_STR_LEN 512
+#define MAX_TOOLTIP_STR_LEN 256
 #define PROFILER_WINDOW_X 0.f
 #define PROFILER_WINDOW_Y 0.f
 
@@ -77,7 +77,7 @@ struct  ProfileDetailedModeTime
 	float mEndTime;
 	uint32_t mFrameNum;
 	float mCurrFrameTime;
-	eastl::string mThreadName;
+	char mThreadName[64];
 };
 
 struct ProfileDetailedModeFrame
@@ -88,7 +88,7 @@ struct ProfileDetailedModeFrame
 
 struct ProfileDetailedModeTooltip
 {
-	ProfileDetailedModeTooltip() {}
+	ProfileDetailedModeTooltip() {} //-V730
 	ProfileDetailedModeTooltip(const ProfileDetailedModeTime& detailedLogTimer, IWidget* widget) :
 		mTimer(detailedLogTimer),
 		mWidget(widget) {}
@@ -260,8 +260,8 @@ float gFrameTime = 0.f;
 float gFrameTimeData[FRAME_HISTORY_LEN] = { 0.f };
 float gGPUFrameTime[PROFILE_MAX_GROUPS];
 float gGPUFrameTimeData[PROFILE_MAX_GROUPS][FRAME_HISTORY_LEN] = { { 0.0f } };
-eastl::string gFrameTimerTitle = "FrameTimer";
-eastl::string gGPUTimerTitle[PROFILE_MAX_GROUPS];
+char gFrameTimerTitle[MAX_TITLE_STR_LEN] = "FrameTimer";
+char gGPUTimerTitle[PROFILE_MAX_GROUPS][MAX_TITLE_STR_LEN]{};
 float2 gHistogramSize;
 
 // Timer mode data.
@@ -296,7 +296,7 @@ eastl::vector<ProfileDetailedModeTooltip> gDetailedModeTooltips;
 eastl::vector<IWidget*> gDetailedModeWidgets;
 bool gDumpFramesNow = true;
 bool gShowTooltip = true;
-char gTooltipData[MAX_TOOLTIP_STR_LEN] = { '0' };
+char gTooltipData[MAX_TOOLTIP_STR_LEN] = "0";
 
 // Utility functions.
 float profileUtilRoundFloatByPrecision(const float& number, float precision = 2.f)
@@ -394,11 +394,12 @@ uint32_t profileUtilDumpFramesDetailedModeEnum(const ProfileDumpFramesDetailedMo
 	}
 }
 
-eastl::string profileUtilTrimFloatString(const eastl::string& numericString, uint32_t precision = 2u)
+void profileUtilTrimFloatString(char* numericString, char* result, uint32_t precision = 2u)
 {
-	eastl::string result;
-	result.assign(numericString, 0, numericString.find('.') + 1 + precision);
-	return result;
+	char* delim = strchr(numericString, '.');
+	ASSERT(delim);
+	size_t delimPos = delim - numericString;
+	strncpy(result, numericString, delimPos + 1 + precision);
 }
 
 int profileUtilGroupIndexFromName(Profile& S, const char* groupName)
@@ -460,7 +461,13 @@ void profileDrawDetailedModeGrid(float startHeightPixels, float startWidthPixels
 			color = 0x32323232;
 		}
 
-		gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget("", float2(x, startHeightPixels), float2(x, lineHeight), color, false)));
+		DrawLineWidget lineWidget;
+		lineWidget.mPos1 = float2(x, startHeightPixels);
+		lineWidget.mPos2 = float2(x, lineHeight);
+		lineWidget.mColor = color;
+		lineWidget.mAddItem = false;
+		gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "", &lineWidget, WIDGET_TYPE_DRAW_LINE));
+		addWidgetLua(gDetailedModeWidgets.back());
 		x += interLineDistance;
 	}
 }
@@ -468,7 +475,7 @@ void profileDrawDetailedModeGrid(float startHeightPixels, float startWidthPixels
 void profileGetDetailedModeFrameTimeBetweenTicks(int64_t nTicks, int64_t nTicksEnd, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
 {
 	Profile& S = *ProfileGet();
-	ASSERT(nLogIndex < 0 || S.Pool[nLogIndex]);
+	ASSERT(nLogIndex >= 0 && S.Pool[nLogIndex]);
 
 	bool bGpu = S.Pool[nLogIndex]->nGpu != 0;
 	uint32_t nPut = tfrg_atomic32_load_relaxed(&S.Pool[nLogIndex]->nPut);
@@ -478,15 +485,11 @@ void profileGetDetailedModeFrameTimeBetweenTicks(int64_t nTicks, int64_t nTicksE
 	for (uint32_t i = 0; i < PROFILE_MAX_FRAME_HISTORY - PROFILE_GPU_FRAME_DELAY; ++i)
 	{
 		uint32_t nFrame = (S.nFrameCurrent + PROFILE_MAX_FRAME_HISTORY - i) % PROFILE_MAX_FRAME_HISTORY;
-
-		if (nLogIndex >= 0)
-		{
-			uint32_t nCurrStart = S.Frames[nBegin].nLogStart[nLogIndex];
-			uint32_t nPrevStart = S.Frames[nFrame].nLogStart[nLogIndex];
-			bool bOverflow = (nPrevStart <= nCurrStart) ? (nPut >= nPrevStart && nPut < nCurrStart) : (nPut < nCurrStart || nPut >= nPrevStart);
-			if (bOverflow)
-				break;
-		}
+		uint32_t nCurrStart = S.Frames[nBegin].nLogStart[nLogIndex];
+		uint32_t nPrevStart = S.Frames[nFrame].nLogStart[nLogIndex];
+		bool bOverflow = (nPrevStart <= nCurrStart) ? (nPut >= nPrevStart && nPut < nCurrStart) : (nPut < nCurrStart || nPut >= nPrevStart);
+		if (bOverflow)
+			break;
 
 		nBegin = nFrame;
 		if ((bGpu ? S.Frames[nBegin].nFrameStartGpu[nLogIndex] : S.Frames[nBegin].nFrameStartCpu) <= nTicks)
@@ -594,7 +597,7 @@ void profileUpdateDetailedModeData(Profile& S)
 						timerLog.mTimerInfoIndex = (uint32_t)nTimerIndex;
 						timerLog.mStartTime = fMsStart;
 						timerLog.mEndTime = fMsEnd;
-						timerLog.mThreadName.append(pLog->ThreadName);
+						strncpy(timerLog.mThreadName, pLog->ThreadName, 64);
 						timerLog.mFrameNum = (uint32_t)gDetailedModeDump.size() + 1;
 						frameLog.mTimers.push_back(timerLog);
 					}
@@ -625,39 +628,43 @@ void profileUpdateDetailedModeTooltip(Profile& S)
 		if (gDetailedModeTooltips[i].mWidget->mHovered)
 		{
 			// Update tooltip data for this frame.
-			eastl::string tooltipData;
+			memset(gTooltipData, 0, MAX_TOOLTIP_STR_LEN);
 			const ProfileDetailedModeTime& timer = gDetailedModeTooltips[i].mTimer;
 			const ProfileTimerInfo& timerInfo = S.TimerInfo[timer.mTimerInfoIndex];
 
-			tooltipData.append(timerInfo.pName);
-			tooltipData.append("\n------------------------------\n");
+			strcat(gTooltipData, timerInfo.pName);
+			strcat(gTooltipData, "\n------------------------------\n");
 
-			tooltipData.append("Group Name: ");
-			tooltipData.append(S.GroupInfo[timerInfo.nGroupIndex].pName);
-			tooltipData.append("\n");
+			strcat(gTooltipData, "Group Name: ");
+			strcat(gTooltipData, S.GroupInfo[timerInfo.nGroupIndex].pName);
+			strcat(gTooltipData, "\n");
 
-			tooltipData.append("Thread: ");
-			tooltipData.append(timer.mThreadName);
-			tooltipData.append("\n");
+			strcat(gTooltipData, "Thread: ");
+			strcat(gTooltipData, timer.mThreadName);
+			strcat(gTooltipData, "\n");
 
-			tooltipData.append("Frame Number: ");
-			tooltipData.append(eastl::to_string(timer.mFrameNum));
-			tooltipData.append("\n");
+			char buffer[30]{};
 
-			tooltipData.append("Start Time(ms): ");
-			tooltipData.append(eastl::to_string(timer.mCurrFrameTime + timer.mStartTime));
-			tooltipData.append("\n");
+			sprintf(buffer, "%u", timer.mFrameNum);
+			strcat(gTooltipData, "Frame Number: ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
 
-			tooltipData.append("End Time(ms)  : ");
-			tooltipData.append(eastl::to_string(timer.mCurrFrameTime + timer.mEndTime));
-			tooltipData.append("\n");
+			sprintf(buffer, "%f", timer.mCurrFrameTime + timer.mStartTime);
+			strcat(gTooltipData, "Start Time(ms): ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
 
-			tooltipData.append("Total Time(ms): ");
-			tooltipData.append(eastl::to_string(timer.mEndTime - timer.mStartTime));
-			tooltipData.append("\n");
+			sprintf(buffer, "%f", timer.mCurrFrameTime + timer.mEndTime);
+			strcat(gTooltipData, "End Time(ms)  : ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
 
+			sprintf(buffer, "%f", timer.mEndTime - timer.mStartTime);
+			strcat(gTooltipData, "Total Time(ms): ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
 
-			strcpy(gTooltipData, tooltipData.c_str());
 			gShowTooltip = true;
 
 		}
@@ -670,13 +677,13 @@ void profileDrawDetailedMode(Profile& S)
 	// Remove any tooltip widgets.
 	for (uint32_t i = 0; i < gDetailedModeTooltips.size(); ++i)
 	{
-		pWidgetGuiComponent->RemoveWidget(gDetailedModeTooltips[i].mWidget);
+		removeGuiWidget(pWidgetGuiComponent, gDetailedModeTooltips[i].mWidget);
 	}
 
 	// Remove all other widgets.
 	for (uint32_t i = 0; i < gDetailedModeWidgets.size(); ++i)
 	{
-		pWidgetGuiComponent->RemoveWidget(gDetailedModeWidgets[i]);
+		removeGuiWidget(pWidgetGuiComponent, gDetailedModeWidgets[i]);
 	}
 
 	gDetailedModeTooltips.clear();
@@ -720,10 +727,19 @@ void profileDrawDetailedMode(Profile& S)
 			uint32_t color = (timerInfo.nColor | 0x7D000000);
 
 			// Draw the timer bar and text.
-			gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(FilledRectWidget(eastl::string(timerInfo.pName), pos, scale, color)));
+			FilledRectWidget rectWidget;
+			rectWidget.mPos = pos;
+			rectWidget.mScale = scale;
+			rectWidget.mColor = color;
+			gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, timerInfo.pName, &rectWidget, WIDGET_TYPE_FILLED_RECT));
+			addWidgetLua(gDetailedModeWidgets.back());
 
 			// Add data to draw a tooltip for this timer.
-			gDetailedModeTooltips.push_back(ProfileDetailedModeTooltip(timer, pWidgetGuiComponent->AddWidget(DrawTextWidget(timerInfo.pName, pos + float2(scale.x, 0.f), 0xFFFFFFFF))));
+			DrawTextWidget textWidget;
+			textWidget.mPos = pos + float2(scale.x, 0.f);
+			textWidget.mColor = 0xFFFFFFFF;
+			gDetailedModeTooltips.push_back(ProfileDetailedModeTooltip(timer, addGuiWidget(pWidgetGuiComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT)));
+			addWidgetLua(gDetailedModeTooltips.back().mWidget);
 			frameHeight = max(frameHeight, height * 1.2f);
 			++timerCount;
 		}
@@ -733,16 +749,42 @@ void profileDrawDetailedMode(Profile& S)
 	// Add timeline.
 	for (uint32_t i = 0; i < (uint32_t)ceilf(frameTime); ++i)
 	{
-		gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawTextWidget(eastl::to_string(i), float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f), 0xFFFFFFFF)));
+		char indexStr[10];
+		sprintf(indexStr, "%u", i);
+
+		DrawTextWidget textWidget;
+		textWidget.mPos = float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f);
+		textWidget.mColor = 0xFFFFFFFF;
+		gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT));
+		addWidgetLua(gDetailedModeWidgets.back());
 	}
 
 	// Backgroud vertical lines.
 	profileDrawDetailedModeGrid(startHeightPixels, startWidthPixels, msToPixels / 2.f, (uint32_t)ceilf(frameTime * 2.f), frameHeight);
 	// Horizontal Separator lines. 
-	gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget("TopSeparator", float2(startWidthPixels, startHeightPixels), float2(ceilf(frameTime) * msToPixels, startHeightPixels), 0x64646464, true)));
-	gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget("BottomSeparator", float2(startWidthPixels, frameHeight), float2(ceilf(frameTime) * msToPixels, frameHeight), 0x64646464, true)));
+
+	DrawLineWidget topLine;
+	topLine.mPos1 = float2(startWidthPixels, startHeightPixels);
+	topLine.mPos2 = float2(ceilf(frameTime) * msToPixels, startHeightPixels);
+	topLine.mColor = 0x64646464;
+	topLine.mAddItem = true;
+	gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE));
+	addWidgetLua(gDetailedModeWidgets.back());
+
+	DrawLineWidget bottomLine;
+	bottomLine.mPos1 = float2(startWidthPixels, frameHeight);
+	bottomLine.mPos2 = float2(ceilf(frameTime) * msToPixels, frameHeight);
+	bottomLine.mColor = 0x64646464;
+	bottomLine.mAddItem = true;
+	gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE));
+	addWidgetLua(gDetailedModeWidgets.back());
 	// Tooltip widget.
-	gDetailedModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawTooltipWidget("Tooltips", &gShowTooltip, gTooltipData)));
+
+	DrawTooltipWidget tooltip;
+	tooltip.mShowTooltip = &gShowTooltip;
+	tooltip.mText = gTooltipData;
+	gDetailedModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP));
+	addWidgetLua(gDetailedModeWidgets.back());
 }
 
 // Plot mode functions.
@@ -788,7 +830,7 @@ void profileDrawPlotMode(Profile& S)
 	// Remove any previous widgets.
 	for (uint32_t i = 0; i < gPlotModeWidgets.size(); ++i)
 	{
-		pWidgetGuiComponent->RemoveWidget(gPlotModeWidgets[i]);
+		removeGuiWidget(pWidgetGuiComponent, gPlotModeWidgets[i]);
 	}
 
 	gPlotModeWidgets.clear();
@@ -801,8 +843,18 @@ void profileDrawPlotMode(Profile& S)
 	const float timeHeight = timeHeightEnd - timeHeightStart;
 
 	// Draw Reference Separator.
-	gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget("PlotTimelineSeparator", float2(baseWidthOffset, timeHeightStart), float2(baseWidthOffset, timeHeightEnd), 0x64646464, false)));
-	gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget("PlotTimelineSeparator2", float2(gCurrWindowSize.x - baseWidthOffset, timeHeightStart), float2(gCurrWindowSize.x - baseWidthOffset, timeHeightEnd), 0x64646464, false)));
+	DrawLineWidget lineSeparator;
+	lineSeparator.mPos1 = float2(baseWidthOffset, timeHeightStart);
+	lineSeparator.mPos2 = float2(baseWidthOffset, timeHeightEnd);
+	lineSeparator.mColor = 0x64646464;
+	lineSeparator.mAddItem = false;
+	gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+	addWidgetLua(gPlotModeWidgets.back());
+
+	lineSeparator.mPos1 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightStart);
+	lineSeparator.mPos2 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightEnd);
+	gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "PlotTimelineSeparator2", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+	addWidgetLua(gPlotModeWidgets.back());
 
 	// Draw Reference times and reference lines.
 	for (uint32_t i = 0; i <= (uint32_t)timelineCount; ++i)
@@ -812,24 +864,53 @@ void profileDrawPlotMode(Profile& S)
 		const float xEnd = gCurrWindowSize.x - baseWidthOffset;
 		float y = timeHeightStart + percentHeight * timeHeight;
 
-		gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawLineWidget(eastl::to_string(y), float2(xStart, y), float2(xEnd, y), 0x32323232, false)));
-		gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(DrawTextWidget(profileUtilTrimFloatString(eastl::to_string((1.f - percentHeight) * referenceTime), 1) + eastl::string("ms"), float2(baseWidthOffset, y), 0xFFFFFFFF)));
+		char floatStr[30];
+		sprintf(floatStr, "%f", (1.f - percentHeight) * referenceTime);
+
+		char resultStr[30]{};
+		profileUtilTrimFloatString(floatStr, resultStr, 1);
+		strcat(resultStr, "ms");
+
+		char yStr[30];
+		sprintf(yStr, "%f", y);
+
+		lineSeparator.mPos1 = float2(xStart, y);
+		lineSeparator.mPos2 = float2(xEnd, y);
+		lineSeparator.mColor = 0x32323232;
+		gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+		addWidgetLua(gPlotModeWidgets.back());
+
+		DrawTextWidget text;
+		text.mPos = float2(baseWidthOffset, y);
+		text.mColor = 0xFFFFFFFF;
+		gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT));
+		addWidgetLua(gPlotModeWidgets.back());
 	}
 
 	// Add some space after the graph drawing.
-	gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(CursorLocationWidget("", float2(baseWidthOffset, timeHeightEnd * 1.05f))));
+	CursorLocationWidget cursor;
+	cursor.mLocation = float2(baseWidthOffset, timeHeightEnd * 1.05f);
+	gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "", &cursor, WIDGET_TYPE_CURSOR_LOCATION));
+	addWidgetLua(gPlotModeWidgets.back());
 
 	// Draw Timer Infos.
 	for (uint32_t i = 0; i < (uint32_t)gPlotModeData.size(); ++i)
 	{
 		ProfileTimerInfo& timerInfo = S.TimerInfo[gPlotModeData[i].mTimerInfo];
 		uint32_t color = (timerInfo.nColor | 0xFF000000);
-		gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(OneLineCheckboxWidget(timerInfo.pName, &gPlotModeData[i].mEnabled, color)));
+
+		OneLineCheckboxWidget oneLineCheckbox;
+		oneLineCheckbox.pData = &gPlotModeData[i].mEnabled;
+		oneLineCheckbox.mColor = color;
+		gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, timerInfo.pName, &oneLineCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
+		addWidgetLua(gPlotModeWidgets.back());
 
 		// Only 6 timer names in one line to not overflow horizontally.
 		if ((i + 1) % 10 != 0)
 		{
-			gPlotModeWidgets.push_back(pWidgetGuiComponent->AddWidget(HorizontalSpaceWidget()));
+			HorizontalSpaceWidget space;
+			gPlotModeWidgets.push_back(addGuiWidget(pWidgetGuiComponent, "", &space, WIDGET_TYPE_HORIZONTAL_SPACE));
+			addWidgetLua(gPlotModeWidgets.back());
 		}
 	}
 }
@@ -837,30 +918,53 @@ void profileDrawPlotMode(Profile& S)
 // Timer mode functions.
 void profileDrawTimerMode(Profile& S)
 {
+	const char* headerNames[10] =
+	{
+		"Group/Timer",
+		"Time",
+		"Average Time",
+		"Max Time",
+		"Min Time",
+		"Call Average",
+		"Call Count",
+		"Exclusive Time",
+		"Exclusive Average",
+		"Exclusive Max Time"
+	};
+
 	// Create the table header.
 	eastl::vector<IWidget*> header;
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Group/Timer", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Time", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Average Time", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Max Time", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Min Time", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Call Average", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Call Count", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Time", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Average", gLilacColor));
-	header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Max Time", gLilacColor));
+
+	for (uint32_t i = 0; i < 10; ++i)
+	{
+		IWidget* pLabel = (IWidget*)tf_calloc(1, sizeof(IWidget));
+		pLabel->mType = WIDGET_TYPE_COLOR_LABEL;
+		strcpy(pLabel->mLabel, headerNames[i]);
+
+		ColorLabelWidget* pColorLabel = (ColorLabelWidget*)tf_calloc(1, sizeof(ColorLabelWidget));
+		pColorLabel->mColor = gLilacColor;
+		pLabel->pWidget = pColorLabel;
+
+		header.push_back(pLabel);
+	}
 	gWidgetTable.push_back(header);
 
 	// Add the header coloumn.
-	pWidgetGuiComponent->AddWidget(ColumnWidget("Header", header));
+	ColumnWidget headerColumn;
+	headerColumn.mNumColumns = (uint32_t)header.size();
+	headerColumn.mPerColumnWidgets = header;
+	addWidgetLua(addGuiWidget(pWidgetGuiComponent, "Header", &headerColumn, WIDGET_TYPE_COLUMN));
 
-	pWidgetGuiComponent->AddWidget(SeparatorWidget());
+	SeparatorWidget separator;
+	addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	// Add other coloumn data.
 	for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
 	{
-		pWidgetGuiComponent->AddWidget(ColorLabelWidget(S.GroupInfo[groupIndex].pName, gFernGreenColor));
-		pWidgetGuiComponent->AddWidget(SeparatorWidget());
+		ColorLabelWidget colorLabel;
+		colorLabel.mColor = gFernGreenColor;
+		addWidgetLua(addGuiWidget(pWidgetGuiComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
+		addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 		// Timers are not 1-1 with the groups so search entire list(not very large) every time.
 		for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
@@ -868,7 +972,13 @@ void profileDrawTimerMode(Profile& S)
 			if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
 			{
 				eastl::vector<IWidget*> timerCol;
-				timerCol.push_back(tf_placement_new<LabelWidget>(tf_calloc(1, sizeof(LabelWidget)), S.TimerInfo[timerIndex].pName));
+
+				IWidget* pLabel = (IWidget*)tf_calloc(1, sizeof(IWidget));
+				pLabel->mType = WIDGET_TYPE_LABEL;
+				strcpy(pLabel->mLabel, S.TimerInfo[timerIndex].pName);
+				pLabel->pWidget = (LabelWidget*)tf_calloc(1, sizeof(LabelWidget));
+				timerCol.push_back(pLabel);
+
 				eastl::vector<char*> timeRowData;
 				eastl::vector<float4*> timeColorData;
 
@@ -876,10 +986,21 @@ void profileDrawTimerMode(Profile& S)
 				for (uint32_t i = 0; i < 9; ++i)
 				{
 					char* timeResult = (char*)tf_calloc(MAX_TIME_STR_LEN, sizeof(char));
-					strcpy(timeResult, "-");
+					sprintf(timeResult, "-");
 					float4* timeColor = (float4*)tf_calloc(1, sizeof(float4));
 					*timeColor = gNormalColor;
-					timerCol.push_back(tf_placement_new<DynamicTextWidget>(tf_calloc(1, sizeof(DynamicTextWidget)), "", timeResult, MAX_TIME_STR_LEN, timeColor));
+
+					IWidget* pDynamicTextBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+					pDynamicTextBase->mType = WIDGET_TYPE_DYNAMIC_TEXT;
+
+					DynamicTextWidget* pDynamicText = (DynamicTextWidget*)tf_calloc(1, sizeof(DynamicTextWidget));
+					pDynamicText->pData = timeResult;
+					pDynamicText->mLength = MAX_TIME_STR_LEN;
+					pDynamicText->pColor = timeColor;
+					pDynamicTextBase->pWidget = pDynamicText;
+
+					timerCol.push_back(pDynamicTextBase);
+
 					timeRowData.push_back(timeResult);
 					timeColorData.push_back(timeColor);
 				}
@@ -889,12 +1010,15 @@ void profileDrawTimerMode(Profile& S)
 				gTimerColorData.push_back(timeColorData);
 
 				// Add the time data to the column.
-				pWidgetGuiComponent->AddWidget(ColumnWidget(S.TimerInfo[timerIndex].pName, timerCol));
+				ColumnWidget timerColWidget;
+				timerColWidget.mNumColumns = (uint32_t)timerCol.size();
+				timerColWidget.mPerColumnWidgets = timerCol;
+				addWidgetLua(addGuiWidget(pWidgetGuiComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
 				gWidgetTable.push_back(timerCol);
 			}
 		}
 
-		pWidgetGuiComponent->AddWidget(SeparatorWidget());
+		addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 	}
 }
 
@@ -902,15 +1026,15 @@ void profileResetTimerModeData(uint32_t tableLocation)
 {
 	eastl::vector<char*>& timeCol = gTimerData[tableLocation];
 	eastl::vector<float4*>& timeColor = gTimerColorData[tableLocation];
-	strcpy(timeCol[0], "-");
-	strcpy(timeCol[1], "-");
-	strcpy(timeCol[2], "-");
-	strcpy(timeCol[3], "-");
-	strcpy(timeCol[4], "-");
-	strcpy(timeCol[5], "-");
-	strcpy(timeCol[6], "-");
-	strcpy(timeCol[7], "-");
-	strcpy(timeCol[8], "-");
+	sprintf(timeCol[0], "-");
+	sprintf(timeCol[1], "-");
+	sprintf(timeCol[2], "-");
+	sprintf(timeCol[3], "-");
+	sprintf(timeCol[4], "-");
+	sprintf(timeCol[5], "-");
+	sprintf(timeCol[6], "-");
+	sprintf(timeCol[7], "-");
+	sprintf(timeCol[8], "-");
 	*timeColor[0] = gNormalColor;
 	*timeColor[1] = gNormalColor;
 	*timeColor[2] = gNormalColor;
@@ -951,18 +1075,44 @@ void profileUpdateTimerModeData(Profile& S, uint32_t groupIndex, uint32_t timerI
 	eastl::vector<float4*> timeColor = gTimerColorData[tableLocation];
 
 	// Fill the timer data buffers with selected timer's data.
-	strcpy(timeCol[0], profileUtilTrimFloatString(eastl::to_string(fTime)).c_str());
-	strcpy(timeCol[1], profileUtilTrimFloatString(eastl::to_string(fAverage)).c_str());
-	strcpy(timeCol[2], profileUtilTrimFloatString(eastl::to_string(fMax)).c_str());
-	strcpy(timeCol[3], profileUtilTrimFloatString(eastl::to_string(fMin)).c_str());
-	strcpy(timeCol[4], profileUtilTrimFloatString(eastl::to_string(fCallAverage)).c_str());
-	strcpy(timeCol[5], profileUtilTrimFloatString(eastl::to_string(fCallCount)).c_str());
+	char floatStr[30];
+	memset(timeCol[0], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fTime);
+	profileUtilTrimFloatString(floatStr, timeCol[0]);
+
+	memset(timeCol[1], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fAverage);
+	profileUtilTrimFloatString(floatStr, timeCol[1]);
+
+	memset(timeCol[2], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fMax);
+	profileUtilTrimFloatString(floatStr, timeCol[2]);
+
+	memset(timeCol[3], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fMin);
+	profileUtilTrimFloatString(floatStr, timeCol[3]);
+
+	memset(timeCol[4], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fCallAverage);
+	profileUtilTrimFloatString(floatStr, timeCol[4]);
+
+	memset(timeCol[5], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", (float)fCallCount);
+	profileUtilTrimFloatString(floatStr, timeCol[5]);
 
 	if (!bGpu) // No exclusive times for GPU
 	{
-		strcpy(timeCol[6], profileUtilTrimFloatString(eastl::to_string(fFrameMsExclusive)).c_str());
-		strcpy(timeCol[7], profileUtilTrimFloatString(eastl::to_string(fAverageExclusive)).c_str());
-		strcpy(timeCol[8], profileUtilTrimFloatString(eastl::to_string(fMaxExclusive)).c_str());
+		memset(timeCol[6], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fFrameMsExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[6]);
+
+		memset(timeCol[7], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fAverageExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[7]);
+
+		memset(timeCol[8], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fMaxExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[8]);
 	}
 
 	// Also add color coding to the times relative to the current selected reference time.
@@ -997,7 +1147,7 @@ void resetProfilerUI()
 {
 	if (pWidgetGuiComponent)
 	{
-		pWidgetGuiComponent->RemoveAllWidgets();
+		removeGuiAllWidgets(pWidgetGuiComponent);
 	}
 
 	// Free any allocated widget memory.
@@ -1005,7 +1155,7 @@ void resetProfilerUI()
 	{
 		for (uint32_t j = 0; j < gWidgetTable[i].size(); ++j)
 		{
-			tf_delete(gWidgetTable[i][j]);
+			destroyWidget(gWidgetTable[i][j], true);
 		}
 	}
 	gWidgetTable.clear();
@@ -1025,14 +1175,14 @@ void resetProfilerUI()
 	// Free any allocated graph data mem.
 	for (uint32_t i = 0; i < gPlotModeData.size(); ++i)
 	{
-		tf_delete(gPlotModeData[i].mTimeData);
+		tf_free(gPlotModeData[i].mTimeData);
 	}
 	gPlotModeData.clear();
 	gDetailedModeTooltips.clear();
 	gDetailedModeWidgets.clear();
 	gDetailedModeDump.clear();
 	gPlotModeWidgets.clear();
-	gFrameTimerTitle.clear();
+	memset(gFrameTimerTitle, 0, MAX_TITLE_STR_LEN);
 }
 
 void exitProfilerUI()
@@ -1047,10 +1197,10 @@ void exitProfilerUI()
 	gDetailedModeWidgets.set_capacity(0);
 	gDetailedModeDump.set_capacity(0);
 	gPlotModeWidgets.set_capacity(0);
-	gFrameTimerTitle.set_capacity(0);
+	memset(gFrameTimerTitle, 0, MAX_TITLE_STR_LEN);
 	for (uint32_t i = 0; i < PROFILE_MAX_GROUPS; ++i)
 	{
-		gGPUTimerTitle[i].set_capacity(0);
+		memset(gGPUTimerTitle[i], 0, MAX_TITLE_STR_LEN);
 	}
 	pAppUIRef = 0;
 	pWidgetGuiComponent = 0;
@@ -1073,13 +1223,24 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const T
 	float2 pos(origin.x + pGpuDrawDesc->mChildIndent * pRoot->mDepth, origin.y);
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 	float fsToMs = ProfileTickToMsMultiplier((uint64_t)pGpuProfiler->mGpuTimeStampFrequency);
-	float fAverage = fsToMs * (S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
-	eastl::string printableString = pRoot->mName + eastl::string(" - ") + eastl::to_string(fAverage) + eastl::string(" ms");
+	float fAverage = fsToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
+
+	char printableString[128]{};
+	strcpy(printableString, pRoot->mName);
+	strcat(printableString, " - ");
+  
+	char buffer[30];
+	sprintf(buffer, "%f", fAverage);
+	strcat(printableString, buffer);
+
+	sprintf(buffer, " ms");
+	strcat(printableString, buffer);
+
 	pAppUIRef->pImpl->pFontStash->drawText(
-		pCmd, printableString.c_str(), pos.x, pos.y, pDrawDesc->mFontID, pDrawDesc->mFontColor,
+		pCmd, printableString, pos.x, pos.y, pDrawDesc->mFontID, pDrawDesc->mFontColor,
 		pDrawDesc->mFontSize, pDrawDesc->mFontSpacing, pDrawDesc->mFontBlur);
 
-	float2 textSizePx = pAppUIRef->MeasureText(printableString.c_str(), *pDrawDesc);
+	float2 textSizePx = measureAppUIText(pAppUIRef, printableString, pDrawDesc);
 	origin.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
 	textSizePx.x += pGpuDrawDesc->mChildIndent * pRoot->mDepth;
 	curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
@@ -1115,7 +1276,7 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken
 		pCmd, titleStr, pos.x, pos.y, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize,
 		pDesc->mFontSpacing, pDesc->mFontBlur);
 
-	float2 totalTextSizePx = pAppUIRef->MeasureText(titleStr, *pDesc);
+	float2 totalTextSizePx = measureAppUIText(pAppUIRef, titleStr, pDesc);
 	pos.y += totalTextSizePx.y + gDefaultGpuProfileDrawDesc.mHeightOffset;
 	drawGpuProfileRecursive(pCmd, pGpuProfiler, pDesc, pos, 0, totalTextSizePx);
 
@@ -1129,10 +1290,11 @@ float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDr
 
 	ASSERT(pAppUIRef); // Must be initialized through loadProfilerUI
 	const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
-	eastl::string txt = eastl::string().sprintf("CPU %f ms", getCpuAvgFrameTime());
-	pAppUIRef->DrawText(pCmd, screenCoordsInPx, txt.c_str(), pDesc);
+	char txt[30] = {};
+	sprintf(txt, "CPU %f ms", getCpuAvgFrameTime());
+	drawAppUIText(pAppUIRef, pCmd, &screenCoordsInPx, txt, pDesc);
 
-	float2 totalTextSizePx = pAppUIRef->MeasureText(txt.c_str(), *pDesc);
+	float2 totalTextSizePx = measureAppUIText(pAppUIRef, txt, pDesc);
 	return totalTextSizePx;
 }
 /// Draws the top menu and draws the selected timer mode.
@@ -1141,38 +1303,149 @@ void profileLoadWidgetUI(Profile& S)
 	resetProfilerUI();
 
 	eastl::vector<IWidget*> topMenu;
-	topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Select Profile Mode", (uint32_t*)&gProfileMode, pProfileModesNames, gProfileModesValues, PROFILE_MODE_MAX));
-	topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Aggregate Frames", (uint32_t*)&gAggregateFrames, pAggregateFramesNames, gAggregateFramesValues, PROFILE_AGGREGATE_FRAMES_MAX));
-	topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Reference Times", (uint32_t*)&gReferenceTime, pReferenceTimesNames, gReferenceTimesValues, PROFILE_REFTIME_MAX));
+
+	// Profile mode
+	IWidget* pProfileModeBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+	pProfileModeBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pProfileModeBase->mLabel, "Select Profile Mode");
+	DropdownWidget* pProfileMode = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pProfileMode->pData = (uint32_t*)&gProfileMode;
+	pProfileModeBase->pWidget = pProfileMode;
+
+	for (uint32_t i = 0; i < PROFILE_MODE_MAX; ++i)
+	{
+		char* profileModeName = (char*)tf_calloc(strlen(pProfileModesNames[i]) + 1, sizeof(char));
+		strcpy(profileModeName, pProfileModesNames[i]);
+		pProfileMode->mNames.push_back(profileModeName);
+
+		pProfileMode->mValues.push_back(gProfileModesValues[i]);
+	}
+	topMenu.push_back(pProfileModeBase);
+
+	// Aggregate frames
+	IWidget* pAggregateBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+	pAggregateBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pAggregateBase->mLabel, "Aggregate Frames");
+	DropdownWidget* pAggregate = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pAggregate->pData = (uint32_t*)&gAggregateFrames;
+	pAggregateBase->pWidget = pAggregate;
+
+	for (uint32_t i = 0; i < PROFILE_AGGREGATE_FRAMES_MAX; ++i)
+	{
+		char* aggregateName = (char*)tf_calloc(strlen(pAggregateFramesNames[i]) + 1, sizeof(char));
+		strcpy(aggregateName, pAggregateFramesNames[i]);
+		pAggregate->mNames.push_back(aggregateName);
+
+		pAggregate->mValues.push_back(gAggregateFramesValues[i]);
+	}
+	topMenu.push_back(pAggregateBase);
+
+	// Reference times
+	IWidget* pReferenceBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+	pReferenceBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pReferenceBase->mLabel, "Reference Times");
+	DropdownWidget* pReference = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pReference->pData = (uint32_t*)&gReferenceTime;
+	pReferenceBase->pWidget = pReference;
+
+	for (uint32_t i = 0; i < PROFILE_REFTIME_MAX; ++i)
+	{
+		char* referenceName = (char*)tf_calloc(strlen(pReferenceTimesNames[i]) + 1, sizeof(char));
+		strcpy(referenceName, pReferenceTimesNames[i]);
+		pReference->mNames.push_back(referenceName);
+
+		pReference->mValues.push_back(gReferenceTimesValues[i]);
+	}
+	topMenu.push_back(pReferenceBase);
 	topMenu.back()->pOnEdited = ProfileCallbkReferenceTimeUpdated;
 
 	// Don't dump frames to disk in detailed mode.
 	if (gProfileMode == PROFILE_MODE_DETAILED)
 	{
-		gDumpFramesNow = true;
-		topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Dump Frames Detailed View", (uint32_t*)&gDumpFramesDetailedMode, pDumpFramesDetailedViewNames, gDumpFramesDetailedValues, PROFILE_DUMPFRAME_MAX));
+		IWidget* pDetailedBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+		pDetailedBase->mType = WIDGET_TYPE_DROPDOWN;
+		strcpy(pDetailedBase->mLabel, "Dump Frames Detailed View");
+		DropdownWidget* pDetailed = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+		pDetailed->pData = (uint32_t*)&gDumpFramesDetailedMode;
+		pDetailedBase->pWidget = pDetailed;
+
+		for (uint32_t i = 0; i < PROFILE_DUMPFRAME_MAX; ++i)
+		{
+			char* detailedName = (char*)tf_calloc(strlen(pDumpFramesDetailedViewNames[i]) + 1, sizeof(char));
+			strcpy(detailedName, pDumpFramesDetailedViewNames[i]);
+			pDetailed->mNames.push_back(detailedName);
+
+			pDetailed->mValues.push_back(gDumpFramesDetailedValues[i]);
+		}
+		topMenu.push_back(pDetailedBase);
 		topMenu.back()->pOnEdited = profileCallbkDumpFrames;
+
+		gDumpFramesNow = true;
 	}
 	else
 	{
-		topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Dump Frames To File", (uint32_t*)&gDumpFramesToFile, pDumpFramesToFileNames, gDumpFramesToFileValues, PROFILE_DUMPFILE_MAX));
+		IWidget* pDumpBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+		pDumpBase->mType = WIDGET_TYPE_DROPDOWN;
+		strcpy(pDumpBase->mLabel, "Dump Frames Detailed View");
+		DropdownWidget* pDump = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+		pDump->pData = (uint32_t*)&gDumpFramesToFile;
+		pDumpBase->pWidget = pDump;
+
+		for (uint32_t i = 0; i < PROFILE_DUMPFILE_MAX; ++i)
+		{
+			char* dumpName = (char*)tf_calloc(strlen(pDumpFramesToFileNames[i]) + 1, sizeof(char));
+			strcpy(dumpName, pDumpFramesToFileNames[i]);
+			pDump->mNames.push_back(dumpName);
+
+			pDump->mValues.push_back(gDumpFramesToFileValues[i]);
+		}
+		topMenu.push_back(pDumpBase);
 		topMenu.back()->pOnEdited = profileCallbkDumpFramesToFile;
 	}
 
-	topMenu.push_back(tf_placement_new<CheckboxWidget>(tf_calloc(1, sizeof(CheckboxWidget)), "Profiler Paused", &gProfilerPaused));
+	IWidget* pCheckboxBase = (IWidget*)tf_calloc(1, sizeof(IWidget));
+	pCheckboxBase->mType = WIDGET_TYPE_CHECKBOX;
+	strcpy(pCheckboxBase->mLabel, "Profiler Paused");
+	CheckboxWidget* pCheckbox = (CheckboxWidget*)tf_calloc(1, sizeof(CheckboxWidget));
+	pCheckbox->pData = &gProfilerPaused;
+	pCheckboxBase->pWidget = pCheckbox;
+
+	topMenu.push_back(pCheckboxBase);
 	topMenu.back()->pOnEdited = profileCallbkPauseProfiler;
-	pWidgetGuiComponent->AddWidget(ColumnWidget("topmenu", topMenu));
+
+	ColumnWidget topMenuCol;
+	topMenuCol.mNumColumns = (uint32_t)topMenu.size();
+	topMenuCol.mPerColumnWidgets = topMenu;
+
+	addWidgetLua(addGuiWidget(pWidgetGuiComponent, "topmenu", &topMenuCol, WIDGET_TYPE_COLUMN));
 	gWidgetTable.push_back(topMenu);
-	pWidgetGuiComponent->AddWidget(SeparatorWidget());
+
+	SeparatorWidget separator;
+	addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	if (gProfileMode == PROFILE_MODE_TIMER)
 	{
-		pWidgetGuiComponent->AddWidget(PlotLinesWidget("", gFrameTimeData, FRAME_HISTORY_LEN, &gMinPlotReferenceTime, &S.fReferenceTime, &gHistogramSize, &gFrameTimerTitle));
+		PlotLinesWidget plotLines;
+		plotLines.mValues = gFrameTimeData;
+		plotLines.mNumValues = FRAME_HISTORY_LEN;
+		plotLines.mScaleMin = &gMinPlotReferenceTime;
+		plotLines.mScaleMax = &S.fReferenceTime;
+		plotLines.mPlotScale = &gHistogramSize;
+		plotLines.mTitle = gFrameTimerTitle;
+
+		addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
 		for (uint32_t i = 0; i < S.nGroupCount; ++i)
 		{
 			if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
 			{
-				pWidgetGuiComponent->AddWidget(PlotLinesWidget("", gGPUFrameTimeData[i], FRAME_HISTORY_LEN, &gMinPlotReferenceTime, &S.fReferenceTime, &gHistogramSize, &gGPUTimerTitle[i]));
+				plotLines.mValues = gGPUFrameTimeData[i];
+				plotLines.mNumValues = FRAME_HISTORY_LEN;
+				plotLines.mScaleMin = &gMinPlotReferenceTime;
+				plotLines.mScaleMax = &S.fReferenceTime;
+				plotLines.mPlotScale = &gHistogramSize;
+				plotLines.mTitle = gGPUTimerTitle[i];
+
+				addWidgetLua(addGuiWidget(pWidgetGuiComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
 			}
 		}
 
@@ -1196,7 +1469,13 @@ void profileLoadWidgetUI(Profile& S)
 					graphTimer.mTimeData = (float2*)tf_malloc(FRAME_HISTORY_LEN * sizeof(float2));
 					graphTimer.mEnabled = false;
 					uint32_t color = (S.TimerInfo[timerIndex].nColor | 0x7D000000);
-					pWidgetGuiComponent->AddWidget(DrawCurveWidget("Curves", graphTimer.mTimeData, FRAME_HISTORY_LEN, 1.f, color));
+
+					DrawCurveWidget curve;
+					curve.mPos = graphTimer.mTimeData;
+					curve.mNumPoints = FRAME_HISTORY_LEN;
+					curve.mThickness = 1.f;
+					curve.mColor = color;
+					addWidgetLua(addGuiWidget(pWidgetGuiComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE));
 					gPlotModeData.push_back(graphTimer);
 				}
 			}
@@ -1252,18 +1531,42 @@ void profileUpdateWidgetUI(Profile& S)
 	if (!gProfilerPaused)
 	{
 		gFrameTimeData[frameNum] = gFrameTime;
-		gFrameTimerTitle = eastl::string("Frame: Time[") + (eastl::to_string(gFrameTime))
-			+ eastl::string("ms] Avg[") + eastl::to_string(fToMs * (S.nFlipAggregateDisplay / nAggregateFrames))
-			+ eastl::string("ms] Min[") + eastl::to_string(fToMs * S.nFlipMinDisplay)
-			+ eastl::string("ms] Max[") + eastl::to_string(fToMs * S.nFlipMaxDisplay)
-			+ eastl::string("ms]");
+
+		sprintf(gFrameTimerTitle, "Frame: Time[");
+
+		char buffer[30];
+
+		sprintf(buffer, "%f", gFrameTime);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Avg[");
+
+		sprintf(buffer, "%f", fToMs * (S.nFlipAggregateDisplay / nAggregateFrames));
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Min[");
+
+		sprintf(buffer, "%f", fToMs * S.nFlipMinDisplay);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Max[");
+
+		sprintf(buffer, "%f", fToMs * S.nFlipMaxDisplay);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms]");
+
 		for (uint32_t i = 0; i < S.nGroupCount; ++i)
 		{
 			if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
 			{
 				gGPUFrameTimeData[i][frameNum] = gGPUFrameTime[i];
-				gGPUTimerTitle[i] = eastl::string(S.GroupInfo[i].pName) + eastl::string(": Time[") + (eastl::to_string(gGPUFrameTime[i]))
-					+ eastl::string("ms]");
+
+				memset(gGPUTimerTitle[i], 0, MAX_TITLE_STR_LEN);
+				strcpy(gGPUTimerTitle[i], S.GroupInfo[i].pName);
+				strcat(gGPUTimerTitle[i], ": Time[");
+
+				char buffer[30];
+				sprintf(buffer, "%f", gGPUFrameTime[i]);
+				strcat(gGPUTimerTitle[i], buffer);
+
+				strcat(gGPUTimerTitle[i], "ms]");
 			}
 		}
 
@@ -1290,7 +1593,7 @@ void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
 	// Remove previous GUI component.
 	if (pWidgetGuiComponent)
 	{
-		pAppUIRef->RemoveGuiComponent(pWidgetGuiComponent);
+		removeAppUIGuiComponent(pAppUIRef, pWidgetGuiComponent);
 	}
 
 	pAppUIRef = uiApp;
@@ -1298,7 +1601,7 @@ void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
 	GuiDesc guiDesc = {};
 	guiDesc.mStartSize = profileUtilCalcWindowSize(width, height);
 	guiDesc.mStartPosition = vec2(PROFILER_WINDOW_X, PROFILER_WINDOW_Y);
-	pWidgetGuiComponent = pAppUIRef->AddGuiComponent(" Micro Profiler ", &guiDesc);
+	pWidgetGuiComponent = addAppUIGuiComponent(pAppUIRef, " Micro Profiler ", &guiDesc);
 
 	// Disable auto resize and enable manual re-size for the profiler window with scrollbars.
 	pWidgetGuiComponent->mFlags |= GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR;
@@ -1317,14 +1620,30 @@ void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
 
 	guiMenuDesc.mStartPosition = vec2(width - 300.0f * dpiScale, height * 0.5f);
 
-	pMenuGuiComponent = pAppUIRef->AddGuiComponent("Micro Profiler", &guiMenuDesc);
-	pMenuGuiComponent->AddWidget(CheckboxWidget("Toggle Profiler", &gProfilerWidgetUIEnabled));
-	pMenuGuiComponent->AddWidget(SeparatorWidget());
-	ButtonWidget dumpButtonWidget("Dump Profile");
-	dumpButtonWidget.pOnDeactivatedAfterEdit = profileCallbkDumpFramesToFile;
-	pMenuGuiComponent->AddWidget(dumpButtonWidget);
-	pMenuGuiComponent->AddWidget(SeparatorWidget());
-	pMenuGuiComponent->AddWidget(SliderFloatWidget("Transparency", &gGuiTransparency, 0.0f, 0.9f, 0.01f, "%.2f"));
+	pMenuGuiComponent = addAppUIGuiComponent(pAppUIRef, "Micro Profiler", &guiMenuDesc);
+
+	CheckboxWidget checkbox;
+	checkbox.pData = &gProfilerWidgetUIEnabled;
+	addWidgetLua(addGuiWidget(pMenuGuiComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
+
+	SeparatorWidget separator;
+	addWidgetLua(addGuiWidget(pMenuGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	ButtonWidget dumpButtonWidget;
+	IWidget* pDumpButton = addGuiWidget(pMenuGuiComponent, "Dump Profile", &dumpButtonWidget, WIDGET_TYPE_BUTTON);
+	pDumpButton->pOnDeactivatedAfterEdit = profileCallbkDumpFramesToFile;
+	addWidgetLua(pDumpButton);
+
+	addWidgetLua(addGuiWidget(pMenuGuiComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	SliderFloatWidget sliderFloat;
+	sliderFloat.pData = &gGuiTransparency;
+	sliderFloat.mMin = 0.f;
+	sliderFloat.mMax = 0.9f;
+	sliderFloat.mStep = 0.01f;
+	memset(sliderFloat.mFormat, 0, MAX_FORMAT_STR_LENGTH);
+	strcpy(sliderFloat.mFormat, "%.2f");
+	addWidgetLua(addGuiWidget(pMenuGuiComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 }
 
 void cmdDrawProfilerUI()
@@ -1335,7 +1654,7 @@ void cmdDrawProfilerUI()
 
 	ASSERT(pAppUIRef); // Must be initialized through loadProfilerUI
 	pMenuGuiComponent->mAlpha = 1.0f - gGuiTransparency;
-	pAppUIRef->Gui(pMenuGuiComponent);
+	appUIGui(pAppUIRef, pMenuGuiComponent);
 	Profile& S = *ProfileGet();
 
 	// Profiler enabled.
@@ -1403,7 +1722,7 @@ void cmdDrawProfilerUI()
 		}
 
 		pWidgetGuiComponent->mAlpha = 1.0f - gGuiTransparency;
-		pAppUIRef->Gui(pWidgetGuiComponent);
+		appUIGui(pAppUIRef, pWidgetGuiComponent);
 
 	} // profiler enabled.
 

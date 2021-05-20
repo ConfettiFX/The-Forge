@@ -28,6 +28,10 @@
 #include "MTConfig.h"
 
 
+#if MT_PLATFORM_DURANGO
+// Durango is always use user mode events.
+#include "MTEventUser.h"
+#else
 
 #if MT_ENABLE_LEGACY_WINDOWSXP_SUPPORT
 // Windows XP: Conditional variables are not supported. Using kernel mode events.
@@ -37,5 +41,6 @@
 #include "MTEventUser.h"
 #endif
 
+#endif
 
 #endif

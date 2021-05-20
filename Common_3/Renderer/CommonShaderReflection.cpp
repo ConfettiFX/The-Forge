@@ -241,7 +241,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 			// look for parent
 			for (uint32_t j = 0; j < resourceCount; ++j)
 			{
-				if (ShaderResourceCmp(&pResources[j], parentResource))
+				if (ShaderResourceCmp(&pResources[j], parentResource)) //-V522
 				{
 					pVariables[i].parent_index = j;
 					break;

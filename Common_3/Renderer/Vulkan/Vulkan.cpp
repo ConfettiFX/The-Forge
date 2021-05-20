@@ -95,7 +95,7 @@
 extern void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 
 #ifdef ENABLE_RAYTRACING
-extern void addRaytracingPipeline(const PipelineDesc*, Pipeline**);
+extern void vk_addRaytracingPipeline(const PipelineDesc*, Pipeline**);
 extern void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, void* pWriteNV);
 #endif
 
@@ -298,8 +298,8 @@ const char* gVkWantedDeviceExtensions[] =
 	// Nsight Aftermath
 	/************************************************************************/
 #ifdef USE_NSIGHT_AFTERMATH
-		VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
-		VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
+	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
+	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
 #endif
 	/************************************************************************/
 	/************************************************************************/
@@ -385,6 +385,9 @@ VkAllocationCallbacks gVkAllocationCallbacks = {
 		tf_free((void*)p_var); \
 	}
 
+//-V:SAFE_FREE:547 - The TF memory manager might not appreciate having null passed to tf_free.
+// Don't trigger PVS warnings about always-true/false on this macro
+
 #if defined(__cplusplus)
 #define DECLARE_ZERO(type, var) type var = {};
 #else
@@ -394,18 +397,21 @@ VkAllocationCallbacks gVkAllocationCallbacks = {
 // Internal utility functions (may become external one day)
 VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount);
 
-// clang-format off
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-void removeTexture(Renderer* pRenderer, Texture* pTexture);
-// clang-format on
+DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
+DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
+DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
+DECLARE_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRenderer, VirtualTexture* pTexture)
 
 //+1 for Acceleration Structure
 #define FORGE_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 2)
 static uint32_t gDescriptorTypeRangeSize = (FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1);
 
-static void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pTexture);
 /************************************************************************/
 // DescriptorInfo Heap Structures
 /************************************************************************/
@@ -434,7 +440,7 @@ static void add_descriptor_pool(
 	pPool->mFlags = flags;
 	pPool->mNumDescriptorSets = numDescriptorSets;
 	pPool->mUsedDescriptorSetCount = 0;
-	pPool->pDevice = pRenderer->pVkDevice;
+	pPool->pDevice = pRenderer->mVulkan.pVkDevice;
 	pPool->pMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
 	pPool->pMutex->Init();
 
@@ -474,7 +480,7 @@ static void reset_descriptor_pool(DescriptorPool* pPool)
 static void remove_descriptor_pool(Renderer* pRenderer, DescriptorPool* pPool)
 {
 	for (uint32_t i = 0; i < (uint32_t)pPool->mDescriptorPools.size(); ++i)
-		vkDestroyDescriptorPool(pRenderer->pVkDevice, pPool->mDescriptorPools[i], &gVkAllocationCallbacks);
+		vkDestroyDescriptorPool(pRenderer->mVulkan.pVkDevice, pPool->mDescriptorPools[i], &gVkAllocationCallbacks);
 
 	pPool->mDescriptorPools.~vector();
 
@@ -623,7 +629,7 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 	/************************************************************************/
 	// Add render pass
 	/************************************************************************/
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
 	uint32_t depthAttachmentCount = (pDesc->mDepthStencilFormat != TinyImageFormat_UNDEFINED) ? 1 : 0;
@@ -668,7 +674,7 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 			attachments[ssidx].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			// references
-			color_attachment_refs[i].attachment = ssidx;
+			color_attachment_refs[i].attachment = ssidx; //-V522
 			color_attachment_refs[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 	}
@@ -686,7 +692,7 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 		attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachments[idx].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments[idx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		depth_stencil_attachment_ref[0].attachment = idx;
+		depth_stencil_attachment_ref[0].attachment = idx; //-V522
 		depth_stencil_attachment_ref[0].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	}
 
@@ -716,7 +722,7 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 	create_info.dependencyCount = 0;
 	create_info.pDependencies = NULL;
 
-	CHECK_VKRESULT(vkCreateRenderPass(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pRenderPass->pRenderPass)));
+	CHECK_VKRESULT(vkCreateRenderPass(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pRenderPass->pRenderPass)));
 
 	SAFE_FREE(attachments);
 	SAFE_FREE(color_attachment_refs);
@@ -727,13 +733,13 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 
 static void remove_render_pass(Renderer* pRenderer, RenderPass* pRenderPass)
 {
-	vkDestroyRenderPass(pRenderer->pVkDevice, pRenderPass->pRenderPass, &gVkAllocationCallbacks);
+	vkDestroyRenderPass(pRenderer->mVulkan.pVkDevice, pRenderPass->pRenderPass, &gVkAllocationCallbacks);
 	SAFE_FREE(pRenderPass);
 }
 
 static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, FrameBuffer** ppFrameBuffer)
 {
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	FrameBuffer* pFrameBuffer = (FrameBuffer*)tf_calloc(1, sizeof(*pFrameBuffer));
 	ASSERT(pFrameBuffer);
@@ -750,7 +756,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 		else
 			pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mArraySize;
 	}
-	else
+	else if (depthAttachmentCount)
 	{
 		pFrameBuffer->mWidth = pDesc->pDepthStencil->mWidth;
 		pFrameBuffer->mHeight = pDesc->pDepthStencil->mHeight;
@@ -758,6 +764,10 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 			pFrameBuffer->mArraySize = 1;
 		else
 			pFrameBuffer->mArraySize = pDesc->pDepthStencil->mArraySize;
+	}
+	else
+	{
+		ASSERT(0 && "No color or depth attachments");
 	}
 
 	if (colorAttachmentCount && pDesc->ppRenderTargets[0]->mDepth > 1)
@@ -780,7 +790,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	{
 		if (!pDesc->pColorMipSlices && !pDesc->pColorArraySlices)
 		{
-			*iter_attachments = pDesc->ppRenderTargets[i]->pVkDescriptor;
+			*iter_attachments = pDesc->ppRenderTargets[i]->mVulkan.pVkDescriptor;
 			++iter_attachments;
 		}
 		else
@@ -797,7 +807,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 			{
 				handle = pDesc->pColorArraySlices[i];
 			}
-			*iter_attachments = pDesc->ppRenderTargets[i]->pVkSliceDescriptors[handle];
+			*iter_attachments = pDesc->ppRenderTargets[i]->mVulkan.pVkSliceDescriptors[handle];
 			++iter_attachments;
 		}
 	}
@@ -806,7 +816,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	{
 		if (-1 == pDesc->mDepthMipSlice && -1 == pDesc->mDepthArraySlice)
 		{
-			*iter_attachments = pDesc->pDepthStencil->pVkDescriptor;
+			*iter_attachments = pDesc->pDepthStencil->mVulkan.pVkDescriptor;
 			++iter_attachments;
 		}
 		else
@@ -823,7 +833,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 			{
 				handle = pDesc->mDepthArraySlice;
 			}
-			*iter_attachments = pDesc->pDepthStencil->pVkSliceDescriptors[handle];
+			*iter_attachments = pDesc->pDepthStencil->mVulkan.pVkSliceDescriptors[handle];
 			++iter_attachments;
 		}
 	}
@@ -838,7 +848,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	add_info.width = pFrameBuffer->mWidth;
 	add_info.height = pFrameBuffer->mHeight;
 	add_info.layers = pFrameBuffer->mArraySize;
-	CHECK_VKRESULT(vkCreateFramebuffer(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pFrameBuffer->pFramebuffer)));
+	CHECK_VKRESULT(vkCreateFramebuffer(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pFrameBuffer->pFramebuffer)));
 	SAFE_FREE(pImageViews);
 	/************************************************************************/
 	/************************************************************************/
@@ -851,7 +861,7 @@ static void remove_framebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
 	ASSERT(pRenderer);
 	ASSERT(pFrameBuffer);
 
-	vkDestroyFramebuffer(pRenderer->pVkDevice, pFrameBuffer->pFramebuffer, &gVkAllocationCallbacks);
+	vkDestroyFramebuffer(pRenderer->mVulkan.pVkDevice, pFrameBuffer->pFramebuffer, &gVkAllocationCallbacks);
 	SAFE_FREE(pFrameBuffer);
 }
 /************************************************************************/
@@ -1118,7 +1128,34 @@ typedef struct NullDescriptors
 	Buffer*  pDefaultBufferUAV[MAX_LINKED_GPUS];
 	Sampler* pDefaultSampler;
 	Mutex    mSubmitMutex;
+
+	// #TODO - Remove after we have a better way to specifiy initial resource state
+	// Unlike DX12, Vulkan textures start in undefined layout.
+	// With this, we transition them to the specified layout so app code doesn't have to worry about this
+	Mutex    mInitialTransitionMutex;
+	Queue*   pInitialTransitionQueue;
+	CmdPool* pInitialTransitionCmdPool;
+	Cmd*     pInitialTransitionCmd;
+	Fence*   pInitialTransitionFence;
 } NullDescriptors;
+
+static void util_initial_transition(Renderer* pRenderer, Texture* pTexture, ResourceState startState)
+{
+	pRenderer->pNullDescriptors->mInitialTransitionMutex.Acquire();
+	Cmd* cmd = pRenderer->pNullDescriptors->pInitialTransitionCmd;
+	resetCmdPool(pRenderer, pRenderer->pNullDescriptors->pInitialTransitionCmdPool);
+	beginCmd(cmd);
+	TextureBarrier barrier = { pTexture, RESOURCE_STATE_UNDEFINED, startState };
+	cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+	endCmd(cmd);
+	QueueSubmitDesc submitDesc = {};
+	submitDesc.mCmdCount = 1;
+	submitDesc.ppCmds = &cmd;
+	submitDesc.pSignalFence = pRenderer->pNullDescriptors->pInitialTransitionFence;
+	queueSubmit(pRenderer->pNullDescriptors->pInitialTransitionQueue, &submitDesc);
+	waitForFences(pRenderer, 1, &pRenderer->pNullDescriptors->pInitialTransitionFence);
+	pRenderer->pNullDescriptors->mInitialTransitionMutex.Release();
+}
 
 static void add_default_resources(Renderer* pRenderer)
 {
@@ -1238,9 +1275,10 @@ static void add_default_resources(Renderer* pRenderer)
 	gDefaultRasterizerDesc = util_to_rasterizer_desc(&rasterizerStateDesc);
 
 	// Create command buffer to transition resources to the correct state
-	Queue*   graphicsQueue = {};
-	CmdPool* cmdPool = {};
-	Cmd*     cmd = {};
+	Queue*   graphicsQueue = NULL;
+	CmdPool* cmdPool = NULL;
+	Cmd*     cmd = NULL;
+	Fence*   fence = NULL;
 
 	QueueDesc queueDesc = {};
 	queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -1254,42 +1292,26 @@ static void add_default_resources(Renderer* pRenderer)
 	cmdDesc.pPool = cmdPool;
 	addCmd(pRenderer, &cmdDesc, &cmd);
 
+	addFence(pRenderer, &fence);
+
+	pRenderer->pNullDescriptors->pInitialTransitionQueue = graphicsQueue;
+	pRenderer->pNullDescriptors->pInitialTransitionCmdPool = cmdPool;
+	pRenderer->pNullDescriptors->pInitialTransitionCmd = cmd;
+	pRenderer->pNullDescriptors->pInitialTransitionFence = fence;
+	pRenderer->pNullDescriptors->mInitialTransitionMutex.Init();
+
 	// Transition resources
-	beginCmd(cmd);
-
-	BufferBarrier bufferBarriers[MAX_LINKED_GPUS * 2] = {};
-	uint32_t bufferBarrierCount = 0;
-	TextureBarrier textureBarriers[MAX_LINKED_GPUS * TEXTURE_DIM_COUNT * 2] = {};
-	uint32_t textureBarrierCount = 0;
-
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
 		for (uint32_t dim = 0; dim < TEXTURE_DIM_COUNT; ++dim)
 		{
 			if (pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim])
-				textureBarriers[textureBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+				util_initial_transition(pRenderer, pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim], RESOURCE_STATE_SHADER_RESOURCE);
 
 			if (pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim])
-				textureBarriers[textureBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_UNORDERED_ACCESS };
+				util_initial_transition(pRenderer, pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim], RESOURCE_STATE_UNORDERED_ACCESS);
 		}
-
-		bufferBarriers[bufferBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultBufferSRV[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
-		bufferBarriers[bufferBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultBufferUAV[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_UNORDERED_ACCESS };
 	}
-
-	cmdResourceBarrier(cmd, bufferBarrierCount, bufferBarriers, textureBarrierCount, textureBarriers, 0, NULL);
-	endCmd(cmd);
-
-	QueueSubmitDesc submitDesc = {};
-	submitDesc.mCmdCount = 1;
-	submitDesc.ppCmds = &cmd;
-	queueSubmit(graphicsQueue, &submitDesc);
-	waitQueueIdle(graphicsQueue);
-
-	// Delete command buffer
-	removeCmd(pRenderer, cmd);
-	removeCmdPool(pRenderer, cmdPool);
-	removeQueue(pRenderer, graphicsQueue);
 }
 
 static void remove_default_resources(Renderer* pRenderer)
@@ -1310,6 +1332,12 @@ static void remove_default_resources(Renderer* pRenderer)
 	}
 
 	removeSampler(pRenderer, pRenderer->pNullDescriptors->pDefaultSampler);
+
+	removeFence(pRenderer, pRenderer->pNullDescriptors->pInitialTransitionFence);
+	removeCmd(pRenderer, pRenderer->pNullDescriptors->pInitialTransitionCmd);
+	removeCmdPool(pRenderer, pRenderer->pNullDescriptors->pInitialTransitionCmdPool);
+	removeQueue(pRenderer, pRenderer->pNullDescriptors->pInitialTransitionQueue);
+	pRenderer->pNullDescriptors->mInitialTransitionMutex.Destroy();
 
 	pRenderer->pNullDescriptors->mSubmitMutex.Destroy();
 	SAFE_FREE(pRenderer->pNullDescriptors);
@@ -1624,7 +1652,7 @@ util_determine_pipeline_stage_flags(Renderer* pRenderer, VkAccessFlags accessFla
 			}
 			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 #ifdef ENABLE_RAYTRACING
-			if (pRenderer->mRaytracingExtension)
+			if (pRenderer->mVulkan.mRaytracingExtension)
 			{
 				flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
 			}
@@ -1804,9 +1832,9 @@ void util_find_queue_family_index(const Renderer* pRenderer, uint32_t nodeIndex,
 	// Get queue family properties
 	uint32_t queueFamilyPropertyCount = 0;
 	VkQueueFamilyProperties* queueFamilyProperties = NULL;
-	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkActiveGPU, &queueFamilyPropertyCount, NULL);
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamilyPropertyCount, NULL);
 	queueFamilyProperties = (VkQueueFamilyProperties*)alloca(queueFamilyPropertyCount * sizeof(VkQueueFamilyProperties));
-	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkActiveGPU, &queueFamilyPropertyCount, queueFamilyProperties);
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamilyPropertyCount, queueFamilyProperties);
 
 	uint32_t minQueueFlag = UINT32_MAX;
 
@@ -1824,20 +1852,20 @@ void util_find_queue_family_index(const Renderer* pRenderer, uint32_t nodeIndex,
 			break;
 		}
 		if ((queueFlags & requiredFlags) && ((queueFlags & ~requiredFlags) == 0) &&
-			pRenderer->pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->pAvailableQueueCount[nodeIndex][queueFlags])
+			pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->mVulkan.pAvailableQueueCount[nodeIndex][queueFlags])
 		{
 			found = true;
 			queueFamilyIndex = index;
-			queueIndex = pRenderer->pUsedQueueCount[nodeIndex][queueFlags];
+			queueIndex = pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags];
 			break;
 		}
 		if (flagAnd && ((queueFlags - flagAnd) < minQueueFlag) && !graphicsQueue &&
-			pRenderer->pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->pAvailableQueueCount[nodeIndex][queueFlags])
+			pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->mVulkan.pAvailableQueueCount[nodeIndex][queueFlags])
 		{
 			found = true;
 			minQueueFlag = (queueFlags - flagAnd);
 			queueFamilyIndex = index;
-			queueIndex = pRenderer->pUsedQueueCount[nodeIndex][queueFlags];
+			queueIndex = pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags];
 			break;
 		}
 	}
@@ -1849,11 +1877,11 @@ void util_find_queue_family_index(const Renderer* pRenderer, uint32_t nodeIndex,
 		{
 			VkQueueFlags queueFlags = queueFamilyProperties[index].queueFlags;
 			if ((queueFlags & requiredFlags) &&
-				pRenderer->pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->pAvailableQueueCount[nodeIndex][queueFlags])
+				pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags] < pRenderer->mVulkan.pAvailableQueueCount[nodeIndex][queueFlags])
 			{
 				found = true;
 				queueFamilyIndex = index;
-				queueIndex = pRenderer->pUsedQueueCount[nodeIndex][queueFlags];
+				queueIndex = pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags];
 				break;
 			}
 		}
@@ -1985,7 +2013,7 @@ void CreateInstance(const char* app_name,
 
 		uint32_t                     extension_count = 0;
 		const uint32_t               initialCount = sizeof(gVkWantedInstanceExtensions) / sizeof(gVkWantedInstanceExtensions[0]);
-		const uint32_t               userRequestedCount = (uint32_t)pDesc->mInstanceExtensionCount;
+		const uint32_t               userRequestedCount = (uint32_t)pDesc->mVulkan.mInstanceExtensionCount;
 		eastl::vector<const char*> wantedInstanceExtensions(initialCount + userRequestedCount);
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
@@ -1993,7 +2021,7 @@ void CreateInstance(const char* app_name,
 		}
 		for (uint32_t i = 0; i < userRequestedCount; ++i)
 		{
-			wantedInstanceExtensions[initialCount + i] = pDesc->ppInstanceExtensions[i];
+			wantedInstanceExtensions[initialCount + i] = pDesc->mVulkan.ppInstanceExtensions[i];
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
 		// Layer extensions
@@ -2009,7 +2037,7 @@ void CreateInstance(const char* app_name,
 			{
 				for (uint32_t k = 0; k < wanted_extension_count; ++k)
 				{
-					if (strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0)
+					if (strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0) //-V522
 					{
 						if (strcmp(wantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 							gDeviceGroupCreationExtension = true;
@@ -2085,14 +2113,14 @@ void CreateInstance(const char* app_name,
 		create_info.ppEnabledLayerNames = layerTemp.data();
 		create_info.enabledExtensionCount = extension_count;
 		create_info.ppEnabledExtensionNames = instanceExtensionCache;
-		CHECK_VKRESULT(vkCreateInstance(&create_info, &gVkAllocationCallbacks, &(pRenderer->pVkInstance)));
+		CHECK_VKRESULT(vkCreateInstance(&create_info, &gVkAllocationCallbacks, &(pRenderer->mVulkan.pVkInstance)));
 	}
 
 #if defined(NX64)
-	loadExtensionsNX(pRenderer->pVkInstance);
+	loadExtensionsNX(pRenderer->mVulkan.pVkInstance);
 #else
 	// Load Vulkan instance functions
-	volkLoadInstance(pRenderer->pVkInstance);
+	volkLoadInstance(pRenderer->mVulkan.pVkInstance);
 #endif
 
 	// Debug
@@ -2108,7 +2136,7 @@ void CreateInstance(const char* app_name,
 			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 			create_info.flags = 0;
 			create_info.pUserData = NULL;
-			VkResult res = vkCreateDebugUtilsMessengerEXT(pRenderer->pVkInstance, &create_info, &gVkAllocationCallbacks, &(pRenderer->pVkDebugUtilsMessenger));
+			VkResult res = vkCreateDebugUtilsMessengerEXT(pRenderer->mVulkan.pVkInstance, &create_info, &gVkAllocationCallbacks, &(pRenderer->mVulkan.pVkDebugUtilsMessenger));
 			if (VK_SUCCESS != res)
 			{
 				internal_log(
@@ -2130,7 +2158,7 @@ void CreateInstance(const char* app_name,
 				VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | // Performance warnings are not very vaild on desktop
 #endif
 				VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT/* | VK_DEBUG_REPORT_INFORMATION_BIT_EXT*/;
-			VkResult res = vkCreateDebugReportCallbackEXT(pRenderer->pVkInstance, &create_info, &gVkAllocationCallbacks, &(pRenderer->pVkDebugReport));
+			VkResult res = vkCreateDebugReportCallbackEXT(pRenderer->mVulkan.pVkInstance, &create_info, &gVkAllocationCallbacks, &(pRenderer->mVulkan.pVkDebugReport));
 			if (VK_SUCCESS != res)
 			{
 				internal_log(
@@ -2143,28 +2171,28 @@ void CreateInstance(const char* app_name,
 
 static void RemoveInstance(Renderer* pRenderer)
 {
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	if (pRenderer->pVkDebugUtilsMessenger)
+	if (pRenderer->mVulkan.pVkDebugUtilsMessenger)
 	{
-		vkDestroyDebugUtilsMessengerEXT(pRenderer->pVkInstance, pRenderer->pVkDebugUtilsMessenger, &gVkAllocationCallbacks);
-		pRenderer->pVkDebugUtilsMessenger = NULL;
+		vkDestroyDebugUtilsMessengerEXT(pRenderer->mVulkan.pVkInstance, pRenderer->mVulkan.pVkDebugUtilsMessenger, &gVkAllocationCallbacks);
+		pRenderer->mVulkan.pVkDebugUtilsMessenger = NULL;
 	}
 #else
-	if (pRenderer->pVkDebugReport)
+	if (pRenderer->mVulkan.pVkDebugReport)
 	{
-		vkDestroyDebugReportCallbackEXT(pRenderer->pVkInstance, pRenderer->pVkDebugReport, &gVkAllocationCallbacks);
-		pRenderer->pVkDebugReport = NULL;
+		vkDestroyDebugReportCallbackEXT(pRenderer->mVulkan.pVkInstance, pRenderer->mVulkan.pVkDebugReport, &gVkAllocationCallbacks);
+		pRenderer->mVulkan.pVkDebugReport = NULL;
 	}
 #endif
 
-	vkDestroyInstance(pRenderer->pVkInstance, &gVkAllocationCallbacks);
+	vkDestroyInstance(pRenderer->mVulkan.pVkInstance, &gVkAllocationCallbacks);
 }
 
 static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 {
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
 
 	// These are the extensions that we have loaded
 	const char*                                         deviceExtensionCache[MAX_DEVICE_EXTENSIONS] = {};
@@ -2181,7 +2209,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		uint32_t deviceGroupCount = 0;
 
 		// Query the number of device groups
-		vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVkInstance, &deviceGroupCount, NULL);
+		vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, NULL);
 
 		// Allocate and initialize structures to query the device groups
 		for (uint32_t i = 0; i < deviceGroupCount; ++i)
@@ -2189,7 +2217,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 			props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
 			props[i].pNext = NULL;
 		}
-		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVkInstance, &deviceGroupCount, props);
+		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, props);
 		ASSERT(VK_SUCCESS == vk_res);
 
 		// If the first device group has more than one physical device. create
@@ -2214,7 +2242,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	uint32_t gpuCount = 0;
 
-	vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &gpuCount, NULL);
+	vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, NULL);
 	ASSERT(VK_SUCCESS == vk_res);
 	ASSERT(gpuCount);
 
@@ -2225,7 +2253,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	VkQueueFamilyProperties** queueFamilyProperties = (VkQueueFamilyProperties**)alloca(gpuCount * sizeof(VkQueueFamilyProperties*));
 	uint32_t* queueFamilyPropertyCount = (uint32_t*)alloca(gpuCount * sizeof(uint32_t));
 
-	vk_res = vkEnumeratePhysicalDevices(pRenderer->pVkInstance, &gpuCount, gpus);
+	vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, gpus);
 	ASSERT(VK_SUCCESS == vk_res);
 	/************************************************************************/
 	// Select discrete gpus first
@@ -2318,6 +2346,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 		subgroupProperties.pNext = NULL;
 		gpuProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+		subgroupProperties.pNext = gpuProperties[i].pNext;
 		gpuProperties[i].pNext = &subgroupProperties;
 #ifdef ANDROID
 		vkGetPhysicalDeviceProperties2KHR(gpus[i], &gpuProperties[i]);
@@ -2412,7 +2441,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	gpuIndex = UINT32_MAX;
 	for (uint32_t i = 0; i < gpuCount; i++)
 	{
-		if (gpus[i] == pRenderer->pVkActiveGPU)
+		if (gpus[i] == pRenderer->mVulkan.pVkActiveGPU)
 		{
 			gpuIndex = i;
 		}
@@ -2427,12 +2456,12 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	}
 
 	ASSERT(gpuIndex != UINT32_MAX);
-	pRenderer->pVkActiveGPU = gpus[gpuIndex];
-	pRenderer->pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)tf_malloc(sizeof(VkPhysicalDeviceProperties2));
+	pRenderer->mVulkan.pVkActiveGPU = gpus[gpuIndex];
+	pRenderer->mVulkan.pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)tf_malloc(sizeof(VkPhysicalDeviceProperties2));
 	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
-	*pRenderer->pVkActiveGPUProperties = gpuProperties[gpuIndex];
+	*pRenderer->mVulkan.pVkActiveGPUProperties = gpuProperties[gpuIndex];
 	*pRenderer->pActiveGpuSettings = gpuSettings[gpuIndex];
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkActiveGPU);
 
 	LOGF(LogLevel::eINFO, "GPU[%d] is selected as default GPU", gpuIndex);
 	LOGF(LogLevel::eINFO, "Name of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
@@ -2442,14 +2471,14 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	uint32_t layerCount = 0;
 	uint32_t extCount = 0;
-	vkEnumerateDeviceLayerProperties(pRenderer->pVkActiveGPU, &layerCount, NULL);
-	vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, NULL, &extCount, NULL);
+	vkEnumerateDeviceLayerProperties(pRenderer->mVulkan.pVkActiveGPU, &layerCount, NULL);
+	vkEnumerateDeviceExtensionProperties(pRenderer->mVulkan.pVkActiveGPU, NULL, &extCount, NULL);
 
 	VkLayerProperties* layers = (VkLayerProperties*)alloca(sizeof(VkLayerProperties) * layerCount);
-	vkEnumerateDeviceLayerProperties(pRenderer->pVkActiveGPU, &layerCount, layers);
+	vkEnumerateDeviceLayerProperties(pRenderer->mVulkan.pVkActiveGPU, &layerCount, layers);
 
 	VkExtensionProperties* exts = (VkExtensionProperties*)alloca(sizeof(VkExtensionProperties) * extCount);
-	vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, NULL, &extCount, exts);
+	vkEnumerateDeviceExtensionProperties(pRenderer->mVulkan.pVkActiveGPU, NULL, &extCount, exts);
 
 	for (uint32_t i = 0; i < layerCount; ++i)
 	{
@@ -2474,7 +2503,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	{
 		const char*                  layer_name = NULL;
 		uint32_t                     initialCount = sizeof(gVkWantedDeviceExtensions) / sizeof(gVkWantedDeviceExtensions[0]);
-		const uint32_t               userRequestedCount = (uint32_t)pDesc->mDeviceExtensionCount;
+		const uint32_t               userRequestedCount = (uint32_t)pDesc->mVulkan.mDeviceExtensionCount;
 		eastl::vector<const char*>   wantedDeviceExtensions(initialCount + userRequestedCount);
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
@@ -2482,16 +2511,16 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		}
 		for (uint32_t i = 0; i < userRequestedCount; ++i)
 		{
-			wantedDeviceExtensions[initialCount + i] = pDesc->ppDeviceExtensions[i];
+			wantedDeviceExtensions[initialCount + i] = pDesc->mVulkan.ppDeviceExtensions[i];
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedDeviceExtensions.size();
 		uint32_t       count = 0;
-		vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, layer_name, &count, NULL);
+		vkEnumerateDeviceExtensionProperties(pRenderer->mVulkan.pVkActiveGPU, layer_name, &count, NULL);
 		if (count > 0)
 		{
 			VkExtensionProperties* properties = (VkExtensionProperties*)tf_calloc(count, sizeof(*properties));
 			ASSERT(properties != NULL);
-			vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, layer_name, &count, properties);
+			vkEnumerateDeviceExtensionProperties(pRenderer->mVulkan.pVkActiveGPU, layer_name, &count, properties);
 			for (uint32_t j = 0; j < count; ++j)
 			{
 				for (uint32_t k = 0; k < wanted_extension_count; ++k)
@@ -2527,7 +2556,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 						if (strcmp(wantedDeviceExtensions[k], VK_NV_RAY_TRACING_EXTENSION_NAME) == 0)
 						{
-							pRenderer->mRaytracingExtension = 1;
+							pRenderer->mVulkan.mRaytracingExtension = 1;
 							gNVRayTracingExtension = true;
 							gDescriptorTypeRangeSize = FORGE_DESCRIPTOR_TYPE_RANGE_SIZE;
 						}
@@ -2572,31 +2601,33 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
 	if (gYCbCrExtension)
 	{
+		ycbcr_features.pNext = gpuFeatures2.pNext;
 		gpuFeatures2.pNext = &ycbcr_features;
-		ycbcr_features.pNext = &descriptorIndexingFeatures;
 	}
 #endif
 
 #ifndef NX64
-	vkGetPhysicalDeviceFeatures2KHR(pRenderer->pVkActiveGPU, &gpuFeatures2);
+	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
 #else
-	vkGetPhysicalDeviceFeatures2(pRenderer->pVkActiveGPU, &gpuFeatures2);
+	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
 #endif
 
 	// need a queue_priorite for each queue in the queue family we create
 	uint32_t queueFamiliesCount = queueFamilyPropertyCount[gpuIndex];
 	VkQueueFamilyProperties* queueFamiliesProperties = queueFamilyProperties[gpuIndex];
-	float** queueFamilyPriorities = (float**)alloca(queueFamiliesCount * sizeof(float*));
+	constexpr uint32_t kMaxQueueFamilies = 16;
+	constexpr uint32_t kMaxQueueCount = 64;
+	float queueFamilyPriorities[kMaxQueueFamilies][kMaxQueueCount] = {};
 	uint32_t queue_create_infos_count = 0;
-	VkDeviceQueueCreateInfo queue_create_infos[4] = {};
+	VkDeviceQueueCreateInfo* queue_create_infos = (VkDeviceQueueCreateInfo*)alloca(queueFamiliesCount * sizeof(VkDeviceQueueCreateInfo));
 
 	const uint32_t maxQueueFlag = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PROTECTED_BIT;
-	pRenderer->pAvailableQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
-	pRenderer->pUsedQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
+	pRenderer->mVulkan.pAvailableQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
+	pRenderer->mVulkan.pUsedQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
-		pRenderer->pAvailableQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
-		pRenderer->pUsedQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
+		pRenderer->mVulkan.pAvailableQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
+		pRenderer->mVulkan.pUsedQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
 	}
 
 	for (uint32_t i = 0; i < queueFamiliesCount; i++)
@@ -2604,15 +2635,16 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		uint32_t queueCount = queueFamiliesProperties[i].queueCount;
 		if (queueCount > 0)
 		{
-			queueFamilyPriorities[i] = (float*)alloca(queueCount * sizeof(float));
-			memset(queueFamilyPriorities[i], 0, queueCount * sizeof(float));
-
 			// Request only one queue of each type if mRequestAllAvailableQueues is not set to true
-			if (queueCount > 1 && !pDesc->mRequestAllAvailableQueues)
+			if (queueCount > 1 && !pDesc->mVulkan.mRequestAllAvailableQueues)
 			{
 				queueCount = 1;
 			}
 
+			ASSERT(queueCount <= kMaxQueueCount);
+			queueCount = min(queueCount, kMaxQueueCount);
+
+			queue_create_infos[queue_create_infos_count] = {};
 			queue_create_infos[queue_create_infos_count].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queue_create_infos[queue_create_infos_count].pNext = NULL;
 			queue_create_infos[queue_create_infos_count].flags = 0;
@@ -2623,7 +2655,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 			for (uint32_t n = 0; n < pRenderer->mLinkedNodeCount; ++n)
 			{
-				pRenderer->pAvailableQueueCount[n][queueFamiliesProperties[i].queueFlags] = queueCount;
+				pRenderer->mVulkan.pAvailableQueueCount[n][queueFamiliesProperties[i].queueFlags] = queueCount;
 			}
 		}
 	}
@@ -2655,8 +2687,8 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_SHADER_DEBUG_INFO_BIT_NV |
 			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_RESOURCE_TRACKING_BIT_NV |
 			VK_DEVICE_DIAGNOSTICS_CONFIG_ENABLE_AUTOMATIC_CHECKPOINTS_BIT_NV;
+		diagnostics_create_info.pNext = gpuFeatures2.pNext;
 		gpuFeatures2.pNext = &diagnostics_create_info;
-		diagnostics_create_info.pNext = &descriptorIndexingFeatures;
 		// Enable Nsight Aftermath GPU crash dump creation.
 		// This needs to be done before the Vulkan device is created.
 		CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
@@ -2672,11 +2704,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		create_info.pNext = &deviceGroupInfo;
 	}
 #endif
-	CHECK_VKRESULT(vkCreateDevice(pRenderer->pVkActiveGPU, &create_info, &gVkAllocationCallbacks, &pRenderer->pVkDevice));
+	CHECK_VKRESULT(vkCreateDevice(pRenderer->mVulkan.pVkActiveGPU, &create_info, &gVkAllocationCallbacks, &pRenderer->mVulkan.pVkDevice));
 
 #if !defined(NX64)
 	// Load Vulkan device functions to bypass loader
-	volkLoadDevice(pRenderer->pVkDevice);
+	volkLoadDevice(pRenderer->mVulkan.pVkDevice);
 #endif
 #endif
 
@@ -2733,16 +2765,16 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	for (uint32_t i = 0; i < gpuCount; ++i)
 		SAFE_FREE(queueFamilyProperties[i]);
 
-	utils_caps_builder(pRenderer);
+	vk_utils_caps_builder(pRenderer);
 
 	return true;
 }
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-	vkDestroyDevice(pRenderer->pVkDevice, &gVkAllocationCallbacks);
+	vkDestroyDevice(pRenderer->mVulkan.pVkDevice, &gVkAllocationCallbacks);
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
-	SAFE_FREE(pRenderer->pVkActiveGPUProperties);
+	SAFE_FREE(pRenderer->mVulkan.pVkActiveGPUProperties);
 
 #if defined(USE_NSIGHT_AFTERMATH)
 	if (pRenderer->mAftermathSupport)
@@ -2755,20 +2787,20 @@ static void RemoveDevice(Renderer* pRenderer)
 VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer)
 {
 	VmaAllocationInfo allocInfo = {};
-	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
+	vmaGetAllocationInfo(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &allocInfo);
 	return allocInfo.deviceMemory;
 }
 
 uint64_t get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer)
 {
 	VmaAllocationInfo allocInfo = {};
-	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
+	vmaGetAllocationInfo(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &allocInfo);
 	return (uint64_t)allocInfo.offset;
 }
 /************************************************************************/
 // Renderer Init Remove
 /************************************************************************/
-void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppRenderer)
+void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppRenderer)
 {
 	ASSERT(appName);
 	ASSERT(pDesc);
@@ -2780,7 +2812,6 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	pRenderer->mGpuMode = pDesc->mGpuMode;
 	pRenderer->mShaderTarget = pDesc->mShaderTarget;
 	pRenderer->mEnableGpuBasedValidation = pDesc->mEnableGPUBasedValidation;
-	pRenderer->mApi = RENDERER_API_VULKAN;
 
 	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	strcpy(pRenderer->pName, appName);
@@ -2808,7 +2839,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 			return;
 		}
 #else
-		const char** instanceLayers = (const char**)alloca((2 + pDesc->mInstanceLayerCount) * sizeof(char*));
+		const char** instanceLayers = (const char**)alloca((2 + pDesc->mVulkan.mInstanceLayerCount) * sizeof(char*));
 		uint32_t instanceLayerCount = 0;
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
@@ -2822,14 +2853,16 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 #endif
 
 		// Add user specified instance layers for instance creation
-		for (uint32_t i = 0; i < (uint32_t)pDesc->mInstanceLayerCount; ++i)
-			instanceLayers[instanceLayerCount++] = pDesc->ppInstanceLayers[i];
+		for (uint32_t i = 0; i < (uint32_t)pDesc->mVulkan.mInstanceLayerCount; ++i)
+			instanceLayers[instanceLayerCount++] = pDesc->mVulkan.ppInstanceLayers[i];
 
 #if !defined(NX64)
 		VkResult vkRes = volkInitialize();
 		if (vkRes != VK_SUCCESS)
 		{
 			LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
+			SAFE_FREE(pRenderer->pName);
+			SAFE_FREE(pRenderer);
 			return;
 		}
 #endif
@@ -2838,7 +2871,9 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 #endif
 		if (!AddDevice(pDesc, pRenderer))
 		{
-			*ppRenderer = NULL;
+			SAFE_FREE(pRenderer->pName);
+			RemoveInstance(pRenderer);
+			SAFE_FREE(pRenderer);
 			return;
 		}
 
@@ -2847,7 +2882,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		{
 			//have the condition in the assert as well so its cleared when the assert message box appears
 
-			ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW);
+			ASSERT(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel >= GPU_PRESET_LOW); //-V547
 
 			SAFE_FREE(pRenderer->pName);
 
@@ -2870,9 +2905,9 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		// Memory allocator
 		/************************************************************************/
 		VmaAllocatorCreateInfo createInfo = { 0 };
-		createInfo.device = pRenderer->pVkDevice;
-		createInfo.physicalDevice = pRenderer->pVkActiveGPU;
-		createInfo.instance = pRenderer->pVkInstance;
+		createInfo.device = pRenderer->mVulkan.pVkDevice;
+		createInfo.physicalDevice = pRenderer->mVulkan.pVkActiveGPU;
+		createInfo.instance = pRenderer->mVulkan.pVkInstance;
 
 		// Render Doc Capture currently does not support use of this extension
 		if (gDedicatedAllocationExtension && !gRenderDocLayerEnabled)
@@ -2903,7 +2938,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
 		createInfo.pVulkanFunctions = &vulkanFunctions;
 		createInfo.pAllocationCallbacks = &gVkAllocationCallbacks;
-		vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
+		vmaCreateAllocator(&createInfo, &pRenderer->mVulkan.pVmaAllocator);
 	}
 
 	VkDescriptorPoolSize descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE] =
@@ -2926,14 +2961,14 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1] = { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1024 };
 	}
 #endif
-	add_descriptor_pool(pRenderer, 8192, (VkDescriptorPoolCreateFlags)0, descriptorPoolSizes, gDescriptorTypeRangeSize, &pRenderer->pDescriptorPool);
+	add_descriptor_pool(pRenderer, 8192, (VkDescriptorPoolCreateFlags)0, descriptorPoolSizes, gDescriptorTypeRangeSize, &pRenderer->mVulkan.pDescriptorPool);
 	pRenderPassMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
 	pRenderPassMutex->Init();
 	gRenderPassMap = tf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(tf_malloc(sizeof(*gRenderPassMap)));
 	gFrameBufferMap = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap)));
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
-	vkGetPhysicalDeviceFeatures2KHR(pRenderer->pVkActiveGPU, &gpuFeatures);
+	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
 
 	// Set shader macro based on runtime information
 	static char descriptorIndexingMacroBuffer[2] = {};
@@ -2953,9 +2988,9 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	pRenderer->mBuiltinShaderDefinesCount = sizeof(rendererShaderDefines) / sizeof(rendererShaderDefines[0]);
 	pRenderer->pBuiltinShaderDefines = rendererShaderDefines;
 
-	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_GRAPHICS, NULL, &pRenderer->mGraphicsQueueFamilyIndex, NULL);
-	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_COMPUTE, NULL, &pRenderer->mComputeQueueFamilyIndex, NULL);
-	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_TRANSFER, NULL, &pRenderer->mTransferQueueFamilyIndex, NULL);
+	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_GRAPHICS, NULL, &pRenderer->mVulkan.mGraphicsQueueFamilyIndex, NULL);
+	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_COMPUTE, NULL, &pRenderer->mVulkan.mComputeQueueFamilyIndex, NULL);
+	util_find_queue_family_index(pRenderer, 0, QUEUE_TYPE_TRANSFER, NULL, &pRenderer->mVulkan.mTransferQueueFamilyIndex, NULL);
 
 	add_default_resources(pRenderer);
 
@@ -2963,13 +2998,13 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	*ppRenderer = pRenderer;
 }
 
-void removeRenderer(Renderer* pRenderer)
+void vk_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
 
 	remove_default_resources(pRenderer);
 
-	remove_descriptor_pool(pRenderer, pRenderer->pDescriptorPool);
+	remove_descriptor_pool(pRenderer, pRenderer->mVulkan.pDescriptorPool);
 
 	// Remove the renderpasses
 	for (eastl::hash_map<ThreadID, RenderPassMap>::value_type& t : *gRenderPassMap)
@@ -2981,7 +3016,7 @@ void removeRenderer(Renderer* pRenderer)
 			remove_framebuffer(pRenderer, it.second);
 
 	// Destroy the Vulkan bits
-	vmaDestroyAllocator(pRenderer->pVmaAllocator);
+	vmaDestroyAllocator(pRenderer->mVulkan.pVmaAllocator);
 
 #if defined(VK_USE_DISPATCH_TABLES)
 #else
@@ -3002,13 +3037,13 @@ void removeRenderer(Renderer* pRenderer)
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
-		SAFE_FREE(pRenderer->pAvailableQueueCount[i]);
-		SAFE_FREE(pRenderer->pUsedQueueCount[i]);
+		SAFE_FREE(pRenderer->mVulkan.pAvailableQueueCount[i]);
+		SAFE_FREE(pRenderer->mVulkan.pUsedQueueCount[i]);
 	}
 
 	// Free all the renderer components!
-	SAFE_FREE(pRenderer->pAvailableQueueCount);
-	SAFE_FREE(pRenderer->pUsedQueueCount);
+	SAFE_FREE(pRenderer->mVulkan.pAvailableQueueCount);
+	SAFE_FREE(pRenderer->mVulkan.pUsedQueueCount);
 	SAFE_FREE(pRenderer->pCapBits);
 	SAFE_FREE(pRenderer->pName);
 	SAFE_FREE(pRenderer);
@@ -3016,11 +3051,11 @@ void removeRenderer(Renderer* pRenderer)
 /************************************************************************/
 // Resource Creation Functions
 /************************************************************************/
-void addFence(Renderer* pRenderer, Fence** ppFence)
+void vk_addFence(Renderer* pRenderer, Fence** ppFence)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppFence);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
@@ -3029,30 +3064,30 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	add_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	CHECK_VKRESULT(vkCreateFence(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &pFence->pVkFence));
+	CHECK_VKRESULT(vkCreateFence(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &pFence->mVulkan.pVkFence));
 
-	pFence->mSubmitted = false;
+	pFence->mVulkan.mSubmitted = false;
 
 	*ppFence = pFence;
 }
 
-void removeFence(Renderer* pRenderer, Fence* pFence)
+void vk_removeFence(Renderer* pRenderer, Fence* pFence)
 {
 	ASSERT(pRenderer);
 	ASSERT(pFence);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pFence->pVkFence);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pFence->mVulkan.pVkFence);
 
-	vkDestroyFence(pRenderer->pVkDevice, pFence->pVkFence, &gVkAllocationCallbacks);
+	vkDestroyFence(pRenderer->mVulkan.pVkDevice, pFence->mVulkan.pVkFence, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pFence);
 }
 
-void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
+void vk_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppSemaphore);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	Semaphore* pSemaphore = (Semaphore*)tf_calloc(1, sizeof(Semaphore));
 	ASSERT(pSemaphore);
@@ -3061,26 +3096,26 @@ void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	add_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	CHECK_VKRESULT(vkCreateSemaphore(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSemaphore->pVkSemaphore)));
+	CHECK_VKRESULT(vkCreateSemaphore(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSemaphore->mVulkan.pVkSemaphore)));
 	// Set signal inital state.
-	pSemaphore->mSignaled = false;
+	pSemaphore->mVulkan.mSignaled = false;
 	
 	*ppSemaphore = pSemaphore;
 }
 
-void removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
+void vk_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
 	ASSERT(pRenderer);
 	ASSERT(pSemaphore);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pSemaphore->pVkSemaphore);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pSemaphore->mVulkan.pVkSemaphore);
 
-	vkDestroySemaphore(pRenderer->pVkDevice, pSemaphore->pVkSemaphore, &gVkAllocationCallbacks);
+	vkDestroySemaphore(pRenderer->mVulkan.pVkDevice, pSemaphore->mVulkan.pVkSemaphore, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pSemaphore);
 }
 
-void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
+void vk_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
 	ASSERT(pDesc != NULL);
 
@@ -3090,43 +3125,43 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	uint8_t                 queueIndex = UINT8_MAX;
 
 	util_find_queue_family_index(pRenderer, nodeIndex, pDesc->mType, &queueProps, &queueFamilyIndex, &queueIndex);
-	++pRenderer->pUsedQueueCount[nodeIndex][queueProps.queueFlags];
+	++pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueProps.queueFlags];
 
 	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
-	pQueue->mVkQueueFamilyIndex = queueFamilyIndex;
+	pQueue->mVulkan.mVkQueueFamilyIndex = queueFamilyIndex;
 	pQueue->mNodeIndex = pDesc->mNodeIndex;
 	pQueue->mType = pDesc->mType;
-	pQueue->mVkQueueIndex = queueIndex;
-	pQueue->mGpuMode = pRenderer->mGpuMode;
-	pQueue->mTimestampPeriod = pRenderer->pVkActiveGPUProperties->properties.limits.timestampPeriod;
-	pQueue->mFlags = queueProps.queueFlags;
-	pQueue->pSubmitMutex = &pRenderer->pNullDescriptors->mSubmitMutex;
+	pQueue->mVulkan.mVkQueueIndex = queueIndex;
+	pQueue->mVulkan.mGpuMode = pRenderer->mGpuMode;
+	pQueue->mVulkan.mTimestampPeriod = pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.timestampPeriod;
+	pQueue->mVulkan.mFlags = queueProps.queueFlags;
+	pQueue->mVulkan.pSubmitMutex = &pRenderer->pNullDescriptors->mSubmitMutex;
 
 	// Get queue handle
-	vkGetDeviceQueue(pRenderer->pVkDevice, pQueue->mVkQueueFamilyIndex, pQueue->mVkQueueIndex, &pQueue->pVkQueue);
-	ASSERT(VK_NULL_HANDLE != pQueue->pVkQueue);
+	vkGetDeviceQueue(pRenderer->mVulkan.pVkDevice, pQueue->mVulkan.mVkQueueFamilyIndex, pQueue->mVulkan.mVkQueueIndex, &pQueue->mVulkan.pVkQueue);
+	ASSERT(VK_NULL_HANDLE != pQueue->mVulkan.pVkQueue);
 
 	*ppQueue = pQueue;
 }
 
-void removeQueue(Renderer* pRenderer, Queue* pQueue)
+void vk_removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
 	ASSERT(pRenderer);
 	ASSERT(pQueue);
 
 	const uint32_t     nodeIndex = pQueue->mNodeIndex;
-	const VkQueueFlags queueFlags = pQueue->mFlags;
-	--pRenderer->pUsedQueueCount[nodeIndex][queueFlags];
+	const VkQueueFlags queueFlags = pQueue->mVulkan.mFlags;
+	--pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags];
 
 	SAFE_FREE(pQueue);
 }
 
-void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
+void vk_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
 	ASSERT(pRenderer);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 	ASSERT(ppCmdPool);
 
 	CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
@@ -3138,30 +3173,30 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	add_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.queueFamilyIndex = pDesc->pQueue->mVkQueueFamilyIndex;
+	add_info.queueFamilyIndex = pDesc->pQueue->mVulkan.mVkQueueFamilyIndex;
 	if (pDesc->mTransient)
 	{
 		add_info.flags |= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 	}
 
-	CHECK_VKRESULT(vkCreateCommandPool(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pCmdPool->pVkCmdPool)));
+	CHECK_VKRESULT(vkCreateCommandPool(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pCmdPool->pVkCmdPool)));
 
 	*ppCmdPool = pCmdPool;
 }
 
-void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void vk_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pCmdPool);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 	ASSERT(VK_NULL_HANDLE != pCmdPool->pVkCmdPool);
 
-	vkDestroyCommandPool(pRenderer->pVkDevice, pCmdPool->pVkCmdPool, &gVkAllocationCallbacks);
+	vkDestroyCommandPool(pRenderer->mVulkan.pVkDevice, pCmdPool->pVkCmdPool, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pCmdPool);
 }
 
-void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
+void vk_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
 	ASSERT(pRenderer);
 	ASSERT(VK_NULL_HANDLE != pDesc->pPool);
@@ -3172,9 +3207,9 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 
 	pCmd->pRenderer = pRenderer;
 	pCmd->pQueue = pDesc->pPool->pQueue;
-	pCmd->pCmdPool = pDesc->pPool;
-	pCmd->mType = pDesc->pPool->pQueue->mType;
-	pCmd->mNodeIndex = pDesc->pPool->pQueue->mNodeIndex;
+	pCmd->mVulkan.pCmdPool = pDesc->pPool;
+	pCmd->mVulkan.mType = pDesc->pPool->pQueue->mType;
+	pCmd->mVulkan.mNodeIndex = pDesc->pPool->pQueue->mNodeIndex;
 
 	DECLARE_ZERO(VkCommandBufferAllocateInfo, alloc_info);
 	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -3182,24 +3217,24 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	alloc_info.commandPool = pDesc->pPool->pVkCmdPool;
 	alloc_info.level = pDesc->mSecondary ? VK_COMMAND_BUFFER_LEVEL_SECONDARY : VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	alloc_info.commandBufferCount = 1;
-	CHECK_VKRESULT(vkAllocateCommandBuffers(pRenderer->pVkDevice, &alloc_info, &(pCmd->pVkCmdBuf)));
+	CHECK_VKRESULT(vkAllocateCommandBuffers(pRenderer->mVulkan.pVkDevice, &alloc_info, &(pCmd->mVulkan.pVkCmdBuf)));
 
 	*ppCmd = pCmd;
 }
 
-void removeCmd(Renderer* pRenderer, Cmd* pCmd)
+void vk_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 {
 	ASSERT(pRenderer);
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	vkFreeCommandBuffers(pRenderer->pVkDevice, pCmd->pCmdPool->pVkCmdPool, 1, &(pCmd->pVkCmdBuf));
+	vkFreeCommandBuffers(pRenderer->mVulkan.pVkDevice, pCmd->mVulkan.pCmdPool->pVkCmdPool, 1, &(pCmd->mVulkan.pVkCmdBuf));
 
 	SAFE_FREE(pCmd);
 }
 
-void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
+void vk_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
 	//verify that ***cmd is valid
 	ASSERT(pRenderer);
@@ -3219,7 +3254,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	*pppCmd = ppCmds;
 }
 
-void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
+void vk_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 {
 	//verify that given command list is valid
 	ASSERT(ppCmds);
@@ -3233,15 +3268,15 @@ void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 	SAFE_FREE(ppCmds);
 }
 
-void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
+void vk_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 {
 	SwapChain* pSwapChain = *ppSwapChain;
 
 	Queue queue = {};
-	queue.mVkQueueFamilyIndex = pSwapChain->mPresentQueueFamilyIndex;
+	queue.mVulkan.mVkQueueFamilyIndex = pSwapChain->mVulkan.mPresentQueueFamilyIndex;
 	Queue* queues[] = { &queue };
 
-	SwapChainDesc desc = *pSwapChain->pDesc;
+	SwapChainDesc desc = *pSwapChain->mVulkan.pDesc;
 	desc.mEnableVsync = !desc.mEnableVsync;
 	desc.mPresentQueueCount = 1;
 	desc.ppPresentQueues = queues;
@@ -3251,7 +3286,7 @@ void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 	addSwapChain(pRenderer, &desc, ppSwapChain);
 }
 
-void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
+void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -3261,7 +3296,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	/************************************************************************/
 	// Create surface
 	/************************************************************************/
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
 	VkSurfaceKHR vkSurface;
 	// Create a WSI surface for the window:
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -3271,7 +3306,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.flags = 0;
 	add_info.hinstance = ::GetModuleHandle(NULL);
 	add_info.hwnd = (HWND)pDesc->mWindowHandle.window;
-	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 	DECLARE_ZERO(VkXlibSurfaceCreateInfoKHR, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
@@ -3279,7 +3314,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.flags = 0;
 	add_info.dpy = pDesc->mWindowHandle.display;      //TODO
 	add_info.window = pDesc->mWindowHandle.window;    //TODO
-	CHECK_VKRESULT(vkCreateXlibSurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+	CHECK_VKRESULT(vkCreateXlibSurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	DECLARE_ZERO(VkXcbSurfaceCreateInfoKHR, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
@@ -3298,20 +3333,20 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.pNext = NULL;
 	add_info.flags = 0;
 	add_info.window = pDesc->mWindowHandle.window;
-	CHECK_VKRESULT(vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+	CHECK_VKRESULT(vkCreateAndroidSurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
 #elif defined(VK_USE_PLATFORM_GGP)
 	extern VkResult ggpCreateSurface(VkInstance, VkSurfaceKHR* surface);
 	CHECK_VKRESULT(ggpCreateSurface(pRenderer->pVkInstance, &vkSurface));
 #elif defined(VK_USE_PLATFORM_VI_NN)
 	extern VkResult nxCreateSurface(VkInstance, VkSurfaceKHR* surface);
-	CHECK_VKRESULT(nxCreateSurface(pRenderer->pVkInstance, &vkSurface));
+	CHECK_VKRESULT(nxCreateSurface(pRenderer->mVulkan.pVkInstance, &vkSurface));
 #else
 #error PLATFORM NOT SUPPORTED
 #endif
 	/************************************************************************/
 	// Create swap chain
 	/************************************************************************/
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkActiveGPU);
 
 	// Image count
 	if (0 == pDesc->mImageCount)
@@ -3320,7 +3355,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	}
 
 	DECLARE_ZERO(VkSurfaceCapabilitiesKHR, caps);
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderer->pVkActiveGPU, vkSurface, &caps));
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderer->mVulkan.pVkActiveGPU, vkSurface, &caps));
 
 	if ((caps.maxImageCount > 0) && (pDesc->mImageCount > caps.maxImageCount))
 	{
@@ -3343,11 +3378,11 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	VkSurfaceFormatKHR* formats = NULL;
 
 	// Get surface formats count
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->pVkActiveGPU, vkSurface, &surfaceFormatCount, NULL));
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->mVulkan.pVkActiveGPU, vkSurface, &surfaceFormatCount, NULL));
 
 	// Allocate and get surface formats
 	formats = (VkSurfaceFormatKHR*)tf_calloc(surfaceFormatCount, sizeof(*formats));
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->pVkActiveGPU, vkSurface, &surfaceFormatCount, formats));
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->mVulkan.pVkActiveGPU, vkSurface, &surfaceFormatCount, formats));
 
 	if ((1 == surfaceFormatCount) && (VK_FORMAT_UNDEFINED == formats[0].format))
 	{
@@ -3376,8 +3411,6 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		}
 	}
 
-	ASSERT(VK_FORMAT_UNDEFINED != surface_format.format);
-
 	// Free formats
 	SAFE_FREE(formats);
 
@@ -3387,11 +3420,11 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	uint32_t          swapChainImageCount = 0;
 	VkPresentModeKHR* modes = NULL;
 	// Get present mode count
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderer->pVkActiveGPU, vkSurface, &swapChainImageCount, NULL));
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderer->mVulkan.pVkActiveGPU, vkSurface, &swapChainImageCount, NULL));
 
 	// Allocate and get present modes
 	modes = (VkPresentModeKHR*)alloca(swapChainImageCount * sizeof(*modes));
-	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderer->pVkActiveGPU, vkSurface, &swapChainImageCount, modes));
+	CHECK_VKRESULT(vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderer->mVulkan.pVkActiveGPU, vkSurface, &swapChainImageCount, modes));
 
 	const uint32_t preferredModeCount = 4;
 	VkPresentModeKHR preferredModeList[preferredModeCount] = { VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR, VK_PRESENT_MODE_FIFO_KHR };
@@ -3422,15 +3455,15 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	VkSharingMode sharing_mode = VK_SHARING_MODE_EXCLUSIVE;
 	uint32_t      queue_family_index_count = 0;
-	uint32_t      queue_family_indices[2] = { pDesc->ppPresentQueues[0]->mVkQueueFamilyIndex, 0 };
+	uint32_t      queue_family_indices[2] = { pDesc->ppPresentQueues[0]->mVulkan.mVkQueueFamilyIndex, 0 };
 	uint32_t      presentQueueFamilyIndex = -1;
 
 	// Get queue family properties
 	uint32_t queueFamilyPropertyCount = 0;
 	VkQueueFamilyProperties* queueFamilyProperties = NULL;
-	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkActiveGPU, &queueFamilyPropertyCount, NULL);
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamilyPropertyCount, NULL);
 	queueFamilyProperties = (VkQueueFamilyProperties*)alloca(queueFamilyPropertyCount * sizeof(VkQueueFamilyProperties));
-	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->pVkActiveGPU, &queueFamilyPropertyCount, queueFamilyProperties);
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamilyPropertyCount, queueFamilyProperties);
 
 	// Check if hardware provides dedicated present queue
 	if (queueFamilyPropertyCount)
@@ -3438,8 +3471,8 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		for (uint32_t index = 0; index < queueFamilyPropertyCount; ++index)
 		{
 			VkBool32 supports_present = VK_FALSE;
-			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->pVkActiveGPU, index, vkSurface, &supports_present);
-			if ((VK_SUCCESS == res) && (VK_TRUE == supports_present) && pDesc->ppPresentQueues[0]->mVkQueueFamilyIndex != index)
+			VkResult res = vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->mVulkan.pVkActiveGPU, index, vkSurface, &supports_present);
+			if ((VK_SUCCESS == res) && (VK_TRUE == supports_present) && pDesc->ppPresentQueues[0]->mVulkan.mVkQueueFamilyIndex != index)
 			{
 				presentQueueFamilyIndex = index;
 				break;
@@ -3453,7 +3486,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 			{
 				VkBool32 supports_present = VK_FALSE;
 				VkResult res =
-					vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->pVkActiveGPU, index, vkSurface, &supports_present);
+					vkGetPhysicalDeviceSurfaceSupportKHR(pRenderer->mVulkan.pVkActiveGPU, index, vkSurface, &supports_present);
 				if ((VK_SUCCESS == res) && (VK_TRUE == supports_present))
 				{
 					presentQueueFamilyIndex = index;
@@ -3474,7 +3507,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	if (presentQueueFamilyIndex != -1 && queue_family_indices[0] != presentQueueFamilyIndex)
 	{
 		queue_family_indices[0] = presentQueueFamilyIndex;
-		vkGetDeviceQueue(pRenderer->pVkDevice, queue_family_indices[0], 0, &presentQueue);
+		vkGetDeviceQueue(pRenderer->mVulkan.pVkDevice, queue_family_indices[0], 0, &presentQueue);
 		queue_family_index_count = 1;
 		finalPresentQueueFamilyIndex = presentQueueFamilyIndex;
 	}
@@ -3525,7 +3558,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	swapChainCreateInfo.imageColorSpace = surface_format.colorSpace;
 	swapChainCreateInfo.imageExtent = extent;
 	swapChainCreateInfo.imageArrayLayers = 1;
-	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	swapChainCreateInfo.imageSharingMode = sharing_mode;
 	swapChainCreateInfo.queueFamilyIndexCount = queue_family_index_count;
 	swapChainCreateInfo.pQueueFamilyIndices = queue_family_indices;
@@ -3534,23 +3567,23 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	swapChainCreateInfo.presentMode = present_mode;
 	swapChainCreateInfo.clipped = VK_TRUE;
 	swapChainCreateInfo.oldSwapchain = 0;
-	CHECK_VKRESULT(vkCreateSwapchainKHR(pRenderer->pVkDevice, &swapChainCreateInfo, &gVkAllocationCallbacks, &vkSwapchain));
+	CHECK_VKRESULT(vkCreateSwapchainKHR(pRenderer->mVulkan.pVkDevice, &swapChainCreateInfo, &gVkAllocationCallbacks, &vkSwapchain));
 
 	((SwapChainDesc*)pDesc)->mColorFormat = TinyImageFormat_FromVkFormat((TinyImageFormat_VkFormat)surface_format.format);
 
 	// Create rendertargets from swapchain
 	uint32_t imageCount = 0;
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->pVkDevice, vkSwapchain, &imageCount, NULL));
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->mVulkan.pVkDevice, vkSwapchain, &imageCount, NULL));
 
-	ASSERT(imageCount == pDesc->mImageCount);
+	ASSERT(imageCount >= pDesc->mImageCount);
 
 	VkImage* images = (VkImage*)alloca(imageCount * sizeof(VkImage));
 
-	CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->pVkDevice, vkSwapchain, &imageCount, images));
+	CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->mVulkan.pVkDevice, vkSwapchain, &imageCount, images));
 
 	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + imageCount * sizeof(RenderTarget*) + sizeof(SwapChainDesc));
 	pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
-	pSwapChain->pDesc = (SwapChainDesc*)(pSwapChain->ppRenderTargets + imageCount);
+	pSwapChain->mVulkan.pDesc = (SwapChainDesc*)(pSwapChain->ppRenderTargets + imageCount);
 	ASSERT(pSwapChain);
 
 	RenderTargetDesc descColor = {};
@@ -3562,58 +3595,28 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	descColor.mClearValue = pDesc->mColorClearValue;
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
-
-	RenderTargetBarrier barriers[MAX_SWAPCHAIN_IMAGES] = {};
+	descColor.mStartState = RESOURCE_STATE_PRESENT;
 
 	// Populate the vk_image field and add the Vulkan texture objects
 	for (uint32_t i = 0; i < imageCount; ++i)
 	{
 		descColor.pNativeHandle = (void*)images[i];
 		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
-		barriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT };
 	}
-
-	Queue* queue = NULL;
-	CmdPool* cmdPool = NULL;
-	Cmd* cmd = NULL;
-	Fence* fence = NULL;
-	QueueDesc queueDesc = {};
-	queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-	addQueue(pRenderer, &queueDesc, &queue);
-	CmdPoolDesc cmdPoolDesc = {};
-	cmdPoolDesc.pQueue = queue;
-	addCmdPool(pRenderer, &cmdPoolDesc, &cmdPool);
-	CmdDesc cmdDesc = {};
-	cmdDesc.pPool = cmdPool;
-	addCmd(pRenderer, &cmdDesc, &cmd);
-	addFence(pRenderer, &fence);
-	beginCmd(cmd);
-	cmdResourceBarrier(cmd, 0, NULL, 0, NULL, imageCount, barriers);
-	endCmd(cmd);
-	QueueSubmitDesc submitDesc = {};
-	submitDesc.mCmdCount = 1;
-	submitDesc.ppCmds = &cmd;
-	submitDesc.pSignalFence = fence;
-	queueSubmit(queue, &submitDesc);
-	waitForFences(pRenderer, 1, &fence);
-	removeFence(pRenderer, fence);
-	removeCmd(pRenderer, cmd);
-	removeCmdPool(pRenderer, cmdPool);
-	removeQueue(pRenderer, queue);
 	/************************************************************************/
 	/************************************************************************/
-	*pSwapChain->pDesc = *pDesc;
+	*pSwapChain->mVulkan.pDesc = *pDesc;
 	pSwapChain->mEnableVsync = pDesc->mEnableVsync;
 	pSwapChain->mImageCount = imageCount;
-	pSwapChain->pVkSurface = vkSurface;
-	pSwapChain->mPresentQueueFamilyIndex = finalPresentQueueFamilyIndex;
-	pSwapChain->pPresentQueue = presentQueue;
-	pSwapChain->pSwapChain = vkSwapchain;
+	pSwapChain->mVulkan.pVkSurface = vkSurface;
+	pSwapChain->mVulkan.mPresentQueueFamilyIndex = finalPresentQueueFamilyIndex;
+	pSwapChain->mVulkan.pPresentQueue = presentQueue;
+	pSwapChain->mVulkan.pSwapChain = vkSwapchain;
 	
 	*ppSwapChain = pSwapChain;
 }
 
-void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
+void vk_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
 	ASSERT(pRenderer);
 	ASSERT(pSwapChain);
@@ -3623,18 +3626,18 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 		removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
 	}
 
-	vkDestroySwapchainKHR(pRenderer->pVkDevice, pSwapChain->pSwapChain, &gVkAllocationCallbacks);
-	vkDestroySurfaceKHR(pRenderer->pVkInstance, pSwapChain->pVkSurface, &gVkAllocationCallbacks);
+	vkDestroySwapchainKHR(pRenderer->mVulkan.pVkDevice, pSwapChain->mVulkan.pSwapChain, &gVkAllocationCallbacks);
+	vkDestroySurfaceKHR(pRenderer->mVulkan.pVkInstance, pSwapChain->mVulkan.pVkSurface, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pSwapChain);
 }
 
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
+void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
 	ASSERT(pDesc->mSize > 0);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(ppBuffer);
@@ -3663,9 +3666,8 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 
 	const bool linkedMultiGpu = (pRenderer->mGpuMode == GPU_MODE_LINKED && (pDesc->pSharedNodeIndices || pDesc->mNodeIndex));
 
-	VmaAllocationCreateInfo vma_mem_reqs = { 0 };
+	VmaAllocationCreateInfo vma_mem_reqs = {};
 	vma_mem_reqs.usage = (VmaMemoryUsage)pDesc->mMemoryUsage;
-	vma_mem_reqs.flags = 0;
 	if (pDesc->mFlags & BUFFER_CREATION_FLAG_OWN_MEMORY_BIT)
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 	if (pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
@@ -3674,8 +3676,8 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_DONT_BIND_BIT;
 
 	VmaAllocationInfo alloc_info = {};
-	CHECK_VKRESULT(vmaCreateBuffer(pRenderer->pVmaAllocator, &add_info, &vma_mem_reqs,
-		&pBuffer->pVkBuffer, &pBuffer->pVkAllocation, &alloc_info));
+	CHECK_VKRESULT(vmaCreateBuffer(pRenderer->mVulkan.pVmaAllocator, &add_info, &vma_mem_reqs,
+		&pBuffer->mVulkan.pVkBuffer, &pBuffer->mVulkan.pVkAllocation, &alloc_info));
 
 	pBuffer->pCpuMappedAddress = alloc_info.pMappedData;
 	/************************************************************************/
@@ -3684,7 +3686,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	if (linkedMultiGpu)
 	{
 		VmaAllocationInfo allocInfo = {};
-		vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
+		vmaGetAllocationInfo(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &allocInfo);
 		/************************************************************************/
 		// Set all the device indices to the index of the device where we will create the buffer
 		/************************************************************************/
@@ -3697,11 +3699,11 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		VkBindBufferMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_DEVICE_GROUP_INFO_KHR };
 		bindDeviceGroup.deviceIndexCount = pRenderer->mLinkedNodeCount;
 		bindDeviceGroup.pDeviceIndices = pIndices;
-		bindInfo.buffer = pBuffer->pVkBuffer;
+		bindInfo.buffer = pBuffer->mVulkan.pVkBuffer;
 		bindInfo.memory = allocInfo.deviceMemory;
 		bindInfo.memoryOffset = allocInfo.offset;
 		bindInfo.pNext = &bindDeviceGroup;
-		CHECK_VKRESULT(vkBindBufferMemory2KHR(pRenderer->pVkDevice, 1, &bindInfo));
+		CHECK_VKRESULT(vkBindBufferMemory2KHR(pRenderer->mVulkan.pVkDevice, 1, &bindInfo));
 		/************************************************************************/
 		/************************************************************************/
 	}
@@ -3713,46 +3715,46 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	{
 		if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) || (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER))
 		{
-			pBuffer->mOffset = pDesc->mStructStride * pDesc->mFirstElement;
+			pBuffer->mVulkan.mOffset = pDesc->mStructStride * pDesc->mFirstElement;
 		}
 	}
 
 	if (add_info.usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)
 	{
 		VkBufferViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL };
-		viewInfo.buffer = pBuffer->pVkBuffer;
+		viewInfo.buffer = pBuffer->mVulkan.pVkBuffer;
 		viewInfo.flags = 0;
 		viewInfo.format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mFormat);
 		viewInfo.offset = pDesc->mFirstElement * pDesc->mStructStride;
 		viewInfo.range = pDesc->mElementCount * pDesc->mStructStride;
 		VkFormatProperties formatProps = {};
-		vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, viewInfo.format, &formatProps);
+		vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, viewInfo.format, &formatProps);
 		if (!(formatProps.bufferFeatures & VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT))
 		{
 			LOGF(LogLevel::eWARNING, "Failed to create uniform texel buffer view for format %u", (uint32_t)pDesc->mFormat);
 		}
 		else
 		{
-			CHECK_VKRESULT(vkCreateBufferView(pRenderer->pVkDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->pVkUniformTexelView));
+			CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVulkan.pVkDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->mVulkan.pVkUniformTexelView));
 		}
 	}
 	if (add_info.usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
 	{
 		VkBufferViewCreateInfo viewInfo = { VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL };
-		viewInfo.buffer = pBuffer->pVkBuffer;
+		viewInfo.buffer = pBuffer->mVulkan.pVkBuffer;
 		viewInfo.flags = 0;
 		viewInfo.format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mFormat);
 		viewInfo.offset = pDesc->mFirstElement * pDesc->mStructStride;
 		viewInfo.range = pDesc->mElementCount * pDesc->mStructStride;
 		VkFormatProperties formatProps = {};
-		vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, viewInfo.format, &formatProps);
+		vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, viewInfo.format, &formatProps);
 		if (!(formatProps.bufferFeatures & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT))
 		{
 			LOGF(LogLevel::eWARNING, "Failed to create storage texel buffer view for format %u", (uint32_t)pDesc->mFormat);
 		}
 		else
 		{
-			CHECK_VKRESULT(vkCreateBufferView(pRenderer->pVkDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->pVkStorageTexelView));
+			CHECK_VKRESULT(vkCreateBufferView(pRenderer->mVulkan.pVkDevice, &viewInfo, &gVkAllocationCallbacks, &pBuffer->mVulkan.pVkStorageTexelView));
 		}
 	}
 
@@ -3773,30 +3775,30 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	*ppBuffer = pBuffer;
 }
 
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void vk_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	ASSERT(pRenderer);
 	ASSERT(pBuffer);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pBuffer->pVkBuffer);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pBuffer->mVulkan.pVkBuffer);
 
-	if (pBuffer->pVkUniformTexelView)
+	if (pBuffer->mVulkan.pVkUniformTexelView)
 	{
-		vkDestroyBufferView(pRenderer->pVkDevice, pBuffer->pVkUniformTexelView, &gVkAllocationCallbacks);
-		pBuffer->pVkUniformTexelView = VK_NULL_HANDLE;
+		vkDestroyBufferView(pRenderer->mVulkan.pVkDevice, pBuffer->mVulkan.pVkUniformTexelView, &gVkAllocationCallbacks);
+		pBuffer->mVulkan.pVkUniformTexelView = VK_NULL_HANDLE;
 	}
-	if (pBuffer->pVkStorageTexelView)
+	if (pBuffer->mVulkan.pVkStorageTexelView)
 	{
-		vkDestroyBufferView(pRenderer->pVkDevice, pBuffer->pVkStorageTexelView, &gVkAllocationCallbacks);
-		pBuffer->pVkStorageTexelView = VK_NULL_HANDLE;
+		vkDestroyBufferView(pRenderer->mVulkan.pVkDevice, pBuffer->mVulkan.pVkStorageTexelView, &gVkAllocationCallbacks);
+		pBuffer->mVulkan.pVkStorageTexelView = VK_NULL_HANDLE;
 	}
 
-	vmaDestroyBuffer(pRenderer->pVmaAllocator, pBuffer->pVkBuffer, pBuffer->pVkAllocation);
+	vmaDestroyBuffer(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkBuffer, pBuffer->mVulkan.pVkAllocation);
 
 	SAFE_FREE(pBuffer);
 }
 
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
@@ -3813,12 +3815,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	ASSERT(pTexture);
 
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
-		pTexture->pVkUAVDescriptors = (VkImageView*)(pTexture + 1);
+		pTexture->mVulkan.pVkUAVDescriptors = (VkImageView*)(pTexture + 1);
 
 	if (pDesc->pNativeHandle && !(pDesc->mFlags & TEXTURE_CREATION_FLAG_IMPORT_BIT))
 	{
 		pTexture->mOwnsImage = false;
-		pTexture->pVkImage = (VkImage)pDesc->pNativeHandle;
+		pTexture->mVulkan.pVkImage = (VkImage)pDesc->pNativeHandle;
 	}
 	else
 	{
@@ -3864,7 +3866,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	if (image_type == VK_IMAGE_TYPE_3D)
 		arrayRequired = true;
 
-	if (VK_NULL_HANDLE == pTexture->pVkImage)
+	if (VK_NULL_HANDLE == pTexture->mVulkan.pVkImage)
 	{
 		DECLARE_ZERO(VkImageCreateInfo, add_info);
 		add_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -3892,7 +3894,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			add_info.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
 
 		DECLARE_ZERO(VkFormatProperties, format_props);
-		vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, add_info.format, &format_props);
+		vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, add_info.format, &format_props);
 		if (isPlanarFormat) // multi-planar formats must have each plane separately bound to memory, rather than having a single memory binding for the whole image
 		{
 			ASSERT(format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_DISJOINT_BIT);
@@ -3965,8 +3967,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		VmaAllocationInfo alloc_info = {};
 		if (isSinglePlane)
 		{
-			CHECK_VKRESULT(vmaCreateImage(pRenderer->pVmaAllocator, &add_info, &mem_reqs,
-				&pTexture->pVkImage, &pTexture->pVkAllocation, &alloc_info));
+			CHECK_VKRESULT(vmaCreateImage(pRenderer->mVulkan.pVmaAllocator, &add_info, &mem_reqs,
+				&pTexture->mVulkan.pVkImage, &pTexture->mVulkan.pVkAllocation, &alloc_info));
 		}
 		else // Multi-planar formats
 		{
@@ -3982,22 +3984,22 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			formatList.viewFormatCount = 1;
 
 			add_info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-			add_info.pNext = &formatList;
+			add_info.pNext = &formatList; //-V506
 
 			// Create Image
-			CHECK_VKRESULT(vkCreateImage(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &pTexture->pVkImage));
+			CHECK_VKRESULT(vkCreateImage(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkImage));
 
 			VkMemoryRequirements vkMemReq = {};
 			uint64_t planesOffsets[MAX_PLANE_COUNT] = {0};
-			util_get_planar_vk_image_memory_requirement(pRenderer->pVkDevice, pTexture->pVkImage, numOfPlanes, &vkMemReq, planesOffsets);
+			util_get_planar_vk_image_memory_requirement(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkImage, numOfPlanes, &vkMemReq, planesOffsets);
 			
 			// Allocate image memory
 			VkMemoryAllocateInfo mem_alloc_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 			mem_alloc_info.allocationSize = vkMemReq.size;
 			VkPhysicalDeviceMemoryProperties memProps = {};
-			vkGetPhysicalDeviceMemoryProperties(pRenderer->pVkActiveGPU, &memProps);
+			vkGetPhysicalDeviceMemoryProperties(pRenderer->mVulkan.pVkActiveGPU, &memProps);
 			mem_alloc_info.memoryTypeIndex = util_get_memory_type(vkMemReq.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			CHECK_VKRESULT(vkAllocateMemory(pRenderer->pVkDevice, &mem_alloc_info, &gVkAllocationCallbacks, &pTexture->pVkDeviceMemory));
+			CHECK_VKRESULT(vkAllocateMemory(pRenderer->mVulkan.pVkDevice, &mem_alloc_info, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkDeviceMemory));
 
 			// Bind planes to their memories
 			VkBindImageMemoryInfo bindImagesMemoryInfo[MAX_PLANE_COUNT];
@@ -4012,12 +4014,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 				VkBindImageMemoryInfo& bindImageMemoryInfo = bindImagesMemoryInfo[i];
 				bindImageMemoryInfo.sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO;
 				bindImageMemoryInfo.pNext = &bindImagePlaneMemoryInfo;
-				bindImageMemoryInfo.image = pTexture->pVkImage;
-				bindImageMemoryInfo.memory = pTexture->pVkDeviceMemory;
+				bindImageMemoryInfo.image = pTexture->mVulkan.pVkImage;
+				bindImageMemoryInfo.memory = pTexture->mVulkan.pVkDeviceMemory;
 				bindImageMemoryInfo.memoryOffset = planesOffsets[i];
 			}
 
-			CHECK_VKRESULT(vkBindImageMemory2(pRenderer->pVkDevice, numOfPlanes, bindImagesMemoryInfo));
+			CHECK_VKRESULT(vkBindImageMemory2(pRenderer->mVulkan.pVkDevice, numOfPlanes, bindImagesMemoryInfo));
 		}
 
 		/************************************************************************/
@@ -4026,7 +4028,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		if (linkedMultiGpu)
 		{
 			VmaAllocationInfo allocInfo = {};
-			vmaGetAllocationInfo(pRenderer->pVmaAllocator, pTexture->pVkAllocation, &allocInfo);
+			vmaGetAllocationInfo(pRenderer->mVulkan.pVmaAllocator, pTexture->mVulkan.pVkAllocation, &allocInfo);
 			/************************************************************************/
 			// Set all the device indices to the index of the device where we will create the texture
 			/************************************************************************/
@@ -4039,11 +4041,11 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			VkBindImageMemoryDeviceGroupInfoKHR bindDeviceGroup = { VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_DEVICE_GROUP_INFO_KHR };
 			bindDeviceGroup.deviceIndexCount = pRenderer->mLinkedNodeCount;
 			bindDeviceGroup.pDeviceIndices = pIndices;
-			bindInfo.image = pTexture->pVkImage;
+			bindInfo.image = pTexture->mVulkan.pVkImage;
 			bindInfo.memory = allocInfo.deviceMemory;
 			bindInfo.memoryOffset = allocInfo.offset;
 			bindInfo.pNext = &bindDeviceGroup;
-			CHECK_VKRESULT(vkBindImageMemory2KHR(pRenderer->pVkDevice, 1, &bindInfo));
+			CHECK_VKRESULT(vkBindImageMemory2KHR(pRenderer->mVulkan.pVkDevice, 1, &bindInfo));
 			/************************************************************************/
 			/************************************************************************/
 		}
@@ -4079,7 +4081,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	srvDesc.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	srvDesc.pNext = NULL;
 	srvDesc.flags = 0;
-	srvDesc.image = pTexture->pVkImage;
+	srvDesc.image = pTexture->mVulkan.pVkImage;
 	srvDesc.viewType = view_type;
 	srvDesc.format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mFormat);
 	srvDesc.components.r = VK_COMPONENT_SWIZZLE_R;
@@ -4100,7 +4102,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	if (descriptors & DESCRIPTOR_TYPE_TEXTURE)
 	{
-		CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->pVkSRVDescriptor));
+		CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkSRVDescriptor));
 	}
 
 	// SRV stencil
@@ -4108,7 +4110,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 				&& (descriptors & DESCRIPTOR_TYPE_TEXTURE))
 	{
 		srvDesc.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-		CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->pVkSRVStencilDescriptor));
+		CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &srvDesc, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkSRVStencilDescriptor));
 	}
 
 	// UAV
@@ -4123,7 +4125,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
 			uavDesc.subresourceRange.baseMipLevel = i;
-			CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &uavDesc, &gVkAllocationCallbacks, &pTexture->pVkUAVDescriptors[i]));
+			CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &uavDesc, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkUAVDescriptors[i]));
 		}
 	}
 	/************************************************************************/
@@ -4147,12 +4149,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	*ppTexture = pTexture;
 }
 
-void removeTexture(Renderer* pRenderer, Texture* pTexture)
+void vk_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pTexture->pVkImage);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pTexture->mVulkan.pVkImage);
 
 	if (pTexture->mOwnsImage)
 	{
@@ -4160,26 +4162,26 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 		const bool isSinglePlane = TinyImageFormat_IsSinglePlane(fmt);
 		if (isSinglePlane)
 		{
-			vmaDestroyImage(pRenderer->pVmaAllocator, pTexture->pVkImage, pTexture->pVkAllocation);
+			vmaDestroyImage(pRenderer->mVulkan.pVmaAllocator, pTexture->mVulkan.pVkImage, pTexture->mVulkan.pVkAllocation);
 		}
 		else
 		{
-			vkDestroyImage(pRenderer->pVkDevice, pTexture->pVkImage, &gVkAllocationCallbacks);
-			vkFreeMemory(pRenderer->pVkDevice, pTexture->pVkDeviceMemory, &gVkAllocationCallbacks);
+			vkDestroyImage(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkImage, &gVkAllocationCallbacks);
+			vkFreeMemory(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkDeviceMemory, &gVkAllocationCallbacks);
 		}
 	}
 
-	if (VK_NULL_HANDLE != pTexture->pVkSRVDescriptor)
-		vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkSRVDescriptor, &gVkAllocationCallbacks);
+	if (VK_NULL_HANDLE != pTexture->mVulkan.pVkSRVDescriptor)
+		vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkSRVDescriptor, &gVkAllocationCallbacks);
 
-	if (VK_NULL_HANDLE != pTexture->pVkSRVStencilDescriptor)
-		vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkSRVStencilDescriptor, &gVkAllocationCallbacks);
+	if (VK_NULL_HANDLE != pTexture->mVulkan.pVkSRVStencilDescriptor)
+		vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkSRVStencilDescriptor, &gVkAllocationCallbacks);
 
-	if (pTexture->pVkUAVDescriptors)
+	if (pTexture->mVulkan.pVkUAVDescriptors)
 	{
 		for (uint32_t i = 0; i < pTexture->mMipLevels; ++i)
 		{
-			vkDestroyImageView(pRenderer->pVkDevice, pTexture->pVkUAVDescriptors[i], &gVkAllocationCallbacks);
+			vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkUAVDescriptors[i], &gVkAllocationCallbacks);
 		}
 	}
 
@@ -4191,7 +4193,7 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	SAFE_FREE(pTexture);
 }
 
-void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
+void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -4214,10 +4216,10 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	RenderTarget* pRenderTarget = (RenderTarget*)tf_calloc_memalign(1, alignof(RenderTarget), totalSize);
 	ASSERT(pRenderTarget);
 
-	pRenderTarget->pVkSliceDescriptors = (VkImageView*)(pRenderTarget + 1);
+	pRenderTarget->mVulkan.pVkSliceDescriptors = (VkImageView*)(pRenderTarget + 1);
 
 	// Monotonically increasing thread safe id generation
-	pRenderTarget->mId = tfrg_atomic32_add_relaxed(&gRenderTargetIds, 1);
+	pRenderTarget->mVulkan.mId = tfrg_atomic32_add_relaxed(&gRenderTargetIds, 1);
 
 	TextureDesc textureDesc = {};
 	textureDesc.mArraySize = pDesc->mArraySize;
@@ -4253,7 +4255,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 		{
 			DECLARE_ZERO(VkImageFormatProperties, properties);
 			VkResult vk_res = vkGetPhysicalDeviceImageFormatProperties(
-				pRenderer->pVkActiveGPU, vk_depth_stencil_format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
+				pRenderer->mVulkan.pVkActiveGPU, vk_depth_stencil_format, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
 				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, &properties);
 			// Fall back to something that's guaranteed to work
 			if (VK_SUCCESS != vk_res)
@@ -4276,7 +4278,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 
 	VkImageViewCreateInfo rtvDesc = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL };
 	rtvDesc.flags = 0;
-	rtvDesc.image = pRenderTarget->pTexture->pVkImage;
+	rtvDesc.image = pRenderTarget->pTexture->mVulkan.pVkImage;
 	rtvDesc.viewType = viewType;
 	rtvDesc.format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mFormat);
 	rtvDesc.components.r = VK_COMPONENT_SWIZZLE_R;
@@ -4289,7 +4291,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	rtvDesc.subresourceRange.baseArrayLayer = 0;
 	rtvDesc.subresourceRange.layerCount = depthOrArraySize;
 
-	CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->pVkDescriptor));
+	CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->mVulkan.pVkDescriptor));
 
 	for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 	{
@@ -4301,12 +4303,12 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 			{
 				rtvDesc.subresourceRange.layerCount = 1;
 				rtvDesc.subresourceRange.baseArrayLayer = j;
-				CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->pVkSliceDescriptors[i * depthOrArraySize + j]));
+				CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->mVulkan.pVkSliceDescriptors[i * depthOrArraySize + j]));
 			}
 		}
 		else
 		{
-			CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->pVkSliceDescriptors[i]));
+			CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &rtvDesc, &gVkAllocationCallbacks, &pRenderTarget->mVulkan.pVkSliceDescriptors[i]));
 		}
 	}
 
@@ -4320,14 +4322,19 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	pRenderTarget->mFormat = pDesc->mFormat;
 	pRenderTarget->mClearValue = pDesc->mClearValue;
 
+	// Unlike DX12, Vulkan textures start in undefined layout.
+	// To keep in line with DX12, we transition them to the specified layout manually so app code doesn't have to worry about this
+	// Render targets wont be created during runtime so this overhead will be minimal
+	util_initial_transition(pRenderer, pRenderTarget->pTexture, pDesc->mStartState);
+
 	*ppRenderTarget = pRenderTarget;
 }
 
-void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
+void vk_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
 	::removeTexture(pRenderer, pRenderTarget->pTexture);
 
-	vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkDescriptor, &gVkAllocationCallbacks);
+	vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pRenderTarget->mVulkan.pVkDescriptor, &gVkAllocationCallbacks);
 
 	const uint32_t depthOrArraySize = pRenderTarget->mArraySize * pRenderTarget->mDepth;
 	if ((pRenderTarget->mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_ARRAY_SLICES) ||
@@ -4335,21 +4342,21 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
 		for (uint32_t i = 0; i < pRenderTarget->mMipLevels; ++i)
 			for (uint32_t j = 0; j < depthOrArraySize; ++j)
-				vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkSliceDescriptors[i * depthOrArraySize + j], &gVkAllocationCallbacks);
+				vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pRenderTarget->mVulkan.pVkSliceDescriptors[i * depthOrArraySize + j], &gVkAllocationCallbacks);
 	}
 	else
 	{
 		for (uint32_t i = 0; i < pRenderTarget->mMipLevels; ++i)
-			vkDestroyImageView(pRenderer->pVkDevice, pRenderTarget->pVkSliceDescriptors[i], &gVkAllocationCallbacks);
+			vkDestroyImageView(pRenderer->mVulkan.pVkDevice, pRenderTarget->mVulkan.pVkSliceDescriptors[i], &gVkAllocationCallbacks);
 	}
 
 	SAFE_FREE(pRenderTarget);
 }
 
-void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
+void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
 {
 	ASSERT(pRenderer);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 	ASSERT(pDesc->mCompareFunc < MAX_COMPARE_MODES);
 	ASSERT(ppSampler);
 
@@ -4386,7 +4393,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 			ASSERT(gYCbCrExtension);
 
 			DECLARE_ZERO(VkFormatProperties, format_props);
-			vkGetPhysicalDeviceFormatProperties(pRenderer->pVkActiveGPU, format, &format_props);
+			vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, format, &format_props);
 			if (conversionDesc.mChromaOffsetX == SAMPLE_LOCATION_MIDPOINT)
 			{
 				ASSERT(format_props.optimalTilingFeatures & VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT);
@@ -4408,32 +4415,32 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 		conversion_info.yChromaOffset = (VkChromaLocation)conversionDesc.mChromaOffsetY;
 		conversion_info.chromaFilter = util_to_vk_filter(conversionDesc.mChromaFilter);
 		conversion_info.forceExplicitReconstruction = conversionDesc.mForceExplicitReconstruction ? VK_TRUE : VK_FALSE;
-		CHECK_VKRESULT(vkCreateSamplerYcbcrConversion(pRenderer->pVkDevice, &conversion_info, &gVkAllocationCallbacks, &pSampler->pVkSamplerYcbcrConversion));
+		CHECK_VKRESULT(vkCreateSamplerYcbcrConversion(pRenderer->mVulkan.pVkDevice, &conversion_info, &gVkAllocationCallbacks, &pSampler->mVulkan.pVkSamplerYcbcrConversion));
 		
-		pSampler->mVkSamplerYcbcrConversionInfo	= {};
-		pSampler->mVkSamplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
-		pSampler->mVkSamplerYcbcrConversionInfo.pNext = NULL;
-		pSampler->mVkSamplerYcbcrConversionInfo.conversion = pSampler->pVkSamplerYcbcrConversion;
-		add_info.pNext = &pSampler->mVkSamplerYcbcrConversionInfo;
+		pSampler->mVulkan.mVkSamplerYcbcrConversionInfo	= {};
+		pSampler->mVulkan.mVkSamplerYcbcrConversionInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO;
+		pSampler->mVulkan.mVkSamplerYcbcrConversionInfo.pNext = NULL;
+		pSampler->mVulkan.mVkSamplerYcbcrConversionInfo.conversion = pSampler->mVulkan.pVkSamplerYcbcrConversion;
+		add_info.pNext = &pSampler->mVulkan.mVkSamplerYcbcrConversionInfo;
 	}
 
-	CHECK_VKRESULT(vkCreateSampler(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSampler->pVkSampler)));
+	CHECK_VKRESULT(vkCreateSampler(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSampler->mVulkan.pVkSampler)));
 
 	*ppSampler = pSampler;
 }
 
-void removeSampler(Renderer* pRenderer, Sampler* pSampler)
+void vk_removeSampler(Renderer* pRenderer, Sampler* pSampler)
 {
 	ASSERT(pRenderer);
 	ASSERT(pSampler);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pSampler->pVkSampler);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pSampler->mVulkan.pVkSampler);
 
-	vkDestroySampler(pRenderer->pVkDevice, pSampler->pVkSampler, &gVkAllocationCallbacks);
+	vkDestroySampler(pRenderer->mVulkan.pVkDevice, pSampler->mVulkan.pVkSampler, &gVkAllocationCallbacks);
 
-	if (NULL != pSampler->pVkSamplerYcbcrConversion)
+	if (NULL != pSampler->mVulkan.pVkSamplerYcbcrConversion)
 	{
-		vkDestroySamplerYcbcrConversion(pRenderer->pVkDevice, pSampler->pVkSamplerYcbcrConversion, &gVkAllocationCallbacks);
+		vkDestroySamplerYcbcrConversion(pRenderer->mVulkan.pVkDevice, pSampler->mVulkan.pVkSamplerYcbcrConversion, &gVkAllocationCallbacks);
 	}
 
 	SAFE_FREE(pSampler);
@@ -4442,11 +4449,11 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 /************************************************************************/
 // Buffer Functions
 /************************************************************************/
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+void vk_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
 	ASSERT(pBuffer->mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to map non-cpu accessible resource");
 
-	VkResult vk_res = vmaMapMemory(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &pBuffer->pCpuMappedAddress);
+	VkResult vk_res = vmaMapMemory(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &pBuffer->pCpuMappedAddress);
 	ASSERT(vk_res == VK_SUCCESS);
 
 	if (pRange)
@@ -4455,17 +4462,17 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 	}
 }
 
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void vk_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	ASSERT(pBuffer->mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to unmap non-cpu accessible resource");
 
-	vmaUnmapMemory(pRenderer->pVmaAllocator, pBuffer->pVkAllocation);
+	vmaUnmapMemory(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation);
 	pBuffer->pCpuMappedAddress = NULL;
 }
 /************************************************************************/
 // Descriptor Set Functions
 /************************************************************************/
-void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
+void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -4474,11 +4481,11 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 	const RootSignature* pRootSignature = pDesc->pRootSignature;
 	const DescriptorUpdateFrequency updateFreq = pDesc->mUpdateFrequency;
 	const uint32_t nodeIndex = pDesc->mNodeIndex;
-	const uint32_t descriptorCount = pRootSignature->mVkCumulativeDescriptorCounts[updateFreq];
-	const uint32_t dynamicOffsetCount = pRootSignature->mVkDynamicDescriptorCounts[updateFreq];
+	const uint32_t descriptorCount = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[updateFreq];
+	const uint32_t dynamicOffsetCount = pRootSignature->mVulkan.mVkDynamicDescriptorCounts[updateFreq];
 
 	uint32_t totalSize = sizeof(DescriptorSet);
-	if (VK_NULL_HANDLE != pRootSignature->mVkDescriptorSetLayouts[updateFreq])
+	if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq])
 	{
 		totalSize += pDesc->mMaxSets * sizeof(VkDescriptorSet);
 		totalSize += pDesc->mMaxSets * sizeof(DescriptorUpdateData*);
@@ -4492,20 +4499,20 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 
 	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
 
-	pDescriptorSet->pRootSignature = pRootSignature;
-	pDescriptorSet->mUpdateFrequency = updateFreq;
-	pDescriptorSet->mDynamicOffsetCount = dynamicOffsetCount;
-	pDescriptorSet->mNodeIndex = nodeIndex;
-	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
+	pDescriptorSet->mVulkan.pRootSignature = pRootSignature;
+	pDescriptorSet->mVulkan.mUpdateFrequency = updateFreq;
+	pDescriptorSet->mVulkan.mDynamicOffsetCount = dynamicOffsetCount;
+	pDescriptorSet->mVulkan.mNodeIndex = nodeIndex;
+	pDescriptorSet->mVulkan.mMaxSets = pDesc->mMaxSets;
 
 	uint8_t* pMem = (uint8_t*)(pDescriptorSet + 1);
-	pDescriptorSet->pHandles = (VkDescriptorSet*)pMem;
+	pDescriptorSet->mVulkan.pHandles = (VkDescriptorSet*)pMem;
 
-	if (VK_NULL_HANDLE != pRootSignature->mVkDescriptorSetLayouts[updateFreq])
+	if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq])
 	{
 		pMem += pDesc->mMaxSets * sizeof(VkDescriptorSet);
 
-		pDescriptorSet->ppUpdateData = (DescriptorUpdateData**)pMem;
+		pDescriptorSet->mVulkan.ppUpdateData = (DescriptorUpdateData**)pMem;
 		pMem += pDesc->mMaxSets * sizeof(DescriptorUpdateData*);
 
 		VkDescriptorSetLayout* pLayouts = (VkDescriptorSetLayout*)alloca(pDesc->mMaxSets * sizeof(VkDescriptorSetLayout));
@@ -4513,15 +4520,15 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 
 		for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
 		{
-			pLayouts[i] = pRootSignature->mVkDescriptorSetLayouts[updateFreq];
-			pHandles[i] = &pDescriptorSet->pHandles[i];
+			pLayouts[i] = pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq];
+			pHandles[i] = &pDescriptorSet->mVulkan.pHandles[i];
 
-			pDescriptorSet->ppUpdateData[i] = (DescriptorUpdateData*)pMem;
+			pDescriptorSet->mVulkan.ppUpdateData[i] = (DescriptorUpdateData*)pMem;
 			pMem += descriptorCount * sizeof(DescriptorUpdateData);
-			memcpy(pDescriptorSet->ppUpdateData[i], pRootSignature->pUpdateTemplateData[updateFreq][pDescriptorSet->mNodeIndex], descriptorCount * sizeof(DescriptorUpdateData));
+			memcpy(pDescriptorSet->mVulkan.ppUpdateData[i], pRootSignature->mVulkan.pUpdateTemplateData[updateFreq][pDescriptorSet->mVulkan.mNodeIndex], descriptorCount * sizeof(DescriptorUpdateData));
 		}
 
-		consume_descriptor_sets(pRenderer->pDescriptorPool, pLayouts, pHandles, pDesc->mMaxSets);
+		consume_descriptor_sets(pRenderer->mVulkan.pDescriptorPool, pLayouts, pHandles, pDesc->mMaxSets);
 	}
 	else
 	{
@@ -4529,17 +4536,17 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 		ASSERT(false && "NULL Descriptor Set Layout for update frequency. Cannot allocate descriptor set");
 	}
 
-	if (pDescriptorSet->mDynamicOffsetCount)
+	if (pDescriptorSet->mVulkan.mDynamicOffsetCount)
 	{
-		ASSERT(1 == pDescriptorSet->mDynamicOffsetCount);
-		pDescriptorSet->pDynamicSizeOffsets = (SizeOffset*)pMem;
-		pMem += pDescriptorSet->mMaxSets * sizeof(SizeOffset);
+		ASSERT(1 == pDescriptorSet->mVulkan.mDynamicOffsetCount);
+		pDescriptorSet->mVulkan.pDynamicSizeOffsets = (SizeOffset*)pMem;
+		pMem += pDescriptorSet->mVulkan.mMaxSets * sizeof(SizeOffset);
 	}
 
 	*ppDescriptorSet = pDescriptorSet;
 }
 
-void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+void vk_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
@@ -4547,7 +4554,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 	SAFE_FREE(pDescriptorSet);
 }
 
-void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+void vk_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
@@ -4564,12 +4571,12 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
-	ASSERT(pDescriptorSet->pHandles);
-	ASSERT(index < pDescriptorSet->mMaxSets);
+	ASSERT(pDescriptorSet->mVulkan.pHandles);
+	ASSERT(index < pDescriptorSet->mVulkan.mMaxSets);
 
-	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
-	DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mUpdateFrequency;
-	DescriptorUpdateData* pUpdateData = pDescriptorSet->ppUpdateData[index];
+	const RootSignature* pRootSignature = pDescriptorSet->mVulkan.pRootSignature;
+	DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mVulkan.mUpdateFrequency;
+	DescriptorUpdateData* pUpdateData = pDescriptorSet->mVulkan.ppUpdateData[index];
 	bool update = false;
 
 #ifdef ENABLE_RAYTRACING
@@ -4577,10 +4584,10 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 	VkWriteDescriptorSetAccelerationStructureNV* raytracingWritesNV = NULL;
 	uint32_t raytracingWriteCount = 0;
 
-	if (pRootSignature->mVkRaytracingDescriptorCounts[updateFreq])
+	if (pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq])
 	{
-		raytracingWrites = (VkWriteDescriptorSet*)alloca(pRootSignature->mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSet));
-		raytracingWritesNV = (VkWriteDescriptorSetAccelerationStructureNV*)alloca(pRootSignature->mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSetAccelerationStructureNV));
+		raytracingWrites = (VkWriteDescriptorSet*)alloca(pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSet));
+		raytracingWritesNV = (VkWriteDescriptorSetAccelerationStructureNV*)alloca(pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSetAccelerationStructureNV));
 	}
 #endif
 
@@ -4601,7 +4608,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName);
 		}
 
-		const DescriptorType type = (DescriptorType)pDesc->mType;
+		const DescriptorType type = (DescriptorType)pDesc->mType; //-V522
 		const uint32_t arrayCount = max(1U, pParam->mCount);
 
 		VALIDATE_DESCRIPTOR(pDesc->mUpdateFrequency == updateFreq,
@@ -4622,7 +4629,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
 
-				pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { pParam->ppSamplers[arr]->pVkSampler, VK_NULL_HANDLE };
+				pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { pParam->ppSamplers[arr]->mVulkan.pVkSampler, VK_NULL_HANDLE };
 				update = true;
 			}
 			break;
@@ -4645,7 +4652,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				pUpdateData[pDesc->mHandleIndex + arr].mImageInfo =
 				{
 					NULL,											// Sampler
-					pParam->ppTextures[arr]->pVkSRVDescriptor,		// Image View
+					pParam->ppTextures[arr]->mVulkan.pVkSRVDescriptor,		// Image View
 					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL		// Image Layout 
 				};
 
@@ -4666,7 +4673,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo =
 					{
 						VK_NULL_HANDLE,                                    // Sampler
-						pParam->ppTextures[arr]->pVkSRVDescriptor,         // Image View
+						pParam->ppTextures[arr]->mVulkan.pVkSRVDescriptor,         // Image View
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL           // Image Layout
 					};
 
@@ -4682,7 +4689,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo =
 					{
 						VK_NULL_HANDLE,                                    // Sampler
-						pParam->ppTextures[arr]->pVkSRVStencilDescriptor, // Image View
+						pParam->ppTextures[arr]->mVulkan.pVkSRVStencilDescriptor, // Image View
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL           // Image Layout
 					};
 
@@ -4703,7 +4710,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				{
 					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
 						VK_NULL_HANDLE,                                          // Sampler
-						pParam->ppTextures[0]->pVkUAVDescriptors[arr],    // Image View
+						pParam->ppTextures[0]->mVulkan.pVkUAVDescriptors[arr],    // Image View
 						VK_IMAGE_LAYOUT_GENERAL                                  // Image Layout
 					};
 
@@ -4723,7 +4730,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
 						VK_NULL_HANDLE,                                          // Sampler
-						pParam->ppTextures[arr]->pVkUAVDescriptors[mipSlice],    // Image View
+						pParam->ppTextures[arr]->mVulkan.pVkUAVDescriptors[mipSlice],    // Image View
 						VK_IMAGE_LAYOUT_GENERAL                                  // Image Layout
 					};
 
@@ -4734,30 +4741,30 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 		}
 		case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 		{
-			if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+			if (pDesc->mVulkan.mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->pName);
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, 0);
 				VALIDATE_DESCRIPTOR(arrayCount == 1, "Descriptor (%s) : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC does not support arrays", pDesc->pName);
 				VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) : Must provide pSizes for VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", pDesc->pName);
 				VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, 0);
-				VALIDATE_DESCRIPTOR(pParam->pSizes[0] <= pRenderer->pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
+				VALIDATE_DESCRIPTOR(pParam->pSizes[0] <= pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
 					"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, 0,
 					pParam->pSizes[0],
-					pRenderer->pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
+					pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
 
-				pDescriptorSet->pDynamicSizeOffsets[index].mOffset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
+				pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mOffset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
 				pUpdateData[pDesc->mHandleIndex + 0].mBufferInfo =
 				{
-					pParam->ppBuffers[0]->pVkBuffer,
-					pParam->ppBuffers[0]->mOffset,
+					pParam->ppBuffers[0]->mVulkan.pVkBuffer,
+					pParam->ppBuffers[0]->mVulkan.mOffset,
 					pParam->pSizes[0]
 				};
 
 				// If this is a different size we have to update the VkDescriptorBufferInfo::range so a call to vkUpdateDescriptorSet is necessary
-				if (pParam->pSizes[0] != (uint32_t)pDescriptorSet->pDynamicSizeOffsets[index].mSize)
+				if (pParam->pSizes[0] != (uint32_t)pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mSize)
 				{
-					pDescriptorSet->pDynamicSizeOffsets[index].mSize = (uint32_t)pParam->pSizes[0];
+					pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mSize = (uint32_t)pParam->pSizes[0];
 					update = true;
 				}
 
@@ -4776,18 +4783,18 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 				pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo =
 				{
-					pParam->ppBuffers[arr]->pVkBuffer,
-					pParam->ppBuffers[arr]->mOffset,
+					pParam->ppBuffers[arr]->mVulkan.pVkBuffer,
+					pParam->ppBuffers[arr]->mVulkan.mOffset,
 					VK_WHOLE_SIZE
 				};
 				if (pParam->pOffsets)
 				{
 					VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->pName);
 					VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, arr);
-					VALIDATE_DESCRIPTOR(pParam->pSizes[arr] <= pRenderer->pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
+					VALIDATE_DESCRIPTOR(pParam->pSizes[arr] <= pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
 						"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, arr,
 						pParam->pSizes[arr],
-						pRenderer->pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
+						pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
 
 					pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo.offset = pParam->pOffsets[arr];
 					pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo.range = pParam->pSizes[arr];
@@ -4806,7 +4813,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			for (uint32_t arr = 0; arr < arrayCount; ++arr)
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Texel Buffer (%s [%u] )", pDesc->pName, arr);
-				pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->pVkUniformTexelView;
+				pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->mVulkan.pVkUniformTexelView;
 				update = true;
 			}
 
@@ -4819,7 +4826,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			for (uint32_t arr = 0; arr < arrayCount; ++arr)
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL RW Texel Buffer (%s [%u] )", pDesc->pName, arr);
-				pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->pVkStorageTexelView;
+				pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->mVulkan.pVkStorageTexelView;
 				update = true;
 			}
 
@@ -4834,16 +4841,17 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppAccelerationStructures[arr], "Acceleration Structure (%s [%u] )", pDesc->pName, arr);
 
-				VkWriteDescriptorSet* pWrite = raytracingWrites + raytracingWriteCount;
-				VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = raytracingWritesNV + raytracingWriteCount;
+				ASSERT(raytracingWrites && raytracingWritesNV);
+				VkWriteDescriptorSet* pWrite = raytracingWrites + raytracingWriteCount; //-V769
+				VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = raytracingWritesNV + raytracingWriteCount; //-V769
 
-				pWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				pWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; //-V522
 				pWrite->pNext = pWriteNV;
-				pWrite->dstSet = pDescriptorSet->pHandles[index];
+				pWrite->dstSet = pDescriptorSet->mVulkan.pHandles[index];
 				pWrite->descriptorCount = 1;
-				pWrite->descriptorType = (VkDescriptorType)pDesc->mVkType;
+				pWrite->descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
 				pWrite->dstArrayElement = arr;
-				pWrite->dstBinding = pDesc->mReg;
+				pWrite->dstBinding = pDesc->mVulkan.mReg;
 
 				vk_FillRaytracingDescriptorData(pParam->ppAccelerationStructures[arr], pWriteNV);
 
@@ -4859,48 +4867,48 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 	// If this was called to just update a dynamic offset skip the update
 	if (update)
-		vkUpdateDescriptorSetWithTemplateKHR(pRenderer->pVkDevice, pDescriptorSet->pHandles[index],
-			pRootSignature->mUpdateTemplates[updateFreq], pUpdateData);
+		vkUpdateDescriptorSetWithTemplateKHR(pRenderer->mVulkan.pVkDevice, pDescriptorSet->mVulkan.pHandles[index],
+			pRootSignature->mVulkan.mUpdateTemplates[updateFreq], pUpdateData);
 
 #ifdef ENABLE_RAYTRACING
 	// Raytracing Update Descriptor Set since it does not support update template
 	if (raytracingWriteCount)
-		vkUpdateDescriptorSets(pRenderer->pVkDevice, raytracingWriteCount, raytracingWrites, 0, NULL);
+		vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, raytracingWriteCount, raytracingWrites, 0, NULL);
 #endif
 }
 
-void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
+void vk_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
 	ASSERT(pCmd);
 	ASSERT(pDescriptorSet);
-	ASSERT(pDescriptorSet->pHandles);
-	ASSERT(index < pDescriptorSet->mMaxSets);
+	ASSERT(pDescriptorSet->mVulkan.pHandles);
+	ASSERT(index < pDescriptorSet->mVulkan.mMaxSets);
 
-	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+	const RootSignature* pRootSignature = pDescriptorSet->mVulkan.pRootSignature;
 
-	if (pCmd->pBoundPipelineLayout != pRootSignature->pPipelineLayout)
+	if (pCmd->mVulkan.pBoundPipelineLayout != pRootSignature->mVulkan.pPipelineLayout)
 	{
-		pCmd->pBoundPipelineLayout = pRootSignature->pPipelineLayout;
+		pCmd->mVulkan.pBoundPipelineLayout = pRootSignature->mVulkan.pPipelineLayout;
 
 		// Vulkan requires to bind all descriptor sets upto the highest set number even if they are empty
 		// Example: If shader uses only set 2, we still have to bind empty sets for set=0 and set=1
 		for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; ++setIndex)
 		{
-			if (pRootSignature->mVkEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
+			if (pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
 			{
 				vkCmdBindDescriptorSets(
-					pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->pPipelineLayout, setIndex, 1,
-					&pRootSignature->mVkEmptyDescriptorSets[setIndex], 0, NULL);
+					pCmd->mVulkan.pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->mVulkan.pPipelineLayout, setIndex, 1,
+					&pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex], 0, NULL);
 			}
 		}
 	}
 
-	vkCmdBindDescriptorSets(pCmd->pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType],
-		pRootSignature->pPipelineLayout, pDescriptorSet->mUpdateFrequency, 1, &pDescriptorSet->pHandles[index],
-		pDescriptorSet->mDynamicOffsetCount, pDescriptorSet->mDynamicOffsetCount ? &pDescriptorSet->pDynamicSizeOffsets[index].mOffset : NULL);
+	vkCmdBindDescriptorSets(pCmd->mVulkan.pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType],
+		pRootSignature->mVulkan.pPipelineLayout, pDescriptorSet->mVulkan.mUpdateFrequency, 1, &pDescriptorSet->mVulkan.pHandles[index],
+		pDescriptorSet->mVulkan.mDynamicOffsetCount, pDescriptorSet->mVulkan.mDynamicOffsetCount ? &pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mOffset : NULL);
 }
 
-void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void vk_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -4909,13 +4917,13 @@ void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* 
 	
 	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
 	ASSERT(pDesc);
-	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
+	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType); //-V522
 
-	vkCmdPushConstants(pCmd->pVkCmdBuf, pRootSignature->pPipelineLayout,
-		pDesc->mVkStages, 0, pDesc->mSize, pConstants);
+	vkCmdPushConstants(pCmd->mVulkan.pVkCmdBuf, pRootSignature->mVulkan.pPipelineLayout,
+		pDesc->mVulkan.mVkStages, 0, pDesc->mSize, pConstants);
 }
 
-void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void vk_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -4926,18 +4934,18 @@ void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint3
 	ASSERT(pDesc);
 	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
 
-	vkCmdPushConstants(pCmd->pVkCmdBuf, pRootSignature->pPipelineLayout,
-		pDesc->mVkStages, 0, pDesc->mSize, pConstants);
+	vkCmdPushConstants(pCmd->mVulkan.pVkCmdBuf, pRootSignature->mVulkan.pPipelineLayout,
+		pDesc->mVulkan.mVkStages, 0, pDesc->mSize, pConstants);
 }
 /************************************************************************/
 // Shader Functions
 /************************************************************************/
-void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
 	ASSERT(ppShaderProgram);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	uint32_t counter = 0;
 
@@ -4956,8 +4964,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 			case SHADER_STAGE_TESE: totalSize += (strlen(pDesc->mDomain.pEntryPoint) + 1) * sizeof(char); break;
 			case SHADER_STAGE_GEOM: totalSize += (strlen(pDesc->mGeom.pEntryPoint) + 1) * sizeof(char); break;
 			case SHADER_STAGE_FRAG: totalSize += (strlen(pDesc->mFrag.pEntryPoint) + 1) * sizeof(char); break;
+			case SHADER_STAGE_RAYTRACING:
 			case SHADER_STAGE_COMP: totalSize += (strlen(pDesc->mComp.pEntryPoint) + 1) * sizeof(char); break;
-			case SHADER_STAGE_RAYTRACING: totalSize += (strlen(pDesc->mComp.pEntryPoint) + 1) * sizeof(char); break;
 			default: break;
 			}
 			++counter;
@@ -4968,11 +4976,11 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	totalSize += counter * sizeof(char*);
 	Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
 	pShaderProgram->mStages = pDesc->mStages;
-	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
-	pShaderProgram->pShaderModules = (VkShaderModule*)(pShaderProgram->pReflection + 1);
-	pShaderProgram->pEntryNames = (char**)(pShaderProgram->pShaderModules + counter);
+	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1); //-V1027
+	pShaderProgram->mVulkan.pShaderModules = (VkShaderModule*)(pShaderProgram->pReflection + 1);
+	pShaderProgram->mVulkan.pEntryNames = (char**)(pShaderProgram->mVulkan.pShaderModules + counter);
 
-	uint8_t* mem = (uint8_t*)(pShaderProgram->pEntryNames + counter);
+	uint8_t* mem = (uint8_t*)(pShaderProgram->mVulkan.pEntryNames + counter);
 	counter = 0;
 	ShaderReflection                stageReflections[SHADER_STAGE_COUNT] = {};
 
@@ -4998,7 +5006,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mVert.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mVert.pByteCode;
 					pStageDesc = &pDesc->mVert;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				case SHADER_STAGE_TESC:
@@ -5010,7 +5018,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mHull.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mHull.pByteCode;
 					pStageDesc = &pDesc->mHull;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				case SHADER_STAGE_TESE:
@@ -5022,7 +5030,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mDomain.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mDomain.pByteCode;
 					pStageDesc = &pDesc->mDomain;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				case SHADER_STAGE_GEOM:
@@ -5034,7 +5042,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mGeom.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mGeom.pByteCode;
 					pStageDesc = &pDesc->mGeom;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				case SHADER_STAGE_FRAG:
@@ -5046,7 +5054,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mFrag.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mFrag.pByteCode;
 					pStageDesc = &pDesc->mFrag;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				case SHADER_STAGE_COMP:
@@ -5061,15 +5069,15 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 					create_info.codeSize = pDesc->mComp.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
 					pStageDesc = &pDesc->mComp;
-					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->pShaderModules[counter])));
+					CHECK_VKRESULT(vkCreateShaderModule(pRenderer->mVulkan.pVkDevice, &create_info, &gVkAllocationCallbacks, &(pShaderProgram->mVulkan.pShaderModules[counter])));
 				}
 				break;
 				default: ASSERT(false && "Shader Stage not supported!"); break;
 			}
 
-			pShaderProgram->pEntryNames[counter] = (char*)mem;
-			mem += (strlen(pStageDesc->pEntryPoint) + 1) * sizeof(char);
-			strcpy(pShaderProgram->pEntryNames[counter], pStageDesc->pEntryPoint);
+			pShaderProgram->mVulkan.pEntryNames[counter] = (char*)mem;
+			mem += (strlen(pStageDesc->pEntryPoint) + 1) * sizeof(char); //-V522
+			strcpy(pShaderProgram->mVulkan.pEntryNames[counter], pStageDesc->pEntryPoint);
 			++counter;
 		}
 	}
@@ -5079,45 +5087,45 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	*ppShaderProgram = pShaderProgram;
 }
 
-void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
+void vk_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
 	ASSERT(pRenderer);
 
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 
 	if (pShaderProgram->mStages & SHADER_STAGE_VERT)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[pShaderProgram->pReflection->mVertexStageIndex], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mVertexStageIndex], &gVkAllocationCallbacks);
 	}
 
 	if (pShaderProgram->mStages & SHADER_STAGE_TESC)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[pShaderProgram->pReflection->mHullStageIndex], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mHullStageIndex], &gVkAllocationCallbacks);
 	}
 
 	if (pShaderProgram->mStages & SHADER_STAGE_TESE)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[pShaderProgram->pReflection->mDomainStageIndex], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mDomainStageIndex], &gVkAllocationCallbacks);
 	}
 
 	if (pShaderProgram->mStages & SHADER_STAGE_GEOM)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex], &gVkAllocationCallbacks);
 	}
 
 	if (pShaderProgram->mStages & SHADER_STAGE_FRAG)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[pShaderProgram->pReflection->mPixelStageIndex], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mPixelStageIndex], &gVkAllocationCallbacks);
 	}
 
 	if (pShaderProgram->mStages & SHADER_STAGE_COMP)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[0], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[0], &gVkAllocationCallbacks);
 	}
 #ifdef ENABLE_RAYTRACING
 	if (pShaderProgram->mStages & SHADER_STAGE_RAYTRACING)
 	{
-		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[0], &gVkAllocationCallbacks);
+		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[0], &gVkAllocationCallbacks);
 	}
 #endif
 
@@ -5127,7 +5135,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 /************************************************************************/
 // Root Signature Functions
 /************************************************************************/
-typedef struct UpdateFrequencyLayoutInfo
+typedef struct vk_UpdateFrequencyLayoutInfo
 {
 	/// Array of all bindings in the descriptor set
 	eastl::vector<VkDescriptorSetLayoutBinding> mBindings{};
@@ -5139,7 +5147,7 @@ typedef struct UpdateFrequencyLayoutInfo
 	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap{};
 } UpdateFrequencyLayoutInfo;
 
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRootSignatureDesc);
@@ -5258,8 +5266,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	RootSignature* pRootSignature = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), totalSize);
 	ASSERT(pRootSignature);
 
-	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
-	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + shaderResources.size());
+	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1); //-V1027
+	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + shaderResources.size()); //-V1027
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
 	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
 
@@ -5280,7 +5288,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
 
 		// Copy the binding information generated from the shader reflection into the descriptor
-		pDesc->mReg = pRes->reg;
+		pDesc->mVulkan.mReg = pRes->reg;
 		pDesc->mSize = pRes->size;
 		pDesc->mType = pRes->type;
 		pDesc->pName = pRes->name;
@@ -5317,8 +5325,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			binding.stageFlags = util_to_vk_shader_stage_flags(pRes->used_stages);
 
 			// Store the vulkan related info in the descriptor to avoid constantly calling the util_to_vk mapping functions
-			pDesc->mVkType = binding.descriptorType;
-			pDesc->mVkStages = binding.stageFlags;
+			pDesc->mVulkan.mVkType = binding.descriptorType;
+			pDesc->mVulkan.mVkStages = binding.stageFlags;
 			pDesc->mUpdateFrequency = updateFreq;
 
 			if (binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
@@ -5332,7 +5340,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			if (hasStaticSampler)
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->pName);
-				binding.pImmutableSamplers = &it->second->pVkSampler;
+				binding.pImmutableSamplers = &it->second->mVulkan.pVkSampler;
 			}
 
 			// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
@@ -5354,20 +5362,20 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		{
 			LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Push Constant", pDesc->pName);
 
-			pDesc->mVkStages = util_to_vk_shader_stage_flags(pRes->used_stages);
+			pDesc->mVulkan.mVkStages = util_to_vk_shader_stage_flags(pRes->used_stages);
 			setIndex = 0;
 			pDesc->mIndexInParent = pushConstantCount++;
 
 			pushConstants[pDesc->mIndexInParent] = {};
 			pushConstants[pDesc->mIndexInParent].offset = 0;
 			pushConstants[pDesc->mIndexInParent].size = pDesc->mSize;
-			pushConstants[pDesc->mIndexInParent].stageFlags = pDesc->mVkStages;
+			pushConstants[pDesc->mIndexInParent].stageFlags = pDesc->mVulkan.mVkStages;
 		}
 
 		layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 	}
 
-	pRootSignature->mVkPushConstantCount = pushConstantCount;
+	pRootSignature->mVulkan.mVkPushConstantCount = pushConstantCount;
 
 	// Create descriptor layouts
 	// Put most frequently changed params first
@@ -5391,7 +5399,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		// Example: set = 0 is used, set = 2 is used. In this case, set = 1 needs to exist even if it is empty
 		if (!createLayout && i < kMaxLayoutCount - 1)
 		{
-			createLayout = pRootSignature->mVkDescriptorSetLayouts[i + 1] != VK_NULL_HANDLE;
+			createLayout = pRootSignature->mVulkan.mVkDescriptorSetLayouts[i + 1] != VK_NULL_HANDLE;
 		}
 
 		if (createLayout)
@@ -5403,7 +5411,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			layoutInfo.pBindings = layout.mBindings.data();
 			layoutInfo.flags = 0;
 
-			CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->pVkDevice, &layoutInfo, &gVkAllocationCallbacks, &pRootSignature->mVkDescriptorSetLayouts[i]));
+			CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVulkan.pVkDevice, &layoutInfo, &gVkAllocationCallbacks, &pRootSignature->mVulkan.mVkDescriptorSetLayouts[i]));
 		}
 
 		if (!layouts[i].mBindings.size())
@@ -5411,22 +5419,22 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			continue;
 		}
 
-		pRootSignature->mVkDescriptorCounts[i] = (uint32_t)layout.mDescriptors.size();
+		pRootSignature->mVulkan.mVkDescriptorCounts[i] = (uint32_t)layout.mDescriptors.size();
 
 		// Loop through descriptors belonging to this update frequency and increment the cumulative descriptor count
 		for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mDescriptors.size(); ++descIndex)
 		{
 			DescriptorInfo* pDesc = layout.mDescriptors[descIndex];
 			pDesc->mIndexInParent = descIndex;
-			pDesc->mHandleIndex = pRootSignature->mVkCumulativeDescriptorCounts[i];
-			pRootSignature->mVkCumulativeDescriptorCounts[i] += pDesc->mSize;
+			pDesc->mHandleIndex = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[i];
+			pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[i] += pDesc->mSize;
 		}
 
-		pRootSignature->mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
-		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVkDynamicDescriptorCounts[i]; ++descIndex)
+		pRootSignature->mVulkan.mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
+		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVulkan.mVkDynamicDescriptorCounts[i]; ++descIndex)
 		{
 			DescriptorInfo* pDesc = layout.mDynamicDescriptors[descIndex];
-			pDesc->mRootDescriptorIndex = descIndex;
+			pDesc->mVulkan.mRootDescriptorIndex = descIndex;
 		}
 	}
 	/************************************************************************/
@@ -5436,9 +5444,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	uint32_t              descriptorSetLayoutCount = 0;
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 	{
-		if (pRootSignature->mVkDescriptorSetLayouts[i])
+		if (pRootSignature->mVulkan.mVkDescriptorSetLayouts[i])
 		{
-			descriptorSetLayouts[descriptorSetLayoutCount++] = pRootSignature->mVkDescriptorSetLayouts[i];
+			descriptorSetLayouts[descriptorSetLayoutCount++] = pRootSignature->mVulkan.mVkDescriptorSetLayouts[i];
 		}
 	}
 
@@ -5448,25 +5456,25 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	add_info.flags = 0;
 	add_info.setLayoutCount = descriptorSetLayoutCount;
 	add_info.pSetLayouts = descriptorSetLayouts;
-	add_info.pushConstantRangeCount = pRootSignature->mVkPushConstantCount;
+	add_info.pushConstantRangeCount = pRootSignature->mVulkan.mVkPushConstantCount;
 	add_info.pPushConstantRanges = pushConstants;
-	CHECK_VKRESULT(vkCreatePipelineLayout(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pRootSignature->pPipelineLayout)));
+	CHECK_VKRESULT(vkCreatePipelineLayout(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pRootSignature->mVulkan.pPipelineLayout)));
 	/************************************************************************/
 	// Update templates
 	/************************************************************************/
 	for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; ++setIndex)
 	{
-		if (pRootSignature->mVkDescriptorCounts[setIndex])
+		if (pRootSignature->mVulkan.mVkDescriptorCounts[setIndex])
 		{
-			pRootSignature->pUpdateTemplateData[setIndex] = (void**)tf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
+			pRootSignature->mVulkan.pUpdateTemplateData[setIndex] = (void**)tf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
 
 			const UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
-			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)tf_malloc(pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
+			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)tf_malloc(pRootSignature->mVulkan.mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
 			uint32_t entryCount = 0;
 
 			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
 			{
-				pRootSignature->pUpdateTemplateData[setIndex][nodeIndex] = tf_calloc(pRootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
+				pRootSignature->mVulkan.pUpdateTemplateData[setIndex][nodeIndex] = tf_calloc(pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
 			}
 
 			// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
@@ -5479,21 +5487,21 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				// Raytracing descriptors dont support update template so we ignore them
 				if (pDesc->mType == DESCRIPTOR_TYPE_RAY_TRACING)
 				{
-					pRootSignature->mVkRaytracingDescriptorCounts[setIndex] += pDesc->mSize;
+					pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[setIndex] += pDesc->mSize;
 					continue;
 				}
 #endif
 
 				pEntries[entryCount].descriptorCount = pDesc->mSize;
-				pEntries[entryCount].descriptorType = (VkDescriptorType)pDesc->mVkType;
+				pEntries[entryCount].descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
 				pEntries[entryCount].dstArrayElement = 0;
-				pEntries[entryCount].dstBinding = pDesc->mReg;
+				pEntries[entryCount].dstBinding = pDesc->mVulkan.mReg;
 				pEntries[entryCount].offset = offset;
 				pEntries[entryCount].stride = sizeof(DescriptorUpdateData);
 
 				for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
 				{
-					DescriptorUpdateData* pUpdateData = (DescriptorUpdateData*)pRootSignature->pUpdateTemplateData[setIndex][nodeIndex];
+					DescriptorUpdateData* pUpdateData = (DescriptorUpdateData*)pRootSignature->mVulkan.pUpdateTemplateData[setIndex][nodeIndex];
 
 					const DescriptorType type = (DescriptorType)pDesc->mType;
 					const uint32_t arrayCount = pDesc->mSize;
@@ -5503,19 +5511,19 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 					case DESCRIPTOR_TYPE_SAMPLER:
 					{
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
-							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { pRenderer->pNullDescriptors->pDefaultSampler->pVkSampler, VK_NULL_HANDLE };
+							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { pRenderer->pNullDescriptors->pDefaultSampler->mVulkan.pVkSampler, VK_NULL_HANDLE };
 						break;
 					}
 					case DESCRIPTOR_TYPE_TEXTURE:
 					{
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
-							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE, pRenderer->pNullDescriptors->pDefaultTextureSRV[nodeIndex][pDesc->mDim]->pVkSRVDescriptor, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE, pRenderer->pNullDescriptors->pDefaultTextureSRV[nodeIndex][pDesc->mDim]->mVulkan.pVkSRVDescriptor, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 						break;
 					}
 					case DESCRIPTOR_TYPE_RW_TEXTURE:
 					{
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
-							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE, pRenderer->pNullDescriptors->pDefaultTextureUAV[nodeIndex][pDesc->mDim]->pVkUAVDescriptors[0], VK_IMAGE_LAYOUT_GENERAL };
+							pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { VK_NULL_HANDLE, pRenderer->pNullDescriptors->pDefaultTextureUAV[nodeIndex][pDesc->mDim]->mVulkan.pVkUAVDescriptors[0], VK_IMAGE_LAYOUT_GENERAL };
 						break;
 					}
 					case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -5525,8 +5533,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
 							pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo =
 							{
-								pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->pVkBuffer,
-								pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mOffset,
+								pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkBuffer,
+								pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.mOffset,
 								VK_WHOLE_SIZE
 							};
 						break;
@@ -5537,8 +5545,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
 							pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo =
 							{
-								pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->pVkBuffer,
-								pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mOffset,
+								pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.pVkBuffer,
+								pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.mOffset,
 								VK_WHOLE_SIZE
 							};
 						break;
@@ -5546,13 +5554,13 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 					case DESCRIPTOR_TYPE_TEXEL_BUFFER:
 					{
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
-							pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->pVkUniformTexelView;
+							pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkUniformTexelView;
 						break;
 					}
 					case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
 					{
 						for (uint32_t arr = 0; arr < arrayCount; ++arr)
-							pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->pVkStorageTexelView;
+							pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.pVkStorageTexelView;
 						break;
 					}
 					default:
@@ -5566,47 +5574,47 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			VkDescriptorUpdateTemplateCreateInfoKHR createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR;
 			createInfo.pNext = NULL;
-			createInfo.descriptorSetLayout = pRootSignature->mVkDescriptorSetLayouts[setIndex];
+			createInfo.descriptorSetLayout = pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex];
 			createInfo.descriptorUpdateEntryCount = entryCount;
 			createInfo.pDescriptorUpdateEntries = pEntries;
 			createInfo.pipelineBindPoint = gPipelineBindPoint[pRootSignature->mPipelineType];
-			createInfo.pipelineLayout = pRootSignature->pPipelineLayout;
+			createInfo.pipelineLayout = pRootSignature->mVulkan.pPipelineLayout;
 			createInfo.set = setIndex;
 			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
-			CHECK_VKRESULT(vkCreateDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, &createInfo, &gVkAllocationCallbacks, &pRootSignature->mUpdateTemplates[setIndex]));
+			CHECK_VKRESULT(vkCreateDescriptorUpdateTemplateKHR(pRenderer->mVulkan.pVkDevice, &createInfo, &gVkAllocationCallbacks, &pRootSignature->mVulkan.mUpdateTemplates[setIndex]));
 
 			tf_free(pEntries);
 		}
-		else if (VK_NULL_HANDLE != pRootSignature->mVkDescriptorSetLayouts[setIndex])
+		else if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex])
 		{
 			// Consume empty descriptor sets from empty descriptor set pool
-			VkDescriptorSet* pSets[] = { &pRootSignature->mVkEmptyDescriptorSets[setIndex] };
-			consume_descriptor_sets(pRenderer->pDescriptorPool, &pRootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1);
+			VkDescriptorSet* pSets[] = { &pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex] };
+			consume_descriptor_sets(pRenderer->mVulkan.pDescriptorPool, &pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex], pSets, 1);
 		}
 	}
 
 	*ppRootSignature = pRootSignature;
 }
 
-void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
+void vk_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 	{
-		vkDestroyDescriptorSetLayout(pRenderer->pVkDevice, pRootSignature->mVkDescriptorSetLayouts[i], &gVkAllocationCallbacks);
-		if (VK_NULL_HANDLE != pRootSignature->mUpdateTemplates[i])
-			vkDestroyDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, pRootSignature->mUpdateTemplates[i], &gVkAllocationCallbacks);
+		vkDestroyDescriptorSetLayout(pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.mVkDescriptorSetLayouts[i], &gVkAllocationCallbacks);
+		if (VK_NULL_HANDLE != pRootSignature->mVulkan.mUpdateTemplates[i])
+			vkDestroyDescriptorUpdateTemplateKHR(pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.mUpdateTemplates[i], &gVkAllocationCallbacks);
 
-		if (pRootSignature->mVkDescriptorCounts[i])
+		if (pRootSignature->mVulkan.mVkDescriptorCounts[i])
 			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
-				SAFE_FREE(pRootSignature->pUpdateTemplateData[i][nodeIndex]);
+				SAFE_FREE(pRootSignature->mVulkan.pUpdateTemplateData[i][nodeIndex]);
 
-		SAFE_FREE(pRootSignature->pUpdateTemplateData[i]);
+		SAFE_FREE(pRootSignature->mVulkan.pUpdateTemplateData[i]);
 	}
 
 	// Need delete since the destructor frees allocated memory
 	pRootSignature->pDescriptorNameToIndexMap->mMap.clear(true);
 
-	vkDestroyPipelineLayout(pRenderer->pVkDevice, pRootSignature->pPipelineLayout, &gVkAllocationCallbacks);
+	vkDestroyPipelineLayout(pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.pPipelineLayout, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pRootSignature);
 }
@@ -5620,7 +5628,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	ASSERT(pMainDesc);
 
 	const GraphicsPipelineDesc* pDesc = &pMainDesc->mGraphicsDesc;
-	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->pCache : VK_NULL_HANDLE;
+	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->mVulkan.pCache : VK_NULL_HANDLE;
 
 	ASSERT(pDesc->pShaderProgram);
 	ASSERT(pDesc->pRootSignature);
@@ -5631,7 +5639,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	const Shader*       pShaderProgram = pDesc->pShaderProgram;
 	const VertexLayout* pVertexLayout = pDesc->pVertexLayout;
 
-	pPipeline->mType = PIPELINE_TYPE_GRAPHICS;
+	pPipeline->mVulkan.mType = PIPELINE_TYPE_GRAPHICS;
 
 	// Create tempporary renderpass for pipeline creation
 	RenderPassDesc renderPassDesc = { 0 };
@@ -5642,9 +5650,9 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	renderPassDesc.mDepthStencilFormat = pDesc->mDepthStencilFormat;
 	add_render_pass(pRenderer, &renderPassDesc, &pRenderPass);
 
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 	for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
-		ASSERT(VK_NULL_HANDLE != pShaderProgram->pShaderModules[i]);
+		ASSERT(VK_NULL_HANDLE != pShaderProgram->mVulkan.pShaderModules[i]);
 
 	// Pipeline
 	{
@@ -5666,7 +5674,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 						stages[stage_count].pName =
 							pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mVertexStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_VERTEX_BIT;
-						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->pReflection->mVertexStageIndex];
+						stages[stage_count].module = pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mVertexStageIndex];
 					}
 					break;
 					case SHADER_STAGE_TESC:
@@ -5674,7 +5682,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 						stages[stage_count].pName =
 							pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mHullStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->pReflection->mHullStageIndex];
+						stages[stage_count].module = pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mHullStageIndex];
 					}
 					break;
 					case SHADER_STAGE_TESE:
@@ -5682,7 +5690,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 						stages[stage_count].pName =
 							pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mDomainStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->pReflection->mDomainStageIndex];
+						stages[stage_count].module = pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mDomainStageIndex];
 					}
 					break;
 					case SHADER_STAGE_GEOM:
@@ -5690,7 +5698,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 						stages[stage_count].pName =
 							pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mGeometryStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex];
+						stages[stage_count].module = pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mGeometryStageIndex];
 					}
 					break;
 					case SHADER_STAGE_FRAG:
@@ -5698,7 +5706,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 						stages[stage_count].pName =
 							pShaderProgram->pReflection->mStageReflections[pShaderProgram->pReflection->mPixelStageIndex].pEntryPoint;
 						stages[stage_count].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-						stages[stage_count].module = pShaderProgram->pShaderModules[pShaderProgram->pReflection->mPixelStageIndex];
+						stages[stage_count].module = pShaderProgram->mVulkan.pShaderModules[pShaderProgram->pReflection->mPixelStageIndex];
 					}
 					break;
 					default: ASSERT(false && "Shader Stage not supported!"); break;
@@ -5856,12 +5864,12 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 		add_info.pDepthStencilState = &ds;
 		add_info.pColorBlendState = &cb;
 		add_info.pDynamicState = &dy;
-		add_info.layout = pDesc->pRootSignature->pPipelineLayout;
+		add_info.layout = pDesc->pRootSignature->mVulkan.pPipelineLayout;
 		add_info.renderPass = pRenderPass->pRenderPass;
 		add_info.subpass = 0;
 		add_info.basePipelineHandle = VK_NULL_HANDLE;
 		add_info.basePipelineIndex = -1;
-		CHECK_VKRESULT(vkCreateGraphicsPipelines(pRenderer->pVkDevice, psoCache, 1, &add_info, &gVkAllocationCallbacks, &(pPipeline->pVkPipeline)));
+		CHECK_VKRESULT(vkCreateGraphicsPipelines(pRenderer->mVulkan.pVkDevice, psoCache, 1, &add_info, &gVkAllocationCallbacks, &(pPipeline->mVulkan.pVkPipeline)));
 
 		remove_render_pass(pRenderer, pRenderPass);
 	}
@@ -5876,16 +5884,16 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
 	ASSERT(pMainDesc);
 
 	const ComputePipelineDesc* pDesc = &pMainDesc->mComputeDesc;
-	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->pCache : VK_NULL_HANDLE;
+	VkPipelineCache psoCache = pMainDesc->pCache ? pMainDesc->pCache->mVulkan.pCache : VK_NULL_HANDLE;
 
 	ASSERT(pDesc->pShaderProgram);
 	ASSERT(pDesc->pRootSignature);
-	ASSERT(pRenderer->pVkDevice != VK_NULL_HANDLE);
-	ASSERT(pDesc->pShaderProgram->pShaderModules[0] != VK_NULL_HANDLE);
+	ASSERT(pRenderer->mVulkan.pVkDevice != VK_NULL_HANDLE);
+	ASSERT(pDesc->pShaderProgram->mVulkan.pShaderModules[0] != VK_NULL_HANDLE);
 
 	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
-	pPipeline->mType = PIPELINE_TYPE_COMPUTE;
+	pPipeline->mVulkan.mType = PIPELINE_TYPE_COMPUTE;
 
 	// Pipeline
 	{
@@ -5894,7 +5902,7 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
 		stage.pNext = NULL;
 		stage.flags = 0;
 		stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-		stage.module = pDesc->pShaderProgram->pShaderModules[0];
+		stage.module = pDesc->pShaderProgram->mVulkan.pShaderModules[0];
 		stage.pName = pDesc->pShaderProgram->pReflection->mStageReflections[0].pEntryPoint;
 		stage.pSpecializationInfo = NULL;
 
@@ -5903,16 +5911,16 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
 		create_info.pNext = NULL;
 		create_info.flags = 0;
 		create_info.stage = stage;
-		create_info.layout = pDesc->pRootSignature->pPipelineLayout;
+		create_info.layout = pDesc->pRootSignature->mVulkan.pPipelineLayout;
 		create_info.basePipelineHandle = 0;
 		create_info.basePipelineIndex = 0;
-		CHECK_VKRESULT(vkCreateComputePipelines(pRenderer->pVkDevice, psoCache, 1, &create_info, &gVkAllocationCallbacks, &(pPipeline->pVkPipeline)));
+		CHECK_VKRESULT(vkCreateComputePipelines(pRenderer->mVulkan.pVkDevice, psoCache, 1, &create_info, &gVkAllocationCallbacks, &(pPipeline->mVulkan.pVkPipeline)));
 	}
 
 	*ppPipeline = pPipeline;
 }
 
-void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+void vk_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
 	switch (pDesc->mType)
 	{
@@ -5929,7 +5937,7 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 #ifdef ENABLE_RAYTRACING
 		case(PIPELINE_TYPE_RAYTRACING):
 		{
-			addRaytracingPipeline(pDesc, ppPipeline);
+			vk_addRaytracingPipeline(pDesc, ppPipeline);
 			break;
 		}
 #endif
@@ -5947,23 +5955,23 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 	}
 }
 
-void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
+void vk_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipeline);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pPipeline->pVkPipeline);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pPipeline->mVulkan.pVkPipeline);
 
 #ifdef ENABLE_RAYTRACING
-	SAFE_FREE(pPipeline->ppShaderStageNames);
+	SAFE_FREE(pPipeline->mVulkan.ppShaderStageNames);
 #endif
 
-	vkDestroyPipeline(pRenderer->pVkDevice, pPipeline->pVkPipeline, &gVkAllocationCallbacks);
+	vkDestroyPipeline(pRenderer->mVulkan.pVkDevice, pPipeline->mVulkan.pVkPipeline, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pPipeline);
 }
 
-void addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache)
+void vk_addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, PipelineCache** ppPipelineCache)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -5976,51 +5984,51 @@ void addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, Pipel
 	psoCacheCreateInfo.initialDataSize = pDesc->mSize;
 	psoCacheCreateInfo.pInitialData = pDesc->pData;
 	psoCacheCreateInfo.flags = util_to_pipeline_cache_flags(pDesc->mFlags);
-	CHECK_VKRESULT(vkCreatePipelineCache(pRenderer->pVkDevice, &psoCacheCreateInfo, &gVkAllocationCallbacks, &pPipelineCache->pCache));
+	CHECK_VKRESULT(vkCreatePipelineCache(pRenderer->mVulkan.pVkDevice, &psoCacheCreateInfo, &gVkAllocationCallbacks, &pPipelineCache->mVulkan.pCache));
 
 	*ppPipelineCache = pPipelineCache;
 }
 
-void removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache)
+void vk_removePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipelineCache);
 
-	if (pPipelineCache->pCache)
+	if (pPipelineCache->mVulkan.pCache)
 	{
-		vkDestroyPipelineCache(pRenderer->pVkDevice, pPipelineCache->pCache, &gVkAllocationCallbacks);
+		vkDestroyPipelineCache(pRenderer->mVulkan.pVkDevice, pPipelineCache->mVulkan.pCache, &gVkAllocationCallbacks);
 	}
 
 	SAFE_FREE(pPipelineCache);
 }
 
-void getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
+void vk_getPipelineCacheData(Renderer* pRenderer, PipelineCache* pPipelineCache, size_t* pSize, void* pData)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipelineCache);
 	ASSERT(pSize);
 
-	if (pPipelineCache->pCache)
+	if (pPipelineCache->mVulkan.pCache)
 	{
-		CHECK_VKRESULT(vkGetPipelineCacheData(pRenderer->pVkDevice, pPipelineCache->pCache, pSize, pData));
+		CHECK_VKRESULT(vkGetPipelineCacheData(pRenderer->mVulkan.pVkDevice, pPipelineCache->mVulkan.pCache, pSize, pData));
 	}
 }
 /************************************************************************/
 // Command buffer functions
 /************************************************************************/
-void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void vk_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pCmdPool);
 
-	VkResult vk_res = vkResetCommandPool(pRenderer->pVkDevice, pCmdPool->pVkCmdPool, 0);
+	VkResult vk_res = vkResetCommandPool(pRenderer->mVulkan.pVkDevice, pCmdPool->pVkCmdPool, 0);
 	ASSERT(VK_SUCCESS == vk_res);
 }
 
-void beginCmd(Cmd* pCmd)
+void vk_beginCmd(Cmd* pCmd)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
 	DECLARE_ZERO(VkCommandBufferBeginInfo, begin_info);
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -6032,45 +6040,45 @@ void beginCmd(Cmd* pCmd)
 	deviceGroupBeginInfo.pNext = NULL;
 	if (pCmd->pRenderer->mGpuMode == GPU_MODE_LINKED)
 	{
-		deviceGroupBeginInfo.deviceMask = (1 << pCmd->mNodeIndex);
+		deviceGroupBeginInfo.deviceMask = (1 << pCmd->mVulkan.mNodeIndex);
 		begin_info.pNext = &deviceGroupBeginInfo;
 	}
 
-	VkResult vk_res = vkBeginCommandBuffer(pCmd->pVkCmdBuf, &begin_info);
+	VkResult vk_res = vkBeginCommandBuffer(pCmd->mVulkan.pVkCmdBuf, &begin_info);
 	ASSERT(VK_SUCCESS == vk_res);
 
 	// Reset CPU side data
-	pCmd->pBoundPipelineLayout = NULL;
+	pCmd->mVulkan.pBoundPipelineLayout = NULL;
 }
 
-void endCmd(Cmd* pCmd)
+void vk_endCmd(Cmd* pCmd)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	if (pCmd->pVkActiveRenderPass)
+	if (pCmd->mVulkan.pVkActiveRenderPass)
 	{
-		vkCmdEndRenderPass(pCmd->pVkCmdBuf);
+		vkCmdEndRenderPass(pCmd->mVulkan.pVkCmdBuf);
 	}
 
-	pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
+	pCmd->mVulkan.pVkActiveRenderPass = VK_NULL_HANDLE;
 
-	VkResult vk_res = vkEndCommandBuffer(pCmd->pVkCmdBuf);
+	VkResult vk_res = vkEndCommandBuffer(pCmd->mVulkan.pVkCmdBuf);
 	ASSERT(VK_SUCCESS == vk_res);
 }
 
-void cmdBindRenderTargets(
+void vk_cmdBindRenderTargets(
 	Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil,
 	const LoadActionsDesc* pLoadActions /* = NULL*/, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice,
 	uint32_t depthMipSlice)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	if (pCmd->pVkActiveRenderPass)
+	if (pCmd->mVulkan.pVkActiveRenderPass)
 	{
-		vkCmdEndRenderPass(pCmd->pVkCmdBuf);
-		pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
+		vkCmdEndRenderPass(pCmd->mVulkan.pVkCmdBuf);
+		pCmd->mVulkan.pVkActiveRenderPass = VK_NULL_HANDLE;
 	}
 
 	if (!renderTargetCount && !pDepthStencil)
@@ -6078,9 +6086,6 @@ void cmdBindRenderTargets(
 
 	size_t renderPassHash = 0;
 	size_t frameBufferHash = 0;
-
-	RenderTargetBarrier barriers[MAX_RENDER_TARGET_ATTACHMENTS + 1] = {};
-	uint32_t barrierCount = 0;
 
 	// Generate hash for render pass and frame buffer
 	// NOTE:
@@ -6096,12 +6101,7 @@ void cmdBindRenderTargets(
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : 0,
 		};
 		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 3, renderPassHash);
-		frameBufferHash = tf_mem_hash<uint32_t>(&ppRenderTargets[i]->mId, 1, frameBufferHash);
-
-		if (0 == ppRenderTargets[i]->mUsed++)
-		{
-			barriers[barrierCount++] = { ppRenderTargets[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_RENDER_TARGET };
-		}
+		frameBufferHash = tf_mem_hash<uint32_t>(&ppRenderTargets[i]->mVulkan.mId, 1, frameBufferHash);
 	}
 	if (pDepthStencil)
 	{
@@ -6112,12 +6112,7 @@ void cmdBindRenderTargets(
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : 0,
 		};
 		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 4, renderPassHash);
-		frameBufferHash = tf_mem_hash<uint32_t>(&pDepthStencil->mId, 1, frameBufferHash);
-
-		if (0 == pDepthStencil->mUsed++)
-		{
-			barriers[barrierCount++] = { pDepthStencil, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_DEPTH_WRITE };
-		}
+		frameBufferHash = tf_mem_hash<uint32_t>(&pDepthStencil->mVulkan.mId, 1, frameBufferHash);
 	}
 	if (pColorArraySlices)
 		frameBufferHash = tf_mem_hash<uint32_t>(pColorArraySlices, renderTargetCount, frameBufferHash);
@@ -6220,11 +6215,6 @@ void cmdBindRenderTargets(
 		}
 	}
 
-	if (barrierCount)
-	{
-		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, barrierCount, barriers);
-	}
-
 	DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
 	begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	begin_info.pNext = NULL;
@@ -6234,14 +6224,17 @@ void cmdBindRenderTargets(
 	begin_info.clearValueCount = clearValueCount;
 	begin_info.pClearValues = clearValues;
 
-	vkCmdBeginRenderPass(pCmd->pVkCmdBuf, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-	pCmd->pVkActiveRenderPass = pRenderPass->pRenderPass;
+	vkCmdBeginRenderPass(pCmd->mVulkan.pVkCmdBuf, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+	pCmd->mVulkan.pVkActiveRenderPass = pRenderPass->pRenderPass;
 }
 
-void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
+void vk_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
+{
+}
+void vk_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
 	DECLARE_ZERO(VkViewport, viewport);
 	viewport.x = x;
@@ -6250,60 +6243,60 @@ void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, floa
 	viewport.height = -height;
 	viewport.minDepth = minDepth;
 	viewport.maxDepth = maxDepth;
-	vkCmdSetViewport(pCmd->pVkCmdBuf, 0, 1, &viewport);
+	vkCmdSetViewport(pCmd->mVulkan.pVkCmdBuf, 0, 1, &viewport);
 }
 
-void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+void vk_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
 	DECLARE_ZERO(VkRect2D, rect);
 	rect.offset.x = x;
 	rect.offset.y = y;
 	rect.extent.width = width;
 	rect.extent.height = height;
-	vkCmdSetScissor(pCmd->pVkCmdBuf, 0, 1, &rect);
+	vkCmdSetScissor(pCmd->mVulkan.pVkCmdBuf, 0, 1, &rect);
 }
 
-void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+void vk_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
 {
 	ASSERT(pCmd);
 
-	vkCmdSetStencilReference(pCmd->pVkCmdBuf, VK_STENCIL_FRONT_AND_BACK, val);
+	vkCmdSetStencilReference(pCmd->mVulkan.pVkCmdBuf, VK_STENCIL_FRONT_AND_BACK, val);
 }
 
-void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
+void vk_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
 	ASSERT(pCmd);
 	ASSERT(pPipeline);
-	ASSERT(pCmd->pVkCmdBuf != VK_NULL_HANDLE);
+	ASSERT(pCmd->mVulkan.pVkCmdBuf != VK_NULL_HANDLE);
 
-	VkPipelineBindPoint pipeline_bind_point = gPipelineBindPoint[pPipeline->mType];
-	vkCmdBindPipeline(pCmd->pVkCmdBuf, pipeline_bind_point, pPipeline->pVkPipeline);
+	VkPipelineBindPoint pipeline_bind_point = gPipelineBindPoint[pPipeline->mVulkan.mType];
+	vkCmdBindPipeline(pCmd->mVulkan.pVkCmdBuf, pipeline_bind_point, pPipeline->mVulkan.pVkPipeline);
 }
 
-void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
+void vk_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
 {
 	ASSERT(pCmd);
 	ASSERT(pBuffer);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
 	VkIndexType vk_index_type = (INDEX_TYPE_UINT16 == indexType) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
-	vkCmdBindIndexBuffer(pCmd->pVkCmdBuf, pBuffer->pVkBuffer, offset, vk_index_type);
+	vkCmdBindIndexBuffer(pCmd->mVulkan.pVkCmdBuf, pBuffer->mVulkan.pVkBuffer, offset, vk_index_type);
 }
 
-void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
+void vk_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
 {
 	UNREF_PARAM(pStrides);
 
 	ASSERT(pCmd);
 	ASSERT(0 != bufferCount);
 	ASSERT(ppBuffers);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 	ASSERT(pStrides);
 
-	const uint32_t max_buffers = pCmd->pRenderer->pVkActiveGPUProperties->properties.limits.maxVertexInputBindings;
+	const uint32_t max_buffers = pCmd->pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxVertexInputBindings;
 	uint32_t       capped_buffer_count = bufferCount > max_buffers ? max_buffers : bufferCount;
 
 	// No upper bound for this, so use 64 for now
@@ -6314,55 +6307,55 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 
 	for (uint32_t i = 0; i < capped_buffer_count; ++i)
 	{
-		buffers[i] = ppBuffers[i]->pVkBuffer;
+		buffers[i] = ppBuffers[i]->mVulkan.pVkBuffer;
 		offsets[i] = (pOffsets ? pOffsets[i] : 0);
 	}
 
-	vkCmdBindVertexBuffers(pCmd->pVkCmdBuf, 0, capped_buffer_count, buffers, offsets);
+	vkCmdBindVertexBuffers(pCmd->mVulkan.pVkCmdBuf, 0, capped_buffer_count, buffers, offsets);
 }
 
-void cmdDraw(Cmd* pCmd, uint32_t vertex_count, uint32_t first_vertex)
+void vk_cmdDraw(Cmd* pCmd, uint32_t vertex_count, uint32_t first_vertex)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	vkCmdDraw(pCmd->pVkCmdBuf, vertex_count, 1, first_vertex, 0);
+	vkCmdDraw(pCmd->mVulkan.pVkCmdBuf, vertex_count, 1, first_vertex, 0);
 }
 
-void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
+void vk_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	vkCmdDraw(pCmd->pVkCmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
+	vkCmdDraw(pCmd->mVulkan.pVkCmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void cmdDrawIndexed(Cmd* pCmd, uint32_t index_count, uint32_t first_index, uint32_t first_vertex)
+void vk_cmdDrawIndexed(Cmd* pCmd, uint32_t index_count, uint32_t first_index, uint32_t first_vertex)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	vkCmdDrawIndexed(pCmd->pVkCmdBuf, index_count, 1, first_index, first_vertex, 0);
+	vkCmdDrawIndexed(pCmd->mVulkan.pVkCmdBuf, index_count, 1, first_index, first_vertex, 0);
 }
 
-void cmdDrawIndexedInstanced(
+void vk_cmdDrawIndexedInstanced(
 	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
-	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
+	ASSERT(VK_NULL_HANDLE != pCmd->mVulkan.pVkCmdBuf);
 
-	vkCmdDrawIndexed(pCmd->pVkCmdBuf, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
+	vkCmdDrawIndexed(pCmd->mVulkan.pVkCmdBuf, indexCount, instanceCount, firstIndex, firstVertex, firstInstance);
 }
 
-void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+void vk_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
 	ASSERT(pCmd);
-	ASSERT(pCmd->pVkCmdBuf != VK_NULL_HANDLE);
+	ASSERT(pCmd->mVulkan.pVkCmdBuf != VK_NULL_HANDLE);
 
-	vkCmdDispatch(pCmd->pVkCmdBuf, groupCountX, groupCountY, groupCountZ);
+	vkCmdDispatch(pCmd->mVulkan.pVkCmdBuf, groupCountX, groupCountY, groupCountZ);
 }
 
-void cmdResourceBarrier(Cmd* pCmd,
+void vk_cmdResourceBarrier(Cmd* pCmd,
 	uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
 	uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
 	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
@@ -6387,8 +6380,8 @@ void cmdResourceBarrier(Cmd* pCmd,
 		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
 			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
-			pBufferBarrier = &bufferBarriers[bufferBarrierCount++];
-			pBufferBarrier->sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			pBufferBarrier = &bufferBarriers[bufferBarrierCount++]; //-V522
+			pBufferBarrier->sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER; //-V522
 			pBufferBarrier->pNext = NULL;
 
 			pBufferBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -6406,19 +6399,19 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 		if (pBufferBarrier)
 		{
-			pBufferBarrier->buffer = pBuffer->pVkBuffer;
+			pBufferBarrier->buffer = pBuffer->mVulkan.pVkBuffer;
 			pBufferBarrier->size = VK_WHOLE_SIZE;
 			pBufferBarrier->offset = 0;
 
 			if (pTrans->mAcquire)
 			{
-				pBufferBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
-				pBufferBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
+				pBufferBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
+				pBufferBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 			}
 			else if (pTrans->mRelease)
 			{
-				pBufferBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
-				pBufferBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
+				pBufferBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
+				pBufferBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
 			}
 			else
 			{
@@ -6440,8 +6433,8 @@ void cmdResourceBarrier(Cmd* pCmd,
 		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
 			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
-			pImageBarrier = &imageBarriers[imageBarrierCount++];
-			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			pImageBarrier = &imageBarriers[imageBarrierCount++]; //-V522
+			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER; //-V522
 			pImageBarrier->pNext = NULL;
 
 			pImageBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -6463,7 +6456,7 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 		if (pImageBarrier)
 		{
-			pImageBarrier->image = pTexture->pVkImage;
+			pImageBarrier->image = pTexture->mVulkan.pVkImage;
 			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
 			pImageBarrier->subresourceRange.baseMipLevel = pTrans->mSubresourceBarrier ? pTrans->mMipLevel : 0;
 			pImageBarrier->subresourceRange.levelCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_MIP_LEVELS;
@@ -6472,13 +6465,13 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 			if (pTrans->mAcquire)
 			{
-				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
-				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
+				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
+				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 			}
 			else if (pTrans->mRelease)
 			{
-				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
-				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
+				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
+				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
 			}
 			else
 			{
@@ -6517,13 +6510,13 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 			pImageBarrier->srcAccessMask = util_to_vk_access_flags(pTrans->mCurrentState);
 			pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
-			pImageBarrier->oldLayout = pTrans->pRenderTarget->mUsed++ ? util_to_vk_image_layout(pTrans->mCurrentState) : VK_IMAGE_LAYOUT_UNDEFINED;
+			pImageBarrier->oldLayout = util_to_vk_image_layout(pTrans->mCurrentState);
 			pImageBarrier->newLayout = util_to_vk_image_layout(pTrans->mNewState);
 		}
 
 		if (pImageBarrier)
 		{
-			pImageBarrier->image = pTexture->pVkImage;
+			pImageBarrier->image = pTexture->mVulkan.pVkImage;
 			pImageBarrier->subresourceRange.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
 			pImageBarrier->subresourceRange.baseMipLevel = pTrans->mSubresourceBarrier ? pTrans->mMipLevel : 0;
 			pImageBarrier->subresourceRange.levelCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_MIP_LEVELS;
@@ -6532,13 +6525,13 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 			if (pTrans->mAcquire)
 			{
-				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
-				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
+				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
+				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 			}
 			else if (pTrans->mRelease)
 			{
-				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVkQueueFamilyIndex;
-				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mQueueFamilyIndices[pTrans->mQueueType];
+				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
+				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
 			}
 			else
 			{
@@ -6551,24 +6544,24 @@ void cmdResourceBarrier(Cmd* pCmd,
 		}
 	}
 
-	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, srcAccessFlags, (QueueType)pCmd->mType);
-	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, dstAccessFlags, (QueueType)pCmd->mType);
+	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, srcAccessFlags, (QueueType)pCmd->mVulkan.mType);
+	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, dstAccessFlags, (QueueType)pCmd->mVulkan.mType);
 
 	if (bufferBarrierCount || imageBarrierCount)
 	{
 		vkCmdPipelineBarrier(
-			pCmd->pVkCmdBuf, srcStageMask, dstStageMask, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
+			pCmd->mVulkan.pVkCmdBuf, srcStageMask, dstStageMask, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
 			imageBarriers);
 	}
 }
 
-void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void vk_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
-	ASSERT(pSrcBuffer->pVkBuffer);
+	ASSERT(pSrcBuffer->mVulkan.pVkBuffer);
 	ASSERT(pBuffer);
-	ASSERT(pBuffer->pVkBuffer);
+	ASSERT(pBuffer->mVulkan.pVkBuffer);
 	ASSERT(srcOffset + size <= pSrcBuffer->mSize);
 	ASSERT(dstOffset + size <= pBuffer->mSize);
 
@@ -6576,7 +6569,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	region.srcOffset = srcOffset;
 	region.dstOffset = dstOffset;
 	region.size = (VkDeviceSize)size;
-	vkCmdCopyBuffer(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pBuffer->pVkBuffer, 1, &region);
+	vkCmdCopyBuffer(pCmd->mVulkan.pVkCmdBuf, pSrcBuffer->mVulkan.pVkBuffer, pBuffer->mVulkan.pVkBuffer, 1, &region);
 }
 
 typedef struct SubresourceDataDesc
@@ -6588,7 +6581,7 @@ typedef struct SubresourceDataDesc
 	uint32_t mSlicePitch;
 } SubresourceDataDesc;
 
-void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
+void vk_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
 {
 	const TinyImageFormat fmt = (TinyImageFormat)pTexture->mFormat;
 	const bool isSinglePlane = TinyImageFormat_IsSinglePlane(fmt);
@@ -6616,7 +6609,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, cons
 		copy.imageExtent.height = height;
 		copy.imageExtent.depth = depth;
 
-		vkCmdCopyBufferToImage(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pTexture->pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		vkCmdCopyBufferToImage(pCmd->mVulkan.pVkCmdBuf, pSrcBuffer->mVulkan.pVkBuffer, pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 	}
 	else
 	{
@@ -6647,18 +6640,18 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, cons
 			offset += copy.imageExtent.width * copy.imageExtent.height * TinyImageFormat_PlaneSizeOfBlock(fmt, i);
 		}
 
-		vkCmdCopyBufferToImage(pCmd->pVkCmdBuf, pSrcBuffer->pVkBuffer, pTexture->pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, numOfPlanes, bufferImagesCopy);
+		vkCmdCopyBufferToImage(pCmd->mVulkan.pVkCmdBuf, pSrcBuffer->mVulkan.pVkBuffer, pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, numOfPlanes, bufferImagesCopy);
 	}
 }
 
 /************************************************************************/
 // Queue Fence Semaphore Functions
 /************************************************************************/
-void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
+void vk_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
 {
 	ASSERT(pRenderer);
-	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
-	ASSERT(VK_NULL_HANDLE != pSwapChain->pSwapChain);
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(VK_NULL_HANDLE != pSwapChain->mVulkan.pSwapChain);
 	ASSERT(pSignalSemaphore || pFence);
 
 	VkResult vk_res = {};
@@ -6666,38 +6659,38 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	if (pFence != NULL)
 	{
 		vk_res =
-			vkAcquireNextImageKHR(pRenderer->pVkDevice, pSwapChain->pSwapChain, UINT64_MAX, VK_NULL_HANDLE, pFence->pVkFence, pImageIndex);
+			vkAcquireNextImageKHR(pRenderer->mVulkan.pVkDevice, pSwapChain->mVulkan.pSwapChain, UINT64_MAX, VK_NULL_HANDLE, pFence->mVulkan.pVkFence, pImageIndex);
 
 		// If swapchain is out of date, let caller know by setting image index to -1
 		if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			*pImageIndex = -1;
-			vkResetFences(pRenderer->pVkDevice, 1, &pFence->pVkFence);
-			pFence->mSubmitted = false;
+			vkResetFences(pRenderer->mVulkan.pVkDevice, 1, &pFence->mVulkan.pVkFence);
+			pFence->mVulkan.mSubmitted = false;
 			return;
 		}
 
-		pFence->mSubmitted = true;
+		pFence->mVulkan.mSubmitted = true;
 	}
 	else
 	{
 		vk_res = vkAcquireNextImageKHR(
-			pRenderer->pVkDevice, pSwapChain->pSwapChain, UINT64_MAX, pSignalSemaphore->pVkSemaphore, VK_NULL_HANDLE, pImageIndex);
+			pRenderer->mVulkan.pVkDevice, pSwapChain->mVulkan.pSwapChain, UINT64_MAX, pSignalSemaphore->mVulkan.pVkSemaphore, VK_NULL_HANDLE, pImageIndex); //-V522
 
 		// If swapchain is out of date, let caller know by setting image index to -1
 		if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			*pImageIndex = -1;
-			pSignalSemaphore->mSignaled = false;
+			pSignalSemaphore->mVulkan.mSignaled = false;
 			return;
 		}
 
 		ASSERT(VK_SUCCESS == vk_res);
-		pSignalSemaphore->mSignaled = true;
+		pSignalSemaphore->mVulkan.mSignaled = true;
 	}
 }
 
-void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
+void vk_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
@@ -6721,12 +6714,12 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		ASSERT(ppSignalSemaphores);
 	}
 
-	ASSERT(VK_NULL_HANDLE != pQueue->pVkQueue);
+	ASSERT(VK_NULL_HANDLE != pQueue->mVulkan.pVkQueue);
 
 	VkCommandBuffer* cmds = (VkCommandBuffer*)alloca(cmdCount * sizeof(VkCommandBuffer));
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
-		cmds[i] = ppCmds[i]->pVkCmdBuf;
+		cmds[i] = ppCmds[i]->mVulkan.pVkCmdBuf;
 	}
 
 	VkSemaphore*          wait_semaphores = waitSemaphoreCount ? (VkSemaphore*)alloca(waitSemaphoreCount * sizeof(VkSemaphore)) : NULL;
@@ -6734,13 +6727,13 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	uint32_t              waitCount = 0;
 	for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
 	{
-		if (ppWaitSemaphores[i]->mSignaled)
+		if (ppWaitSemaphores[i]->mVulkan.mSignaled)
 		{
-			wait_semaphores[waitCount] = ppWaitSemaphores[i]->pVkSemaphore;
+			wait_semaphores[waitCount] = ppWaitSemaphores[i]->mVulkan.pVkSemaphore; //-V522
 			wait_masks[waitCount] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 			++waitCount;
 
-			ppWaitSemaphores[i]->mSignaled = false;
+			ppWaitSemaphores[i]->mVulkan.mSignaled = false;
 		}
 	}
 
@@ -6748,11 +6741,11 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	uint32_t     signalCount = 0;
 	for (uint32_t i = 0; i < signalSemaphoreCount; ++i)
 	{
-		if (!ppSignalSemaphores[i]->mSignaled)
+		if (!ppSignalSemaphores[i]->mVulkan.mSignaled)
 		{
-			signal_semaphores[signalCount] = ppSignalSemaphores[i]->pVkSemaphore;
-			ppSignalSemaphores[i]->mCurrentNodeIndex = pQueue->mNodeIndex;
-			ppSignalSemaphores[signalCount]->mSignaled = true;
+			signal_semaphores[signalCount] = ppSignalSemaphores[i]->mVulkan.pVkSemaphore; //-V522
+			ppSignalSemaphores[i]->mVulkan.mCurrentNodeIndex = pQueue->mNodeIndex;
+			ppSignalSemaphores[i]->mVulkan.mSignaled = true;
 			++signalCount;
 		}
 	}
@@ -6769,7 +6762,7 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	submit_info.pSignalSemaphores = signal_semaphores;
 
 	VkDeviceGroupSubmitInfo deviceGroupSubmitInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_SUBMIT_INFO_KHR };
-	if (pQueue->mGpuMode == GPU_MODE_LINKED)
+	if (pQueue->mVulkan.mGpuMode == GPU_MODE_LINKED)
 	{
 		uint32_t* pVkDeviceMasks = NULL;
 		uint32_t* pSignalIndices = NULL;
@@ -6785,7 +6778,7 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 
 		for (uint32_t i = 0; i < deviceGroupSubmitInfo.commandBufferCount; ++i)
 		{
-			pVkDeviceMasks[i] = (1 << ppCmds[i]->mNodeIndex);
+			pVkDeviceMasks[i] = (1 << ppCmds[i]->mVulkan.mNodeIndex);
 		}
 		for (uint32_t i = 0; i < deviceGroupSubmitInfo.signalSemaphoreCount; ++i)
 		{
@@ -6793,7 +6786,7 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		}
 		for (uint32_t i = 0; i < deviceGroupSubmitInfo.waitSemaphoreCount; ++i)
 		{
-			pWaitIndices[i] = ppWaitSemaphores[i]->mCurrentNodeIndex;
+			pWaitIndices[i] = ppWaitSemaphores[i]->mVulkan.mCurrentNodeIndex;
 		}
 
 		deviceGroupSubmitInfo.pCommandBufferDeviceMasks = pVkDeviceMasks;
@@ -6805,22 +6798,21 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	// Lightweight lock to make sure multiple threads dont use the same queue simultaneously
 	// Many setups have just one queue family and one queue. In this case, async compute, async transfer doesn't exist and we end up using
 	// the same queue for all three operations
-	MutexLock lock(*pQueue->pSubmitMutex);
-	VkResult vk_res = vkQueueSubmit(pQueue->pVkQueue, 1, &submit_info, pFence ? pFence->pVkFence : VK_NULL_HANDLE);
+	MutexLock lock(*pQueue->mVulkan.pSubmitMutex);
+	VkResult vk_res = vkQueueSubmit(pQueue->mVulkan.pVkQueue, 1, &submit_info, pFence ? pFence->mVulkan.pVkFence : VK_NULL_HANDLE);
 	ASSERT(VK_SUCCESS == vk_res);
 
 	if (pFence)
-		pFence->mSubmitted = true;
+		pFence->mVulkan.mSubmitted = true;
 }
 
-PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+void vk_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
 
 	uint32_t waitSemaphoreCount = pDesc->mWaitSemaphoreCount;
 	Semaphore** ppWaitSemaphores = pDesc->ppWaitSemaphores;
-	PresentStatus presentStatus = PRESENT_STATUS_FAILED;
 	if (pDesc->pSwapChain)
 	{
 		SwapChain* pSwapChain = pDesc->pSwapChain;
@@ -6831,16 +6823,16 @@ PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 			ASSERT(ppWaitSemaphores);
 		}
 
-		ASSERT(VK_NULL_HANDLE != pQueue->pVkQueue);
+		ASSERT(VK_NULL_HANDLE != pQueue->mVulkan.pVkQueue);
 
 		VkSemaphore* wait_semaphores = waitSemaphoreCount ? (VkSemaphore*)alloca(waitSemaphoreCount * sizeof(VkSemaphore)) : NULL;
 		uint32_t waitCount = 0;
 		for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
 		{
-			if (ppWaitSemaphores[i]->mSignaled)
+			if (ppWaitSemaphores[i]->mVulkan.mSignaled)
 			{
-				wait_semaphores[waitCount] = ppWaitSemaphores[i]->pVkSemaphore;
-				ppWaitSemaphores[i]->mSignaled = false;
+				wait_semaphores[waitCount] = ppWaitSemaphores[i]->mVulkan.pVkSemaphore; //-V522
+				ppWaitSemaphores[i]->mVulkan.mSignaled = false;
 				++waitCount;
 			}
 		}
@@ -6853,36 +6845,34 @@ PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 		present_info.waitSemaphoreCount = waitCount;
 		present_info.pWaitSemaphores = wait_semaphores;
 		present_info.swapchainCount = 1;
-		present_info.pSwapchains = &(pSwapChain->pSwapChain);
+		present_info.pSwapchains = &(pSwapChain->mVulkan.pSwapChain);
 		present_info.pImageIndices = &(presentIndex);
 		present_info.pResults = NULL;
 
 		// Lightweight lock to make sure multiple threads dont use the same queue simultaneously
-		MutexLock lock(*pQueue->pSubmitMutex);
-		VkResult vk_res = vkQueuePresentKHR(pSwapChain->pPresentQueue ? pSwapChain->pPresentQueue : pQueue->pVkQueue, &present_info);
+		MutexLock lock(*pQueue->mVulkan.pSubmitMutex);
+		VkResult vk_res = vkQueuePresentKHR(pSwapChain->mVulkan.pPresentQueue ? pSwapChain->mVulkan.pPresentQueue : pQueue->mVulkan.pVkQueue, &present_info);
 
-		if (vk_res == VK_SUCCESS) 
+		if (vk_res == VK_ERROR_DEVICE_LOST) 
 		{
-			presentStatus = PRESENT_STATUS_SUCCESS;
-		}
-		else if (vk_res == VK_ERROR_DEVICE_LOST) 
-		{
-			presentIndex = PRESENT_STATUS_DEVICE_RESET;
+			// Will crash normally on Android.
+#if defined(_WINDOWS)
+			Thread::Sleep(5000); // Wait for a few seconds to allow the driver to come back online before doing a reset.
+			onDeviceLost();
+#endif
 		}
 		else if (vk_res == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			// TODO : Fix bug where we get this error if window is closed before able to present queue.
 		}
-		else
+		else if (vk_res != VK_SUCCESS && vk_res != VK_SUBOPTIMAL_KHR)
 		{
 			ASSERT(0);
 		}
 	}
-
-	return presentStatus;
 }
 
-void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+void vk_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
 	ASSERT(pRenderer);
 	ASSERT(fenceCount);
@@ -6892,15 +6882,14 @@ void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 	uint32_t numValidFences = 0;
 	for (uint32_t i = 0; i < fenceCount; ++i)
 	{
-		if (ppFences[i]->mSubmitted)
-			fences[numValidFences++] = ppFences[i]->pVkFence;
+		if (ppFences[i]->mVulkan.mSubmitted)
+			fences[numValidFences++] = ppFences[i]->mVulkan.pVkFence;
 	}
 
 	if (numValidFences)
 	{
-		VkResult result = vkWaitForFences(pRenderer->pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
-
 #if defined(USE_NSIGHT_AFTERMATH)
+		VkResult result = vkWaitForFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
 		if (pRenderer->mAftermathSupport)
 		{
 			if (VK_ERROR_DEVICE_LOST == result)
@@ -6911,31 +6900,33 @@ void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 				sleep(3000);
 			}
 		}
+#else
+		vkWaitForFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
 #endif
-		vkResetFences(pRenderer->pVkDevice, numValidFences, fences);
+		vkResetFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences);
 	}
 
 	for (uint32_t i = 0; i < fenceCount; ++i)
-		ppFences[i]->mSubmitted = false;
+		ppFences[i]->mVulkan.mSubmitted = false;
 }
 
 
-void waitQueueIdle(Queue* pQueue)
+void vk_waitQueueIdle(Queue* pQueue)
 {
-	vkQueueWaitIdle(pQueue->pVkQueue);
+	vkQueueWaitIdle(pQueue->mVulkan.pVkQueue);
 }
 
-void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+void vk_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
 {
 	*pFenceStatus = FENCE_STATUS_COMPLETE;
 
-	if (pFence->mSubmitted)
+	if (pFence->mVulkan.mSubmitted)
 	{
-		VkResult vkRes = vkGetFenceStatus(pRenderer->pVkDevice, pFence->pVkFence);
+		VkResult vkRes = vkGetFenceStatus(pRenderer->mVulkan.pVkDevice, pFence->mVulkan.pVkFence);
 		if (vkRes == VK_SUCCESS)
 		{
-			vkResetFences(pRenderer->pVkDevice, 1, &pFence->pVkFence);
-			pFence->mSubmitted = false;
+			vkResetFences(pRenderer->mVulkan.pVkDevice, 1, &pFence->mVulkan.pVkFence);
+			pFence->mVulkan.mSubmitted = false;
 		}
 
 		*pFenceStatus = vkRes == VK_SUCCESS ? FENCE_STATUS_COMPLETE : FENCE_STATUS_INCOMPLETE;
@@ -6948,7 +6939,7 @@ void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatu
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat getRecommendedSwapchainFormat(bool hintHDR)
+TinyImageFormat vk_getRecommendedSwapchainFormat(bool hintHDR)
 {
 	//TODO: figure out this properly. BGRA not supported on android
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_VI_NN)
@@ -6961,32 +6952,43 @@ TinyImageFormat getRecommendedSwapchainFormat(bool hintHDR)
 /************************************************************************/
 // Indirect draw functions
 /************************************************************************/
-void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
+void vk_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
 	ASSERT(ppCommandSignature);
 
-	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature));
+	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature) + sizeof(IndirectArgument) * pDesc->mIndirectArgCount);
 	ASSERT(pCommandSignature);
+
+	pCommandSignature->pIndirectArguments = (IndirectArgument*)(pCommandSignature + 1); //-V1027
+	pCommandSignature->mIndirectArgumentCount = pDesc->mIndirectArgCount;
+	uint32_t offset = 0;
 
 	for (uint32_t i = 0; i < pDesc->mIndirectArgCount; ++i)    // counting for all types;
 	{
+		pCommandSignature->pIndirectArguments[i].mType = pDesc->pArgDescs[i].mType;
+		pCommandSignature->pIndirectArguments[i].mOffset = offset;
+
 		switch (pDesc->pArgDescs[i].mType)
 		{
 			case INDIRECT_DRAW:
-				pCommandSignature->mDrawType = INDIRECT_DRAW;
 				pCommandSignature->mStride += sizeof(IndirectDrawArguments);
+				offset += sizeof(IndirectDrawArguments);
 				break;
 			case INDIRECT_DRAW_INDEX:
-				pCommandSignature->mDrawType = INDIRECT_DRAW_INDEX;
 				pCommandSignature->mStride += sizeof(IndirectDrawIndexArguments);
+				offset += sizeof(IndirectDrawIndexArguments);
 				break;
 			case INDIRECT_DISPATCH:
-				pCommandSignature->mDrawType = INDIRECT_DISPATCH;
 				pCommandSignature->mStride += sizeof(IndirectDispatchArguments);
+				offset += sizeof(IndirectDispatchArguments);
 				break;
-			default: LOGF(LogLevel::eERROR, "Vulkan runtime only supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point"); break;
+			default: 
+				pCommandSignature->mStride += pDesc->pArgDescs[i].mByteSize;
+				offset += pDesc->pArgDescs[i].mByteSize;
+				LOGF(LogLevel::eWARNING, "Vulkan runtime only supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point");
+				break;
 		}
 	}
 
@@ -6998,43 +7000,50 @@ void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc
 	*ppCommandSignature = pCommandSignature;
 }
 
-void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
+void vk_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
 {
 	pCommandSignature->mStride = 0;
 	SAFE_FREE(pCommandSignature);
 }
 
-void cmdExecuteIndirect(
+void vk_cmdExecuteIndirect(
 	Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
-	if (pCommandSignature->mDrawType == INDIRECT_DRAW)
+
+	for (uint32_t i = 0; i < pCommandSignature->mIndirectArgumentCount; ++i)    // execute for all types;
 	{
+		IndirectArgument* pIndirectArgument = &pCommandSignature->pIndirectArguments[i];
+		uint64_t offset = bufferOffset + pIndirectArgument->mOffset;
+
+		if (pIndirectArgument->mType == INDIRECT_DRAW)
+		{
 #ifndef NX64
-		if (pCounterBuffer && pfnVkCmdDrawIndirectCountKHR)
-			pfnVkCmdDrawIndirectCountKHR(
-				pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount,
-				pCommandSignature->mStride);
-		else
+			if (pCounterBuffer && pfnVkCmdDrawIndirectCountKHR)
+				pfnVkCmdDrawIndirectCountKHR(
+					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, pCounterBuffer->mVulkan.pVkBuffer, counterBufferOffset, maxCommandCount,
+					pCommandSignature->mStride);
+			else
 #endif
-			vkCmdDrawIndirect(
-				pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mStride);
-	}
-	else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
-	{
+				vkCmdDrawIndirect(
+					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, maxCommandCount, pCommandSignature->mStride);
+		}
+		else if (pIndirectArgument->mType == INDIRECT_DRAW_INDEX)
+		{
 #ifndef NX64
-		if (pCounterBuffer && pfnVkCmdDrawIndexedIndirectCountKHR)
-			pfnVkCmdDrawIndexedIndirectCountKHR(
-				pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, pCounterBuffer->pVkBuffer, counterBufferOffset, maxCommandCount,
-				pCommandSignature->mStride);
-		else
+			if (pCounterBuffer && pfnVkCmdDrawIndexedIndirectCountKHR)
+				pfnVkCmdDrawIndexedIndirectCountKHR(
+					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, pCounterBuffer->mVulkan.pVkBuffer, counterBufferOffset, maxCommandCount,
+					pCommandSignature->mStride);
+			else
 #endif
-			vkCmdDrawIndexedIndirect(
-				pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset, maxCommandCount, pCommandSignature->mStride);
-	}
-	else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
-	{
-		vkCmdDispatchIndirect(pCmd->pVkCmdBuf, pIndirectBuffer->pVkBuffer, bufferOffset);
+				vkCmdDrawIndexedIndirect(
+					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, maxCommandCount, pCommandSignature->mStride);
+		}
+		else if (pIndirectArgument->mType == INDIRECT_DISPATCH)
+		{
+			vkCmdDispatchIndirect(pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset);
+		}
 	}
 }
 /************************************************************************/
@@ -7051,18 +7060,18 @@ VkQueryType util_to_vk_query_type(QueryType type)
 	}
 }
 
-void getTimestampFrequency(Queue* pQueue, double* pFrequency)
+void vk_getTimestampFrequency(Queue* pQueue, double* pFrequency)
 {
 	ASSERT(pQueue);
 	ASSERT(pFrequency);
 
 	// The framework is using ticks per sec as frequency. Vulkan is nano sec per tick.
 	// Handle the conversion logic here.
-	*pFrequency = 1.0f / ((double)pQueue->mTimestampPeriod /*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
+	*pFrequency = 1.0f / ((double)pQueue->mVulkan.mTimestampPeriod /*ns/tick number of nanoseconds required for a timestamp query to be incremented by 1*/
 						  * 1e-9);             // convert to ticks/sec (DX12 standard)
 }
 
-void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
+void vk_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -7071,7 +7080,7 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
 	ASSERT(ppQueryPool);
 
-	pQueryPool->mType = util_to_vk_query_type(pDesc->mType);
+	pQueryPool->mVulkan.mType = util_to_vk_query_type(pDesc->mType);
 	pQueryPool->mCount = pDesc->mQueryCount;
 
 	VkQueryPoolCreateInfo createInfo = {};
@@ -7081,32 +7090,32 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	createInfo.queryType = util_to_vk_query_type(pDesc->mType);
 	createInfo.flags = 0;
 	createInfo.pipelineStatistics = 0;
-	CHECK_VKRESULT(vkCreateQueryPool(pRenderer->pVkDevice, &createInfo, &gVkAllocationCallbacks, &pQueryPool->pVkQueryPool));
+	CHECK_VKRESULT(vkCreateQueryPool(pRenderer->mVulkan.pVkDevice, &createInfo, &gVkAllocationCallbacks, &pQueryPool->mVulkan.pVkQueryPool));
 
 	*ppQueryPool = pQueryPool;
 }
 
-void removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
+void vk_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pQueryPool);
-	vkDestroyQueryPool(pRenderer->pVkDevice, pQueryPool->pVkQueryPool, &gVkAllocationCallbacks);
+	vkDestroyQueryPool(pRenderer->mVulkan.pVkDevice, pQueryPool->mVulkan.pVkQueryPool, &gVkAllocationCallbacks);
 
 	SAFE_FREE(pQueryPool);
 }
 
-void cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+void vk_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
 {
-	vkCmdResetQueryPool(pCmd->pVkCmdBuf, pQueryPool->pVkQueryPool, startQuery, queryCount);
+	vkCmdResetQueryPool(pCmd->mVulkan.pVkCmdBuf, pQueryPool->mVulkan.pVkQueryPool, startQuery, queryCount);
 }
 
-void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void vk_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
-	VkQueryType type = pQueryPool->mType;
+	VkQueryType type = pQueryPool->mVulkan.mType;
 	switch (type)
 	{
 		case VK_QUERY_TYPE_TIMESTAMP:
-			vkCmdWriteTimestamp(pCmd->pVkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pQueryPool->pVkQueryPool, pQuery->mIndex);
+			vkCmdWriteTimestamp(pCmd->mVulkan.pVkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pQueryPool->mVulkan.pVkQueryPool, pQuery->mIndex);
 			break;
 		case VK_QUERY_TYPE_PIPELINE_STATISTICS: break;
 		case VK_QUERY_TYPE_OCCLUSION: break;
@@ -7114,12 +7123,12 @@ void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 	}
 }
 
-void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void vk_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
 	cmdBeginQuery(pCmd, pQueryPool, pQuery);
 }
 
-void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+void vk_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
 	VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT;
 #ifdef ANDROID
@@ -7128,26 +7137,26 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 	flags |= VK_QUERY_RESULT_WAIT_BIT;
 #endif
 	vkCmdCopyQueryPoolResults(
-		pCmd->pVkCmdBuf, pQueryPool->pVkQueryPool, startQuery, queryCount, pReadbackBuffer->pVkBuffer, 0, sizeof(uint64_t), flags);
+		pCmd->mVulkan.pVkCmdBuf, pQueryPool->mVulkan.pVkQueryPool, startQuery, queryCount, pReadbackBuffer->mVulkan.pVkBuffer, 0, sizeof(uint64_t), flags);
 }
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
-void calculateMemoryStats(Renderer* pRenderer, char** stats) { vmaBuildStatsString(pRenderer->pVmaAllocator, stats, VK_TRUE); }
+void vk_calculateMemoryStats(Renderer* pRenderer, char** stats) { vmaBuildStatsString(pRenderer->mVulkan.pVmaAllocator, stats, VK_TRUE); }
 
-void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+void vk_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
 {
 	VmaStats stats;
-	pRenderer->pVmaAllocator->CalculateStats(&stats);
+	pRenderer->mVulkan.pVmaAllocator->CalculateStats(&stats);
 	*usedBytes = stats.total.usedBytes;
 	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
 }
 
-void freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRenderer->pVmaAllocator, stats); }
+void vk_freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRenderer->mVulkan.pVmaAllocator, stats); }
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
-void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void vk_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 	if (gDebugMarkerSupport)
 	{
@@ -7159,7 +7168,7 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 		markerInfo.color[2] = b;
 		markerInfo.color[3] = 1.0f;
 		markerInfo.pLabelName = pName;
-		vkCmdBeginDebugUtilsLabelEXT(pCmd->pVkCmdBuf, &markerInfo);
+		vkCmdBeginDebugUtilsLabelEXT(pCmd->mVulkan.pVkCmdBuf, &markerInfo);
 #elif !defined(NX64) || !defined(USE_RENDER_DOC)
 		VkDebugMarkerMarkerInfoEXT markerInfo = {};
 		markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
@@ -7168,25 +7177,25 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 		markerInfo.color[2] = b;
 		markerInfo.color[3] = 1.0f;
 		markerInfo.pMarkerName = pName;
-		vkCmdDebugMarkerBeginEXT(pCmd->pVkCmdBuf, &markerInfo);
+		vkCmdDebugMarkerBeginEXT(pCmd->mVulkan.pVkCmdBuf, &markerInfo);
 #endif
 	}
 }
 
-void cmdEndDebugMarker(Cmd* pCmd)
+void vk_cmdEndDebugMarker(Cmd* pCmd)
 {
 	if (gDebugMarkerSupport)
 	{
 #ifdef USE_DEBUG_UTILS_EXTENSION
-		vkCmdEndDebugUtilsLabelEXT(pCmd->pVkCmdBuf);
+		vkCmdEndDebugUtilsLabelEXT(pCmd->mVulkan.pVkCmdBuf);
 #elif !defined(NX64) || !defined(USE_RENDER_DOC)
-		vkCmdDebugMarkerEndEXT(pCmd->pVkCmdBuf);
+		vkCmdDebugMarkerEndEXT(pCmd->mVulkan.pVkCmdBuf);
 #endif
 
 	}
 }
 
-void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void vk_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 	if (gDebugMarkerSupport)
 	{
@@ -7198,7 +7207,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 		markerInfo.color[2] = b;
 		markerInfo.color[3] = 1.0f;
 		markerInfo.pLabelName = pName;
-		vkCmdInsertDebugUtilsLabelEXT(pCmd->pVkCmdBuf, &markerInfo);
+		vkCmdInsertDebugUtilsLabelEXT(pCmd->mVulkan.pVkCmdBuf, &markerInfo);
 #else
 		VkDebugMarkerMarkerInfoEXT markerInfo = {};
 		markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
@@ -7207,7 +7216,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 		markerInfo.color[2] = b;
 		markerInfo.color[3] = 1.0f;
 		markerInfo.pMarkerName = pName;
-		vkCmdDebugMarkerInsertEXT(pCmd->pVkCmdBuf, &markerInfo);
+		vkCmdDebugMarkerInsertEXT(pCmd->mVulkan.pVkCmdBuf, &markerInfo);
 #endif
 	}
 
@@ -7217,6 +7226,11 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 		vkCmdSetCheckpointNV(pCmd->pVkCmdBuf, pName);
 	}
 #endif
+}
+
+uint32_t vk_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+{
+	return 0;
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -7253,47 +7267,47 @@ void util_set_object_name(VkDevice pDevice, uint64_t handle, VkDebugReportObject
 }
 #endif
 
-void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+void vk_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
 	ASSERT(pRenderer);
 	ASSERT(pBuffer);
 	ASSERT(pName);
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pBuffer->pVkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
 #else
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pBuffer->pVkBuffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, pName);
 #endif
 }
 
-void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+void vk_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
 	ASSERT(pName);
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pTexture->pVkImage, VK_OBJECT_TYPE_IMAGE, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_OBJECT_TYPE_IMAGE, pName);
 #else
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pTexture->pVkImage, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, pName);
 #endif
 }
 
-void setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
+void vk_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
 {
 	setTextureName(pRenderer, pRenderTarget->pTexture, pName);
 }
 
-void setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName)
+void vk_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pName)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipeline);
 	ASSERT(pName);
 
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pPipeline->pVkPipeline, VK_OBJECT_TYPE_PIPELINE, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_OBJECT_TYPE_PIPELINE, pName);
 #else
-	util_set_object_name(pRenderer->pVkDevice, (uint64_t)pPipeline->pVkPipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, pName);
+	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, pName);
 #endif
 }
 /************************************************************************/
@@ -7309,7 +7323,7 @@ void alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity, Vk
 // Allocate Vulkan memory for the virtual page
 bool allocateVirtualPage(Renderer* pRenderer, Texture* pTexture, VirtualTexturePage &virtualPage, uint32_t memoryTypeIndex)
 {
-	if (virtualPage.imageMemoryBind.memory != VK_NULL_HANDLE)
+	if (virtualPage.mVulkan.imageMemoryBind.memory != VK_NULL_HANDLE)
 	{
 		//already filled
 		return false;
@@ -7326,14 +7340,14 @@ bool allocateVirtualPage(Renderer* pRenderer, Texture* pTexture, VirtualTextureP
 	desc.mSize = desc.mElementCount * desc.mStructStride;
 	addBuffer(pRenderer, &desc, &virtualPage.pIntermediateBuffer);
 
-	virtualPage.imageMemoryBind = {};
+	virtualPage.mVulkan.imageMemoryBind = {};
 
 	VkMemoryAllocateInfo allocInfo = {};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = virtualPage.size;
+	allocInfo.allocationSize = virtualPage.mVulkan.size;
 	allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-	CHECK_VKRESULT(vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &virtualPage.imageMemoryBind.memory));
+	CHECK_VKRESULT(vkAllocateMemory(pRenderer->mVulkan.pVkDevice, &allocInfo, nullptr, &virtualPage.mVulkan.imageMemoryBind.memory));
 
 	VkImageSubresource subResource{};
 	subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -7341,21 +7355,21 @@ bool allocateVirtualPage(Renderer* pRenderer, Texture* pTexture, VirtualTextureP
 	subResource.arrayLayer = virtualPage.layer;
 
 	// Sparse image memory binding
-	virtualPage.imageMemoryBind.subresource = subResource;
-	virtualPage.imageMemoryBind.extent = virtualPage.extent;
-	virtualPage.imageMemoryBind.offset = virtualPage.offset;
+	virtualPage.mVulkan.imageMemoryBind.subresource = subResource;
+	virtualPage.mVulkan.imageMemoryBind.extent = virtualPage.mVulkan.extent;
+	virtualPage.mVulkan.imageMemoryBind.offset = virtualPage.mVulkan.offset;
 
 	return true;
 }
 
 // Release Vulkan memory allocated for this page
-void releaseVirtualPage(Renderer* pRenderer, VirtualTexturePage &virtualPage, bool removeMemoryBind)
+void vk_releaseVirtualPage(Renderer* pRenderer, VirtualTexturePage &virtualPage, bool removeMemoryBind)
 {
 	//TODO: This should be also removed
-	if (removeMemoryBind && virtualPage.imageMemoryBind.memory != VK_NULL_HANDLE)
+	if (removeMemoryBind && virtualPage.mVulkan.imageMemoryBind.memory != VK_NULL_HANDLE)
 	{
-		vkFreeMemory(pRenderer->pVkDevice, virtualPage.imageMemoryBind.memory, nullptr);
-		virtualPage.imageMemoryBind.memory = VK_NULL_HANDLE;
+		vkFreeMemory(pRenderer->mVulkan.pVkDevice, virtualPage.mVulkan.imageMemoryBind.memory, nullptr);
+		virtualPage.mVulkan.imageMemoryBind.memory = VK_NULL_HANDLE;
 	}
 
 	if (virtualPage.pIntermediateBuffer)
@@ -7370,9 +7384,9 @@ VirtualTexturePage* addPage(Renderer* pRenderer, Texture* pTexture, VkOffset3D o
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
 
 	VirtualTexturePage newPage = {};
-	newPage.offset = offset;
-	newPage.extent = extent;
-	newPage.size = size;
+	newPage.mVulkan.offset = offset;
+	newPage.mVulkan.extent = extent;
+	newPage.mVulkan.size = size;
 	newPage.mipLevel = mipLevel;
 	newPage.layer = layer;
 	newPage.index = static_cast<uint32_t>(pPageTable->size());
@@ -7386,35 +7400,35 @@ VirtualTexturePage* addPage(Renderer* pRenderer, Texture* pTexture, VkOffset3D o
 void updateSparseBindInfo(Texture* pTexture, Queue* pQueue)
 {
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
-	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->pSparseImageMemoryBinds;
-	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->pOpaqueMemoryBinds;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->mVulkan.pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->mVulkan.pOpaqueMemoryBinds;
 
 	// Update list of memory-backed sparse image memory binds
 	pImageMemory->resize(pPageTable->size());
 	uint32_t index = 0;
 	for (int i = 0; i < (int)pPageTable->size(); i++)
 	{
-		(*pImageMemory)[index] = (*pPageTable)[i].imageMemoryBind;
+		(*pImageMemory)[index] = (*pPageTable)[i].mVulkan.imageMemoryBind;
 		index++;
 	}
 	// Update sparse bind info
-	pTexture->pSvt->mBindSparseInfo = {};
-	pTexture->pSvt->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+	pTexture->pSvt->mVulkan.mBindSparseInfo = {};
+	pTexture->pSvt->mVulkan.mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
 
 	// Image memory binds
-	pTexture->pSvt->mImageMemoryBindInfo = {};
-	pTexture->pSvt->mImageMemoryBindInfo.image = pTexture->pVkImage;
-	pTexture->pSvt->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
-	pTexture->pSvt->mImageMemoryBindInfo.pBinds = pImageMemory->data();
-	pTexture->pSvt->mBindSparseInfo.imageBindCount = (pTexture->pSvt->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
-	pTexture->pSvt->mBindSparseInfo.pImageBinds = &pTexture->pSvt->mImageMemoryBindInfo;
+	pTexture->pSvt->mVulkan.mImageMemoryBindInfo = {};
+	pTexture->pSvt->mVulkan.mImageMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+	pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+	pTexture->pSvt->mVulkan.mImageMemoryBindInfo.pBinds = pImageMemory->data();
+	pTexture->pSvt->mVulkan.mBindSparseInfo.imageBindCount = (pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+	pTexture->pSvt->mVulkan.mBindSparseInfo.pImageBinds = &pTexture->pSvt->mVulkan.mImageMemoryBindInfo;
 
 	// Opaque image memory binds (mip tail)
-	pTexture->pSvt->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
-	pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
-	pTexture->pSvt->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
-	pTexture->pSvt->mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
-	pTexture->pSvt->mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mOpaqueMemoryBindInfo;
+	pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+	pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+	pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+	pTexture->pSvt->mVulkan.mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+	pTexture->pSvt->mVulkan.mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo;
 }
 
 struct PageCounts
@@ -7423,7 +7437,7 @@ struct PageCounts
 	uint mRemovePageCount;
 };
 
-void releasePage(Cmd* pCmd, Texture* pTexture)
+void vk_releasePage(Cmd* pCmd, Texture* pTexture)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
 
@@ -7442,19 +7456,19 @@ void releasePage(Cmd* pCmd, Texture* pTexture)
 	for (int i = 0; i < (int)removePageCount; ++i)
 	{
 		uint32_t RemoveIndex = RemovePageTable[i];
-		releaseVirtualPage(pRenderer, (*pPageTable)[RemoveIndex], false);
+		vk_releaseVirtualPage(pRenderer, (*pPageTable)[RemoveIndex], false);
 	}
 }
 
 // Fill a complete mip level
 // Need to get visibility info first then fill them
-void fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
+void vk_fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
 
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
-	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->pSparseImageMemoryBinds;
-	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->pOpaqueMemoryBinds;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->mVulkan.pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->mVulkan.pOpaqueMemoryBinds;
 
 	pImageMemory->set_capacity(0);
 
@@ -7469,11 +7483,11 @@ void fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
 		uint pageIndex = VisibilityData[i];
 		VirtualTexturePage* pPage = &(*pPageTable)[pageIndex];
 
-		if (allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->pSvt->mSparseMemoryTypeIndex))
+		if (allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->pSvt->mVulkan.mSparseMemoryTypeIndex))
 		{
-			void* pData = (void*)((unsigned char*)pTexture->pSvt->mVirtualImageData + (pageIndex * pPage->size));
+			void* pData = (void*)((unsigned char*)pTexture->pSvt->mVirtualImageData + (pageIndex * pPage->mVulkan.size));
 
-			memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);
+			memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->mVulkan.size);
 
 			//Copy image to VkImage	
 			VkBufferImageCopy region = {};
@@ -7485,72 +7499,72 @@ void fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
 			region.imageSubresource.baseArrayLayer = 0;
 			region.imageSubresource.layerCount = 1;
 
-			region.imageOffset = { pPage->offset.x, pPage->offset.y, 0 };
+			region.imageOffset = { pPage->mVulkan.offset.x, pPage->mVulkan.offset.y, 0 };
 			region.imageExtent = { (uint32_t)pTexture->pSvt->mSparseVirtualTexturePageWidth, (uint32_t)pTexture->pSvt->mSparseVirtualTexturePageHeight, 1 };
 
 			vkCmdCopyBufferToImage(
-				pCmd->pVkCmdBuf,
-				pPage->pIntermediateBuffer->pVkBuffer,
-				pTexture->pVkImage,
+				pCmd->mVulkan.pVkCmdBuf,
+				pPage->pIntermediateBuffer->mVulkan.pVkBuffer,
+				pTexture->mVulkan.pVkImage,
 				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				1,
 				&region);
 
 			// Update list of memory-backed sparse image memory binds
-			pImageMemory->push_back(pPage->imageMemoryBind);
+			pImageMemory->push_back(pPage->mVulkan.imageMemoryBind);
 		}
 	}
 
 	// Update sparse bind info
 	if (pImageMemory->size() > 0)
 	{
-		pTexture->pSvt->mBindSparseInfo = {};
-		pTexture->pSvt->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+		pTexture->pSvt->mVulkan.mBindSparseInfo = {};
+		pTexture->pSvt->mVulkan.mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
 
 		// Image memory binds
-		pTexture->pSvt->mImageMemoryBindInfo = {};
-		pTexture->pSvt->mImageMemoryBindInfo.image = pTexture->pVkImage;
-		pTexture->pSvt->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
-		pTexture->pSvt->mImageMemoryBindInfo.pBinds = pImageMemory->data();
-		pTexture->pSvt->mBindSparseInfo.imageBindCount = (pTexture->pSvt->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
-		pTexture->pSvt->mBindSparseInfo.pImageBinds = &pTexture->pSvt->mImageMemoryBindInfo;
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo = {};
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.pBinds = pImageMemory->data();
+		pTexture->pSvt->mVulkan.mBindSparseInfo.imageBindCount = (pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->pSvt->mVulkan.mBindSparseInfo.pImageBinds = &pTexture->pSvt->mVulkan.mImageMemoryBindInfo;
 
 		// Opaque image memory binds (mip tail)
-		pTexture->pSvt->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
-		pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
-		pTexture->pSvt->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
-		pTexture->pSvt->mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
-		pTexture->pSvt->mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mOpaqueMemoryBindInfo;
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+		pTexture->pSvt->mVulkan.mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->pSvt->mVulkan.mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo;
 
-		VkResult  vk_res = vkQueueBindSparse(pCmd->pQueue->pVkQueue, (uint32_t)1, &pTexture->pSvt->mBindSparseInfo, VK_NULL_HANDLE);
+		VkResult  vk_res = vkQueueBindSparse(pCmd->pQueue->mVulkan.pVkQueue, (uint32_t)1, &pTexture->pSvt->mVulkan.mBindSparseInfo, VK_NULL_HANDLE);
 		ASSERT(VK_SUCCESS == vk_res);
 	}
 }
 
 // Fill specific mipLevel
-void fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel)
+void vk_fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
 
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
 
 	//Bind data
-	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->pSparseImageMemoryBinds;
-	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->pOpaqueMemoryBinds;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->mVulkan.pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->mVulkan.pOpaqueMemoryBinds;
 
 	for (int i = 0; i < (int)pTexture->pSvt->mVirtualPageTotalCount; i++)
 	{
 		VirtualTexturePage* pPage = &(*pPageTable)[i];
 		uint32_t pageIndex = pPage->index;
 
-		if ((pPage->mipLevel == mipLevel) && (pPage->imageMemoryBind.memory == VK_NULL_HANDLE))
+		if ((pPage->mipLevel == mipLevel) && (pPage->mVulkan.imageMemoryBind.memory == VK_NULL_HANDLE))
 		{
-			if (allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->pSvt->mSparseMemoryTypeIndex))
+			if (allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->pSvt->mVulkan.mSparseMemoryTypeIndex))
 			{
-				void* pData = (void*)((unsigned char*)pTexture->pSvt->mVirtualImageData + (pageIndex * (uint32_t)pPage->size));
+				void* pData = (void*)((unsigned char*)pTexture->pSvt->mVirtualImageData + (pageIndex * (uint32_t)pPage->mVulkan.size));
 
 				//CPU to GPU
-				memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);
+				memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->mVulkan.size);
 
 				//Copy image to VkImage	
 				VkBufferImageCopy region = {};
@@ -7563,48 +7577,48 @@ void fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel)
 				region.imageSubresource.baseArrayLayer = 0;
 				region.imageSubresource.layerCount = 1;
 
-				region.imageOffset = { pPage->offset.x, pPage->offset.y, 0 };
+				region.imageOffset = { pPage->mVulkan.offset.x, pPage->mVulkan.offset.y, 0 };
 				region.imageExtent = { (uint32_t)pTexture->pSvt->mSparseVirtualTexturePageWidth, (uint32_t)pTexture->pSvt->mSparseVirtualTexturePageHeight, 1 };
 
 				vkCmdCopyBufferToImage(
-					pCmd->pVkCmdBuf,
-					pPage->pIntermediateBuffer->pVkBuffer,
-					pTexture->pVkImage,
+					pCmd->mVulkan.pVkCmdBuf,
+					pPage->pIntermediateBuffer->mVulkan.pVkBuffer,
+					pTexture->mVulkan.pVkImage,
 					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 					1,
 					&region);
 			}
 			// Update list of memory-backed sparse image memory binds
-			pImageMemory->push_back(pPage->imageMemoryBind);
+			pImageMemory->push_back(pPage->mVulkan.imageMemoryBind);
 		}
 	}
 
 	// Update sparse bind info
 	{
-		pTexture->pSvt->mBindSparseInfo = {};
-		pTexture->pSvt->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+		pTexture->pSvt->mVulkan.mBindSparseInfo = {};
+		pTexture->pSvt->mVulkan.mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
 
 		// Image memory binds
-		pTexture->pSvt->mImageMemoryBindInfo = {};
-		pTexture->pSvt->mImageMemoryBindInfo.image = pTexture->pVkImage;
-		pTexture->pSvt->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
-		pTexture->pSvt->mImageMemoryBindInfo.pBinds = pImageMemory->data();
-		pTexture->pSvt->mBindSparseInfo.imageBindCount = (pTexture->pSvt->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
-		pTexture->pSvt->mBindSparseInfo.pImageBinds = &pTexture->pSvt->mImageMemoryBindInfo;
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo = {};
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+		pTexture->pSvt->mVulkan.mImageMemoryBindInfo.pBinds = pImageMemory->data();
+		pTexture->pSvt->mVulkan.mBindSparseInfo.imageBindCount = (pTexture->pSvt->mVulkan.mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->pSvt->mVulkan.mBindSparseInfo.pImageBinds = &pTexture->pSvt->mVulkan.mImageMemoryBindInfo;
 
 		// Opaque image memory binds (mip tail)
-		pTexture->pSvt->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
-		pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
-		pTexture->pSvt->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
-		pTexture->pSvt->mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
-		pTexture->pSvt->mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mOpaqueMemoryBindInfo;
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.image = pTexture->mVulkan.pVkImage;
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+		pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+		pTexture->pSvt->mVulkan.mBindSparseInfo.imageOpaqueBindCount = (pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->pSvt->mVulkan.mBindSparseInfo.pImageOpaqueBinds = &pTexture->pSvt->mVulkan.mOpaqueMemoryBindInfo;
 
-		VkResult  vk_res = vkQueueBindSparse(pCmd->pQueue->pVkQueue, (uint32_t)1, &pTexture->pSvt->mBindSparseInfo, VK_NULL_HANDLE);
+		VkResult  vk_res = vkQueueBindSparse(pCmd->pQueue->mVulkan.pVkQueue, (uint32_t)1, &pTexture->pSvt->mVulkan.mBindSparseInfo, VK_NULL_HANDLE);
 		ASSERT(VK_SUCCESS == vk_res);
 	}
 }
 
-void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
+void vk_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
 {
 	ASSERT(pCmd);
 	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), sizeof(*pTexture) + sizeof(VirtualTexture));
@@ -7643,15 +7657,15 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	add_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	CHECK_VKRESULT(vkCreateImage(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &pTexture->pVkImage));
+	CHECK_VKRESULT(vkCreateImage(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkImage));
 
 	// Get memory requirements
 	VkMemoryRequirements sparseImageMemoryReqs;
 	// Sparse image memory requirement counts
-	vkGetImageMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseImageMemoryReqs);
+	vkGetImageMemoryRequirements(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkImage, &sparseImageMemoryReqs);
 
 	// Check requested image size against hardware sparse limit
-	if (sparseImageMemoryReqs.size > pRenderer->pVkActiveGPUProperties->properties.limits.sparseAddressSpaceSize)
+	if (sparseImageMemoryReqs.size > pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.sparseAddressSpaceSize)
 	{
 		LOGF(LogLevel::eERROR, "Requested sparse image size exceeds supported sparse address space size!");
 		return;
@@ -7661,7 +7675,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	// Count
 	uint32_t sparseMemoryReqsCount = 32;
 	eastl::vector<VkSparseImageMemoryRequirements> sparseMemoryReqs(sparseMemoryReqsCount);
-	vkGetImageSparseMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
+	vkGetImageSparseMemoryRequirements(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
 
 	if (sparseMemoryReqsCount == 0)
 	{
@@ -7671,7 +7685,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	sparseMemoryReqs.resize(sparseMemoryReqsCount);
 
 	// Get actual requirements
-	vkGetImageSparseMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
+	vkGetImageSparseMemoryRequirements(pRenderer->mVulkan.pVkDevice, pTexture->mVulkan.pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
 
 	pTexture->pSvt->mSparseVirtualTexturePageWidth = sparseMemoryReqs[0].formatProperties.imageGranularity.width;
 	pTexture->pSvt->mSparseVirtualTexturePageHeight = sparseMemoryReqs[0].formatProperties.imageGranularity.height;
@@ -7685,10 +7699,10 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	{
 		VkSparseImageMemoryRequirements reqs = sparseMemoryReqs[i];
 		//todo:multiple reqs
-		pTexture->pSvt->mMipTailStart = reqs.imageMipTailFirstLod;
+		pTexture->pSvt->mVulkan.mMipTailStart = reqs.imageMipTailFirstLod;
 	}
 
-	pTexture->pSvt->mLastFilledMip = pTexture->pSvt->mMipTailStart - 1;
+	pTexture->pSvt->mVulkan.mLastFilledMip = pTexture->pSvt->mVulkan.mMipTailStart - 1;
 
 	// Get sparse image requirements for the color aspect
 	VkSparseImageMemoryRequirements sparseMemoryReq = {};
@@ -7711,12 +7725,12 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	}
 
 	VkPhysicalDeviceMemoryProperties memProps = {};
-	vkGetPhysicalDeviceMemoryProperties(pRenderer->pVkActiveGPU, &memProps);
+	vkGetPhysicalDeviceMemoryProperties(pRenderer->mVulkan.pVkActiveGPU, &memProps);
 
 	// todo:
 	// Calculate number of required sparse memory bindings by alignment
 	assert((sparseImageMemoryReqs.size % sparseImageMemoryReqs.alignment) == 0);
-	pTexture->pSvt->mSparseMemoryTypeIndex = util_get_memory_type(sparseImageMemoryReqs.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	pTexture->pSvt->mVulkan.mSparseMemoryTypeIndex = util_get_memory_type(sparseImageMemoryReqs.memoryTypeBits, memProps, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	// Get sparse bindings
 	uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);
@@ -7727,14 +7741,14 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
 
 	pTexture->pSvt->pPages = (eastl::vector<VirtualTexturePage>*)tf_calloc(1, sizeof(eastl::vector<VirtualTexturePage>));
-	pTexture->pSvt->pSparseImageMemoryBinds = (eastl::vector<VkSparseImageMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseImageMemoryBind>));
-	pTexture->pSvt->pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseMemoryBind>));
+	pTexture->pSvt->mVulkan.pSparseImageMemoryBinds = (eastl::vector<VkSparseImageMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseImageMemoryBind>));
+	pTexture->pSvt->mVulkan.pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseMemoryBind>));
 
 	tf_placement_new<decltype(pTexture->pSvt->pPages)>(pTexture->pSvt->pPages);
-	tf_placement_new<decltype(pTexture->pSvt->pSparseImageMemoryBinds)>(pTexture->pSvt->pSparseImageMemoryBinds);
-	tf_placement_new<decltype(pTexture->pSvt->pOpaqueMemoryBinds)>(pTexture->pSvt->pOpaqueMemoryBinds);
+	tf_placement_new<decltype(pTexture->pSvt->mVulkan.pSparseImageMemoryBinds)>(pTexture->pSvt->mVulkan.pSparseImageMemoryBinds);
+	tf_placement_new<decltype(pTexture->pSvt->mVulkan.pOpaqueMemoryBinds)>(pTexture->pSvt->mVulkan.pOpaqueMemoryBinds);
 
-	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->pOpaqueMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->mVulkan.pOpaqueMemoryBinds;
 
 	// Sparse bindings for each mip level of all layers outside of the mip tail
 	for (uint32_t layer = 0; layer < 1; layer++)
@@ -7782,7 +7796,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 
 						// Add new virtual page
 						VirtualTexturePage *newPage = addPage(pRenderer, pTexture, offset, extent, pTexture->pSvt->mSparseVirtualTexturePageWidth * pTexture->pSvt->mSparseVirtualTexturePageHeight * sizeof(uint), mipLevel, layer);
-						newPage->imageMemoryBind.subresource = subResource;
+						newPage->mVulkan.imageMemoryBind.subresource = subResource;
 
 						index++;
 					}
@@ -7797,10 +7811,10 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 			VkMemoryAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
-			allocInfo.memoryTypeIndex = pTexture->pSvt->mSparseMemoryTypeIndex;
+			allocInfo.memoryTypeIndex = pTexture->pSvt->mVulkan.mSparseMemoryTypeIndex;
 
 			VkDeviceMemory deviceMemory;
-			CHECK_VKRESULT(vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &deviceMemory));
+			CHECK_VKRESULT(vkAllocateMemory(pRenderer->mVulkan.pVkDevice, &allocInfo, nullptr, &deviceMemory));
 
 			// (Opaque) sparse memory binding
 			VkSparseMemoryBind sparseMemoryBind{};
@@ -7821,10 +7835,10 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
-		allocInfo.memoryTypeIndex = pTexture->pSvt->mSparseMemoryTypeIndex;
+		allocInfo.memoryTypeIndex = pTexture->pSvt->mVulkan.mSparseMemoryTypeIndex;
 
 		VkDeviceMemory deviceMemory;
-		CHECK_VKRESULT(vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &deviceMemory));
+		CHECK_VKRESULT(vkAllocateMemory(pRenderer->mVulkan.pVkDevice, &allocInfo, nullptr, &deviceMemory));
 
 		// (Opaque) sparse memory binding
 		VkSparseMemoryBind sparseMemoryBind{};
@@ -7835,7 +7849,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 		pOpaqueMemoryBinds->push_back(sparseMemoryBind);
 	}
 
-	pTexture->pSvt->mLastFilledMip = pTexture->pSvt->mMipTailStart - 1;
+	pTexture->pSvt->mVulkan.mLastFilledMip = pTexture->pSvt->mVulkan.mMipTailStart - 1;
 
 	/************************************************************************/
 	// Create image view
@@ -7850,16 +7864,16 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount = 1;
 	view.subresourceRange.levelCount = pDesc->mMipLevels;
-	view.image = pTexture->pVkImage;
+	view.image = pTexture->mVulkan.pVkImage;
 	pTexture->mAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-	CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &view, &gVkAllocationCallbacks, &pTexture->pVkSRVDescriptor));
+	CHECK_VKRESULT(vkCreateImageView(pRenderer->mVulkan.pVkDevice, &view, &gVkAllocationCallbacks, &pTexture->mVulkan.pVkSRVDescriptor));
 
 	TextureBarrier textureBarriers[] = { { pTexture, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_COPY_DEST } };
 	cmdResourceBarrier(pCmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
 	// Fill smallest (non-tail) mip map level
-	fillVirtualTextureLevel(pCmd, pTexture, TiledMiplevel - 1);
+	vk_fillVirtualTextureLevel(pCmd, pTexture, TiledMiplevel - 1);
 
 	pTexture->mOwnsImage = true;
 	pTexture->mNodeIndex = pDesc->mNodeIndex;
@@ -7871,7 +7885,7 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	*ppTexture = pTexture;
 }
 
-void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
+void vk_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
 {
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pSvt->pPages;
 
@@ -7879,32 +7893,32 @@ void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
 	{
 		for (int i = 0; i < (int)pPageTable->size(); i++)
 		{
-			releaseVirtualPage(pRenderer, (*pPageTable)[i], true);
+			vk_releaseVirtualPage(pRenderer, (*pPageTable)[i], true);
 		}
 
 		pPageTable->set_capacity(0);
 		SAFE_FREE(pSvt->pPages);
 	}
 
-	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pSvt->pSparseImageMemoryBinds;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pSvt->mVulkan.pSparseImageMemoryBinds;
 
 	if (pImageMemory)
 	{
 		pImageMemory->set_capacity(0);
-		SAFE_FREE(pSvt->pSparseImageMemoryBinds);
+		SAFE_FREE(pSvt->mVulkan.pSparseImageMemoryBinds);
 	}
 
-	eastl::vector<VkSparseMemoryBind>* pOpaqueMemory = (eastl::vector<VkSparseMemoryBind>*)pSvt->pOpaqueMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemory = (eastl::vector<VkSparseMemoryBind>*)pSvt->mVulkan.pOpaqueMemoryBinds;
 
 	if (pOpaqueMemory)
 	{
 		for (int i = 0; i < (int)pOpaqueMemory->size(); i++)
 		{
-			vkFreeMemory(pRenderer->pVkDevice, (*pOpaqueMemory)[i].memory, nullptr);
+			vkFreeMemory(pRenderer->mVulkan.pVkDevice, (*pOpaqueMemory)[i].memory, nullptr);
 		}
 
 		pOpaqueMemory->set_capacity(0);
-		SAFE_FREE(pSvt->pOpaqueMemoryBinds);
+		SAFE_FREE(pSvt->mVulkan.pOpaqueMemoryBinds);
 	}
 
 	if (pSvt->mVisibility)
@@ -7926,20 +7940,152 @@ void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
 		tf_free(pSvt->mVirtualImageData);
 }
 
-void cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
+void vk_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
 {
 	if (pTexture->pSvt->mVisibility)
 	{
-		releasePage(cmd, pTexture);
-		fillVirtualTexture(cmd, pTexture, NULL);
+		vk_releasePage(cmd, pTexture);
+		vk_fillVirtualTexture(cmd, pTexture, NULL);
 	}
 }
 
 
 #endif
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-}    // namespace RENDERER_CPP_NAMESPACE
-#endif
+
+void initVulkanRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
+{
+	// API functions
+	exitRenderer = vk_exitRenderer;
+	addFence = vk_addFence;
+	removeFence = vk_removeFence;
+	addSemaphore = vk_addSemaphore;
+	removeSemaphore = vk_removeSemaphore;
+	addQueue = vk_addQueue;
+	removeQueue = vk_removeQueue;
+	addSwapChain = vk_addSwapChain;
+	removeSwapChain = vk_removeSwapChain;
+
+	// command pool functions
+	addCmdPool = vk_addCmdPool;
+	removeCmdPool = vk_removeCmdPool;
+	addCmd = vk_addCmd;
+	removeCmd = vk_removeCmd;
+	addCmd_n = vk_addCmd_n;
+	removeCmd_n = vk_removeCmd_n;
+
+	addRenderTarget = vk_addRenderTarget;
+	removeRenderTarget= vk_removeRenderTarget;
+	addSampler = vk_addSampler;
+	removeSampler = vk_removeSampler;
+
+	// Resource Load functions
+	addBuffer = vk_addBuffer;
+	removeBuffer = vk_removeBuffer;
+	mapBuffer = vk_mapBuffer;
+	unmapBuffer = vk_unmapBuffer;
+	cmdUpdateBuffer = vk_cmdUpdateBuffer;
+	cmdUpdateSubresource = vk_cmdUpdateSubresource;
+	addTexture = vk_addTexture;
+	removeTexture = vk_removeTexture;
+	addVirtualTexture = vk_addVirtualTexture;
+	removeVirtualTexture = vk_removeVirtualTexture;
+
+	// shader functions
+	addShaderBinary = vk_addShaderBinary;
+	removeShader = vk_removeShader;
+
+	addRootSignature = vk_addRootSignature;
+	removeRootSignature = vk_removeRootSignature;
+
+	// pipeline functions
+	addPipeline = vk_addPipeline;
+	removePipeline = vk_removePipeline;
+	addPipelineCache = vk_addPipelineCache;
+	getPipelineCacheData = vk_getPipelineCacheData;
+	removePipelineCache = vk_removePipelineCache;
+
+	// Descriptor Set functions
+	addDescriptorSet = vk_addDescriptorSet;
+	removeDescriptorSet = vk_removeDescriptorSet;
+	updateDescriptorSet = vk_updateDescriptorSet;
+
+	// command buffer functions
+	resetCmdPool = vk_resetCmdPool;
+	beginCmd = vk_beginCmd;
+	endCmd = vk_endCmd;
+	cmdBindRenderTargets = vk_cmdBindRenderTargets;
+	cmdSetShadingRate = vk_cmdSetShadingRate;
+	cmdSetViewport = vk_cmdSetViewport;
+	cmdSetScissor = vk_cmdSetScissor;
+	cmdSetStencilReferenceValue = vk_cmdSetStencilReferenceValue;
+	cmdBindPipeline = vk_cmdBindPipeline;
+	cmdBindDescriptorSet = vk_cmdBindDescriptorSet;
+	cmdBindPushConstants = vk_cmdBindPushConstants;
+	cmdBindPushConstantsByIndex = vk_cmdBindPushConstantsByIndex;
+	cmdBindIndexBuffer = vk_cmdBindIndexBuffer;
+	cmdBindVertexBuffer = vk_cmdBindVertexBuffer;
+	cmdDraw = vk_cmdDraw;
+	cmdDrawInstanced = vk_cmdDrawInstanced;
+	cmdDrawIndexed = vk_cmdDrawIndexed;
+	cmdDrawIndexedInstanced = vk_cmdDrawIndexedInstanced;
+	cmdDispatch = vk_cmdDispatch;
+
+	// Transition Commands
+	cmdResourceBarrier = vk_cmdResourceBarrier;
+	// Virtual Textures
+	cmdUpdateVirtualTexture = vk_cmdUpdateVirtualTexture;
+
+	// queue/fence/swapchain functions
+	acquireNextImage = vk_acquireNextImage;
+	queueSubmit = vk_queueSubmit;
+	queuePresent = vk_queuePresent;
+	waitQueueIdle = vk_waitQueueIdle;
+	getFenceStatus = vk_getFenceStatus;
+	waitForFences = vk_waitForFences;
+	toggleVSync = vk_toggleVSync;
+
+	getRecommendedSwapchainFormat = vk_getRecommendedSwapchainFormat;
+
+	//indirect Draw functions
+	addIndirectCommandSignature = vk_addIndirectCommandSignature;
+	removeIndirectCommandSignature = vk_removeIndirectCommandSignature;
+	cmdExecuteIndirect = vk_cmdExecuteIndirect;
+
+	/************************************************************************/
+	// GPU Query Interface
+	/************************************************************************/
+	getTimestampFrequency = vk_getTimestampFrequency;
+	addQueryPool = vk_addQueryPool;
+	removeQueryPool = vk_removeQueryPool;
+	cmdResetQueryPool = vk_cmdResetQueryPool;
+	cmdBeginQuery = vk_cmdBeginQuery;
+	cmdEndQuery = vk_cmdEndQuery;
+	cmdResolveQuery = vk_cmdResolveQuery;
+	/************************************************************************/
+	// Stats Info Interface
+	/************************************************************************/
+	calculateMemoryStats = vk_calculateMemoryStats;
+	calculateMemoryUse = vk_calculateMemoryUse;
+	freeMemoryStats = vk_freeMemoryStats;
+	/************************************************************************/
+	// Debug Marker Interface
+	/************************************************************************/
+	cmdBeginDebugMarker = vk_cmdBeginDebugMarker;
+	cmdEndDebugMarker = vk_cmdEndDebugMarker;
+	cmdAddDebugMarker = vk_cmdAddDebugMarker;
+	cmdWriteMarker = vk_cmdWriteMarker;
+	/************************************************************************/
+	// Resource Debug Naming Interface
+	/************************************************************************/
+	setBufferName = vk_setBufferName;
+	setTextureName = vk_setTextureName;
+	setRenderTargetName = vk_setRenderTargetName;
+	setPipelineName = vk_setPipelineName;
+
+
+	vk_initRenderer(appName, pSettings, ppRenderer);
+}
+
 #if !defined(NX64)
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #if defined(VK_USE_DISPATCH_TABLES)

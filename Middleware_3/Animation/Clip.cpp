@@ -29,7 +29,7 @@ void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName,
 	LoadClip(resourceDir, fileName);
 }
 
-void Clip::Destroy()
+void Clip::Exit()
 {
 	mAnimation.Deallocate();
 }

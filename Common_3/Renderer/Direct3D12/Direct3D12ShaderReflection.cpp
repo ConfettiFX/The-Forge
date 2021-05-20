@@ -350,9 +350,9 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	(pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
 
 	if (shaderStage == SHADER_STAGE_RAYTRACING)
-		pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12LibReflection));
+		CHECK_HRESULT(pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12LibReflection)));
 	else
-		pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection));
+		CHECK_HRESULT(pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection)));
 
 	pBlob->Release();
 	pLibrary->Release();
@@ -364,12 +364,12 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	if (shaderStage == SHADER_STAGE_RAYTRACING)
 	{
 		d3d12_createShaderReflection(d3d12LibReflection, shaderStage, reflection);
-		d3d12LibReflection->Release();
+		d3d12LibReflection->Release(); //-V522
 	}
 	else
 	{
 		d3d12_createShaderReflection(d3d12reflection, shaderStage, reflection);
-		d3d12reflection->Release();
+		d3d12reflection->Release(); //-V522
 	}
 
 	reflection.mShaderStage = shaderStage;

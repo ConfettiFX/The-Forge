@@ -4,20 +4,14 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{e66b2d0e-f9a0-461b-8356-b6d904bd686c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D11">
-      <UniqueIdentifier>{1c1e26f0-2800-4c4c-a4b9-0b055e77dc3a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{0386c22c-6750-4ebe-bf09-fb1f2e5df5c1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{b3286b4d-b567-4e7d-8305-9dacbe25e416}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{962fea6c-2cda-4bdd-b594-1717ffe9a1e3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\zip">
       <UniqueIdentifier>{f0d50de9-2ac9-4a71-b9cf-7ec00c96f40d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{881b4b12-631d-40f5-862e-ddf6afcfd596}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -32,59 +26,23 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\basic.frag">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\basic.vert">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\skybox.frag">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\skybox.vert">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\zipTexture.frag">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\zipTexture.vert">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\zipTexture.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\zipTexture.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\12_ZipFileSystem\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

@@ -29,7 +29,6 @@
 
 //EASTL includes
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 //Interfaces
@@ -70,6 +69,8 @@ struct AABBox
 		MinBounds = vec3(FLT_MAX);
 		MaxBounds = vec3(-FLT_MAX);
 		InstanceID = 0;
+		SurfaceAreaLeft = 0.0f;
+		SurfaceAreaRight = 0.0f;
 	}
 
 	void Expand(vec3& point)
@@ -198,7 +199,7 @@ struct UniformObjData
 	float mRoughness = 0.04f;
 	float mMetallic = 0.0f;
 	int   pbrMaterials = -1;
-	float pad;
+	int32_t : 32; // padding
 };
 
 //Structure of Array for vertex/index data
@@ -247,9 +248,10 @@ DefaultpassUniformBuffer gDefaultPassUniformData;
 
 uint32_t gFrameIndex = 0;
 
-UIApp              gAppUI;
+UIApp*        pAppUI = NULL;
 GuiComponent* pGuiWindow = NULL;
 ICameraController* pCameraController = NULL;
+static uint32_t gSelectedApiIndex = 0;
 
 float gLightRotationX = 0.0f;
 float gLightRotationZ = 0.0f;
@@ -411,7 +413,7 @@ const char* pMaterialImageFileNames[] = {
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
 #endif
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 PropData SponzaProp;
 
@@ -768,7 +770,6 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8_t* bboxData, int& dataOffs
 	{
 		if (node->BoundingBox.InstanceID < 0.0f)
 		{
-			int          tempIndex = 0;
 			int          tempdataOffset = 0;
 			BVHNodeBBox* bbox = NULL;
 
@@ -780,8 +781,6 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8_t* bboxData, int& dataOffs
 
 				bbox->MinBounds = float4(v3ToF3(node->BoundingBox.MinBounds), 0.0f);
 				bbox->MaxBounds = float4(v3ToF3(node->BoundingBox.MaxBounds), 0.0f);
-
-				tempIndex = index;
 
 				dataOffset += sizeof(BVHNodeBBox);
 				index++;
@@ -795,7 +794,7 @@ void writeBVHTree(BVHNode* root, BVHNode* node, uint8_t* bboxData, int& dataOffs
 			if (node != root)
 			{
 				//when on the left branch, how many float4 elements we need to skip to reach the right branch?
-				bbox->MinBounds.w = -(float)(dataOffset - tempdataOffset) / sizeof(float4);
+				bbox->MinBounds.w = -(float)(dataOffset - tempdataOffset) / sizeof(float4); //-V522
 			}
 		}
 		else
@@ -854,15 +853,256 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		if (!initInputSystem(pWindow))
 			return false;
+
+		// window and renderer setup
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		//Load shaders
+		{
+			//Load shaders for GPrepass
+			char           totalImagesShaderMacroBuffer[5] = {};
+			sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
+
+			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
+			ShaderLoadDesc shaderGPrepass = {};
+			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
+			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
+			addShader(pRenderer, &shaderGPrepass, &pShader[GBuffer]);
+
+			//shader for Shadow pass
+			ShaderLoadDesc shadowsShader = {};
+			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
+			addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
+
+			//shader for Lighting pass
+			ShaderLoadDesc lightingShader = {};
+			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
+			addShader(pRenderer, &lightingShader, &pShader[Lighting]);
+
+			//shader for Composite pass
+			ShaderLoadDesc compositeShader = {};
+			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
+			addShader(pRenderer, &compositeShader, &pShader[Composite]);
+
+			//Load shaders for copy to backbufferpass
+			ShaderLoadDesc copyShader = {};
+			copyShader.mStages[0] = { "display.vert", NULL, 0 };
+			copyShader.mStages[1] = { "display.frag", NULL, 0 };
+			addShader(pRenderer, &copyShader, &pShader[CopyToBackbuffer]);
+		}
+
+		//Create sampler state objects
+		{ //point sampling with clamping
+			{ SamplerDesc samplerDesc = { FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE,
+										ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE };
+			addSampler(pRenderer, &samplerDesc, &pSamplerPointClamp);
+			}
+
+			//linear sampling with wrapping
+			{
+				SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
+											ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+				addSampler(pRenderer, &samplerDesc, &pSamplerLinearWrap);
+			}
+		}
+
+		//Create root signatures
+		{
+			const char* pStaticSamplers[] = { "samplerLinear" };
+
+			Shader* shaders[] = { pShader[GBuffer], pShader[CopyToBackbuffer] };
+
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mStaticSamplerCount = 1;
+			rootDesc.ppStaticSamplerNames = pStaticSamplers;
+			rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
+			rootDesc.mShaderCount = 2;
+			rootDesc.ppShaders = shaders;
+#ifndef TARGET_IOS
+			rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+			Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
+
+			RootSignatureDesc rootCompDesc = {};
+			rootCompDesc.mShaderCount = 3;
+			rootCompDesc.ppShaders = compShaders;
+#ifndef TARGET_IOS
+			rootCompDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+			addRootSignature(pRenderer, &rootCompDesc, &pRootSignatureComp);
+
+			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+			addDescriptorSet(pRenderer, &desc, &pDescriptorSetNonFreq);
+
+			desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &desc, &pDescriptorSetFreq);
+
+			DescriptorSetDesc compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_NONE, TextureCount };
+			addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompNonFreq);
+
+			compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * TextureCount };
+			addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompFreq);
+		}
+
+		//Create Constant buffers
+		{
+			//Gprepass per-pass constant buffer
+			{
+				BufferLoadDesc ubDesc = {};
+				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				ubDesc.mDesc.mSize = sizeof(GPrepassUniformBuffer);
+				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				ubDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					ubDesc.ppBuffer = &pGPrepassUniformBuffer[i];
+					addResource(&ubDesc, NULL);
+				}
+			}
+
+			//Shadow pass per-pass constant buffer
+			{
+				BufferLoadDesc ubDesc = {};
+				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				ubDesc.mDesc.mSize = sizeof(ShadowpassUniformBuffer);
+				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				ubDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					ubDesc.ppBuffer = &pShadowpassUniformBuffer[i];
+					addResource(&ubDesc, NULL);
+				}
+			}
+
+			//Lighting pass per-pass constant buffer
+			{
+				BufferLoadDesc ubDesc = {};
+				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				ubDesc.mDesc.mSize = sizeof(LightpassUniformBuffer);
+				ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+				ubDesc.pData = NULL;
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					ubDesc.ppBuffer = &pLightpassUniformBuffer[i];
+					addResource(&ubDesc, NULL);
+				}
+			}
+		}
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+			return false;
+
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);;
+		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		SliderFloatWidget lightRotXSlider;
+		lightRotXSlider.pData = &gLightRotationX;
+		lightRotXSlider.mMin = (float)-M_PI;
+		lightRotXSlider.mMax = (float)M_PI;
+		addWidgetLua(addGuiWidget(pGuiWindow, "Light Rotation X", &lightRotXSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+		SliderFloatWidget lightRotZSlider;
+		lightRotZSlider.pData = &gLightRotationZ;
+		lightRotZSlider.mMin = (float)-M_PI;
+		lightRotZSlider.mMax = (float)M_PI;
+		addWidgetLua(addGuiWidget(pGuiWindow, "Light Rotation Z", &lightRotZSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+		SyncToken token = {};
+		if (!LoadSponza(&token))
+			return false;
+
+		waitForToken(&token);
+
+		CreateBVHBuffers();
+
+#ifdef TARGET_IOS
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFreqPerDraw);
+#endif
 
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 		vec3                   camPos{ 100.0f, 25.0f, 0.0f };
 		vec3                   lookAt{ 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -875,7 +1115,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -884,9 +1124,9 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -898,13 +1138,76 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
 	void Exit()
 	{
 		exitInputSystem();
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
+
+		exitProfilerUI();
+		exitProfiler();
+		exitAppUI(pAppUI);
+		exitVirtualJoystickUI(pVirtualJoystick);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		removeSampler(pRenderer, pSamplerLinearWrap);
+		removeSampler(pRenderer, pSamplerPointClamp);
+
+		//Delete rendering passes
+		removeDescriptorSet(pRenderer, pDescriptorSetNonFreq);
+		removeDescriptorSet(pRenderer, pDescriptorSetFreq);
+#ifdef TARGET_IOS
+		removeDescriptorSet(pRenderer, pDescriptorSetFreqPerDraw);
+#endif
+		removeDescriptorSet(pRenderer, pDescriptorSetCompNonFreq);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompFreq);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pGPrepassUniformBuffer[i]);
+			removeResource(pShadowpassUniformBuffer[i]);
+			removeResource(pLightpassUniformBuffer[i]);
+		}
+
+		removeShader(pRenderer, pShader[GBuffer]);
+		removeShader(pRenderer, pShader[Lighting]);
+		removeShader(pRenderer, pShader[Composite]);
+		removeShader(pRenderer, pShader[RaytracedShadows]);
+		removeShader(pRenderer, pShader[CopyToBackbuffer]);
+
+		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pRootSignatureComp);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		gSponzaTextureIndexforMaterial.set_capacity(0);
+
+		//Delete Sponza resources
+		removeResource(SponzaProp.Geom);
+		removeResource(SponzaProp.pConstantBuffer);
+
+		for (uint i = 0; i < TOTAL_IMGS; ++i)
+			removeResource(pMaterialTextures[i]);
+
+		removeResource(BVHBoundingBoxesBuffer);
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	void AssignSponzaTextures()
@@ -1324,226 +1627,10 @@ public:
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// window and renderer setup
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			//Load shaders
-			{
-				//Load shaders for GPrepass
-				char           totalImagesShaderMacroBuffer[5] = {};
-				sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
-
-				ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
-				ShaderLoadDesc shaderGPrepass = {};
-				shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
-#ifndef TARGET_IOS
-				shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
-#else
-			//separate fragment gbuffer pass for iOs that does not use bindless textures
-				shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0 };
-#endif
-
-				addShader(pRenderer, &shaderGPrepass, &pShader[GBuffer]);
-
-				//shader for Shadow pass
-				ShaderLoadDesc shadowsShader = {};
-				shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
-				addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
-
-				//shader for Lighting pass
-				ShaderLoadDesc lightingShader = {};
-				lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
-				addShader(pRenderer, &lightingShader, &pShader[Lighting]);
-
-				//shader for Composite pass
-				ShaderLoadDesc compositeShader = {};
-				compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
-				addShader(pRenderer, &compositeShader, &pShader[Composite]);
-
-				//Load shaders for copy to backbufferpass
-				ShaderLoadDesc copyShader = {};
-				copyShader.mStages[0] = { "display.vert", NULL, 0 };
-#ifndef TARGET_IOS
-				copyShader.mStages[1] = { "display.frag", NULL, 0 };
-#else
-			//separate fragment for iOs that does not use bindless textures
-				shaderGPrepass.mStages[1] = { "display_iOS.frag", NULL, 0 };
-#endif
-				addShader(pRenderer, &copyShader, &pShader[CopyToBackbuffer]);
-			}
-
-			//Create sampler state objects
-			{ //point sampling with clamping
-				{ SamplerDesc samplerDesc = { FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE,
-											ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE };
-				addSampler(pRenderer, &samplerDesc, &pSamplerPointClamp);
-				}
-
-				//linear sampling with wrapping
-				{
-					SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
-												ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
-					addSampler(pRenderer, &samplerDesc, &pSamplerLinearWrap);
-				}
-			}
-
-			//Create root signatures
-			{
-				const char* pStaticSamplers[] = { "samplerLinear" };
-
-				Shader* shaders[] = { pShader[GBuffer], pShader[CopyToBackbuffer] };
-
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = pStaticSamplers;
-				rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
-				rootDesc.mShaderCount = 2;
-				rootDesc.ppShaders = shaders;
-#ifndef TARGET_IOS
-				rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
-				addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-				Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
-
-				RootSignatureDesc rootCompDesc = {};
-				rootCompDesc.mShaderCount = 3;
-				rootCompDesc.ppShaders = compShaders;
-#ifndef TARGET_IOS
-				rootCompDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
-				addRootSignature(pRenderer, &rootCompDesc, &pRootSignatureComp);
-
-				DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
-				addDescriptorSet(pRenderer, &desc, &pDescriptorSetNonFreq);
-
-				desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &desc, &pDescriptorSetFreq);
-
-				DescriptorSetDesc compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_NONE, TextureCount };
-				addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompNonFreq);
-
-				compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * TextureCount };
-				addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompFreq);
-			}
-
-			//Create Constant buffers
-			{
-				//Gprepass per-pass constant buffer
-				{
-					BufferLoadDesc ubDesc = {};
-					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-					ubDesc.mDesc.mSize = sizeof(GPrepassUniformBuffer);
-					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-					ubDesc.pData = NULL;
-					for (uint32_t i = 0; i < gImageCount; ++i)
-					{
-						ubDesc.ppBuffer = &pGPrepassUniformBuffer[i];
-						addResource(&ubDesc, NULL);
-					}
-				}
-
-				//Shadow pass per-pass constant buffer
-				{
-					BufferLoadDesc ubDesc = {};
-					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-					ubDesc.mDesc.mSize = sizeof(ShadowpassUniformBuffer);
-					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-					ubDesc.pData = NULL;
-					for (uint32_t i = 0; i < gImageCount; ++i)
-					{
-						ubDesc.ppBuffer = &pShadowpassUniformBuffer[i];
-						addResource(&ubDesc, NULL);
-					}
-				}
-
-				//Lighting pass per-pass constant buffer
-				{
-					BufferLoadDesc ubDesc = {};
-					ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-					ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-					ubDesc.mDesc.mSize = sizeof(LightpassUniformBuffer);
-					ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-					ubDesc.pData = NULL;
-					for (uint32_t i = 0; i < gImageCount; ++i)
-					{
-						ubDesc.ppBuffer = &pLightpassUniformBuffer[i];
-						addResource(&ubDesc, NULL);
-					}
-				}
-			}
-
-			if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-				return false;
-
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);;
-			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-			pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation X", &gLightRotationX, (float)-M_PI, (float)M_PI));
-			pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation Z", &gLightRotationZ, (float)-M_PI, (float)M_PI));
-
-			SyncToken token = {};
-			if (!LoadSponza(&token))
-				return false;
-
-			waitForToken(&token);
-
-			CreateBVHBuffers();
-
-#ifdef TARGET_IOS
-			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFreqPerDraw);
-#endif
-		}
-
 		if (!addSwapChain())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
 		CreateRenderTargets();
@@ -1648,7 +1735,7 @@ public:
 		pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
 		pCameraController->lookAt(midpoint - vec3(0, 450, 0));
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		waitForAllResourceLoads();
@@ -1662,9 +1749,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
-		gVirtualJoystick.Unload();
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
 		RemoveRenderTargets();
 
@@ -1678,70 +1765,6 @@ public:
 		removeSwapChain(pRenderer, pSwapChain);
 		pDepthBuffer = NULL;
 		pSwapChain = NULL;
-
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			exitProfilerUI();
-			exitProfiler();
-			gAppUI.Exit();
-			gVirtualJoystick.Exit();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			removeSampler(pRenderer, pSamplerLinearWrap);
-			removeSampler(pRenderer, pSamplerPointClamp);
-
-			//Delete rendering passes
-			removeDescriptorSet(pRenderer, pDescriptorSetNonFreq);
-			removeDescriptorSet(pRenderer, pDescriptorSetFreq);
-#ifdef TARGET_IOS
-			removeDescriptorSet(pRenderer, pDescriptorSetFreqPerDraw);
-#endif
-			removeDescriptorSet(pRenderer, pDescriptorSetCompNonFreq);
-			removeDescriptorSet(pRenderer, pDescriptorSetCompFreq);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeResource(pGPrepassUniformBuffer[i]);
-				removeResource(pShadowpassUniformBuffer[i]);
-				removeResource(pLightpassUniformBuffer[i]);
-			}
-
-			removeShader(pRenderer, pShader[GBuffer]);
-			removeShader(pRenderer, pShader[Lighting]);
-			removeShader(pRenderer, pShader[Composite]);
-			removeShader(pRenderer, pShader[RaytracedShadows]);
-			removeShader(pRenderer, pShader[CopyToBackbuffer]);
-
-			removeRootSignature(pRenderer, pRootSignature);
-			removeRootSignature(pRenderer, pRootSignatureComp);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			gSponzaTextureIndexforMaterial.set_capacity(0);
-
-			//Delete Sponza resources
-			removeResource(SponzaProp.Geom);
-			removeResource(SponzaProp.pConstantBuffer);
-
-			for (uint i = 0; i < TOTAL_IMGS; ++i)
-				removeResource(pMaterialTextures[i]);
-
-			removeResource(BVHBoundingBoxesBuffer);
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -1813,7 +1836,7 @@ public:
 		gFrameNumber++;
 
 		/************************************************************************/
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -2033,15 +2056,16 @@ public:
 
 			cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
-			gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+			float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+			drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 
 			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
 			cmdDrawProfilerUI();
 
-			gAppUI.Gui(pGuiWindow);
-			gAppUI.Draw(cmd);
+			appUIGui(pAppUI, pGuiWindow);
+			drawAppUI(pAppUI, cmd);
 			cmdEndDebugMarker(cmd);
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -2067,14 +2091,8 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

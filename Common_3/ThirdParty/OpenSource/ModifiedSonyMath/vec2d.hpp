@@ -38,7 +38,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Vector2() { }
+    inline Vector2() { } //-V730
 
     // Construct a 2-D vector from x and y elements
     //
@@ -214,7 +214,7 @@ public:
 
     // Default constructor; does no initialization
     //
-    inline Point2() { }
+    inline Point2() { } //-V730
 
     // Construct a 2-D point from x and y elements
     //
@@ -751,7 +751,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline IVector2() {}
+	inline IVector2() {} //-V730
 
 	// Construct a 2-D vector from x and y elements
 	//
@@ -1070,7 +1070,7 @@ public:
 
 	// Default constructor; does no initialization
 	//
-	inline UVector2() {}
+	inline UVector2() {} //-V730
 
 	// Construct a 2-D vector from x and y elements
 	//

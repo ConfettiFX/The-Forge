@@ -25,13 +25,25 @@
 
 // Target Platform
 ////////////////////////////////////////////////////////////////////////
-#if   _WIN32
+#if _DURANGO
+
+#define MT_PLATFORM_DURANGO (1)
+
+#elif ORBIS
+
+#define MT_PLATFORM_ORBIS (1)
+
+#elif _WIN32
 
 #define MT_PLATFORM_WINDOWS (1)
 
 #elif __APPLE_CC__
 
 #define MT_PLATFORM_OSX (1)
+
+#elif NX64
+
+#define MT_PLATFORM_NX64 (1)
 
 #else
 

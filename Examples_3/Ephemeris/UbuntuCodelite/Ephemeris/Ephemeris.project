@@ -7,38 +7,46 @@
   </Plugins>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="src">
-    <VirtualDirectory Name="Sky">
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Location.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.h"/>
-    </VirtualDirectory>
-    <VirtualDirectory Name="Terrain">
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Hemisphere.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.h"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Visibility.h"/>
-    </VirtualDirectory>
-    <VirtualDirectory Name="VolumetricClouds">
-      <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"/>
+  <VirtualDirectory Name="Source Files">
+    <VirtualDirectory Name="Ephemeris">
+      <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.h"/>
+      <VirtualDirectory Name="Sky">
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Aurora.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Aurora.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/DistantCloud.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/DistantCloud.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/IndexManager.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Location.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/SkyDomeParams.h"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="SpaceObjects">
+        <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.h"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="Terrain">
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Hemisphere.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Visibility.h"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="VolumetricClouds">
+        <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"/>
+      </VirtualDirectory>
     </VirtualDirectory>
     <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Example.cpp"/>
-    <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"/>
-    <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.h"/>
-    <VirtualDirectory Name="SpaceObjects">
-      <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.cpp"/>
-      <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.h"/>
-    </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
@@ -56,6 +64,73 @@
     <Project Name="EASTL"/>
     <Project Name="LuaManager"/>
   </Dependencies>
+  <VirtualDirectory Name="Shaders">
+    <VirtualDirectory Name="FSL">
+      <VirtualDirectory Name="Ephemeris">
+        <VirtualDirectory Name="Sky">
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/RenderSky.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/RenderSky.h"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/RenderSky.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/SkyCommon.h"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Space.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Space.vert.fsl"/>
+        </VirtualDirectory>
+        <VirtualDirectory Name="SpaceObjects">
+          <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/SpaceObjectsCommon.h"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/Star.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/Star.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/Sun.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/Sun.vert.fsl"/>
+        </VirtualDirectory>
+        <VirtualDirectory Name="Terrain">
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/GenNormalMap.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/GenNormalMap.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/LightingTerrain.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/LightingTerrain.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/RenderTerrain.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/RenderTerrain.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/TerrainCommon.h"/>
+        </VirtualDirectory>
+        <VirtualDirectory Name="VolumetricClouds">
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/BlurHorizontal.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/BlurVertical.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/Composite.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/CompositeOverlay.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/CopyRT.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/CopyTexture.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/Gen3DtexMipmap.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/GenHighTopFreq3Dtex.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/GenLowTopFreq3Dtex.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/Godray.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/GodrayAdd.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/HiZdownSampling.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/HiZdownSamplingPR.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/PostProcess.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/PostProcessWithBlur.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/Reprojection.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/Triangular.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud.vert.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud_2nd.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud_2nd.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud_2ndWithDepth.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloud_2ndWithDepth.frag.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloudsCommon.h"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloudWithDepth.comp.fsl"/>
+          <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricCloudWithDepth.frag.fsl"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="Example">
+        <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/DepthLinearization.frag.fsl"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ExampleCommon.h"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/FXAA.frag.fsl"/>
+        <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/Triangular.vert.fsl"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -73,7 +148,7 @@
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
@@ -103,17 +178,7 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
@@ -139,7 +204,24 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+FSL = resources/Shaders/FSL/
+
+SRC_SKY = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Sky/$(FSL)/
+SRC_SO = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/SpaceObjects/$(FSL)/
+SRC_TER = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Terrain/$(FSL)/
+SRC_VC = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/VolumetricClouds/$(FSL)/
+SRC_EX = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/src/EphemerisExample/Shaders/FSL/
+&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC_SKY)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_SO)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_TER)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_VC)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_EX)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -155,7 +237,7 @@
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
@@ -185,17 +267,7 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
-        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
@@ -221,7 +293,25 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+FSL = resources/Shaders/FSL/
+
+SRC_SKY = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Sky/$(FSL)/
+SRC_SO = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/SpaceObjects/$(FSL)/
+SRC_TER = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Terrain/$(FSL)/
+SRC_VC = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/VolumetricClouds/$(FSL)/
+SRC_EX = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/src/EphemerisExample/Shaders/FSL/
+&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC_SKY)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_SO)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_TER)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_VC)/*.fsl), $(fsl) $(file);)
+	$(foreach file, $(wildcard $(SRC_EX)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

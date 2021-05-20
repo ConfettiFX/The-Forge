@@ -13,50 +13,49 @@
     <File Name="../../src/Visibility_Buffer.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Shaders">
-    <File Name="../../src/Shaders/Vulkan/batch_compaction.comp"/>
-    <File Name="../../src/Shaders/Vulkan/clear_buffers.comp"/>
-    <File Name="../../src/Shaders/Vulkan/clear_light_clusters.comp"/>
-    <File Name="../../src/Shaders/Vulkan/cluster_lights.comp"/>
-    <File Name="../../src/Shaders/Vulkan/config.conf"/>
-    <File Name="../../src/Shaders/Vulkan/CurveConversion.frag"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_pass.frag"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_pass.vert"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_pass_alpha.frag"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_shade.frag"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_shade.vert"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_shade_pointlight.frag"/>
-    <File Name="../../src/Shaders/Vulkan/deferred_shade_pointlight.vert"/>
-    <File Name="../../src/Shaders/Vulkan/display.frag"/>
-    <File Name="../../src/Shaders/Vulkan/display.vert"/>
-    <File Name="../../src/Shaders/Vulkan/godray.frag"/>
-    <File Name="../../src/Shaders/Vulkan/HDAO.frag"/>
-    <File Name="../../src/Shaders/Vulkan/HDAO.vert"/>
-    <File Name="../../src/Shaders/Vulkan/non_uniform_resource_index.h"/>
-    <File Name="../../src/Shaders/Vulkan/packing.h"/>
-    <File Name="../../src/Shaders/Vulkan/panini_projection.frag"/>
-    <File Name="../../src/Shaders/Vulkan/panini_projection.vert"/>
-    <File Name="../../src/Shaders/Vulkan/panoToCube.comp"/>
-    <File Name="../../src/Shaders/Vulkan/profile.frag"/>
-    <File Name="../../src/Shaders/Vulkan/profile.vert"/>
-    <File Name="../../src/Shaders/Vulkan/resolve.frag"/>
-    <File Name="../../src/Shaders/Vulkan/resolve.vert"/>
-    <File Name="../../src/Shaders/Vulkan/resolveGodray.frag"/>
-    <File Name="../../src/Shaders/Vulkan/shader_defs.h"/>
-    <File Name="../../src/Shaders/Vulkan/shading.h"/>
-    <File Name="../../src/Shaders/Vulkan/shadow_pass.vert"/>
-    <File Name="../../src/Shaders/Vulkan/shadow_pass_alpha.frag"/>
-    <File Name="../../src/Shaders/Vulkan/shadow_pass_alpha.vert"/>
-    <File Name="../../src/Shaders/Vulkan/skybox.frag"/>
-    <File Name="../../src/Shaders/Vulkan/skybox.vert"/>
-    <File Name="../../src/Shaders/Vulkan/sun.frag"/>
-    <File Name="../../src/Shaders/Vulkan/sun.vert"/>
-    <File Name="../../src/Shaders/Vulkan/triangle_filtering.comp"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_pass.frag"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_pass.vert"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_pass_alpha.frag"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_pass_alpha.vert"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_shade.frag"/>
-    <File Name="../../src/Shaders/Vulkan/visibilityBuffer_shade.vert"/>
+    <File Name="../../src/Shaders/FSL/batch_compaction.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/clear_buffers.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/clear_light_clusters.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/cluster_lights.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/cull_resources.h"/>
+    <File Name="../../src/Shaders/FSL/CurveConversion.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_pass.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_pass.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_pass_alpha.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_resources.h"/>
+    <File Name="../../src/Shaders/FSL/deferred_shade.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_shade.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_shade_pointlight.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/deferred_shade_pointlight.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/display.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/display.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/godray.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/HDAO.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/HDAO.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/icb.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/light_cull_resources.h"/>
+    <File Name="../../src/Shaders/FSL/packing.h"/>
+    <File Name="../../src/Shaders/FSL/panoToCube.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/resolve.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/resolve.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/resolveGodray.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/shader_defs.h"/>
+    <File Name="../../src/Shaders/FSL/shading.h"/>
+    <File Name="../../src/Shaders/FSL/shadow_pass.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/shadow_pass_alpha.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/shadow_pass_alpha.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/skybox.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/skybox.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/sun.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/sun.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/triangle_filtering.comp.fsl"/>
+    <File Name="../../src/Shaders/FSL/vb_resources.h"/>
+    <File Name="../../src/Shaders/FSL/visibilitybuffer_pass.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/visibilityBuffer_pass.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/visibilitybuffer_pass_alpha.vert.fsl"/>
+    <File Name="../../src/Shaders/FSL/visibilityBuffer_pass_alpha.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/visibilityBuffer_shade.frag.fsl"/>
+    <File Name="../../src/Shaders/FSL/visibilityBuffer_shade.vert.fsl"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
@@ -91,7 +90,7 @@
         <Preprocessor Value="_DEBUG"/>
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
@@ -121,9 +120,11 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
@@ -146,7 +147,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -163,7 +171,7 @@
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
@@ -193,9 +201,11 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no">rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
@@ -218,7 +228,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

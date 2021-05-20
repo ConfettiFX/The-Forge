@@ -1,0 +1,77 @@
+/*
+* Copyright (c) 2018-2021 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#define THREAD_SIZE_X 1024
+#define THREAD_SIZE_Y 1
+#define THREAD_SIZE_Z 1
+
+CBUFFER(PageCountInfo, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(uint, MaxPageCount, None);
+  DATA(uint, PageOffset, None);
+  DATA(uint, Pad1, None);
+  DATA(uint, Pad2, None);
+};
+
+RES(RWBuffer(uint), PrevPageTableBuffer,   UPDATE_FREQ_PER_FRAME, u0, binding = 0);
+RES(RWBuffer(uint), PageTableBuffer,       UPDATE_FREQ_PER_FRAME, u1, binding = 1);
+RES(RWBuffer(uint), AlivePageTableBuffer,  UPDATE_FREQ_PER_FRAME, u2, binding = 2);
+RES(RWBuffer(uint), RemovePageTableBuffer, UPDATE_FREQ_PER_FRAME, u3, binding = 3);
+RES(RWBuffer(uint), PageCountsBuffer,      UPDATE_FREQ_PER_FRAME, u4, binding = 4);
+
+NUM_THREADS(THREAD_SIZE_X, 1, 1)
+void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupThreadID(uint3) GTid, SV_GroupIndex(uint) GI )
+{
+	INIT_MAIN;
+	// Fill mips of Page table
+	uint Index = DTid.x;
+
+  if(Index >= MaxPageCount)
+    RETURN();
+
+  Index += PageOffset;
+   
+  if (PageTableBuffer[Index] == 1)
+	{
+    uint currentTexureID;
+    AtomicAdd(PageCountsBuffer[0], 1, currentTexureID);
+
+    // save the index of alive page
+    AlivePageTableBuffer[currentTexureID] = Index;    
+  }
+  else if(PrevPageTableBuffer[Index] == 1)
+  {
+    uint currentTexureID;
+    AtomicAdd(PageCountsBuffer[1], 1, currentTexureID);
+
+    // remove the index of alive page
+    RemovePageTableBuffer[currentTexureID] = Index;
+  }
+
+  PrevPageTableBuffer[Index] = PageTableBuffer[Index];
+
+  // clear page
+  PageTableBuffer[Index] = 0;
+	RETURN();
+}

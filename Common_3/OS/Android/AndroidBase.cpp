@@ -43,6 +43,8 @@
 
 static WindowsDesc gWindow;
 
+static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+
 void adjustWindow(WindowsDesc* winDesc);
 
 void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
@@ -198,12 +200,14 @@ void setCustomMessageProcessor(CustomMessageProcessor proc)
 
 static bool    windowReady = false;
 static bool    isActive = false;
+static bool    isLoaded = false;
 
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
 {
 	if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK)
 	{
 		app->destroyRequested = 1;
+		isActive = false;
 		return 1;
 	}
 
@@ -215,7 +219,30 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event)
 	return 0;
 }
 
+static void onFocusChanged(bool focused)
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
 
+	pApp->mSettings.mFocused = focused;
+}
+
+void onRequestReload()
+{
+	gResetScenario |= RESET_SCENARIO_RELOAD;
+}
+
+void onDeviceLost()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
+void onAPISwitch()
+{
+	gResetScenario |= RESET_SCENARIO_API_SWITCH;
+}
 
 // Process the next main command.
 void handle_cmd(android_app* app, int32_t cmd)
@@ -239,22 +266,23 @@ void handle_cmd(android_app* app, int32_t cmd)
 			openWindow(pApp->GetName(), &gWindow);
 
 			pApp->pWindow = &gWindow;
+			if (!windowReady)
+			{
+				pApp->Load();
+				isLoaded = true;
+			}
 
 			// The window is being shown, mark it as ready.
-			if (!windowReady)
-				pApp->Load();
 			windowReady = true;
+
 			break;
 		}
 		case APP_CMD_TERM_WINDOW:
 		{
 			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "term window");
 
-			// losing window, remove swapchain
-			if (windowReady)
-				pApp->Unload();
-
 			windowReady = false;
+
 			// The window is being hidden or closed, clean it up.
 			break;
 		}
@@ -270,8 +298,7 @@ void handle_cmd(android_app* app, int32_t cmd)
 				pSettings->mWidth = screenWidth;
 				pSettings->mHeight = screenHeight;
 
-				pApp->Unload();
-				pApp->Load();
+				onRequestReload();
 			}
 			break;
 		}
@@ -283,13 +310,27 @@ void handle_cmd(android_app* app, int32_t cmd)
 		case APP_CMD_GAINED_FOCUS:
 		{
 			isActive = true;
+			onFocusChanged(true);
 			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
 			break;
 		}
 		case APP_CMD_LOST_FOCUS:
 		{
 			isActive = false;
+			onFocusChanged(false);
 			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app");
+			break;
+		}
+		case APP_CMD_PAUSE:
+		{
+			isActive = false;
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app");
+			break;
+		}
+		case APP_CMD_RESUME:
+		{
+			isActive = true;
+			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
 			break;
 		}
 		case APP_CMD_STOP:
@@ -378,10 +419,55 @@ int AndroidMain(void* param, IApp* app)
 			if (source != NULL)
 				source->process(android_app, source);
 		}
+
+		if (isActive && gResetScenario != RESET_SCENARIO_NONE)
+		{
+			if (gResetScenario & RESET_SCENARIO_RELOAD)
+			{
+				pApp->Unload();
+
+				if (!pApp->Load())
+					return EXIT_FAILURE;
+
+				gResetScenario &= ~RESET_SCENARIO_RELOAD;
+				continue;
+			}
+			
+			pApp->Unload();
+			pApp->Exit();
+
+			pSettings->mInitialized = false;
+
+			{
+				Timer t;
+				if (!pApp->Init())
+					return EXIT_FAILURE;
+
+				pSettings->mInitialized = true;
+
+				if (!pApp->Load())
+					return EXIT_FAILURE;
+
+				LOGF(LogLevel::eINFO, "Application Reset %f", t.GetMSec(false) / 1000.0f);
+			}
+
+			gResetScenario = RESET_SCENARIO_NONE;
+			continue;
+		}
+
 		if (!windowReady || !isActive)
 		{
 			if (android_app->destroyRequested)
+			{
 				quit = true;
+				pApp->mSettings.mQuit = true;
+			}
+
+			if (isLoaded && !windowReady)
+			{
+				pApp->Unload();
+				isLoaded = false;
+			}
 
 			usleep(1);
 			continue;
@@ -396,13 +482,6 @@ int AndroidMain(void* param, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
-		// Graphics reset in cases where device has to be re-created.
-		if (pApp->mSettings.mResetGraphics) 
-		{
-			pApp->Unload();
-			pApp->Load();
-			pApp->mSettings.mResetGraphics = false;
-		}
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;
@@ -412,13 +491,11 @@ int AndroidMain(void* param, IApp* app)
 			pApp->mSettings.mQuit = true;
 		}
 #endif
-		if (android_app->destroyRequested)
-			quit = true;
 	}
-	pApp->mSettings.mQuit = true;
-	if (windowReady)
+
+	if (isLoaded)
 		pApp->Unload();
-	windowReady = false;
+
 	pApp->Exit();
 
 	Log::Exit();

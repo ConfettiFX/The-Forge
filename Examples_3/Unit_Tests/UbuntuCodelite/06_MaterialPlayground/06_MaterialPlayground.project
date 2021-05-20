@@ -10,6 +10,38 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/06_MaterialPlayground/06_MaterialPlayground.cpp"/>
   </VirtualDirectory>
+  <VirtualDirectory Name="Shaders">
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_length_constraints.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_local_constraints.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_shock_propagation.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_update_follow_hairs.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_integrate.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_pre_warm.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_shadow.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_shadow.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_clear.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_depth_peeling.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_fill_color.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_resolve_color.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_resolve_depth.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/BRDFIntegration.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/computeIrradianceMap.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/computeSpecularMap.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/fullscreen.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/panoToCube.comp.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/skeleton.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/skeleton.vert.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/skybox.frag.fsl"/>
+    <File Name="../../src/06_MaterialPlayground/Shaders/FSL/skybox.vert.fsl"/>
+  </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
@@ -47,7 +79,7 @@
         <Preprocessor Value="_DEBUG"/>
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
@@ -81,9 +113,10 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
@@ -111,7 +144,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+                <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -128,7 +168,7 @@
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
@@ -162,9 +202,10 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
@@ -192,7 +233,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+                <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

@@ -30,6 +30,8 @@
 #include <X11/Xresource.h>
 #include <X11/extensions/Xrandr.h>
 
+#include <gtk/gtk.h>
+
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
@@ -87,6 +89,7 @@ static bool 		gCursorInsideRectangle = false;
 static Cursor      	gInvisibleCursor = {};
 static Cursor      	gCursor = {};
 
+static uint8_t gResetScenario = RESET_SCENARIO_NONE;
 
 void adjustWindow(WindowsDesc* winDesc);
 
@@ -97,11 +100,31 @@ void getRecommendedResolution(RectDesc* rect)
 	*rect = { 0, 0, min(1920, (int)(WidthOfScreen(screen)*0.75)), min(1080, (int)(HeightOfScreen(screen)*0.75)) };
 }
 
+void onRequestReload()
+{
+	gResetScenario |= RESET_SCENARIO_RELOAD;
+}
+
+void onDeviceLost()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
+void onAPISwitch()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
 void requestShutdown()
 {
     gQuit = true;
 }
 
+static void UpdateWindowDescFullScreenRect(WindowsDesc* winDesc)
+{
+	Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
+	winDesc->fullscreenRect = { 0, 0, screen->width, screen->height };
+}
 
 
 float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
@@ -118,8 +141,18 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 	pApp->mSettings.mFullScreen = wnd->fullScreen;
-	pApp->Unload();
-	pApp->Load();
+	
+	onRequestReload();
+}
+
+static void onFocusChanged(bool focused)
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
 }
 
 // https://github.com/glfw/glfw/issues/1019
@@ -375,6 +408,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	XrmInitialize(); /* Need to initialize the DB before calling Xrm* functions */
 
     winDesc->handle.display = gDefaultDisplay;
+	UpdateWindowDescFullScreenRect(winDesc);
 
 	long        visualMask = VisualScreenMask;
 	int         numberOfVisuals;
@@ -390,7 +424,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	windowAttributes.colormap = winDesc->handle.colormap;
 	windowAttributes.background_pixel = 0xFFFFFFFF;
 	windowAttributes.border_pixel = 0;
-	windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
+	windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask | FocusChangeMask ;
 
 	winDesc->handle.window = XCreateWindow(
 		winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->windowedRect.left, winDesc->windowedRect.top,
@@ -463,8 +497,15 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	winDesc->clientRect = rect;
 
 	XResizeWindow(winDesc->handle.display, winDesc->handle.window, rect.right - rect.left, rect.bottom - rect.top);
-	XMoveWindow(winDesc->handle.display, winDesc->handle.window, rect.left, rect.top);
-	XFlush(winDesc->handle.display);
+	if (winDesc->centered)
+	{
+		centerWindow(winDesc);
+	}
+	else
+	{
+		XMoveWindow(winDesc->handle.display, winDesc->handle.window, rect.left, rect.top);
+		XFlush(winDesc->handle.display);
+	}
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
@@ -516,7 +557,8 @@ void toggleFullscreen(WindowsDesc* winDesc)
 	{
 		Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
 		toggleBorderless(winDesc, screen->width, screen->height);
-		setWindowRect(winDesc, { 0, 0, (int32_t)screen->width, (int32_t)screen->height });
+		XMoveWindow(winDesc->handle.display, winDesc->handle.window, 0, 0);
+		XFlush(winDesc->handle.display);
 	}
 	else
 	{
@@ -585,6 +627,15 @@ void centerWindow(WindowsDesc* winDesc)
 	uint32_t windowHalfHeight = getRectHeight(winDesc->windowedRect) >> 1;
 	uint32_t X = fsHalfWidth - windowHalfWidth;
 	uint32_t Y = fsHalfHeight - windowHalfHeight;
+
+	RectDesc newRect = {
+		(int32_t)X, (int32_t)Y,
+		(int32_t)(X + getRectWidth(winDesc->windowedRect)),
+		(int32_t)(Y + getRectHeight(winDesc->windowedRect))
+	};
+
+	winDesc->windowedRect = newRect;
+	winDesc->clientRect = newRect;
 	
 	XMoveWindow(winDesc->handle.display, winDesc->handle.window, X, Y);
 	XFlush(winDesc->handle.display);
@@ -771,10 +822,9 @@ bool handleMessages(WindowsDesc* winDesc)
 				rect = { (int)event.xconfigure.x, (int)event.xconfigure.y, (int)event.xconfigure.width + (int)event.xconfigure.x,
 						 (int)event.xconfigure.height + (int)event.xconfigure.y };
 				
-				winDesc->clientRect = rect;
-			
 				if(!winDesc->fullScreen)
 				{
+					winDesc->clientRect = rect;
 					winDesc->windowedRect = rect;
 				}
 				else
@@ -790,6 +840,12 @@ bool handleMessages(WindowsDesc* winDesc)
 				}
 				break;
 			}
+			case FocusIn:
+				onFocusChanged(true);
+				break;
+			case FocusOut:
+				onFocusChanged(false);
+				break;
 			default: {
 				break;
 				}
@@ -814,6 +870,19 @@ void closeWindow(const WindowsDesc* winDesc)
 	event.xclient.data.l[1] = CurrentTime;
 
 	XSendEvent(winDesc->handle.display, winDesc->handle.window, False, NoEventMask, &event);
+}
+
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle) 
+{
+#ifndef AUTOMATED_TESTING
+	GtkDialogFlags flags = GTK_DIALOG_MODAL;
+	GtkWidget *dialog = gtk_message_dialog_new (NULL, flags, GTK_MESSAGE_INFO,
+		GTK_BUTTONS_OK, "%s", msg);
+	gtk_window_set_title(GTK_WINDOW(dialog), title);
+	gtk_dialog_run (GTK_DIALOG (dialog));
+	gtk_widget_destroy (GTK_WIDGET(dialog));
+	while (g_main_context_iteration(NULL, false));
+#endif
 }
 
 int LinuxMain(int argc, char** argv, IApp* app)
@@ -858,8 +927,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
     RectDesc rect = {};
     getRecommendedResolution(&rect);
 
-    gWindow.fullscreenRect = rect;
-
 	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 	{
 		pSettings->mWidth = getRectWidth(rect);
@@ -885,7 +952,9 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	if (!pApp->Load())
 		return EXIT_FAILURE;
-
+	
+	gtk_init(&argc,&argv);
+	
 	int64_t lastCounter = getUSec();
 	while (!gQuit)
 	{
@@ -898,17 +967,21 @@ int LinuxMain(int argc, char** argv, IApp* app)
 			deltaTime = 0.05f;
 
 		gQuit = handleMessages(&gWindow);
+		
+		if (gResetScenario & RESET_SCENARIO_RELOAD)
+		{
+			pApp->Unload();
+
+			if (!pApp->Load())
+				return EXIT_FAILURE;
+
+			gResetScenario &= ~RESET_SCENARIO_RELOAD;
+			continue;
+		}
 
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
-        // Graphics reset in cases where device has to be re-created.
-		if (pApp->mSettings.mResetGraphics) 
-		{
-			pApp->Unload();
-			pApp->Load();
-			pApp->mSettings.mResetGraphics = false;
-		}
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;

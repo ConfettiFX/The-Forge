@@ -70,6 +70,27 @@
     <Filter Include="Dependencies\basisu">
       <UniqueIdentifier>{a429a440-a05a-4264-9328-6e4a39cbba91}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Middleware_3\PaniniProjection">
+      <UniqueIdentifier>{d459b70a-ff6e-4b31-b330-f4c3a76268ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\UI\Shaders">
+      <UniqueIdentifier>{24135e7e-b5b9-4526-b0a5-227d38ec0a49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\UI\Shaders\FSL">
+      <UniqueIdentifier>{efd48ec0-d60f-4f01-b333-7add6f4bba60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\Text\Shaders">
+      <UniqueIdentifier>{a1e7f496-190d-49b3-aba2-55a3047b986b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\Text\Shaders\FSL">
+      <UniqueIdentifier>{b362881b-2ada-4c29-930d-3c26701efb6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\PaniniProjection\Shaders">
+      <UniqueIdentifier>{79cdca46-3208-41f8-88a0-917845025aa6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\PaniniProjection\Shaders\FSL">
+      <UniqueIdentifier>{8a4f6fa1-699d-4a00-9cfe-56515f932248}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -179,6 +200,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IScreenshot.h">
       <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\resources.h">
+      <Filter>OS\Middleware_3\UI\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\resources.h">
+      <Filter>OS\Middleware_3\Text\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\resources.h">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders\FSL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -328,5 +358,34 @@
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
       <Filter>Utils</Filter>
     </Natvis>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.vert.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.frag.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.vert.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.frag.fsl">
+      <Filter>OS\Middleware_3\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash.frag.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash2D.vert.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash3D.vert.fsl">
+      <Filter>OS\Middleware_3\Text\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

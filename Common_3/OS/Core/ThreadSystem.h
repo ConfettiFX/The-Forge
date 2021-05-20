@@ -49,7 +49,7 @@ struct ThreadSystem;
 
 void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, bool migrateEnabled = true ,const char* threadName = "");
 
-void shutdownThreadSystem(ThreadSystem* pThreadSystem);
+void exitThreadSystem(ThreadSystem* pThreadSystem);
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t count);
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end);

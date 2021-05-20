@@ -10,6 +10,19 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/08_GltfViewer/08_GltfViewer.cpp"/>
   </VirtualDirectory>
+  <VirtualDirectory Name="Shaders">
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/basic.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/basic.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/floor.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/floor.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/FXAA.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/Triangular.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/vignette.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/watermark.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/watermark.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/zPass.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/zPassFloor.vert.fsl"/>
+  </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
@@ -52,7 +65,7 @@
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
         <Preprocessor Value="__LINUX__"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
@@ -61,7 +74,7 @@
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Debug/"/>
-	<LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libLuaManager.a"/>
@@ -88,10 +101,11 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
@@ -112,7 +126,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+                <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -130,7 +151,7 @@
         <Preprocessor Value="NDEBUG"/>
         <Preprocessor Value="__LINUX__"/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;-lXrandr;" Required="yes">
+      <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
@@ -139,7 +160,7 @@
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Release/"/>
-	<LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libLuaManager.a"/>
@@ -166,10 +187,11 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-	<Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
@@ -190,7 +212,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+                <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

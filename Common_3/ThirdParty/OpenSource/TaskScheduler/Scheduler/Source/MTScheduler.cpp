@@ -29,13 +29,16 @@
 //  Look like low latency hybrid wait is work better for PS4/X1, but a little worse on PC
 //#define MT_LOW_LATENCY_EXPERIMENTAL_WAIT (1)
 
+#if defined(MT_PLATFORM_DURANGO) || defined(MT_PLATFORM_ORBIS)
+#define MT_LOW_LATENCY_EXPERIMENTAL_WAIT (1)
+#endif
 
 namespace MT
 {
 #ifdef MT_INSTRUMENTED_BUILD
-	TaskScheduler::TaskScheduler(uint32_t workerThreadsCount, WorkerThreadParams* workerParameters, IProfilerEventListener* listener, TaskStealingMode::Type stealMode)
+	TaskScheduler::TaskScheduler(uint32 workerThreadsCount, WorkerThreadParams* workerParameters, IProfilerEventListener* listener, TaskStealingMode::Type stealMode)
 #else
-	TaskScheduler::TaskScheduler(uint32_t workerThreadsCount, WorkerThreadParams* workerParameters, TaskStealingMode::Type stealMode)
+	TaskScheduler::TaskScheduler(uint32 workerThreadsCount, WorkerThreadParams* workerParameters, TaskStealingMode::Type stealMode)
 #endif
 		: roundRobinThreadIndex(0)
 		, startedThreadsCount(0)
@@ -48,17 +51,17 @@ namespace MT
 
 		if (workerThreadsCount != 0)
 		{
-			threadsCount.StoreRelaxed( MT::Clamp(workerThreadsCount, (uint32_t)1, (uint32_t)MT_MAX_THREAD_COUNT) );
+			threadsCount.StoreRelaxed( MT::Clamp(workerThreadsCount, (uint32)1, (uint32)MT_MAX_THREAD_COUNT) );
 		} else
 		{
 			//query number of processor
-			threadsCount.StoreRelaxed( (uint32_t)MT::Clamp(Thread::GetNumberOfHardwareThreads() - 1, 1, (int)MT_MAX_THREAD_COUNT) );
+			threadsCount.StoreRelaxed( (uint32)MT::Clamp(Thread::GetNumberOfHardwareThreads() - 1, 1, (int)MT_MAX_THREAD_COUNT) );
 		}
 
-		uint32_t fiberIndex = 0;
+		uint32 fiberIndex = 0;
 
 		// create fiber pool (fibers with standard stack size)
-		for (uint32_t i = 0; i < MT_MAX_STANDART_FIBERS_COUNT; i++)
+		for (uint32 i = 0; i < MT_MAX_STANDART_FIBERS_COUNT; i++)
 		{
 			FiberContext& context = standartFiberContexts[i];
 			context.fiber.Create(MT_STANDART_FIBER_STACK_SIZE, FiberMain, &context);
@@ -70,7 +73,7 @@ namespace MT
 		}
 
 		// create fiber pool (fibers with extended stack size)
-		for (uint32_t i = 0; i < MT_MAX_EXTENDED_FIBERS_COUNT; i++)
+		for (uint32 i = 0; i < MT_MAX_EXTENDED_FIBERS_COUNT; i++)
 		{
 			FiberContext& context = extendedFiberContexts[i];
 			context.fiber.Create(MT_EXTENDED_FIBER_STACK_SIZE, FiberMain, &context);
@@ -100,18 +103,18 @@ namespace MT
 #endif
 
 		// create worker thread pool
-		int32_t totalThreadsCount = GetWorkersCount();
+		int32 totalThreadsCount = GetWorkersCount();
 
 #ifdef MT_INSTRUMENTED_BUILD
 		NotifyThreadsCreated(totalThreadsCount);
 #endif
 
-		for (int32_t i = 0; i < totalThreadsCount; i++)
+		for (int32 i = 0; i < totalThreadsCount; i++)
 		{
 			threadContext[i].SetThreadIndex(i);
 			threadContext[i].taskScheduler = this;
 
-			uint32_t threadCore = i;
+			uint32 threadCore = i;
 			ThreadPriority::Type priority = ThreadPriority::DEFAULT;
 			if (workerParameters != nullptr)
 			{
@@ -127,14 +130,14 @@ namespace MT
 
 	void TaskScheduler::JoinWorkerThreads()
 	{
-		int32_t totalThreadsCount = GetWorkersCount();
-		for (int32_t i = 0; i < totalThreadsCount; i++)
+		int32 totalThreadsCount = GetWorkersCount();
+		for (int32 i = 0; i < totalThreadsCount; i++)
 		{
 			threadContext[i].state.Store(internal::ThreadState::EXIT);
 			threadContext[i].hasNewTasksEvent.Signal();
 		}
 
-		for (int32_t i = 0; i < totalThreadsCount; i++)
+		for (int32 i = 0; i < totalThreadsCount; i++)
 		{
 			threadContext[i].thread.Join();
 		}
@@ -321,7 +324,7 @@ namespace MT
 
 #ifdef MT_INSTRUMENTED_BUILD
 			fiberContext.fiber.SetName( MT_SYSTEM_TASK_FIBER_NAME );
-			fiberContext.GetThreadContext()->NotifyTaskExecuteStateChanged( fiberContext.currentTask.debugColor, fiberContext.currentTask.debugID, TaskExecuteState::START, (int32_t)fiberContext.fiberIndex);
+			fiberContext.GetThreadContext()->NotifyTaskExecuteStateChanged( fiberContext.currentTask.debugColor, fiberContext.currentTask.debugID, TaskExecuteState::START, (int32)fiberContext.fiberIndex);
 #endif
 
 			fiberContext.currentTask.taskFunc( fiberContext, fiberContext.currentTask.userData );
@@ -329,7 +332,7 @@ namespace MT
 
 #ifdef MT_INSTRUMENTED_BUILD
 			fiberContext.fiber.SetName( MT_SYSTEM_TASK_FIBER_NAME );
-			fiberContext.GetThreadContext()->NotifyTaskExecuteStateChanged( fiberContext.currentTask.debugColor, fiberContext.currentTask.debugID, TaskExecuteState::STOP, (int32_t)fiberContext.fiberIndex);
+			fiberContext.GetThreadContext()->NotifyTaskExecuteStateChanged( fiberContext.currentTask.debugColor, fiberContext.currentTask.debugID, TaskExecuteState::STOP, (int32)fiberContext.fiberIndex);
 #endif
 
 			Fiber::SwitchTo(fiberContext.fiber, fiberContext.GetThreadContext()->schedulerFiber);
@@ -340,13 +343,13 @@ namespace MT
 
 	bool TaskScheduler::TryStealTask(internal::ThreadContext& threadContext, internal::GroupedTask & task)
 	{
-		uint32_t workersCount = threadContext.taskScheduler->GetWorkersCount();
+		uint32 workersCount = threadContext.taskScheduler->GetWorkersCount();
 
-		uint32_t victimIndex = threadContext.random.Get();
+		uint32 victimIndex = threadContext.random.Get();
 
-		for (uint32_t attempt = 0; attempt < workersCount; attempt++)
+		for (uint32 attempt = 0; attempt < workersCount; attempt++)
 		{
-			uint32_t index = victimIndex % workersCount;
+			uint32 index = victimIndex % workersCount;
 			if (index == threadContext.workerIndex)
 			{
 				victimIndex++;
@@ -416,7 +419,7 @@ namespace MT
 				spinWait.Reset();
 			}
 
-			int32_t groupTaskCount = waitContext.waitCounter->Load();
+			int32 groupTaskCount = waitContext.waitCounter->Load();
 			if (groupTaskCount == 0)
 			{
 				waitContext.exitCode = 0;
@@ -448,13 +451,13 @@ namespace MT
 		context.NotifyThreadCreated(context.workerIndex);
 #endif
 
-		int32_t totalThreadsCount = context.taskScheduler->threadsCount.LoadRelaxed();
+		int32 totalThreadsCount = context.taskScheduler->threadsCount.LoadRelaxed();
 		context.taskScheduler->startedThreadsCount.IncFetch();
 
 		//Simple spinlock until all threads is started and initialized
 		for(;;)
 		{
-			int32_t initializedThreadsCount = context.taskScheduler->startedThreadsCount.Load();
+			int32 initializedThreadsCount = context.taskScheduler->startedThreadsCount.Load();
 			if (initializedThreadsCount == totalThreadsCount)
 			{
 				break;
@@ -630,7 +633,7 @@ namespace MT
 
 #if MT_LOW_LATENCY_EXPERIMENTAL_WAIT
 		// Early wakeup worker threads (worker thread spin wait for some time before sleep)
-		int32_t roundRobinIndex = roundRobinThreadIndex.LoadRelaxed();
+		int32 roundRobinIndex = roundRobinThreadIndex.LoadRelaxed();
 		for (size_t i = 0; i < buckets.Size(); ++i)
 		{
 			int bucketIndex = ((roundRobinIndex + i) % threadsCount.LoadRelaxed());
@@ -681,12 +684,12 @@ namespace MT
 				int groupNewTaskCount = newTaskCountInGroup[i];
 				if (groupNewTaskCount > 0)
 				{
-					groupStats[i].Add((uint32_t)groupNewTaskCount);
+					groupStats[i].Add((uint32)groupNewTaskCount);
 				}
 			}
 
 			// Increments all task in progress counter
-			allGroups.Add((uint32_t)count);
+			allGroups.Add((uint32)count);
 		} else
 		{
 			// If task's restored from await state, counters already in correct state
@@ -719,27 +722,27 @@ namespace MT
 		}
 	}
 
-	void TaskScheduler::RunAsync(TaskGroup group, const TaskHandle* taskHandleArray, uint32_t taskHandleCount)
+	void TaskScheduler::RunAsync(TaskGroup group, const TaskHandle* taskHandleArray, uint32 taskHandleCount)
 	{
 		MT_ASSERT(!IsWorkerThread(), "Can't use RunAsync inside Task. Use FiberContext.RunAsync() instead.");
 
 		ArrayView<internal::GroupedTask> buffer(MT_ALLOCATE_ON_STACK(sizeof(internal::GroupedTask) * taskHandleCount), taskHandleCount);
 
-		uint32_t bucketCount = MT::Min((uint32_t)GetWorkersCount(), taskHandleCount);
+		uint32 bucketCount = MT::Min((uint32)GetWorkersCount(), taskHandleCount);
 		ArrayView<internal::TaskBucket> buckets(MT_ALLOCATE_ON_STACK(sizeof(internal::TaskBucket) * bucketCount), bucketCount);
 
 		internal::DistibuteDescriptions(group, taskHandleArray, buffer, buckets);
 		RunTasksImpl(buckets, nullptr, false);
 	}
 
-	bool TaskScheduler::WaitGroup(TaskGroup group, uint32_t milliseconds)
+	bool TaskScheduler::WaitGroup(TaskGroup group, uint32 milliseconds)
 	{
 		MT_VERIFY(IsWorkerThread() == false, "Can't use WaitGroup inside Task. Use FiberContext.WaitGroupAndYield() instead.", return false);
 
 		TaskScheduler::TaskGroupDescription& groupDesc = GetGroupDesc(group);
 
 		// Early exit if not tasks in group
-		int32_t taskCount = groupDesc.GetTaskCount();
+		int32 taskCount = groupDesc.GetTaskCount();
 		if (taskCount == 0)
 		{
 			return true;
@@ -759,7 +762,7 @@ namespace MT
 		waitContext.waitTimeMs = milliseconds;
 		waitContext.exitCode = 0;
 
-		int32_t waitingSlotIndex = nextWaitingThreadSlotIndex.IncFetch();
+		int32 waitingSlotIndex = nextWaitingThreadSlotIndex.IncFetch();
 		waitingThreads[waitingSlotIndex % waitingThreads.size()] = ThreadId::Self();
 		context.schedulerFiber.CreateFromCurrentThreadAndRun(SchedulerFiberWait, &waitContext);
 		
@@ -769,12 +772,12 @@ namespace MT
 		return (waitContext.exitCode == 0);
 	}
 
-	bool TaskScheduler::WaitAll(uint32_t milliseconds)
+	bool TaskScheduler::WaitAll(uint32 milliseconds)
 	{
 		MT_VERIFY(IsWorkerThread() == false, "Can't use WaitAll inside Task.", return false);
 
 		// Early exit if not tasks in group
-		int32_t taskCount = allGroups.GetTaskCount();
+		int32 taskCount = allGroups.GetTaskCount();
 		if (taskCount == 0)
 		{
 			return true;
@@ -794,7 +797,7 @@ namespace MT
 		waitContext.waitTimeMs = milliseconds;
 		waitContext.exitCode = 0;
 
-		int32_t waitingSlotIndex = nextWaitingThreadSlotIndex.IncFetch();
+		int32 waitingSlotIndex = nextWaitingThreadSlotIndex.IncFetch();
 		waitingThreads[waitingSlotIndex % waitingThreads.size()] = ThreadId::Self();
 
 		context.schedulerFiber.CreateFromCurrentThreadAndRun(SchedulerFiberWait, &waitContext);
@@ -805,9 +808,9 @@ namespace MT
 		return (waitContext.exitCode == 0);
 	}
 
-	bool TaskScheduler::IsTaskStealingDisabled(uint32_t minWorkersCount) const
+	bool TaskScheduler::IsTaskStealingDisabled(uint32 minWorkersCount) const
 	{
-		if (threadsCount.LoadRelaxed() <= (int32_t)minWorkersCount)
+		if (threadsCount.LoadRelaxed() <= (int32)minWorkersCount)
 		{
 			return true;
 		}
@@ -815,7 +818,7 @@ namespace MT
 		return taskStealingDisabled;
 	}
 
-	int32_t TaskScheduler::GetWorkersCount() const
+	int32 TaskScheduler::GetWorkersCount() const
 	{
 		return threadsCount.LoadRelaxed();
 	}
@@ -823,15 +826,15 @@ namespace MT
 
 	bool TaskScheduler::IsWorkerThread() const
 	{
-		int32_t threadsCount = GetWorkersCount();
-		for (int32_t i = 0; i < threadsCount; i++)
+		int32 threadsCount = GetWorkersCount();
+		for (int32 i = 0; i < threadsCount; i++)
 		{
 			if (threadContext[i].threadId.IsEqual(ThreadId::Self()))
 			{
 				return true;
 			}
 		}
-		for (uint32_t i = 0; i < waitingThreads.size(); i++)
+		for (uint32 i = 0; i < waitingThreads.size(); i++)
 		{
 			if (waitingThreads[i].IsEqual(ThreadId::Self()))
 				return true;
@@ -891,7 +894,7 @@ namespace MT
 
 #ifdef MT_INSTRUMENTED_BUILD
 
-	void TaskScheduler::NotifyFibersCreated(uint32_t fibersCount)
+	void TaskScheduler::NotifyFibersCreated(uint32 fibersCount)
 	{
 		if (IProfilerEventListener* eventListener = GetProfilerEventListener())
 		{
@@ -899,7 +902,7 @@ namespace MT
 		}
 	}
 
-	void TaskScheduler::NotifyThreadsCreated(uint32_t threadsCount)
+	void TaskScheduler::NotifyThreadsCreated(uint32 threadsCount)
 	{
 		if (IProfilerEventListener* eventListener = GetProfilerEventListener())
 		{

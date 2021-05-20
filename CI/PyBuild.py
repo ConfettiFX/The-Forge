@@ -728,7 +728,8 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 	#since our projects for macos are all under a macos Xcode folder we can search for
 	#that specific folder name to gather source folders containing project/workspace for xcode
 	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
-	xcodeProjects = [ "/Examples_3/Ephemeris/macOS Xcode/Ephemeris.xcodeproj", 
+	xcodeProjects = ["/Examples_3/Ephemeris/macOS Xcode/Ephemeris.xcodeproj", 
+				"/Examples_3/Aura/macOS Xcode/Aura.xcodeproj",
 				"/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj",
 				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
 
@@ -932,16 +933,16 @@ def TestWindowsProjects(useActiveGpuConfig):
 	errorOccured = False
 	
 	isWindows7 = int(platform.release()) < 10
-	if not isWindows7:
-		try:
-			bat_dir = os.path.join(os.getcwd(), 'Common_3\\ThirdParty\\OpenSource\\hlslparser\\Test')
-			bat_path = os.path.join(bat_dir, 'compile.bat')
-			testout = subprocess.Popen([bat_path], cwd=bat_dir, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, encoding='utf-8').communicate()[0]
-			if re.search(r'\berror\b', testout, re.M|re.I):
-				print("HLSLParser test failed: there are errors in output")
-				return -1
-		except Exception as ex:
-			return -1
+	# if not isWindows7:
+	# 	try:
+	# 		bat_dir = os.path.join(os.getcwd(), 'Common_3\\ThirdParty\\OpenSource\\hlslparser\\Test')
+	# 		bat_path = os.path.join(bat_dir, 'compile.bat')
+	# 		testout = subprocess.Popen([bat_path], cwd=bat_dir, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, encoding='utf-8').communicate()[0]
+	# 		if re.search(r'\berror\b', testout, re.M|re.I):
+	# 			print("HLSLParser test failed: there are errors in output")
+	# 			return -1
+	# 	except Exception as ex:
+	# 		return -1
 
 	projects = GetFilesPathByExtension("./Examples_3","exe",False)
 	fileList = []
@@ -953,8 +954,8 @@ def TestWindowsProjects(useActiveGpuConfig):
 		if "PC Visual Studio 2017" in proj and "Release" in proj and not "ImageConvertTools" in proj and not "AssetPipelineCmd" in proj :
 			fileList.append(proj)
 
-	if not isWindows7:
-		fileList.append('.\\Common_3\\ThirdParty\\OpenSource\\hlslparser\\Parser\\x64_ReleaseTest\\Parser.exe')
+	# if not isWindows7:
+	# 	fileList.append('.\\Common_3\\ThirdParty\\OpenSource\\hlslparser\\Parser\\x64_ReleaseTest\\Parser.exe')
 
 	for proj in fileList:
 		leaksDetected = False
@@ -980,8 +981,10 @@ def TestWindowsProjects(useActiveGpuConfig):
 			filename = "VK_" + filename
 		elif "Dx11" in proj:
 			filename = "Dx11_" + filename
-		elif "hlslparser" not in proj:
+		elif "Dx12" in proj:
 			filename = "Dx12_" + filename
+		#elif "hlslparser" not in proj:
+		#	filename = "Dx12_" + filename
 
 		parentFolder = proj.split(os.sep)[1]
 		
@@ -1041,13 +1044,13 @@ def TestXboxProjects():
 
 	#Test for DashBoard
 	pslist = subprocess.check_output([gdkDir+'xbtlist']).decode()
-	isDashboard = 'Xbox.Dashboard.native' in pslist
+	isDashboard = 'Xbox.Dashboard' in pslist
 	if not isDashboard:
 		print("WARNING: as of \'May 2020 GXDK\' using DevHome in CI is known to be unstable (this can crash the devkit).\n"
 		"Please set (in GDK Manager or web UI) \'Settings/Preference/Default Home Experience\' to \'Retail Home\'.")
 
 	#get correct dashboard package name
-	homePackageName = "Xbox.Dashboard_8wekyb3d8bbwe!Xbox.Dashboard.Application" if isDashboard == True else "Microsoft.Xbox.DevHome_100.2006.3001.0_x64__8wekyb3d8bbwe"
+	homePackageName = "Xbox.Dashboard_8wekyb3d8bbwe!Xbox.Dashboard.Application" if isDashboard == True else "Microsoft.Xbox.DevHome_8wekyb3d8bbwe!App"
 	applist = subprocess.check_output([gdkDir+'xbapp', "list", "/includesystem"]).decode().splitlines()
 	for line in applist:
 		if isDashboard == True and "Dashboard" in line and "Application" in line:
@@ -1062,7 +1065,7 @@ def TestXboxProjects():
 	#Cleanup the shared folders before launching the test
 	crashdump_path = '\\\\'+consoleIP+"\SystemScratch\LocalDumps"
 	shaderFolder = 	'\\\\'+consoleIP+"\SystemScratch\CompiledShaders"
-	cleanupList = ["CompiledShaders","PipelineCaches","SDF"]
+	cleanupList = ["CompiledShaders","PipelineCaches","SDF", "LocalDumps"]
 
 	def cleanupSharedFiles():
 		for dir in cleanupList:
@@ -1085,7 +1088,7 @@ def TestXboxProjects():
 	#Set console setting to genereate crash dumps
 	command = [gdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
-
+	crashDumpCount = 0
 	try:
 		#Get count of existing crash dumps
 		command = ["cmd", "/c", "dir", crashdump_path]
@@ -1114,7 +1117,7 @@ def TestXboxProjects():
 	for filename in fileList:
 		#register app on xbox
 		print ("Registering Network Share: " + filename)
-		command = [gdkDir+'xbapp',"registernetworkshare",filename]
+		command = [gdkDir+'xbapp', "registernetworkshare",filename]
 		output = XBoxCommand(command, False)
 
 		#Extract App Name from output
@@ -1170,6 +1173,8 @@ def TestXboxProjects():
 
 		command = [gdkDir+'xbapp',"query","/X"+consoleIP, appName]
 		isRunning = int(1)
+		testingComplete = False
+		dumpFilePath = "Invalid"
 
 		#Check if app terminatese or times out
 		print("Waiting for App to terminate")
@@ -1195,6 +1200,9 @@ def TestXboxProjects():
 			#Wait for crash dump folder to be discoverable and get count of crash dumps
 			command = ["cmd", "/c", "dir", crashdump_path]
 			rc = 1
+			#Create a crashdump directory if it doesn't exist
+			if not os.path.exists(crashdump_path):
+				os.mkdir(crashdump_path)    
 			while rc != 0:
 				rc = subprocess.call(command, stdin=None, stdout=FNULL, stderr=FNULL)
 			output = XBoxCommand(command, False)
@@ -1207,7 +1215,7 @@ def TestXboxProjects():
 				dumpFiles = GetFilesPathByExtension(crashdump_path, "dmp", False)
 				dumpFilePath = "Invalid"
 				for dump in dumpFiles:
-					if filenameNoExt in dump:
+					if filenameWithoutExe in dump:
 						dumpFilePath = dump
 						testingComplete = False
 						break
@@ -1540,7 +1548,7 @@ def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 def TestAndroidProjects():
 	errorOccured = False
 
-	lowEndExamples = ["Transformations", "FontRendering", "ZipFileSystem", "UserInterface", "Audio"]
+	lowEndExamples = ["Transformations", "FontRendering", "ZipFileSystem", "UserInterface", "EntityComponentSystem"]
 
 	projects = GetFilesPathByExtension("./Examples_3/Unit_Tests/Android_VisualStudio2017","apk",False)
 	fileList = []
@@ -1638,15 +1646,17 @@ def TestAndroidProjects():
 def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
-	androidConfigurations = ["Debug", "Release", "DebugGLES", "ReleaseGLES"]
+	androidConfigurations = ["Debug", "Release", "DebugVk", "ReleaseVk", "DebugGLES", "ReleaseGLES"]
 	androidPlatform = ["ARM", "ARM64"]
 
 	if skipDebug:
 		androidConfigurations.remove("Debug")
+		androidConfigurations.remove("DebugVk")
 		androidConfigurations.remove("DebugGLES")
 	
 	if skipRelease:
 		androidConfigurations.remove("Release")
+		androidConfigurations.remove("ReleaseVk")
 		androidConfigurations.remove("ReleaseGLES")
 
 	if msBuildPath == "":
@@ -1720,23 +1730,21 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
 
-	pcConfigurations = ["DebugDx", "ReleaseDx", "DebugVk", "ReleaseVk", "DebugDx11", "ReleaseDx11"]
+	pcConfigurations = ["Debug", "Release"]
 	pcPlatform = "x64"
 	isWindows7 = int(platform.release()) < 10
 	
 	if skipDebug:
-		pcConfigurations.remove("DebugDx")
-		pcConfigurations.remove("DebugVk")
-		pcConfigurations.remove("DebugDx11")
+		pcConfigurations.remove("Debug")
 		
 	if skipRelease:
-		pcConfigurations.remove("ReleaseDx")
-		pcConfigurations.remove("ReleaseVk")
-		pcConfigurations.remove("ReleaseDx11")
+		pcConfigurations.remove("Release")
 
-	if skipDX11:
-		if "DebugDx11" in pcConfigurations : pcConfigurations.remove("DebugDx11")
-		if "ReleaseDx11" in pcConfigurations : pcConfigurations.remove("ReleaseDx11")
+	#if skipDX11:
+	#	if "DebugDx11" in pcConfigurations : pcConfigurations.remove("DebugDx11")
+	#	if "ReleaseDx11" in pcConfigurations : pcConfigurations.remove("ReleaseDx11")
+	#	if "Debug" in pcConfigurations : pcConfigurations.remove("Debug")
+	#	if "Release" in pcConfigurations : pcConfigurations.remove("Release")
 	
 	if isSwitch:
 		pcConfigurations = ["DebugVK", "ReleaseVK"]
@@ -1747,6 +1755,8 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		print("Detected Windows 7")
 		if "DebugDx" in pcConfigurations : pcConfigurations.remove("DebugDx")
 		if "ReleaseDx" in pcConfigurations : pcConfigurations.remove("ReleaseDx")
+		if "Debug" in pcConfigurations : pcConfigurations.remove("Debug")
+		if "Release" in pcConfigurations : pcConfigurations.remove("Release")
 		skipAura = True
 	
 
@@ -1823,17 +1833,11 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		#strip extension
 		filename = proj.split(os.sep)[-1]
 		
-		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln":
-			if "DebugVk" in configurations : configurations.remove("DebugVk")
-			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
-			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
-			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
-		elif filename == "VisibilityBuffer.sln" or filename == "Ephemeris.sln":
-			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
-			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
-		elif filename == "HLSLParser.sln":
-			configurations = ["Debug", "Release"]
+		#if filename == "VisibilityBuffer.sln" or filename == "Ephemeris.sln":
+		#	if "DebugDx11" in configurations : configurations.remove("DebugDx11")
+		#	if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
+		#elif filename == "HLSLParser.sln":
+		#	configurations = ["Debug", "Release"]
 			
 		if "Xbox" in proj or "XBOXOne" in proj:
 			currPlatform = xboxPlatform
@@ -1901,8 +1905,6 @@ def BuildOrbisProjects(skipDebug, skipRelease, printMSBuild):
 		msbuildVerbosityClp = "/clp:Summary;PerformanceSummary"
 
 	for proj in projects:
-		if "Aura" in proj:
-			continue
 		if "Orbis" in proj:
 			fileList.append(proj)
 				
@@ -1925,12 +1927,7 @@ def BuildOrbisProjects(skipDebug, skipRelease, printMSBuild):
 		filename = proj.split(os.sep)[-1]
 		
 		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln":
-			if "DebugVk" in configurations : configurations.remove("DebugVk")
-			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
-			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
-			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
-		elif filename == "VisibilityBuffer.sln":
+		if filename == "VisibilityBuffer.sln":
 			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
 			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
 		elif filename == "HLSLParser.sln":
@@ -1988,9 +1985,7 @@ def BuildProsperoProjects(skipDebug, skipRelease, printMSBuild):
 		msbuildVerbosityClp = "/clp:Summary;PerformanceSummary"
 
 	for proj in projects:
-		if "Aura" in proj:
-			continue
-		if "Prospero" in proj:
+		if "Prospero" in proj and not "Aura" in proj:
 			fileList.append(proj)
 				
 	for proj in fileList:
@@ -2011,13 +2006,7 @@ def BuildProsperoProjects(skipDebug, skipRelease, printMSBuild):
 		#strip extension
 		filename = proj.split(os.sep)[-1]
 		
-		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
-		if filename == "Aura.sln":
-			if "DebugVk" in configurations : configurations.remove("DebugVk")
-			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
-			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
-			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
-		elif filename == "VisibilityBuffer.sln":
+		if filename == "VisibilityBuffer.sln":
 			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
 			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
 		elif filename == "HLSLParser.sln":
@@ -2073,7 +2062,23 @@ def FindMemoryLeaks(memLeakLog):
 	
 	print("No Leaks detected.")
 	return False
-	
+
+def CheckDiffContents(relevantChangeStr, targetBranch="origin/master"):
+	gitDiffCommand = ["git", "diff", targetBranch]
+	output = ExecuteCommandWOutput(gitDiffCommand)
+	retValue = 0
+	for line in output:
+		try:
+			utfLine = line.decode('utf-8')
+			if utfLine.startswith('+') or utfLine.startswith('-'):
+				if relevantChangeStr in utfLine:
+					print("{} is found in diff against {}".format(relevantChangeStr, targetBranch))
+					print("Relevant diffed line is: {}".format(utfLine))
+					retValue = 1
+		except:
+			continue
+
+	return retValue
 	
 def CleanupHandler(signum, frame):
 	global setDefines
@@ -2129,15 +2134,31 @@ def MainLogic():
 	parser.add_argument('--xcodederiveddatapath', type=str, default='Null', help = 'Uses a specific path relative to root of project for derived data. If null then it uses the default location for derived data')
 	parser.add_argument('--preserveworkingdir', action="store_true", help='If enabled, will keep working directory as is instead of changing it to path of PyBuild.')
 	parser.add_argument('--defineonly', action="store_true", help='If enabled, will set defines and exit.')
+	parser.add_argument('--buildshaders', default=False, action="store_true", help='If enabled, will set defines and exit.')
+	parser.add_argument("--checkdiffcontents", type=str, default="-1", help='Check for given string in diff of MR. If found then a comment will be posted on Gitlab.')
+
+
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
+	
+	if arguments.buildshaders:
+		_filedir = os.path.dirname(os.path.abspath(__file__))
+		process = subprocess.Popen('python -u ' + os.path.join(_filedir, 'PyBuildShaders.py'))
+		process.communicate()
+		if process.returncode != 0:
+			return process.returncode
+		return
+
+	if not arguments.checkdiffcontents == "-1" and not arguments.checkdiffcontents=="":
+		os.chdir(sys.path[0])
+		exit(CheckDiffContents(arguments.checkdiffcontents))
+
 	
 	#if we want to run based on active gpu config
 	#we need defines macros
 	if arguments.gpuselection:
 		arguments.defines = True
 		
-
 	#add cleanup handler in case app gets interrupted
 	#keyboard interrupt
 	#removing defines
@@ -2148,6 +2169,7 @@ def MainLogic():
 		os.chdir(sys.path[0])
 	
 	returnCode = 0
+		
 	
 	if (arguments.xbox is not True and arguments.xboxonly is not True) or "GXDKLatest" not in os.environ:
 		arguments.xbox = False

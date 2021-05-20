@@ -29,7 +29,7 @@
 #endif
 
 #if (PROFILE_ENABLED)
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO) || defined(GLES)
 #define GPU_PROFILER_SUPPORTED 1
 #endif
 
@@ -51,7 +51,7 @@ struct Cmd;
 struct Renderer;
 struct Queue;
 struct TextDrawDesc;
-class UIApp;
+struct UIApp;
 
 // Must be called before adding any profiling
 void initProfiler(Renderer* pRenderer = NULL, Queue** ppQueue = NULL, const char** ppProfilerNames = NULL, ProfileToken* pProfileTokens = NULL, uint32_t nGpuProfilerCount = 0);

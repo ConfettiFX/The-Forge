@@ -226,26 +226,27 @@ struct Raytracing
 #endif
 };
 
-API_INTERFACE bool FORGE_CALLCONV isRaytracingSupported(Renderer* pRenderer);
-API_INTERFACE bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
-API_INTERFACE void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
+
+DECLARE_RENDERER_FUNCTION(bool, isRaytracingSupported, Renderer* pRenderer)
+DECLARE_RENDERER_FUNCTION(bool, initRaytracing, Renderer* pRenderer, Raytracing** ppRaytracing);
+DECLARE_RENDERER_FUNCTION(void, removeRaytracing, Renderer* pRenderer, Raytracing* pRaytracing)
 
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
-API_INTERFACE void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure);
-API_INTERFACE void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+DECLARE_RENDERER_FUNCTION(void, addAccelerationStructure, Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+DECLARE_RENDERER_FUNCTION(void, removeAccelerationStructure, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 /// Free the scratch memory allocated by acceleration structure after it has been built completely
 /// Does not free acceleration structure
-API_INTERFACE void FORGE_CALLCONV removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+DECLARE_RENDERER_FUNCTION(void, removeAccelerationStructureScratch, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 
-API_INTERFACE void FORGE_CALLCONV addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
-API_INTERFACE void FORGE_CALLCONV removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);
+DECLARE_RENDERER_FUNCTION(void, addRaytracingShaderTable, Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
+DECLARE_RENDERER_FUNCTION(void, removeRaytracingShaderTable, Raytracing* pRaytracing, RaytracingShaderTable* pTable)
 
-API_INTERFACE void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
-API_INTERFACE void FORGE_CALLCONV cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
+DECLARE_RENDERER_FUNCTION(void, cmdBuildAccelerationStructure, Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
+DECLARE_RENDERER_FUNCTION(void, cmdDispatchRays, Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 
 #ifdef METAL
-API_INTERFACE void FORGE_CALLCONV addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
-API_INTERFACE void FORGE_CALLCONV removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser);
-API_INTERFACE void FORGE_CALLCONV clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser);
-API_INTERFACE void FORGE_CALLCONV cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
+DECLARE_RENDERER_FUNCTION(void, addSSVGFDenoiser, Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
+DECLARE_RENDERER_FUNCTION(void, removeSSVGFDenoiser, SSVGFDenoiser* pDenoiser);
+DECLARE_RENDERER_FUNCTION(void, clearSSVGFDenoiserTemporalHistory, SSVGFDenoiser* pDenoiser);
+DECLARE_RENDERER_FUNCTION(void, cmdSSVGFDenoise, Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
 #endif

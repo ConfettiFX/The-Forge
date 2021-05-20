@@ -140,10 +140,10 @@ public:
 	const eastl::unordered_map<EntityId, Entity*>& getEntities() const { return mEntities; }
 
 	template <typename T>
-	T& addComponentToEntity(EntityId id);
+	T* addComponentToEntity(EntityId id);
 
 	template <typename T>
-	Lookup& getByComponent()
+	Lookup* getByComponent()
 	{
 		Lookup* map = nullptr;
 
@@ -151,10 +151,10 @@ public:
 		if (itr != mComponentViseMap.end())
 		{
 			const Lookup* map = &(itr->second);
-			return *map;
+			return map;
 		}
 
-		return *map;
+		return map;
 	}
 
 private:
@@ -181,7 +181,7 @@ private:
 
 
 template <typename T>
-T& EntityManager::addComponentToEntity(EntityId _id)
+T* EntityManager::addComponentToEntity(EntityId _id)
 {
 	MutexLock lock(mComponentMutex);
 	
@@ -211,5 +211,5 @@ T& EntityManager::addComponentToEntity(EntityId _id)
 		ASSERT(0 && "COMPONENT OF GIVEN NAME NOT FOUND");
 	}
 
-	return *(static_cast<T*>(pComponent));
+	return static_cast<T*>(pComponent);
 }

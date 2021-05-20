@@ -47,7 +47,6 @@
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 // The denoiser is only supported on macOS Catalina and higher. If you want to use the denoiser, set
 // USE_DENOISER to 1 in the #if block below.
@@ -58,10 +57,11 @@
 #endif
 
 ICameraController* pCameraController = NULL;
-VirtualJoystickUI gVirtualJoystick;
+VirtualJoystickUI* pVirtualJoystick = NULL;
 
 ProfileToken gGpuProfileToken;
-UIApp gAppUI;
+UIApp* pAppUI = NULL;
+static uint32_t gSelectedApiIndex = 0;
 
 struct ShadersConfigBlock
 {
@@ -229,7 +229,7 @@ struct UniformObjData
     float mRoughness = 0.04f;
     float mMetallic = 0.0f;
     int   pbrMaterials = -1;
-    float pad;
+    int32_t : 32; // padding
 };
 
 struct PropData
@@ -582,12 +582,6 @@ static float haltonSequence(uint index, uint base)
     return r;
 }
 
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
-}
-
 class UnitTest_NativeRaytracing : public IApp
 {
 public:
@@ -633,6 +627,325 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+
+		/************************************************************************/
+		// 01 Init Raytracing
+		/************************************************************************/
+		RendererDesc desc = {};
+		desc.mShaderTarget = shader_target_6_3;
+		desc.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &desc, &pRenderer);
+		initResourceLoaderInterface(pRenderer);
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pQueue);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+		if (!pVirtualJoystick)
+			return false;
+
+		const char* ppGpuProfilerName[1] = { "Graphics" };
+		initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
+		if (mBenchmark) setAggregateFrames(nBenchmarkFrames);
+
+		/************************************************************************/
+		// GUI
+		/************************************************************************/
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
+		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		/************************************************************************/
+		// Blit texture
+		/************************************************************************/
+		ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
+		ShaderLoadDesc displayShader = {};
+		displayShader.mStages[0] = { "DisplayTexture.vert", &denoiserMacro, 1 };
+		displayShader.mStages[1] = { "DisplayTexture.frag", &denoiserMacro, 1 };
+		addShader(pRenderer, &displayShader, &pDisplayTextureShader);
+
+		SamplerDesc samplerDesc = { FILTER_NEAREST,
+									FILTER_NEAREST,
+									MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE,
+									ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		const char*       pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSampler;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pDisplayTextureShader;
+		addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
+
+		bool deviceSupported = true;
+
+#ifdef TARGET_IOS
+		if (![pRenderer->pDevice supportsFeatureSet : MTLFeatureSet_iOS_GPUFamily4_v1])
+			deviceSupported = false;
+#endif
+
+		if (!isRaytracingSupported(pRenderer) || !deviceSupported) //-V560
+		{
+			pRaytracing = NULL;
+			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+
+			LabelWidget notSupportedLabel;
+			addWidgetLua(addGuiWidget(pGuiWindow, "Raytracing is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+		}
+		else
+		{
+			SliderFloatWidget lightDirXSlider;
+			lightDirXSlider.pData = &mLightDirection.x;
+			lightDirXSlider.mMin = -2.0f;
+			lightDirXSlider.mMax = 2.0f;
+			lightDirXSlider.mStep = 0.001f;
+			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction X", &lightDirXSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			SliderFloatWidget lightDirYSlider;
+			lightDirYSlider.pData = &mLightDirection.y;
+			lightDirYSlider.mMin = -2.0f;
+			lightDirYSlider.mMax = 2.0f;
+			lightDirYSlider.mStep = 0.001f;
+			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction Y", &lightDirYSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			SliderFloatWidget lightDirZSlider;
+			lightDirZSlider.pData = &mLightDirection.z;
+			lightDirZSlider.mMin = -2.0f;
+			lightDirZSlider.mMax = 2.0f;
+			lightDirZSlider.mStep = 0.001f;
+			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction Z", &lightDirZSlider, WIDGET_TYPE_SLIDER_FLOAT));
+
+			/************************************************************************/
+			/************************************************************************/
+			if (!LoadSponza())
+				return false;
+
+			/************************************************************************/
+			// Raytracing setup
+			/************************************************************************/
+			initRaytracing(pRenderer, &pRaytracing);
+
+			/************************************************************************/
+			// 02 Creation Acceleration Structure
+			/************************************************************************/
+			AccelerationStructureGeometryDesc geomDesc = {};
+			geomDesc.mFlags = ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE;
+			geomDesc.pVertexArray = SponzaProp.pGeom->pShadow->pAttributes[SEMANTIC_POSITION];
+			geomDesc.mVertexCount = (uint32_t)SponzaProp.pGeom->mVertexCount;
+			geomDesc.pIndices32 = (uint32_t*)SponzaProp.pGeom->pShadow->pIndices;
+			geomDesc.mIndexCount = (uint32_t)SponzaProp.pGeom->mIndexCount;
+			geomDesc.mIndexType = INDEX_TYPE_UINT32;
+
+			AccelerationStructureDescBottom bottomASDesc = {};
+			bottomASDesc.mDescCount = 1;
+			bottomASDesc.pGeometryDescs = &geomDesc;
+			bottomASDesc.mFlags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+
+			AccelerationStructureDescTop topAS = {};
+			topAS.mBottomASDesc = &bottomASDesc;
+
+			// The transformation matrices for the instances
+			mat4 transformation = mat4::identity(); // Identity
+
+			//Construct descriptions for Acceleration Structures Instances
+			AccelerationStructureInstanceDesc instanceDesc = {};
+
+			instanceDesc.mFlags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_NONE;
+			instanceDesc.mInstanceContributionToHitGroupIndex = 0;
+			instanceDesc.mInstanceID = 0;
+			instanceDesc.mInstanceMask = 1;
+			memcpy(instanceDesc.mTransform, &transformation, sizeof(float[12]));
+			instanceDesc.mAccelerationStructureIndex = 0;
+
+			topAS.mInstancesDescCount = 1;
+			topAS.pInstanceDescs = &instanceDesc;
+			addAccelerationStructure(pRaytracing, &topAS, &pSponzaAS);
+			waitForAllResourceLoads();
+
+			// Build Acceleration Structure
+			RaytracingBuildASDesc buildASDesc = {};
+			unsigned bottomASIndices[] = { 0 };
+			buildASDesc.ppAccelerationStructures = &pSponzaAS;
+			buildASDesc.pBottomASIndices = &bottomASIndices[0];
+			buildASDesc.mBottomASIndicesCount = 1;
+			buildASDesc.mCount = 1;
+			beginCmd(pCmds[0]);
+			cmdBuildAccelerationStructure(pCmds[0], pRaytracing, &buildASDesc);
+			endCmd(pCmds[0]);
+
+			QueueSubmitDesc submitDesc = {};
+			submitDesc.mCmdCount = 1;
+			submitDesc.ppCmds = pCmds;
+			submitDesc.pSignalFence = pRenderCompleteFences[0];
+			submitDesc.mSubmitDone = true;
+			queueSubmit(pQueue, &submitDesc);
+			waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
+
+			/************************************************************************/
+			// 03 - Create Raytracing Shaders
+			/************************************************************************/
+			{
+
+				ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
+				ShaderLoadDesc desc = {};
+				desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, "rayGen" };
+				desc.mTarget = shader_target_6_3;
+				addShader(pRenderer, &desc, &pShaderRayGen);
+
+				desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, "chs" };
+				addShader(pRenderer, &desc, &pShaderClosestHit);
+
+				desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, "miss" };
+				addShader(pRenderer, &desc, &pShaderMiss);
+
+				desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, "missShadow" };
+				addShader(pRenderer, &desc, &pShaderMissShadow);
+			}
+
+
+			samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
+										ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
+			addSampler(pRenderer, &samplerDesc, &pLinearSampler);
+
+			pStaticSamplers[0] = "linearSampler";
+
+			Shader* pShaders[] = { pShaderRayGen, pShaderClosestHit, pShaderMiss, pShaderMissShadow };
+			RootSignatureDesc signatureDesc = {};
+			signatureDesc.ppShaders = pShaders;
+			signatureDesc.mShaderCount = 4;
+			signatureDesc.ppStaticSamplerNames = pStaticSamplers;
+			signatureDesc.ppStaticSamplers = &pLinearSampler;
+			signatureDesc.mStaticSamplerCount = 1;
+			addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
+			/************************************************************************/
+			// 03 - Create Raytracing Pipelines
+			/************************************************************************/
+			RaytracingHitGroup hitGroups[2] = {};
+			hitGroups[0].pClosestHitShader = pShaderClosestHit;
+			hitGroups[0].pHitGroupName = "hitGroup";
+
+			hitGroups[1].pHitGroupName = "missHitGroup";
+
+			Shader* pMissShaders[] = { pShaderMiss, pShaderMissShadow };
+			PipelineDesc rtPipelineDesc = {};
+			rtPipelineDesc.mType = PIPELINE_TYPE_RAYTRACING;
+			RaytracingPipelineDesc& pipelineDesc = rtPipelineDesc.mRaytracingDesc;
+			pipelineDesc.mAttributeSize = sizeof(float2);
+			pipelineDesc.mMaxTraceRecursionDepth = 5;
+#ifdef METAL
+			pipelineDesc.mPayloadSize = sizeof(float4) * (5 + USE_DENOISER); // The denoiser additionally stores the albedo.
+#else
+			pipelineDesc.mPayloadSize = sizeof(float4);
+#endif
+			pipelineDesc.pGlobalRootSignature = pRootSignature;
+			pipelineDesc.pRayGenShader = pShaderRayGen;
+			pipelineDesc.pRayGenRootSignature = nullptr;// pRayGenSignature; //nullptr to bind empty LRS
+			pipelineDesc.ppMissShaders = pMissShaders;
+			pipelineDesc.mMissShaderCount = 2;
+			pipelineDesc.pHitGroups = hitGroups;
+			pipelineDesc.mHitGroupCount = 2;
+			pipelineDesc.pRaytracing = pRaytracing;
+			pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
+			addPipeline(pRenderer, &rtPipelineDesc, &pPipeline);
+			/************************************************************************/
+			// 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
+			/************************************************************************/
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			ubDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
+			ubDesc.mDesc.mSize = sizeof(ShadersConfigBlock);
+			for (uint32_t i = 0; i < gImageCount; i++)
+			{
+				ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing);
+			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+
+			const char* hitGroupNames[2] = { "hitGroup", "missHitGroup" };
+			const char* missShaderNames[2] = { "miss", "missShadow" };
+
+			RaytracingShaderTableDesc shaderTableDesc = {};
+			shaderTableDesc.pPipeline = pPipeline;
+			shaderTableDesc.pRayGenShader = "rayGen";
+			shaderTableDesc.mMissShaderCount = 2;
+			shaderTableDesc.pMissShaders = missShaderNames;
+			shaderTableDesc.mHitGroupCount = 2;
+			shaderTableDesc.pHitGroups = hitGroupNames;
+			addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
+
+			waitForAllResourceLoads();
+
+			DescriptorData params[1] = {};
+			params[0].pName = "gSettings";
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				params[0].ppBuffers = &pRayGenConfigBuffer[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+			}
+		}
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -641,7 +954,7 @@ public:
 		vec3                   camPos{ 100.0f, 300.0f, 0.0f };
 		vec3                   lookAt{ 0, 340, 0 };
 
-		pCameraController = createFpsCameraController(camPos, lookAt);
+		pCameraController = initFpsCameraController(camPos, lookAt);
 
 		pCameraController->setMotionParameters(cmp);
 		
@@ -656,7 +969,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -665,9 +978,9 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
 			{
-				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -678,6 +991,8 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		mFrameIdx = 0; 
 
 		return true;
 	}
@@ -692,287 +1007,57 @@ public:
             dumpBenchmarkData(pRenderer, &mSettings, mOutput);
         }
 
-		destroyCameraController(pCameraController);
+		exitCameraController(pCameraController);
+
+		exitProfiler();
+		exitAppUI(pAppUI);
+		exitVirtualJoystickUI(pVirtualJoystick);
+		UnloadSponza();
+
+		if (pRaytracing != NULL)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+
+			removeRaytracingShaderTable(pRaytracing, pShaderTable);
+			removePipeline(pRenderer, pPipeline);
+			removeSampler(pRenderer, pLinearSampler);
+			removeRootSignature(pRenderer, pRootSignature);
+			for (uint32_t i = 0; i < gImageCount; i++)
+			{
+				removeResource(pRayGenConfigBuffer[i]);
+			}
+			removeShader(pRenderer, pShaderRayGen);
+			removeShader(pRenderer, pShaderClosestHit);
+			removeShader(pRenderer, pShaderMiss);
+			removeShader(pRenderer, pShaderMissShadow);
+			removeAccelerationStructure(pRaytracing, pSponzaAS);
+			removeRaytracing(pRenderer, pRaytracing);
+		}
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+
+		removeSampler(pRenderer, pSampler);
+		removeShader(pRenderer, pDisplayTextureShader);
+		removeRootSignature(pRenderer, pDisplayTextureSignature);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+		removeQueue(pRenderer, pQueue);
+		exitResourceLoaderInterface(pRenderer);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-		/************************************************************************/
-		// 01 Init Raytracing
-		/************************************************************************/
-			RendererDesc desc = {};
-#ifndef DIRECT3D11
-			desc.mShaderTarget = shader_target_6_3;
-#endif
-			initRenderer(GetName(), &desc, &pRenderer);
-			initResourceLoaderInterface(pRenderer);
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pQueue);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			const char* ppGpuProfilerName[1] = { "Graphics" };
-			initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
-			if (mBenchmark) setAggregateFrames(nBenchmarkFrames);
-
-			/************************************************************************/
-			// GUI
-			/************************************************************************/
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
-			pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-			/************************************************************************/
-			// Blit texture
-			/************************************************************************/
-			ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
-			ShaderLoadDesc displayShader = {};
-			displayShader.mStages[0] = { "DisplayTexture.vert", &denoiserMacro, 1 };
-			displayShader.mStages[1] = { "DisplayTexture.frag", &denoiserMacro, 1 };
-			addShader(pRenderer, &displayShader, &pDisplayTextureShader);
-
-			SamplerDesc samplerDesc = { FILTER_NEAREST,
-										FILTER_NEAREST,
-										MIPMAP_MODE_NEAREST,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE,
-										ADDRESS_MODE_CLAMP_TO_EDGE };
-			addSampler(pRenderer, &samplerDesc, &pSampler);
-
-			const char*       pStaticSamplers[] = { "uSampler0" };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSampler;
-			rootDesc.mShaderCount = 1;
-			rootDesc.ppShaders = &pDisplayTextureShader;
-			addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
-
-			bool deviceSupported = true;
-
-#ifdef TARGET_IOS
-			if (![pRenderer->pDevice supportsFeatureSet : MTLFeatureSet_iOS_GPUFamily4_v1])
-				deviceSupported = false;
-#endif
-
-			if (!isRaytracingSupported(pRenderer) || !deviceSupported)
-			{
-				pRaytracing = NULL;
-				DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-				pGuiWindow->AddWidget(LabelWidget("Raytracing is not supported on this GPU"));
-			}
-			else 
-			{
-				pGuiWindow->AddWidget(SliderFloatWidget("Light Direction X", &mLightDirection.x, -2.0f, 2.0f, 0.001f));
-				pGuiWindow->AddWidget(SliderFloatWidget("Light Direction Y", &mLightDirection.y, -2.0f, 2.0f, 0.001f));
-				pGuiWindow->AddWidget(SliderFloatWidget("Light Direction Z", &mLightDirection.z, -2.0f, 2.0f, 0.001f));
-				// Reset graphics with a button.
-				ButtonWidget testGPUReset("ResetGraphicsDevice");
-				testGPUReset.pOnEdited = testGraphicsReset;
-				pGuiWindow->AddWidget(testGPUReset);
-				/************************************************************************/
-				/************************************************************************/
-				if (!LoadSponza())
-					return false;
-
-				/************************************************************************/
-				// Raytracing setup
-				/************************************************************************/
-				initRaytracing(pRenderer, &pRaytracing);
-
-				/************************************************************************/
-				// 02 Creation Acceleration Structure
-				/************************************************************************/
-				AccelerationStructureGeometryDesc geomDesc = {};
-				geomDesc.mFlags = ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE;
-				geomDesc.pVertexArray = SponzaProp.pGeom->pShadow->pAttributes[SEMANTIC_POSITION];
-				geomDesc.mVertexCount = (uint32_t)SponzaProp.pGeom->mVertexCount;
-				geomDesc.pIndices32 = (uint32_t*)SponzaProp.pGeom->pShadow->pIndices;
-				geomDesc.mIndexCount = (uint32_t)SponzaProp.pGeom->mIndexCount;
-				geomDesc.mIndexType = INDEX_TYPE_UINT32;
-
-				AccelerationStructureDescBottom bottomASDesc = {};
-				bottomASDesc.mDescCount = 1;
-				bottomASDesc.pGeometryDescs = &geomDesc;
-				bottomASDesc.mFlags = ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-
-				AccelerationStructureDescTop topAS = {};
-				topAS.mBottomASDesc = &bottomASDesc;
-
-				// The transformation matrices for the instances
-				mat4 transformation = mat4::identity(); // Identity
-
-				//Construct descriptions for Acceleration Structures Instances
-				AccelerationStructureInstanceDesc instanceDesc = {};
-
-				instanceDesc.mFlags = ACCELERATION_STRUCTURE_INSTANCE_FLAG_NONE;
-				instanceDesc.mInstanceContributionToHitGroupIndex = 0;
-				instanceDesc.mInstanceID = 0;
-				instanceDesc.mInstanceMask = 1;
-				memcpy(instanceDesc.mTransform, &transformation, sizeof(float[12]));
-				instanceDesc.mAccelerationStructureIndex = 0;
-
-				topAS.mInstancesDescCount = 1;
-				topAS.pInstanceDescs = &instanceDesc;
-				addAccelerationStructure(pRaytracing, &topAS, &pSponzaAS);
-				waitForAllResourceLoads();
-
-				// Build Acceleration Structure
-				RaytracingBuildASDesc buildASDesc = {};
-				unsigned bottomASIndices[] = { 0 };
-				buildASDesc.ppAccelerationStructures = &pSponzaAS;
-				buildASDesc.pBottomASIndices = &bottomASIndices[0];
-				buildASDesc.mBottomASIndicesCount = 1;
-				buildASDesc.mCount = 1;
-				beginCmd(pCmds[0]);
-				cmdBuildAccelerationStructure(pCmds[0], pRaytracing, &buildASDesc);
-				endCmd(pCmds[0]);
-
-				QueueSubmitDesc submitDesc = {};
-				submitDesc.mCmdCount = 1;
-				submitDesc.ppCmds = pCmds;
-				submitDesc.pSignalFence = pRenderCompleteFences[0];
-				submitDesc.mSubmitDone = true;
-				queueSubmit(pQueue, &submitDesc);
-				waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
-
-				/************************************************************************/
-				// 03 - Create Raytracing Shaders
-				/************************************************************************/
-				{
-
-					ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
-					ShaderLoadDesc desc = {};
-					desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, "rayGen" };
-#ifndef DIRECT3D11
-					desc.mTarget = shader_target_6_3;
-#endif
-					addShader(pRenderer, &desc, &pShaderRayGen);
-
-					desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, "chs" };
-					addShader(pRenderer, &desc, &pShaderClosestHit);
-
-					desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, "miss" };
-					addShader(pRenderer, &desc, &pShaderMiss);
-
-					desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, "missShadow" };
-					addShader(pRenderer, &desc, &pShaderMissShadow);
-				}
-
-
-				samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
-											ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
-				addSampler(pRenderer, &samplerDesc, &pLinearSampler);
-
-				pStaticSamplers[0] = "linearSampler";
-
-				Shader* pShaders[] = { pShaderRayGen, pShaderClosestHit, pShaderMiss, pShaderMissShadow };
-				RootSignatureDesc signatureDesc = {};
-				signatureDesc.ppShaders = pShaders;
-				signatureDesc.mShaderCount = 4;
-				signatureDesc.ppStaticSamplerNames = pStaticSamplers;
-				signatureDesc.ppStaticSamplers = &pLinearSampler;
-				signatureDesc.mStaticSamplerCount = 1;
-				addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
-				/************************************************************************/
-				// 03 - Create Raytracing Pipelines
-				/************************************************************************/
-				RaytracingHitGroup hitGroups[2] = {};
-				hitGroups[0].pClosestHitShader = pShaderClosestHit;
-				hitGroups[0].pHitGroupName = "hitGroup";
-
-				hitGroups[1].pHitGroupName = "missHitGroup";
-
-				Shader* pMissShaders[] = { pShaderMiss, pShaderMissShadow };
-				PipelineDesc rtPipelineDesc = {};
-				rtPipelineDesc.mType = PIPELINE_TYPE_RAYTRACING;
-				RaytracingPipelineDesc& pipelineDesc = rtPipelineDesc.mRaytracingDesc;
-				pipelineDesc.mAttributeSize = sizeof(float2);
-				pipelineDesc.mMaxTraceRecursionDepth = 5;
-#ifdef METAL
-				pipelineDesc.mPayloadSize = sizeof(float4) * (5 + USE_DENOISER); // The denoiser additionally stores the albedo.
-#else
-				pipelineDesc.mPayloadSize = sizeof(float4);
-#endif
-				pipelineDesc.pGlobalRootSignature = pRootSignature;
-				pipelineDesc.pRayGenShader = pShaderRayGen;
-				pipelineDesc.pRayGenRootSignature = nullptr;// pRayGenSignature; //nullptr to bind empty LRS
-				pipelineDesc.ppMissShaders = pMissShaders;
-				pipelineDesc.mMissShaderCount = 2;
-				pipelineDesc.pHitGroups = hitGroups;
-				pipelineDesc.mHitGroupCount = 2;
-				pipelineDesc.pRaytracing = pRaytracing;
-				pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
-				addPipeline(pRenderer, &rtPipelineDesc, &pPipeline);
-				/************************************************************************/
-				// 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
-				/************************************************************************/
-				BufferLoadDesc ubDesc = {};
-				ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-				ubDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
-				ubDesc.mDesc.mSize = sizeof(ShadersConfigBlock);
-				for (uint32_t i = 0; i < gImageCount; i++)
-				{
-					ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
-					addResource(&ubDesc, NULL);
-				}
-
-				DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-				setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing);
-				setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
-
-				const char* hitGroupNames[2] = { "hitGroup", "missHitGroup" };
-				const char* missShaderNames[2] = { "miss", "missShadow" };
-
-				RaytracingShaderTableDesc shaderTableDesc = {};
-				shaderTableDesc.pPipeline = pPipeline;
-				shaderTableDesc.pRayGenShader = "rayGen";
-				shaderTableDesc.mMissShaderCount = 2;
-				shaderTableDesc.pMissShaders = missShaderNames;
-				shaderTableDesc.mHitGroupCount = 2;
-				shaderTableDesc.pHitGroups = hitGroupNames;
-				addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
-
-				waitForAllResourceLoads();
-
-				DescriptorData params[1] = {};
-				params[0].pName = "gSettings";
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					params[0].ppBuffers = &pRayGenConfigBuffer[i];
-					updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-				}
-			}
-		}
-
 		/************************************************************************/
 		// 04 - Create Output Resources
 		/************************************************************************/
@@ -1136,16 +1221,14 @@ public:
         addPipeline(pRenderer, &graphicsPipelineDesc, &pDisplayTexturePipeline);
 		/************************************************************************/
 		/************************************************************************/
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-			return false;
 		
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 		
@@ -1203,8 +1286,8 @@ public:
         waitQueueIdle(pQueue);
 
 		exitProfilerUI();
-		gAppUI.Unload();
-		gVirtualJoystick.Unload();
+		removeAppGUIDriver(pAppUI);
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 		
 		removePipeline(pRenderer, pDisplayTexturePipeline);
 		removeSwapChain(pRenderer, pSwapChain);
@@ -1229,55 +1312,6 @@ public:
 		removeShader(pRenderer, pDenoiserInputsShader);
 		removeSSVGFDenoiser(pDenoiser);
 #endif
-
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			exitProfiler();
-			gAppUI.Exit();
-			gVirtualJoystick.Exit();
-			UnloadSponza();
-
-			if (pRaytracing != NULL)
-			{
-				removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
-				removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-
-				removeRaytracingShaderTable(pRaytracing, pShaderTable);
-				removePipeline(pRenderer, pPipeline);
-				removeSampler(pRenderer, pLinearSampler);
-				removeRootSignature(pRenderer, pRootSignature);
-				for (uint32_t i = 0; i < gImageCount; i++)
-				{
-					removeResource(pRayGenConfigBuffer[i]);
-				}
-				removeShader(pRenderer, pShaderRayGen);
-				removeShader(pRenderer, pShaderClosestHit);
-				removeShader(pRenderer, pShaderMiss);
-				removeShader(pRenderer, pShaderMissShadow);
-				removeAccelerationStructure(pRaytracing, pSponzaAS);
-				removeRaytracing(pRenderer, pRaytracing);
-			}
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-
-			removeSampler(pRenderer, pSampler);
-			removeShader(pRenderer, pDisplayTextureShader);
-			removeRootSignature(pRenderer, pDisplayTextureSignature);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-			removeQueue(pRenderer, pQueue);
-			exitResourceLoaderInterface(pRenderer);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -1293,7 +1327,7 @@ public:
 
 		pCameraController->update(deltaTime);
 
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 
 		++nFrameCount;
 	}
@@ -1324,7 +1358,7 @@ public:
 			mat4 projectView = projMat * viewMat;
 			
 			bool cameraMoved = memcmp(&projectView, &mPathTracingData.mHistoryProjView, sizeof(mat4)) != 0;
-			bool lightMoved = memcmp(&mLightDirection, &mPathTracingData.mHistoryLightDirection, sizeof(float3)) != 0;
+			bool lightMoved = memcmp(&mLightDirection, &mPathTracingData.mHistoryLightDirection, sizeof(float3)) != 0; //-V1014
 			
 #if USE_DENOISER
 			if (lightMoved)
@@ -1514,7 +1548,8 @@ public:
 
 		cmdBeginDebugMarker(pCmd, 0, 1, 0, "Draw UI");
 		
-		gVirtualJoystick.Draw(pCmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		drawVirtualJoystickUI(pVirtualJoystick, pCmd, &color);
 		
         TextDrawDesc frameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
         float2 txtSize = cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &frameTimeDraw);
@@ -1525,8 +1560,8 @@ public:
 		
 		cmdDrawProfilerUI();
 		
-		gAppUI.Gui(pGuiWindow);
-		gAppUI.Draw(pCmd);
+		appUIGui(pAppUI, pGuiWindow);
+		drawAppUI(pAppUI, pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -1552,21 +1587,8 @@ public:
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphores[mFrameIdx];
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pQueue, &presentDesc);
+		queuePresent(pQueue, &presentDesc);
 		flipProfiler();
-		
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		mFrameIdx = (mFrameIdx + 1) % gImageCount;
 		/************************************************************************/
@@ -1590,48 +1612,48 @@ private:
 	char                    mOutput[1024] = "\0";
 	
 	Renderer*               pRenderer = NULL;
-	Raytracing*	            pRaytracing;
-	Queue*                  pQueue;
-	CmdPool*                pCmdPools[gImageCount];
-	Cmd*                    pCmds[gImageCount];
-	Fence*                  pRenderCompleteFences[gImageCount];
-	Buffer*                 pRayGenConfigBuffer[gImageCount];
-	AccelerationStructure*  pSponzaAS;
-	Shader*	                pShaderRayGen;
-	Shader*	                pShaderClosestHit;
-	Shader*	                pShaderMiss;
-	Shader*	                pShaderMissShadow;
-    Shader*                 pDisplayTextureShader;
-    Sampler*                pSampler;
-	Sampler*                pLinearSampler;
-	RootSignature*          pRootSignature;
-    RootSignature*          pDisplayTextureSignature;
-	DescriptorSet*          pDescriptorSetRaytracing;
-	DescriptorSet*          pDescriptorSetUniforms;
-	DescriptorSet*          pDescriptorSetTexture;
-	Pipeline*               pPipeline;
-    Pipeline*               pDisplayTexturePipeline;
-	RaytracingShaderTable*  pShaderTable;
-	SwapChain*              pSwapChain;
-	Texture*                pComputeOutput;
-	Semaphore*              pRenderCompleteSemaphores[gImageCount];
-	Semaphore*              pImageAcquiredSemaphore;
+	Raytracing*	            pRaytracing = NULL;
+	Queue*                  pQueue = NULL;
+	CmdPool*                pCmdPools[gImageCount] = {};
+	Cmd*                    pCmds[gImageCount] = {};
+	Fence*                  pRenderCompleteFences[gImageCount] = {};
+	Buffer*                 pRayGenConfigBuffer[gImageCount] = {};
+	AccelerationStructure*  pSponzaAS = NULL;
+	Shader*	                pShaderRayGen = NULL;
+	Shader*	                pShaderClosestHit = NULL;
+	Shader*	                pShaderMiss = NULL;
+	Shader*	                pShaderMissShadow = NULL;
+    Shader*                 pDisplayTextureShader = NULL;
+    Sampler*                pSampler = NULL;
+	Sampler*                pLinearSampler = NULL;
+	RootSignature*          pRootSignature = NULL;
+    RootSignature*          pDisplayTextureSignature = NULL;
+	DescriptorSet*          pDescriptorSetRaytracing = NULL;
+	DescriptorSet*          pDescriptorSetUniforms = NULL;
+	DescriptorSet*          pDescriptorSetTexture = NULL;
+	Pipeline*               pPipeline = NULL;
+    Pipeline*               pDisplayTexturePipeline = NULL;
+	RaytracingShaderTable*  pShaderTable = NULL;
+	SwapChain*              pSwapChain = NULL;
+	Texture*                pComputeOutput = NULL;
+	Semaphore*              pRenderCompleteSemaphores[gImageCount] = {};
+	Semaphore*              pImageAcquiredSemaphore = NULL;
 	uint32_t                mFrameIdx = 0;
 	PathTracingData         mPathTracingData = {};
-	GuiComponent*           pGuiWindow;
+	GuiComponent*           pGuiWindow = NULL;
 	float3                  mLightDirection = float3(0.2f, 0.8f, 0.1f);
 
 #if USE_DENOISER
-	Buffer*                 pDenoiserInputsUniformBuffer[gImageCount];
-	Texture*                pAlbedoTexture;
-	DescriptorSet*          pDenoiserInputsDescriptorSet;
-	RenderTarget*           pDepthNormalRenderTarget[2];
-	RenderTarget*           pMotionVectorRenderTarget;
-	RenderTarget*           pDepthRenderTarget;
-	RootSignature*          pDenoiserInputsRootSignature;
-	Shader*                 pDenoiserInputsShader;
-	Pipeline*               pDenoiserInputsPipeline;
-	SSVGFDenoiser*          pDenoiser;
+	Buffer*                 pDenoiserInputsUniformBuffer[gImageCount] = {};
+	Texture*                pAlbedoTexture = NULL;
+	DescriptorSet*          pDenoiserInputsDescriptorSet = NULL;
+	RenderTarget*           pDepthNormalRenderTarget[2] = {};
+	RenderTarget*           pMotionVectorRenderTarget = NULL;
+	RenderTarget*           pDepthRenderTarget = NULL;
+	RootSignature*          pDenoiserInputsRootSignature = NULL;
+	Shader*                 pDenoiserInputsShader = NULL;
+	Pipeline*               pDenoiserInputsPipeline = NULL;
+	SSVGFDenoiser*          pDenoiser = NULL;
 #endif
 };
 

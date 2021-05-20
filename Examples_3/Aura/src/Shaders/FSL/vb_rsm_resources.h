@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ *
+ * This is a part of Aura.
+ *
+ * This file(code) is licensed under a
+ * Creative Commons Attribution-NonCommercial 4.0 International License
+ *
+ *   (https://creativecommons.org/licenses/by-nc/4.0/legalcode)
+ *
+ * Based on a work at https://github.com/ConfettiFX/The-Forge.
+ * You may not use the material for commercial purposes.
+*/
+
+#ifndef VB_RSM_RESOURCES_H
+#define VB_RSM_RESOURCES_H
+
+RES(SamplerState,  textureFilter,                     UPDATE_FREQ_NONE,      s0, binding = 0);
+RES(SamplerState,  rsmFilter,                         UPDATE_FREQ_NONE,      s1, binding = 1);
+RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE], UPDATE_FREQ_NONE,      t1, binding = 2);
+RES(Buffer(uint),  indirectMaterialBuffer,            UPDATE_FREQ_PER_FRAME, t0, binding = 1);
+
+#if defined(METAL)
+
+RES(Buffer(uint), mtlDrawID, UPDATE_FREQ_PER_DRAW, t0, binding = 0);
+
+CBUFFER(materialRootConstant, UPDATE_FREQ_PER_FRAME, b1, binding = 2)
+{
+	DATA(uint, viewID,       None);
+	DATA(uint, useColorMaps, None);
+};
+
+#define getDrawID() Get(mtlDrawID)[0]
+
+#else
+
+PUSH_CONSTANT(materialRootConstant, b1)
+{
+	DATA(uint, viewID,       None);
+	DATA(bool, useColorMaps, None);
+};
+
+#if defined(DIRECT3D12)
+
+PUSH_CONSTANT(indirectRootConstant, b2)
+{
+	DATA(uint, indirectDrawId, None);
+};
+
+#define getDrawID() indirectDrawId
+
+#elif defined(VULKAN)
+
+#extension GL_ARB_shader_draw_parameters : enable
+
+#ifdef PS_DRAW_ID
+#define getDrawID() In.drawID
+#else
+#define getDrawID() gl_DrawIDARB
+#endif // PS_DRAW_ID
+
+#elif defined(ORBIS) || defined(PROSPERO)
+
+#ifdef PS_DRAW_ID
+#define getDrawID() In.drawID
+#else
+#define getDrawID() InstanceID
+#endif // PS_DRAW_ID
+
+#endif
+
+#endif // METAL
+
+DECLARE_RESOURCES()
+
+#endif // VB_RSM_RESOURCES_H

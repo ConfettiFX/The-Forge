@@ -117,14 +117,17 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	ASSERT(pDesc);
 	pSystemFileIO->GetResourceMount = GetResourceMount;
 
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+		gResourceMounts[i] = "";
+
 	pNativeActivity = (ANativeActivity*)pDesc->pPlatformData;
 	ASSERT(pNativeActivity);
 
 	pAssetManager = pNativeActivity->assetManager;
 	gResourceMounts[RM_CONTENT] = "\0";
 	gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
-	gResourceMounts[RM_SAVE_0] = pNativeActivity->internalDataPath;
-
+	gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
+	
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)
 	{
@@ -146,7 +149,6 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 	const char* resourcePath = fsGetResourceDirectory(resourceDir);
 	char filePath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(resourcePath, fileName, filePath);
-	const char* modeStr = fsFileModeToString(mode);
 
 	if (fsIsBundledResourceDir(resourceDir))
 	{

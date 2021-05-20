@@ -11,22 +11,25 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{97028d05-c873-4dc4-9202-8e958de8afd4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{8a0e9075-7553-4726-b81e-b305689e5e4a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\07_Tessellation\Shaders\Vulkan\grass.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\07_Tessellation\Shaders\Vulkan\grass.tesc">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\07_Tessellation\Shaders\Vulkan\grass.tese">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\07_Tessellation\Shaders\Vulkan\compute.comp">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\07_Tessellation\Shaders\FSL\compute.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\07_Tessellation\Shaders\FSL\grass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\07_Tessellation\Shaders\FSL\grass.tesc.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\07_Tessellation\Shaders\FSL\grass.tese.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\07_Tessellation\Shaders\FSL\grass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

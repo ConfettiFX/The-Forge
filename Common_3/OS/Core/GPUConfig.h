@@ -30,7 +30,7 @@
 
 #include <regex>
 
-static void fsReadFromStreamLine(FileStream* stream, char* pOutLine)
+inline void fsReadFromStreamLine(FileStream* stream, char* pOutLine)
 {
 	uint32_t charIndex = 0;
 	while (!fsStreamAtEnd(stream))
@@ -91,10 +91,11 @@ inline const char* presetLevelToString(GPUPresetLevel preset)
 	}
 }
 
-bool parseConfigLine(
+inline bool parseConfigLine(
 	const char* pLine,
 	const char* pInVendorId,
 	const char* pInModelId,
+	const char* pInGpuName,
 	char pOutVendorId[MAX_GPU_VENDOR_STRING_LENGTH],
 	char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
 	char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH],
@@ -111,9 +112,11 @@ bool parseConfigLine(
 		pInVendorId ? pInVendorId : "([0xA-Fa-f0-9]+)",
 		pInModelId ? pInModelId : "([0xA-Fa-f0-9]+)");
 
-	const uint32_t presetIndex   = pInVendorId ? 1 : 3;
-	const uint32_t gpuNameIndex  = pInVendorId ? 2 : 4;
-	const uint32_t revisionIndex = pInVendorId ? 3 : 5;
+	const uint32_t offsetIndex = (pInVendorId ? 1 : 0) + (pInModelId ? 1 : 0);
+	const uint32_t modelIndex = pInVendorId ? 1 : 2;
+	const uint32_t presetIndex   = 3 - offsetIndex;
+	const uint32_t gpuNameIndex  = 4 - offsetIndex;
+	const uint32_t revisionIndex = 5 - offsetIndex;
 
 	std::regex expr(buffer, std::regex::optimize);
 	std::cmatch match;
@@ -122,7 +125,11 @@ bool parseConfigLine(
 		if (!pInVendorId)
 		{
 			strncpy(pOutVendorId, match[1].first, match[1].second - match[1].first);
-			strncpy(pOutModelId, match[2].first, match[2].second - match[2].first);
+		}
+
+		if (!pInModelId)
+		{
+			strncpy(pOutModelId, match[modelIndex].first, match[modelIndex].second - match[modelIndex].first);
 		}
 
 		char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -131,6 +138,10 @@ bool parseConfigLine(
 		strncpy(pOutRevisionId,  match[revisionIndex].first, match[revisionIndex].second - match[revisionIndex].first);
 
 		*pOutPresetLevel = stringToPresetLevel(presetLevel);
+		
+		if (pInGpuName)
+			return strcmp(pInGpuName, pOutModelName) == 0;
+
 		return true;
 	}
 
@@ -138,7 +149,7 @@ bool parseConfigLine(
 	return false;
 }
 
-GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId)
+static GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId)
 {
 	char vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 	char deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -147,18 +158,18 @@ GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, co
 	char revisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 
 	//check if current vendor line is one of the selected gpu's
-	if (!parseConfigLine(line, inVendorId, inModelId, vendorId, deviceId, revisionId, gpuName, &presetLevel))
+	if (!parseConfigLine(line, inVendorId, inModelId, NULL, vendorId, deviceId, revisionId, gpuName, &presetLevel))
 		return GPU_PRESET_NONE;
 
 	//if we have a revision Id then we want to match it as well
-	if (stricmp(inRevId, "0x00") && strlen(revisionId) && stricmp(revisionId, "0x00") && stricmp(inRevId, revisionId))
+	if (stricmp(inRevId, "0x00") != 0 && strlen(revisionId) && stricmp(revisionId, "0x00") != 0 && stricmp(inRevId, revisionId) != 0)
 		return GPU_PRESET_NONE;
 
 	return presetLevel;
 }
 
 //TODO: Add name matching as well.
-void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+static void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	char vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
 	char deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -175,6 +186,7 @@ void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCoun
 		if (!parseConfigLine(line,
 			currentSettings->mGpuVendorPreset.mVendorId,
 			currentSettings->mGpuVendorPreset.mModelId,
+			NULL,
 			vendorId, deviceId, revisionId, gpuName, &presetLevel))
 			return;
 
@@ -192,11 +204,11 @@ void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCoun
 	}
 }
 
-bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
+static bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
 {
 	if (!parseConfigLine(
 		line,
-		NULL, NULL,
+		NULL, NULL, NULL,
 		pActiveGpu.mVendorId,
 		pActiveGpu.mModelId,
 		pActiveGpu.mRevisionId,
@@ -212,7 +224,7 @@ bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
 }
 
 //Reads the gpu config and sets the preset level of all available gpu's
-void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
@@ -233,7 +245,7 @@ void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpu
 }
 
 //Reads the gpu config and sets the preset level of all available gpu's
-GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
 	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
@@ -241,7 +253,7 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 }
 
 //Reads the gpu config and sets the preset level of all available gpu's
-GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, const char* revId)
+static GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, const char* revId)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
@@ -269,7 +281,7 @@ GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, cons
 	return foundLevel;
 }
 
-bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
+static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ, &fh))
@@ -291,7 +303,7 @@ bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 	return successFinal;
 }
 
-void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gpuCount)
+static void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gpuCount)
 {
 	GPUVendorPreset activeTestingPreset;
 	bool            activeTestingGpu = getActiveGpuConfig(activeTestingPreset);
@@ -312,4 +324,29 @@ void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gp
 			}
 		}
 	}
+}
+
+static bool isGPUWhitelisted(const char* vendorId, const char* modelId, const char* gpuName)
+{
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpuWhitelist.cfg", FM_READ, &fh))
+	{
+		LOGF(LogLevel::eINFO, "gpuWhitelist.cfg could not be found, Using default API.");
+		return false;
+	}
+
+	GPUVendorPreset gpuPreset = {};
+
+	bool successFinal = false;
+	char gpuCfgString[1024] = {};
+	while (!fsStreamAtEnd(&fh) && !successFinal)
+	{
+		fsReadFromStreamLine(&fh, gpuCfgString);
+		successFinal = parseConfigLine(gpuCfgString, vendorId, modelId, gpuName,
+			gpuPreset.mVendorId, gpuPreset.mModelId, gpuPreset.mRevisionId, gpuPreset.mGpuName, &gpuPreset.mPresetLevel);
+
+	}
+
+	fsCloseStream(&fh);
+	return successFinal;
 }

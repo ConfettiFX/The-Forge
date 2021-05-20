@@ -1,20 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugDx|x64">
-      <Configuration>DebugDx</Configuration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|x64">
-      <Configuration>DebugVk</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseDx|x64">
-      <Configuration>ReleaseDx</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|x64">
-      <Configuration>ReleaseVk</Configuration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -22,72 +14,34 @@
     <ClCompile Include="..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\BRDFIntegration.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\computeIrradianceMap.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\computeSpecularMap.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\copyDepth.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\fillGbuffers.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\fillGbuffers.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\generateMips.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\panoToCube.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\PPR_Holepatching.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\PPR_Holepatching.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\PPR_Projection.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\PPR_Reflection.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\PPR_Reflection.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\renderSceneBRDF.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\renderSceneBRDF.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\skybox.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\skybox.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_ClassifyTiles.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_Intersect.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_PrepareIndirectArgs.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_ResolveEaw.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_ResolveEawStride.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_ResolveSpatial.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_ResolveTemporal.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\BRDFIntegration.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\computeIrradianceMap.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\computeSpecularMap.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\copyDepth.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\fillGbuffers.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\fillGbuffers.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\generateMips.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\panoToCube.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\PPR_Holepatching.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\PPR_Holepatching.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\PPR_Projection.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\PPR_Reflection.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\PPR_Reflection.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\renderSceneBRDF.frag">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-      </ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-    </None>
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\renderSceneBRDF.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\skybox.vert" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_ClassifyTiles.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_Intersect.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_PrepareIndirectArgs.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_ResolveEaw.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_ResolveEawStride.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_ResolveSpatial.comp" />
-    <None Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_ResolveTemporal.comp" />
+    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\D3D12\SSSR_Common.h" />
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\Vulkan\SSSR_Common.h" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\copyDepth.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\fillGbuffers.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\fillGbuffers.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\panoToCube.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Projection.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\renderSceneBRDF.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\renderSceneBRDF.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ClassifyTiles.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Intersect.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_PrepareIndirectArgs.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEaw.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEawStride.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveSpatial.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveTemporal.comp.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>
@@ -96,26 +50,13 @@
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
@@ -126,54 +67,34 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared" />
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <LinkIncremental>true</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -184,8 +105,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
@@ -200,84 +122,30 @@
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Art files
+      <Command>:: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Meshes\*" "$(OutDir)Meshes\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-    <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Art files
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Textures\*.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Meshes\*" "$(OutDir)Meshes\"
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <CustomBuildStep>
-      <Command>
-      </Command>
-      <Message>
-      </Message>
-      <Outputs>
-      </Outputs>
-    </CustomBuildStep>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
@@ -285,7 +153,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -298,12 +166,14 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Renderer.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <FxCompile>
-      <EntryPointName />
+      <EntryPointName>
+      </EntryPointName>
     </FxCompile>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -317,89 +187,32 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Art files
+      <Command>:: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Meshes\*" "$(OutDir)Meshes\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
+xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
-      <TreatWarningAsError>true</TreatWarningAsError>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-    </ClCompile>
-    <Link>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
-      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>LuaManager.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/ignore:4099</AdditionalOptions>
-    </Link>
-    <PostBuildEvent>
-      <Command>set SHADER_DIR=D3D12
-if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
-if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
-if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
-if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
-
-:: Copy Art files
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Textures\*.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Sponza\Meshes\*" "$(OutDir)Meshes\"
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Scripts\*.lua" "$(OutDir)Scripts\"
-
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
-    </PostBuildEvent>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <CustomBuildStep>
-      <Command>
-      </Command>
-      <Message>
-      </Message>
-      <Outputs>
-      </Outputs>
-    </CustomBuildStep>
+    <FSLShader>
+      <OutDir>$(OutDir)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <Language>VULKAN DIRECT3D12</Language>
+    </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>

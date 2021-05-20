@@ -52,7 +52,7 @@ void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
 	mJointModelMats = allocator->AllocateRange<Matrix4>(mNumJoints);
 }
 
-void Rig::Destroy()
+void Rig::Exit()
 {
 	mSkeleton.Deallocate();
 
@@ -109,6 +109,7 @@ void Rig::Pose(const Matrix4& rootTransform)
 			if ((!minBoneLenSet) || (boneLen < minBoneLen))
 			{
 				minBoneLen = boneLen;
+				minBoneLenSet = true;
 			}
 
 			// Use the parent and child world matricies to create a bone world

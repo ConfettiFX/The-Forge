@@ -79,6 +79,134 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
     return shadowMat;
 }
 
+// Matrix decompose
+// source: GLM + http://www.opensource.apple.com/source/WebCore/WebCore-514/platform/graphics/transforms/TransformationMatrix.cpp
+// Decomposes the mode matrix to translations, rotation and scale components
+inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotationOut, Vector3* scaleOut)
+{
+		Matrix4 localMat = mat;
+
+		// Normalize the matrix.
+		if (abs(localMat[3][3]) < FLT_EPSILON)
+			return;
+
+		float w = localMat[3][3];
+		for (int i = 0; i < 4; ++i)
+			localMat[i] /= w;
+
+		// perspectiveMatrix is used to solve for perspective, but it also provides
+		// an easy way to test for singularity of the upper 3x3 component.
+		Matrix4 perspectiveMatrix = localMat;
+
+		for (int i = 0; i < 3; i++)
+			perspectiveMatrix[i][3] = 0;
+		perspectiveMatrix[3][3] = 1;
+
+		if (abs(determinant(perspectiveMatrix)) < FLT_EPSILON)
+			return;
+
+		// Clear the perspective partition
+		localMat[0][3] = localMat[1][3] = localMat[2][3] = 0;
+		localMat[3][3] = 1;
+
+		// Next take care of translation
+		if (translationOut)
+			*(translationOut) = localMat[3].getXYZ();
+
+		if (!scaleOut && !rotationOut)
+			return;
+
+		localMat[3] = Vector4(0, 0, 0, localMat[3].getW());
+
+		Vector3 row[3], Pdum3;
+
+		// Now get scale and shear.
+		for (int i = 0; i < 3; ++i)
+			for (int j = 0; j < 3; ++j)
+				row[i][j] = localMat[i][j];
+		
+		// Compute X scale factor and normalize first row.
+		Vector3 scale;
+		float rowLen = length(row[0]);
+		scale.setX(rowLen);
+		row[0] /= rowLen;
+
+		// Compute XY shear factor and make 2nd row orthogonal to 1st.
+		Vector3 skew;
+		skew.setZ(dot(row[0], row[1]));
+		row[1] = row[1] + row[0] * -skew.getZ();
+
+		// Now, compute Y scale and normalize 2nd row.
+		rowLen = length(row[1]);
+		scale.setY(rowLen);
+		row[1] /= rowLen;
+		skew.setZ(skew.getZ() / scale.getY());
+
+		// Compute XZ and YZ shears, orthogonalize 3rd row.
+		skew.setY(dot(row[0], row[2]));
+		row[2] = row[2] + row[0] * -skew.getY();
+		skew.setX(dot(row[1], row[2]));
+		row[2] = row[2] + row[1] * -skew.getX();
+
+		// Next, get Z scale and normalize 3rd row.
+		rowLen = length(row[2]);
+		scale.setZ(rowLen);
+		row[2] /= rowLen;
+		skew.setY(skew.getY() / scale.getZ());
+		skew.setX(skew.getX() / scale.getZ());
+
+		// At this point, the matrix (in rows[]) is orthonormal.
+		// Check for a coordinate system flip.  If the determinant
+		// is -1, then negate the matrix and the scaling factors.
+		Pdum3 = cross(row[1], row[2]); // v3Cross(row[1], row[2], Pdum3);
+		if (dot(row[0], Pdum3) < 0)
+		{
+			scale *= -1;
+			*(row) *= -1;
+		}
+
+		if (scaleOut)
+			*(scaleOut) = scale;
+
+		if (!rotationOut)
+			return;
+
+		// Now, get the rotations out, as described in the gem.
+		int i, j, k = 0;
+		float root, trace = row[0].getX() + row[1].getY() + row[2].getZ();
+		if (trace > 0)
+		{
+			root = sqrt(trace + 1);
+			rotationOut->setW(0.5f * root);
+			root = 0.5f / root;
+			rotationOut->setX(root * (row[1].getZ() - row[2].getY()));
+			rotationOut->setY(root * (row[2].getX() - row[0].getZ()));
+			rotationOut->setZ(root * (row[0].getY() - row[1].getX()));
+		}
+		else
+		{
+			static int next[3] = {1, 2, 0};
+			i = 0;
+
+			if (row[1].getY() > row[0].getX())
+				i = 1;
+
+			if (row[2].getZ() > row[i][i])
+				i = 2;
+
+			j = next[i];
+			k = next[j];
+
+			root = sqrtf(row[i][i] - row[j][j] - row[k][k] + 1.0f);
+
+			rotationOut->setElem(i, 0.5f * root);
+			root = 0.5f / root;
+			rotationOut->setElem(j, root * (row[i][j] + row[j][i]));
+			rotationOut->setElem(k, root * (row[i][k] + row[k][i]));
+			rotationOut->setW(root * (row[j][k] - row[k][j]));
+		} 
+}
+
 } // namespace Vectormath
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
@@ -143,6 +271,7 @@ namespace Vectormath
 #endif
 // constants
 #define PI 3.14159265358979323846f
+static const float piMulTwo = 6.283185307179586476925f;        //!< pi*2 constant
 static const float piDivTwo = 1.570796326794896619231f;        //!< pi/2 constant
 
 //----------------------------------------------------------------------------
@@ -823,6 +952,13 @@ inline uint2 min(const uint2 &x, const uint2& y) { return { min(x.x, y.x), min(x
 inline uint3 min(const uint3 &x, const uint3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
 inline uint4 min(const uint4 &x, const uint4& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
 
+template <>
+constexpr float2 min<>(const float2 &x, const float2 &y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+template <>
+constexpr float2 max<>(const float2 &x, const float2 &y) { return { max(x.x, y.x), max(x.y, y.y) }; }
+inline float2 min(const float2 &x, const float2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+inline float2 max(const float2 &x, const float2& y) { return { max(x.x, y.x), max(x.y, y.y) }; }
+
 inline Vector3 min(const Vector3 &a, const Vector3 &b)
 {
 #if VECTORMATH_MODE_SCALAR
@@ -873,7 +1009,6 @@ inline Vector4 max(const Vector4& a, const Vector4& b)
 
 inline Vector3 lerp(const Vector3 &u, const Vector3 &v, const float x) { return u + x * (v - u); }
 inline Vector3 clamp(const Vector3 &v, const Vector3 &c0, const Vector3 &c1) { return min(max(v, c0), c1); }
-
 
 inline float lerp(const float u, const float v, const float x) { return u + x * (v - u); }
 inline float cerp(const float u0, const float u1, const float u2, const float u3, float x)
@@ -1442,20 +1577,185 @@ struct TexVertex
 // Intersection Helpers
 //----------------------------------------------------------------------------
 
-inline float lineProjection(const Vector3 &line0, const Vector3 &line1, const Vector3 &point)
+struct Ray
+{	Ray()
+	{
+		origin = Vector3(0.0f);
+		direction = Vector3(0.0f);
+	}
+
+	Ray(const Vector3& argsOrigin, const Vector3& argsDirection)
+	{
+		origin = argsOrigin;
+		direction = normalize(argsDirection);
+	}
+
+	inline void Transform(const Matrix4& mat)
+	{
+		Vector4 temp = mat * Vector4(origin, 1.0f);
+		origin = temp.getXYZ() / temp.getW();
+		direction = normalize((mat * Vector4(direction, 0.0f)).getXYZ());
+	}
+	
+	inline Vector3 Eval(float t) const
+	{
+		return origin + (direction * t);
+	}
+
+	Vector3 origin;
+	Vector3 direction;
+};
+
+
+struct Plane
+{
+	Plane()
+	{
+		normal = Vector3(0, 0, 0);
+		distance = 0.0f;
+	}
+
+	Plane(const Vector3& argsNormal, float argsDistance)
+	{
+		normal = normalize(argsNormal);
+		distance = argsDistance;
+	}
+
+	Plane(const Vector3& argsNormal, const Vector3& argsPoint)
+	{
+		normal = normalize(argsNormal);
+		distance = dot(normal, argsPoint);
+	}
+
+	Vector3 normal;
+	float distance;
+};
+
+struct AABB
+{	// Bounding box 
+	AABB() 
+	{
+		minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+		maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	}
+
+	AABB(const Vector3& argsMinBounds, const Vector3& argsMaxBounds)
+	{
+		minBounds = argsMinBounds;
+		maxBounds = argsMaxBounds;
+	}
+
+	inline void InitFromVerts(const Vector3* verts, int num)
+	{
+		minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+		maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		for (int i = 0; i < num; ++i)
+		{
+			const Vector3& vert = verts[i];
+
+			minBounds = min(minBounds, vert);
+			maxBounds = max(maxBounds, vert);
+		}
+	}
+
+	inline void Transform(const Matrix4& mat)
+	{
+		Vector3 newCorners[8];
+
+		newCorners[0] = Vector3(minBounds.getX(), maxBounds.getY(), maxBounds.getZ());
+		newCorners[1] = Vector3(minBounds.getX(), minBounds.getY(), maxBounds.getZ());
+		newCorners[2] = Vector3(maxBounds.getX(), minBounds.getY(), maxBounds.getZ());
+		newCorners[3] = Vector3(maxBounds.getX(), maxBounds.getY(), maxBounds.getZ());
+		newCorners[4] = Vector3(maxBounds.getX(), maxBounds.getY(), minBounds.getZ());
+		newCorners[5] = Vector3(maxBounds.getX(), minBounds.getY(), minBounds.getZ());
+		newCorners[6] = Vector3(minBounds.getX(), minBounds.getY(), minBounds.getZ());
+		newCorners[7] = Vector3(minBounds.getX(), maxBounds.getY(), minBounds.getZ());
+
+		minBounds = Vector3(FLT_MAX, FLT_MAX, FLT_MAX);
+		maxBounds = Vector3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		for (int i = 0; i < 8; ++i)
+		{
+			newCorners[i] = (mat * Vector4(newCorners[i], 1.0f)).getXYZ();
+
+			minBounds = min(minBounds, newCorners[i]);
+			maxBounds = max(maxBounds, newCorners[i]);
+		}
+	}
+
+	Vector3 minBounds, maxBounds;
+};
+
+struct OBB
+{	// Oriented bounding box 
+	OBB() 
+	{
+		center = Vector3(0.0f);
+		halfExtents = Vector3(0.0f);
+		x = Vector3::xAxis();
+		y = Vector3::yAxis();
+		z = Vector3::zAxis();
+	}
+
+	OBB(const AABB& aabb)
+	{
+		center = (aabb.minBounds + aabb.maxBounds) * 0.5f;
+		halfExtents = (aabb.maxBounds - aabb.minBounds) * 0.5;
+		x = Vector3::xAxis();
+		y = Vector3::yAxis();
+		z = Vector3::zAxis();
+	}
+
+	inline void Transform(const Matrix4& mat)
+	{
+		float xAxisLength, yAxisLength, zAxisLength;
+
+		center = (mat * Vector4(center, 1.0f)).getXYZ();
+		x = (mat * Vector4(halfExtents.getX() * x, 0.0f)).getXYZ();
+		y = (mat * Vector4(halfExtents.getY() * y, 0.0f)).getXYZ();
+		z = (mat * Vector4(halfExtents.getZ() * z, 0.0f)).getXYZ();
+
+		xAxisLength = length(x);
+		yAxisLength = length(y);
+		zAxisLength = length(z);
+
+		x /= xAxisLength;
+		y /= yAxisLength;
+		z /= zAxisLength;
+
+		halfExtents.setX(xAxisLength);
+		halfExtents.setY(yAxisLength);
+		halfExtents.setZ(zAxisLength);
+	}
+
+	Vector3 center;
+	Vector3 halfExtents; // half of each axis length
+	Vector3 x, y, z; // axises
+};
+
+
+inline float lineProjection(const Vector3& line0, const Vector3& line1, const Vector3& point)
 {
 	Vector3 v = line1 - line0;
 	return dot(v, point - line0) / dot(v, v);
 }
 
-
-inline float planeDistance(const Vector4 &plane, const Vector3 &point)
+// PLANE DISTANCE SIGN CONVENTION
+//----------------------------------------------------------------------------------------
+// By default, The Forge uses ax + by + cz - d = 0 for the plane equation.
+// Defining USE_POSITIVE_PLANE_SIGN changes the equation to ax + by + cz + d = 0;
+inline float planeDistance(const Vector4& plane, const Vector3& point)
 {
 #if VECTORMATH_MODE_SCALAR
 	return
 		point.getX() * plane.getX() +
 		point.getY() * plane.getY() +
+#ifndef USE_POSITIVE_PLANE_SIGN
 		point.getZ() * plane.getZ() +
+#else
+		point.getZ() * plane.getZ() -
+#endif
 		plane.getW();
 #else
 	static const __m128 maskxyz = _mm_castsi128_ps(_mm_set_epi32(0, ~0u, ~0u, ~0u));
@@ -1466,7 +1766,11 @@ inline float planeDistance(const Vector4 &plane, const Vector3 &point)
 		_mm_mul_ps(point.get128(), plane.get128()),
 		maskxyz);
 	//b = Vector4(0,0,0,plane.w)
+#ifndef USE_POSITIVE_PLANE_SIGN
 	const __m128 b = _mm_and_ps(plane.get128(), maskw);
+#else
+	const __m128 b = _mm_sub_ps(_mm_setzero_ps(), _mm_and_ps(plane.get128(), maskw));
+#endif
 
 	//c = Vector4(plane.xyz, plane.w);
 	__m128 c = _mm_or_ps(a, b);
@@ -1487,29 +1791,129 @@ inline float planeDistance(const Vector4 &plane, const Vector3 &point)
 #endif
 }
 
-
-struct AABB
-{	// Bounding box 
-	AABB() 
+inline bool rayPlaneDistance(const Ray& ray, const Plane& plane, float* distance)
+{
+#ifndef USE_POSITIVE_PLANE_SIGN
+	float denom = dot(plane.normal, ray.direction);
+	if (abs(denom) > 1e-4f)
 	{
-		minBounds = Vector3(-0.001f, -0.001f, -0.001f);
-		maxBounds = Vector3(0.001f, 0.001f, 0.001f);
+		*(distance) = (-plane.distance - dot(plane.normal, ray.origin)) / denom;;
+		return true;
 	}
 
-	AABB(Vector3 const& argsMinBounds, Vector3 const& argsMaxBounds)
+	if (denom != 0.f)
 	{
-		minBounds = argsMinBounds;
-		maxBounds = argsMaxBounds;
+		*(distance) = (-plane.distance - dot(plane.normal, ray.origin)) / denom;
+		if (abs(*distance) < 1e4f)
+			return true;
 	}
 
-	inline void Transform(Matrix4 const& mat)
+	*(distance) = 0.f;
+	return abs(dot(plane.normal, ray.origin) + plane.distance) < 1e-3f;
+#else
+	float denom = dot(plane.normal, ray.direction);
+	if (abs(denom) > 1e-4f)
 	{
-		minBounds = (mat * Vector4(minBounds.getX(), minBounds.getY(), minBounds.getZ(), 1.0f)).getXYZ();
-		maxBounds = (mat * Vector4(maxBounds.getX(), maxBounds.getY(), maxBounds.getZ(), 1.0f)).getXYZ();
+		*(distance) = (plane.distance - dot(plane.normal, ray.origin)) / denom;;
+		return true;
 	}
 
-	Vector3 minBounds, maxBounds;
-};
+	if (denom != 0.f)
+	{
+		*(distance) = (plane.distance - dot(plane.normal, ray.origin)) / denom;
+		if (abs(*distance) < 1e4f)
+			return true;
+	}
+
+	*(distance) = 0.f;
+	return abs(dot(plane.normal, ray.origin) - plane.distance) < 1e-3f;
+#endif
+}
+
+inline bool rayIntersectsPlane(const Ray& ray, const Plane& plane, Vector3* hitPoint)
+{
+#ifndef USE_POSITIVE_PLANE_SIGN
+	float t;
+	bool hit = rayPlaneDistance(ray, plane, &t);
+	*(hitPoint) = ray.origin + ray.direction * -t;
+	return hit && t >= 0.0f;
+#else	
+	float t;
+	bool hit = rayPlaneDistance(ray, plane, &t);
+	*(hitPoint) = ray.origin + ray.direction * t;
+	return hit && t >= 0.0f;
+#endif
+}
+
+// Ray to AABB intersection
+// Based on Slab method
+// https://realtimecollisiondetection.net/
+inline bool rayIntersectsAABB(const Ray& ray, const AABB& aabb, float* distance)
+{
+	float tmin = 0.0f;
+	float tmax = FLT_MAX;
+
+	// For all three slabs
+	for (int i = 0; i < 3; ++i) 
+	{
+			if (abs(ray.direction[i]) < FLT_EPSILON)
+			{
+				// Ray is parallel to slab. No hit if origin not within slab
+				if (ray.origin[i] < aabb.minBounds[i] || ray.origin[i] > aabb.maxBounds[i])
+					return false;
+			}
+			else 
+			{
+				// Compute intersection t value of ray with near and far plane of slab
+				float ood = 1.0f / ray.direction[i];
+				float t1 = (aabb.minBounds[i] - ray.origin[i]) * ood;
+				float t2 = (aabb.maxBounds[i] - ray.origin[i]) * ood;
+
+				// Make t1 be intersection with near plane, t2 with far plane
+				if (t1 > t2)
+				{
+					float temp = t1;
+					t1 = t2;
+					t2 = temp;
+				}
+
+				// Compute the intersection of slab intersection intervals
+				if (t1 > tmin) 
+					tmin = t1;
+
+				if (t2 < tmax) 
+					tmax = t2;
+
+				// Exit with no collision as soon as slab intersection becomes empty
+				if (tmin > tmax)
+					return false;
+			}
+	}
+
+	*(distance) = tmin;
+	return true;
+}
+
+
+inline bool rayIntersectsOBB(const Ray& ray, const OBB& obb, float* distance)
+{
+	AABB aabb(Vector3(0, 0, 0), obb.halfExtents * 2.0f);
+
+	Matrix4 worldToLocal;
+	worldToLocal.setCol0(Vector4(obb.x, 0.0f));
+	worldToLocal.setCol1(Vector4(obb.y, 0.0f));
+	worldToLocal.setCol2(Vector4(obb.z, 0.0f));
+
+	Vector3 p = obb.center - (obb.x * obb.halfExtents.getX()) - (obb.y * obb.halfExtents.getY()) - (obb.z * obb.halfExtents.getZ());
+	worldToLocal.setCol3(Vector4(p, 1.0f));
+
+	worldToLocal = orthoInverse(worldToLocal);
+
+	Ray localRay = ray;
+	localRay.Transform(worldToLocal);
+
+	return rayIntersectsAABB(localRay, aabb, distance);
+}
 
 struct Frustum
 {
@@ -1555,7 +1959,7 @@ struct Frustum
 // Based on Íñigo Quílez' "Correct Frustum Culling" article
 // http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm
 // If fast is true, function will do extra frustum-in-box checks using the frustum's corner vertices.
-inline bool aabbInsideOrIntersectsFrustum(AABB const& aabb, const Frustum& frustum, bool const& fast = false)
+inline bool aabbInsideOrIntersectsFrustum(const AABB& aabb, const Frustum& frustum, const bool& fast = false)
 {
 	Vector4 frus_planes[6] = {
 		frustum.bottomPlane,
@@ -1640,6 +2044,30 @@ inline bool aabbInsideOrIntersectsFrustum(AABB const& aabb, const Frustum& frust
 	return true;
 }
 
+inline bool lineIntersectsLine(const Vector2& pointA, const Vector2& pointB, const Vector2& pointC, const Vector2& pointD, Vector2* hitPoint)
+{
+	float a1 = pointB.getY() - pointA.getY(); 
+	float b1 = pointA.getX() - pointB.getX(); 
+	float c1 = a1 * (pointA.getX()) + b1 * (pointA.getY()); 
+
+	float a2 = pointD.getY() - pointC.getY(); 
+	float b2 = pointC.getX() - pointD.getX(); 
+	float c2 = a2 * (pointC.getX()) + b2 * (pointC.getY()); 
+
+	float det = a1 * b2 - a2 * b1; 
+
+	if (0 == det) // parallel
+	{
+		return false;
+	}
+	else
+	{
+		float invDet = 1.0f / det;
+		hitPoint->setX((b2 * c1 - b1 * c2) * invDet); 
+		hitPoint->setY((a1 * c2 - a2 * c1) * invDet);
+		return true;
+	}
+}
 
 //----------------------------------------------------------------------------
 // Noise
@@ -1924,7 +2352,7 @@ inline const Vector4 calculateFrustumPlane(const Matrix4& invMvp,
 	return plane;
 }
 
-inline const Frustum calculateFrustumPlanesFromRect(Matrix4 const& mvp,
+inline const Frustum calculateFrustumPlanesFromRect(const Matrix4& mvp,
 	const float xMin, const float xMax,
 	const float yMin, const float yMax,
 	const float totalWidth, const float totalHeight)

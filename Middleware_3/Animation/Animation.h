@@ -41,8 +41,8 @@ const unsigned int MAX_NUM_CLIPS = 10;
 // Descriptors for each layer/clip that will make up the blended animation
 struct LayerProperty
 {
-	Clip*           mClip;
-	ClipController* mClipController;
+	Clip*           mClip = nullptr;
+	ClipController* mClipController = nullptr;
 	ClipMask*       mClipMask = nullptr;
 	bool            mAdditive = false;
 };
@@ -59,8 +59,8 @@ enum BlendType
 // User will have to predefine to pass into Animation's intialize function
 struct AnimationDesc
 {
-	Rig*          mRig;
-	unsigned int  mNumLayers;
+	Rig*          mRig = nullptr;
+	unsigned int  mNumLayers = 0;
 	LayerProperty mLayerProperties[MAX_NUM_CLIPS];
 	BlendType     mBlendType = BlendType::EQUAL;
 };
@@ -73,7 +73,7 @@ class Animation
 	void Initialize(AnimationDesc animationDesc);
 
 	// Needs to be called if initialize was called
-	void Destroy();
+	void Exit();
 
 	// Will sample the animation at dt, storing the local transform results in localTrans
 	bool Sample(float dt, ozz::Range<SoaTransform>& localTrans);
@@ -107,19 +107,19 @@ class Animation
 	bool Blend(ozz::Range<SoaTransform>& localTrans);
 
 	// Pointer to the rig that this animation corresponds to
-	Rig* mRig;
+	Rig* mRig = nullptr;
 
 	// Array of objects responsible for managing clip specifc sample and blend properties
-	ClipController* mClipControllers[MAX_NUM_CLIPS];
+	ClipController* mClipControllers[MAX_NUM_CLIPS] = {};
 
 	// Array of clips that make up the animation
-	Clip* mClips[MAX_NUM_CLIPS];
+	Clip* mClips[MAX_NUM_CLIPS] = {};
 
 	// Array of clip masks that can alter per joint weights of clips
-	ClipMask* mClipMasks[MAX_NUM_CLIPS];
+	ClipMask* mClipMasks[MAX_NUM_CLIPS] = {};
 
 	// Sampling cache that will be given as input when each clip is sampled
-	ozz::animation::SamplingCache* mClipSamplingCaches[MAX_NUM_CLIPS];
+	ozz::animation::SamplingCache* mClipSamplingCaches[MAX_NUM_CLIPS] = {};
 
 	// The buffer of local transforms that will be updated as output when each clip is sampled
 	ozz::Range<SoaTransform> mClipLocalTrans[MAX_NUM_CLIPS];
@@ -150,7 +150,7 @@ class Animation
 	float mThreshold = ozz::animation::BlendingJob().threshold;
 
 	// Type of blend that defines how the clips blend parameters will be managed
-	BlendType mBlendType;
+	BlendType mBlendType = BlendType::EQUAL;
 
 	// Blend ratio for CROSS_DISSOLVE and CROSS_DISSOLVE_SYNC in range [0,1] that
 	// controls all blend parameters and synchronizes playback speeds. A value of

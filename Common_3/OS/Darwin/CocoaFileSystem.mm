@@ -50,6 +50,9 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	ASSERT(pDesc);
 	pSystemFileIO->GetResourceMount = getResourceMount;
 
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+		gResourceMounts[i] = "";
+
     NSFileManager* fileManager = [NSFileManager defaultManager];
 	// Get application directory
 	gResourceMounts[RM_CONTENT] = [[[[NSBundle mainBundle] resourceURL] relativePath] UTF8String];
@@ -65,7 +68,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 
     if (!error)
 	{
-		gResourceMounts[RM_SAVE_0] = [[gSaveUrl path] UTF8String];
+		gResourceMounts[RM_DOCUMENTS] = [[gSaveUrl path] UTF8String];
     }
 	else
 	{

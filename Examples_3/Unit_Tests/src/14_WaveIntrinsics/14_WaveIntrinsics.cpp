@@ -25,7 +25,6 @@
 // Unit Test for testing wave intrinsic operations
 
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -92,8 +91,9 @@ float2* pMovePosition = NULL;
 float2 gMoveDelta = {};
 
 /// UI
-UIApp         gAppUI;
+UIApp*        pAppUI = NULL;
 GuiComponent* pGui = NULL;
+static uint32_t gSelectedApiIndex = 0;
 
 enum RenderMode
 {
@@ -126,11 +126,6 @@ struct Vertex2
 	float2 uv;
 };
 
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
-}
 class WaveIntrinsics: public IApp
 {
 	public:
@@ -150,6 +145,206 @@ class WaveIntrinsics: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+
+		// window and renderer setup
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		settings.mShaderTarget = shader_target_6_0;
+		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		gWaveOpsSupported = (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_QUAD_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT) &&
+			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		if (gWaveOpsSupported)
+		{
+			ShaderLoadDesc waveShader = {};
+			waveShader.mStages[0] = { "wave.vert", NULL, 0 };
+			waveShader.mStages[1] = { "wave.frag", NULL, 0 };
+			waveShader.mTarget = shader_target_6_0;
+			addShader(pRenderer, &waveShader, &pShaderWave);
+		}
+
+		ShaderLoadDesc magnifyShader = {};
+		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0 };
+		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0 };
+		addShader(pRenderer, &magnifyShader, &pShaderMagnify);
+
+		SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
+									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_CLAMP_TO_BORDER };
+		addSampler(pRenderer, &samplerDesc, &pSamplerPointWrap);
+
+		Shader* pShaders[] = { pShaderMagnify, pShaderWave };
+		const char* pStaticSamplers[] = { "g_sampler" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerPointWrap;
+		rootDesc.mShaderCount = gWaveOpsSupported ? 2 : 1;
+		rootDesc.ppShaders = pShaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+
+		// Define the geometry for a triangle.
+		Vertex triangleVertices[] = { { { 0.0f, 0.5f, 0.0f }, { 0.8f, 0.8f, 0.0f, 1.0f } },
+										{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.8f, 0.8f, 1.0f } },
+										{ { -0.5f, -0.5f, 0.0f }, { 0.8f, 0.0f, 0.8f, 1.0f } } };
+
+		BufferLoadDesc triangleColorDesc = {};
+		triangleColorDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		triangleColorDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		triangleColorDesc.mDesc.mSize = sizeof(triangleVertices);
+		triangleColorDesc.pData = triangleVertices;
+		triangleColorDesc.ppBuffer = &pVertexBufferTriangle;
+		addResource(&triangleColorDesc, NULL);
+
+		// Define the geometry for a rectangle.
+		Vertex2 quadVertices[] = { { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { -1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+									{ { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+
+									{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+									{ { 1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } } };
+
+		BufferLoadDesc quadUVDesc = {};
+		quadUVDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		quadUVDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		quadUVDesc.mDesc.mSize = sizeof(quadVertices);
+		quadUVDesc.pData = quadVertices;
+		quadUVDesc.ppBuffer = &pVertexBufferQuad;
+		addResource(&quadUVDesc, NULL);
+
+		BufferLoadDesc ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(SceneConstantBuffer);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pUniformBuffer[i];
+			addResource(&ubDesc, NULL);
+		}
+
+		waitForAllResourceLoads();
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f);
+		pGui = addAppUIGuiComponent(pAppUI, "Render Modes", &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		if (gWaveOpsSupported)
+		{
+			const char* m_labels[RenderModeCount] = {};
+			m_labels[RenderMode1] = "1. Normal render.\n";
+			m_labels[RenderMode2] = "2. Color pixels by lane indices.\n";
+#ifdef TARGET_IOS
+			m_labels[RenderMode9] = "3. Color pixels by their quad id.\n";
+#else
+			m_labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
+			m_labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
+			m_labels[RenderMode5] = "5. Color pixels by active lane ratio (white = 100%; black = 0%).\n";
+			m_labels[RenderMode6] = "6. Broadcast the color of the first active lane to the wave.\n";
+			m_labels[RenderMode7] = "7. Average the color in a wave.\n";
+			m_labels[RenderMode8] = "8. Color pixels by prefix sum of distance between current and first lane.\n";
+			m_labels[RenderMode9] = "9. Color pixels by their quad id.\n";
+#endif
+
+			// Radio Buttons
+			for (uint32_t i = 0; i < RenderModeCount; ++i)
+			{
+#ifdef TARGET_IOS
+				//Subset of supported render modes on iOS
+				if (i == RenderMode1 || i == RenderMode2 || i == RenderMode9)
+				{
+					RadioButtonWidget iosRenderMode;
+					iosRenderMode.pData = &gRenderModeToggles;
+					iosRenderMode.mRadioId = i;
+					addWidgetLua(addGuiWidget(pGui, m_labels[i], &iosRenderMode, WIDGET_TYPE_RADIO_BUTTON));
+				}
+#else
+				RadioButtonWidget modeToggle;
+				modeToggle.pData = &gRenderModeToggles;
+				modeToggle.mRadioId = i;
+				addWidgetLua(addGuiWidget(pGui, m_labels[i], &modeToggle, WIDGET_TYPE_RADIO_BUTTON));
+#endif
+			}
+		}
+		else
+		{
+			LabelWidget notSupportedLabel;
+			addWidgetLua(addGuiWidget(pGui, "Some of wave ops are not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[1] = {};
+			params[0].pName = "SceneConstantBuffer";
+			params[0].ppBuffers = &pUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -163,7 +358,7 @@ class WaveIntrinsics: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				if (gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
+				if (appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
 					pMovePosition = ctx->pPosition;
 				else
 					pMovePosition = NULL;
@@ -174,195 +369,62 @@ class WaveIntrinsics: public IApp
 		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { pMovePosition = NULL; gMoveDelta = ctx->mFloat2; return true; } };
 		addInputAction(&actionDesc);
 
+		gFrameIndex = 0;
+
 		return true;
 	}
 
 	void Exit()
 	{
 		exitInputSystem();
+
+		exitAppUI(pAppUI);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeResource(pUniformBuffer[i]);
+		}
+		removeResource(pVertexBufferQuad);
+		removeResource(pVertexBufferTriangle);
+
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+
+		removeSampler(pRenderer, pSamplerPointWrap);
+		removeShader(pRenderer, pShaderMagnify);
+		if (gWaveOpsSupported)
+		{
+			removeShader(pRenderer, pShaderWave);
+		}
+		removeRootSignature(pRenderer, pRootSignature);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-					// window and renderer setup
-			RendererDesc settings = { 0 };
-
-			settings.mShaderTarget = shader_target_6_0;
-
-			initRenderer(GetName(), &settings, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			gWaveOpsSupported = (pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_BASIC_BIT) &&
-				(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT) &&
-				(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_QUAD_BIT) &&
-				(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT) &&
-				(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			if (gWaveOpsSupported)
-			{
-				ShaderLoadDesc waveShader = {};
-				waveShader.mStages[0] = { "wave.vert", NULL, 0 };
-				waveShader.mStages[1] = { "wave.frag", NULL, 0 };
-				waveShader.mTarget = shader_target_6_0;
-				addShader(pRenderer, &waveShader, &pShaderWave);
-			}
-
-			ShaderLoadDesc magnifyShader = {};
-			magnifyShader.mStages[0] = { "magnify.vert", NULL, 0 };
-			magnifyShader.mStages[1] = { "magnify.frag", NULL, 0 };
-			addShader(pRenderer, &magnifyShader, &pShaderMagnify);
-
-			SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
-										ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_CLAMP_TO_BORDER };
-			addSampler(pRenderer, &samplerDesc, &pSamplerPointWrap);
-
-			Shader* pShaders[] = { pShaderMagnify, pShaderWave };
-			const char* pStaticSamplers[] = { "g_sampler" };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSamplerPointWrap;
-			rootDesc.mShaderCount = gWaveOpsSupported ? 2 : 1;
-			rootDesc.ppShaders = pShaders;
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-			DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
-
-			// Define the geometry for a triangle.
-			Vertex triangleVertices[] = { { { 0.0f, 0.5f, 0.0f }, { 0.8f, 0.8f, 0.0f, 1.0f } },
-											{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.8f, 0.8f, 1.0f } },
-											{ { -0.5f, -0.5f, 0.0f }, { 0.8f, 0.0f, 0.8f, 1.0f } } };
-
-			BufferLoadDesc triangleColorDesc = {};
-			triangleColorDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			triangleColorDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			triangleColorDesc.mDesc.mSize = sizeof(triangleVertices);
-			triangleColorDesc.pData = triangleVertices;
-			triangleColorDesc.ppBuffer = &pVertexBufferTriangle;
-			addResource(&triangleColorDesc, NULL);
-
-			// Define the geometry for a rectangle.
-			Vertex2 quadVertices[] = { { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { -1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-										{ { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-
-										{ { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-										{ { 1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } } };
-
-			BufferLoadDesc quadUVDesc = {};
-			quadUVDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			quadUVDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			quadUVDesc.mDesc.mSize = sizeof(quadVertices);
-			quadUVDesc.pData = quadVertices;
-			quadUVDesc.ppBuffer = &pVertexBufferQuad;
-			addResource(&quadUVDesc, NULL);
-
-			BufferLoadDesc ubDesc = {};
-			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			ubDesc.mDesc.mSize = sizeof(SceneConstantBuffer);
-			ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			ubDesc.pData = NULL;
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				ubDesc.ppBuffer = &pUniformBuffer[i];
-				addResource(&ubDesc, NULL);
-			}
-
-			waitForAllResourceLoads();
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-			GuiDesc guiDesc = {};
-			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f);
-			pGui = gAppUI.AddGuiComponent("Render Modes", &guiDesc);
-
-			if (gWaveOpsSupported)
-			{
-				const char* m_labels[RenderModeCount] = {};
-				m_labels[RenderMode1] = "1. Normal render.\n";
-				m_labels[RenderMode2] = "2. Color pixels by lane indices.\n";
-#ifdef TARGET_IOS
-				m_labels[RenderMode9] = "3. Color pixels by their quad id.\n";
-#else
-				m_labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
-				m_labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
-				m_labels[RenderMode5] = "5. Color pixels by active lane ratio (white = 100%; black = 0%).\n";
-				m_labels[RenderMode6] = "6. Broadcast the color of the first active lane to the wave.\n";
-				m_labels[RenderMode7] = "7. Average the color in a wave.\n";
-				m_labels[RenderMode8] = "8. Color pixels by prefix sum of distance between current and first lane.\n";
-				m_labels[RenderMode9] = "9. Color pixels by their quad id.\n";
-#endif
-
-			// Radio Buttons
-				for (uint32_t i = 0; i < RenderModeCount; ++i)
-				{
-#ifdef TARGET_IOS
-				//Subset of supported render modes on iOS
-					if (i == RenderMode1 || i == RenderMode2 || i == RenderMode9)
-						pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
-#else
-					pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
-#endif
-				}
-			}
-			else
-			{
-				pGui->AddWidget(LabelWidget("Some of wave ops are not supported on this GPU"));
-			}
-
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pGui->AddWidget(testGPUReset);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				DescriptorData params[1] = {};
-				params[0].pName = "SceneConstantBuffer";
-				params[0].ppBuffers = &pUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-			}
-		}
-
 		if (!addSwapChain())
 			return false;
 
 		if (!addIntermediateRenderTarget())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -427,7 +489,7 @@ class WaveIntrinsics: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		removePipeline(pRenderer, pPipelineMagnify);
 		if (gWaveOpsSupported)
@@ -437,53 +499,13 @@ class WaveIntrinsics: public IApp
 
 		removeRenderTarget(pRenderer, pRenderTargetIntermediate);
 		removeSwapChain(pRenderer, pSwapChain);
-
-		if (mSettings.mQuit || mSettings.mResetGraphics) 
-		{
-			gAppUI.Exit();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeResource(pUniformBuffer[i]);
-			}
-			removeResource(pVertexBufferQuad);
-			removeResource(pVertexBufferTriangle);
-
-			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-
-			removeSampler(pRenderer, pSamplerPointWrap);
-			removeShader(pRenderer, pShaderMagnify);
-			if (gWaveOpsSupported)
-			{
-				removeShader(pRenderer, pShaderWave);
-			}
-			removeRootSignature(pRenderer, pRootSignature);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 		/************************************************************************/
 		// Uniforms
 		/************************************************************************/
@@ -588,11 +610,15 @@ class WaveIntrinsics: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+		char text[64];
+		sprintf(text, "CPU %f ms", gTimer.GetUSecAverage() / 1000.0f);
 
-		gAppUI.Gui(pGui);
-		gAppUI.Draw(cmd);
+		float2 screenCoords(8, 15);
+		drawAppUIText(pAppUI, 
+			cmd, &screenCoords, text, &gFrameTimeDraw);
+
+		appUIGui(pAppUI, pGui);
+		drawAppUI(pAppUI, cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
@@ -615,20 +641,7 @@ class WaveIntrinsics: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
+		queuePresent(pGraphicsQueue, &presentDesc);
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}

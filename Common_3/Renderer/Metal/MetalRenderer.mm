@@ -251,13 +251,17 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 // GPU frame time accessor for macOS and iOS
 #define GPU_FREQUENCY   1000000.0
 
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-void removeTexture(Renderer* pRenderer, Texture* pTexture);
+DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
+DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
+DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
+DECLARE_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRenderer, VirtualTexture* pTexture)
 
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 /************************************************************************/
 // Globals
 /************************************************************************/
@@ -329,7 +333,7 @@ void util_barrier_update(Cmd* pCmd, const QueueType& encoderType);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void* pConstants);
 
-void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
+void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
     ASSERT(pCmd);
     ASSERT(pDescriptorSet);
@@ -434,7 +438,7 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
 //
 // Push Constants
 //
-void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
     ASSERT(pCmd);
     ASSERT(pRootSignature);
@@ -446,7 +450,7 @@ void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* 
     util_bind_push_constant(pCmd, pDesc, pConstants);
 }
 
-void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void mtl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
     ASSERT(pCmd);
     ASSERT(pRootSignature);
@@ -461,7 +465,7 @@ void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint3
 //
 // DescriptorSet
 //
-void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
+void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
     ASSERT(pRenderer);
     ASSERT(pDesc);
@@ -586,7 +590,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
     *ppDescriptorSet = pDescriptorSet;
 }
 
-void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 {
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
@@ -622,7 +626,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
     SAFE_FREE(pDescriptorSet);
 }
 
-void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
     ASSERT(pRenderer);
     ASSERT(pDescriptorSet);
@@ -866,12 +870,12 @@ static void internal_log(LogType type, const char* msg, const char* component)
 }
 
 // Resource allocation statistics.
-void calculateMemoryStats(Renderer* pRenderer, char** ppStats)
+void mtl_calculateMemoryStats(Renderer* pRenderer, char** ppStats)
 {
 	vmaBuildStatsString(pRenderer->pVmaAllocator, ppStats, VK_TRUE);
 }
 
-void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+void mtl_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
 {
 	VmaStats stats;
 	pRenderer->pVmaAllocator->CalculateStats(&stats);
@@ -879,18 +883,18 @@ void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* tota
 	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
 }
 
-void freeMemoryStats(Renderer* pRenderer, char* pStats)
+void mtl_freeMemoryStats(Renderer* pRenderer, char* pStats)
 {
 	vmaFreeStatsString(pRenderer->pVmaAllocator, pStats);
 }
 /************************************************************************/
 // Pipeline state functions
 /************************************************************************/
-void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttachmentDescriptorArray* attachments)
+void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttachmentDescriptorArray* attachments, uint32_t attachmentCount)
 {
 	int blendDescIndex = 0;
 #ifdef _DEBUG
-	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+	for (uint32_t i = 0; i < attachmentCount; ++i)
 	{
 		if (pDesc->mRenderTargetMask & (1 << i))
 		{
@@ -910,17 +914,23 @@ void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttac
 #endif
 
 	// Go over each RT blend state.
-	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+	for (uint32_t i = 0; i < attachmentCount; ++i)
 	{
 		if (pDesc->mRenderTargetMask & (1 << i))
 		{
-			attachments[blendDescIndex].blendingEnabled = true;
-			attachments[blendDescIndex].rgbBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
-			attachments[blendDescIndex].alphaBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
-			attachments[blendDescIndex].sourceRGBBlendFactor = gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
-			attachments[blendDescIndex].destinationRGBBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
-			attachments[blendDescIndex].sourceAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
-			attachments[blendDescIndex].destinationAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
+			bool blendEnable =
+			(gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != MTLBlendFactorOne ||
+			 gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != MTLBlendFactorZero ||
+			 gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != MTLBlendFactorOne ||
+			 gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != MTLBlendFactorZero);
+			
+			attachments[i].blendingEnabled = blendEnable;
+			attachments[i].rgbBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
+			attachments[i].alphaBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
+			attachments[i].sourceRGBBlendFactor = gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]];
+			attachments[i].destinationRGBBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
+			attachments[i].sourceAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
+			attachments[i].destinationAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
 		}
 
 		if (pDesc->mIndependentBlend)
@@ -1070,7 +1080,7 @@ void remove_default_resources(Renderer* pRenderer)
 // API functions
 // -------------------------------------------------------------------------------------------------
 
-TinyImageFormat getRecommendedSwapchainFormat(bool hintHDR)
+TinyImageFormat mtl_getRecommendedSwapchainFormat(bool hintHDR)
 {
 	return TinyImageFormat_B8G8R8A8_UNORM;
 }
@@ -1625,7 +1635,7 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, ResourceMemoryUsa
 }
 #endif
 
-void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
+void mtl_initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
 {
 	Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(*pRenderer));
 	ASSERT(pRenderer);
@@ -1634,7 +1644,6 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	memcpy(pRenderer->pName, appName, strlen(appName));
 	
 	pRenderer->mGpuMode = settings->mGpuMode;
-	pRenderer->mApi = RENDERER_API_METAL;
 	pRenderer->mEnableGpuBasedValidation = settings->mEnableGPUBasedValidation;
 	pRenderer->mShaderTarget = settings->mShaderTarget;
 	
@@ -1930,7 +1939,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	}
 }
 
-void removeRenderer(Renderer* pRenderer)
+void mtl_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
 	
@@ -1967,7 +1976,7 @@ void removeRenderer(Renderer* pRenderer)
 	SAFE_FREE(pRenderer);
 }
 
-void addFence(Renderer* pRenderer, Fence** ppFence)
+void mtl_addFence(Renderer* pRenderer, Fence** ppFence)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -1982,7 +1991,7 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	*ppFence = pFence;
 }
 
-void removeFence(Renderer* pRenderer, Fence* pFence)
+void mtl_removeFence(Renderer* pRenderer, Fence* pFence)
 {
 	ASSERT(pFence);
 	pFence->pMtlSemaphore = nil;
@@ -1990,7 +1999,7 @@ void removeFence(Renderer* pRenderer, Fence* pFence)
 	SAFE_FREE(pFence);
 }
 
-void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
+void mtl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppSemaphore);
@@ -2008,7 +2017,7 @@ void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	*ppSemaphore = pSemaphore;
 }
 
-void removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
+void mtl_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
 	ASSERT(pSemaphore);
 	
@@ -2022,7 +2031,7 @@ void removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 	SAFE_FREE(pSemaphore);
 }
 
-void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
+void mtl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
 	ASSERT(pDesc);
 	ASSERT(ppQueue);
@@ -2045,7 +2054,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	*ppQueue = pQueue;
 }
 
-void removeQueue(Renderer* pRenderer, Queue* pQueue)
+void mtl_removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
 	ASSERT(pQueue);
 	pQueue->mtlCommandQueue = nil;
@@ -2059,7 +2068,7 @@ void removeQueue(Renderer* pRenderer, Queue* pQueue)
 	SAFE_FREE(pQueue);
 }
 
-void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
+void mtl_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2073,13 +2082,13 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	*ppCmdPool = pCmdPool;
 }
 
-void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void mtl_removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	ASSERT(pCmdPool);
 	SAFE_FREE(pCmdPool);
 }
 
-void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
+void mtl_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2094,7 +2103,7 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	*ppCmd = pCmd;
 }
 
-void removeCmd(Renderer* pRenderer, Cmd* pCmd)
+void mtl_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 {
 	ASSERT(pCmd);
 	pCmd->mtlCommandBuffer = nil;
@@ -2104,7 +2113,7 @@ void removeCmd(Renderer* pRenderer, Cmd* pCmd)
 	SAFE_FREE(pCmd);
 }
 
-void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
+void mtl_addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
 	//verify that ***cmd is valid
 	ASSERT(pRenderer);
@@ -2124,7 +2133,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	*pppCmd = ppCmds;
 }
 
-void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
+void mtl_removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 {
 	//verify that given command list is valid
 	ASSERT(ppCmds);
@@ -2138,7 +2147,7 @@ void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmds)
 	SAFE_FREE(ppCmds);
 }
 
-void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
+void mtl_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
 {
 #if defined(ENABLE_DISPLAY_SYNC_TOGGLE)
 	SwapChain* pSwapchain = *ppSwapchain;
@@ -2164,7 +2173,7 @@ void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
 #endif
 }
 
-void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
+void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -2237,7 +2246,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	*ppSwapChain = pSwapChain;
 }
 
-void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
+void mtl_removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
 	ASSERT(pRenderer);
 	ASSERT(pSwapChain);
@@ -2250,7 +2259,7 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 	SAFE_FREE(pSwapChain);
 }
 
-void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
+void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppBuffer);
@@ -2405,7 +2414,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	*ppBuffer = pBuffer;
 }
 
-void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void mtl_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	ASSERT(pBuffer);
 	
@@ -2431,7 +2440,7 @@ void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 	SAFE_FREE(pBuffer);
 }
 
-void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
+void mtl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
@@ -2444,7 +2453,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	add_texture(pRenderer, pDesc, ppTexture, false);
 }
 
-void removeTexture(Renderer* pRenderer, Texture* pTexture)
+void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pTexture);
 	
@@ -2478,7 +2487,7 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	SAFE_FREE(pTexture);
 }
 
-void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
+void mtl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -2520,13 +2529,13 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	*ppRenderTarget = pRenderTarget;
 }
 
-void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
+void mtl_removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
 	removeTexture(pRenderer, pRenderTarget->pTexture);
 	SAFE_FREE(pRenderTarget);
 }
 
-void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
+void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampler)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -2570,7 +2579,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	*ppSampler = pSampler;
 }
 
-void removeSampler(Renderer* pRenderer, Sampler* pSampler)
+void mtl_removeSampler(Renderer* pRenderer, Sampler* pSampler)
 {
 	ASSERT(pSampler);
 	pSampler->mtlSamplerState = nil;
@@ -2578,7 +2587,7 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 }
 
 #ifdef TARGET_IOS
-void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderProgram)
+void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderProgram)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
@@ -2723,7 +2732,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 }
 #endif
 
-void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
+void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mStages);
@@ -2814,7 +2823,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	*ppShaderProgram = pShaderProgram;
 }
 
-void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
+void mtl_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
 	ASSERT(pShaderProgram);
 	pShaderProgram->mtlVertexShader = nil;
@@ -2827,7 +2836,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	SAFE_FREE(pShaderProgram);
 }
 
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -3123,7 +3132,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	*ppRootSignature = pRootSignature;
 }
 
-void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
+void mtl_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRootSignature);
@@ -3225,7 +3234,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 
 	// assign blend state
 	if (pDesc->pBlendState)
-		util_to_blend_desc(pDesc->pBlendState, renderPipelineDesc.colorAttachments);
+		util_to_blend_desc(pDesc->pBlendState, renderPipelineDesc.colorAttachments, pDesc->mRenderTargetCount);
 	
 	// assign render target pixel format for all attachments
 	for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
@@ -3337,7 +3346,7 @@ extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline*
 extern void removeRaytracingPipeline(RaytracingPipeline* pPipeline);
 #endif
     
-void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
+void mtl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
     ASSERT(pRenderer);
     ASSERT(pRenderer->pDevice != nil);
@@ -3372,7 +3381,7 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 	}
 }
 
-void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
+void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pPipeline);
 	pPipeline->mtlRenderPipelineState = nil;
@@ -3389,47 +3398,57 @@ void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 	SAFE_FREE(pPipeline);
 }
 
-void addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**)
+void mtl_addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**)
 {
 }
 
-void removePipelineCache(Renderer*, PipelineCache*)
+void mtl_removePipelineCache(Renderer*, PipelineCache*)
 {
 }
 
-void getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*)
+void mtl_getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*)
 {
 }
 
-void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
+void mtl_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
 {
 	ASSERT(pRenderer != nil);
 	ASSERT(pDesc != nil);
 
-	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature));
+	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature) + sizeof(IndirectArgument) * pDesc->mIndirectArgCount);
 	ASSERT(pCommandSignature);
-	
-	pCommandSignature->mDrawType = pDesc->pArgDescs[0].mType;
+
+	pCommandSignature->pIndirectArguments = (IndirectArgument*)(pCommandSignature + 1);
+	pCommandSignature->mIndirectArgumentCount = pDesc->mIndirectArgCount;
+	uint32_t offset = 0;
 
 	for (uint32_t i = 0; i < pDesc->mIndirectArgCount; ++i)    // counting for all types;
 	{
+		pCommandSignature->pIndirectArguments[i].mType = pDesc->pArgDescs[i].mType;
+		pCommandSignature->pIndirectArguments[i].mOffset = offset;
+
 		switch (pDesc->pArgDescs[i].mType)
 		{
 			case INDIRECT_DRAW:
 				pCommandSignature->mStride += sizeof(IndirectDrawArguments);
+				offset += sizeof(IndirectDrawArguments);
 				break;
 			case INDIRECT_DRAW_INDEX:
 				pCommandSignature->mStride += sizeof(IndirectDrawIndexArguments);
+				offset += sizeof(IndirectDrawIndexArguments);
 				break;
 			case INDIRECT_DISPATCH:
 				pCommandSignature->mStride += sizeof(IndirectDispatchArguments);
+				offset += sizeof(IndirectDispatchArguments);
 				break;
 			case INDIRECT_COMMAND_BUFFER:
 			case INDIRECT_COMMAND_BUFFER_RESET:
 			case INDIRECT_COMMAND_BUFFER_OPTIMIZE:
 				break;
 			default:
-				LOGF(LogLevel::eERROR, "Metal supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point");
+				pCommandSignature->mStride += pDesc->pArgDescs[i].mByteSize;
+				offset += pDesc->pArgDescs[i].mByteSize;
+				LOGF(LogLevel::eWARNING, "Metal supports IndirectDraw, IndirectDrawIndex and IndirectDispatch at this point");
 				break;
 		}
 	}
@@ -3442,7 +3461,7 @@ void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc
 	*ppCommandSignature = pCommandSignature;
 }
 
-void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
+void mtl_removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pCommandSignature)
 {
 	ASSERT(pCommandSignature);
 	SAFE_FREE(pCommandSignature);
@@ -3450,12 +3469,12 @@ void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pComm
 // -------------------------------------------------------------------------------------------------
 // Buffer functions
 // -------------------------------------------------------------------------------------------------
-void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
+void mtl_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
 	ASSERT(pBuffer->mtlBuffer.storageMode != MTLStorageModePrivate && "Trying to map non-cpu accessible resource");
 	pBuffer->pCpuMappedAddress = (uint8_t*)pBuffer->mtlBuffer.contents + pBuffer->mOffset;
 }
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
+void mtl_unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	ASSERT(pBuffer->mtlBuffer.storageMode != MTLStorageModePrivate && "Trying to unmap non-cpu accessible resource");
 	pBuffer->pCpuMappedAddress = nil;
@@ -3465,13 +3484,13 @@ void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 // Command buffer functions
 // -------------------------------------------------------------------------------------------------
 
-void resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
+void mtl_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 {
 	UNREF_PARAM(pRenderer);
 	UNREF_PARAM(pCmdPool);
 }
 
-void beginCmd(Cmd* pCmd)
+void mtl_beginCmd(Cmd* pCmd)
 {
 	@autoreleasepool
 	{
@@ -3489,7 +3508,7 @@ void beginCmd(Cmd* pCmd)
 	pCmd->mPipelineType = PIPELINE_TYPE_UNDEFINED;
 }
 
-void endCmd(Cmd* pCmd)
+void mtl_endCmd(Cmd* pCmd)
 {
     @autoreleasepool
     {
@@ -3497,7 +3516,7 @@ void endCmd(Cmd* pCmd)
     }
 }
 
-void cmdBindRenderTargets(
+void mtl_cmdBindRenderTargets(
 	Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* pLoadActions,
 	uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
 {
@@ -3525,6 +3544,14 @@ void cmdBindRenderTargets(
 					pCmd->pRenderPassDesc.colorAttachments[i].depthPlane = pColorArraySlices[i];
 				else
 					pCmd->pRenderPassDesc.colorAttachments[i].slice = pColorArraySlices[i];
+			}
+			else if (ppRenderTargets[i]->mArraySize > 1)
+			{
+				pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mArraySize;
+			}
+			else if (ppRenderTargets[i]->mDepth > 1)
+			{
+				pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mDepth;
 			}
 
             // For on-tile (memoryless) textures, we never need to load or store.
@@ -3617,7 +3644,11 @@ void cmdBindRenderTargets(
 	}
 }
 
-void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
+void mtl_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
+{
+}
+
+void mtl_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
 {
 	ASSERT(pCmd);
 	if (pCmd->mtlRenderEncoder == nil)
@@ -3637,7 +3668,7 @@ void cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, floa
 	[pCmd->mtlRenderEncoder setViewport:viewport];
 }
 
-void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+void mtl_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 {
 	ASSERT(pCmd);
 	if (pCmd->mtlRenderEncoder == nil)
@@ -3679,14 +3710,14 @@ void cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32_t h
 	[pCmd->mtlRenderEncoder setScissorRect:scissor];
 }
 
-void cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
+void mtl_cmdSetStencilReferenceValue(Cmd* pCmd, uint32_t val)
 {
 	ASSERT(pCmd);
 
 	[pCmd->mtlRenderEncoder setStencilReferenceValue:val];
 }
 
-void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
+void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 {
 	ASSERT(pCmd);
 	ASSERT(pPipeline);
@@ -3754,7 +3785,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	}
 }
 
-void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
+void mtl_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
 {
 	ASSERT(pCmd);
 	ASSERT(pBuffer);
@@ -3765,7 +3796,7 @@ void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t
 	pCmd->mIndexStride = (INDEX_TYPE_UINT16 == indexType ? sizeof(uint16_t) : sizeof(uint32_t));
 }
 
-void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
+void mtl_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
 {
 	ASSERT(pCmd);
 	ASSERT(0 != bufferCount);
@@ -3793,7 +3824,7 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 	}
 }
     
-void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
+void mtl_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
 	
@@ -3815,7 +3846,7 @@ void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 #endif
 }
 
-void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
+void mtl_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
 	
@@ -3851,7 +3882,7 @@ void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uin
 #endif
 }
 
-void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
+void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
 	
@@ -3921,7 +3952,7 @@ void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_
 #endif
 }
 
-void cmdDrawIndexedInstanced(
+void mtl_cmdDrawIndexedInstanced(
 	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
@@ -3993,7 +4024,7 @@ void cmdDrawIndexedInstanced(
 #endif
 }
 
-void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+void mtl_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
 	ASSERT(pCmd);
 	ASSERT(pCmd->mtlComputeEncoder != nil);
@@ -4012,7 +4043,7 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	[pCmd->mtlComputeEncoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadsPerThreadgroup];
 }
 
-void cmdExecuteIndirect(
+void mtl_cmdExecuteIndirect(
 	Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
@@ -4075,164 +4106,170 @@ void cmdExecuteIndirect(
     util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
     [pCmd->mtlRenderEncoder executeCommandsInBuffer:_indirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
     */
-	
-#if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
-	if (@available(macOS 10.14, iOS 12.0, *))
+	for(int32_t indirectArgIndex = 0; indirectArgIndex < pCommandSignature->mIndirectArgumentCount; ++indirectArgIndex)
 	{
-		if (pCommandSignature->mDrawType == INDIRECT_COMMAND_BUFFER_OPTIMIZE && maxCommandCount)
+		IndirectArgument* pIndirectArgument = &pCommandSignature->pIndirectArguments[indirectArgIndex];
+		uint64_t offset = bufferOffset + pIndirectArgument->mOffset;
+		const IndirectArgumentType drawType = pIndirectArgument->mType;
+
+#if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
+		if (@available(macOS 10.14, iOS 12.0, *))
 		{
-			util_end_current_encoders(pCmd, false);
+			if (drawType == INDIRECT_COMMAND_BUFFER_OPTIMIZE && maxCommandCount)
+			{
+				util_end_current_encoders(pCmd, false);
+				
+				pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
+				util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
+				
+				[pCmd->mtlBlitEncoder optimizeIndirectCommandBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+				return;
+			}
+			else if (drawType == INDIRECT_COMMAND_BUFFER_RESET && maxCommandCount)
+			{
+				util_end_current_encoders(pCmd, false);
+				
+				pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
+				util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
 			
-			pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
-			util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
-			
-			[pCmd->mtlBlitEncoder optimizeIndirectCommandBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
-			return;
+				[pCmd->mtlBlitEncoder resetCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+				return;
+			}
+			else if (drawType == INDIRECT_COMMAND_BUFFER && maxCommandCount)
+			{
+				util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
+				[pCmd->mtlRenderEncoder executeCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+				return;
+			}
 		}
-		else if (pCommandSignature->mDrawType == INDIRECT_COMMAND_BUFFER_RESET && maxCommandCount)
-		{
-			util_end_current_encoders(pCmd, false);
-			
-			pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
-			util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
-		
-			[pCmd->mtlBlitEncoder resetCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
-			return;
-		}
-		else if (pCommandSignature->mDrawType == INDIRECT_COMMAND_BUFFER && maxCommandCount)
+#endif
+
+		if (drawType == INDIRECT_DRAW)
 		{
 			util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
-			[pCmd->mtlRenderEncoder executeCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
-			return;
-		}
-	}
-#endif
 
-	if (pCommandSignature->mDrawType == INDIRECT_DRAW)
-	{
-		util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
-		
-		if (!pCmd->pShader->mTessellation)
-		{
-			for (uint32_t i = 0; i < maxCommandCount; i++)
+			if (!pCmd->pShader->mTessellation)
 			{
-				uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
-				[pCmd->mtlRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
-									indirectBuffer:pIndirectBuffer->mtlBuffer
-							  indirectBufferOffset:indirectBufferOffset];
-			}
-		}
-#if defined(ENABLE_TESSELLATION)
-		else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
-		{
-			for (uint32_t i = 0; i < maxCommandCount; i++)
-			{
-#ifndef TARGET_IOS
-				uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
-				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-							   patchIndexBuffer:nil
-						 patchIndexBufferOffset:0
-								 indirectBuffer:pIndirectBuffer->mtlBuffer
-						   indirectBufferOffset:indirectBufferOffset];
-#else
-				uint64_t indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
-				// Tessellated indirect-draw is not supported on iOS.
-				// Instead, read regular draw arguments from the indirect draw buffer.
-				mapBuffer(pCmd->pRenderer, pIndirectBuffer, NULL);
-				IndirectDrawArguments* pDrawArgs = (IndirectDrawArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
-				unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
-
-				if (pDrawArgs->mVertexCount)
+				for (uint32_t i = 0; i < maxCommandCount; i++)
 				{
-				
-				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-										 patchStart:pDrawArgs->mStartVertex
-										 patchCount:pDrawArgs->mVertexCount
-								   patchIndexBuffer:nil
-							 patchIndexBufferOffset:0
-									  instanceCount:pDrawArgs->mInstanceCount
-									   baseInstance:pDrawArgs->mStartInstance];
+					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
+					[pCmd->mtlRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+										indirectBuffer:pIndirectBuffer->mtlBuffer
+								  indirectBufferOffset:indirectBufferOffset];
 				}
-#endif
 			}
-		}
-#endif
-	}
-	else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
-	{
-		util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
-
-		if (!pCmd->pShader->mTessellation)
-		{
-			for (uint32_t i = 0; i < maxCommandCount; ++i)
-			{
-				id           indexBuffer = pCmd->mSelectedIndexBuffer;
-				MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
-				uint64_t     indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
-				[pCmd->mtlRenderEncoder setVertexBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
-				[pCmd->mtlRenderEncoder setFragmentBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
-				
-				[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
-													indexType:indexType
-												  indexBuffer:indexBuffer
-											indexBufferOffset:0
-											   indirectBuffer:pIndirectBuffer->mtlBuffer
-										 indirectBufferOffset:indirectBufferOffset];
-			}
-		}
 #if defined(ENABLE_TESSELLATION)
-		else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
-		{
-			for (uint32_t i = 0; i < maxCommandCount; ++i)
+			else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
 			{
-				id           indexBuffer = pCmd->mSelectedIndexBuffer;
-				uint64_t     indirectBufferOffset = bufferOffset + pCommandSignature->mStride * i;
+				for (uint32_t i = 0; i < maxCommandCount; i++)
+				{
 #ifndef TARGET_IOS
-				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-								   patchIndexBuffer:indexBuffer
+					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
+					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+								   patchIndexBuffer:nil
 							 patchIndexBufferOffset:0
 									 indirectBuffer:pIndirectBuffer->mtlBuffer
 							   indirectBufferOffset:indirectBufferOffset];
 #else
-				// Tessellated indirect-draw is not supported on iOS.
-				// Instead, read regular draw arguments from the indirect draw buffer.
-				mapBuffer(pCmd->pRenderer, pIndirectBuffer, NULL);
-				IndirectDrawIndexArguments* pDrawArgs =
-					(IndirectDrawIndexArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
-				unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
+					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
+					// Tessellated indirect-draw is not supported on iOS.
+					// Instead, read regular draw arguments from the indirect draw buffer.
+					mapBuffer(pCmd->pRenderer, pIndirectBuffer, NULL);
+					IndirectDrawArguments* pDrawArgs = (IndirectDrawArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
+					unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
 
-				//to supress warning passing nil to controlPointIndexBuffer
-				//todo: Add control point index buffer to be passed when necessary
-				id<MTLBuffer> _Nullable ctrlPtIndexBuf = nil;
-				[pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-												patchStart:pDrawArgs->mStartIndex
-												patchCount:pDrawArgs->mIndexCount
-										  patchIndexBuffer:indexBuffer
-									patchIndexBufferOffset:0
-								   controlPointIndexBuffer:ctrlPtIndexBuf
-							 controlPointIndexBufferOffset:0
-											 instanceCount:pDrawArgs->mInstanceCount
-											  baseInstance:pDrawArgs->mStartInstance];
+					if (pDrawArgs->mVertexCount)
+					{
+					
+					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+											 patchStart:pDrawArgs->mStartVertex
+											 patchCount:pDrawArgs->mVertexCount
+									   patchIndexBuffer:nil
+								 patchIndexBufferOffset:0
+										  instanceCount:pDrawArgs->mInstanceCount
+										   baseInstance:pDrawArgs->mStartInstance];
+					}
 #endif
+				}
 			}
-		}
 #endif
-	}
-	else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
-	{
-		util_barrier_required(pCmd, QUEUE_TYPE_COMPUTE);
-		for (uint32_t i = 0; i < maxCommandCount; ++i)
+		}
+		else if (drawType == INDIRECT_DRAW_INDEX)
 		{
-			Shader* shader = pCmd->pShader;
-			MTLSize threadsPerThreadgroup =
-				MTLSizeMake(shader->mNumThreadsPerGroup[0], shader->mNumThreadsPerGroup[1], shader->mNumThreadsPerGroup[2]);
-			
-			[pCmd->mtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->mtlBuffer indirectBufferOffset:bufferOffset + pCommandSignature->mStride * i threadsPerThreadgroup:threadsPerThreadgroup];
+			util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
+
+			if (!pCmd->pShader->mTessellation)
+			{
+				for (uint32_t i = 0; i < maxCommandCount; ++i)
+				{
+					id           indexBuffer = pCmd->mSelectedIndexBuffer;
+					MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
+					uint64_t     indirectBufferOffset = offset + pCommandSignature->mStride * i;
+					[pCmd->mtlRenderEncoder setVertexBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
+					[pCmd->mtlRenderEncoder setFragmentBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
+
+					[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+														indexType:indexType
+													  indexBuffer:indexBuffer
+												indexBufferOffset:0
+												   indirectBuffer:pIndirectBuffer->mtlBuffer
+											 indirectBufferOffset:indirectBufferOffset];
+				}
+			}
+#if defined(ENABLE_TESSELLATION)
+			else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
+			{
+				for (uint32_t i = 0; i < maxCommandCount; ++i)
+				{
+					id           indexBuffer = pCmd->mSelectedIndexBuffer;
+					uint64_t     indirectBufferOffset = offset + pCommandSignature->mStride * i;
+#ifndef TARGET_IOS
+					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+									   patchIndexBuffer:indexBuffer
+								 patchIndexBufferOffset:0
+										 indirectBuffer:pIndirectBuffer->mtlBuffer
+								   indirectBufferOffset:indirectBufferOffset];
+#else
+					// Tessellated indirect-draw is not supported on iOS.
+					// Instead, read regular draw arguments from the indirect draw buffer.
+					mapBuffer(pCmd->pRenderer, pIndirectBuffer, NULL);
+					IndirectDrawIndexArguments* pDrawArgs =
+						(IndirectDrawIndexArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
+					unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
+
+					//to supress warning passing nil to controlPointIndexBuffer
+					//todo: Add control point index buffer to be passed when necessary
+					id<MTLBuffer> _Nullable ctrlPtIndexBuf = nil;
+					[pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+													patchStart:pDrawArgs->mStartIndex
+													patchCount:pDrawArgs->mIndexCount
+											  patchIndexBuffer:indexBuffer
+										patchIndexBufferOffset:0
+									   controlPointIndexBuffer:ctrlPtIndexBuf
+								 controlPointIndexBufferOffset:0
+												 instanceCount:pDrawArgs->mInstanceCount
+												  baseInstance:pDrawArgs->mStartInstance];
+#endif
+				}
+			}
+#endif
+		}
+		else if (drawType == INDIRECT_DISPATCH)
+		{
+			util_barrier_required(pCmd, QUEUE_TYPE_COMPUTE);
+			for (uint32_t i = 0; i < maxCommandCount; ++i)
+			{
+				Shader* shader = pCmd->pShader;
+				MTLSize threadsPerThreadgroup =
+					MTLSizeMake(shader->mNumThreadsPerGroup[0], shader->mNumThreadsPerGroup[1], shader->mNumThreadsPerGroup[2]);
+
+				[pCmd->mtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->mtlBuffer indirectBufferOffset:offset + pCommandSignature->mStride * i threadsPerThreadgroup:threadsPerThreadgroup];
+			}
 		}
 	}
 }
 
-void cmdResourceBarrier(Cmd* pCmd,
+void mtl_cmdResourceBarrier(Cmd* pCmd,
 uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
 uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
 uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
@@ -4268,7 +4305,7 @@ uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
     }
 }
 
-void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+void mtl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 {
 	ASSERT(pCmd);
 	ASSERT(pSrcBuffer);
@@ -4300,7 +4337,7 @@ typedef struct SubresourceDataDesc
 	uint32_t mSlicePitch;
 } SubresourceDataDesc;
 
-void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, const SubresourceDataDesc* pSubresourceDesc)
+void mtl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, const SubresourceDataDesc* pSubresourceDesc)
 {
 	MTLSize sourceSize = MTLSizeMake(
 			max(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel),
@@ -4339,7 +4376,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, c
 								 options:MTLBlitOptionNone];
 }
 
-void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
+void mtl_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSignalSemaphore, Fence* pFence, uint32_t* pImageIndex)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -4358,7 +4395,7 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	}
 }
 
-void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
+void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
@@ -4481,45 +4518,37 @@ void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	}
 }
 
-PresentStatus queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
+void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
-
-	if (pDesc->pSwapChain)
+	ASSERT(pDesc->pSwapChain);
+	
+	@autoreleasepool
 	{
-		@autoreleasepool
-		{
-			SwapChain* pSwapChain = pDesc->pSwapChain;
-			ASSERT(pQueue->mtlCommandQueue != nil);
+		SwapChain* pSwapChain = pDesc->pSwapChain;
+		ASSERT(pQueue->mtlCommandQueue != nil);
 
-			// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
-			pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
-			
+		// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
+		pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
+		
 #ifndef TARGET_IOS
-			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
+		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #else
-			//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
-			//							 afterMinimumDuration:1.0 / 120.0];
-			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
+		//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
+		//							 afterMinimumDuration:1.0 / 120.0];
+		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #endif
-
-			pSwapChain->ppRenderTargets[pSwapChain->mIndex]->pTexture->mtlTexture = nil;
-			pSwapChain->mMTKDrawable = nil;
-			
-			[pSwapChain->presentCommandBuffer commit];
-			pSwapChain->presentCommandBuffer = nil;
-		}
+	
+		pSwapChain->ppRenderTargets[pSwapChain->mIndex]->pTexture->mtlTexture = nil;
+		pSwapChain->mMTKDrawable = nil;
+		
+		[pSwapChain->presentCommandBuffer commit];
+		pSwapChain->presentCommandBuffer = nil;
 	}
-	else
-	{
-		return PRESENT_STATUS_FAILED;
-	}
-
-	return PRESENT_STATUS_SUCCESS;
 }
 
-void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+void mtl_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 {
 	ASSERT(pRenderer);
 	ASSERT(fenceCount);
@@ -4535,7 +4564,7 @@ void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
 	}
 }
 
-void waitQueueIdle(Queue* pQueue)
+void mtl_waitQueueIdle(Queue* pQueue)
 {
 	ASSERT(pQueue);
 	id<MTLCommandBuffer> waitCmdBuf = [pQueue->mtlCommandQueue commandBufferWithUnretainedReferences];
@@ -4546,7 +4575,7 @@ void waitQueueIdle(Queue* pQueue)
 	waitCmdBuf = nil;
 }
 
-void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+void mtl_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
 {
 	ASSERT(pFence);
 	*pFenceStatus = FENCE_STATUS_COMPLETE;
@@ -4575,7 +4604,7 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
-void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void mtl_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #if defined(ENABLE_COMMAND_BUFFER_DEBUG_MARKERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
@@ -4589,7 +4618,7 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 	}
 }
 
-void cmdEndDebugMarker(Cmd* pCmd)
+void mtl_cmdEndDebugMarker(Cmd* pCmd)
 {
 #if defined(ENABLE_COMMAND_BUFFER_DEBUG_MARKERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
@@ -4603,7 +4632,7 @@ void cmdEndDebugMarker(Cmd* pCmd)
 	}
 }
 
-void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
+void mtl_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 	if (pCmd->mtlRenderEncoder)
 		[pCmd->mtlRenderEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
@@ -4613,12 +4642,17 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 		[pCmd->mtlBlitEncoder insertDebugSignpost:[NSString stringWithFormat:@"%s", pName]];
 }
 
-void getTimestampFrequency(Queue* pQueue, double* pFrequency)
+uint32_t mtl_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValue, Buffer* pBuffer, size_t offset, bool useAutoFlags)
+{
+	return 0;
+}
+
+void mtl_getTimestampFrequency(Queue* pQueue, double* pFrequency)
 {
     *pFrequency = GPU_FREQUENCY;
 }
     
-void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
+void mtl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
 	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
 	ASSERT(pQueryPool);
@@ -4630,25 +4664,25 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	*ppQueryPool = pQueryPool;
 }
 
-void removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
+void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
 	SAFE_FREE(pQueryPool);
 }
 
-void cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+void mtl_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
 {
 }
 
-void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
     pCmd->pLastFrameQuery = pQueryPool;
 }
     
-void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
 }
 
-void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+void mtl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
     uint64_t* data = (uint64_t*)((uint8_t*)pReadbackBuffer->mtlBuffer.contents + pReadbackBuffer->mOffset);
     
@@ -4661,7 +4695,7 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
+void mtl_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 {
 	ASSERT(pRenderer);
 	ASSERT(pBuffer);
@@ -4676,7 +4710,7 @@ void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 #endif
 }
 
-void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
+void mtl_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 {
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
@@ -4688,12 +4722,12 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 #endif
 }
 
-void setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
+void mtl_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
 {
 	setTextureName(pRenderer, pRenderTarget->pTexture, pName);
 }
 
-void setPipelineName(Renderer*, Pipeline*, const char*)
+void mtl_setPipelineName(Renderer*, Pipeline*, const char*)
 {
 }
 // -------------------------------------------------------------------------------------------------
@@ -5324,9 +5358,159 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	*ppTexture = pTexture;
 }
 
+// Virtual Textures
+void mtl_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
+{
+}
+
+void mtl_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
+{
+}
+
+void mtl_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
+{
+}
+
 /************************************************************************/
 /************************************************************************/
 #endif    // RENDERER_IMPLEMENTATION
+
+void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
+{
+	// API functions
+	exitRenderer = mtl_exitRenderer;
+	addFence = mtl_addFence;
+	removeFence = mtl_removeFence;
+	addSemaphore = mtl_addSemaphore;
+	removeSemaphore = mtl_removeSemaphore;
+	addQueue = mtl_addQueue;
+	removeQueue = mtl_removeQueue;
+	addSwapChain = mtl_addSwapChain;
+	removeSwapChain = mtl_removeSwapChain;
+
+	// command pool functions
+	addCmdPool = mtl_addCmdPool;
+	removeCmdPool = mtl_removeCmdPool;
+	addCmd = mtl_addCmd;
+	removeCmd = mtl_removeCmd;
+	addCmd_n = mtl_addCmd_n;
+	removeCmd_n = mtl_removeCmd_n;
+
+	addRenderTarget = mtl_addRenderTarget;
+	removeRenderTarget= mtl_removeRenderTarget;
+	addSampler = mtl_addSampler;
+	removeSampler = mtl_removeSampler;
+
+	// Resource Load functions
+	addBuffer = mtl_addBuffer;
+	removeBuffer = mtl_removeBuffer;
+	mapBuffer = mtl_mapBuffer;
+	unmapBuffer = mtl_unmapBuffer;
+	cmdUpdateBuffer = mtl_cmdUpdateBuffer;
+	cmdUpdateSubresource = mtl_cmdUpdateSubresource;
+	addTexture = mtl_addTexture;
+	removeTexture = mtl_removeTexture;
+	addVirtualTexture = mtl_addVirtualTexture;
+	removeVirtualTexture = mtl_removeVirtualTexture;
+
+	// shader functions
+#if defined(TARGET_IOS)
+	addIosShader = mtl_addShader;
+#endif
+	addShaderBinary = mtl_addShaderBinary;
+	removeShader = mtl_removeShader;
+
+	addRootSignature = mtl_addRootSignature;
+	removeRootSignature = mtl_removeRootSignature;
+
+	// pipeline functions
+	addPipeline = mtl_addPipeline;
+	removePipeline = mtl_removePipeline;
+	addPipelineCache = mtl_addPipelineCache;
+	getPipelineCacheData = mtl_getPipelineCacheData;
+	removePipelineCache = mtl_removePipelineCache;
+
+	// Descriptor Set functions
+	addDescriptorSet = mtl_addDescriptorSet;
+	removeDescriptorSet = mtl_removeDescriptorSet;
+	updateDescriptorSet = mtl_updateDescriptorSet;
+
+	// command buffer functions
+	resetCmdPool = mtl_resetCmdPool;
+	beginCmd = mtl_beginCmd;
+	endCmd = mtl_endCmd;
+	cmdBindRenderTargets = mtl_cmdBindRenderTargets;
+	cmdSetShadingRate = mtl_cmdSetShadingRate;
+	cmdSetViewport = mtl_cmdSetViewport;
+	cmdSetScissor = mtl_cmdSetScissor;
+	cmdSetStencilReferenceValue = mtl_cmdSetStencilReferenceValue;
+	cmdBindPipeline = mtl_cmdBindPipeline;
+	cmdBindDescriptorSet = mtl_cmdBindDescriptorSet;
+	cmdBindPushConstants = mtl_cmdBindPushConstants;
+	cmdBindPushConstantsByIndex = mtl_cmdBindPushConstantsByIndex;
+	cmdBindIndexBuffer = mtl_cmdBindIndexBuffer;
+	cmdBindVertexBuffer = mtl_cmdBindVertexBuffer;
+	cmdDraw = mtl_cmdDraw;
+	cmdDrawInstanced = mtl_cmdDrawInstanced;
+	cmdDrawIndexed = mtl_cmdDrawIndexed;
+	cmdDrawIndexedInstanced = mtl_cmdDrawIndexedInstanced;
+	cmdDispatch = mtl_cmdDispatch;
+
+	// Transition Commands
+	cmdResourceBarrier = mtl_cmdResourceBarrier;
+	// Virtual Textures
+	cmdUpdateVirtualTexture = mtl_cmdUpdateVirtualTexture;
+
+	// queue/fence/swapchain functions
+	acquireNextImage = mtl_acquireNextImage;
+	queueSubmit = mtl_queueSubmit;
+	queuePresent = mtl_queuePresent;
+	waitQueueIdle = mtl_waitQueueIdle;
+	getFenceStatus = mtl_getFenceStatus;
+	waitForFences = mtl_waitForFences;
+	toggleVSync = mtl_toggleVSync;
+
+	getRecommendedSwapchainFormat = mtl_getRecommendedSwapchainFormat;
+
+	//indirect Draw functions
+	addIndirectCommandSignature = mtl_addIndirectCommandSignature;
+	removeIndirectCommandSignature = mtl_removeIndirectCommandSignature;
+	cmdExecuteIndirect = mtl_cmdExecuteIndirect;
+
+	/************************************************************************/
+	// GPU Query Interface
+	/************************************************************************/
+	getTimestampFrequency = mtl_getTimestampFrequency;
+	addQueryPool = mtl_addQueryPool;
+	removeQueryPool = mtl_removeQueryPool;
+	cmdResetQueryPool = mtl_cmdResetQueryPool;
+	cmdBeginQuery = mtl_cmdBeginQuery;
+	cmdEndQuery = mtl_cmdEndQuery;
+	cmdResolveQuery = mtl_cmdResolveQuery;
+	/************************************************************************/
+	// Stats Info Interface
+	/************************************************************************/
+	calculateMemoryStats = mtl_calculateMemoryStats;
+	calculateMemoryUse = mtl_calculateMemoryUse;
+	freeMemoryStats = mtl_freeMemoryStats;
+	/************************************************************************/
+	// Debug Marker Interface
+	/************************************************************************/
+	cmdBeginDebugMarker = mtl_cmdBeginDebugMarker;
+	cmdEndDebugMarker = mtl_cmdEndDebugMarker;
+	cmdAddDebugMarker = mtl_cmdAddDebugMarker;
+	cmdWriteMarker = mtl_cmdWriteMarker;
+	/************************************************************************/
+	// Resource Debug Naming Interface
+	/************************************************************************/
+	setBufferName = mtl_setBufferName;
+	setTextureName = mtl_setTextureName;
+	setRenderTargetName = mtl_setRenderTargetName;
+	setPipelineName = mtl_setPipelineName;
+
+
+	mtl_initRenderer(appName, pSettings, ppRenderer);
+}
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 }    // namespace RENDERER_CPP_NAMESPACE

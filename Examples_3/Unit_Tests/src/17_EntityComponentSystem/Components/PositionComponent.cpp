@@ -30,6 +30,8 @@
 FORGE_IMPLEMENT_COMPONENT(PositionComponent)
 
 PositionComponent::PositionComponent()
+	:x(0.0f),
+	y(0.0f)
 {
 
 }

@@ -68,3 +68,11 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out);
 /************************************************************************/
 /************************************************************************/
+
+bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName);
+
+bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName);
+
+bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir, const char* destFileName);
+
+bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName);

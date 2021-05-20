@@ -110,6 +110,7 @@ struct ComponentVarRepresentation
 		this->min = 0.f;
 		this->max = 0.f;
 		this->step = 0.f;
+		this->hasPerComponentFormat = false;
 	}
 
 	ComponentVarRepresentation(
@@ -125,6 +126,7 @@ struct ComponentVarRepresentation
 		this->min = 0.f;
 		this->max = 0.f;
 		this->step = 0.f;
+		this->hasPerComponentFormat = false;
 	}
 
 	eastl::string			name;
@@ -526,6 +528,8 @@ public:
 #define FORGE_CREATE_VAR_REPRESENTATION(componentClass, varName) \
 	ComponentVariableId varName##_id = componentClass##Representation::varName; \
 	FCR::ComponentVarRepresentation varName;
+
+//-V:FORGE_CREATE_VAR_REPRESENTATION:688: This macro uses local variable names that obscure member variables
 
 #define FORGE_ADD_VAR_MIN_MAX_STEP(varName, fMin, fMax, fStep) \
 	varName.min = fMin; \

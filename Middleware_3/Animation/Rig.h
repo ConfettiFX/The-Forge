@@ -50,7 +50,7 @@ class Rig
 	void Initialize(const ResourceDirectory resourceDir, const char* fileName);
 
 	// Must be called to clean up the object if it was initialized
-	void Destroy();
+	void Exit();
 
 	// Updates the skeleton's joint and bone world matricies based on mJointModelMats
 	void Pose(const Matrix4& rootTransform);
@@ -73,7 +73,7 @@ class Rig
 	// Gets the world matrix of the joint at index (returns identity if index is invalid)
 	inline Matrix4 GetJointWorldMat(unsigned int index)
 	{
-		if ((0 <= index) && (index < mNumJoints))
+		if (index < mNumJoints)
 		{
 			return mJointWorldMats[index];
 		}
@@ -86,7 +86,7 @@ class Rig
 	// Gets the world matrix without any scale data of the joint at index (returns identity if index is invalid)
 	inline Matrix4 GetJointWorldMatNoScale(unsigned int index)
 	{
-		if ((0 <= index) && (index < mNumJoints))
+		if (index < mNumJoints)
 		{
 			mat4 withScale = mJointWorldMats[index];
 
@@ -107,7 +107,7 @@ class Rig
 	// Gets the world matrix of the bone with child joint at index (returns identity if index is invalid)
 	inline Matrix4 GetBoneWorldMat(unsigned int index)
 	{
-		if ((0 <= index) && (index < mNumJoints))
+		if (index < mNumJoints)
 		{
 			return mBoneWorldMats[index];
 		}
@@ -150,13 +150,13 @@ class Rig
 
 	// The number of soa elements matching the number of joints of the
 	// skeleton. This value is useful to allocate SoA runtime data structures.
-	unsigned int mNumSoaJoints;
+	unsigned int mNumSoaJoints = 0;
 
 	// The number of joints of the skeleton
-	unsigned int mNumJoints;
+	unsigned int mNumJoints = 0;
 
 	// Location of the root joint
-	unsigned int mRootIndex;
+	unsigned int mRootIndex = 0;
 
 	// Color of the joints
 	Vector4 mJointColor = vec4(.9f, .9f, .9f, 1.f);    // white

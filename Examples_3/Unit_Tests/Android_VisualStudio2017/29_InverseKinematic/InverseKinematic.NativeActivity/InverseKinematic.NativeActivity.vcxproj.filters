@@ -11,19 +11,22 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{c9d35bd2-31a7-4923-85f7-ff9bf1a98b75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{e75033a8-50f4-4c4f-a34c-c3130e601bd5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\29_InverseKinematic\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\29_InverseKinematic\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\29_InverseKinematic\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\29_InverseKinematic\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

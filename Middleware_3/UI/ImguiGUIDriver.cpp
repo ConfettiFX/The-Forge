@@ -41,22 +41,24 @@
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
-#define LABELID(prop) eastl::string().sprintf("##%llu", (uint64_t)(prop.pData)).c_str()
-#define LABELID1(prop) eastl::string().sprintf("##%llu", (uint64_t)(prop)).c_str()
+#define LABELID(prop, buffer) sprintf(buffer, "##%llu", (unsigned long long)(prop.pData))
+#define LABELID1(prop, buffer) sprintf(buffer, "##%llu", (unsigned long long)(prop))
+
+#define MAX_LABEL_LENGTH 128
 
 namespace ImGui {
 bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max, float v_step, const char* display_format)
 {
-	eastl::string text_buf;
+	char text_buf[30];
 	bool          value_changed = false;
 
 	if (!display_format)
 		display_format = "%.1f";
-	text_buf.sprintf(display_format, *v);
+	sprintf(text_buf, display_format, *v);
 
 	if (ImGui::GetIO().WantTextInput)
 	{
-		value_changed = ImGui::SliderFloat(label, v, v_min, v_max, text_buf.c_str());
+		value_changed = ImGui::SliderFloat(label, v, v_min, v_max, text_buf);
 
 		int v_i = int(((*v - v_min) / v_step) + 0.5f);
 		*v = v_min + float(v_i) * v_step;
@@ -66,7 +68,7 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
 		// Map from [v_min,v_max] to [0,N]
 		const int countValues = int((v_max - v_min) / v_step);
 		int       v_i = int(((*v - v_min) / v_step) + 0.5f);
-		value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf.c_str());
+		value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf);
 
 		// Remap from [0,N] to [v_min,v_max]
 		*v = v_min + float(v_i) * v_step;
@@ -82,16 +84,16 @@ bool SliderFloatWithSteps(const char* label, float* v, float v_min, float v_max,
 
 bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_max, int32_t v_step, const char* display_format)
 {
-	eastl::string text_buf;
+	char text_buf[30];
 	bool          value_changed = false;
 
 	if (!display_format)
 		display_format = "%d";
-	text_buf.sprintf(display_format, *v);
+	sprintf(text_buf, display_format, *v);
 
 	if (ImGui::GetIO().WantTextInput)
 	{
-		value_changed = ImGui::SliderInt(label, v, v_min, v_max, text_buf.c_str());
+		value_changed = ImGui::SliderInt(label, v, v_min, v_max, text_buf);
 
 		int32_t v_i = int((*v - v_min) / v_step);
 		*v = v_min + int32_t(v_i) * v_step;
@@ -101,7 +103,7 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
 		// Map from [v_min,v_max] to [0,N]
 		const int countValues = int((v_max - v_min) / v_step);
 		int32_t   v_i = int((*v - v_min) / v_step);
-		value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf.c_str());
+		value_changed = ImGui::SliderInt(label, &v_i, 0, countValues, text_buf);
 
 		// Remap from [0,N] to [v_min,v_max]
 		*v = v_min + int32_t(v_i) * v_step;
@@ -116,11 +118,11 @@ bool SliderIntWithSteps(const char* label, int32_t* v, int32_t v_min, int32_t v_
 }
 }    // namespace ImGui
 
-class ImguiGUIDriver: public GUIDriver
+class ImguiGUIDriver
 {
 	public:
-	// Declare virtual destructor
-	virtual ~ImguiGUIDriver() {}
+
+	~ImguiGUIDriver() {}
 	bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch);
 	void exit();
 
@@ -131,7 +133,7 @@ class ImguiGUIDriver: public GUIDriver
 
 	void* getContext();
 
-	bool update(GUIUpdate* pGuiUpdate);
+	bool update(GUIDriverUpdate* pGuiUpdate);
 	void draw(Cmd* q);
 	
 	bool onButton(uint32_t button, bool press, const float2* vec)
@@ -199,7 +201,7 @@ class ImguiGUIDriver: public GUIDriver
 				}
 				return true;
 			}
-			
+			break;
 		}
 
 		// Note that for keyboard keys, we only set them to true here if they are pressed because we may have a press/release
@@ -293,47 +295,110 @@ class ImguiGUIDriver: public GUIDriver
 
 	protected:
 	static const uint32_t MAX_FRAMES = 3;
-	ImGuiContext*           context;
+	ImGuiContext*           context = NULL;
 	eastl::vector<Texture*>  mFontTextures;
 	float2                  dpiScale;
-	uint32_t                frameIdx;
+	uint32_t                frameIdx = 0;
 
-	Renderer*          pRenderer;
-	Shader*            pShaderTextured;
-	RootSignature*     pRootSignatureTextured;
-	DescriptorSet*     pDescriptorSetUniforms;
-	DescriptorSet*     pDescriptorSetTexture;
-	Pipeline*          pPipelineTextured;
-	Buffer*            pVertexBuffer;
-	Buffer*            pIndexBuffer;
-	Buffer*            pUniformBuffer[MAX_FRAMES];
+	Renderer*          pRenderer = NULL;
+	Shader*            pShaderTextured = NULL;
+	RootSignature*     pRootSignatureTextured = NULL;
+	DescriptorSet*     pDescriptorSetUniforms = NULL;
+	DescriptorSet*     pDescriptorSetTexture = NULL;
+	Pipeline*          pPipelineTextured = NULL;
+	Buffer*            pVertexBuffer = NULL;
+	Buffer*            pIndexBuffer = NULL;
+	Buffer*            pUniformBuffer[MAX_FRAMES] = {};
 	/// Default states
-	Sampler*         pDefaultSampler;
+	Sampler*         pDefaultSampler = NULL;
 	VertexLayout     mVertexLayoutTextured = {};
-	uint32_t         mMaxDynamicUIUpdatesPerBatch;
-	uint32_t         mDynamicUIUpdates;
-	float            mNavInputs[ImGuiNavInput_COUNT];
-	const float2*    pMovePosition;
-	uint32_t         mLastUpdateCount;
+	uint32_t         mMaxDynamicUIUpdatesPerBatch = 0;
+	uint32_t         mDynamicUIUpdates = 0;
+	float            mNavInputs[ImGuiNavInput_COUNT] = {};
+	const float2*    pMovePosition = NULL;
+	uint32_t         mLastUpdateCount = 0;
 	float2           mLastUpdateMin[64] = {};
 	float2           mLastUpdateMax[64] = {};
-	bool             mActive;
-	bool             mCustomShader;
-	bool             mPostUpdateKeyDownStates[512];
+	bool             mActive = false;
+	bool             mCustomShader = false;
+	bool             mPostUpdateKeyDownStates[512] = {};
+
+	// Since gestures events always come first, we want to dismiss any other inputs after that
+	bool mHandledGestures = false;
 };
 
 static const uint64_t VERTEX_BUFFER_SIZE = 1024 * 64 * sizeof(ImDrawVert);
 static const uint64_t INDEX_BUFFER_SIZE = 128 * 1024 * sizeof(ImDrawIdx);
 
-void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
+void allocGUIDriver(Renderer* pRenderer, void** ppDriver)
 {
 	ImguiGUIDriver* pDriver = tf_new(ImguiGUIDriver);
 	*ppDriver = pDriver;
 }
 
-void removeGUIDriver(GUIDriver* pDriver)
+void freeGUIDriver(void* pDriver)
 {
-	tf_delete(pDriver);
+	tf_delete((ImguiGUIDriver*)pDriver);
+}
+
+bool initGUIDriver(void* pDriver, Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch)
+{
+	return ((ImguiGUIDriver*)pDriver)->init(pRenderer, maxDynamicUIUpdatesPerBatch);
+}
+
+void exitGUIDriver(void* pDriver)
+{
+	((ImguiGUIDriver*)pDriver)->exit();
+}
+
+bool loadGUIDriver(void* pDriver, RenderTarget** ppRts, uint32_t count, PipelineCache* pCache)
+{
+	return ((ImguiGUIDriver*)pDriver)->load(ppRts, count, pCache);
+}
+
+void unloadGUIDriver(void* pDriver)
+{
+	((ImguiGUIDriver*)pDriver)->unload();
+}
+
+void setGUIDriverCustomShader(void* pDriver, Shader* pShader)
+{
+	((ImguiGUIDriver*)pDriver)->setCustomShader(pShader);
+}
+
+void updateGUIDriver(void* pDriver, GUIDriverUpdate* pGuiUpdate)
+{
+	((ImguiGUIDriver*)pDriver)->update(pGuiUpdate);
+}
+
+void drawGUIDriver(void* pDriver, Cmd* pCmd)
+{
+	((ImguiGUIDriver*)pDriver)->draw(pCmd);
+}
+
+void addGUIDriverFont(void* pDriver, void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont)
+{
+	((ImguiGUIDriver*)pDriver)->addFont(pFontBuffer, fontBufferSize, pFontGlyphRanges, fontSize, pFont);
+}
+
+bool GUIDriverOnText(void* pDriver, const wchar_t* pText)
+{
+	return ((ImguiGUIDriver*)pDriver)->onText(pText);
+}
+
+bool GUIDriverOnButton(void* pDriver, uint32_t button, bool press, const float2* pVec)
+{
+	return ((ImguiGUIDriver*)pDriver)->onButton(button, press, pVec);
+}
+
+uint8_t GUIDriverWantTextInput(void* pDriver)
+{
+	return ((ImguiGUIDriver*)pDriver)->wantTextInput();
+}
+
+bool GUIDriverIsFocused(void* pDriver)
+{
+	return ((ImguiGUIDriver*)pDriver)->isFocused();
 }
 
 static float4 ToFloat4Color(uint color)
@@ -352,212 +417,289 @@ static uint ToUintColor(float4 color)
 	return c;
 }
 
-void IWidget::ProcessCallbacks(bool deferred)
+// IWidget public functions
+void processWidgetCallbacks(IWidget* pWidget, bool deferred)
 {
 	if (!deferred)
 	{
-		mHovered = ImGui::IsItemHovered();
-		mActive = ImGui::IsItemActive();
-		mFocused = ImGui::IsItemFocused();
-		mEdited = ImGui::IsItemEdited();
-		mDeactivated = ImGui::IsItemDeactivated();
-		mDeactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
+		pWidget->mHovered = ImGui::IsItemHovered();
+		pWidget->mActive = ImGui::IsItemActive();
+		pWidget->mFocused = ImGui::IsItemFocused();
+		pWidget->mEdited = ImGui::IsItemEdited();
+		pWidget->mDeactivated = ImGui::IsItemDeactivated();
+		pWidget->mDeactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
 	}
 
-	if (mDeferred != deferred)
+	if (pWidget->mDeferred != deferred)
 	{
 		return;
 	}
-  
-  if (pOnHover && mHovered) 
-    pOnHover();
-  
-	if (pOnActive && mActive)
-		pOnActive();
 
-	if (pOnFocus && mFocused)
-		pOnFocus();
+	if (pWidget->pOnHover && pWidget->mHovered)
+		pWidget->pOnHover();
 
-	if (pOnEdited && mEdited)
-		pOnEdited();
+	if (pWidget->pOnActive && pWidget->mActive)
+		pWidget->pOnActive();
 
-	if (pOnDeactivated && mDeactivated)
-		pOnDeactivated();
+	if (pWidget->pOnFocus && pWidget->mFocused)
+		pWidget->pOnFocus();
 
-	if (pOnDeactivatedAfterEdit && mDeactivatedAfterEdit)
-		pOnDeactivatedAfterEdit();
+	if (pWidget->pOnEdited && pWidget->mEdited)
+		pWidget->pOnEdited();
+
+	if (pWidget->pOnDeactivated && pWidget->mDeactivated)
+		pWidget->pOnDeactivated();
+
+	if (pWidget->pOnDeactivatedAfterEdit && pWidget->mDeactivatedAfterEdit)
+		pWidget->pOnDeactivatedAfterEdit();
 }
 
-void CollapsingHeaderWidget::Draw()
+// CollapsingHeaderWidget private functions
+void drawCollapsingHeaderWidget(IWidget* pWidget)
 {
-	if (mPreviousCollapsed != mCollapsed)
+	CollapsingHeaderWidget* pOriginalWidget = (CollapsingHeaderWidget*)(pWidget->pWidget);
+
+	if (pOriginalWidget->mPreviousCollapsed != pOriginalWidget->mCollapsed)
 	{
-		ImGui::SetNextTreeNodeOpen(!mCollapsed);
-		mPreviousCollapsed = mCollapsed;
+		ImGui::SetNextTreeNodeOpen(!pOriginalWidget->mCollapsed);
+		pOriginalWidget->mPreviousCollapsed = pOriginalWidget->mCollapsed;
 	}
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_CollapsingHeader;
-	if (mDefaultOpen)
+	if (pOriginalWidget->mDefaultOpen)
 		flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-	if (!mHeaderIsVisible || ImGui::CollapsingHeader(mLabel.c_str(), flags))
+	if (!pOriginalWidget->mHeaderIsVisible || ImGui::CollapsingHeader(pWidget->mLabel, flags))
 	{
-		for (IWidget* widget : mGroupedWidgets)
-			widget->Draw();
+		for (IWidget* widget : pOriginalWidget->mGroupedWidgets)
+			drawWidget(widget);
 	}
 
-	ProcessCallbacks();
+	processWidgetCallbacks(pWidget);
 }
 
-void DebugTexturesWidget::Draw()
+// DebugTexturesWidget private functions
+void drawDebugTexturesWidget(IWidget* pWidget)
 {
-	for (Texture* tex : mTextures)
+	DebugTexturesWidget* pOriginalWidget = (DebugTexturesWidget*)(pWidget->pWidget);
+
+	for (Texture* tex : pOriginalWidget->mTextures)
 	{
-		ImGui::Image(tex, mTextureDisplaySize);
+		ImGui::Image(tex, pOriginalWidget->mTextureDisplaySize);
 		ImGui::SameLine();
 	}
-	ProcessCallbacks();
+
+	processWidgetCallbacks(pWidget);
 }
 
-void LabelWidget::Draw()
+// LabelWidget private functions
+void drawLabelWidget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
-	ProcessCallbacks();
+	ImGui::Text("%s", pWidget->mLabel);
+	processWidgetCallbacks(pWidget);
 }
 
-void ColorLabelWidget::Draw()
+// ColorLabelWidget private functions
+void drawColorLabelWidget(IWidget* pWidget)
 {
-  ImGui::TextColored(mColor,"%s", mLabel.c_str());
-  ProcessCallbacks();
+	ColorLabelWidget* pOriginalWidget = (ColorLabelWidget*)(pWidget->pWidget);
+
+	ImGui::TextColored(pOriginalWidget->mColor, "%s", pWidget->mLabel);
+	processWidgetCallbacks(pWidget);
 }
 
-void HorizontalSpaceWidget::Draw()
+// HorizontalSpaceWidget private functions
+void drawHorizontalSpaceWidget(IWidget* pWidget)
 {
-  ImGui::SameLine();
-  ProcessCallbacks();
+	ImGui::SameLine();
+	processWidgetCallbacks(pWidget);
 }
 
-void SeparatorWidget::Draw()
+// SeparatorWidget private functions
+void drawSeparatorWidget(IWidget* pWidget)
 {
 	ImGui::Separator();
-	ProcessCallbacks();
+	processWidgetCallbacks(pWidget);
 }
 
-void VerticalSeparatorWidget::Draw()
+// VerticalSeparatorWidget private functions
+void drawVerticalSeparatorWidget(IWidget* pWidget)
 {
-  for (uint32_t i = 0; i < mLineCount; ++i) 
-  {
-    ImGui::VerticalSeparator();
-  }
+	VerticalSeparatorWidget* pOriginalWidget = (VerticalSeparatorWidget*)(pWidget->pWidget);
 
-  ProcessCallbacks();
+	for (uint32_t i = 0; i < pOriginalWidget->mLineCount; ++i)
+	{
+		ImGui::VerticalSeparator();
+	}
+
+	processWidgetCallbacks(pWidget);
 }
 
-void ButtonWidget::Draw()
+// ButtonWidget private functions
+void drawButtonWidget(IWidget* pWidget)
 {
-	ImGui::Button(mLabel.c_str());
-	ProcessCallbacks();
+	ImGui::Button(pWidget->mLabel);
+	processWidgetCallbacks(pWidget);
 }
 
-void SliderFloatWidget::Draw()
+// SliderFloatWidget private functions
+void drawSliderFloatWidget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderFloatWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat.c_str());
-	ProcessCallbacks();
+	SliderFloatWidget* pOriginalWidget = (SliderFloatWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::Text("%s", pWidget->mLabel);
+	ImGui::SliderFloatWithSteps(label, pOriginalWidget->pData, pOriginalWidget->mMin, pOriginalWidget->mMax, pOriginalWidget->mStep, pOriginalWidget->mFormat);
+	processWidgetCallbacks(pWidget);
 }
 
-void SliderFloat2Widget::Draw()
+// SliderFloat2Widget private functions
+void drawSliderFloat2Widget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
+	SliderFloat2Widget* pOriginalWidget = (SliderFloat2Widget*)(pWidget->pWidget);
+
+	ImGui::Text("%s", pWidget->mLabel);
 	for (uint32_t i = 0; i < 2; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
-		ProcessCallbacks();
+		char label[MAX_LABEL_LENGTH];
+		LABELID1(&pOriginalWidget->pData->operator[](i), label);
+
+		ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->mMin[i], pOriginalWidget->mMax[i], pOriginalWidget->mStep[i], pOriginalWidget->mFormat);
+		processWidgetCallbacks(pWidget);
 	}
 }
 
-void SliderFloat3Widget::Draw()
+// SliderFloat3Widget private functions
+void drawSliderFloat3Widget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
+	SliderFloat3Widget* pOriginalWidget = (SliderFloat3Widget*)(pWidget->pWidget);
+
+	ImGui::Text("%s", pWidget->mLabel);
 	for (uint32_t i = 0; i < 3; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
-		ProcessCallbacks();
+		char label[MAX_LABEL_LENGTH];
+		LABELID1(&pOriginalWidget->pData->operator[](i), label);
+		ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->mMin[i], pOriginalWidget->mMax[i], pOriginalWidget->mStep[i], pOriginalWidget->mFormat);
+		processWidgetCallbacks(pWidget);
 	}
 }
 
-void SliderFloat4Widget::Draw()
+// SliderFloat4Widget private functions
+void drawSliderFloat4Widget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
+	SliderFloat4Widget* pOriginalWidget = (SliderFloat4Widget*)(pWidget->pWidget);
+
+	ImGui::Text("%s", pWidget->mLabel);
 	for (uint32_t i = 0; i < 4; ++i)
 	{
-		ImGui::SliderFloatWithSteps(LABELID1(&pData->operator[](i)), &pData->operator[](i), mMin[i], mMax[i], mStep[i], mFormat.c_str());
-		ProcessCallbacks();
+		char label[MAX_LABEL_LENGTH];
+		LABELID1(&pOriginalWidget->pData->operator[](i), label);
+		ImGui::SliderFloatWithSteps(label, &pOriginalWidget->pData->operator[](i), pOriginalWidget->mMin[i], pOriginalWidget->mMax[i], pOriginalWidget->mStep[i], pOriginalWidget->mFormat);
+		processWidgetCallbacks(pWidget);
 	}
 }
 
-void SliderIntWidget::Draw()
+// SliderIntWidget private functions
+void drawSliderIntWidget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderIntWithSteps(LABELID1(pData), pData, mMin, mMax, mStep, mFormat.c_str());
-	ProcessCallbacks();
+	SliderIntWidget* pOriginalWidget = (SliderIntWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::Text("%s", pWidget->mLabel);
+	ImGui::SliderIntWithSteps(label, pOriginalWidget->pData, pOriginalWidget->mMin, pOriginalWidget->mMax, pOriginalWidget->mStep, pOriginalWidget->mFormat);
+	processWidgetCallbacks(pWidget);
 }
 
-void SliderUintWidget::Draw()
+// SliderUintWidget private functions
+void drawSliderUintWidget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
-	ImGui::SliderIntWithSteps(LABELID1(pData), (int32_t*)pData, (int32_t)mMin, (int32_t)mMax, (int32_t)mStep, mFormat.c_str());
-	ProcessCallbacks();
+	SliderUintWidget* pOriginalWidget = (SliderUintWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::Text("%s", pWidget->mLabel);
+	ImGui::SliderIntWithSteps(label, (int32_t*)pOriginalWidget->pData, (int32_t)pOriginalWidget->mMin, (int32_t)pOriginalWidget->mMax, (int32_t)pOriginalWidget->mStep,
+		pOriginalWidget->mFormat);
+	processWidgetCallbacks(pWidget);
 }
 
-void RadioButtonWidget::Draw()
+// RadioButtonWidget private functions
+void drawRadioButtonWidget(IWidget* pWidget)
 {
-	ImGui::RadioButton(mLabel.c_str(), pData, mRadioId);
-	ProcessCallbacks();
+	RadioButtonWidget* pOriginalWidget = (RadioButtonWidget*)(pWidget->pWidget);
+
+	ImGui::RadioButton(pWidget->mLabel, pOriginalWidget->pData, pOriginalWidget->mRadioId);
+	processWidgetCallbacks(pWidget);
 }
 
-void CheckboxWidget::Draw()
+// CheckboxWidget private functions
+void drawCheckboxWidget(IWidget* pWidget)
 {
-	ImGui::Text("%s", mLabel.c_str());
-	ImGui::Checkbox(LABELID1(pData), pData);
-	ProcessCallbacks();
+	CheckboxWidget* pOriginalWidget = (CheckboxWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::Text("%s", pWidget->mLabel);
+	ImGui::Checkbox(label, pOriginalWidget->pData);
+	processWidgetCallbacks(pWidget);
 }
 
-void OneLineCheckboxWidget::Draw()
+// OneLineCheckboxWidget private functions
+void drawOneLineCheckboxWidget(IWidget* pWidget)
 {
-  ImGui::Checkbox(LABELID1(pData), pData);
-  ImGui::SameLine();
-  ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(mColor),"%s", mLabel.c_str());
-  ProcessCallbacks();
+	OneLineCheckboxWidget* pOriginalWidget = (OneLineCheckboxWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::Checkbox(label, pOriginalWidget->pData);
+	ImGui::SameLine();
+	ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(pOriginalWidget->mColor), "%s", pWidget->mLabel);
+	processWidgetCallbacks(pWidget);
 }
 
-void CursorLocationWidget::Draw()
+// CursorLocationWidget private functions
+void drawCursorLocationWidget(IWidget* pWidget)
 {
-  ImGui::SetCursorPos(mLocation);
-  ProcessCallbacks();
+	CursorLocationWidget* pOriginalWidget = (CursorLocationWidget*)(pWidget->pWidget);
+
+	ImGui::SetCursorPos(pOriginalWidget->mLocation);
+	processWidgetCallbacks(pWidget);
 }
 
-void DropdownWidget::Draw()
+// DropdownWidget private functions
+void drawDropdownWidget(IWidget* pWidget)
 {
-	uint32_t& current = *pData;
-	ImGui::Text("%s", mLabel.c_str());
-	if (ImGui::BeginCombo(LABELID1(pData), mNames[current].c_str()))
+	DropdownWidget* pOriginalWidget = (DropdownWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	uint32_t& current = *(pOriginalWidget->pData);
+	ImGui::Text("%s", pWidget->mLabel);
+	if (ImGui::BeginCombo(label, pOriginalWidget->mNames[current]))
 	{
-		for (uint32_t i = 0; i < (uint32_t)mNames.size(); ++i)
+		for (uint32_t i = 0; i < (uint32_t)pOriginalWidget->mNames.size(); ++i)
 		{
-      if (ImGui::Selectable(mNames[i].c_str()))
+			if (ImGui::Selectable(pOriginalWidget->mNames[i]))
 			{
 				uint32_t prevVal = current;
 				current = i;
 
 				// Note that callbacks are sketchy with BeginCombo/EndCombo, so we manually process them here
-				if (pOnEdited)
-					pOnEdited();
+				if (pWidget->pOnEdited)
+					pWidget->pOnEdited();
 
 				if (current != prevVal)
 				{
-					if (pOnDeactivatedAfterEdit)
-						pOnDeactivatedAfterEdit();
+					if (pWidget->pOnDeactivatedAfterEdit)
+						pWidget->pOnDeactivatedAfterEdit();
 				}
 			}
 		}
@@ -565,39 +707,50 @@ void DropdownWidget::Draw()
 	}
 }
 
-void ColumnWidget::Draw()
+// ColumnWidget private functions
+void drawColumnWidget(IWidget* pWidget)
 {
-  // Test a simple 4 col table.
-  ImGui::BeginColumns(mLabel.c_str(), mNumColumns, ImGuiColumnsFlags_NoResize | ImGuiColumnsFlags_NoForceWithinWindow);
+	ColumnWidget* pOriginalWidget = (ColumnWidget*)(pWidget->pWidget);
 
-  for (uint32_t i = 0; i < mNumColumns; ++i) 
-  {
-    mPerColumnWidgets[i]->Draw();
-    ImGui::NextColumn();
-  }
+	// Test a simple 4 col table.
+	ImGui::BeginColumns(pWidget->mLabel, pOriginalWidget->mNumColumns, ImGuiColumnsFlags_NoResize | ImGuiColumnsFlags_NoForceWithinWindow);
 
-  ImGui::EndColumns();
+	for (uint32_t i = 0; i < pOriginalWidget->mNumColumns; ++i)
+	{
+		drawWidget(pOriginalWidget->mPerColumnWidgets[i]);
+		ImGui::NextColumn();
+	}
 
-  ProcessCallbacks();
+	ImGui::EndColumns();
+
+	processWidgetCallbacks(pWidget);
 }
 
-
-void ProgressBarWidget::Draw()
+// ProgressBarWidget private functions
+void drawProgressBarWidget(IWidget* pWidget)
 {
-	size_t currProgress = *pData;
-	ImGui::Text("%s", mLabel.c_str());
-	ImGui::ProgressBar((float)currProgress / mMaxProgress);
-	ProcessCallbacks();
+	ProgressBarWidget* pOriginalWidget = (ProgressBarWidget*)(pWidget->pWidget);
+
+	size_t currProgress = *(pOriginalWidget->pData);
+	ImGui::Text("%s", pWidget->mLabel);
+	ImGui::ProgressBar((float)currProgress / pOriginalWidget->mMaxProgress);
+	processWidgetCallbacks(pWidget);
 }
 
-void ColorSliderWidget::Draw()
+// ColorSliderWidget private functions
+void drawColorSliderWidget(IWidget* pWidget)
 {
-	uint&  colorPick = *(uint*)pData;
+	ColorSliderWidget* pOriginalWidget = (ColorSliderWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	uint& colorPick = *((uint*)pOriginalWidget->pData);
 	float4 combo_color = ToFloat4Color(colorPick) / 255.0f;
 
 	float col[4] = { combo_color.x, combo_color.y, combo_color.z, combo_color.w };
-	ImGui::Text("%s", mLabel.c_str());
-	if (ImGui::ColorEdit4(LABELID1(pData), col, ImGuiColorEditFlags_AlphaPreview))
+	ImGui::Text("%s", pWidget->mLabel);
+	if (ImGui::ColorEdit4(label, col, ImGuiColorEditFlags_AlphaPreview))
 	{
 		if (col[0] != combo_color.x || col[1] != combo_color.y || col[2] != combo_color.z || col[3] != combo_color.w)
 		{
@@ -605,29 +758,45 @@ void ColorSliderWidget::Draw()
 			colorPick = ToUintColor(combo_color * 255.0f);
 		}
 	}
-	ProcessCallbacks();
+	processWidgetCallbacks(pWidget);
 }
 
-void HistogramWidget::Draw()
+// HistogramWidget private functions
+void drawHistogramWidget(IWidget* pWidget)
 {
-  ImGui::PlotHistogram(mLabel.c_str(), pValues, mCount, 0, mHistogramTitle->c_str(), *mMinScale, *mMaxScale, mHistogramSize);
-  ProcessCallbacks();
+	HistogramWidget* pOriginalWidget = (HistogramWidget*)(pWidget->pWidget);
+
+	ImGui::PlotHistogram(pWidget->mLabel, pOriginalWidget->pValues, pOriginalWidget->mCount, 0, pOriginalWidget->mHistogramTitle, *(pOriginalWidget->mMinScale),
+		*(pOriginalWidget->mMaxScale), pOriginalWidget->mHistogramSize);
+
+	processWidgetCallbacks(pWidget);
 }
 
-void PlotLinesWidget::Draw() 
+// PlotLinesWidget private functions
+void drawPlotLinesWidget(IWidget* pWidget)
 {
-  ImGui::PlotLines(mLabel.c_str(), mValues, mNumValues, 0, mTitle->c_str(), *mScaleMin, *mScaleMax, *mPlotScale);
-  ProcessCallbacks();
+	PlotLinesWidget* pOriginalWidget = (PlotLinesWidget*)(pWidget->pWidget);
+
+	ImGui::PlotLines(pWidget->mLabel, pOriginalWidget->mValues, pOriginalWidget->mNumValues, 0, pOriginalWidget->mTitle, *(pOriginalWidget->mScaleMin), *(pOriginalWidget->mScaleMax),
+		*(pOriginalWidget->mPlotScale));
+
+	processWidgetCallbacks(pWidget);
 }
 
-void ColorPickerWidget::Draw()
+// ColorPickerWidget private functions
+void drawColorPickerWidget(IWidget* pWidget)
 {
-	uint&  colorPick = *(uint*)pData;
+	ColorPickerWidget* pOriginalWidget = (ColorPickerWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	uint& colorPick = *((uint*)pOriginalWidget->pData);
 	float4 combo_color = ToFloat4Color(colorPick) / 255.0f;
 
 	float col[4] = { combo_color.x, combo_color.y, combo_color.z, combo_color.w };
-	ImGui::Text("%s", mLabel.c_str());
-	if (ImGui::ColorPicker4(LABELID1(pData), col, ImGuiColorEditFlags_AlphaPreview))
+	ImGui::Text("%s", pWidget->mLabel);
+	if (ImGui::ColorPicker4(label, col, ImGuiColorEditFlags_AlphaPreview))
 	{
 		if (col[0] != combo_color.x || col[1] != combo_color.y || col[2] != combo_color.z || col[3] != combo_color.w)
 		{
@@ -635,92 +804,316 @@ void ColorPickerWidget::Draw()
 			colorPick = ToUintColor(combo_color * 255.0f);
 		}
 	}
-	ProcessCallbacks();
+	processWidgetCallbacks(pWidget);
 }
 
-void TextboxWidget::Draw()
+// TextboxWidget private functions
+void drawTextboxWidget(IWidget* pWidget)
 {
-	ImGui::InputText(LABELID1(pData), (char*)pData, mLength, mAutoSelectAll ? ImGuiInputTextFlags_AutoSelectAll : 0);
-	ProcessCallbacks();
+	TextboxWidget* pOriginalWidget = (TextboxWidget*)(pWidget->pWidget);
+
+	char label[MAX_LABEL_LENGTH];
+	LABELID1(pOriginalWidget->pData, label);
+
+	ImGui::InputText(label, (char*)pOriginalWidget->pData, pOriginalWidget->mLength, pOriginalWidget->mAutoSelectAll ? ImGuiInputTextFlags_AutoSelectAll : 0);
+	processWidgetCallbacks(pWidget);
 }
 
-void DynamicTextWidget::Draw()
+// DynamicTextWidget private functions
+void drawDynamicTextWidget(IWidget* pWidget)
 {
-    ImGui::TextColored(*pColor, "%s", pData);
-    ProcessCallbacks();
+	DynamicTextWidget* pOriginalWidget = (DynamicTextWidget*)(pWidget->pWidget);
+
+	ImGui::TextColored(*(pOriginalWidget->pColor), "%s", pOriginalWidget->pData);
+	processWidgetCallbacks(pWidget);
 }
 
-void FilledRectWidget::Draw()
+// FilledRectWidget private functions
+void drawFilledRectWidget(IWidget* pWidget)
 {
-  ImGuiWindow* window = ImGui::GetCurrentWindow();
-  float2 pos = window->Pos - window->Scroll + mPos;
-  float2 pos2 = float2(pos.x + mScale.x, pos.y + mScale.y);
+	FilledRectWidget* pOriginalWidget = (FilledRectWidget*)(pWidget->pWidget);
 
-  ImGui::GetWindowDrawList()->AddRectFilled(pos, pos2, ImGui::GetColorU32(mColor));
+	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	float2 pos = window->Pos - window->Scroll + pOriginalWidget->mPos;
+	float2 pos2 = float2(pos.x + pOriginalWidget->mScale.x, pos.y + pOriginalWidget->mScale.y);
 
-  ProcessCallbacks();
+	ImGui::GetWindowDrawList()->AddRectFilled(pos, pos2, ImGui::GetColorU32(pOriginalWidget->mColor));
+
+	processWidgetCallbacks(pWidget);
 }
 
-void DrawTextWidget::Draw()
+// DrawTextWidget private functions
+void drawDrawTextWidget(IWidget* pWidget)
 {
-  ImGuiWindow* window = ImGui::GetCurrentWindow();
-  float2 pos = window->Pos - window->Scroll + mPos;
-  const float2 line_size = ImGui::CalcTextSize(mLabel.c_str());
+	DrawTextWidget* pOriginalWidget = (DrawTextWidget*)(pWidget->pWidget);
 
-  ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(mColor), mLabel.c_str());
+	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	float2 pos = window->Pos - window->Scroll + pOriginalWidget->mPos;
+	const float2 line_size = ImGui::CalcTextSize(pWidget->mLabel);
 
-  ImRect bounding_box(pos, pos + line_size);
-  ImGui::ItemSize(bounding_box);
-  ImGui::ItemAdd(bounding_box, 0);
+	ImGui::GetWindowDrawList()->AddText(pos, ImGui::GetColorU32(pOriginalWidget->mColor), pWidget->mLabel);
 
-  ProcessCallbacks();
+	ImRect bounding_box(pos, pos + line_size);
+	ImGui::ItemSize(bounding_box);
+	ImGui::ItemAdd(bounding_box, 0);
+
+	processWidgetCallbacks(pWidget);
 }
 
-
-void DrawTooltipWidget::Draw()
+// DrawTooltipWidget private functions
+void drawDrawTooltipWidget(IWidget* pWidget)
 {
-  if ((*mShowTooltip) == true) 
-  {
-    ImGui::BeginTooltip();
+	DrawTooltipWidget* pOriginalWidget = (DrawTooltipWidget*)(pWidget->pWidget);
 
-    ImGui::TextUnformatted(mText);
+	if ((*(pOriginalWidget->mShowTooltip)) == true)
+	{
+		ImGui::BeginTooltip();
 
-    ImGui::EndTooltip();
-  }
-  
-  ProcessCallbacks();
+		ImGui::TextUnformatted(pOriginalWidget->mText);
+
+		ImGui::EndTooltip();
+	}
+
+	processWidgetCallbacks(pWidget);
 }
 
-void DrawLineWidget::Draw()
+// DrawLineWidget private functions
+void drawDrawLineWidget(IWidget* pWidget)
 {
-  ImGuiWindow* window = ImGui::GetCurrentWindow();
-  float2 pos1 = window->Pos - window->Scroll + mPos1;
-  float2 pos2 = window->Pos - window->Scroll + mPos2;
+	DrawLineWidget* pOriginalWidget = (DrawLineWidget*)(pWidget->pWidget);
 
-  ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(mColor));
+	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	float2 pos1 = window->Pos - window->Scroll + pOriginalWidget->mPos1;
+	float2 pos2 = window->Pos - window->Scroll + pOriginalWidget->mPos2;
 
-  if (mAddItem) 
-  {
-    ImRect bounding_box(pos1, pos2);
-    ImGui::ItemSize(bounding_box);
-    ImGui::ItemAdd(bounding_box, 0);
-  }
-  
-  ProcessCallbacks();
+	ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->mColor));
+
+	if (pOriginalWidget->mAddItem)
+	{
+		ImRect bounding_box(pos1, pos2);
+		ImGui::ItemSize(bounding_box);
+		ImGui::ItemAdd(bounding_box, 0);
+	}
+
+	processWidgetCallbacks(pWidget);
 }
 
-void DrawCurveWidget::Draw()
+// DrawCurveWidget private functions
+void drawDrawCurveWidget(IWidget* pWidget)
 {
-  ImGuiWindow* window = ImGui::GetCurrentWindow();
-    
-  for (uint32_t i = 0; i < mNumPoints-1; i++) 
-  {
-    float2 pos1 = window->Pos - window->Scroll + mPos[i];
-    float2 pos2 = window->Pos - window->Scroll + mPos[i+1];
-    ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(mColor), mThickness);
-  }
+	DrawCurveWidget* pOriginalWidget = (DrawCurveWidget*)(pWidget->pWidget);
 
-  ProcessCallbacks();
+	ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+	for (uint32_t i = 0; i < pOriginalWidget->mNumPoints - 1; i++)
+	{
+		float2 pos1 = window->Pos - window->Scroll + pOriginalWidget->mPos[i];
+		float2 pos2 = window->Pos - window->Scroll + pOriginalWidget->mPos[i + 1];
+		ImGui::GetWindowDrawList()->AddLine(pos1, pos2, ImGui::GetColorU32(pOriginalWidget->mColor), pOriginalWidget->mThickness);
+	}
+
+	processWidgetCallbacks(pWidget);
+}
+
+void drawWidget(IWidget* pWidget)
+{
+	switch (pWidget->mType)
+	{
+	case WIDGET_TYPE_COLLAPSING_HEADER:
+	{
+		drawCollapsingHeaderWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DEBUG_TEXTURES:
+	{
+		drawDebugTexturesWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_LABEL:
+	{
+		drawLabelWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_COLOR_LABEL:
+	{
+		drawColorLabelWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_HORIZONTAL_SPACE:
+	{
+		drawHorizontalSpaceWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SEPARATOR:
+	{
+		drawSeparatorWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_VERTICAL_SEPARATOR:
+	{
+		drawVerticalSeparatorWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_BUTTON:
+	{
+		drawButtonWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_FLOAT:
+	{
+		drawSliderFloatWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_FLOAT2:
+	{
+		drawSliderFloat2Widget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_FLOAT3:
+	{
+		drawSliderFloat3Widget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_FLOAT4:
+	{
+		drawSliderFloat4Widget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_INT:
+	{
+		drawSliderIntWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_SLIDER_UINT:
+	{
+		drawSliderUintWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_RADIO_BUTTON:
+	{
+		drawRadioButtonWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_CHECKBOX:
+	{
+		drawCheckboxWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_ONE_LINE_CHECKBOX:
+	{
+		drawOneLineCheckboxWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_CURSOR_LOCATION:
+	{
+		drawCursorLocationWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DROPDOWN:
+	{
+		drawDropdownWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_COLUMN:
+	{
+		drawColumnWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_PROGRESS_BAR:
+	{
+		drawProgressBarWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_COLOR_SLIDER:
+	{
+		drawColorSliderWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_HISTOGRAM:
+	{
+		drawHistogramWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_PLOT_LINES:
+	{
+		drawPlotLinesWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_COLOR_PICKER:
+	{
+		drawColorPickerWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_TEXTBOX:
+	{
+		drawTextboxWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DYNAMIC_TEXT:
+	{
+		drawDynamicTextWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_FILLED_RECT:
+	{
+		drawFilledRectWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DRAW_TEXT:
+	{
+		drawDrawTextWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DRAW_TOOLTIP:
+	{
+		drawDrawTooltipWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DRAW_LINE:
+	{
+		drawDrawLineWidget(pWidget);
+		break;
+	}
+
+	case WIDGET_TYPE_DRAW_CURVE:
+	{
+		drawDrawCurveWidget(pWidget);
+		break;
+	}
+
+	default:
+		ASSERT(0);
+	}
 }
 
 static void SetDefaultStyle()
@@ -781,7 +1174,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	pRenderer = renderer;
 	mMaxDynamicUIUpdatesPerBatch = maxDynamicUIUpdatesPerBatch;
 	mActive = true;
-	memset(mPostUpdateKeyDownStates, false, sizeof(mPostUpdateKeyDownStates));
+	memset(mPostUpdateKeyDownStates, false, sizeof(mPostUpdateKeyDownStates)); //-V601
 	/************************************************************************/
 	// Rendering resources
 	/************************************************************************/
@@ -1039,7 +1432,7 @@ void* ImguiGUIDriver::getContext()
 	return context;
 }
 
-bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
+bool ImguiGUIDriver::update(GUIDriverUpdate* pGuiUpdate)
 {
 	ImGui::SetCurrentContext(context);
 	// #TODO: Use window size as render-target size cannot be trusted to be the same as window size
@@ -1067,18 +1460,20 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 		for (uint32_t compIndex = 0; compIndex < pGuiUpdate->componentCount; ++compIndex)
 		{
 			GuiComponent*                           pComponent = pGuiUpdate->pGuiComponents[compIndex];
-			eastl::string                           title = pComponent->mTitle;
+			char									title[MAX_TITLE_STR_LENGTH]{};
 			int32_t                                 guiComponentFlags = pComponent->mFlags;
 			bool*                                   pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
-			const eastl::vector<eastl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
+			const eastl::vector<char*>& contextualMenuLabels = pComponent->mContextualMenuLabels;
 			const eastl::vector<WidgetCallback>&  contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
 			const float4&                           windowRect = pComponent->mInitialWindowRect;
 			float4&                                 currentWindowRect = pComponent->mCurrentWindowRect;
 			IWidget**                               pProps = pComponent->mWidgets.data();
 			uint32_t                                propCount = (uint32_t)pComponent->mWidgets.size();
 
-			if (title == "")
-				title.sprintf("##%llu", (uint64_t)pComponent);
+			strcpy(title, pComponent->mTitle);
+
+			if (title[0] == '\0')
+				sprintf(title, "##%llu", (unsigned long long)pComponent);
 			// Setup the ImGuiWindowFlags
 			ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
 			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
@@ -1116,7 +1511,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 
 			ImGui::PushFont((ImFont*)pComponent->pFont);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, pComponent->mAlpha);
-			bool result = ImGui::Begin(title.c_str(), pCloseButtonActiveValue, guiWinFlags);
+			bool result = ImGui::Begin(title, pCloseButtonActiveValue, guiWinFlags);
 			if (result)
 			{
 				// Setup the contextual menus
@@ -1124,7 +1519,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 				{
 					for (size_t i = 0; i < contextualMenuLabels.size(); i++)
 					{
-						if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+						if (ImGui::MenuItem(contextualMenuLabels[i]))
 						{
 							if (i < contextualMenuCallbacks.size())
 								contextualMenuCallbacks[i]();
@@ -1154,7 +1549,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 				{
 					if (pProps[i] != nullptr)
 					{
-						pProps[i]->Draw();
+						drawWidget(pProps[i]);
 					}
 				}
 
@@ -1190,7 +1585,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 			{
 				if (pProps[i] != nullptr)
 				{
-					pProps[i]->ProcessCallbacks(true);
+					processWidgetCallbacks(pProps[i], true);
 				}
 			}
 		}

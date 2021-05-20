@@ -50,8 +50,10 @@ VECTORMATH_ALIGNED_TYPE_PRE class BoolInVec
     inline BoolInVec(__m128 vec);
 
 public:
-
-    inline BoolInVec() { }
+    
+    // Default constructor; does no initialization
+    //
+    inline BoolInVec() { } //-V730
 
     // matches standard type conversions
     //

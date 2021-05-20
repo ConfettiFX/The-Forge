@@ -95,7 +95,6 @@ cgltf_result cgltf_parse_and_load(const char* skeletonAsset, cgltf_data** ppData
 
 	ssize_t fileSize = fsGetStreamFileSize(&file);
 	void* fileData = tf_malloc(fileSize);
-	cgltf_result result = cgltf_result_invalid_gltf;
 
 	fsReadFromStream(&file, fileData, fileSize);
 
@@ -103,7 +102,7 @@ cgltf_result cgltf_parse_and_load(const char* skeletonAsset, cgltf_data** ppData
 	cgltf_options options = {};
 	options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
 	options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
-	result = cgltf_parse(&options, fileData, fileSize, &data);
+	cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
 	fsCloseStream(&file);
 
 
@@ -957,8 +956,6 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	archive << *skeleton;
 	fsCloseStream(&file);
 
-	void* fileData = data->file_data;
-
 	// Generate joint remaps in the gltf
 	{
 		eastl::vector<char> buffer;
@@ -1059,7 +1056,6 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	rawAnimation.name = animationName;
 	rawAnimation.duration = 0.f;
 
-	bool rootFound = false;
 	rawAnimation.tracks.resize(skeleton->num_joints());
 	for (uint i = 0; i < (uint)skeleton->num_joints(); ++i)
 	{

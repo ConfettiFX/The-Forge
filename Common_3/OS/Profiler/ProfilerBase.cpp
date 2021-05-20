@@ -91,7 +91,7 @@ int64_t ProfileGetTick()
 #endif
 #include <WinSock2.h>
 #pragma comment(lib, "ws2_32.lib")
-#define P_INVALID_SOCKET(f) (f == INVALID_SOCKET)
+#define P_INVALID_SOCKET(f) ((f) == INVALID_SOCKET)
 #endif
 
 #if defined(__APPLE__) || defined(__linux__)
@@ -100,7 +100,7 @@ int64_t ProfileGetTick()
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <fcntl.h>
-#define P_INVALID_SOCKET(f) (f < 0)
+#define P_INVALID_SOCKET(f) ((f) < 0)
 #endif
 
 #endif 
@@ -345,13 +345,13 @@ PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog * pLog)
 				break;
 			}
 		}
-		P_ASSERT(nLogIndex < PROFILE_MAX_THREADS);
+		P_ASSERT(nLogIndex >= 0 && nLogIndex < PROFILE_MAX_THREADS);
 
-		S.Pool[nLogIndex] = 0;
+		S.Pool[nLogIndex] = 0; //-V557
 
 		for (int i = 0; i < PROFILE_MAX_FRAME_HISTORY; ++i)
 		{
-			S.Frames[i].nLogStart[nLogIndex] = 0;
+			S.Frames[i].nLogStart[nLogIndex] = 0; //-V557
 		}
 
 		if (pLog->Log)
@@ -428,13 +428,13 @@ void ProfileOnThreadExit()
 				break;
 			}
 		}
-		P_ASSERT(nLogIndex < PROFILE_MAX_THREADS);
+		P_ASSERT(nLogIndex >= 0 && nLogIndex < PROFILE_MAX_THREADS);
 
-		S.Pool[nLogIndex] = 0;
+		S.Pool[nLogIndex] = 0; //-V557
 
 		for (int i = 0; i < PROFILE_MAX_FRAME_HISTORY; ++i)
 		{
-			S.Frames[i].nLogStart[nLogIndex] = 0;
+			S.Frames[i].nLogStart[nLogIndex] = 0; //-V557
 		}
 
 		if (pLog->Log)
@@ -1229,9 +1229,9 @@ void ProfileFlipCpu()
 								P_ASSERT(nStackPos < PROFILE_STACK_MAX);
 								P_ASSERT(nGroup < PROFILE_MAX_GROUPS);
 								pGroupStackPos[nGroup]++;
-								pStack[nStackPos++] = k;
+								pStack[nStackPos] = k;
 								pChildTickStack[nStackPos] = 0;
-
+								nStackPos++;
 							}
 							else if (P_LOG_META == nType)
 							{
@@ -1264,7 +1264,6 @@ void ProfileFlipCpu()
                                         S.FrameExclusive[nTimerIndex] += (nTicks - nChildTicks);
                                         S.Frame[nTimerIndex].nCount += 1;
                                     }
-									P_ASSERT(nGroup < PROFILE_MAX_GROUPS);
 									uint8_t nGroupStackPos = pGroupStackPos[nGroup];
 									if (nGroupStackPos)
 									{
@@ -1620,17 +1619,17 @@ void ProfileCalcAllTimers(float* pTimers, float* pAverage, float* pMax, float* p
 		float fToPrc = S.fRcpReferenceTime;
 		float fMs = fToMs * (S.Frame[nTimer].nTicks);
 		float fPrc = ProfileMin(fMs * fToPrc, 1.f);
-		float fAverageMs = fToMs * (S.Aggregate[nTimer].nTicks / nAggregateFrames);
+		float fAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateFrames);
 		float fAveragePrc = ProfileMin(fAverageMs * fToPrc, 1.f);
 		float fMaxMs = fToMs * (S.AggregateMax[nTimer]);
 		float fMaxPrc = ProfileMin(fMaxMs * fToPrc, 1.f);
 		float fMinMs = fToMs * (S.AggregateMin[nTimer] != uint64_t(-1) ? S.AggregateMin[nTimer] : 0);
 		float fMinPrc = ProfileMin(fMinMs * fToPrc, 1.f);
-		float fCallAverageMs = fToMs * (S.Aggregate[nTimer].nTicks / nAggregateCount);
+		float fCallAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateCount);
 		float fCallAveragePrc = ProfileMin(fCallAverageMs * fToPrc, 1.f);
 		float fMsExclusive = fToMs * (S.FrameExclusive[nTimer]);
 		float fPrcExclusive = ProfileMin(fMsExclusive * fToPrc, 1.f);
-		float fAverageMsExclusive = fToMs * (S.AggregateExclusive[nTimer] / nAggregateFrames);
+		float fAverageMsExclusive = fToMs * (float)(S.AggregateExclusive[nTimer] / nAggregateFrames);
 		float fAveragePrcExclusive = ProfileMin(fAverageMsExclusive * fToPrc, 1.f);
 		float fMaxMsExclusive = fToMs * (S.AggregateMaxExclusive[nTimer]);
 		float fMaxPrcExclusive = ProfileMin(fMaxMsExclusive * fToPrc, 1.f);
@@ -1699,7 +1698,7 @@ float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThr
     uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
     uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
     float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    return fToMs * (S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
+    return fToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
 }
 
 float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
@@ -1734,7 +1733,7 @@ float getCpuAvgFrameTime()
     float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
     Profile & S = g_Profile;
     uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-    return fToMs * (S.nFlipAggregateDisplay / nAggregateFrames);
+    return fToMs * (float)(S.nFlipAggregateDisplay / nAggregateFrames);
 }
 
 float getCpuFrameTime()
@@ -1816,11 +1815,11 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
 		P_ASSERT(nShift < (int64_t)nNumExt);
 		if (nShift)
 		{
-			nLen = snprintf(pOut, nBufferSize - 1, "%3.2f%s", (double)nCounter / nDivisor, pExt[nShift]);
+			snprintf(pOut, nBufferSize - 1, "%3.2f%s", (double)nCounter / nDivisor, pExt[nShift]);
 		}
 		else
 		{
-			nLen = snprintf(pOut, nBufferSize - 1, "%lld%s", (long long)nCounter, pExt[nShift]);
+			snprintf(pOut, nBufferSize - 1, "%lld%s", (long long)nCounter, pExt[nShift]);
 		}
 		nLen = (int)strlen(pOut);
 	}
@@ -1944,7 +1943,7 @@ void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 				float fToMs = S.Pool[i]->nGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[j].nGpuProfileToken)) : fToMsCPU;
 				{
 					uint64_t nTicks = S.Pool[i]->nAggregateGroupTicks[j];
-					float fTime = nTicks / nAggregateFrames * fToMs;
+					float fTime = (float)(nTicks / nAggregateFrames) * fToMs;
 					float fTimeTotal = nTicks * fToMs;
 					if (fTimeTotal > 0.01f)
 					{
@@ -2253,8 +2252,6 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	const uint32_t nFirstFrame = (S.nFrameCurrent + PROFILE_MAX_FRAME_HISTORY - nNumFrames) % PROFILE_MAX_FRAME_HISTORY;
 	uint32_t nLastFrame = (nFirstFrame + nNumFrames) % PROFILE_MAX_FRAME_HISTORY;
 	P_ASSERT(nLastFrame == (S.nFrameCurrent % PROFILE_MAX_FRAME_HISTORY));
-	P_ASSERT(nFirstFrame < PROFILE_MAX_FRAME_HISTORY);
-	P_ASSERT(nLastFrame < PROFILE_MAX_FRAME_HISTORY);
 	const int64_t nTickStart = S.Frames[nFirstFrame].nFrameStartCpu;
 	const int64_t nTickEnd = S.Frames[nLastFrame].nFrameStartCpu;
 	const int64_t nTickStartGpu = S.Frames[nFirstFrame].nFrameStartGpu[0];
@@ -2571,9 +2568,13 @@ void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFram
     MutexLock lock(ProfileMutex());
     // Dump frames to file.
     time_t t = time(0);
-    eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Profile-%Y-%m-%d-%H.%M.%S.html)");
+
+	char tempName[128];
+	sprintf(tempName, "%s", appName);
+	strcat(tempName, R"(Profile-%Y-%m-%d-%H.%M.%S.html)");
+
     char name[128] = {};
-    strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
+    strftime(name, sizeof(name), tempName, localtime(&t));
 	FileStream fh = {};
     if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &fh))
     {

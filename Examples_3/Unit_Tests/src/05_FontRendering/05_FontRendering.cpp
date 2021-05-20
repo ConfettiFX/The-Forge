@@ -52,6 +52,8 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // NOTE: should be the last include in a .cpp!
 
+#define MAX_SCREEN_TEXT_LENGTH 128
+
 /************************************************************************/
 /* SCENE VARIABLES
 *************************************************************************/
@@ -66,7 +68,7 @@ struct Fonts
 
 struct ScreenText
 {
-	eastl::string mText;
+	char mText[MAX_SCREEN_TEXT_LENGTH]{};
 	TextDrawDesc    mDrawDesc;
 
 	// screen space position:
@@ -95,6 +97,8 @@ static const uint32_t gLightSkinHeaderColor = 0xff000000;
 
 static const uint32_t gDarkSkinTextColor = 0xffb0b0b0;
 static const uint32_t gDarkSkinHeaderColor = 0xffffffff;
+
+static uint32_t		  gSelectedApiIndex = 0;
 
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, bool bDarkSkin)
 {
@@ -135,7 +139,7 @@ const int TextureAtlasDimension = 1024;
 #else    // PC / LINUX / MAC
 const int TextureAtlasDimension = 2048;
 #endif
-UIApp         gAppUI(TextureAtlasDimension);
+UIApp*        pAppUI = NULL;
 GuiComponent* pUIWindow = NULL;
 bool          gbShowSceneControlsUIWindow = true;    // toggle this w/ F1
 
@@ -182,7 +186,7 @@ float GetNextTextPosition(
 	//   +--------------- previousTextSizeInPx [0, screenSize]
 	//
 	const float  spacingBetweenTexts = 0.01f;    // normalized to screen size(width)
-	const float2 previousTextSizeInPx = gAppUI.MeasureText(pTextPrevious, drawDescPrevious);
+	const float2 previousTextSizeInPx = measureAppUIText(pAppUI, pTextPrevious, &drawDescPrevious);
 	const float  offsetFromPreviousText = previousTextSizeInPx.getX() / mSettings.mWidth + spacingBetweenTexts;
 	return normalizedXCoordOfPreviousText + offsetFromPreviousText;
 };
@@ -195,7 +199,7 @@ float GetLongestStringLengthInPx(const char* const* ppTexts, int numTexts, const
 	float longestTextSz = 0.0f;
 	for (int i = 0; i < numTexts; ++i)
 	{
-		longestTextSz = max(longestTextSz, gAppUI.MeasureText(ppTexts[i], pDrawDescs[i]).getX());
+		longestTextSz = max(longestTextSz, measureAppUIText(pAppUI, ppTexts[i], &pDrawDescs[i]).getX());
 	}
 	return longestTextSz;
 }
@@ -208,7 +212,7 @@ float GetLongestStringLengthInPx(const char* const* ppTexts, int numTexts, const
 	float longestTextSz = 0.0f;
 	for (int i = 0; i < numTexts; ++i)
 	{
-		longestTextSz = max(longestTextSz, gAppUI.MeasureText(ppTexts[i], drawDesc).getX());
+		longestTextSz = max(longestTextSz, measureAppUIText(pAppUI, ppTexts[i], &drawDesc).getX());
 	}
 	return longestTextSz;
 }
@@ -218,7 +222,7 @@ float GetLongestStringLengthInPx(const char* const* ppTexts, int numTexts, const
 inline float GetScreenCenteredPosition(const float normalizedTextLength) { return (1.0f - normalizedTextLength) * 0.5f; }
 float2       GetCenteredTextPosition(const char* pText, const TextDrawDesc& drawDesc, const IApp::Settings& mSettings)
 {
-	const float2 normalizedTextSize = gAppUI.MeasureText(pText, drawDesc) / float2(mSettings.mWidth, mSettings.mHeight);
+	const float2 normalizedTextSize = measureAppUIText(pAppUI, pText, &drawDesc) / float2(mSettings.mWidth, mSettings.mHeight);
 	const float2 normalizedScreenCoords(
 		GetScreenCenteredPosition(normalizedTextSize.getX()), GetScreenCenteredPosition(normalizedTextSize.getY()));
 	return normalizedScreenCoords;
@@ -229,13 +233,7 @@ uint32_t gScriptIndexes[] = { 0 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
-}
-
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
 //static float gBiasX = 0.0f;
@@ -267,6 +265,131 @@ class FontRendering: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,			"Scripts");
+
+		// window and renderer setup
+		pRenderer = NULL;
+		RendererDesc rendererDesc = { 0 };
+		rendererDesc.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &rendererDesc, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		waitForAllResourceLoads();
+
+		// initialize UI middleware
+		UIAppDesc appUIDesc = {};
+		appUIDesc.fontAtlasSize = TextureAtlasDimension;
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;    // report?
+
+		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+
+		// load the fonts
+		gFonts.titilliumBold = initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		gFonts.comicRelief = initAppUIFont(pAppUI, "ComicRelief/ComicRelief.ttf");
+		gFonts.crimsonSerif = initAppUIFont(pAppUI, "Crimson/Crimson-Roman.ttf");
+		gFonts.monoSpace = initAppUIFont(pAppUI, "InconsolataLGC/Inconsolata-LGC.otf");
+		gFonts.monoSpaceBold = initAppUIFont(pAppUI, "InconsolataLGC/Inconsolata-LGC-Bold.otf");
+
+		// setup the UI window		
+		vec2        UIWndSize = vec2{ 250, 300 };
+		vec2        UIWndPosition = vec2{ mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f };
+		GuiDesc     guiDesc;
+		guiDesc.mStartPosition = UIWndPosition;
+		guiDesc.mStartSize = UIWndSize;
+		guiDesc.mDefaultTextDrawDesc = TextDrawDesc();
+		pUIWindow = addAppUIGuiComponent(pAppUI, "Controls", &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(GLES)
+			"GLES",
+		#endif
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		#if defined(DIRECT3D11)
+			"D3D11",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		CheckboxWidget fitScreenCheckbox;
+		fitScreenCheckbox.pData = &gSceneData.bFitToScreen;
+
+		const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
+		DropdownWidget ThemeDropdown;
+		ThemeDropdown.pData = &gSceneData.theme;
+		for (uint32_t i = 0; i < NUM_THEMES; ++i)
+		{
+			ThemeDropdown.mNames.push_back((char*)pThemeLabels[i]);
+			ThemeDropdown.mValues.push_back((uint32_t)ColorThemes[i]);
+		}
+
+		gPreviousTheme = gSceneData.theme;
+
+		addWidgetLua(addGuiWidget(pUIWindow, "Theme", &ThemeDropdown, WIDGET_TYPE_DROPDOWN));
+		addWidgetLua(addGuiWidget(pUIWindow, "Fit to Screen", &fitScreenCheckbox, WIDGET_TYPE_CHECKBOX));
+
+		DropdownWidget ddTestScripts;
+		ddTestScripts.pData = &gCurrentScriptIndex;
+		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
+		{
+			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+		}
+		addWidgetLua(addGuiWidget(pUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+		ButtonWidget bRunScript;
+		IWidget* pRunScript = addGuiWidget(pUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		pRunScript->pOnEdited = RunScript;
+		addWidgetLua(pRunScript);
+
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
         
 		if (!initInputSystem(pWindow))
 			return false;
@@ -276,97 +399,41 @@ class FontRendering: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition); } };
+		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition); } };
 		addInputAction(&actionDesc);
+
+		gFrameIndex = 0;
 
 		return true;
 	}
 
 	void Exit()
 	{
-		exitInputSystem();
+		exitInputSystem(); 
+		exitProfilerUI();
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// window and renderer setup
-			RendererDesc rendererDesc = { 0 };
-			initRenderer(GetName(), &rendererDesc, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			waitForAllResourceLoads();
-
-			// initialize UI middleware
-			if (!gAppUI.Init(pRenderer))
-				return false;    // report?
-			gAppUI.AddTestScripts(gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-
-			// load the fonts
-			gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-			gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf");
-			gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf");
-			gFonts.monoSpace = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf");
-			gFonts.monoSpaceBold = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC-Bold.otf");
-
-			// setup the UI window		
-			vec2        UIWndSize = vec2{ 250, 300 };
-			vec2        UIWndPosition = vec2{ mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f };
-			GuiDesc     guiDesc(UIWndPosition, UIWndSize, TextDrawDesc());
-			pUIWindow = gAppUI.AddGuiComponent("Controls", &guiDesc);
-
-			CheckboxWidget fitScreenCheckbox("Fit to Screen", &gSceneData.bFitToScreen);
-
-			const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
-			DropdownWidget ThemeDropdown("Theme", &gSceneData.theme, pThemeLabels, (uint32_t*)ColorThemes, NUM_THEMES);
-
-			gPreviousTheme = gSceneData.theme;
-
-			pUIWindow->AddWidget(ThemeDropdown);
-			pUIWindow->AddWidget(fitScreenCheckbox);
-
-			DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-			ButtonWidget bRunScript("Run");
-			bRunScript.pOnEdited = RunScript;
-			pUIWindow->AddWidget(ddTestScripts);
-			pUIWindow->AddWidget(bRunScript);
-
-			// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pUIWindow->AddWidget(testGPUReset);
-
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-		}
-
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
@@ -383,7 +450,7 @@ class FontRendering: public IApp
 
 		InitializeSceneText();
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
 		return true;
@@ -392,40 +459,16 @@ class FontRendering: public IApp
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 		removeSwapChain(pRenderer, pSwapChain);
 		gSceneData.sceneTextArray.set_capacity(0);
-
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			exitProfilerUI();
-			exitProfiler();
-
-			gAppUI.Exit();
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 
 		// detect dropdown value change
 		if (gPreviousTheme != gSceneData.theme)
@@ -480,10 +523,10 @@ class FontRendering: public IApp
 		if (!gSceneData.sceneTextArray.empty())
 		{
 			const eastl::vector<ScreenText>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
-			for (int i = 0; i < texts.size(); ++i)
+			for (uint32_t i = 0; i < texts.size(); ++i)
 			{
 				const float2 pxPosition = texts[i].mScreenPosition * float2(mSettings.mWidth, mSettings.mHeight);
-				gAppUI.DrawText(cmd, pxPosition, texts[i].mText.c_str(), &texts[i].mDrawDesc);
+				drawAppUIText(pAppUI, cmd, &pxPosition, texts[i].mText, &texts[i].mDrawDesc);
 			}
 		}
 
@@ -502,10 +545,10 @@ class FontRendering: public IApp
 #endif
 
 		if (gbShowSceneControlsUIWindow)
-			gAppUI.Gui(pUIWindow);
+			appUIGui(pAppUI, pUIWindow);
 
 		cmdDrawProfilerUI();
-		gAppUI.Draw(cmd);
+		drawAppUI(pAppUI, cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -528,20 +571,8 @@ class FontRendering: public IApp
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET) 
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-		
-		if (gTestGraphicsReset) 
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
@@ -553,7 +584,7 @@ class FontRendering: public IApp
 		gSceneData.sceneTextArray.clear();
 		eastl::vector<ScreenText> sceneTexts;
 		TextDrawDesc                drawDescriptor;
-		const char*                 txt = "";
+		const char*					txt = "";
 
 		const float SCREEN_WIDTH = (float)mSettings.mWidth;
 		const float SCREEN_HEIGHT = (float)mSettings.mHeight;
@@ -574,7 +605,14 @@ class FontRendering: public IApp
 		drawDescriptor.mFontSize = 50.0f;
 		txt = "Fontstash Font Rendering";
 		const float2 centeredCoords = GetCenteredTextPosition(txt, drawDescriptor, mSettings);
-		sceneTexts.push_back({ txt, drawDescriptor, { centeredCoords.getX(), screenSizeDistanceFromPreviousRow[0] } });
+
+		{
+			ScreenText sceneText;
+			strcpy(sceneText.mText, txt);
+			sceneText.mDrawDesc = drawDescriptor;
+			sceneText.mScreenPosition = { centeredCoords.getX(), screenSizeDistanceFromPreviousRow[0] };
+			sceneTexts.push_back(sceneText);
+		}
 		// ROW 0 ===================================================================
 
 		// some pre-calculations here to center the text for any resolution:
@@ -605,7 +643,7 @@ class FontRendering: public IApp
 		//
 
 		// CALCULATING HEIGHT:
-		const float2 TITLE_SIZE_PX = gAppUI.MeasureText(txt, drawDescriptor);
+		const float2 TITLE_SIZE_PX = measureAppUIText(pAppUI, txt, &drawDescriptor);
 		const float  blurPositionY =
 			screenSizeDistanceFromPreviousRow[0] + TITLE_SIZE_PX.getY() / SCREEN_HEIGHT + screenSizeDistanceFromPreviousRow[1];
 
@@ -616,12 +654,12 @@ class FontRendering: public IApp
 		drawDescriptor.mFontSize = 20.0f;
 		drawDescriptor.mFontID = gFonts.monoSpace;
 		txt = "Font Spacing = 4.0f";
-		const float longestSpacingFontTextNormalizedLength = gAppUI.MeasureText(txt, drawDescriptor).getX() / SCREEN_WIDTH;
+		const float longestSpacingFontTextNormalizedLength = measureAppUIText(pAppUI, txt, &drawDescriptor).getX() / SCREEN_WIDTH;
 
 		drawDescriptor.mFontSpacing = 0.0f;    // set these upfront for input for MeasureText() function
 		drawDescriptor.mFontBlur = 0.0f;
 		txt = "Blur = 0.0f";
-		const float blurTextNormalizedLength = gAppUI.MeasureText(txt, drawDescriptor).getX() / SCREEN_WIDTH;
+		const float blurTextNormalizedLength = measureAppUIText(pAppUI, txt, &drawDescriptor).getX() / SCREEN_WIDTH;
 
 		const float blurPosition = GetCenteredTextPosition(txt, drawDescriptor, mSettings).getX();
 		const float spacingPosition = blurPosition - (longestSpacingFontTextNormalizedLength + normalizedLengthBetweenEachColumn);
@@ -704,11 +742,16 @@ class FontRendering: public IApp
 					case 2: drawDescriptor.mFontColor = (unsigned)fontPropertyValues[text_index].i; break;
 				}
 				txt = pSubRowTexts[text_index];
-				sceneTexts.push_back({ txt, drawDescriptor, { *(pFontPropertyXPositions[subColumn]), subRowPositionY } });
+
+				ScreenText sceneText;
+				strcpy(sceneText.mText, txt);
+				sceneText.mDrawDesc = drawDescriptor;
+				sceneText.mScreenPosition = { *(pFontPropertyXPositions[subColumn]), subRowPositionY };
+				sceneTexts.push_back(sceneText);
 
 				if (text_index == 0)    // measure the height of sub-row once
 				{
-					rowHeightPerElem = gAppUI.MeasureText(txt, drawDescriptor).getY() / SCREEN_HEIGHT;
+					rowHeightPerElem = measureAppUIText(pAppUI, txt, &drawDescriptor).getY() / SCREEN_HEIGHT;
 				}
 
 				// iterate Y position, move on to the next row
@@ -742,9 +785,9 @@ class FontRendering: public IApp
 		// calculate longest text line, given the fonts
 		for (int i = 0; i < numFonts; ++i)
 		{
-			const float2 alphabetMeasure = gAppUI.MeasureText(alphabetText, drawDescs[i]);
+			const float2 alphabetMeasure = measureAppUIText(pAppUI, alphabetText, &drawDescs[i]);
 			textLengthsForEachFont[i] =
-				float2(gAppUI.MeasureText(fontNames[i], drawDescs[i]).getX() / SCREEN_WIDTH, alphabetMeasure.getX() / SCREEN_WIDTH);
+				float2(measureAppUIText(pAppUI, fontNames[i], &drawDescs[i]).getX() / SCREEN_WIDTH, alphabetMeasure.getX() / SCREEN_WIDTH);
 			textHeightsForEachFont[i] = alphabetMeasure.getY();
 		}
 
@@ -768,7 +811,7 @@ class FontRendering: public IApp
 		// CALCULATING HEIGHT:
 		// use previous row's first elements position + height of the entire previous row + margin offset
 		const float centeredAlphabetTextNormalizedPositionY =
-			blurPositionY + (gAppUI.MeasureText(fontNames[0], drawDescs[0]).getY() / SCREEN_HEIGHT) * numSubRows +
+			blurPositionY + (measureAppUIText(pAppUI, fontNames[0], &drawDescs[0]).getY() / SCREEN_HEIGHT) * numSubRows +
 			screenSizeDistanceFromPreviousRow[2];
 
 		// set row positions and label-alphabet offsets
@@ -783,7 +826,7 @@ class FontRendering: public IApp
 		float largestAlphabetHeight = 0.0f;
 		for (int i = 0; i < numFonts; ++i)
 		{
-			alphabetHeights[i] = gAppUI.MeasureText(alphabetText, drawDescs[i]).getY() / SCREEN_HEIGHT;
+			alphabetHeights[i] = measureAppUIText(pAppUI, alphabetText, &drawDescs[i]).getY() / SCREEN_HEIGHT;
 			largestAlphabetHeight = max(largestAlphabetHeight, alphabetHeights[i]);
 		}
 
@@ -792,11 +835,18 @@ class FontRendering: public IApp
 			// font label
 			drawDescriptor.mFontID = fontIDs[i];
 			txt = fontNames[i];
-			sceneTexts.push_back({ txt, drawDescs[i], labelPos });
+
+			ScreenText sceneText;
+			strcpy(sceneText.mText, txt);
+			sceneText.mDrawDesc = drawDescs[i];
+			sceneText.mScreenPosition = labelPos;
+			sceneTexts.push_back(sceneText);
 
 			// alphabet
 			txt = alphabetText;
-			sceneTexts.push_back({ txt, drawDescs[i], alphabetPos });
+			strcpy(sceneText.mText, txt);
+			sceneText.mScreenPosition = alphabetPos;
+			sceneTexts.push_back(sceneText);
 
 			// offset for the next font
 			labelPos = labelPos + float2(0.0f, largestAlphabetHeight + 0.01f);
@@ -838,10 +888,14 @@ class FontRendering: public IApp
 		float       normalizedYPosition = paragraphPositionY;
 		for (int i = 0; i < numParagraphLines; i++)
 		{
-			sceneTexts.push_back({ string1[i], drawDescriptor, float2(centeredParagraphPosition, normalizedYPosition) });
-			normalizedYPosition += gAppUI.MeasureText(string1[i], drawDescriptor).getY() / SCREEN_HEIGHT;
+			ScreenText sceneText;
+			strcpy(sceneText.mText, string1[i]);
+			sceneText.mDrawDesc = drawDescriptor;
+			sceneText.mScreenPosition = float2(centeredParagraphPosition, normalizedYPosition);
+			sceneTexts.push_back(sceneText);
+			normalizedYPosition += measureAppUIText(pAppUI, string1[i], &drawDescriptor).getY() / SCREEN_HEIGHT;
 		}
-		float paragraphLineHeight = gAppUI.MeasureText(string1[0], drawDescriptor).getY() / SCREEN_HEIGHT;
+		float paragraphLineHeight = measureAppUIText(pAppUI, string1[0], &drawDescriptor).getY() / SCREEN_HEIGHT;
 		// ROW 3 ===================================================================
 
 		// ROW 4 ===================================================================
@@ -857,12 +911,16 @@ class FontRendering: public IApp
 		drawDescriptor.mFontSize = 30.5f;
 		drawDescriptor.mFontID = gFonts.monoSpace;
 		normalizedYPosition = codePositionY;
-		const float centeredCodePosition = GetScreenCenteredPosition(gAppUI.MeasureText(string2[2], drawDescriptor).getX() / SCREEN_WIDTH);
+		const float centeredCodePosition = GetScreenCenteredPosition(measureAppUIText(pAppUI, string2[2], &drawDescriptor).getX() / SCREEN_WIDTH);
 
 		for (int i = 0; i < numCodeLines; i++)
 		{
-			sceneTexts.push_back({ string2[i], drawDescriptor, float2(centeredCodePosition, normalizedYPosition) });
-			normalizedYPosition += gAppUI.MeasureText(string2[i], drawDescriptor).getY() / SCREEN_HEIGHT;
+			ScreenText sceneText;
+			strcpy(sceneText.mText, string2[i]);
+			sceneText.mDrawDesc = drawDescriptor;
+			sceneText.mScreenPosition = float2(centeredCodePosition, normalizedYPosition);
+			sceneTexts.push_back(sceneText);
+			normalizedYPosition += measureAppUIText(pAppUI, string2[i], &drawDescriptor).getY() / SCREEN_HEIGHT;
 		}
 		// ROW 4 ===================================================================
 
@@ -900,7 +958,7 @@ class FontRendering: public IApp
 		for (const ScreenText& screenText : AllSceneText)
 		{
 			const float2 textMeasure =
-				gAppUI.MeasureText(screenText.mText.c_str(), screenText.mDrawDesc) / float2(SCREEN_WIDTH, SCREEN_HEIGHT);
+				measureAppUIText(pAppUI, screenText.mText, &screenText.mDrawDesc) / float2(SCREEN_WIDTH, SCREEN_HEIGHT);
 			const float  textExtentLeft = screenText.mScreenPosition.getX();
 			const float  textExtentRight = textExtentLeft + textMeasure.getX();
 			const float  textExtentTop = screenText.mScreenPosition.getY();

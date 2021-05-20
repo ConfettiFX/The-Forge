@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "../Renderer/IRenderer.h"
 #include "../OS/Core/Atomics.h"
+#include "IRenderer.h"
 
 typedef struct MappedMemoryRange
 {
@@ -312,6 +312,9 @@ bool allResourceLoadsCompleted();
 /// completed when this function returns.
 void waitForAllResourceLoads();
 
+/// Returns wheter the resourceloader is single threaded or not
+bool isResourceLoaderSingleThreaded();
+
 /// A SyncToken is an array of monotonically increasing integers.
 /// getLastTokenCompleted() returns the last value for which
 /// isTokenCompleted(token) is guaranteed to return true.
@@ -319,9 +322,13 @@ SyncToken getLastTokenCompleted();
 bool isTokenCompleted(const SyncToken* token);
 void waitForToken(const SyncToken* token);
 
+/// Return the semaphore for the last copy operation of a specific GPU.
+/// Could be NULL if no operations have been executed.
+Semaphore* getLastSemaphoreCompleted(uint32_t nodeIndex);
+
 /// Either loads the cached shader bytecode or compiles the shader to create new bytecode depending on whether source is newer than binary
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** pShader);
 
 /// Save/Load pipeline cache from disk
-void addPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
+void loadPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
 void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);

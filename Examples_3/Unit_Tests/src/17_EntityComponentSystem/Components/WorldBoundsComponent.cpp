@@ -30,6 +30,10 @@
 FORGE_IMPLEMENT_COMPONENT(WorldBoundsComponent)
 
 WorldBoundsComponent::WorldBoundsComponent()
+	:xMin(0.0f),
+	xMax(0.0f),
+	yMin(0.0f),
+	yMax(0.0f)
 {
 
 }

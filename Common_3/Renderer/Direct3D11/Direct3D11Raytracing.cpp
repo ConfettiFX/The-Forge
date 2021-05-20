@@ -25,24 +25,38 @@
 // Renderer
 #include "../IRay.h"
 
-bool isRaytracingSupported(Renderer* /*pRenderer*/) {
+bool d3d11_isRaytracingSupported(Renderer* /*pRenderer*/) {
 	return false;
 }
 
-bool initRaytracing(Renderer* /*pRenderer*/, Raytracing** /*ppRaytracing*/) {
+bool d3d11_initRaytracing(Renderer* /*pRenderer*/, Raytracing** /*ppRaytracing*/) {
 	return false;
 }
 
-void removeRaytracing(Renderer* /*pRenderer*/, Raytracing* /*pRaytracing*/) {}
+void d3d11_removeRaytracing(Renderer* /*pRenderer*/, Raytracing* /*pRaytracing*/) {}
 
-void addAccelerationStructure(Raytracing* /*pRaytracing*/, const AccelerationStructureDescTop* /*pDesc*/, AccelerationStructure** /*ppAccelerationStructure*/) {}
-void removeAccelerationStructure(Raytracing* /*pRaytracing*/, AccelerationStructure* /*pAccelerationStructure*/) {}
+void d3d11_addAccelerationStructure(Raytracing* /*pRaytracing*/, const AccelerationStructureDescTop* /*pDesc*/, AccelerationStructure** /*ppAccelerationStructure*/) {}
+void d3d11_removeAccelerationStructure(Raytracing* /*pRaytracing*/, AccelerationStructure* /*pAccelerationStructure*/) {}
+void d3d11_removeAccelerationStructureScratch(Raytracing* /*pRaytracing*/, AccelerationStructure* /*pAccelerationStructure*/) {}
 
-void addRaytracingRootSignature(Raytracing* /*pRaytracing*/, const ShaderResource* /*pResources*/, uint32_t /*resourceCount*/, bool /*local*/, RootSignature** /*ppRootSignature*/, const RootSignatureDesc* /*pRootDesc */) {}
+void d3d11_addRaytracingRootSignature(Raytracing* /*pRaytracing*/, const ShaderResource* /*pResources*/, uint32_t /*resourceCount*/, bool /*local*/, RootSignature** /*ppRootSignature*/, const RootSignatureDesc* /*pRootDesc */) {}
 
-void addRaytracingShaderTable(Raytracing* /*pRaytracing*/, const RaytracingShaderTableDesc* /*pDesc*/, RaytracingShaderTable** /*ppTable*/) {}
-void removeRaytracingShaderTable(Raytracing* /*pRaytracing*/, RaytracingShaderTable* /*pTable*/) {}
+void d3d11_addRaytracingShaderTable(Raytracing* /*pRaytracing*/, const RaytracingShaderTableDesc* /*pDesc*/, RaytracingShaderTable** /*ppTable*/) {}
+void d3d11_removeRaytracingShaderTable(Raytracing* /*pRaytracing*/, RaytracingShaderTable* /*pTable*/) {}
 
-void cmdBuildAccelerationStructure(Cmd* /*pCmd*/, Raytracing* /*pRaytracing*/, RaytracingBuildASDesc* /*pDesc*/) {}
-void cmdDispatchRays(Cmd* /*pCmd*/, Raytracing* /*pRaytracing*/, const RaytracingDispatchDesc* /*pDesc*/) {}
+void d3d11_cmdBuildAccelerationStructure(Cmd* /*pCmd*/, Raytracing* /*pRaytracing*/, RaytracingBuildASDesc* /*pDesc*/) {}
+void d3d11_cmdDispatchRays(Cmd* /*pCmd*/, Raytracing* /*pRaytracing*/, const RaytracingDispatchDesc* /*pDesc*/) {}
 
+void initD3D11RaytracingFunctions()
+{
+	isRaytracingSupported = d3d11_isRaytracingSupported;
+	initRaytracing = d3d11_initRaytracing;
+	removeRaytracing = d3d11_removeRaytracing;
+	addAccelerationStructure = d3d11_addAccelerationStructure;
+	removeAccelerationStructure = d3d11_removeAccelerationStructure;
+	removeAccelerationStructureScratch = d3d11_removeAccelerationStructureScratch;
+	addRaytracingShaderTable = d3d11_addRaytracingShaderTable;
+	removeRaytracingShaderTable = d3d11_removeRaytracingShaderTable;
+	cmdBuildAccelerationStructure = d3d11_cmdBuildAccelerationStructure;
+	cmdDispatchRays = d3d11_cmdDispatchRays;
+}

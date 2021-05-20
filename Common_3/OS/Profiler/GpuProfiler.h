@@ -38,21 +38,21 @@ typedef struct GpuTimer
 	static const uint32_t LENGTH_OF_HISTORY = 60;
 
     char mName[64] =    "Timer";
-	uint32_t             mIndex;
-	uint32_t             mHistoryIndex;
-    uint32_t             mDepth;
+	uint32_t             mIndex = 0;
+	uint32_t             mHistoryIndex = 0;
+    uint32_t             mDepth = 0;
 
-	uint64_t mStartGpuTime;
-	uint64_t mEndGpuTime;
-	uint64_t mGpuTime;
-    uint64_t mGpuMinTime;
-    uint64_t mGpuMaxTime;
-	uint64_t mGpuHistory[LENGTH_OF_HISTORY];
-    ProfileToken mToken;
-    ProfileToken mMicroProfileToken;
-    GpuTimer* pParent;
-	bool mDebugMarker;
-    bool mStarted;
+	uint64_t mStartGpuTime = 0;
+	uint64_t mEndGpuTime = 0;
+	uint64_t mGpuTime = 0;
+    uint64_t mGpuMinTime = 0;
+    uint64_t mGpuMaxTime = 0;
+	uint64_t mGpuHistory[LENGTH_OF_HISTORY] = {};
+	ProfileToken mToken = {};
+	ProfileToken mMicroProfileToken = {};
+    GpuTimer* pParent = NULL;
+	bool mDebugMarker = false;
+    bool mStarted = false;
 
 
 } GpuTimer;
@@ -63,26 +63,27 @@ typedef struct GpuProfiler
 	static const uint32_t NUM_OF_FRAMES = 3;
 	static const uint32_t MAX_TIMERS = 512;
 
-    Renderer*             pRenderer;
-	Buffer*               pReadbackBuffer[NUM_OF_FRAMES];
-	QueryPool*            pQueryPool[NUM_OF_FRAMES];
-	uint64_t*             pTimeStamp;
-	double                mGpuTimeStampFrequency;
+	Renderer*             pRenderer = {};
+	Buffer*               pReadbackBuffer[NUM_OF_FRAMES] = {};
+	QueryPool*            pQueryPool[NUM_OF_FRAMES] = {};
+	uint64_t*             pTimeStamp = NULL;
+	double                mGpuTimeStampFrequency = 0.0;
 
-	uint32_t mProfilerIndex;
-	uint32_t mBufferIndex;
-	uint32_t mCurrentTimerCount;
-	uint32_t mCurrentPoolIndex;
+	uint32_t mProfilerIndex = 0;
+	uint32_t mBufferIndex = 0;
+	uint32_t mCurrentTimerCount = 0;
+	uint32_t mMaxTimerCount = 0;
+	uint32_t mCurrentPoolIndex = 0;
 
-    GpuTimer*                    pGpuTimerPool;
-    GpuTimer*                    pCurrentNode;
+    GpuTimer*                    pGpuTimerPool = NULL;
+    GpuTimer*                    pCurrentNode = NULL;
 
 	// MicroProfile
 	char mGroupName[256] = "GPU";
 	ProfileThreadLog * pLog = nullptr;
 
 	bool mReset = true;
-	bool mUpdate;
+	bool mUpdate = false;
 } GpuProfiler;
 
 struct GpuProfilerContainer

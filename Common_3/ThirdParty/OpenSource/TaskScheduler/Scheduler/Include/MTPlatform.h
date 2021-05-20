@@ -43,8 +43,14 @@ namespace MT
 
 
 
-#if MT_PLATFORM_WINDOWS 
-	#include "Platform/Windows/MTCommon.h"
+#if MT_PLATFORM_WINDOWS
+#include "Platform/Windows/MTCommon.h"
+#elif MT_PLATFORM_DURANGO
+#include "../../../../../../Xbox/Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/Platform/Windows/MTCommon.h"
+#elif MT_PLATFORM_ORBIS
+#include "../../../../../../PS4/Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/Platform/Orbis/MTCommon.h"
+#elif MT_PLATFORM_NX64
+#include "../../../../../../Switch/Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/Platform/NX64/MTCommon.h"
 #elif MT_PLATFORM_POSIX || MT_PLATFORM_OSX
 	#include "Platform/Posix/MTCommon.h"
 #else

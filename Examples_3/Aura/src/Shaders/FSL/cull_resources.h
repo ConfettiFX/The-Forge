@@ -1,0 +1,75 @@
+/*
+ * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ *
+ * This is a part of Aura.
+ *
+ * This file(code) is licensed under a
+ * Creative Commons Attribution-NonCommercial 4.0 International License
+ *
+ *   (https://creativecommons.org/licenses/by-nc/4.0/legalcode)
+ *
+ * Based on a work at https://github.com/ConfettiFX/The-Forge.
+ * You may not use the material for commercial purposes.
+*/
+
+#ifndef CULL_RESOURCES_H
+#define CULL_RESOURCES_H
+
+// batch compaction
+RES(Buffer(uint),                     materialProps,                              UPDATE_FREQ_NONE,      t0, binding = 0);
+RES(Buffer(UncompactedDrawArguments), uncompactedDrawArgs[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, t0, binding = 1);
+RES(RWBuffer(uint),                   indirectMaterialBuffer,                     UPDATE_FREQ_PER_FRAME, u0, binding = 6);
+
+// triangle filtering
+RES(ByteBuffer,            vertexDataBuffer,                             UPDATE_FREQ_NONE,      t1, binding = 1);
+RES(ByteBuffer,            indexDataBuffer,                              UPDATE_FREQ_NONE,      t2, binding = 2);
+RES(Buffer(MeshConstants), meshConstantsBuffer,                          UPDATE_FREQ_NONE,      t3, binding = 3);
+RES(RWByteBuffer,          filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u1, binding = 7);
+
+CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b0, binding = 27)
+{
+	DATA(SmallBatchData, smallBatchDataBuffer[BATCH_COUNT], None);
+};
+
+// common
+RES(RWBuffer(atomic_uint),              indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS],   UPDATE_FREQ_PER_FRAME, u6,  binding = 12);
+RES(RWBuffer(atomic_uint),              indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u11, binding = 17);
+RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS],         UPDATE_FREQ_PER_FRAME, u16, binding = 22);
+
+// ICB
+#ifdef METAL
+
+STRUCT(IndirectDrawIndexArguments)
+{
+	DATA(uint, indexCount,    None);
+	DATA(uint, instanceCount, None);
+	DATA(uint, startIndex,    None);
+	DATA(uint, vertexOffset,  None);
+	DATA(uint, startInstance, None);
+	DATA(uint, pad[3],        None);
+};
+
+// ICB
+RES(Buffer(uint), vertexTexCoord,    UPDATE_FREQ_NONE, t4, binding = 4);
+RES(Buffer(uint), vertexNormal,      UPDATE_FREQ_NONE, t5, binding = 5);
+RES(Buffer(uint), vertexTangent,     UPDATE_FREQ_NONE, t6, binding = 6);
+// force AB generation by declaring drawIDs as an array, this is necessary because
+// the UPDATE_FREQ_NONE resources need to reside in ABs for the descriptor extraction to work
+RES(Buffer(uint), drawIDs[1],        UPDATE_FREQ_NONE, t7, binding = 7);
+RES(Buffer(void), texturesArgBuffer, UPDATE_FREQ_NONE, t8, binding = 8);
+
+// ICB
+RES(Buffer(IndirectDrawIndexArguments), indirectDrawArgsBufferAlphaICB[NUM_CULLING_VIEWPORTS],   UPDATE_FREQ_PER_FRAME, t5,  binding = 27);
+RES(Buffer(IndirectDrawIndexArguments), indirectDrawArgsBufferNoAlphaICB[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, t10, binding = 32);
+RES(Buffer(uint),                       filteredIndicesBufferICB[NUM_CULLING_VIEWPORTS],         UPDATE_FREQ_PER_FRAME, t15, binding = 37);
+RES(Buffer(uint),                       indirectMaterialBufferICB,                               UPDATE_FREQ_PER_FRAME, t20, binding = 42);
+RES(command_buffer,                     icbContainers[NUM_CULLING_VIEWPORTS],                    UPDATE_FREQ_PER_FRAME, t21, binding = 43);
+RES(render_pipeline_state,              pipelineStatesShadow[2],                                  UPDATE_FREQ_PER_FRAME, t26, binding = 48);
+RES(render_pipeline_state,              pipelineStatesCamera[2],                                  UPDATE_FREQ_PER_FRAME, t28, binding = 50);
+RES(render_pipeline_state,              pipelineStatesRSMCascades[2],                            UPDATE_FREQ_PER_FRAME, t20, binding = 52);
+
+#endif // METAL
+
+DECLARE_RESOURCES()
+
+#endif // CULL_RESOURCES_H

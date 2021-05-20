@@ -39,7 +39,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include <cstdint>
+
+struct Texture;
 
 void genTextures(uint32_t texture_count, Texture** pOutTexture);

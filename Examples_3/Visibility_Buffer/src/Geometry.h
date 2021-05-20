@@ -29,21 +29,8 @@
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/IResourceLoader.h"
 
-#if defined(METAL)
-#include "Shaders/Metal/shader_defs.h"
-#elif defined(DIRECT3D12) || defined(XBOX)
-#define NO_HLSL_DEFINITIONS
-#include "Shaders/D3D12/shader_defs.h"
-#elif defined(VULKAN)
-#define NO_GLSL_DEFINITIONS
-#include "Shaders/Vulkan/shader_defs.h"
-#elif defined(ORBIS)
-#define NO_ORBIS_DEFINITIONS
-#include "../../../PS4/Examples_3/Visibility_Buffer/src/Shaders/shader_defs.h"
-#elif defined(PROSPERO)
-#define NO_PROSPERO_DEFINITIONS
-#include "../../../Prospero/Examples_3/Visibility_Buffer/src/Shaders/shader_defs.h"
-#endif
+#define NO_FSL_DEFINITIONS
+#include "Shaders/FSL/shader_defs.h"
 
 // Type definitions
 

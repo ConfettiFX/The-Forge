@@ -96,8 +96,9 @@ bool gCursorClipped = false;
 bool gMinimizeRequested = false;
 
 /// UI
-UIApp gAppUI;
+UIApp* pAppUI = NULL;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
+static uint32_t gSelectedApiIndex = 0;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -122,16 +123,15 @@ static bool ValidateWindowPos(int32_t x, int32_t y)
 		uint32_t windowHalfWidth = windowWidth >> 1;
 		uint32_t windowHalfHeight = windowHeight >> 1;
 
-		uint32_t X = fsHalfWidth - windowHalfWidth;
-		uint32_t Y = fsHalfHeight - windowHalfHeight;
+		int32_t X = fsHalfWidth - windowHalfWidth;
+		int32_t Y = fsHalfHeight - windowHalfHeight;
 
-		if ((winDesc->windowedRect.left + clientWidthStart) != X || (winDesc->windowedRect.top + clientHeightStart) != Y)
+		if ( (abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1) )
 			return false;
 	}
 	else
 	{
-		if (x != winDesc->windowedRect.left + clientWidthStart ||
-			y != winDesc->windowedRect.top + clientHeightStart)
+		if ( (abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1) )
 			return false;
 	}
 
@@ -141,7 +141,7 @@ static bool ValidateWindowPos(int32_t x, int32_t y)
 static bool ValidateWindowSize(int32_t width, int32_t height)
 {
 	RectDesc clientRect = pApp->pWindow->clientRect;
-	if (getRectWidth(clientRect) != width || getRectHeight(clientRect) != height)
+	if ( (abs(getRectWidth(clientRect) - width) > 1) || (abs(getRectHeight(clientRect) - height) > 1) )
 		return false;
 	return true;
 }
@@ -289,14 +289,9 @@ static void ToggleClipCursor()
 
 static void RunScript()
 {
-	gAppUI.RunTestScript(gTestScripts[gCurrentScriptIndex]);
+	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
 }
 
-bool gTestGraphicsReset = false;
-void testGraphicsReset()
-{
-	gTestGraphicsReset = !gTestGraphicsReset;
-}
 class WindowTest : public IApp
 {
 public:
@@ -314,6 +309,353 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
+		// window and renderer setup
+		RendererDesc settings = { 0 };
+		settings.mApi = (RendererApi)gSelectedApiIndex;
+		initRenderer(GetName(), &settings, &pRenderer);
+		//check for init success
+		if (!pRenderer)
+			return false;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+		initResourceLoaderInterface(pRenderer);
+
+		TextureLoadDesc textureDesc = {};
+		textureDesc.pFileName = "skybox/hw_sahara/sahara_bk";
+		textureDesc.ppTexture = &pTexture;
+		addResource(&textureDesc, NULL);
+
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+		addShader(pRenderer, &basicShader, &pBasicShader);
+
+		SamplerDesc samplerDesc = {};
+		samplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
+		samplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
+		samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
+		samplerDesc.mMinFilter = FILTER_LINEAR;
+		samplerDesc.mMagFilter = FILTER_LINEAR;
+		samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
+		addSampler(pRenderer, &samplerDesc, &pSampler);
+
+		Shader*           shaders[] = { pBasicShader };
+		const char*       pStaticSamplers[] = { "Sampler" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSampler;
+		rootDesc.mShaderCount = COUNT_OF(shaders);
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
+
+		float vertices[] =
+		{
+				 1.0f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f, // 0 top_right 
+				-1.0f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f, // 1 top_left
+				-1.0f, -1.0f, 0.0f, 1.0f,  0.0f, 1.0f, // 2 bot_left
+				 1.0f, -1.0f, 0.0f, 1.0f,  1.0f, 1.0f, // 3 bot_right
+		};
+
+		uint32_t indices[] =
+		{
+				0, 1, 2, 0, 2, 3
+		};
+
+		BufferLoadDesc vbDesc = {};
+		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		vbDesc.mDesc.mSize = sizeof(vertices);
+		vbDesc.pData = vertices;
+		vbDesc.ppBuffer = &pQuadVertexBuffer;
+		addResource(&vbDesc, NULL);
+
+		BufferLoadDesc ibDesc = {};
+		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		ibDesc.mDesc.mSize = sizeof(indices);
+		ibDesc.pData = indices;
+		ibDesc.ppBuffer = &pQuadIndexBuffer;
+		addResource(&ibDesc, NULL);
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		addAppUITestScripts(pAppUI, gTestScripts, COUNT_OF(gTestScripts));
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
+
+		float   dpiScale = getDpiScale().x;
+		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.30f };
+		vec2    UIPanelSize = vec2(1000.f, 1000.f) / dpiScale;
+		GuiDesc guiDesc;
+		guiDesc.mStartPosition = UIPosition;
+		guiDesc.mStartSize = UIPanelSize;
+		guiDesc.mDefaultTextDrawDesc = UIPanelWindowTitleTextDesc;
+		pStandaloneControlsGUIWindow = addAppUIGuiComponent(pAppUI, "Window", &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+		static const char* pApiNames[] =
+		{
+		#if defined(DIRECT3D12)
+			"D3D12",
+		#endif
+		#if defined(VULKAN)
+			"Vulkan",
+		#endif
+		#if defined(DIRECT3D11)
+			"D3D11",
+		#endif
+		};
+		// Select Api 
+		DropdownWidget selectApiWidget;
+		selectApiWidget.pData = &gSelectedApiIndex;
+		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+		{
+			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+			selectApiWidget.mValues.push_back(i);
+		}
+		IWidget* pSelectApiWidget = addGuiWidget(pStandaloneControlsGUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+		pSelectApiWidget->pOnEdited = onAPISwitch;
+		addWidgetLua(pSelectApiWidget);
+		const char* apiTestScript = "Test_API_Switching.lua";
+		addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+		RadioButtonWidget rbWindowed;
+		rbWindowed.pData = &gWindowMode;
+		rbWindowed.mRadioId = WM_WINDOWED;
+		IWidget* pWindowed = addGuiWidget(pStandaloneControlsGUIWindow, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
+		pWindowed->pOnEdited = SetWindowed;
+		pWindowed->mDeferred = true;
+		addWidgetLua(pWindowed);
+
+		RadioButtonWidget rbFullscreen;
+		rbFullscreen.pData = &gWindowMode;
+		rbFullscreen.mRadioId = WM_FULLSCREEN;
+		IWidget* pFullscreen = addGuiWidget(pStandaloneControlsGUIWindow, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
+		pFullscreen->pOnEdited = SetFullscreen;
+		pFullscreen->mDeferred = true;
+		addWidgetLua(pFullscreen);
+
+		RadioButtonWidget rbBorderless;
+		rbBorderless.pData = &gWindowMode;
+		rbBorderless.mRadioId = WM_BORDERLESS;
+		IWidget* pBorderless = addGuiWidget(pStandaloneControlsGUIWindow, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
+		pBorderless->pOnEdited = SetBorderless;
+		pBorderless->mDeferred = true;
+		addWidgetLua(pBorderless);
+
+		ButtonWidget bMaximize;
+		IWidget* pMaximize = addGuiWidget(pStandaloneControlsGUIWindow, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
+		pMaximize->pOnEdited = MaximizeWindow;
+		pMaximize->mDeferred = true;
+		addWidgetLua(pMaximize);
+
+		ButtonWidget bMinimize;
+		IWidget* pMinimize = addGuiWidget(pStandaloneControlsGUIWindow, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
+		pMinimize->pOnEdited = MinimizeWindow;
+		pMinimize->mDeferred = true;
+		addWidgetLua(pMinimize);
+
+		ButtonWidget bHide;
+		IWidget* pHide = addGuiWidget(pStandaloneControlsGUIWindow, "Hide for 2s", &bHide, WIDGET_TYPE_BUTTON);
+		pHide->pOnEdited = HideWindow;
+		addWidgetLua(pHide);
+
+		CheckboxWidget rbCentered;
+		rbCentered.pData = &(pApp->pWindow->centered);
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
+
+		RectDesc recRes;
+		getRecommendedResolution(&recRes);
+
+		uint32_t recWidth = recRes.right - recRes.left;
+		uint32_t recHeight = recRes.bottom - recRes.top;
+
+		SliderIntWidget setRectSliderX;
+		setRectSliderX.pData = &gWndX;
+		setRectSliderX.mMin = 0;
+		setRectSliderX.mMax = recWidth;
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "x", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
+
+		SliderIntWidget setRectSliderY;
+		setRectSliderY.pData = &gWndY;
+		setRectSliderY.mMin = 0;
+		setRectSliderY.mMax = recHeight;
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "y", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
+
+		SliderIntWidget setRectSliderW;
+		setRectSliderW.pData = &gWndW;
+		setRectSliderW.mMin = 1;
+		setRectSliderW.mMax = recWidth;
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "w", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
+
+		SliderIntWidget setRectSliderH;
+		setRectSliderH.pData = &gWndH;
+		setRectSliderH.mMin = 1;
+		setRectSliderH.mMax = recHeight;
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "h", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
+
+		ButtonWidget bSetRect;
+		IWidget* pSetRect = addGuiWidget(pStandaloneControlsGUIWindow, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
+		pSetRect->pOnEdited = MoveWindow;
+		pSetRect->mDeferred = true;
+		addWidgetLua(pSetRect);
+
+		ButtonWidget bRecWndSize;
+		IWidget* pRecWndSize = addGuiWidget(pStandaloneControlsGUIWindow, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
+		pRecWndSize->pOnEdited = SetRecommendedWindowSize;
+		pRecWndSize->mDeferred = true;
+		addWidgetLua(pRecWndSize);
+
+		uint32_t numMonitors = getMonitorCount();
+
+		char label[64];
+		sprintf(label, "Number of displays: ");
+
+		char monitors[10];
+		sprintf(monitors, "%u", numMonitors);
+		strcat(label, monitors);
+
+		LabelWidget labelWidget;
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, label, &labelWidget, WIDGET_TYPE_LABEL));
+
+		for (uint32_t i = 0; i < numMonitors; ++i)
+		{
+			MonitorDesc* monitor = getMonitor(i);
+
+			char publicDisplayName[128];
+#if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars			
+			if (128 == wcstombs(publicDisplayName, monitor->publicDisplayName, sizeof(publicDisplayName)))
+				publicDisplayName[127] = '\0';
+#else
+			strcpy(publicDisplayName, monitor->publicDisplayName);
+#endif
+			char monitorLabel[128];
+			sprintf(monitorLabel, "%s", publicDisplayName);
+			strcat(monitorLabel, " (");
+
+			char buffer[10];
+			sprintf(buffer, "%u", monitor->physicalSize.x);
+			strcat(monitorLabel, buffer);
+			strcat(monitorLabel, "x");
+
+			sprintf(buffer, "%u", monitor->physicalSize.y);
+			strcat(monitorLabel, buffer);
+			strcat(monitorLabel, " mm; ");
+
+			sprintf(buffer, "%u", monitor->dpi.x);
+			strcat(monitorLabel, buffer);
+			strcat(monitorLabel, " dpi; ");
+
+			sprintf(buffer, "%u", monitor->resolutionCount);
+			strcat(monitorLabel, buffer);
+			strcat(monitorLabel, " resolutions)");
+
+			CollapsingHeaderWidget monitorHeader;
+
+			for (uint32_t j = 0; j < monitor->resolutionCount; ++j)
+			{
+				Resolution res = monitor->resolutions[j];
+
+				char strRes[64];
+				sprintf(strRes, "%u", res.mWidth);
+				strcat(strRes, "x");
+
+				char height[10];
+				sprintf(height, "%u", res.mHeight);
+				strcat(strRes, height);
+
+				if (monitor->defaultResolution.mWidth == res.mWidth &&
+					monitor->defaultResolution.mHeight == res.mHeight)
+				{
+					strcat(strRes, " (native)");
+					gCurRes[i] = j;
+					gLastRes[i] = j;
+				}
+
+				RadioButtonWidget rbRes;
+				rbRes.pData = &gCurRes[i];
+				rbRes.mRadioId = j;
+				IWidget* pRbRes = addCollapsingHeaderSubWidget(&monitorHeader, strRes, &rbRes, WIDGET_TYPE_RADIO_BUTTON);
+				pRbRes->pOnEdited = UpdateResolution;
+				pRbRes->mDeferred = false;
+			}
+
+			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER));
+		}
+
+		CollapsingHeaderWidget InputCotrolsWidget;
+
+		ButtonWidget bHideCursor;
+		IWidget* pHideCursor = addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Hide Cursor for 2s", &bHideCursor, WIDGET_TYPE_BUTTON);
+		pHideCursor->pOnEdited = HideCursor2Sec;
+
+		LabelWidget lCursorInWindow;
+		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Cursor inside window?", &lCursorInWindow, WIDGET_TYPE_LABEL);
+
+		RadioButtonWidget rCursorInsideRectFalse;
+		rCursorInsideRectFalse.pData = &gCursorInsideWindow;
+		rCursorInsideRectFalse.mRadioId = 0;
+		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "No", &rCursorInsideRectFalse, WIDGET_TYPE_RADIO_BUTTON);
+
+		RadioButtonWidget rCursorInsideRectTrue;
+		rCursorInsideRectTrue.pData = &gCursorInsideWindow;
+		rCursorInsideRectTrue.mRadioId = 1;
+		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Yes", &rCursorInsideRectTrue, WIDGET_TYPE_RADIO_BUTTON);
+
+		ButtonWidget bClipCursor;
+		IWidget* pClipCursor = addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Clip Cursor to Window", &bClipCursor, WIDGET_TYPE_BUTTON);
+		pClipCursor->pOnEdited = ToggleClipCursor;
+
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Cursor", &InputCotrolsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
+
+		DropdownWidget ddTestScripts;
+		ddTestScripts.pData = &gCurrentScriptIndex;
+		for (uint32_t i = 0; i < COUNT_OF(gTestScripts); ++i)
+		{
+			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
+			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
+		}
+		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+
+		ButtonWidget bRunScript;
+		IWidget* pRunScript = addGuiWidget(pStandaloneControlsGUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		pRunScript->pOnEdited = RunScript;
+		addWidgetLua(pRunScript);
+
+		// Initialize microprofiler and it's UI.
+		initProfiler();
+		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		// Gpu profiler can only be added after initProfile.
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		waitForAllResourceLoads();
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -342,12 +684,14 @@ public:
 		{
 				InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 				{
-						bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 						setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 						return true;
 				}, this
 		};
 		addInputAction(&actionDesc);
+
+		gFrameIndex = 0; 
 
 		return true;
 	}
@@ -355,262 +699,44 @@ public:
 	void Exit()
 	{
 		exitInputSystem();
+
+		exitProfilerUI();
+
+		exitProfiler();
+
+		exitAppUI(pAppUI);
+
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+
+		removeResource(pQuadVertexBuffer);
+		removeResource(pQuadIndexBuffer);
+		removeResource(pTexture);
+
+		removeSampler(pRenderer, pSampler);
+		removeShader(pRenderer, pBasicShader);
+		removeRootSignature(pRenderer, pRootSignature);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// window and renderer setup
-			RendererDesc settings = { 0 };
-			initRenderer(GetName(), &settings, &pRenderer);
-			//check for init success
-			if (!pRenderer)
-				return false;
-
-			QueueDesc queueDesc = {};
-			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				CmdPoolDesc cmdPoolDesc = {};
-				cmdPoolDesc.pQueue = pGraphicsQueue;
-				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-				CmdDesc cmdDesc = {};
-				cmdDesc.pPool = pCmdPools[i];
-				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-				addFence(pRenderer, &pRenderCompleteFences[i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			}
-			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-			initResourceLoaderInterface(pRenderer);
-
-			TextureLoadDesc textureDesc = {};
-			textureDesc.pFileName = "skybox/hw_sahara/sahara_bk";
-			textureDesc.ppTexture = &pTexture;
-			addResource(&textureDesc, NULL);
-
-			ShaderLoadDesc basicShader = {};
-			basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-			basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-			addShader(pRenderer, &basicShader, &pBasicShader);
-
-			SamplerDesc samplerDesc = {};
-			samplerDesc.mAddressU = ADDRESS_MODE_REPEAT;
-			samplerDesc.mAddressV = ADDRESS_MODE_REPEAT;
-			samplerDesc.mAddressW = ADDRESS_MODE_REPEAT;
-			samplerDesc.mMinFilter = FILTER_LINEAR;
-			samplerDesc.mMagFilter = FILTER_LINEAR;
-			samplerDesc.mMipMapMode = MIPMAP_MODE_LINEAR;
-			addSampler(pRenderer, &samplerDesc, &pSampler);
-
-			Shader*           shaders[] = { pBasicShader };
-			const char*       pStaticSamplers[] = { "Sampler" };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSampler;
-			rootDesc.mShaderCount = COUNT_OF(shaders);
-			rootDesc.ppShaders = shaders;
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
-
-			float vertices[] =
-			{
-					 1.0f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f, // 0 top_right 
-					-1.0f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f, // 1 top_left
-					-1.0f, -1.0f, 0.0f, 1.0f,  0.0f, 1.0f, // 2 bot_left
-					 1.0f, -1.0f, 0.0f, 1.0f,  1.0f, 1.0f, // 3 bot_right
-			};
-
-			uint32_t indices[] =
-			{
-					0, 1, 2, 0, 2, 3
-			};
-
-			BufferLoadDesc vbDesc = {};
-			vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			vbDesc.mDesc.mSize = sizeof(vertices);
-			vbDesc.pData = vertices;
-			vbDesc.ppBuffer = &pQuadVertexBuffer;
-			addResource(&vbDesc, NULL);
-
-			BufferLoadDesc ibDesc = {};
-			ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-			ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			ibDesc.mDesc.mSize = sizeof(indices);
-			ibDesc.pData = indices;
-			ibDesc.ppBuffer = &pQuadIndexBuffer;
-			addResource(&ibDesc, NULL);
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-			gAppUI.AddTestScripts(gTestScripts, COUNT_OF(gTestScripts));
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
-
-			float   dpiScale = getDpiScale().x;
-			vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.30f };
-			vec2    UIPanelSize = vec2(1000.f, 1000.f) / dpiScale;
-			GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
-			pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Window", &guiDesc);
-
-			RadioButtonWidget rbWindowed("Windowed", &gWindowMode, WM_WINDOWED);
-			RadioButtonWidget rbFullscreen("Fullscreen", &gWindowMode, WM_FULLSCREEN);
-			RadioButtonWidget rbBorderless("Borderless", &gWindowMode, WM_BORDERLESS);
-
-			rbWindowed.pOnEdited = SetWindowed;
-			rbFullscreen.pOnEdited = SetFullscreen;
-			rbBorderless.pOnEdited = SetBorderless;
-			rbWindowed.mDeferred = true;
-			rbFullscreen.mDeferred = true;
-			rbBorderless.mDeferred = true;
-
-			ButtonWidget bMaximize("Maximize");
-			ButtonWidget bMinimize("Minimize");
-
-			bMaximize.pOnEdited = MaximizeWindow;
-			bMinimize.pOnEdited = MinimizeWindow;
-			bMaximize.mDeferred = true;
-			bMinimize.mDeferred = true;
-
-			ButtonWidget bHide("Hide for 2s");
-			bHide.pOnEdited = HideWindow;
-
-			CheckboxWidget rbCentered("Centered", &(pApp->pWindow->centered));
-
-			RectDesc recRes;
-			getRecommendedResolution(&recRes);
-
-			uint32_t recWidth = recRes.right - recRes.left;
-			uint32_t recHeight = recRes.bottom - recRes.top;
-
-			SliderIntWidget setRectSliderX("x", &gWndX, 0, recWidth);
-			SliderIntWidget setRectSliderY("y", &gWndY, 0, recHeight);
-			SliderIntWidget setRectSliderW("w", &gWndW, 1, recWidth);
-			SliderIntWidget setRectSliderH("h", &gWndH, 1, recHeight);
-
-			ButtonWidget bSetRect("Set window rectangle");
-			ButtonWidget bRecWndSize("Set recommended window rectangle");
-
-			bSetRect.pOnEdited = MoveWindow;
-			bRecWndSize.pOnEdited = SetRecommendedWindowSize;
-			bSetRect.mDeferred = true;
-			bRecWndSize.mDeferred = true;
-
-						// Reset graphics with a button.
-			ButtonWidget testGPUReset("ResetGraphicsDevice");
-			testGPUReset.pOnEdited = testGraphicsReset;
-			pStandaloneControlsGUIWindow->AddWidget(testGPUReset);
-
-			pStandaloneControlsGUIWindow->AddWidget(rbWindowed);
-			pStandaloneControlsGUIWindow->AddWidget(rbFullscreen);
-			pStandaloneControlsGUIWindow->AddWidget(rbBorderless);
-			pStandaloneControlsGUIWindow->AddWidget(bMaximize);
-			pStandaloneControlsGUIWindow->AddWidget(bMinimize);
-			pStandaloneControlsGUIWindow->AddWidget(bHide);
-			pStandaloneControlsGUIWindow->AddWidget(rbCentered);
-			pStandaloneControlsGUIWindow->AddWidget(setRectSliderX);
-			pStandaloneControlsGUIWindow->AddWidget(setRectSliderY);
-			pStandaloneControlsGUIWindow->AddWidget(setRectSliderW);
-			pStandaloneControlsGUIWindow->AddWidget(setRectSliderH);
-			pStandaloneControlsGUIWindow->AddWidget(bSetRect);
-			pStandaloneControlsGUIWindow->AddWidget(bRecWndSize);
-
-			uint32_t numMonitors = getMonitorCount();
-			pStandaloneControlsGUIWindow->AddWidget(LabelWidget(
-				eastl::string("Number of displays: ") + eastl::to_string(numMonitors)));
-
-			for (uint32_t i = 0; i < numMonitors; ++i)
-			{
-				MonitorDesc* monitor = getMonitor(i);
-
-				char publicDisplayName[128];
-#if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars			
-				if (128 == wcstombs(publicDisplayName, monitor->publicDisplayName, sizeof(publicDisplayName)))
-					publicDisplayName[127] = '\0';
-#else
-				strcpy(publicDisplayName, monitor->publicDisplayName);
-#endif
-
-				CollapsingHeaderWidget monitorHeader(
-					eastl::string(publicDisplayName) + " (" +
-					eastl::to_string(monitor->physicalSize.x) + 'x' + eastl::to_string(monitor->physicalSize.y) + " mm; " +
-					eastl::to_string(monitor->dpi.x) + " dpi; " +
-					eastl::to_string(monitor->resolutionCount) + " resolutions)");
-
-				for (uint32_t j = 0; j < monitor->resolutionCount; ++j)
-				{
-					Resolution res = monitor->resolutions[j];
-
-					eastl::string strRes = eastl::to_string(res.mWidth) + 'x' + eastl::to_string(res.mHeight);
-					if (monitor->defaultResolution.mWidth == res.mWidth &&
-						monitor->defaultResolution.mHeight == res.mHeight)
-					{
-						strRes += " (native)";
-						gCurRes[i] = j;
-						gLastRes[i] = j;
-					}
-
-					RadioButtonWidget rbRes(strRes.c_str(), &gCurRes[i], j);
-					rbRes.pOnEdited = UpdateResolution;
-					rbRes.mDeferred = false;
-
-					monitorHeader.AddSubWidget(rbRes);
-				}
-
-				pStandaloneControlsGUIWindow->AddWidget(monitorHeader);
-			}
-
-			CollapsingHeaderWidget InputCotrolsWidget("Cursor");
-
-			ButtonWidget bHideCursor("Hide Cursor for 2s");
-			bHideCursor.pOnEdited = HideCursor2Sec;
-			InputCotrolsWidget.AddSubWidget(bHideCursor);
-
-			LabelWidget lCursorInWindow("Cursor inside window?");
-			InputCotrolsWidget.AddSubWidget(lCursorInWindow);
-
-			RadioButtonWidget rCursorInsideRectFalse("No", &gCursorInsideWindow, 0);
-			InputCotrolsWidget.AddSubWidget(rCursorInsideRectFalse);
-			RadioButtonWidget rCursorInsideRectTrue("Yes", &gCursorInsideWindow, 1);
-			InputCotrolsWidget.AddSubWidget(rCursorInsideRectTrue);
-
-			ButtonWidget bClipCursor("Clip Cursor to Window");
-			bClipCursor.pOnEdited = ToggleClipCursor;
-			InputCotrolsWidget.AddSubWidget(bClipCursor);
-
-			pStandaloneControlsGUIWindow->AddWidget(InputCotrolsWidget);
-
-			DropdownWidget ddTestScripts("Test Scripts", &gCurrentScriptIndex, gTestScripts, gScriptIndexes, COUNT_OF(gTestScripts));
-			ButtonWidget bRunScript("Run");
-			bRunScript.pOnEdited = RunScript;
-
-			pStandaloneControlsGUIWindow->AddWidget(ddTestScripts);
-			pStandaloneControlsGUIWindow->AddWidget(bRunScript);
-
-			// Initialize microprofiler and it's UI.
-			initProfiler();
-			initProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
-
-			// Gpu profiler can only be added after initProfile.
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-			waitForAllResourceLoads();
-		}
-
 		if (!addSwapChain())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -662,43 +788,10 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gAppUI.Unload();
+		removeAppGUIDriver(pAppUI);
 
 		removePipeline(pRenderer, pBasicPipeline);
 		removeSwapChain(pRenderer, pSwapChain);
-
-		if (mSettings.mResetGraphics || mSettings.mQuit) 
-		{
-			exitProfilerUI();
-
-			exitProfiler();
-
-			gAppUI.Exit();
-
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-
-			removeResource(pQuadVertexBuffer);
-			removeResource(pQuadIndexBuffer);
-			removeResource(pTexture);
-
-			removeSampler(pRenderer, pSampler);
-			removeShader(pRenderer, pBasicShader);
-			removeRootSignature(pRenderer, pRootSignature);
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
-		}
 	}
 
 	void Update(float deltaTime)
@@ -718,7 +811,7 @@ public:
 
 		gCursorInsideWindow = isCursorInsideTrackingArea();
 
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -780,8 +873,8 @@ public:
 
 		cmdDrawProfilerUI();
 
-		gAppUI.Gui(pStandaloneControlsGUIWindow);
-		gAppUI.Draw(cmd);
+		appUIGui(pAppUI, pStandaloneControlsGUIWindow);
+		drawAppUI(pAppUI, cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
@@ -807,21 +900,8 @@ public:
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.mSubmitDone = true;
-		PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
-
-		if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-		{
-			Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-			mSettings.mResetGraphics = true;
-		}
-
-		// Test re-creating graphics resources mid app.
-		if (gTestGraphicsReset)
-		{
-			mSettings.mResetGraphics = true;
-			gTestGraphicsReset = false;
-		}
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 

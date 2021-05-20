@@ -492,6 +492,7 @@ struct ProfileScopeHandlerCpu
 #define PROFILE_CONTEXT_SWITCH_BUFFER_SIZE (128*1024) //2mb with 16 byte entry size
 #else
 #define PROFILE_CONTEXT_SWITCH_BUFFER_SIZE (1)
+//-V:PROFILE_CONTEXT_SWITCH_BUFFER_SIZE:1063
 #endif
 
 #ifndef PROFILE_MINIZ

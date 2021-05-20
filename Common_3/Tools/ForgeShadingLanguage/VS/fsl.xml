@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+    <ItemType Name="FSLShader" DisplayName="FSLShader"/>
+    <ContentType Name="FSLShader" ItemType="FSLShader" DisplayName="FSLShader" />
+    <FileExtension Name=".fsl" ContentType="FSLShader" />
+</ProjectSchemaDefinitions>

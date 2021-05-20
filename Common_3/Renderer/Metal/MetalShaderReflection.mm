@@ -550,7 +550,13 @@ void mtl_createShaderReflection(
 #endif
 
 		renderPipelineDesc.vertexDescriptor = vertexDesc;
-
+		
+		// added dummy topology
+		// for layered rendering, metal requires the primitive topology beforehand.
+		// if no prim. topo. is specified and shader reflection finds 'render_target_array_index'
+		// pipelineState won't be created.
+		renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+		
 		MTLRenderPipelineReflection* ref;
 		id<MTLRenderPipelineState>   pipelineState = [pRenderer->pDevice newRenderPipelineStateWithDescriptor:renderPipelineDesc
                                                                                                     options:MTLPipelineOptionBufferTypeInfo

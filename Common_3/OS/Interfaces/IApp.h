@@ -101,33 +101,36 @@ public:
 		/// Window height
 		int32_t  mHeight = -1;
 		/// monitor index
-		int32_t		mMonitorIndex = -1;
+		int32_t  mMonitorIndex = -1;
 		/// x position for window
-		int32_t		mWindowX = 0;
+		int32_t  mWindowX = 0;
 		///y position for window
-		int32_t		mWindowY = 0;
+		int32_t  mWindowY = 0;
 		/// Set to true if fullscreen mode has been requested
 		bool     mFullScreen = false;
 		/// Set to true if app wants to use an external window
 		bool     mExternalWindow = false;
 		/// Drag to resize enabled
-		bool		mDragToResize = true;
+		bool     mDragToResize = true;
 		/// Border less window
-		bool		mBorderlessWindow = false;
+		bool     mBorderlessWindow = false;
 		/// Set to true if oversize windows requested 
-		bool		mAllowedOverSizeWindows = false;
+		bool     mAllowedOverSizeWindows = false;
 		/// if settings is already initiazlied we don't fill when opening window
-		bool		mInitialized = false;
+		bool     mInitialized = false;
 		/// if requested to qui the application 
-		bool		mQuit = false;
+		bool     mQuit = false;
 		/// if default automated testing enabled
-		bool		mDefaultAutomatedTesting = true;
+		bool     mDefaultAutomatedTesting = true;
 		
 		/// if the window is positioned in the center of the screen
-		bool        mCentered = true;
+		bool     mCentered = true;
+
+		/// if the window is focused or in foreground
+		bool     mFocused = false;
 
 		/// Force lowDPI settings for this window
-		bool mForceLowDPI = false;
+		bool     mForceLowDPI = false;
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
 		bool		mDefaultVSyncEnabled = true;
@@ -139,8 +142,6 @@ public:
 		bool     mShowStatusBar = false;
 		float    mContentScaleFactor = 0.f;
 #endif
-		// Used on PC to re-create graphics device and resources.
-		bool	mResetGraphics = false;
 	} mSettings;
 
 	WindowsDesc*    pWindow;

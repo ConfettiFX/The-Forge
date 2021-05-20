@@ -1,0 +1,43 @@
+/*
+ * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ *
+ * This is a part of Aura.
+ * 
+ * This file(code) is licensed under a 
+ * Creative Commons Attribution-NonCommercial 4.0 International License 
+ *
+ *   (https://creativecommons.org/licenses/by-nc/4.0/legalcode) 
+ *
+ * Based on a work at https://github.com/ConfettiFX/The-Forge.
+ * You may not use the material for commercial purposes.
+*/
+
+#include "shader_defs.h"
+#include "cull_resources.h"
+
+NUM_THREADS(CLEAR_THREAD_COUNT, 1, 1)
+void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
+{
+	INIT_MAIN;
+
+    if (threadID.x >= MAX_DRAWS_INDIRECT - 1)
+        RETURN();
+
+	UNROLL_N(NUM_CULLING_VIEWPORTS)
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		Get(uncompactedDrawArgsRW)[i][threadID.x].numIndices = 0;
+	}
+
+    if (threadID.x == 0)
+    {
+		UNROLL_N(NUM_CULLING_VIEWPORTS)
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			AtomicStore(Get(indirectDrawArgsBufferAlpha)[i][DRAW_COUNTER_SLOT_POS],   0);
+			AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[i][DRAW_COUNTER_SLOT_POS], 0);
+		}
+    }
+
+	RETURN();
+}

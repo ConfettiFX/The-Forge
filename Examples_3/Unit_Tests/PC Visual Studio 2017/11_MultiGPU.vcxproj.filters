@@ -7,20 +7,11 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{d576656a-935e-4a87-898d-05b81a59823d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{cff64b3d-25c7-4fde-bc9a-a355d0f99250}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{aedac42d-0058-4e65-975a-e3860c28bf1a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Panini">
       <UniqueIdentifier>{7f10430e-d61e-44e5-b46a-a5ff28b2c25d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Panini\D3D12">
-      <UniqueIdentifier>{9f5edcc2-ac76-4c1e-bb5c-54a30826c276}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Panini\Vulkan">
-      <UniqueIdentifier>{882105c6-2067-4246-b5f9-38201fd9f36a}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{b294c0c3-8d52-4128-bd4f-41c6eeb95f46}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -32,46 +23,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\11_MultiGPU\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\D3D12\skybox.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\D3D12\skybox.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\11_MultiGPU\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag">
-      <Filter>Panini\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert">
-      <Filter>Panini\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.frag">
-      <Filter>Panini\D3D12</Filter>
-    </None>
-    <None Include="..\..\..\Middleware_3\PaniniProjection\Shaders\D3D12\panini_projection.vert">
-      <Filter>Panini\D3D12</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h">
       <Filter>Panini</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

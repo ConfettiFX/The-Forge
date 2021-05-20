@@ -21,9 +21,15 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\OpenGLES\EGLContextCreator.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\OpenGLES\GLESContextCreator.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\OpenGLES\GLESCapsBuilder.h">
       <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>

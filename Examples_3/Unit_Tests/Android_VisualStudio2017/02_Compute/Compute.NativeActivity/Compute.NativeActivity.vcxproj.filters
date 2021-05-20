@@ -11,16 +11,19 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{1514b0d4-d408-49a0-b4ff-b89069103b1f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{10cbf3d7-f9a3-4a4e-8efb-4c4464b7f050}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\compute.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\display.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\display.vert">
-      <Filter>Shaders</Filter>
-    </None>
+    <FSLShader Include="..\..\..\src\02_Compute\Shaders\FSL\compute.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\02_Compute\Shaders\FSL\display.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\02_Compute\Shaders\FSL\display.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

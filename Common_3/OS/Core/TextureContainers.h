@@ -79,7 +79,7 @@ static inline bool util_get_surface_info(
 		numRows = numBlocksHigh;
 		numBytes = rowBytes * numBlocksHigh;
 	}
-	else if (packed)
+	else if (packed) //-V547
 	{
 		LOGF(eERROR, "Not implemented");
 		return false;
@@ -109,7 +109,7 @@ static inline bool util_get_surface_info(
 		numBytes = rowBytes * height;
 	}
 
-	if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX)
+	if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX) //-V560
 		return false;
 
 	if (outNumBytes)
@@ -149,7 +149,7 @@ static inline uint32_t util_get_surface_size(
 
 			if (!util_get_surface_info(w, h, format, NULL, &rowBytes, &numRows))
 			{
-				return false;
+				return 0;
 			}
 
 			requiredSize += round_up(d * round_up(rowBytes, rowStride) * numRows, sliceStride);
@@ -264,7 +264,7 @@ struct DDS_HEADER_DXT10
 
 #pragma pack(pop)
 
-#define ISBITMASK( r,g,b,a ) ( ddpf.RBitMask == r && ddpf.GBitMask == g && ddpf.BBitMask == b && ddpf.ABitMask == a )
+#define ISBITMASK( r,g,b,a ) ( ddpf.RBitMask == (r) && ddpf.GBitMask == (g) && ddpf.BBitMask == (b) && ddpf.ABitMask == (a) )
 
 static constexpr TinyImageFormat_DXGI_FORMAT util_get_dxgi_format(const DDS_PIXELFORMAT& ddpf) noexcept
 {

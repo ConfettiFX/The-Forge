@@ -69,6 +69,9 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	ASSERT(pDesc);
 	pSystemFileIO->GetResourceMount = getResourceMount;
 
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+		gResourceMounts[i] = "";
+
 	// Get application directory
 	wchar_t utf16Path[FS_MAX_PATH];
 	GetModuleFileNameW(0, utf16Path, FS_MAX_PATH);
@@ -83,7 +86,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
 	WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
 	CoTaskMemFree(userDocuments);
-	gResourceMounts[RM_SAVE_0] = gDocumentsPath;
+	gResourceMounts[RM_DOCUMENTS] = gDocumentsPath;
 
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)

@@ -45,7 +45,7 @@
 
 ///Demo structures
 //General
-VirtualJoystickUI		gVirtualJoystick;
+VirtualJoystickUI*		pVirtualJoystick						= NULL;
 ProfileToken			gGpuProfileToken						= PROFILE_INVALID_TOKEN;
 GuiComponent*			pGuiWindow;
 
@@ -53,6 +53,7 @@ const uint32_t			gImageCount								= 3;
 uint32_t				gFrameIndex								= 0;
 bool					bToggleVSync							= false;
 bool					bToggleYCbCr							= true;
+bool					bYCbCrSupported							= false;
 
 Queue*					pGraphicsQueue							= NULL;
 CmdPool*				pCmdPools[gImageCount]					= {NULL};
@@ -66,8 +67,9 @@ Semaphore*				pRenderCompleteSemaphores[gImageCount]	= {NULL};
 
 
 //UI
-UIApp					gAppUI;
+UIApp*					pAppUI										= NULL;
 TextDrawDesc			gFrameTimeDraw								= TextDrawDesc(0, 0xff00ffff, 18);
+static uint32_t			gSelectedApiIndex							= 0;
 
 //Main parts
 Pipeline*				pSimplePipeline								= NULL; // To demonstrate the YUV image wihtout any conversion
@@ -104,6 +106,221 @@ public:
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_TEXTURES,		"Textures");
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,  RD_MESHES,			"Meshes");
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_FONTS,			"Fonts");
+			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,  RD_SCRIPTS,			"Scripts");
+		}
+
+		// Renderer initialization
+		{
+			// Window and renderer setup
+			RendererDesc settings = { 0 };
+			settings.mApi = (RendererApi)gSelectedApiIndex;
+			initRenderer(GetName(), &settings, &pRenderer);
+
+			// Check for init success
+			if (!pRenderer)
+				return false;
+
+			bYCbCrSupported = pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM];
+
+			QueueDesc queueDesc = {};
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+				addFence(pRenderer, &pRenderCompleteFences[i]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			}
+			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
+			initResourceLoaderInterface(pRenderer);
+
+			pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
+			if (!pVirtualJoystick)
+			{
+				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
+				return false;
+			}
+		}
+
+		// Setting up the resources
+		if (bYCbCrSupported)
+		{
+
+			// Create the samplers
+			{
+				SamplerDesc samplerDesc =
+				{
+					FILTER_LINEAR,
+					FILTER_LINEAR,
+					MIPMAP_MODE_NEAREST,
+					ADDRESS_MODE_REPEAT,
+					ADDRESS_MODE_REPEAT,
+					ADDRESS_MODE_REPEAT,
+				};
+				addSampler(pRenderer, &samplerDesc, &pSimpleSampler);
+
+
+				// YCbCr conversion
+				samplerDesc =
+				{
+					FILTER_LINEAR,
+					FILTER_LINEAR,
+					MIPMAP_MODE_NEAREST,
+					ADDRESS_MODE_CLAMP_TO_EDGE,
+					ADDRESS_MODE_CLAMP_TO_EDGE,
+					ADDRESS_MODE_CLAMP_TO_EDGE,
+				};
+				samplerDesc.mSamplerConversionDesc =
+				{
+					TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM,
+					SAMPLER_MODEL_CONVERSION_YCBCR_709,
+					SAMPLER_RANGE_NARROW,
+					SAMPLE_LOCATION_MIDPOINT,
+					SAMPLE_LOCATION_MIDPOINT,
+					FILTER_LINEAR,
+					false,
+				};
+				addSampler(pRenderer, &samplerDesc, &pYCbCrSampler);
+			}
+
+			// Create the textures
+			{
+				TextureLoadDesc loadDesc = {};
+				loadDesc.pFileName = "test_224x116_IYUV";
+				loadDesc.mContainer = TEXTURE_CONTAINER_DDS;
+				loadDesc.ppTexture = &pSimpleTexture;
+				addResource(&loadDesc, NULL);
+
+				TextureDesc textureDesc = {};
+				textureDesc.pVkSamplerYcbcrConversionInfo = &pYCbCrSampler->mVulkan.mVkSamplerYcbcrConversionInfo;
+				loadDesc = {};
+				loadDesc.pFileName = "test_224x116_IYUV";
+				loadDesc.mContainer = TEXTURE_CONTAINER_DDS;
+				loadDesc.pDesc = &textureDesc;
+				loadDesc.ppTexture = &pYCbCrTexture;
+				addResource(&loadDesc, NULL);
+			}
+		}
+
+		waitForAllResourceLoads();
+
+		// Init
+		if (bYCbCrSupported)
+		{
+			// Simple
+			{
+				ShaderLoadDesc shader = {};
+				shader.mStages[0] = { "basic.vert", NULL, 0 };
+				shader.mStages[1] = { "basic.frag", NULL, 0 };
+				addShader(pRenderer, &shader, &pSimpleShader);
+				Shader* shaders[] = { pSimpleShader };
+
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = &pSamplerName;
+				rootDesc.ppStaticSamplers = &pSimpleSampler;
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				addRootSignature(pRenderer, &rootDesc, &pSimpleRootSignature);
+
+				DescriptorSetDesc desc = { pSimpleRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+				addDescriptorSet(pRenderer, &desc, &pSimpleDescriptorSets_NoneFreq);
+			}
+
+			// YCbCr
+			{
+				ShaderLoadDesc shader = {};
+				shader.mStages[0] = { "basic.vert", NULL, 0 };
+				shader.mStages[1] = { "basic.frag", NULL, 0 };
+				addShader(pRenderer, &shader, &pYCbCrShader);
+				Shader* shaders[] = { pYCbCrShader };
+
+				RootSignatureDesc rootDesc = {};
+				rootDesc.mStaticSamplerCount = 1;
+				rootDesc.ppStaticSamplerNames = &pSamplerName;
+				rootDesc.ppStaticSamplers = &pYCbCrSampler;
+				rootDesc.mShaderCount = 1;
+				rootDesc.ppShaders = shaders;
+				addRootSignature(pRenderer, &rootDesc, &pYCbCrRootSignature);
+
+				DescriptorSetDesc desc = { pYCbCrRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+				addDescriptorSet(pRenderer, &desc, &pYCbCrDescriptorSets_NoneFreq);
+			}
+		}
+
+		UIAppDesc appUIDesc = {};
+		initAppUI(pRenderer, &appUIDesc, &pAppUI);
+		if (!pAppUI)
+			return false;
+
+		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+
+		// Initialize microprofiler and it's UI.
+		initProfiler();
+
+		// Gpu profiler can only be added after initProfile.
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		// GUI - coppied from the first unit test
+		{
+			GuiDesc guiDesc = {};
+			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
+			pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+			static const char* pApiNames[] =
+			{
+			#if defined(DIRECT3D12)
+				"D3D12",
+			#endif
+			#if defined(VULKAN)
+				"Vulkan",
+			#endif
+			#if defined(DIRECT3D11)
+				"D3D11",
+			#endif
+			};
+			// Select Api 
+			DropdownWidget selectApiWidget;
+			selectApiWidget.pData = &gSelectedApiIndex;
+			for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
+			{
+				selectApiWidget.mNames.push_back((char*)pApiNames[i]);
+				selectApiWidget.mValues.push_back(i);
+			}
+			IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
+			pSelectApiWidget->pOnEdited = onAPISwitch;
+			addWidgetLua(pSelectApiWidget);
+			const char* apiTestScript = "Test_API_Switching.lua";
+			addAppUITestScripts(pAppUI, &apiTestScript, 1);
+#endif
+
+#if !defined(TARGET_IOS)
+			CheckboxWidget vSyncToggle;
+			vSyncToggle.pData = &bToggleVSync;
+			addWidgetLua(addGuiWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vSyncToggle, WIDGET_TYPE_CHECKBOX));
+#endif
+			if (bYCbCrSupported)
+			{
+				CheckboxWidget yCbCrToggle;
+				yCbCrToggle.pData = &bToggleYCbCr;
+				addWidgetLua(addGuiWidget(pGuiWindow, "Toggle YCbCr conversion\t\t\t\t\t", &yCbCrToggle, WIDGET_TYPE_CHECKBOX));
+			}
+			else
+			{
+				LabelWidget notSupportedLabel;
+				addWidgetLua(addGuiWidget(pGuiWindow, "The selected API is not support by YCbCr conversion.", &notSupportedLabel, WIDGET_TYPE_LABEL));
+			}
+
 		}
 
 		if (!initInputSystem(pWindow))
@@ -119,7 +336,7 @@ public:
 			addInputAction(&actionDesc);
 			actionDesc = {
 				InputBindings::BUTTON_ANY, [](InputActionContext *ctx) {
-					bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+					bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
 					setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 					return true;
 				}, this
@@ -127,196 +344,63 @@ public:
 			addInputAction(&actionDesc);
 		}
 
+		gFrameIndex = 0; 
+
 		return true;
 	}
 
 	void Exit()
 	{
 		exitInputSystem();
+
+		exitVirtualJoystickUI(pVirtualJoystick);
+		exitAppUI(pAppUI);
+		exitProfiler();
+
+		if (bYCbCrSupported)
+		{
+			removeDescriptorSet(pRenderer, pSimpleDescriptorSets_NoneFreq);
+			removeDescriptorSet(pRenderer, pYCbCrDescriptorSets_NoneFreq);
+
+			removeShader(pRenderer, pSimpleShader);
+			removeShader(pRenderer, pYCbCrShader);
+			removeRootSignature(pRenderer, pSimpleRootSignature);
+			removeRootSignature(pRenderer, pYCbCrRootSignature);
+
+			// Remove the combined sampler
+			{
+				removeResource(pSimpleTexture);
+				removeSampler(pRenderer, pSimpleSampler);
+				removeResource(pYCbCrTexture);
+				removeSampler(pRenderer, pYCbCrSampler);
+			}
+		}
+
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
 	}
 
 	bool Load()
 	{
-		if (mSettings.mResetGraphics || !pRenderer) 
-		{
-			// Renderer initialization
-			{
-				// Window and renderer setup
-				RendererDesc settings = { 0 };
-				initRenderer(GetName(), &settings, &pRenderer);
-
-				// Check for init success
-				if (!pRenderer)
-					return false;
-
-				QueueDesc queueDesc = {};
-				queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-				queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-				addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					CmdPoolDesc cmdPoolDesc = {};
-					cmdPoolDesc.pQueue = pGraphicsQueue;
-					addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-					CmdDesc cmdDesc = {};
-					cmdDesc.pPool = pCmdPools[i];
-					addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-					addFence(pRenderer, &pRenderCompleteFences[i]);
-					addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-				}
-				addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
-				initResourceLoaderInterface(pRenderer);
-
-				if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
-				{
-					LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-					return false;
-				}
-			}
-
-			// Setting up the resources
-			{
-#if defined(VULKAN)
-			// Create the samplers
-				{
-					SamplerDesc samplerDesc =
-					{
-						FILTER_LINEAR,
-						FILTER_LINEAR,
-						MIPMAP_MODE_NEAREST,
-						ADDRESS_MODE_REPEAT,
-						ADDRESS_MODE_REPEAT,
-						ADDRESS_MODE_REPEAT,
-					};
-					addSampler(pRenderer, &samplerDesc, &pSimpleSampler);
-
-
-					// YCbCr conversion
-					samplerDesc =
-					{
-						FILTER_LINEAR,
-						FILTER_LINEAR,
-						MIPMAP_MODE_NEAREST,
-						ADDRESS_MODE_CLAMP_TO_EDGE,
-						ADDRESS_MODE_CLAMP_TO_EDGE,
-						ADDRESS_MODE_CLAMP_TO_EDGE,
-					};
-					samplerDesc.mSamplerConversionDesc =
-					{
-						TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM,
-						SAMPLER_MODEL_CONVERSION_YCBCR_709,
-						SAMPLER_RANGE_NARROW,
-						SAMPLE_LOCATION_MIDPOINT,
-						SAMPLE_LOCATION_MIDPOINT,
-						FILTER_LINEAR,
-						false,
-					};
-					addSampler(pRenderer, &samplerDesc, &pYCbCrSampler);
-				}
-
-				// Create the textures
-				{
-					TextureLoadDesc loadDesc = {};
-					loadDesc.pFileName = "test_224x116_IYUV";
-					loadDesc.mContainer = TEXTURE_CONTAINER_DDS;
-					loadDesc.ppTexture = &pSimpleTexture;
-					addResource(&loadDesc, NULL);
-
-					TextureDesc textureDesc = {};
-					textureDesc.pVkSamplerYcbcrConversionInfo = &pYCbCrSampler->mVkSamplerYcbcrConversionInfo;
-					loadDesc = {};
-					loadDesc.pFileName = "test_224x116_IYUV";
-					loadDesc.mContainer = TEXTURE_CONTAINER_DDS;
-					loadDesc.pDesc = &textureDesc;
-					loadDesc.ppTexture = &pYCbCrTexture;
-					addResource(&loadDesc, NULL);
-				}
-#endif
-			}
-
-			waitForAllResourceLoads();
-
-			// Init
-			{
-#if defined(VULKAN)
-			// Simple
-				{
-					ShaderLoadDesc shader = {};
-					shader.mStages[0] = { "basic.vert", NULL, 0 };
-					shader.mStages[1] = { "basic.frag", NULL, 0 };
-					addShader(pRenderer, &shader, &pSimpleShader);
-					Shader* shaders[] = { pSimpleShader };
-
-					RootSignatureDesc rootDesc = {};
-					rootDesc.mStaticSamplerCount = 1;
-					rootDesc.ppStaticSamplerNames = &pSamplerName;
-					rootDesc.ppStaticSamplers = &pSimpleSampler;
-					rootDesc.mShaderCount = 1;
-					rootDesc.ppShaders = shaders;
-					addRootSignature(pRenderer, &rootDesc, &pSimpleRootSignature);
-
-					DescriptorSetDesc desc = { pSimpleRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-					addDescriptorSet(pRenderer, &desc, &pSimpleDescriptorSets_NoneFreq);
-				}
-
-				// YCbCr
-				{
-					ShaderLoadDesc shader = {};
-					shader.mStages[0] = { "basic.vert", NULL, 0 };
-					shader.mStages[1] = { "basic.frag", NULL, 0 };
-					addShader(pRenderer, &shader, &pYCbCrShader);
-					Shader* shaders[] = { pYCbCrShader };
-
-					RootSignatureDesc rootDesc = {};
-					rootDesc.mStaticSamplerCount = 1;
-					rootDesc.ppStaticSamplerNames = &pSamplerName;
-					rootDesc.ppStaticSamplers = &pYCbCrSampler;
-					rootDesc.mShaderCount = 1;
-					rootDesc.ppShaders = shaders;
-					addRootSignature(pRenderer, &rootDesc, &pYCbCrRootSignature);
-
-					DescriptorSetDesc desc = { pYCbCrRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-					addDescriptorSet(pRenderer, &desc, &pYCbCrDescriptorSets_NoneFreq);
-				}
-#endif
-			}
-
-			if (!gAppUI.Init(pRenderer))
-				return false;
-
-			gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
-
-			// Initialize microprofiler and it's UI.
-			initProfiler();
-
-			// Gpu profiler can only be added after initProfile.
-			gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-			// GUI - coppied from the first unit test
-			{
-				GuiDesc guiDesc = {};
-				guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-				pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-#if !defined(TARGET_IOS)
-				pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync\t\t\t\t\t", &bToggleVSync));
-#endif
-#if defined(VULKAN)
-				pGuiWindow->AddWidget(CheckboxWidget("Toggle YCbCr conversion\t\t\t\t\t", &bToggleYCbCr));
-#else
-				pGuiWindow->AddWidget(LabelWidget("The selected API is not support by YCbCr conversion."));
-#endif
-			}
-		}
-
 		if (!addSwapChain())
 			return false;
 
 		// Load
+		if(bYCbCrSupported)
 		{
-#if defined(VULKAN)
+
 			// Create the pipeline
 			{
 				RasterizerStateDesc rasterizerStateDesc = {};
@@ -359,13 +443,12 @@ public:
 					updateDescriptorSet(pRenderer, 0, pYCbCrDescriptorSets_NoneFreq, PARAMS_COUNT, params);
 				}
 			}
-#endif
 		}
 
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets, 1))
+		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets, 1))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		return true;
@@ -374,57 +457,17 @@ public:
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-		gAppUI.Unload();
-		gVirtualJoystick.Unload();
+		removeAppGUIDriver(pAppUI);
+		removeVirtualJoystickUIPipeline(pVirtualJoystick);
 
 		// Unload
 		{
-#if defined(VULKAN)
-			removePipeline(pRenderer, pSimplePipeline);
-			removePipeline(pRenderer, pYCbCrPipeline);
-#endif
+			if (bYCbCrSupported)
+			{
+				removePipeline(pRenderer, pSimplePipeline);
+				removePipeline(pRenderer, pYCbCrPipeline);
+			}
 			removeSwapChain(pRenderer, pSwapChain);
-		}
-
-		if (mSettings.mQuit || mSettings.mResetGraphics) 
-		{
-			gVirtualJoystick.Exit();
-			gAppUI.Exit();
-			exitProfiler();
-
-			{
-#if defined(VULKAN)
-				removeDescriptorSet(pRenderer, pSimpleDescriptorSets_NoneFreq);
-				removeDescriptorSet(pRenderer, pYCbCrDescriptorSets_NoneFreq);
-
-				removeShader(pRenderer, pSimpleShader);
-				removeShader(pRenderer, pYCbCrShader);
-				removeRootSignature(pRenderer, pSimpleRootSignature);
-				removeRootSignature(pRenderer, pYCbCrRootSignature);
-
-				// Remove the combined sampler
-				{
-					removeResource(pSimpleTexture);
-					removeSampler(pRenderer, pSimpleSampler);
-					removeResource(pYCbCrTexture);
-					removeSampler(pRenderer, pYCbCrSampler);
-				}
-#endif
-			}
-
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				removeFence(pRenderer, pRenderCompleteFences[i]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-
-				removeCmd(pRenderer, pCmds[i]);
-				removeCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-			exitResourceLoaderInterface(pRenderer);
-			removeQueue(pRenderer, pGraphicsQueue);
-			removeRenderer(pRenderer);
 		}
 	}
 
@@ -441,7 +484,7 @@ public:
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		
 		// Update GUI
-		gAppUI.Update(deltaTime);
+		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -465,21 +508,21 @@ public:
 		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 		{
-cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+			cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 			// Draw
+			if (bYCbCrSupported)
 			{
-#if defined(VULKAN)
 				// Resources barriers
 				{
 					RenderTargetBarrier barriers[] =
 					{
 						{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 					};
-		
+			
 					cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 				}
-		
+			
 				// Clear
 				{
 					LoadActionsDesc loadActions = {};
@@ -489,44 +532,45 @@ cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 					cmdSetViewport(cmd, 0.0f, 0.0f, float(pRenderTarget->mWidth), float(pRenderTarget->mHeight), 0.0f, 1.0f);
 					cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 				}
-		
+			
 				// Draw
 				{
 					cmdBindPipeline(cmd, bToggleYCbCr ? pYCbCrPipeline : pSimplePipeline);
 					cmdBindDescriptorSet(cmd, 0, bToggleYCbCr ? pYCbCrDescriptorSets_NoneFreq : pSimpleDescriptorSets_NoneFreq);
 					cmdDraw(cmd, 3, 0);
 				}
-		
+			
 				cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
 				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-#endif			
 			}
 			
 			// UI and finilization
 			{
-#if !defined(VULKAN)
-				// Resources barriers
+				if (!bYCbCrSupported)
 				{
-					RenderTargetBarrier barriers[] =
+					// Resources barriers
 					{
-						{ pSwapChain->ppRenderTargets[swapchainImageIndex], RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
-					};
+						RenderTargetBarrier barriers[] =
+						{
+							{ pSwapChain->ppRenderTargets[swapchainImageIndex], RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+						};
 
-					cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+						cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+					}
 				}
-#endif
 				LoadActionsDesc loadActions = {};
-				loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+				loadActions.mLoadActionsColor[0] = bYCbCrSupported ? LOAD_ACTION_LOAD : LOAD_ACTION_CLEAR;
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 				
-				gVirtualJoystick.Draw(cmd, {1.0f, 1.0f, 1.0f, 1.0f});
+				float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+				drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 				const float txtIndent = 8.f;
 				float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 				cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 				cmdDrawProfilerUI();
-				gAppUI.Gui(pGuiWindow);
-				gAppUI.Draw(cmd);
+				appUIGui(pAppUI, pGuiWindow);
+				drawAppUI(pAppUI, cmd);
 				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			
@@ -558,16 +602,10 @@ cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 			presentDesc.pSwapChain = pSwapChain;
 			presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 			presentDesc.mSubmitDone = true;
-			PresentStatus presentStatus = queuePresent(pGraphicsQueue, &presentDesc);
+			queuePresent(pGraphicsQueue, &presentDesc);
 			flipProfiler();
-
-			if (presentStatus == PRESENT_STATUS_DEVICE_RESET)
-			{
-				Thread::Sleep(5000);// Wait for a few seconds to allow the driver to come back online before doing a reset.
-				mSettings.mResetGraphics = true;
-			}
 		}
-		
+
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 

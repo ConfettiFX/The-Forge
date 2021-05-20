@@ -4153,7 +4153,7 @@ void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h,
 
 static bool MZ_FOPEN(const ResourceDirectory resourceDirectory, const char *fileName, const char *pMode, MZ_FILE* pOut)
 {
-	return fsOpenStreamFromPath(resourceDirectory, fileName, FM_READ_BINARY, pOut);
+	return fsOpenStreamFromPath(resourceDirectory, fileName, fsFileModeFromString(pMode), pOut);
 }
 static bool MZ_FREOPEN(const ResourceDirectory resourceDirectory, const char* fileName, const char *pMode, MZ_FILE* pStream)
 {

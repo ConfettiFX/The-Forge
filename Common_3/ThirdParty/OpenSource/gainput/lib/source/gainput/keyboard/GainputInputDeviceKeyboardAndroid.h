@@ -18,12 +18,12 @@ public:
 		manager_(manager),
 		device_(device),
 		textInputEnabled_(true),
+		textCount_(0),
 		dialect_(manager_.GetAllocator()),
 		state_(&state),
 		previousState_(&previousState),
 		nextState_(manager.GetAllocator(), KeyCount_),
-		delta_(0),
-		textCount_(0)
+		delta_(0)
 	{
 		dialect_[AKEYCODE_SPACE] = KeySpace;
 
@@ -144,7 +144,7 @@ public:
 
 	bool IsTextInputEnabled() const override { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) override { textInputEnabled_ = enabled; }
-	wchar_t* GetTextInput(uint32_t* count)
+	wchar_t* GetTextInput(uint32_t* count) override
 	{
 		*count = textCount_;
 		return textBuffer_;

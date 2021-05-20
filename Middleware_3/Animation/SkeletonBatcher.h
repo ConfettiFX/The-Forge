@@ -75,7 +75,7 @@ class SkeletonBatcher
 	void Initialize(const SkeletonRenderDesc& skeletonRenderDesc);
 
 	// Must be called to clean up the object if initialize was called
-	void Destroy();
+	void Exit();
 
 	// Update the mSkeletonPipeline pointer now that the pipeline has been loaded
 	inline void LoadPipeline(Pipeline* pipeline) { mSkeletonPipeline = pipeline; };
@@ -97,25 +97,25 @@ class SkeletonBatcher
 	private:
 
 	// List of Rigs whose skeletons need to be rendered
-	Rig* mRigs[MAX_RIGS];
-	uint32_t mCumulativeRigInstanceCount[MAX_RIGS] = { 0 };
+	Rig* mRigs[MAX_RIGS] = {};
+	uint32_t mCumulativeRigInstanceCount[MAX_RIGS + 1] = { 0 };
 
 	uint32_t            mNumRigs = 0;
 	uint32_t            mNumActiveRigs = 0;
 
 	// Application variables used to be able to update buffers
-	Renderer*      mRenderer;
-	Pipeline*      mSkeletonPipeline;
-	RootSignature* mRootSignature;
-	Buffer*        mJointVertexBuffer;
-	Buffer*        mBoneVertexBuffer;
-	uint32_t       mJointVertexStride;
-	uint32_t       mBoneVertexStride;
-	uint32_t       mNumJointPoints;
-	uint32_t       mNumBonePoints;
+	Renderer*      mRenderer = NULL;
+	Pipeline*      mSkeletonPipeline = NULL;
+	RootSignature* mRootSignature = NULL;
+	Buffer*        mJointVertexBuffer = NULL;
+	Buffer*        mBoneVertexBuffer = NULL;
+	uint32_t       mJointVertexStride = 0;
+	uint32_t       mBoneVertexStride = 0;
+	uint32_t       mNumJointPoints = 0;
+	uint32_t       mNumBonePoints = 0;
 
 	// Descriptor binder with all required memory allocation space
-	DescriptorSet*  pDescriptorSet;
+	DescriptorSet*  pDescriptorSet = NULL;
 
 	// Buffer pointers that will get updated for each batch to be rendered
 	Buffer*  mProjViewUniformBufferJoints[ImageCount][MAX_BATCHES] = { { {} } };
@@ -127,14 +127,14 @@ class SkeletonBatcher
 
 	// Keeps track of the number of batches we will send for instanced rendering
 	// for each frame index
-	tfrg_atomic32_t mBatchCounts[ImageCount];
+	tfrg_atomic32_t mBatchCounts[ImageCount] = {};
 
-	tfrg_atomic32_t mInstanceCount;
+	tfrg_atomic32_t mInstanceCount = 0;
 
 	// Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
-	tfrg_atomic32_t mBatchSize[ImageCount][MAX_BATCHES];
+	tfrg_atomic32_t mBatchSize[ImageCount][MAX_BATCHES] = {};
 
 	// Determines if this renderer will need to draw bones between each joint
 	// Set in initialize
-	bool mDrawBones;
+	bool mDrawBones = false;
 };

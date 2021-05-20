@@ -49,7 +49,10 @@ VECTORMATH_ALIGNED_TYPE_PRE class FloatInVec
 
 public:
 
-    inline FloatInVec() { }
+    // Default constructor; does no initialization
+    //
+    inline FloatInVec() { } //-V730
+
     inline FloatInVec(__m128 vec);
 
     // matches standard type conversions

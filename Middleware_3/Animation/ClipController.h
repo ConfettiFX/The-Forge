@@ -110,27 +110,27 @@ class ClipController
 	float mWeight = 1.0f;
 
 	// Indicates if the clip is additive or not.
-	bool mAdditive;
+	bool mAdditive = false;
 
 	// Current animation time ratio, in the unit interval [0,1], where 0 is the
 	// beginning of the animation, 1 is the end.
-	float mTimeRatio;
+	float mTimeRatio = 0.0f;
 
 	// Time ratio of the previous update.
-	float mPreviousTimeRatio;
+	float mPreviousTimeRatio = 0.0f;
 
 	// Length of the clip this is managing
-	float mDuration;
+	float mDuration = 0.0f;
 
 	// Playback speed, can be negative in order to play the animation backward.
-	float mPlaybackSpeed;
+	float mPlaybackSpeed = 0.0f;
 
 	// Animation play mode state: play/pause.
-	bool mPlay;
+	bool mPlay = false;
 
 	// Animation loop mode.
-	bool mLoop;
+	bool mLoop = false;
 
 	// Gets updated each time we set the time, will get used externally (UI)
-	float* gExternallyUsedTime;
+	float* gExternallyUsedTime = NULL;
 };

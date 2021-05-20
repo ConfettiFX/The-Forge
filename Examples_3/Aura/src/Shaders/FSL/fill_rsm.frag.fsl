@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ *
+ * This is a part of Aura.
+ * 
+ * This file(code) is licensed under a 
+ * Creative Commons Attribution-NonCommercial 4.0 International License 
+ *
+ *   (https://creativecommons.org/licenses/by-nc/4.0/legalcode) 
+ *
+ * Based on a work at https://github.com/ConfettiFX/The-Forge.
+ * You may not use the material for commercial purposes.
+*/
+
+#include "shader_defs.h"
+#include "vb_rsm_resources.h"
+#include "packing.h"
+#include "wind.h"
+
+STRUCT(PsIn)
+{
+	DATA(float4,      position,   SV_Position);
+	DATA(float2,      texCoord,   TEXCOORD0);
+	DATA(float3,      normal,     TEXCOORD1);
+	DATA(flat(float), materialID, TEXCOORD2);
+};
+
+STRUCT(PsOut)
+{
+	DATA(float4, albedo, SV_Target0);
+	DATA(float4, normal, SV_Target1);
+};
+
+PsOut PS_MAIN(PsIn In)
+{
+	INIT_MAIN;
+
+	PsOut Out;
+
+	Out.albedo     = f4(1.0f);
+	Out.normal.xyz = In.normal;
+	Out.normal.w   = 0.0f;
+	
+	if (Get(useColorMaps))
+	{
+		uint matID = uint(In.materialID);
+
+		float4 base;
+		BeginNonUniformResourceIndex(matID, MAX_TEXTURE_UNITS);
+			base = SampleTex2D(Get(diffuseMaps)[matID], Get(rsmFilter), In.texCoord);
+		EndNonUniformResourceIndex();
+
+		// Fill the buffers
+		Out.albedo = float4(base.rgb, 1.0f);
+	}
+
+	RETURN(Out);
+}

@@ -58,6 +58,8 @@ bool gCursorVisible = true;
 bool gCursorInsideTrackingArea = true;
 static WindowsDesc gCurrentWindow;
 
+static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+
 @interface ForgeApplication : NSApplication
 @end
 
@@ -352,7 +354,7 @@ void AutoHideMenuBar()
 - (void)windowDidResize:(NSNotification *)notification
 {
 	ForgeNSWindow* window = [notification object];
-	if (gCurrentWindow.fullScreen || [window inLiveResize])
+	if ([window inLiveResize])
 	{
 		return;
 	}
@@ -364,8 +366,11 @@ void AutoHideMenuBar()
 	float2 dpiScale = getDpiScale();
 	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale.x, self.frame.size.height * dpiScale.y);
 	
-	[window updateClientRect:&gCurrentWindow];
-	[window updateWindowRect:&gCurrentWindow];
+	if(!gCurrentWindow.fullScreen)
+	{
+		[window updateClientRect:&gCurrentWindow];
+		[window updateWindowRect:&gCurrentWindow];
+	}
 }
 
 - (void) windowDidEndLiveResize:(NSNotification *)notification
@@ -762,6 +767,21 @@ void getRecommendedResolution(RectDesc* rect)
 
 void setCustomMessageProcessor(CustomMessageProcessor proc) { }
 
+void onRequestReload()
+{
+	gResetScenario |= RESET_SCENARIO_RELOAD;
+}
+
+void onDeviceLost()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
+void onAPISwitch()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
+
 void requestShutdown()
 {
 	ForgeMTLView* view = (__bridge ForgeMTLView*)(gCurrentWindow.handle.window);
@@ -877,35 +897,38 @@ void closeWindow(const WindowsDesc* winDesc) {}
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 {
-	NSRect contentRect;
-	float2 dpiScale = getDpiScale();
-	contentRect.origin.x = rect.left / dpiScale.x;
-	contentRect.origin.y = -rect.top / dpiScale.y;
-	contentRect.size.width = (float)getRectWidth(rect) / dpiScale.x;
-	contentRect.size.height = (float)getRectHeight(rect) / dpiScale.y;
-	
-	// Needs to be set here for style consideration in borderless fs.
-	winDesc->clientRect.top = rect.top;
-	winDesc->clientRect.bottom = rect.bottom;
-	
 	ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
 	if (view == nil)
 	{
 		return;
 	}
 	
-	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	window.styleMask = PrepareStyleMask(winDesc);
+	int clientWidthStart = (getRectWidth(winDesc->windowedRect) - getRectWidth(winDesc->clientRect)) >> 1;
+	int clientHeightStart = getRectHeight(winDesc->windowedRect) - getRectHeight(winDesc->clientRect) - clientWidthStart;
 	
-	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect
-													   styleMask:window.styleMask];
-	
-	[window setFrame:styleAdjustedRect
-			 display:true];
+	winDesc->clientRect = rect;
 	
 	if (winDesc->centered)
 	{
 		centerWindow(winDesc);
+	}
+	else
+	{
+		NSRect contentRect;
+		float2 dpiScale = getDpiScale();
+		contentRect.origin.x = rect.left / dpiScale.x;
+		contentRect.origin.y = (getRectHeight(gCurrentWindow.fullscreenRect) - rect.bottom - clientHeightStart) / dpiScale.y;
+		contentRect.size.width = (float)getRectWidth(rect) / dpiScale.x;
+		contentRect.size.height = (float)getRectHeight(rect) / dpiScale.y;
+		
+		ForgeNSWindow* window = (ForgeNSWindow*)view.window;
+		window.styleMask = PrepareStyleMask(winDesc);
+		
+		NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect
+														   styleMask:window.styleMask];
+		
+		[window setFrame:styleAdjustedRect
+				 display:true];
 	}
 }
 
@@ -1047,9 +1070,32 @@ void centerWindow(WindowsDesc* winDesc)
 	}
 	
 	winDesc->centered = true;
+
+	uint32_t fsHalfWidth = getRectWidth(winDesc->fullscreenRect) >> 1;
+	uint32_t fsHalfHeight = getRectHeight(winDesc->fullscreenRect) >> 1;
+	uint32_t windowWidth = getRectWidth(winDesc->clientRect);
+	uint32_t windowHeight = getRectHeight(winDesc->clientRect);
+	uint32_t windowHalfWidth = windowWidth >> 1;
+	uint32_t windowHalfHeight = windowHeight >> 1;
+
+	uint32_t X = fsHalfWidth - windowHalfWidth;
+	uint32_t Y = fsHalfHeight - windowHalfHeight;
+
+	NSRect contentRect;
+	float2 dpiScale = getDpiScale();
+	contentRect.origin.x = X / dpiScale.x;
+	contentRect.origin.y = (getRectHeight(gCurrentWindow.fullscreenRect) - (Y+windowHeight)) / dpiScale.y;
+	contentRect.size.width = (float)(windowWidth) / dpiScale.x;
+	contentRect.size.height = (float)(windowHeight) / dpiScale.y;
+
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	
-	[window center];
+	window.styleMask = PrepareStyleMask(winDesc);
+		
+	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect
+													   styleMask:window.styleMask];
+
+	[window setFrame:styleAdjustedRect
+			 display:true];
 }
 
 void* createCursor(const char* path)
@@ -1275,9 +1321,9 @@ int macOSMain(int argc, const char** argv, IApp* app)
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider;
 
 - (void)drawRectResized:(CGSize)size;
+- (void)onFocusChanged:(BOOL)focused;
 - (void)update;
 - (void)shutdown;
-
 @end
 
 // Our view controller.  Implements the MTKViewDelegate protocol, which allows it to accept
@@ -1482,13 +1528,37 @@ uint32_t testingMaxFrameCount = 120;
 	{
 		pApp->mSettings.mWidth = newWidth;
 		pApp->mSettings.mHeight = newHeight;
-		pApp->Unload();
-		pApp->Load();
+		
+		onRequestReload();
 	}
+}
+
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle) 
+{
+#ifndef AUTOMATED_TESTING
+	NSAlert* alert = [[NSAlert alloc] init];
+
+	[alert setMessageText:[NSString stringWithCString:title
+		encoding:[NSString defaultCStringEncoding]]];
+	[alert setInformativeText:[NSString stringWithCString:msg
+		encoding:[NSString defaultCStringEncoding]]];
+	[alert setAlertStyle:NSAlertStyleCritical];
+	[alert addButtonWithTitle:@"OK"];
+	[alert beginSheetModalForWindow:[NSApplication sharedApplication].windows[0] completionHandler:nil];
+#endif
 }
 
 - (void)update
 {
+	if (gResetScenario & RESET_SCENARIO_RELOAD)
+	{
+		pApp->Unload();
+		pApp->Load();
+	
+		gResetScenario &= ~RESET_SCENARIO_RELOAD;
+		return;
+	}
+	
 	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 	if (deltaTime > 0.15f)
@@ -1497,13 +1567,6 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Update(deltaTime);
 	pApp->Draw();
 	
-	// Graphics reset in cases where device has to be re-created.
-	if (pApp->mSettings.mResetGraphics) 
-	{
-		pApp->Unload();
-		pApp->Load();
-		pApp->mSettings.mResetGraphics = false;
-	}
 #ifdef AUTOMATED_TESTING
 	testingCurrentFrameCount++;
 	if (testingCurrentFrameCount >= testingMaxFrameCount)
@@ -1548,6 +1611,15 @@ uint32_t testingMaxFrameCount = 120;
 	MemAllocExit();
 	
 
+}
+- (void)onFocusChanged:(BOOL)focused
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
 }
 @end
 /************************************************************************/

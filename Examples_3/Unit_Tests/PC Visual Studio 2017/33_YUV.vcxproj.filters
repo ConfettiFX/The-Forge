@@ -7,8 +7,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{57e344ce-6157-4099-9b1a-acc3684415a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{61bd3227-f95b-4941-91d2-56d928d42815}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{6afa1aae-34cb-4b44-8404-995e8029342d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -17,11 +17,11 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\33_YUV\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\33_YUV\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\33_YUV\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\33_YUV\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

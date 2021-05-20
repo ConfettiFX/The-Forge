@@ -68,11 +68,11 @@ static bool gWindowIsResizing = false;
 static bool gCursorVisible = true;
 static bool gCursorInsideRectangle = false;
 
-
+static uint8_t gResetScenario = RESET_SCENARIO_NONE;
 
 static void adjustWindow(WindowsDesc* winDesc);
 static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY);
-
+static void onFocusChanged(bool focused);
 static void UpdateWindowDescFullScreenRect(WindowsDesc* winDesc)
 {
 	HMONITOR  currentMonitor = MonitorFromWindow((HWND)pApp->pWindow->handle.window, MONITOR_DEFAULTTONEAREST);
@@ -231,6 +231,12 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case SIZE_MINIMIZED:
 			gWindow->minimized = true;
+			break;
+		case WM_SETFOCUS:
+			onFocusChanged(true);
+			break;
+		case WM_KILLFOCUS:
+			onFocusChanged(false);
 			break;
 		default:
 			break;
@@ -512,6 +518,21 @@ void getRecommendedResolution(RectDesc* rect)
 
 void requestShutdown() { PostQuitMessage(0); }
 
+void onRequestReload()
+{
+	gResetScenario |= RESET_SCENARIO_RELOAD;
+}
+
+void onDeviceLost()
+{
+	gResetScenario |= RESET_SCENARIO_DEVICE_LOST;
+}
+
+void onAPISwitch()
+{
+	gResetScenario |= RESET_SCENARIO_API_SWITCH;
+}
+
 void initWindowClass()
 {
 	if (!gWindowClassInitialized)
@@ -538,13 +559,16 @@ void initWindowClass()
 				size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | 
 					FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID,
 					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-				eastl::string message(messageBuffer, size);
-				LOGF(eERROR, message.c_str());
+
+				char* message = (char*)tf_calloc(size + 1, sizeof(char));
+				strcpy(message, messageBuffer);
+				LOGF(eERROR, message);
+				tf_free(message);
 				return;
 			}
 			else
 			{
-				gWindowClassInitialized = success;
+				gWindowClassInitialized = false;
 			}
 		}
 	}
@@ -590,12 +614,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 
 	if (!winDesc->overrideDefaultPosition)
 	{
-		windowX = CW_USEDEFAULT;
-	}
-
-	if (!winDesc->overrideDefaultPosition)
-	{
-		windowY = CW_USEDEFAULT;
+		windowX = windowY = CW_USEDEFAULT;
 	}
 
 	// Defer fullscreen. We always create in windowed, and
@@ -1005,10 +1024,28 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 
-	pApp->Unload();
-	pApp->Load();
+	onRequestReload();
 }
 
+static void onFocusChanged(bool focused)
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
+}
+
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle) 
+{
+#ifndef AUTOMATED_TESTING
+	MessageBoxA((HWND)windowHandle,
+		msg,
+		title,
+		MB_OK);
+#endif
+}
 
 int WindowsMain(int argc, char** argv, IApp* app)
 {
@@ -1111,6 +1148,51 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	int64_t lastCounter = getUSec();
 	while (!quit)
 	{
+		if (gResetScenario != RESET_SCENARIO_NONE)
+		{
+			if (gResetScenario & RESET_SCENARIO_RELOAD)
+			{
+				pApp->Unload();
+
+				if (!pApp->Load())
+					return EXIT_FAILURE;
+
+				gResetScenario &= ~RESET_SCENARIO_RELOAD;
+				continue;
+			}
+
+			if (gResetScenario & RESET_SCENARIO_DEVICE_LOST)
+			{
+				errorMessagePopup("Graphics Device Lost", 
+					"Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the logs for further details.", 
+					pApp->pWindow->handle.window);
+			}
+
+			pApp->Unload();
+			pApp->Exit();
+
+			pSettings->mInitialized = false;
+
+			closeWindow(app->pWindow);
+			openWindow(app->GetName(), app->pWindow);
+
+			{
+				Timer t;
+				if (!pApp->Init())
+					return EXIT_FAILURE;
+				
+				pSettings->mInitialized = true;
+
+				if (!pApp->Load())
+					return EXIT_FAILURE;
+
+				LOGF(LogLevel::eINFO, "Application Reset %f", t.GetMSec(false) / 1000.0f);
+			}
+
+			gResetScenario = RESET_SCENARIO_NONE;
+			continue;
+		}
+
 		int64_t counter = getUSec();
 		float deltaTime = CounterToSecondsElapsed(lastCounter, counter);
 		lastCounter = counter;
@@ -1130,15 +1212,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 		pApp->Update(deltaTime);
 		pApp->Draw();
-
-		// Graphics reset in cases where device has to be re-created.
-		if (pApp->mSettings.mResetGraphics) 
-		{
-			pApp->Unload();
-			pApp->Load();
-			pApp->mSettings.mResetGraphics = false;
-		}
-
+		
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		if (pSettings->mDefaultAutomatedTesting)
@@ -1171,6 +1245,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	MemAllocExit();
 
+	pApp->pWindow = gWindow = NULL;
 	return 0;
 }
 #endif

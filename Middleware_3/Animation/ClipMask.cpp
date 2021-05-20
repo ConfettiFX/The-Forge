@@ -37,7 +37,7 @@ void ClipMask::Initialize(Rig* rig)
 	EnableAllJoints();
 }
 
-void ClipMask::Destroy()
+void ClipMask::Exit()
 {
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 	allocator->Deallocate(mJointWeights);

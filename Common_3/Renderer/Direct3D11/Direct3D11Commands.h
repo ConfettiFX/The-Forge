@@ -23,6 +23,7 @@
 */
 
 #pragma once
+#ifdef DIRECT3D11
 
 #include "../IRenderer.h"
 
@@ -288,3 +289,4 @@ struct CachedCmd
 		UpdateSubresourcesCmd   mUpdateSubresourcesCmd;
 	};
 };
+#endif

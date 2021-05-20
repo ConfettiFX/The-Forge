@@ -8,11 +8,8 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{b6a2ef99-2535-4e08-bc22-61631afa22d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Vulkan">
-      <UniqueIdentifier>{a952e6fa-f30d-48ed-a770-d9b4bc130b71}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\D3D12">
-      <UniqueIdentifier>{4c9ad439-05ea-4d3e-b202-e8f81eedfd31}</UniqueIdentifier>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{a84507ed-dbad-47d8-8d84-dd4ff5a223b8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -21,29 +18,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\22_Blending\Shaders\D3D12\basic.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\D3D12\plane.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\D3D12\plane.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\Vulkan\plane.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\22_Blending\Shaders\Vulkan\plane.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <FSLShader Include="..\src\22_Blending\Shaders\FSL\plane.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\22_Blending\Shaders\FSL\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\22_Blending\Shaders\FSL\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\22_Blending\Shaders\FSL\plane.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

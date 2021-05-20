@@ -23,7 +23,7 @@
 
 #include "MTConfig.h"
 
-#if MT_PLATFORM_WINDOWS 
+#if MT_PLATFORM_WINDOWS || MT_PLATFORM_DURANGO
 
 #include <type_traits>
 
