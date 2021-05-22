@@ -35,7 +35,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Fast Entity Component System based on our internally developed ECS
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
-- Shader Translator using a superset of HLSL as the shader language. There is a Wiki page on [how to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
+- Shader Translator using a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
