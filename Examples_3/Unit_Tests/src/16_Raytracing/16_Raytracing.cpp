@@ -615,6 +615,17 @@ public:
             {
 				strcpy(mOutput, argv[i + 1]);
             }
+			else if (strcmp(argv[i], "-api") == 0 && i + 1 < argc)
+			{
+				if (strcmp(argv[i + 1], "D3D12") == 0)
+				{
+					gSelectedApiIndex = 0;
+				}
+				else if (strcmp(argv[i + 1], "VULKAN") == 0)
+				{
+					gSelectedApiIndex = 1;
+				}
+			}
         }
     }
 	
