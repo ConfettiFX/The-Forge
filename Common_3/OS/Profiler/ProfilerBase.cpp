@@ -2585,57 +2585,64 @@ void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFram
 
 void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName)
 {
-    //time_t t = time(0);
-    //eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
-    //char name[128] = {};
-    //strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
-    //FileStream* statsFile = fsOpenFile(RD_LOG, name, FM_WRITE);
-    //if (statsFile)
-    //{
-    //    fsPrintToStream(statsFile, "{\n");
+    time_t t = time(0);
+    eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
+    char name[128] = {};
+    strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
+	FileStream statsFile = {};
+    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &statsFile))
+    {
+		eastl::string output = "";
+		
+		output += "{\n";		
+		output.append_sprintf("\"Application\": \"%s\", \n", appName);
+		output.append_sprintf("\"Width\": %d, \n", pSettings->mWidth);
+		output.append_sprintf("\"Height\": %d, \n\n", pSettings->mHeight);
+		output.append_sprintf("\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+		output.append_sprintf("\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+		output.append_sprintf("\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
 
-    //    fsPrintToStream(statsFile, "\"Application\": \"%s\", \n", pRenderer->pName);
-    //    fsPrintToStream(statsFile, "\"Width\": %d, \n", pSettings->mWidth);
-    //    fsPrintToStream(statsFile, "\"Height\": %d, \n\n", pSettings->mHeight);
-    //    fsPrintToStream(statsFile, "\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-    //    fsPrintToStream(statsFile, "\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-    //    fsPrintToStream(statsFile, "\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
-    //    const Profile& S = *ProfileGet();
-    //    for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
-    //    {
-    //        if (S.GroupInfo[groupIndex].Type != ProfileTokenTypeGpu)
-    //            continue;
+        const Profile& S = *ProfileGet();
+        for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+        {
+            if (S.GroupInfo[groupIndex].Type != ProfileTokenTypeGpu)
+                continue;
 
-    //        for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
-    //        {
-    //            if (strcmp(S.TimerInfo[timerIndex].pName, S.GroupInfo[groupIndex].pName) == 0)
-    //            {
-    //                fsPrintToStream(statsFile, "\"%s\": { \n", S.GroupInfo[groupIndex].pName);
-    //                float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
-    //                uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-    //                uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
-    //                float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
-    //                float fMax = fToMs * (S.AggregateMax[timerIndex]);
-    //                float fMin = fToMs * (S.AggregateMin[timerIndex]);
-    //                fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", fAverage);
-    //                fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", fMin);
-    //                fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", fMax);
-    //                fsPrintToStream(statsFile, "\"Frames\": %d \n", nAggregateCount);
-    //                fsPrintToStream(statsFile, "}, \n\n");
-    //                break;
-    //            }
-    //        }
-    //    }
-    //    fsPrintToStream(statsFile, "\"Cpu\": { \n");
-    //    fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", getCpuAvgFrameTime());
-    //    fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", getCpuMinFrameTime());
-    //    fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", getCpuMaxFrameTime());
-    //    fsPrintToStream(statsFile, "\"Frames\": %d \n", S.nAggregateFrames);
-    //    fsPrintToStream(statsFile, "} \n");
-    //    fsPrintToStream(statsFile, "}");
+            for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+            {
+                if (strcmp(S.TimerInfo[timerIndex].pName, S.GroupInfo[groupIndex].pName) == 0)
+                {
+					output.append_sprintf("\"%s\": { \n", S.GroupInfo[groupIndex].pName);
 
-    //    fsCloseStream(statsFile);
-    //}
+                    float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
+                    uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+                    uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
+                    float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
+                    float fMax = fToMs * (S.AggregateMax[timerIndex]);
+                    float fMin = fToMs * (S.AggregateMin[timerIndex]);
+
+					output.append_sprintf("\"Average\": %0.4f, \n", fAverage);
+					output.append_sprintf("\"Min\": %0.4f, \n", fMin);
+					output.append_sprintf("\"Max\": %0.4f, \n", fMax);
+					output.append_sprintf("\"Frames\": %d \n", nAggregateCount);
+					output.append_sprintf("}, \n\n");
+                    break;
+                }
+            }
+        }
+
+		output.append_sprintf("\"Cpu\": { \n");
+        output.append_sprintf("\"Average\": %0.4f, \n", getCpuAvgFrameTime());
+        output.append_sprintf("\"Min\": %0.4f, \n", getCpuMinFrameTime());
+        output.append_sprintf("\"Max\": %0.4f, \n", getCpuMaxFrameTime());
+        output.append_sprintf("\"Frames\": %d \n", S.nAggregateFrames);
+        output.append_sprintf("} \n");
+        output.append_sprintf("}");
+
+		fsWriteToStream(&statsFile, output.c_str(), output.length() * sizeof(char));
+        fsCloseStream(&statsFile);
+    }
+
 }
 
 #if PROFILE_WEBSERVER
