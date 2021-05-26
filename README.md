@@ -11,10 +11,12 @@ The Forge is a cross-platform rendering framework supporting
   * Vulkan 1.1
   * OpenGL ES 2.0 fallback for large scale business application frameworks
 - macOS / iOS / iPad OS with Metal 2.2
-- XBOX One / XBOX One X / XBOX Series S/X (only available for accredited developers on request)
-- PS4 / PS4 Pro (only available for accredited developers on request)
-- PS5 (only available for accredited developers on request)
-- Switch (only available for accredited developers on request)
+- XBOX One / XBOX One X / XBOX Series S/X *
+- PS4 / PS4 Pro *
+- PS5 *
+- Switch using Vulkan 1.1 *
+
+*(only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
@@ -29,7 +31,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms
 - Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
 - Consistent Memory Managament: 
-  * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+  * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
 - Fast Entity Component System based on our internally developed ECS
@@ -92,7 +94,7 @@ The reason why we are doing this lies mostly in the unreliability of DXC and SPI
 
   There is a Wiki entry that holds a FSL language primer and general information how this works here:
 
-  https://github.com/ConfettiFX/The-Forge/wiki
+[The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
 
 - Run-Time API Switching - we had some sort of run-time API switching in an early version of The Forge. At the time we were not expecting this to be very useful because most game teams do not switch APIs on the fly. In the meantime we found a usage case on Android, where we have to reach a large number of devices. So we came up with a better solution that is more consistent with the overall architecture and works on at least PC and Android platforms. 
 On Windows PC one can switch between DX12, Vulkan and DX11 if all are supported. On Android one can switch between Vulkan and OpenGL ES 2.0. The later allows us to target a much larger group of devices for business application frameworks. We could extend this architecture to other platforms like consoles easily.
@@ -304,13 +306,13 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * MacBook Pro 13 inch (MacBookPro13,2) 
 * Macbook Pro 13 inch (MacbookPro14,2)
 
-At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+At this moment we do not have access to an iMac with M1 chipset (we ordered one), iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
 
 
 # iOS Requirements:
 
-1. iOS 13.1 beta 3 (17A5837a)
+1. iOS 14.1
 
 2. XCode: see macOS
 
@@ -356,22 +358,20 @@ We are currently testing on:
 
 2. Visual Studio 2019 (Visual Studio 2017 works too but has a bug in the build module) 
 
-3. Android API level 28 or higher
-
-We can't use Android SDK < 26 due to 
-
-```
-#if _ANDROID_API_ >= 26
-int pthread_getname_np(pthread_t _pthread, char* _buf, size_t _n) _INTRODUCED_IN(26);
-#endif / _ANDROID_API_ >= 26 /
-```
+3. Android API level 23 or higher
 
 At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs or lack of support:
-* 08_Procedural
+* 09_LightShadowPlayground
 * 09a_HybridRayTracing
+* 11_MultiGPU
 * 16_RayTracing 
 * 16a_SphereTracing
+* 18_VirtualTexture
+* 32_Window
+* 35_VariableRateShading
 * Visibility Buffer 
+* Aura
+* Ephemeris
 
 4. We are currently testing on 
 * [Samsung S20 Ultra (Qualcomm Snapdragon 865 (Vulkan 1.1.120))](https://www.gsmarena.com/samsung_galaxy_s20_ultra_5g-10040.php) with Android 10. Please note that this version uses the Qualcomm based chipset compared to the European version that uses the Exynos chipset.
@@ -563,7 +563,7 @@ This unit test showcases a cross-platform FileSystem C API, supporting disk-base
 ![File System Unit Test](Screenshots/12_FileSystem.png)
 
 ## 13. imGUI integration unit test
-This unit test shows how the integration of imGui with a wide range of functionality.
+This unit test shows how the integration of imGui is done with a wide range of functionality.
 
 ![Image of the imGui Integration in The Forge](Screenshots/13_imGui.gif)
 
@@ -719,6 +719,27 @@ Linux:
 YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
 
 ![YUV unit test](Screenshots/34_YUV.png)
+
+
+## 35. Variable Shading Rate
+
+ - Per tile Shading Rate
+Generating a shading rate lookup texture on-the-fly. Used for drawing the color palette which makes up the background. The rate decreases the further the pixels are located from the center. We can see artifacts becoming visible at aggressive rates, such as 4X4. There is also a slider in the UI to modify the center of the circle.
+
+![Per-tile Shading Rate](Screenshots/35_VRS_1.png)
+
+  - Per-draw Shading Rate:
+The cubes are drawn by a different shading rate. They are following the Per-draw rate, which can be changed via the dropdown menu in the UI.
+By using a combiner that overrides the screen rates, we ensure that cubes are drawn by an independent rate.
+
+![Per-draw Shading Rate](Screenshots/35_VRS_2.png)
+The cubes are using per-draw shading rate while the background is using per-tile shading rate.
+
+  - Notes:
+    - There is a debug view showing the shading rates and the tiles' size.
+    - Per-tile method may not be available on certain GPUs even if they support the Per-draw method.
+    - The tile size is enforced by the GPU and is readable, as shown in the example.
+    - The shading rates available can vary based on the active GPU.
 
 
 # Examples
@@ -886,7 +907,6 @@ The Forge utilizes the following Open-Source libraries:
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 * [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 * [gainput](https://github.com/jkuhlmann/gainput)
-* [hlslparser](https://github.com/Thekla/hlslparser)
 * [imGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 * [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
