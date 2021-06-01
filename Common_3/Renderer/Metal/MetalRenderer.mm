@@ -1237,7 +1237,7 @@ void collectGraphicsInfo(uint64_t regId, eastl::string inModel, GPUVendorPreset&
 					vendorId = [@"0x" stringByAppendingString:vendorId];
 					eastl::string modelIdString = [modelId.lowercaseString UTF8String];
 					eastl::string vendorIdString = [vendorId.lowercaseString UTF8String];
-					//filter out unwated model id's
+					//filter out unwanted model id's
 					if (modelIdString != inModel)
 						continue;
 
@@ -3780,7 +3780,7 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         }
         else
         {
-            ASSERT(false); // unknown pipline type
+            ASSERT(false); // unknown pipeline type
         }
 	}
 }
@@ -3936,7 +3936,7 @@ void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uin
 #if defined(ENABLE_TESSELLATION)
 	else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
 	{
-		//to supress warning passing nil to controlPointIndexBuffer
+		//to suppress warning passing nil to controlPointIndexBuffer
 		//todo: Add control point index buffer to be passed when necessary
 		id<MTLBuffer> _Nullable indexBuf = nil;
 		[pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
@@ -4008,7 +4008,7 @@ void mtl_cmdDrawIndexedInstanced(
 #if defined(ENABLE_TESSELLATION)
 	else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
 	{
-		//to supress warning passing nil to controlPointIndexBuffer
+		//to suppress warning passing nil to controlPointIndexBuffer
 		//todo: Add control point index buffer to be passed when necessary
 		id<MTLBuffer> _Nullable indexBuf = nil;
 		[pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
@@ -4509,7 +4509,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		// commit the command lists
 		for (uint32_t i = 0; i < cmdCount; i++)
 		{
-			// Commit any uncommited encoder. This is necessary before committing the command buffer
+			// Commit any uncommitted encoder. This is necessary before committing the command buffer
 			util_end_current_encoders(ppCmds[i], false);
 
 			[ppCmds[i]->mtlCommandBuffer commit];
@@ -4581,7 +4581,7 @@ void mtl_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceS
 	*pFenceStatus = FENCE_STATUS_COMPLETE;
 	if (pFence->mSubmitted)
 	{
-		// Check the fence status (and mark it as unsubmitted it if it has succesfully decremented).
+		// Check the fence status (and mark it as unsubmitted it if it has successfully decremented).
 		long status = dispatch_semaphore_wait(pFence->pMtlSemaphore, DISPATCH_TIME_NOW);
 		if (status == 0)
 		{

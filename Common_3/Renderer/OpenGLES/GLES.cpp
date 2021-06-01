@@ -424,7 +424,7 @@ inline const char* util_get_enum_string(GLenum value)
 	}
 }
 
-inline const char* util_get_vender_id(const char* vendor)
+inline const char* util_get_vendor_id(const char* vendor)
 {
 	if(strcmp(vendor, "Qualcomm") == 0)
 		return "0x5143";
@@ -581,7 +581,7 @@ static GLint util_to_gl_usage(ResourceMemoryUsage mem)
 	}
 }
 
-static GLenum util_to_gl_adress_mode(AddressMode mode)
+static GLenum util_to_gl_address_mode(AddressMode mode)
 {
 	switch (mode)
 	{
@@ -593,7 +593,7 @@ static GLenum util_to_gl_adress_mode(AddressMode mode)
 		return GL_CLAMP_TO_EDGE;
 	case ADDRESS_MODE_CLAMP_TO_BORDER:
 		return gExtensionSupport.mHasTextureBorderClampOES ?  GL_CLAMP_TO_BORDER_OES : GL_CLAMP_TO_EDGE;
-	default: ASSERT(false && "Invalid AdressMode"); return GL_REPEAT;
+	default: ASSERT(false && "Invalid AddressMode"); return GL_REPEAT;
 	}
 }
 
@@ -722,12 +722,12 @@ static GLDepthStencilState util_to_depth_desc(const DepthStateDesc* pDesc)
 	ASSERT(pDesc->mStencilBackPass < StencilOp::MAX_STENCIL_OPS);
 
 	GLDepthStencilState depthState = {};
-	depthState.mDepthTest = pDesc->mDepthTest; // glEnable / glDisalbe(GL_DEPTH_TEST)
+	depthState.mDepthTest = pDesc->mDepthTest; // glEnable / glDisable(GL_DEPTH_TEST)
 	depthState.mDepthWrite = pDesc->mDepthWrite; // glDepthMask(GL_TRUE / GL_FALSE);
 	depthState.mDepthFunc = util_to_gl_compare_mode(pDesc->mDepthFunc); // glDepthFunc(GL_LESS)
 
 
-	depthState.mStencilTest = pDesc->mStencilTest;  // glEnable / glDisalbe(GL_STENCIL_TEST)
+	depthState.mStencilTest = pDesc->mStencilTest;  // glEnable / glDisable(GL_STENCIL_TEST)
 	depthState.mStencilWriteMask = pDesc->mStencilWriteMask;  // glStencilMask(mask)
 	depthState.mStencilReadMask = pDesc->mStencilReadMask;
 
@@ -784,7 +784,7 @@ static GLRasterizerState util_to_rasterizer_desc(const RasterizerStateDesc* pDes
 	// Unhandled
 	// pDesc->mDepthBias;
 	// pDesc->mSlopeScaledDepthBias;
-	// pDesc->mFillMode; // Not suported for GLES
+	// pDesc->mFillMode; // Not supported for GLES
 	// pDesc->mMultiSample;
 	// pDesc->mDepthClampEnable;
 
@@ -864,7 +864,7 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	const char* glslVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 
 #if defined(VULKAN) && defined(ANDROID)
-	const char* glVendorId = util_get_vender_id(glVendor);
+	const char* glVendorId = util_get_vendor_id(glVendor);
 	if (isGPUWhitelisted(glVendorId, NULL, glRenderer))
 	{
 		LOGF(LogLevel::eINFO, "Device supports Vulkan. switching API...");
@@ -887,7 +887,7 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	GLint maxTextureImageUnits = 8; // Max supported texture image units for fragment shader using glActiveTexture (initial value GL_TEXTURE0)
 	GLint maxVertTextureImageUnits = 0; // Max supported texture image units for fragment shader using glActiveTexture (initial value GL_TEXTURE0)
-	GLint maxCombinedTextureImageUnits = 8; // Max supported texture image units vertex/framgent shaders combined
+	GLint maxCombinedTextureImageUnits = 8; // Max supported texture image units vertex/fragment shaders combined
 
 	glGetBooleanv(GL_SHADER_COMPILER, &isShaderCompilerSupported);
 	if (!isShaderCompilerSupported)
@@ -1130,7 +1130,7 @@ void gl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	// Semaphores are not available on OpenGL ES 2.0
 	// using glFlush for Gpu->Gpu sync
 
-	// Set signal inital state.
+	// Set signal initial state.
 	pSemaphore->mGLES.mSignaled = false;
 
 	*ppSemaphore = pSemaphore;
@@ -1394,7 +1394,7 @@ void gl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 	else
 	{
 		pRenderTarget->mGLES.mType = GL_COLOR_BUFFER_BIT;
-		// Generate new framebuffer when using a seperate renderTarget
+		// Generate new framebuffer when using a separate renderTarget
 		CHECK_GLRESULT(glGenFramebuffers(1, &pRenderTarget->mGLES.mFramebuffer));
 	}
 
@@ -1519,8 +1519,8 @@ void gl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
 	}
 	pSampler->mGLES.mMagFilter = pDesc->mMagFilter == FILTER_NEAREST ? GL_NEAREST : GL_LINEAR;
 
-	pSampler->mGLES.mAddressS = util_to_gl_adress_mode(pDesc->mAddressU);
-	pSampler->mGLES.mAddressT = util_to_gl_adress_mode(pDesc->mAddressV);
+	pSampler->mGLES.mAddressS = util_to_gl_address_mode(pDesc->mAddressU);
+	pSampler->mGLES.mAddressT = util_to_gl_address_mode(pDesc->mAddressV);
 	pSampler->mGLES.mCompareFunc = util_to_gl_compare_mode(pDesc->mCompareFunc);
 
 	// GL_TEXTURE_MIN_FILTER Options:
@@ -1554,7 +1554,7 @@ void gl_compileShader(
 
 	if (stage != SHADER_STAGE_VERT && stage != SHADER_STAGE_FRAG)
 	{
-		LOGF(LogLevel::eERROR, "Unsuppored shader stage {%u} for OpenGL ES 2.0!", stage);
+		LOGF(LogLevel::eERROR, "Unsupported shader stage {%u} for OpenGL ES 2.0!", stage);
 		return;
 	}
 
@@ -3679,7 +3679,7 @@ void gl_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint3
 	ASSERT(pCmd);
 	ASSERT(pCmd->mGLES.pCmdPool->pCmdCache->isStarted);
 
-	// Unsuported for GLES 2.0
+	// Unsupported for GLES 2.0
 }
 
 void gl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
@@ -3778,7 +3778,7 @@ void gl_acquireNextImage(
 	}
 }
 
-static void util_handle_wait_sempahores(Semaphore** ppWaitSemaphores, uint32_t waitSemaphoreCount)
+static void util_handle_wait_semaphores(Semaphore** ppWaitSemaphores, uint32_t waitSemaphoreCount)
 {
 	if (waitSemaphoreCount > 0)
 	{
@@ -3814,7 +3814,7 @@ void gl_queueSubmit(
 	uint32_t signalSemaphoreCount = pDesc->mSignalSemaphoreCount;
 	Semaphore** ppSignalSemaphores = pDesc->ppSignalSemaphores;
 
-	util_handle_wait_sempahores(pDesc->ppWaitSemaphores, pDesc->mWaitSemaphoreCount);
+	util_handle_wait_semaphores(pDesc->ppWaitSemaphores, pDesc->mWaitSemaphoreCount);
 
 	ASSERT(cmdCount > 0);
 	ASSERT(ppCmds);
@@ -3847,7 +3847,7 @@ void gl_queueSubmit(
 
 void gl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
-    util_handle_wait_sempahores(pDesc->ppWaitSemaphores, pDesc->mWaitSemaphoreCount);
+    util_handle_wait_semaphores(pDesc->ppWaitSemaphores, pDesc->mWaitSemaphoreCount);
 
 	swapGLBuffers(pDesc->pSwapChain->mGLES.pSurface);
 }

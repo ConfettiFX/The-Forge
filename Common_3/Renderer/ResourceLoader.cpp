@@ -960,7 +960,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			return updateTexture(pRenderer, pCopyEngine, activeSet, updateDesc);
 		}
 		/************************************************************************/
-		// Sparse Tetxtures
+		// Sparse Textures
 		/************************************************************************/
 #if defined(DIRECT3D12) || defined(VULKAN)
 		if (TEXTURE_CONTAINER_SVT == container)
@@ -1965,7 +1965,7 @@ static void waitForToken(ResourceLoader* pLoader, const SyncToken* token)
 	pLoader->mTokenMutex.Release();
 }
 /************************************************************************/
-// Resource Loader Interfae Implementation
+// Resource Loader Interface Implementation
 /************************************************************************/
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {

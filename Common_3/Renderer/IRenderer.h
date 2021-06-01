@@ -343,7 +343,7 @@ typedef enum IndirectArgumentType
 	INDIRECT_INDEX_BUFFER,
 	INDIRECT_CONSTANT,
 	INDIRECT_DESCRIPTOR_TABLE,        // only for vulkan
-	INDIRECT_PIPELINE,                // only for vulkan now, probally will add to dx when it comes to xbox
+	INDIRECT_PIPELINE,                // only for vulkan now, probably will add to dx when it comes to xbox
 	INDIRECT_CONSTANT_BUFFER_VIEW,    // only for dx
 	INDIRECT_SHADER_RESOURCE_VIEW,    // only for dx
 	INDIRECT_UNORDERED_ACCESS_VIEW,   // only for dx
@@ -678,9 +678,9 @@ typedef enum BufferCreationFlags
     
 #ifdef METAL
     /* ICB Flags */
-    /// Ihnerit pipeline in ICB
+    /// Inherit pipeline in ICB
     BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE = 0x100,
-    /// Ihnerit pipeline in ICB
+    /// Inherit pipeline in ICB
     BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS = 0x200,
     
 #endif
@@ -926,7 +926,7 @@ typedef struct BufferDesc
 
 typedef struct DEFINE_ALIGNED(Buffer, 64)
 {
-	/// CPU address of the mapped buffer (appliacable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
+	/// CPU address of the mapped buffer (applicable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
 	void*                            pCpuMappedAddress;
 	union 
 	{
@@ -1716,7 +1716,7 @@ typedef struct DescriptorData
 		Sampler** ppSamplers;
 		/// Array of buffer descriptors (srv, uav and cbv buffers)
 		Buffer** ppBuffers;
-		/// Array of pipline descriptors
+		/// Array of pipeline descriptors
 		Pipeline** ppPipelines;
 		/// DescriptorSet buffer extraction
 		DescriptorSet** ppDescriptorSet;
@@ -2763,7 +2763,7 @@ typedef struct GPUVendorPreset
 {
 	char           mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 	char           mModelId[MAX_GPU_VENDOR_STRING_LENGTH];
-	char           mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];    // OPtional as not all gpu's have that. Default is : 0x00
+	char           mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];    // Optional as not all gpu's have that. Default is : 0x00
 	GPUPresetLevel mPresetLevel;
 	char           mGpuName[MAX_GPU_VENDOR_STRING_LENGTH];    //If GPU Name is missing then value will be empty string
 	char           mGpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -2973,7 +2973,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 // 3 cache lines
 COMPILE_ASSERT(sizeof(Renderer) <= 24 * sizeof(uint64_t));
 
-// Indirect command sturcture define
+// Indirect command structure define
 typedef struct IndirectArgument
 {
 	IndirectArgumentType mType;
