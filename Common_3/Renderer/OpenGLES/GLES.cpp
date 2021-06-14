@@ -2825,17 +2825,17 @@ void gl_cmdBindRenderTargets(
 		}
 	}
 
-	if (clearMask)
-	{
-		CHECK_GLRESULT(glClear(clearMask));
-	}
-
 #if defined(ENABLE_GRAPHICS_DEBUG)
 	GLenum result;
 	CHECK_GL_RETURN_RESULT(result, glCheckFramebufferStatus(GL_FRAMEBUFFER));
 	if (result != GL_FRAMEBUFFER_COMPLETE && result != GL_NO_ERROR)
-LOGF(eERROR, "Incomplete framebuffer! %s", util_get_enum_string(result));
+		LOGF(eERROR, "Incomplete framebuffer! %s", util_get_enum_string(result));
 #endif
+	
+	if (clearMask)
+	{
+		CHECK_GLRESULT(glClear(clearMask));
+	}
 }
 
 void gl_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
