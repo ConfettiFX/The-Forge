@@ -172,25 +172,27 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 	if (reflection.mVertexInputsCount > 0)
 	{
 		reflection.pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
+		GLchar* attrName = (GLchar*)tf_calloc(activeAttributeMaxLength, sizeof(GLchar));
 		for (GLint i = 0; i < reflection.mVertexInputsCount; ++i)
 		{
 			VertexInput& vertexInput = reflection.pVertexInputs[i];
-			char* attrName = (char*)tf_calloc(activeAttributeMaxLength, sizeof(char));
+			memset(attrName, 0, activeAttributeMaxLength * sizeof(GLchar));
 			GLenum attrType = 0;
 			CHECK_GLRESULT(glGetActiveAttrib(glProgram, i, activeAttributeMaxLength, (GLsizei*)&vertexInput.name_size, (GLint*)&vertexInput.size, &attrType, attrName));
 			LOGF(LogLevel::eDEBUG, "Program %u, Attribute %d, size %d, type %u, name \"%s\"", glProgram, i, vertexInput.size, attrType, attrName);
 			reflection.mNamePoolSize += vertexInput.name_size + 1;
-			tf_free(attrName);
 		}
+		tf_free(attrName);
 	}
 
 	// Retrieve variable and shaderResource counts and name length
 	if (nUniforms > 0)
 	{
 		char* shaderResourceName = (char*)tf_calloc(activeUniformMaxLength, 1); 
+		GLchar* uniformName = (GLchar*)tf_calloc(activeUniformMaxLength, sizeof(GLchar));
 		for (GLint i = 0; i < nUniforms; ++i)
 		{
-			char* uniformName = (char*)tf_calloc(activeUniformMaxLength, 1);
+			memset(uniformName, 0, activeUniformMaxLength * sizeof(GLchar));
 			GLenum uniformType = 0;
 			GLsizei nameSize;
 			GLint size;
@@ -234,8 +236,8 @@ void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOutReflect
 				++reflection.mShaderResourceCount;
 				reflection.mNamePoolSize += strlen(uniformName) + 1;
 			}
-			tf_free(uniformName);
 		}
+		tf_free(uniformName);
 		tf_free(shaderResourceName);
 	}
 
