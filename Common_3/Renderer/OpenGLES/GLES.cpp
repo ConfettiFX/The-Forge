@@ -1920,8 +1920,14 @@ void gl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 
 void gl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
+	UNREF_PARAM(pRenderer);
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
+	
+	if(pTexture->mGLES.mTexture)
+	{
+		CHECK_GLRESULT(glDeleteTextures(1, &pTexture->mGLES.mTexture));
+	}
 
 	SAFE_FREE(pTexture);
 }
