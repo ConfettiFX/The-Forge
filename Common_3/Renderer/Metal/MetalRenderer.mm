@@ -1164,20 +1164,24 @@ void retrieveSystemProfilerInformation(eastl::string& outVendorId)
 
 			for (i = 0; i < arrayCount; i++)
 			{
-				CFMutableStringRef outputString;
-
-				// Create a mutable CFStringRef with the dictionary value found with key ???machine_name???
+				// Create a NSString with the dictionary value found with key ???machine_name???
 				// This is the machine_name of this mac machine.
 				// Here you can give any value in key tag,to get its corresponding content
-				outputString = CFStringCreateMutableCopy(
-					kCFAllocatorDefault, 0,
-					(CFStringRef)CFDictionaryGetValue(
-						(CFDictionaryRef)CFArrayGetValueAtIndex(itemsArray, i), CFSTR("spdisplays_device-id")));
-				NSString* outNS = (__bridge NSString*)outputString;
-				outVendorId = [outNS.lowercaseString UTF8String];
-				//your code here
-				//(you can append output string OR modify your function according to your need )
-				CFRelease(outputString);
+				CFDictionaryRef someDic = (CFDictionaryRef)CFArrayGetValueAtIndex(itemsArray, i);
+				NSDictionary *machineInfo = (__bridge NSDictionary*)someDic;
+				NSString* someStr = [machineInfo objectForKey:@"spdisplays_device-id"];
+				if (someStr == nil) {
+					NSArray* displays = [machineInfo objectForKey:@"spdisplays_ndrvs"];
+					for (NSDictionary* subDic in displays) {
+						NSString* output = [subDic objectForKey:@"_spdisplays_displayID"];
+						if (output != nil) {
+							outVendorId = [output.lowercaseString UTF8String];
+							break;
+						}
+					}
+				} else {
+					outVendorId = [someStr.lowercaseString UTF8String];
+				}
 			}
 
 			CFRelease(itemsArray);

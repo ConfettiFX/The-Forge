@@ -412,6 +412,16 @@ GameController* pMainViewController;
 {
 	[_application update];
 }
+
+- (void)onFocusChanged:(BOOL)focused
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
+}
 @end
 
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle)

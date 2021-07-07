@@ -517,6 +517,27 @@ NSWindowStyleMask PrepareStyleMask(WindowsDesc* winDesc)
 	return styleMask;
 }
 
+static NSString* screenNameForDisplay(CGDirectDisplayID displayID, NSScreen* screen)
+{
+  if (@available(macOS 10.15, *)) {
+	NSString* screenName = screen.localizedName;
+	return screenName;
+  }
+  else {
+	NSString *screenName = nil;
+	  
+#pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+	NSDictionary *deviceInfo = (__bridge NSDictionary *)IODisplayCreateInfoDictionary(CGDisplayIOServicePort(displayID), kIODisplayOnlyPreferredName);
+#pragma clang diagnostic pop
+	NSDictionary *localizedNames = [deviceInfo objectForKey:[NSString stringWithUTF8String:kDisplayProductName]];
+	if ([localizedNames count] > 0) {
+	  screenName = [localizedNames objectForKey:[[localizedNames allKeys] objectAtIndex:0]];
+	}
+	return screenName;
+  }
+}
+
 void collectMonitorInfo()
 {
 	if (gMonitorCount != 0)
@@ -532,7 +553,6 @@ void collectMonitorInfo()
 	}
 	
 	eastl::vector<CGDirectDisplayID> onlineDisplayIDs(displayCount);
-	
 	error = CGGetOnlineDisplayList(displayCount, onlineDisplayIDs.data(), &displayCount);
 	if(error != kCGErrorSuccess)
 	{
@@ -545,49 +565,12 @@ void collectMonitorInfo()
 	gMonitors = (MonitorDesc*)tf_calloc(displayCount, sizeof(MonitorDesc));
 	gDPIScales = (float2*)tf_calloc(displayCount, sizeof(float2));
 	
-	CFMutableDictionaryRef matchingService = IOServiceMatching("IODisplayConnect");
-	
-	io_iterator_t serviceIterator = 0;
-	kern_return_t serviceError = IOServiceGetMatchingServices(kIOMasterPortDefault, matchingService, &serviceIterator);
-	if(serviceError != 0)
-	{
-		ASSERT(0);
-	}
-	
 	NSArray<NSScreen*>* screens = [NSScreen screens];
 	
-	io_service_t service = 0;
-	uint32_t index = 0;
 	CGDirectDisplayID mainDisplayID = CGMainDisplayID();
-	while ((service = IOIteratorNext(serviceIterator)) != 0)
-	{
-		CFDictionaryRef infoDictionary =
-		(CFDictionaryRef)IODisplayCreateInfoDictionary(service,
-													   kIODisplayOnlyPreferredName);
-		
-		CFIndex vendorID, productID;
-		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayVendorID)),
-						 kCFNumberCFIndexType,
-						 &vendorID);
-		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayProductID)),
-						 kCFNumberCFIndexType,
-						 &productID);
-		
-		CGDirectDisplayID displayID = 0;
-		for(CGDirectDisplayID currentDisplayID : onlineDisplayIDs)
-		{
-			CFIndex currentVendorID = CGDisplayVendorNumber(currentDisplayID);
-			CFIndex currentProductID = CGDisplayModelNumber(currentDisplayID);
-			
-			if(currentVendorID == vendorID &&
-			   currentProductID == productID)
-			{
-				displayID = currentDisplayID;
-				break;
-			}
-		}
-		
-		if(displayID == 0) continue;
+	
+	for (uint32_t i = 0; i < displayCount; i++) {
+		CGDirectDisplayID displayID = onlineDisplayIDs[i];
 		
 		NSScreen* displayScreen = nil;
 		for(NSScreen* screen : screens)
@@ -606,9 +589,9 @@ void collectMonitorInfo()
 		ASSERT(displayScreen != nil);
 		
 		float dpiScale = (float)[displayScreen backingScaleFactor];
-		gDPIScales[index] = { (float)dpiScale, (float)dpiScale };
+		gDPIScales[i] = { (float)dpiScale, (float)dpiScale };
 		
-		MonitorDesc& display = gMonitors[index];
+		MonitorDesc& display = gMonitors[i];
 		
 		display.displayID = displayID;
 		
@@ -616,13 +599,7 @@ void collectMonitorInfo()
 		display.defaultResolution.mWidth = frameRect.size.width;
 		display.defaultResolution.mHeight = frameRect.size.height;
 		
-		CFDictionaryRef localizedNames =
-		(CFDictionaryRef)CFDictionaryGetValue(infoDictionary,
-											  CFSTR(kDisplayProductName));
-		void* key = nil;
-		CFDictionaryGetKeysAndValues(localizedNames, (const void **)&key, nil);
-		
-		NSString* displayName = (NSString*)CFDictionaryGetValue(localizedNames, key);
+		NSString* displayName = screenNameForDisplay(displayID, displayScreen);
 		strcpy(display.publicDisplayName, displayName.UTF8String);
 		
 		id<MTLDevice> metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
@@ -669,14 +646,11 @@ void collectMonitorInfo()
 		
 		CFRelease(displayModes);
 		
-		if(displayID == mainDisplayID && index != 0)
+		if (displayID == mainDisplayID && i != 0)
 		{
-			std::swap(gMonitors[0], gMonitors[index]);
+			std::swap(gMonitors[0], gMonitors[i]);
 		}
 		
-		CFRelease(infoDictionary);
-		
-		++index;
 	}
 }
 

@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-
-
 		5C172F34214147700074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F32214147700074EE71 /* AppDelegate.m */; };
 		5C17300521414D110074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17300421414D110074EE71 /* AppDelegate.m */; };
 		5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300221414CFA0074EE71 /* libThe-Forge_iOS.a */; };
@@ -44,6 +42,8 @@
 		D204ED811F348A5B005F2CEA /* 16a_SphereTracing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 16a_SphereTracing.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		DF8DA61C2694061C00782A0A /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DF8DA6172694060600782A0A /* libLuaManager.a */; };
+		DF8DA61F2694064100782A0A /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DF8DA6192694060600782A0A /* libLuaManager_iOS.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +67,34 @@
 			proxyType = 2;
 			remoteGlobalIDString = 5C5582E021413D180019960B;
 			remoteInfo = "The-Forge";
+		};
+		DF8DA6162694060600782A0A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF8DA6112694060600782A0A /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
+			remoteInfo = LuaManager;
+		};
+		DF8DA6182694060600782A0A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF8DA6112694060600782A0A /* LuaManager.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
+			remoteInfo = LuaManager_iOS;
+		};
+		DF8DA61A2694061500782A0A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF8DA6112694060600782A0A /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = LuaManager;
+		};
+		DF8DA61D2694063E00782A0A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF8DA6112694060600782A0A /* LuaManager.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = LuaManager_iOS;
 		};
 		E958921E23416E1400B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -110,8 +138,6 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
-
-
 				5CA80FB621F0A24D00C99983 /* imgui.frag.metal in Copy Files */,
 				5CA80FB721F0A24D00C99983 /* imgui.vert.metal in Copy Files */,
 				5CA80FB821F0A24D00C99983 /* textured_mesh.frag.metal in Copy Files */,
@@ -136,8 +162,6 @@
 		28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_top3.ktx; path = ../../../UnitTestResources/Textures/Skybox_top3.ktx; sourceTree = "<group>"; };
 		28A5AB80201F3A35000E571F /* Skybox_back6.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_back6.ktx; path = ../../../UnitTestResources/Textures/Skybox_back6.ktx; sourceTree = "<group>"; };
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-
-
 		5C172F32214147700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		5C172F33214147700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
@@ -167,6 +191,7 @@
 		D204ED801F348A5B005F2CEA /* 16a_SphereTracing.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 16a_SphereTracing.cpp; path = ../../src/16a_SphereTracing/16a_SphereTracing.cpp; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		DF8DA6112694060600782A0A /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		E9A438D4233DC25A005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9A438D6233DC263005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 16a_SphereTracing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 16a_SphereTracing.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -178,6 +203,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DF8DA61F2694064100782A0A /* libLuaManager_iOS.a in Frameworks */,
 				650CCC7D2223CDB6003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
 				B21F76BF21420E7000DF2297 /* MetalKit.framework in Frameworks */,
@@ -191,6 +217,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DF8DA61C2694061C00782A0A /* libLuaManager.a in Frameworks */,
 				650CCC7B2223CDA0003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2087DD321421A13006F372D /* MetalKit.framework in Frameworks */,
 				B2087DD421421A13006F372D /* Metal.framework in Frameworks */,
@@ -287,12 +314,20 @@
 			path = 16a_SphereTracing_iOS;
 			sourceTree = "<group>";
 		};
+		DF8DA6122694060600782A0A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DF8DA6172694060600782A0A /* libLuaManager.a */,
+				DF8DA6192694060600782A0A /* libLuaManager_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-
-
 				5CA80E1D21F09FA800C99983 /* CommonShaders */,
+				DF8DA6112694060600782A0A /* LuaManager.xcodeproj */,
 				5C55833721413EE30019960B /* The-Forge.xcodeproj */,
 				28A5AB88201F3A44000E571F /* Fonts */,
 				28A5AB7A201F399E000E571F /* Textures */,
@@ -343,6 +378,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				DF8DA61E2694063E00782A0A /* PBXTargetDependency */,
 				5C172FFF21414CFA0074EE71 /* PBXTargetDependency */,
 			);
 			name = 16a_SphereTracing_iOS;
@@ -361,6 +397,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				DF8DA61B2694061500782A0A /* PBXTargetDependency */,
 				E958921F23416E1400B68D6A /* PBXTargetDependency */,
 			);
 			name = 16a_SphereTracing;
@@ -402,6 +439,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = DF8DA6122694060600782A0A /* Products */;
+					ProjectRef = DF8DA6112694060600782A0A /* LuaManager.xcodeproj */;
+				},
+				{
 					ProductGroup = 5C55833821413EE30019960B /* Products */;
 					ProjectRef = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
 				},
@@ -427,6 +468,20 @@
 			fileType = archive.ar;
 			path = "libThe-Forge.a";
 			remoteRef = 5C55833C21413EE30019960B /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		DF8DA6172694060600782A0A /* libLuaManager.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager.a;
+			remoteRef = DF8DA6162694060600782A0A /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		DF8DA6192694060600782A0A /* libLuaManager_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libLuaManager_iOS.a;
+			remoteRef = DF8DA6182694060600782A0A /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -478,6 +533,16 @@
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
 			targetProxy = 5C172FFE21414CFA0074EE71 /* PBXContainerItemProxy */;
+		};
+		DF8DA61B2694061500782A0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LuaManager;
+			targetProxy = DF8DA61A2694061500782A0A /* PBXContainerItemProxy */;
+		};
+		DF8DA61E2694063E00782A0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = LuaManager_iOS;
+			targetProxy = DF8DA61D2694063E00782A0A /* PBXContainerItemProxy */;
 		};
 		E958921F23416E1400B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -715,7 +780,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.-16a-SphereTracing";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
