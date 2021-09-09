@@ -72,7 +72,7 @@
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=Debug /p:Platform=x64 /p:BuildInParallel=true /t:Build 
@@ -113,7 +113,7 @@ $(systemroot)\System32\xcopy "$(VS_NdkRoot)\sources\third_party\vulkan\src\build
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;LuaManager;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=Release /p:Platform=x64 /p:BuildInParallel=true /t:Build 

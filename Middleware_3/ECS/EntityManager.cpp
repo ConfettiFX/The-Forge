@@ -31,7 +31,7 @@
 #include "ComponentRepresentation.h"
 // Component Representations -- as to get component ids /////////////////////////////////////////
 //----
-#include "../../Common_3/OS/Interfaces/IMemory.h" // NOTE: this should be the last include in a .cpp
+#include "../../Common_3/OS/Interfaces/IMemory.h"    // NOTE: this should be the last include in a .cpp
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 Entity::~Entity()
@@ -52,14 +52,14 @@ Entity::~Entity()
 Entity* Entity::clone() const
 {
 	Entity* new_entity = tf_placement_new<Entity>(tf_calloc(1, sizeof(Entity)));
-	
+
 	for (ComponentMap::const_iterator it = mComponents.begin(); it != mComponents.end(); ++it)
 	{
 		BaseComponent* pNewComponent = NULL;
 		pNewComponent = it->second->clone();
 		new_entity->addComponent(pNewComponent);
 	}
-	
+
 	return new_entity;
 }
 
@@ -69,12 +69,11 @@ FCR::ComponentRepresentation* const Entity::getComponentRepresentation(uint32_t 
 
 	if (iter == mComponentRepresentations.end())
 	{
-		ASSERT(0); // No such comp representation found!
+		ASSERT(0);    // No such comp representation found!
 	}
 
 	return iter->second;
 }
-
 
 void Entity::addComponent(BaseComponent* component)
 {
@@ -102,28 +101,29 @@ void Entity::addComponent(BaseComponent* component)
 
 EntityManager::EntityManager()
 {
-	mEntityIdCounter = 1; // entity ids will be used in scene graph tree for transformations... 0 will be dedicated to scene root.
+	mEntityIdCounter = 1;    // entity ids will be used in scene graph tree for transformations... 0 will be dedicated to scene root.
 
 	mComponentViseMap.rehash(93);
-	const eastl::unordered_map<uint32_t, ComponentGeneratorFctPtr>& CompGenMap = ComponentRegistrator::getInstance()->getComponentGeneratorMap();
+	const eastl::unordered_map<uint32_t, ComponentGeneratorFctPtr>& CompGenMap =
+		ComponentRegistrator::getInstance()->getComponentGeneratorMap();
 	for (eastl::pair<uint32_t, ComponentGeneratorFctPtr> pair : CompGenMap)
 	{
 		ComponentLookup map;
 		map.rehash(11083);
-		mComponentViseMap.insert(eastl::pair< uint32_t, ComponentLookup >(pair.first, map));
+		mComponentViseMap.insert(eastl::pair<uint32_t, ComponentLookup>(pair.first, map));
 	}
-	
-	mEntitiesMutex.Init();
-	mIdMutex.Init();
-	mComponentMutex.Init();
+
+	initMutex(&mEntitiesMutex);
+	initMutex(&mIdMutex);
+	initMutex(&mComponentMutex);
 }
 
 EntityManager::~EntityManager()
 {
 	reset();
-	mEntitiesMutex.Destroy();
-	mIdMutex.Destroy();
-	mComponentMutex.Destroy();
+	destroyMutex(&mEntitiesMutex);
+	destroyMutex(&mIdMutex);
+	destroyMutex(&mComponentMutex);
 	ComponentRegistrator::destroyInstance();
 }
 
@@ -156,9 +156,9 @@ EntityId EntityManager::createEntity()
 		mEntities[id] = new_entity;
 	}
 
-    // If id < 0, the m_EntityIdCounter is over flow.
-    // id == 0 is reserved for SCENE_ROOT.
-    ASSERT(id > 0);
+	// If id < 0, the m_EntityIdCounter is over flow.
+	// id == 0 is reserved for SCENE_ROOT.
+	ASSERT(id > 0);
 
 	return id;
 }
@@ -166,7 +166,7 @@ EntityId EntityManager::createEntity()
 EntityId EntityManager::cloneEntity(EntityId id)
 {
 	Entity* source_entity = getEntityById(id);
-	Entity* new_entity	  = source_entity->clone();
+	Entity* new_entity = source_entity->clone();
 
 	EntityId newid = 0;
 	{
@@ -175,13 +175,13 @@ EntityId EntityManager::cloneEntity(EntityId id)
 		MutexLock entLock(mEntitiesMutex);
 		mEntities[newid] = new_entity;
 	}
-	
+
 	return newid;
 }
 
 void EntityManager::deleteEntity(EntityId id)
 {
-	ASSERT (id != 0); // 0 is reserved for describing to root of the scene in the scene graph
+	ASSERT(id != 0);    // 0 is reserved for describing to root of the scene in the scene graph
 
 	// Free components and actual entity memory
 	Entity* entity = NULL;
@@ -200,20 +200,18 @@ void EntityManager::deleteEntity(EntityId id)
 	tf_free(entity);
 }
 
-
 Entity* EntityManager::getEntityById(EntityId const id)
 {
-	ASSERT (id != 0); // 0 is reserved for describing to root of the scene in the scene graph
+	ASSERT(id != 0);    // 0 is reserved for describing to root of the scene in the scene graph
 	Entity* pEntity = NULL;
 	{
-		MutexLock lock(mEntitiesMutex);
+		MutexLock           lock(mEntitiesMutex);
 		EntityMap::iterator iter = mEntities.find(id);
 		ASSERT(iter != mEntities.end());
 		pEntity = iter->second;
 	}
 	return pEntity;
 }
-
 
 bool EntityManager::entityExist(EntityId const id)
 {
@@ -223,7 +221,7 @@ bool EntityManager::entityExist(EntityId const id)
 		return true;
 	}
 	{
-		MutexLock lock(mEntitiesMutex);
+		MutexLock           lock(mEntitiesMutex);
 		EntityMap::iterator iter = mEntities.find(id);
 		return (iter != mEntities.end());
 	}

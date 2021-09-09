@@ -148,11 +148,12 @@ bool initGL(GLConfig* pOutConfig)
 
 		bool isGoodConfig = (depth == 24 || depth == 16);
 		isGoodConfig &= stencil == 8;
-		isGoodConfig &= sampleBuffers == 0;
-		isGoodConfig &= samples == 0;
 		if (!isGoodConfig)
 			continue;
 		uint32_t score = 0;
+
+		// Android emulator gives configs only with samples equal to zero
+		score += samples <= sampleBuffers ? samples : sampleBuffers;
 
 		if ((bufferSize == 16) && (red == 5) && (green == 6) && (blue == 5) && (alpha == 0)) {
 			score += 1;

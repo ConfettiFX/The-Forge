@@ -15,7 +15,6 @@
       <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
       <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
       <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
-      <File Name="../../../../Common_3/OS/Profiler/ProfilerWidgetsUI.cpp"/>
     </VirtualDirectory>
     <File Name="../../../../Common_3/Renderer/Renderer.cpp"/>
   </VirtualDirectory>

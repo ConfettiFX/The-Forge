@@ -51,6 +51,15 @@ enum GestureType
     GestureRotate,
     GestureLongPress,
 };
+
+enum GesturePhase
+{
+	GesturePhaseStarted,
+	GesturePhaseUpdated,
+	GesturePhaseEnded,
+	GesturePhaseCanceled,
+	GesturePhaseCount_
+};
     
 struct GestureConfig
 {
@@ -112,6 +121,7 @@ public:
 	/// Returns the platform-specific implementation of this device.
 	InputDeviceTouchImpl* GetPimpl() { return impl_; }
 
+	void AddGestureMapping(const unsigned gestureID, const gainput::GestureConfig &config);
 protected:
 	void InternalUpdate(InputDeltaState* delta);
 

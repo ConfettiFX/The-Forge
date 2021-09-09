@@ -39,8 +39,6 @@
 		B21F76CA21420E9400DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C721420E9400DF2297 /* UIKit.framework */; };
 		B21F76CB21420E9400DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C821420E9400DF2297 /* MetalKit.framework */; };
 		B21F76CC21420E9400DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C921420E9400DF2297 /* Metal.framework */; };
-		B28DC8A02522AFF4009B5FEF /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC7BA2522AE5B009B5FEF /* libLuaManager.a */; };
-		B28DC8A32522B002009B5FEF /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC7BC2522AE5B009B5FEF /* libLuaManager_iOS.a */; };
 		B2CDF4DD20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
 		B2CDF4DE20B760DE000DC071 /* Panini.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CDF4DB20B760DE000DC071 /* Panini.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -102,34 +100,6 @@
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		B28DC7B92522AE5B009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
-			remoteInfo = LuaManager;
-		};
-		B28DC7BB2522AE5B009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
-			remoteInfo = LuaManager_iOS;
-		};
-		B28DC89E2522AFF1009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = LuaManager;
-		};
-		B28DC8A12522AFFE009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C172FC721414C490074EE71;
-			remoteInfo = LuaManager_iOS;
-		};
 		E95891F0234159F000B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C172F64214149300074EE71 /* The-Forge.xcodeproj */;
@@ -165,7 +135,6 @@
 		B21F76C721420E9400DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76C821420E9400DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76C921420E9400DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		B2CDF4DB20B760DE000DC071 /* Panini.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Panini.cpp; path = ../../../../Middleware_3/PaniniProjection/Panini.cpp; sourceTree = "<group>"; };
 		B2CDF4DC20B760DE000DC071 /* Panini.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Panini.h; path = ../../../../Middleware_3/PaniniProjection/Panini.h; sourceTree = "<group>"; };
 		B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = panini_projection.frag.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/Metal/panini_projection.frag.metal; sourceTree = "<group>"; };
@@ -198,7 +167,6 @@
 				B21F76CC21420E9400DF2297 /* Metal.framework in Frameworks */,
 				5CABF3722141542C00EFD76A /* GameController.framework in Frameworks */,
 				5C17302821414DF70074EE71 /* libThe-Forge_iOS.a in Frameworks */,
-				B28DC8A32522B002009B5FEF /* libLuaManager_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,7 +178,6 @@
 				B2087DDF21421A30006F372D /* MetalKit.framework in Frameworks */,
 				B2087DE021421A30006F372D /* Metal.framework in Frameworks */,
 				5C172F6F214149560074EE71 /* libThe-Forge.a in Frameworks */,
-				B28DC8A02522AFF4009B5FEF /* libLuaManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,15 +237,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B28DC7B52522AE5B009B5FEF /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B28DC7BA2522AE5B009B5FEF /* libLuaManager.a */,
-				B28DC7BC2522AE5B009B5FEF /* libLuaManager_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		B2CDF4D820B760C3000DC071 /* Panini */ = {
 			isa = PBXGroup;
 			children = (
@@ -301,7 +259,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */,
 				5C172F64214149300074EE71 /* The-Forge.xcodeproj */,
 				28A5AC96201F6852000E571F /* Shaders */,
 				28A5AC7A201F682F000E571F /* 04_ExecuteIndirect_iOS */,
@@ -359,7 +316,6 @@
 			);
 			dependencies = (
 				5C17302A21414DFD0074EE71 /* PBXTargetDependency */,
-				B28DC8A22522AFFE009B5FEF /* PBXTargetDependency */,
 			);
 			name = 04_ExecuteIndirect_iOS;
 			productName = 04_ExecuteIndirect_iOS;
@@ -380,7 +336,6 @@
 			);
 			dependencies = (
 				E95891F1234159F000B68D6A /* PBXTargetDependency */,
-				B28DC89F2522AFF1009B5FEF /* PBXTargetDependency */,
 			);
 			name = 04_ExecuteIndirect;
 			productName = 02_Texture;
@@ -419,10 +374,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B28DC7B52522AE5B009B5FEF /* Products */;
-					ProjectRef = B28DC7B42522AE5B009B5FEF /* LuaManager.xcodeproj */;
-				},
-				{
 					ProductGroup = 5C172F65214149300074EE71 /* Products */;
 					ProjectRef = 5C172F64214149300074EE71 /* The-Forge.xcodeproj */;
 				},
@@ -448,20 +399,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C17302421414DEE0074EE71 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28DC7BA2522AE5B009B5FEF /* libLuaManager.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager.a;
-			remoteRef = B28DC7B92522AE5B009B5FEF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28DC7BC2522AE5B009B5FEF /* libLuaManager_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager_iOS.a;
-			remoteRef = B28DC7BB2522AE5B009B5FEF /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -573,16 +510,6 @@
 			name = "The-Forge_iOS";
 			targetProxy = 5C17302921414DFD0074EE71 /* PBXContainerItemProxy */;
 		};
-		B28DC89F2522AFF1009B5FEF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager;
-			targetProxy = B28DC89E2522AFF1009B5FEF /* PBXContainerItemProxy */;
-		};
-		B28DC8A22522AFFE009B5FEF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager_iOS;
-			targetProxy = B28DC8A12522AFFE009B5FEF /* PBXContainerItemProxy */;
-		};
 		E95891F1234159F000B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge";
@@ -630,6 +557,13 @@
 					TARGET_IOS,
 					USE_MEMORY_TRACKING,
 				);
+				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS_SIMULATOR,
+					TARGET_IOS,
+					USE_MEMORY_TRACKING,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -666,6 +600,11 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
+					TARGET_IOS,
+				);
+				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
+					METAL,
+					TARGET_IOS_SIMULATOR,
 					TARGET_IOS,
 				);
 				HEADER_SEARCH_PATHS = (
@@ -824,6 +763,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

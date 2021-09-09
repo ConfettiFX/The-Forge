@@ -36,15 +36,15 @@
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
-
-// Middleware packages
-#include "../../../../Middleware_3/UI/AppUI.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -68,18 +68,16 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Texture*	  pSpriteTexture = NULL;
 
-//Buffer*			pProjViewUniformBuffer[gImageCount] = { NULL };
 uint32_t gFrameIndex = 0;
 
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
-UIApp*        pAppUI = NULL;
-GuiComponent* pStandaloneControlsGUIWindow = NULL;
-GuiComponent* pGroupedGUIWindow = NULL;
-static uint32_t gSelectedApiIndex = 0;
+UIComponent* pStandaloneControlsGUIWindow = NULL;
+UIComponent* pGroupedGUIWindow = NULL;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00dddd, 18);
+FontDrawDesc gFrameTimeDraw;
+uint32_t     gFontID = 0; 
 //--------------------------------------------------------------------------------------------
 // UI UNIT TEST DATA
 //--------------------------------------------------------------------------------------------
@@ -108,6 +106,8 @@ struct UserInterfaceUnitTestingData
 	} mStandalone;
 };
 UserInterfaceUnitTestingData gUIData;
+
+char gCpuFrametimeText[64] = { 0 };
 
 // ContextMenu Items and Callbacks Example:
 //
@@ -185,11 +185,16 @@ void ButtonCallback()
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
+
+static HiresTimer gTimer;
+
 class UserInterfaceUnitTest : public IApp
 {
 public:
 	bool Init()
 	{
+		initHiresTimer(&gTimer);
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -198,10 +203,9 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
-		// WINDOW AND RENDERER SETUP
-		pRenderer = NULL;
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		// window and renderer setup
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)    //check for init success
 			return false;
@@ -242,18 +246,20 @@ public:
 
 		// INITIALIZE THE USER INTERFACE
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-		{
-			// todo: display err msg (multiplatform?)
-			return false;
-		}
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		// Add the GUI Panels/Windows
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
 		// Add the UI Controls to the GUI Panel
 		//
@@ -269,52 +275,25 @@ public:
 		//-----------------------------------------------------------------------		
 		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f };
 		vec2    UIPanelSize = vec2(650.f, 1000.f);
-		GuiDesc guiDesc;
+		UIComponentDesc guiDesc;
 		guiDesc.mStartPosition = UIPosition;
 		guiDesc.mStartSize = UIPanelSize;
-		guiDesc.mDefaultTextDrawDesc = UIPanelWindowTitleTextDesc;
-		pStandaloneControlsGUIWindow = addAppUIGuiComponent(pAppUI, "Right-click me for context menu :)", &guiDesc);
+		guiDesc.mFontID = 0;
+		guiDesc.mFontSize = 16;
+		uiCreateComponent("Right-click me for context menu :)", &guiDesc, &pStandaloneControlsGUIWindow);
 
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
+		if (pStandaloneControlsGUIWindow)
 		{
-		#if defined(GLES)
-			"GLES",
-		#endif
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
+			// Contextual (Context Menu)
+			for (int i = 0; i < 7; i++)
+			{
+				char* menuItem = (char*)tf_calloc(strlen(sContextMenuItems[i]) + 1, sizeof(char));
+				strcpy(menuItem, sContextMenuItems[i]);
+				pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(menuItem);
+			}
+			pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
+			pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
 		}
-		IWidget* pSelectApiWidget = addGuiWidget(pStandaloneControlsGUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
-
-		// Contextual (Context Menu)
-		for (int i = 0; i < 7; i++)
-		{
-			char* menuItem = (char*)tf_calloc(strlen(sContextMenuItems[i]) + 1, sizeof(char));
-			strcpy(menuItem, sContextMenuItems[i]);
-			pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(menuItem);
-		}
-		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
-		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
 
 		{
 			// Drop Down
@@ -322,10 +301,10 @@ public:
 			gUIData.mStandalone.mSelectedDropdownItemValue = 5u;
 
 			LabelWidget uiControls;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[Label] UI Controls", &uiControls, WIDGET_TYPE_LABEL));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Label] UI Controls", &uiControls, WIDGET_TYPE_LABEL));
 
 			SeparatorWidget separator;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			DropdownWidget DropDown;
 			DropDown.pData = &gUIData.mStandalone.mSelectedDropdownItemValue;
@@ -335,18 +314,18 @@ public:
 				DropDown.mValues.push_back(dropDownItemValues[i]);
 			}
 
-			IWidget* pDropDown = addGuiWidget(pStandaloneControlsGUIWindow, "[Drop Down] Select Text Color", &DropDown, WIDGET_TYPE_DROPDOWN);
+			UIWidget* pDropDown = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Drop Down] Select Text Color", &DropDown, WIDGET_TYPE_DROPDOWN);
 			// Add a callback
-			pDropDown->pOnDeactivatedAfterEdit = ColorDropDownCallback;
+			uiSetWidgetOnDeactivatedAfterEditCallback(pDropDown, ColorDropDownCallback);
 			// Register lua
-			addWidgetLua(pDropDown);
+			luaRegisterWidget(pDropDown);
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			// Button
 			ButtonWidget Button;
-			IWidget* pButton = addGuiWidget(pStandaloneControlsGUIWindow, "[Button] Fill the Progress Bar!", &Button, WIDGET_TYPE_BUTTON);
-			pButton->pOnDeactivatedAfterEdit = ButtonCallback;
+			UIWidget* pButton = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Button] Fill the Progress Bar!", &Button, WIDGET_TYPE_BUTTON);
+			uiSetWidgetOnDeactivatedAfterEditCallback(pButton, ButtonCallback);
 
 			// Progress Bar
 			gUIData.mStandalone.mProgressBarValue = 0;
@@ -354,36 +333,36 @@ public:
 			ProgressBarWidget ProgressBar;
 			ProgressBar.pData = &gUIData.mStandalone.mProgressBarValue;
 			ProgressBar.mMaxProgress = gUIData.mStandalone.mProgressBarValueMax;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[ProgressBar]", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[ProgressBar]", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			// Checkbox
 			CheckboxWidget Checkbox;
 			Checkbox.pData = &gUIData.mStandalone.mCheckboxToggle;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[Checkbox]", &Checkbox, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Checkbox]", &Checkbox, WIDGET_TYPE_CHECKBOX));
 
 			// Radio Buttons
 			RadioButtonWidget RadioButton0;
 			RadioButton0.pData = &gUIData.mStandalone.mRadioButtonToggle;
 			RadioButton0.mRadioId = 0;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[Radio Button] 0", &RadioButton0, WIDGET_TYPE_RADIO_BUTTON));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Radio Button] 0", &RadioButton0, WIDGET_TYPE_RADIO_BUTTON));
 
 			RadioButtonWidget RadioButton1;
 			RadioButton1.pData = &gUIData.mStandalone.mRadioButtonToggle;
 			RadioButton1.mRadioId = 1;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[Radio Button] 1", &RadioButton1, WIDGET_TYPE_RADIO_BUTTON));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Radio Button] 1", &RadioButton1, WIDGET_TYPE_RADIO_BUTTON));
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			// Textbox
 			strcpy(gUIData.mStandalone.mText, "Edit Here!");
 			TextboxWidget Textbox;
 			Textbox.pData = gUIData.mStandalone.mText;
 			Textbox.mLength = UserInterfaceUnitTestingData::STRING_SIZE;
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "[Textbox]", &Textbox, WIDGET_TYPE_TEXTBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "[Textbox]", &Textbox, WIDGET_TYPE_TEXTBOX));
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			// Grouping UI Elements:
 			// This is done via CollapsingHeaderWidget.
@@ -399,7 +378,7 @@ public:
 			sliderInt.mMin = intValMin;
 			sliderInt.mMax = intValMax;
 			sliderInt.mStep = sliderStepSizeI;
-			addCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<int>]", &sliderInt, WIDGET_TYPE_SLIDER_INT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<int>]", &sliderInt, WIDGET_TYPE_SLIDER_INT);
 
 			// Slider<unsigned>
 			const unsigned uintValMin = 0;
@@ -411,7 +390,7 @@ public:
 			sliderUint.mMin = uintValMin;
 			sliderUint.mMax = uintValMax;
 			sliderUint.mStep = sliderStepSizeUint;
-			addCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<uint>]", &sliderUint, WIDGET_TYPE_SLIDER_UINT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<uint>]", &sliderUint, WIDGET_TYPE_SLIDER_UINT);
 
 			// Slider<float w/ step size>
 			const float fValMin = 0;
@@ -423,7 +402,7 @@ public:
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSizeF;
-			addCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<float>] Step Size=0.1f", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<float>] Step Size=0.1f", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
 			// Slider<float w/ step count>
 			const float _fValMin = -100.0f;
@@ -434,11 +413,11 @@ public:
 			sliderFloat.mMin = _fValMin;
 			sliderFloat.mMax = _fValMax;
 			sliderFloat.mStep = (_fValMax - _fValMin) / stepCount;
-			addCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<float>] Step Count=6", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingSliderWidgets, "[Slider<float>] Step Count=6", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "SLIDERS", &CollapsingSliderWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "SLIDERS", &CollapsingSliderWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 			// Color Slider & Picker
 			CollapsingHeaderWidget CollapsingColorWidgets;
@@ -447,29 +426,33 @@ public:
 
 			ColorSliderWidget colorSlider;
 			colorSlider.pData = &gUIData.mStandalone.mColorForSlider;
-			addCollapsingHeaderSubWidget(&CollapsingColorWidgets, "[Color Slider]", &colorSlider, WIDGET_TYPE_COLOR_SLIDER);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingColorWidgets, "[Color Slider]", &colorSlider, WIDGET_TYPE_COLOR_SLIDER);
 
 			ColorPickerWidget colorPicker;
 			colorPicker.pData = &gUIData.mStandalone.mColorForSlider;
-			addCollapsingHeaderSubWidget(&CollapsingColorWidgets, "[Color Picker]", &colorPicker, WIDGET_TYPE_COLOR_PICKER);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingColorWidgets, "[Color Picker]", &colorPicker, WIDGET_TYPE_COLOR_PICKER);
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "COLOR WIDGETS", &CollapsingColorWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "COLOR WIDGETS", &CollapsingColorWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
 			// Texture preview
 			CollapsingHeaderWidget CollapsingTexPreviewWidgets;
 
 			DebugTexturesWidget dbgTexWidget;
-			eastl::vector<Texture*> texPreviews;
+			eastl::vector<void*> texPreviews;
 			texPreviews.push_back(pSpriteTexture);
-			dbgTexWidget.mTextures = texPreviews;
+			dbgTexWidget.mTextures = eastl::move(texPreviews);
 			dbgTexWidget.mTextureDisplaySize = float2(441, 64);
 
-			addCollapsingHeaderSubWidget(&CollapsingTexPreviewWidgets, "Texture Preview", &dbgTexWidget, WIDGET_TYPE_DEBUG_TEXTURES);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingTexPreviewWidgets, "Texture Preview", &dbgTexWidget, WIDGET_TYPE_DEBUG_TEXTURES);
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "TEXTURE PREVIEW", &CollapsingTexPreviewWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "TEXTURE PREVIEW", &CollapsingTexPreviewWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 		}
-		
-		if (!initInputSystem(pWindow))
+
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		inputDesc.mDisableVirtualJoystick = true; 
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -482,18 +465,18 @@ public:
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
 				static uint8_t virtualKeyboard = 0;
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				if (appUIWantTextInput(pAppUI) != virtualKeyboard)
+				if (uiWantTextInput() != virtualKeyboard)
 				{
-					virtualKeyboard = appUIWantTextInput(pAppUI);
+					virtualKeyboard = uiWantTextInput();
 					setVirtualKeyboard(virtualKeyboard);
 				}
 				return true;
 			}, this
 		};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::TEXT, [](InputActionContext* ctx) { return appUIOnText(pAppUI, ctx->pText); } };
+		actionDesc = { InputBindings::TEXT, [](InputActionContext* ctx) { return uiOnText(ctx->pText); } };
 		addInputAction(&actionDesc);
 
 		gFrameIndex = 0; 
@@ -505,10 +488,13 @@ public:
 	{
 		exitInputSystem();
 
-		for (char* item : pStandaloneControlsGUIWindow->mContextualMenuLabels)
-			tf_free(item);
+		if (pStandaloneControlsGUIWindow)
+			for (char* item : pStandaloneControlsGUIWindow->mContextualMenuLabels)
+				tf_free(item);
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		removeResource(pSpriteTexture);
 
@@ -528,6 +514,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -539,7 +526,14 @@ public:
 
 		// LOAD USER INTERFACE
 		//
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		return true;
@@ -549,7 +543,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removeSwapChain(pRenderer, pSwapChain);
 	}
@@ -557,16 +553,12 @@ public:
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
-		/************************************************************************/
-		// GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
+
 		gProgressBarAnim.Update(deltaTime);
 	}
 
 	void Draw()
 	{
-		static HiresTimer gTimer;
 		const vec4        backgroundColor = unpackColorU32(gUIData.mStandalone.mColorForSlider);
 		ClearValue  clearVal;
 		clearVal.r = backgroundColor.getX();
@@ -616,17 +608,16 @@ public:
 		// DRAW THE USER INTERFACE
 		//
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		gTimer.GetUSec(true);
+		getHiresTimerUSec(&gTimer, true);
 
-		char text[64];
-		sprintf(text, "CPU %f ms", gTimer.GetUSecAverage() / 1000.0f);
+		sprintf(gCpuFrametimeText, "CPU %f ms", getHiresTimerUSecAverage(&gTimer) / 1000.0f);
 
-		appUIGui(pAppUI, pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
+		gFrameTimeDraw.pText = gCpuFrametimeText; 
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
+		cmdDrawTextWithFont(cmd, float2(8, 15), &gFrameTimeDraw);
 
-		float2 screenCoords(8, 15);
-		drawAppUIText(pAppUI, 
-			cmd, &screenCoords, text, &gFrameTimeDraw);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);

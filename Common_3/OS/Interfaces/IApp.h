@@ -121,7 +121,9 @@ public:
 		/// if requested to qui the application 
 		bool     mQuit = false;
 		/// if default automated testing enabled
-		bool     mDefaultAutomatedTesting = true;
+		bool	 mDefaultAutomatedTesting = true;
+		/// if benchmarking mode is enabled
+		bool	 mBenchmarking = false;
 		
 		/// if the window is positioned in the center of the screen
 		bool     mCentered = true;

@@ -22,7 +22,6 @@
  * under the License.
 */
 
-
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
@@ -32,7 +31,11 @@
 #include "../../../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
+//Renderer
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -51,23 +54,23 @@ Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPools[gImageCount] = { NULL };
 Cmd*     pCmds[gImageCount] = { NULL };
 
-SwapChain*    pSwapChain = NULL;
-Fence*        pRenderCompleteFences[gImageCount] = {};
-Semaphore*    pImageAcquiredSemaphore = NULL;
-Semaphore*    pRenderCompleteSemaphores[gImageCount] = {};
+SwapChain* pSwapChain = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = {};
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = {};
 
-Shader* pBasicShader = NULL;
+Shader*   pBasicShader = NULL;
 Pipeline* pBasicPipeline = NULL;
 
-Buffer*   pQuadVertexBuffer = NULL;
-Buffer*   pQuadIndexBuffer = NULL;
+Buffer* pQuadVertexBuffer = NULL;
+Buffer* pQuadIndexBuffer = NULL;
 
 RootSignature* pRootSignature = NULL;
 Sampler*       pSampler = NULL;
 Texture*       pTexture = NULL;
 DescriptorSet* pDescriptorSetTexture = NULL;
 
-uint32_t gFrameIndex = 0;
+uint32_t     gFrameIndex = 0;
 ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 
 enum WindowMode : int32_t
@@ -90,48 +93,48 @@ int32_t gWndY;
 int32_t gWndW;
 int32_t gWndH;
 
-bool gCursorHidden = false;
+bool    gCursorHidden = false;
 int32_t gCursorInsideWindow = 0;
-bool gCursorClipped = false;
-bool gMinimizeRequested = false;
+bool    gCursorClipped = false;
+bool    gMinimizeRequested = false;
 
 /// UI
-UIApp* pAppUI = NULL;
-GuiComponent* pStandaloneControlsGUIWindow = NULL;
-static uint32_t gSelectedApiIndex = 0;
+UIComponent*   pStandaloneControlsGUIWindow = NULL;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
+uint32_t     gFontID = 0; 
 
-const char* gTestScripts[]	 = { "TestFullScreen.lua", "TestCenteredWindow.lua", "TestNonCenteredWindow.lua", "TestBorderless.lua", "TestHideWindow.lua" };
-uint32_t gScriptIndexes[]	 = { 0, 1, 2, 3, 4 };
-uint32_t gCurrentScriptIndex = 0;
+const char* gTestScripts[] = { "TestFullScreen.lua", "TestCenteredWindow.lua", "TestNonCenteredWindow.lua", "TestBorderless.lua",
+							   "TestHideWindow.lua" };
+uint32_t    gScriptIndexes[] = { 0, 1, 2, 3, 4 };
+uint32_t    gCurrentScriptIndex = 0;
 
 IApp* pApp;
 
 static bool ValidateWindowPos(int32_t x, int32_t y)
 {
 	WindowsDesc* winDesc = pApp->pWindow;
-	int clientWidthStart = (getRectWidth(winDesc->windowedRect) - getRectWidth(winDesc->clientRect)) >> 1;
-	int clientHeightStart = getRectHeight(winDesc->windowedRect) - getRectHeight(winDesc->clientRect) - clientWidthStart;
+	int          clientWidthStart = (getRectWidth(&winDesc->windowedRect) - getRectWidth(&winDesc->clientRect)) >> 1;
+	int          clientHeightStart = getRectHeight(&winDesc->windowedRect) - getRectHeight(&winDesc->clientRect) - clientWidthStart;
 
 	if (winDesc->centered)
 	{
-		uint32_t fsHalfWidth = getRectWidth(winDesc->fullscreenRect) >> 1;
-		uint32_t fsHalfHeight = getRectHeight(winDesc->fullscreenRect) >> 1;
-		uint32_t windowWidth = getRectWidth(winDesc->clientRect);
-		uint32_t windowHeight = getRectHeight(winDesc->clientRect);
+		uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
+		uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
+		uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
+		uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
 		uint32_t windowHalfWidth = windowWidth >> 1;
 		uint32_t windowHalfHeight = windowHeight >> 1;
 
 		int32_t X = fsHalfWidth - windowHalfWidth;
 		int32_t Y = fsHalfHeight - windowHalfHeight;
 
-		if ( (abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1) )
+		if ((abs(winDesc->windowedRect.left + clientWidthStart - X) > 1) || (abs(winDesc->windowedRect.top + clientHeightStart - Y) > 1))
 			return false;
 	}
 	else
 	{
-		if ( (abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1) )
+		if ((abs(x - winDesc->windowedRect.left - clientWidthStart) > 1) || (abs(y - winDesc->windowedRect.top - clientHeightStart) > 1))
 			return false;
 	}
 
@@ -141,7 +144,7 @@ static bool ValidateWindowPos(int32_t x, int32_t y)
 static bool ValidateWindowSize(int32_t width, int32_t height)
 {
 	RectDesc clientRect = pApp->pWindow->clientRect;
-	if ( (abs(getRectWidth(clientRect) - width) > 1) || (abs(getRectHeight(clientRect) - height) > 1) )
+	if ((abs(getRectWidth(&clientRect) - width) > 1) || (abs(getRectHeight(&clientRect) - height) > 1))
 		return false;
 	return true;
 }
@@ -150,12 +153,10 @@ static void SetWindowed()
 {
 	pApp->pWindow->maximized = false;
 
-	int clientWidthStart = (getRectWidth(pApp->pWindow->windowedRect) - getRectWidth(pApp->pWindow->clientRect)) >> 1,
-		clientHeightStart = getRectHeight(pApp->pWindow->windowedRect) - getRectHeight(pApp->pWindow->clientRect) - clientWidthStart;
-	int32_t x = pApp->pWindow->windowedRect.left + clientWidthStart,
-			y = pApp->pWindow->windowedRect.top + clientHeightStart,
-			w = getRectWidth(pApp->pWindow->clientRect),
-			h = getRectHeight(pApp->pWindow->clientRect);
+	int clientWidthStart = (getRectWidth(&pApp->pWindow->windowedRect) - getRectWidth(&pApp->pWindow->clientRect)) >> 1,
+		clientHeightStart = getRectHeight(&pApp->pWindow->windowedRect) - getRectHeight(&pApp->pWindow->clientRect) - clientWidthStart;
+	int32_t x = pApp->pWindow->windowedRect.left + clientWidthStart, y = pApp->pWindow->windowedRect.top + clientHeightStart,
+			w = getRectWidth(&pApp->pWindow->clientRect), h = getRectHeight(&pApp->pWindow->clientRect);
 
 	if (pApp->pWindow->fullScreen)
 	{
@@ -165,7 +166,7 @@ static void SetWindowed()
 	}
 	if (pApp->pWindow->borderlessWindow)
 	{
-		toggleBorderless(pApp->pWindow, getRectWidth(pApp->pWindow->clientRect), getRectHeight(pApp->pWindow->clientRect));
+		toggleBorderless(pApp->pWindow, getRectWidth(&pApp->pWindow->clientRect), getRectHeight(&pApp->pWindow->clientRect));
 
 		bool centered = pApp->pWindow->centered;
 		pApp->pWindow->centered = false;
@@ -187,12 +188,10 @@ static void SetFullscreen()
 
 static void SetBorderless()
 {
-	int clientWidthStart = (getRectWidth(pApp->pWindow->windowedRect) - getRectWidth(pApp->pWindow->clientRect)) >> 1,
-		clientHeightStart = getRectHeight(pApp->pWindow->windowedRect) - getRectHeight(pApp->pWindow->clientRect) - clientWidthStart;
-	int32_t x = pApp->pWindow->windowedRect.left + clientWidthStart,
-			y = pApp->pWindow->windowedRect.top + clientHeightStart,
-			w = getRectWidth(pApp->pWindow->clientRect),
-			h = getRectHeight(pApp->pWindow->clientRect);
+	int clientWidthStart = (getRectWidth(&pApp->pWindow->windowedRect) - getRectWidth(&pApp->pWindow->clientRect)) >> 1,
+		clientHeightStart = getRectHeight(&pApp->pWindow->windowedRect) - getRectHeight(&pApp->pWindow->clientRect) - clientWidthStart;
+	int32_t x = pApp->pWindow->windowedRect.left + clientWidthStart, y = pApp->pWindow->windowedRect.top + clientHeightStart,
+			w = getRectWidth(&pApp->pWindow->clientRect), h = getRectHeight(&pApp->pWindow->clientRect);
 
 	if (pApp->pWindow->fullScreen)
 	{
@@ -204,8 +203,8 @@ static void SetBorderless()
 	else
 	{
 		gWindowMode = WindowMode::WM_BORDERLESS;
-		toggleBorderless(pApp->pWindow, getRectWidth(pApp->pWindow->clientRect), getRectHeight(pApp->pWindow->clientRect));
-		if(!pApp->pWindow->borderlessWindow)
+		toggleBorderless(pApp->pWindow, getRectWidth(&pApp->pWindow->clientRect), getRectHeight(&pApp->pWindow->clientRect));
+		if (!pApp->pWindow->borderlessWindow)
 			gWindowMode = WindowMode::WM_WINDOWED;
 
 		bool centered = pApp->pWindow->centered;
@@ -216,26 +215,17 @@ static void SetBorderless()
 	}
 }
 
-static void MaximizeWindow()
-{
-	maximizeWindow(pApp->pWindow);
-}
+static void MaximizeWindow() { maximizeWindow(pApp->pWindow); }
 
-static void MinimizeWindow()
-{
-	gMinimizeRequested = true;
-}
+static void MinimizeWindow() { gMinimizeRequested = true; }
 
 static void HideWindow()
 {
-	gHideTimer.Reset();
+	resetTimer(&gHideTimer);
 	hideWindow(pApp->pWindow);
 }
 
-static void ShowWindow()
-{
-	showWindow(pApp->pWindow);
-}
+static void ShowWindow() { showWindow(pApp->pWindow); }
 
 static void UpdateResolution()
 {
@@ -257,10 +247,13 @@ static void UpdateResolution()
 static void MoveWindow()
 {
 	SetWindowed();
-	int clientWidthStart = (getRectWidth(pApp->pWindow->windowedRect) - getRectWidth(pApp->pWindow->clientRect)) >> 1,
-		clientHeightStart = getRectHeight(pApp->pWindow->windowedRect) - getRectHeight(pApp->pWindow->clientRect) - clientWidthStart;
-	setWindowRect(pApp->pWindow, { gWndX, gWndY, gWndX + gWndW, gWndY + gWndH });
-	LOGF(LogLevel::eINFO, "MoveWindow() Position check: %s", ValidateWindowPos(gWndX + clientWidthStart, gWndY + clientHeightStart) ? "SUCCESS" : "FAIL");
+	int clientWidthStart = (getRectWidth(&pApp->pWindow->windowedRect) - getRectWidth(&pApp->pWindow->clientRect)) >> 1,
+		clientHeightStart = getRectHeight(&pApp->pWindow->windowedRect) - getRectHeight(&pApp->pWindow->clientRect) - clientWidthStart;
+	RectDesc rectDesc{ gWndX, gWndY, gWndX + gWndW, gWndY + gWndH };
+	setWindowRect(pApp->pWindow, &rectDesc);
+	LOGF(
+		LogLevel::eINFO, "MoveWindow() Position check: %s",
+		ValidateWindowPos(gWndX + clientWidthStart, gWndY + clientHeightStart) ? "SUCCESS" : "FAIL");
 	LOGF(LogLevel::eINFO, "MoveWindow() Size check: %s", ValidateWindowSize(gWndW, gWndH) ? "SUCCESS" : "FAIL");
 }
 
@@ -271,13 +264,13 @@ static void SetRecommendedWindowSize()
 	RectDesc rect;
 	getRecommendedResolution(&rect);
 
-	setWindowRect(pApp->pWindow, rect);
+	setWindowRect(pApp->pWindow, &rect);
 }
 
 static void HideCursor2Sec()
 {
 	gCursorHidden = true;
-	gHideTimer.Reset();
+	resetTimer(&gHideTimer);
 	hideCursor();
 }
 
@@ -287,17 +280,21 @@ static void ToggleClipCursor()
 	setEnableCaptureInput(gCursorClipped);
 }
 
-static void RunScript()
-{
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+static void RunScript() 
+{ 
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
-class WindowTest : public IApp
+class WindowTest: public IApp
 {
-public:
+	public:
 	bool Init()
 	{
 		pApp = this;
+
+		initTimer(&gHideTimer);
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
@@ -310,8 +307,9 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -370,18 +368,14 @@ public:
 		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
 
-		float vertices[] =
-		{
-				 1.0f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f, // 0 top_right 
-				-1.0f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f, // 1 top_left
-				-1.0f, -1.0f, 0.0f, 1.0f,  0.0f, 1.0f, // 2 bot_left
-				 1.0f, -1.0f, 0.0f, 1.0f,  1.0f, 1.0f, // 3 bot_right
+		float vertices[] = {
+			1.0f,  1.0f,  0.0f, 1.0f, 1.0f, 0.0f,    // 0 top_right
+			-1.0f, 1.0f,  0.0f, 1.0f, 0.0f, 0.0f,    // 1 top_left
+			-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f,    // 2 bot_left
+			1.0f,  -1.0f, 0.0f, 1.0f, 1.0f, 1.0f,    // 3 bot_right
 		};
 
-		uint32_t indices[] =
-		{
-				0, 1, 2, 0, 2, 3
-		};
+		uint32_t indices[] = { 0, 1, 2, 0, 2, 3 };
 
 		BufferLoadDesc vbDesc = {};
 		vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -399,97 +393,86 @@ public:
 		ibDesc.ppBuffer = &pQuadIndexBuffer;
 		addResource(&ibDesc, NULL);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		addAppUITestScripts(pAppUI, gTestScripts, COUNT_OF(gTestScripts));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
-		float   dpiScale = getDpiScale().x;
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
+
+		float dpiScale;
+		{
+			float dpiScaleArray[2];
+			getDpiScale(dpiScaleArray);
+			dpiScale = dpiScaleArray[0];
+		}
 		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.30f };
 		vec2    UIPanelSize = vec2(1000.f, 1000.f) / dpiScale;
-		GuiDesc guiDesc;
+		UIComponentDesc guiDesc;
 		guiDesc.mStartPosition = UIPosition;
 		guiDesc.mStartSize = UIPanelSize;
-		guiDesc.mDefaultTextDrawDesc = UIPanelWindowTitleTextDesc;
-		pStandaloneControlsGUIWindow = addAppUIGuiComponent(pAppUI, "Window", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pStandaloneControlsGUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		guiDesc.mFontID = 0; 
+		guiDesc.mFontSize = 16.0f; 
+		uiCreateComponent("Window", &guiDesc, &pStandaloneControlsGUIWindow);
 
 		RadioButtonWidget rbWindowed;
 		rbWindowed.pData = &gWindowMode;
 		rbWindowed.mRadioId = WM_WINDOWED;
-		IWidget* pWindowed = addGuiWidget(pStandaloneControlsGUIWindow, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
-		pWindowed->pOnEdited = SetWindowed;
-		pWindowed->mDeferred = true;
-		addWidgetLua(pWindowed);
+		UIWidget* pWindowed = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
+		uiSetWidgetOnEditedCallback(pWindowed, SetWindowed);
+		uiSetWidgetDeferred(pWindowed, true);
+		luaRegisterWidget(pWindowed);
 
 		RadioButtonWidget rbFullscreen;
 		rbFullscreen.pData = &gWindowMode;
 		rbFullscreen.mRadioId = WM_FULLSCREEN;
-		IWidget* pFullscreen = addGuiWidget(pStandaloneControlsGUIWindow, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
-		pFullscreen->pOnEdited = SetFullscreen;
-		pFullscreen->mDeferred = true;
-		addWidgetLua(pFullscreen);
+		UIWidget* pFullscreen = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
+		uiSetWidgetOnEditedCallback(pFullscreen, SetFullscreen); 
+		uiSetWidgetDeferred(pFullscreen, true);
+		luaRegisterWidget(pFullscreen);
 
 		RadioButtonWidget rbBorderless;
 		rbBorderless.pData = &gWindowMode;
 		rbBorderless.mRadioId = WM_BORDERLESS;
-		IWidget* pBorderless = addGuiWidget(pStandaloneControlsGUIWindow, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
-		pBorderless->pOnEdited = SetBorderless;
-		pBorderless->mDeferred = true;
-		addWidgetLua(pBorderless);
+		UIWidget* pBorderless = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
+		uiSetWidgetOnEditedCallback(pBorderless, SetBorderless);
+		uiSetWidgetDeferred(pBorderless, true);
+		luaRegisterWidget(pBorderless);
 
 		ButtonWidget bMaximize;
-		IWidget* pMaximize = addGuiWidget(pStandaloneControlsGUIWindow, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
-		pMaximize->pOnEdited = MaximizeWindow;
-		pMaximize->mDeferred = true;
-		addWidgetLua(pMaximize);
+		UIWidget*     pMaximize = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pMaximize, MaximizeWindow); 
+		uiSetWidgetDeferred(pMaximize, true);
+		luaRegisterWidget(pMaximize);
 
 		ButtonWidget bMinimize;
-		IWidget* pMinimize = addGuiWidget(pStandaloneControlsGUIWindow, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
-		pMinimize->pOnEdited = MinimizeWindow;
-		pMinimize->mDeferred = true;
-		addWidgetLua(pMinimize);
+		UIWidget*     pMinimize = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pMinimize, MinimizeWindow);
+		uiSetWidgetDeferred(pMinimize, true);
+		luaRegisterWidget(pMinimize);
 
 		ButtonWidget bHide;
-		IWidget* pHide = addGuiWidget(pStandaloneControlsGUIWindow, "Hide for 2s", &bHide, WIDGET_TYPE_BUTTON);
-		pHide->pOnEdited = HideWindow;
-		addWidgetLua(pHide);
+		UIWidget*     pHide = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Hide for 2s", &bHide, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pHide, HideWindow); 
+		luaRegisterWidget(pHide);
 
 		CheckboxWidget rbCentered;
 		rbCentered.pData = &(pApp->pWindow->centered);
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Centered", &rbCentered, WIDGET_TYPE_CHECKBOX));
 
 		RectDesc recRes;
 		getRecommendedResolution(&recRes);
@@ -501,37 +484,38 @@ public:
 		setRectSliderX.pData = &gWndX;
 		setRectSliderX.mMin = 0;
 		setRectSliderX.mMax = recWidth;
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "x", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "x", &setRectSliderX, WIDGET_TYPE_SLIDER_INT));
 
 		SliderIntWidget setRectSliderY;
 		setRectSliderY.pData = &gWndY;
 		setRectSliderY.mMin = 0;
 		setRectSliderY.mMax = recHeight;
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "y", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "y", &setRectSliderY, WIDGET_TYPE_SLIDER_INT));
 
 		SliderIntWidget setRectSliderW;
 		setRectSliderW.pData = &gWndW;
 		setRectSliderW.mMin = 1;
 		setRectSliderW.mMax = recWidth;
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "w", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "w", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
 		SliderIntWidget setRectSliderH;
 		setRectSliderH.pData = &gWndH;
 		setRectSliderH.mMin = 1;
 		setRectSliderH.mMax = recHeight;
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "h", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "h", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
 
 		ButtonWidget bSetRect;
-		IWidget* pSetRect = addGuiWidget(pStandaloneControlsGUIWindow, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
-		pSetRect->pOnEdited = MoveWindow;
-		pSetRect->mDeferred = true;
-		addWidgetLua(pSetRect);
+		UIWidget*     pSetRect = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pSetRect, MoveWindow); 
+		uiSetWidgetDeferred(pSetRect, true); 
+		luaRegisterWidget(pSetRect);
 
 		ButtonWidget bRecWndSize;
-		IWidget* pRecWndSize = addGuiWidget(pStandaloneControlsGUIWindow, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
-		pRecWndSize->pOnEdited = SetRecommendedWindowSize;
-		pRecWndSize->mDeferred = true;
-		addWidgetLua(pRecWndSize);
+		UIWidget*     pRecWndSize =
+			uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pRecWndSize, SetRecommendedWindowSize);
+		uiSetWidgetDeferred(pRecWndSize, true); 
+		luaRegisterWidget(pRecWndSize);
 
 		uint32_t numMonitors = getMonitorCount();
 
@@ -543,14 +527,14 @@ public:
 		strcat(label, monitors);
 
 		LabelWidget labelWidget;
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, label, &labelWidget, WIDGET_TYPE_LABEL));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, label, &labelWidget, WIDGET_TYPE_LABEL));
 
 		for (uint32_t i = 0; i < numMonitors; ++i)
 		{
 			MonitorDesc* monitor = getMonitor(i);
 
 			char publicDisplayName[128];
-#if defined(_WINDOWS) || defined(XBOX) // Win platform uses wide chars			
+#if defined(_WINDOWS) || defined(XBOX)    // Win platform uses wide chars
 			if (128 == wcstombs(publicDisplayName, monitor->publicDisplayName, sizeof(publicDisplayName)))
 				publicDisplayName[127] = '\0';
 #else
@@ -561,15 +545,15 @@ public:
 			strcat(monitorLabel, " (");
 
 			char buffer[10];
-			sprintf(buffer, "%u", monitor->physicalSize.x);
+			sprintf(buffer, "%u", monitor->physicalSize[0]);
 			strcat(monitorLabel, buffer);
 			strcat(monitorLabel, "x");
 
-			sprintf(buffer, "%u", monitor->physicalSize.y);
+			sprintf(buffer, "%u", monitor->physicalSize[1]);
 			strcat(monitorLabel, buffer);
 			strcat(monitorLabel, " mm; ");
 
-			sprintf(buffer, "%u", monitor->dpi.x);
+			sprintf(buffer, "%u", monitor->dpi[0]);
 			strcat(monitorLabel, buffer);
 			strcat(monitorLabel, " dpi; ");
 
@@ -591,8 +575,7 @@ public:
 				sprintf(height, "%u", res.mHeight);
 				strcat(strRes, height);
 
-				if (monitor->defaultResolution.mWidth == res.mWidth &&
-					monitor->defaultResolution.mHeight == res.mHeight)
+				if (monitor->defaultResolution.mWidth == res.mWidth && monitor->defaultResolution.mHeight == res.mHeight)
 				{
 					strcat(strRes, " (native)");
 					gCurRes[i] = j;
@@ -602,38 +585,38 @@ public:
 				RadioButtonWidget rbRes;
 				rbRes.pData = &gCurRes[i];
 				rbRes.mRadioId = j;
-				IWidget* pRbRes = addCollapsingHeaderSubWidget(&monitorHeader, strRes, &rbRes, WIDGET_TYPE_RADIO_BUTTON);
-				pRbRes->pOnEdited = UpdateResolution;
-				pRbRes->mDeferred = false;
+				UIWidget* pRbRes = uiCreateCollapsingHeaderSubWidget(&monitorHeader, strRes, &rbRes, WIDGET_TYPE_RADIO_BUTTON);
+				uiSetWidgetOnEditedCallback(pRbRes, UpdateResolution); 
+				uiSetWidgetDeferred(pRbRes, false); 
 			}
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER));
 		}
 
 		CollapsingHeaderWidget InputCotrolsWidget;
 
 		ButtonWidget bHideCursor;
-		IWidget* pHideCursor = addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Hide Cursor for 2s", &bHideCursor, WIDGET_TYPE_BUTTON);
-		pHideCursor->pOnEdited = HideCursor2Sec;
+		UIWidget* pHideCursor = uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Hide Cursor for 2s", &bHideCursor, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pHideCursor, HideCursor2Sec);
 
 		LabelWidget lCursorInWindow;
-		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Cursor inside window?", &lCursorInWindow, WIDGET_TYPE_LABEL);
+		uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Cursor inside window?", &lCursorInWindow, WIDGET_TYPE_LABEL);
 
 		RadioButtonWidget rCursorInsideRectFalse;
 		rCursorInsideRectFalse.pData = &gCursorInsideWindow;
 		rCursorInsideRectFalse.mRadioId = 0;
-		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "No", &rCursorInsideRectFalse, WIDGET_TYPE_RADIO_BUTTON);
+		uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "No", &rCursorInsideRectFalse, WIDGET_TYPE_RADIO_BUTTON);
 
 		RadioButtonWidget rCursorInsideRectTrue;
 		rCursorInsideRectTrue.pData = &gCursorInsideWindow;
 		rCursorInsideRectTrue.mRadioId = 1;
-		addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Yes", &rCursorInsideRectTrue, WIDGET_TYPE_RADIO_BUTTON);
+		uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Yes", &rCursorInsideRectTrue, WIDGET_TYPE_RADIO_BUTTON);
 
 		ButtonWidget bClipCursor;
-		IWidget* pClipCursor = addCollapsingHeaderSubWidget(&InputCotrolsWidget, "Clip Cursor to Window", &bClipCursor, WIDGET_TYPE_BUTTON);
-		pClipCursor->pOnEdited = ToggleClipCursor;
+		UIWidget* pClipCursor = uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Clip Cursor to Window", &bClipCursor, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pClipCursor, ToggleClipCursor);
 
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Cursor", &InputCotrolsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Cursor", &InputCotrolsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
 
 		DropdownWidget ddTestScripts;
 		ddTestScripts.pData = &gCurrentScriptIndex;
@@ -642,56 +625,69 @@ public:
 			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 		}
-		addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
-		IWidget* pRunScript = addGuiWidget(pStandaloneControlsGUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		pRunScript->pOnEdited = RunScript;
-		addWidgetLua(pRunScript);
+		UIWidget*     pRunScript = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+		luaRegisterWidget(pRunScript);
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		waitForAllResourceLoads();
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP,
+									   [](InputActionContext* ctx) {
+										   dumpProfileData(((Renderer*)ctx->pUserData)->pName);
+										   return true;
+									   },
+									   pRenderer };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx)
-				{
-						if (gWindowMode == WM_FULLSCREEN || gWindowMode == WM_BORDERLESS)
-						{
-								gWindowMode = WM_WINDOWED;
-								SetWindowed();
-						}
-						else if (gWindowMode == WM_WINDOWED)
-						{
-								gWindowMode = WM_FULLSCREEN;
-								SetFullscreen();
-						}
-						return true;
-				}, this };
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+					   [](InputActionContext* ctx) {
+						   if (gWindowMode == WM_FULLSCREEN || gWindowMode == WM_BORDERLESS)
+						   {
+							   gWindowMode = WM_WINDOWED;
+							   SetWindowed();
+						   }
+						   else if (gWindowMode == WM_WINDOWED)
+						   {
+							   gWindowMode = WM_FULLSCREEN;
+							   SetFullscreen();
+						   }
+						   return true;
+					   },
+					   this };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+						  requestShutdown();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
-		actionDesc =
-		{
-				InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-				{
-						bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
-						setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-						return true;
-				}, this
-		};
+		actionDesc = { InputBindings::BUTTON_ANY,
+					   [](InputActionContext* ctx) {
+						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+						   return true;
+					   },
+					   this };
 		addInputAction(&actionDesc);
 
-		gFrameIndex = 0; 
+		gFrameIndex = 0;
 
 		return true;
 	}
@@ -700,11 +696,11 @@ public:
 	{
 		exitInputSystem();
 
-		exitProfilerUI();
-
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
 
@@ -729,6 +725,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -736,7 +733,14 @@ public:
 		if (!addSwapChain())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -788,7 +792,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pBasicPipeline);
 		removeSwapChain(pRenderer, pSwapChain);
@@ -800,7 +806,7 @@ public:
 
 		if (pWindow->hide || gCursorHidden)
 		{
-			unsigned msec = gHideTimer.GetMSec(false);
+			unsigned msec = getTimerMSec(&gHideTimer, false);
 			if (msec >= 2000)
 			{
 				ShowWindow();
@@ -810,8 +816,6 @@ public:
 		}
 
 		gCursorInsideWindow = isCursorInsideTrackingArea();
-
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -867,14 +871,13 @@ public:
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
-		const float txtIndent = 8.f;
-		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = 0;
+		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
-		cmdDrawProfilerUI();
-
-		appUIGui(pAppUI, pStandaloneControlsGUIWindow);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
@@ -931,4 +934,3 @@ public:
 	}
 };
 DEFINE_APPLICATION_MAIN(WindowTest)
-

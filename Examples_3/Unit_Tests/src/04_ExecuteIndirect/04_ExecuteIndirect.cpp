@@ -52,13 +52,15 @@
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 
 //Renderer
 #include "../../../../Common_3/Renderer/IRenderer.h"
@@ -79,19 +81,17 @@ const uint32_t gImageCount = 3;
 
 #define MAX_LOD_OFFSETS 10
 
-Timer      gAccumTimer;
-HiresTimer mFrameTimer;
 
 ThreadSystem* pThreadSystem;
 
 struct UniformViewProj
 {
-	mat4 mProjectView;
+	CameraMatrix mProjectView;
 };
 
 struct UniformCompute
 {
-	mat4     mViewProj;
+    CameraMatrix     mViewProj;
 	vec4     mCamPos;
 	float    mDeltaTime;
 	uint     mStartIndex;
@@ -106,7 +106,7 @@ struct UniformCompute
 
 struct UniformBasic
 {
-	mat4     mModelViewProj;
+    CameraMatrix     mModelViewProj;
 	mat4     mNormalMat;
 	float4   mSurfaceColor;
 	float4   mDeepColor;
@@ -142,11 +142,11 @@ struct Subset
 
 struct ThreadData
 {
-	uint32_t      mIndex;
-	mat4          mViewProj;
-	uint32_t      mFrameIndex;
+	CameraMatrix  mViewProj;
 	RenderTarget* pRenderTarget;
 	RenderTarget* pDepthBuffer;
+	uint32_t      mIndex;
+	uint32_t      mFrameIndex;
 	float         mDeltaTime;
 };
 
@@ -252,14 +252,12 @@ Buffer* pStaticAsteroidBuffer = NULL;
 Buffer* pDynamicAsteroidBuffer[gImageCount] = {};
 
 // UI
-UIApp*             pAppUI = NULL;
-GuiComponent*      pGui;
-static uint32_t	   gSelectedApiIndex = 0;
+UIComponent*      pGui;
 ICameraController* pCameraController = NULL;
-VirtualJoystickUI* pVirtualJoystick = NULL;
-
 
 uint32_t gFrameIndex = 0;
+
+uint32_t gFontID = 0; 
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
@@ -298,7 +296,8 @@ PaniniParameters gPaniniParams;
 DynamicUIWidgets gPaniniControls;
 RenderTarget*     pIntermediateRenderTarget = NULL;
 bool              gbPaniniEnabled = false;
-TextDrawDesc      gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+
+FontDrawDesc gFrameTimeDraw;
 
 const char* gTestScripts[] = { "Test_Instanced.lua", "Test_ExecuteIndirect.lua", "Test_GPUupdate.lua" };
 uint32_t gScriptIndexes[] = { 0, 1, 2 };
@@ -311,7 +310,9 @@ uint32_t                  numVerticesPerMesh;
 
 void RunScript()
 {
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 class ExecuteIndirect: public IApp
@@ -344,8 +345,10 @@ class ExecuteIndirect: public IApp
 		CreateAsteroids(gVertices, gIndices, gAsteroidSim.numLODs, 1000, 123, numVerticesPerMesh, gAsteroidSim.indexOffsets);
 		gAsteroidSim.Init(123, gNumAsteroids, 1000, numVerticesPerMesh, gTextureCount);
 
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -391,14 +394,6 @@ class ExecuteIndirect: public IApp
 			addResource(&textureDesc, NULL);
 		}
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		CreateTextures(gTextureCount);
 
 		CreateSubsets();
@@ -413,19 +408,19 @@ class ExecuteIndirect: public IApp
 		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
 
 		ShaderLoadDesc instanceShader = {};
-		instanceShader.mStages[0] = { "basic.vert", NULL, 0 };
-		instanceShader.mStages[1] = { "basic.frag", NULL, 0 };
+		instanceShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		instanceShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		ShaderLoadDesc indirectShader = {};
-		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0 };
-		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0 };
+		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		ShaderLoadDesc gpuUpdateShader = {};
-		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0 };
+		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &instanceShader, &pBasicShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -490,7 +485,7 @@ class ExecuteIndirect: public IApp
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #endif
 
-		CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs };
+		CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]) };
 		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectCommandSignature);
 		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectSubsetCommandSignature);
 
@@ -652,46 +647,37 @@ class ExecuteIndirect: public IApp
 			addResource(&bufDesc, NULL);
 		}
 
-		/* UI and Camera Setup */
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		GuiDesc guiDesc = {};
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
+
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition += vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f);
-		pGui = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+		uiCreateComponent(GetName(), &guiDesc, &pGui);
 
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
-
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
@@ -703,8 +689,8 @@ class ExecuteIndirect: public IApp
 #if !defined(TARGET_IOS)
 		CheckboxWidget vSyncCheckbox;
 		vSyncCheckbox.pData = &gToggleVSync;
-		IWidget* pVSyncCheckbox = addGuiWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX);
-		addWidgetLua(pVSyncCheckbox);
+		UIWidget* pVSyncCheckbox = uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX);
+		luaRegisterWidget(pVSyncCheckbox);
 #endif
 		DropdownWidget renderModeDropdown;
 		renderModeDropdown.pData = &gRenderingMode;
@@ -714,15 +700,15 @@ class ExecuteIndirect: public IApp
 			renderModeDropdown.mNames.push_back((char*)enumNames[i]);
 		}
 
-		addWidgetLua(addGuiWidget(pGui, "Rendering Mode: ", &renderModeDropdown, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Rendering Mode: ", &renderModeDropdown, WIDGET_TYPE_DROPDOWN));
 
 		CheckboxWidget multithreadCheckbox;
 		multithreadCheckbox.pData = &gUseThreads;
-		addWidgetLua(addGuiWidget(pGui, "Multithreaded CPU Update", &multithreadCheckbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Multithreaded CPU Update", &multithreadCheckbox, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget paniniCheckbox;
 		paniniCheckbox.pData = &gbPaniniEnabled;
-		addWidgetLua(addGuiWidget(pGui, "Enable Panini Projection", &paniniCheckbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Enable Panini Projection", &paniniCheckbox, WIDGET_TYPE_CHECKBOX));
 		/************************************************************************/
 		// Panini props
 		/************************************************************************/
@@ -732,33 +718,33 @@ class ExecuteIndirect: public IApp
 		camHorFovSlider.mMin = 30.0f;
 		camHorFovSlider.mMax = 179.0f;
 		camHorFovSlider.mStep = 1.0f;
-		addDynamicUIWidget(&gPaniniControls, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT);
+		uiCreateDynamicWidgets(&gPaniniControls, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT);
 
 		SliderFloatWidget paniniSliderD;
 		paniniSliderD.pData = &gPaniniParams.D;
 		paniniSliderD.mMin = 0.0f;
 		paniniSliderD.mMax = 1.0f;
 		paniniSliderD.mStep = 0.001f;
-		addDynamicUIWidget(&gPaniniControls, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT);
+		uiCreateDynamicWidgets(&gPaniniControls, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT);
 
 		SliderFloatWidget paniniSliderS;
 		paniniSliderS.pData = &gPaniniParams.S;
 		paniniSliderS.mMin = 0.0f;
 		paniniSliderS.mMax = 1.0f;
 		paniniSliderS.mStep = 0.001f;
-		addDynamicUIWidget(&gPaniniControls, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT);
+		uiCreateDynamicWidgets(&gPaniniControls, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT);
 
 		SliderFloatWidget screenScaleSlider;
 		screenScaleSlider.pData = &gPaniniParams.scale;
 		screenScaleSlider.mMin = 1.0f;
 		screenScaleSlider.mMax = 10.0f;
 		screenScaleSlider.mStep = 0.01f;
-		addDynamicUIWidget(&gPaniniControls, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT);
+		uiCreateDynamicWidgets(&gPaniniControls, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT);
 
 		if (gbPaniniEnabled)
-			showDynamicUIWidgets(&gPaniniControls, pGui);
+			uiShowDynamicWidgets(&gPaniniControls, pGui);
 		else
-			hideDynamicUIWidgets(&gPaniniControls, pGui);
+			uiHideDynamicWidgets(&gPaniniControls, pGui);
 #endif
 		DropdownWidget ddTestScripts;
 		ddTestScripts.pData = &gCurrentScriptIndex;
@@ -767,12 +753,12 @@ class ExecuteIndirect: public IApp
 			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 		}
-		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
-		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		pRunScript->pOnEdited = RunScript;
-		addWidgetLua(pRunScript);
+		UIWidget* pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pRunScript, RunScript); 
+		luaRegisterWidget(pRunScript);
 
 #if !defined(TARGET_IOS)
 		gPanini.Init(pRenderer);
@@ -869,7 +855,10 @@ class ExecuteIndirect: public IApp
 
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -881,7 +870,7 @@ class ExecuteIndirect: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -890,9 +879,8 @@ class ExecuteIndirect: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -926,16 +914,15 @@ class ExecuteIndirect: public IApp
 		gIndices.set_capacity(0);
 
 #if !defined(TARGET_IOS)
-		removeDynamicUI(&gPaniniControls);
+		uiDestroyDynamicWidgets(&gPaniniControls);
 		gPanini.Exit();
 #endif
-		exitVirtualJoystickUI(pVirtualJoystick);
 
-		exitProfilerUI();
+		exitProfiler(); 
 
-		exitProfiler();
+		exitUserInterface();
 
-		exitAppUI(pAppUI);
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -1030,8 +1017,8 @@ class ExecuteIndirect: public IApp
 
 		exitResourceLoaderInterface(pRenderer);
 		exitRenderer(pRenderer);
+		pRenderer = NULL;
 		gAsteroidSubsets.set_capacity(0);
-
 	}
 
 	bool Load()
@@ -1042,10 +1029,15 @@ class ExecuteIndirect: public IApp
 		if (!addDepthBuffer())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		VertexLayout vertexLayout = {};
@@ -1117,6 +1109,7 @@ class ExecuteIndirect: public IApp
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		postProcRTDesc.mSampleQuality = 0;
+        postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
 #if !defined(TARGET_IOS)
@@ -1135,9 +1128,9 @@ class ExecuteIndirect: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
 
-		removeAppGUIDriver(pAppUI);
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pBasicPipeline);
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -1170,18 +1163,16 @@ class ExecuteIndirect: public IApp
 
 		pCameraController->update(deltaTime);
 
-		updateAppUI(pAppUI, deltaTime);
-
 		static bool paniniEnabled = gbPaniniEnabled;
 		if (paniniEnabled != gbPaniniEnabled)
 		{
 			if (gbPaniniEnabled)
 			{
-				showDynamicUIWidgets(&gPaniniControls, pGui);
+				uiShowDynamicWidgets(&gPaniniControls, pGui);
 			}
 			else
 			{
-				hideDynamicUIWidgets(&gPaniniControls, pGui);
+				uiHideDynamicWidgets(&gPaniniControls, pGui);
 			}
 
 			paniniEnabled = gbPaniniEnabled;
@@ -1239,11 +1230,11 @@ class ExecuteIndirect: public IApp
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 #if !defined(TARGET_IOS)
-		mat4 projMat = mat4::perspective(gPaniniParams.FoVH * (float)PI / 180.0f, aspectInverse, 10000.0f, 0.1f);
+		CameraMatrix projMat = CameraMatrix::perspective(gPaniniParams.FoVH * (float)PI / 180.0f, aspectInverse, 10000.0f, 0.1f);
 #else
-        mat4 projMat = mat4::perspective(90.0f * (float)PI / 180.0f, aspectInverse, 10000.0f, 0.1f);
+        CameraMatrix projMat = CameraMatrix::perspective(90.0f * (float)PI / 180.0f, aspectInverse, 10000.0f, 0.1f);
 #endif
-		mat4 viewProjMat = projMat * viewMat;
+		CameraMatrix viewProjMat = projMat * viewMat;
 
 		// Load screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -1437,27 +1428,22 @@ class ExecuteIndirect: public IApp
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Panini Projection Pass");
 			gPanini.Draw(cmd);
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-			//cmdEndRender(cmd, 1, &pSwapchainRenderTarget, NULL);
 		}
 #endif
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
-
 		const float txtOffset = 8.f;
 		float txtOrigY = txtOffset;
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(txtOffset, txtOrigY), &gFrameTimeDraw);
-		txtOrigY += txtSize.y + txtOffset;
+		float2 screenCoords = float2(txtOffset, txtOrigY);
 
-#ifndef TARGET_IOS
-		appUIGui(pAppUI, pGui);
-#endif
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
+		
+		screenCoords.y += txtSize.y + txtOffset;
+		cmdDrawGpuProfile(cmd, screenCoords, gGpuProfileToken, &gFrameTimeDraw);
 
-        cmdDrawGpuProfile(cmd, float2(txtOffset, txtOrigY), gGpuProfileToken, &gFrameTimeDraw);
-
-		cmdDrawProfilerUI();
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1531,6 +1517,7 @@ class ExecuteIndirect: public IApp
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
@@ -1809,7 +1796,7 @@ class ExecuteIndirect: public IApp
 	}
 
 	static void RenderSubset(
-		unsigned index, const mat4& viewProj, uint32_t frameIdx, RenderTarget* pRenderTarget, RenderTarget* pDepthBuffer, float deltaTime)
+		unsigned index, const CameraMatrix& viewProj, uint32_t frameIdx, RenderTarget* pRenderTarget, RenderTarget* pDepthBuffer, float deltaTime)
 	{
         LoadActionsDesc loadActionLoad = {};
         loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1825,7 +1812,7 @@ class ExecuteIndirect: public IApp
 		gAsteroidSim.Update(deltaTime, startIdx, endIdx, pCameraController->getViewPosition());
 
 		vec4 frustumPlanes[6];
-		mat4::extractFrustumClipPlanes(
+		CameraMatrix::extractFrustumClipPlanes(
 			viewProj, frustumPlanes[0], frustumPlanes[1], frustumPlanes[2], frustumPlanes[3], frustumPlanes[4], frustumPlanes[5], true);
 
 		if (gRenderingMode == RenderingMode_Instanced)
@@ -1844,7 +1831,7 @@ class ExecuteIndirect: public IApp
 				if (ShouldCullAsteroid(transform.getTranslation(), frustumPlanes))
 					continue;
 
-				mat4 mvp = viewProj * transform;
+				CameraMatrix mvp = viewProj * transform;
 				mat3 normalMat = inverse(transpose(mat3(transform[0].getXYZ(), transform[1].getXYZ(), transform[2].getXYZ())));
 
 				// Update uniforms

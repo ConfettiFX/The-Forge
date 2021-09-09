@@ -14,7 +14,6 @@ public:
 		manager_(manager),
 		device_(device),
 		state_(state),
-		previousState_(previousState),
 		deviceState_(InputDevice::DS_UNAVAILABLE),
 		buttonDialect_(manager_.GetAllocator()),
 		sensorManager_(0),
@@ -187,7 +186,6 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	InputState& state_;
-	InputState& previousState_;
 	InputDevice::DeviceState deviceState_;
 	HashMap<unsigned, DeviceButtonId> buttonDialect_;
 	ASensorManager* sensorManager_;

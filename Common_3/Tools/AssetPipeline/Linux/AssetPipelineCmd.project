@@ -11,20 +11,6 @@
     <File Name="../../../ThirdParty/OpenSource/TressFX/TressFXAsset.cpp"/>
   </VirtualDirectory>
   <Description/>
-  <Dependencies Name="Release">
-    <Project Name="ozz_base"/>
-    <Project Name="OS"/>
-    <Project Name="ozz_animation_offline"/>
-    <Project Name="ozz_animation"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Debug">
-    <Project Name="ozz_base"/>
-    <Project Name="OS"/>
-    <Project Name="ozz_animation_offline"/>
-    <Project Name="ozz_animation"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../FileSystem/IToolFileSystem.h"/>
     <File Name="../../FileSystem/LinuxToolsFileSystem.cpp"/>
@@ -143,4 +129,18 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="ozz_base"/>
+    <Project Name="OS"/>
+    <Project Name="ozz_animation_offline"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="ozz_base"/>
+    <Project Name="OS"/>
+    <Project Name="ozz_animation_offline"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
 </CodeLite_Project>

@@ -322,7 +322,14 @@ extern void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 
 bool mtl_isRaytracingSupported(Renderer* pRenderer)
 {
-	return true;
+	if (@available(macOS 10.14, iOS 12.0, *))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
@@ -1105,6 +1112,7 @@ void mtl_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStruct
 	tf_free(pAccelerationStructure);
 }
 
+API_AVAILABLE(macos(10.14), ios(12.0))
 void mtl_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
 }
@@ -1617,15 +1625,19 @@ void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTe
 void initMetalRaytracingFunctions()
 {
 	isRaytracingSupported = mtl_isRaytracingSupported;
-	initRaytracing = mtl_initRaytracing;
-	removeRaytracing = mtl_removeRaytracing;
-	addAccelerationStructure = mtl_addAccelerationStructure;
-	removeAccelerationStructure = mtl_removeAccelerationStructure;
-	removeAccelerationStructureScratch = mtl_removeAccelerationStructureScratch;
-	addRaytracingShaderTable = mtl_addRaytracingShaderTable;
-	removeRaytracingShaderTable = mtl_removeRaytracingShaderTable;
-	cmdBuildAccelerationStructure = mtl_cmdBuildAccelerationStructure;
-	cmdDispatchRays = mtl_cmdDispatchRays;
+	
+	if (@available(macOS 10.14, iOS 12.0, *))
+	{
+		initRaytracing = mtl_initRaytracing;
+		removeRaytracing = mtl_removeRaytracing;
+		addAccelerationStructure = mtl_addAccelerationStructure;
+		removeAccelerationStructure = mtl_removeAccelerationStructure;
+		removeAccelerationStructureScratch = mtl_removeAccelerationStructureScratch;
+		addRaytracingShaderTable = mtl_addRaytracingShaderTable;
+		removeRaytracingShaderTable = mtl_removeRaytracingShaderTable;
+		cmdBuildAccelerationStructure = mtl_cmdBuildAccelerationStructure;
+		cmdDispatchRays = mtl_cmdDispatchRays;
+	}
 
 	addSSVGFDenoiser = mtl_addSSVGFDenoiser;
 	removeSSVGFDenoiser = mtl_removeSSVGFDenoiser;

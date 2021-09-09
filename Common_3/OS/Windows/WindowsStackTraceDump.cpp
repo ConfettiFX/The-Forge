@@ -24,19 +24,16 @@
 
 #include "WindowsStackTraceDump.h"
 #include "../Interfaces/ILog.h"
-#pragma warning (push)
-#pragma warning( disable : 4091 )
+#pragma warning(push)
+#pragma warning(disable : 4091)
 #include <DbgHelp.h>
-#pragma warning (pop)
-#pragma comment (lib, "DbgHelp.lib")
+#pragma warning(pop)
+#pragma comment(lib, "DbgHelp.lib")
 #include <Psapi.h>
 
 WindowsStackTrace* WindowsStackTrace::pInst;
 
-static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo)
-{
-	return WindowsStackTrace::Dump(pExceptionInfo);
-}
+static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo) { return WindowsStackTrace::Dump(pExceptionInfo); }
 
 bool WindowsStackTrace::Init()
 {
@@ -52,7 +49,7 @@ bool WindowsStackTrace::Init()
 	SetUnhandledExceptionFilter(&dumpStackTrace);
 
 	pInst = tf_new(WindowsStackTrace);
-	pInst->mDbgHelpMutex.Init();
+	initMutex(&pInst->mDbgHelpMutex);
 	pInst->mUsedMemorySize = 0;
 	pInst->mPreallocatedMemorySize = 1024LL * 1024LL;
 	pInst->pPreallocatedMemory = tf_calloc(1, pInst->mPreallocatedMemorySize);
@@ -65,13 +62,13 @@ void WindowsStackTrace::Exit()
 	if (pInst)
 	{
 		tf_free(pInst->pPreallocatedMemory);
-		pInst->mDbgHelpMutex.Destroy();
+		destroyMutex(&pInst->mDbgHelpMutex);
 		tf_delete(pInst);
 		pInst = NULL;
 	}
 }
 
-void * WindowsStackTrace::Alloc(size_t size)
+void* WindowsStackTrace::Alloc(size_t size)
 {
 	if (!pInst)
 	{
@@ -90,7 +87,7 @@ void * WindowsStackTrace::Alloc(size_t size)
 	return pMem;
 }
 
-LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
+LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 {
 	if (!pInst)
 	{
@@ -108,7 +105,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 	DWORD options = SymGetOptions() | (SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
 	HMODULE* pModuleHandles;
-	DWORD requiredSize;
+	DWORD    requiredSize;
 	EnumProcessModules(process, NULL, 0, &requiredSize);
 	DWORD numModules = requiredSize / sizeof(*pModuleHandles);
 
@@ -139,7 +136,7 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 		SymLoadModule64(process, 0, imageName, moduleName, (DWORD64)moduleInfo.lpBaseOfDll, moduleInfo.SizeOfImage);
 	}
 
-	CONTEXT context = *(pExceptionInfo->ContextRecord);
+	CONTEXT      context = *(pExceptionInfo->ContextRecord);
 	STACKFRAME64 stackFrame = {};
 #ifdef _M_IX86
 	stackFrame.AddrPC.Offset = context.Eip;
@@ -158,16 +155,17 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 #endif
 
 	IMAGE_NT_HEADERS* pImageHeader = ImageNtHeader(moduleBaseAddress);
-	DWORD imageType = pImageHeader->FileHeader.Machine;
+	DWORD             imageType = pImageHeader->FileHeader.Machine;
 
-	const DWORD maxLength = 1024;
+	const DWORD                        maxLength = 1024;
 	alignas(IMAGEHLP_SYMBOL64) uint8_t symbolMem[sizeof(IMAGEHLP_SYMBOL64) + maxLength];
-	IMAGEHLP_SYMBOL64* pSymbol = (IMAGEHLP_SYMBOL64*)symbolMem;
+	IMAGEHLP_SYMBOL64*                 pSymbol = (IMAGEHLP_SYMBOL64*)symbolMem;
 
-	DWORD maxFunctionNameLength = 0;
-	int maxNumLines = 100;
-	int numLines = 0;
-	WindowsStackTraceLineInfo* stackTraceLines = (WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
+	DWORD                      maxFunctionNameLength = 0;
+	int                        maxNumLines = 100;
+	int                        numLines = 0;
+	WindowsStackTraceLineInfo* stackTraceLines =
+		(WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
 	if (!stackTraceLines)
 	{
 		LOGF(LogLevel::eERROR, "Failed to allocate WindowsStackTraceLineInfo");
@@ -194,7 +192,8 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 			pSymbol->MaxNameLength = maxLength;
 			DWORD64 displacement = 0;
 			SymGetSymFromAddr64(process, stackFrame.AddrPC.Offset, &displacement, pSymbol);
-			DWORD functionNameLength = UnDecorateSymbolName(pSymbol->Name, lineInfo.mFunctionName, sizeof(lineInfo.mFunctionName), UNDNAME_COMPLETE);
+			DWORD functionNameLength =
+				UnDecorateSymbolName(pSymbol->Name, lineInfo.mFunctionName, sizeof(lineInfo.mFunctionName), UNDNAME_COMPLETE);
 			if (maxFunctionNameLength < functionNameLength)
 				maxFunctionNameLength = functionNameLength;
 
@@ -214,9 +213,11 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS * pExceptionInfo)
 
 	for (int i = 0; i < numLines; ++i)
 	{
-		DWORD padding = 5;
+		DWORD                      padding = 5;
 		WindowsStackTraceLineInfo& lineInfo = stackTraceLines[i];
-		LOGF(LogLevel::eERROR, "%-*s | %s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mFileName, lineInfo.mLineNumber);
+		LOGF(
+			LogLevel::eERROR, "%-*s | %s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mFileName,
+			lineInfo.mLineNumber);
 	}
 
 	SymCleanup(process);

@@ -19,7 +19,7 @@
 	#define GAINPUT_LOG(...) { char buf[1024]; sprintf(buf, __VA_ARGS__); OutputDebugStringA(buf); }
 #endif
 
-#elif defined(GAINPUT_PLATFORM_ANDROID)
+#elif defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_QUEST)
 
 #if defined(GAINPUT_DEBUG) || defined(GAINPUT_DEV)
 	#include <android/log.h>

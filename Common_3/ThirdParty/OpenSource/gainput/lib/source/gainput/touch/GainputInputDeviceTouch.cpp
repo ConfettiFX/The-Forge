@@ -61,6 +61,15 @@ InputDeviceTouch::~InputDeviceTouch()
 	manager_.GetAllocator().Delete(impl_);
 }
 
+void InputDeviceTouch::AddGestureMapping(const unsigned gestureID, const gainput::GestureConfig &config)
+{
+#if !defined(ANDROID) || defined(QUEST_VR)
+	return;
+#else
+	((InputDeviceTouchImplAndroid*)impl_)->AddGestureMapping(gestureID, config);
+#endif
+}
+
 bool
 InputDeviceTouch::IsValidButtonId(DeviceButtonId deviceButton) const
 {

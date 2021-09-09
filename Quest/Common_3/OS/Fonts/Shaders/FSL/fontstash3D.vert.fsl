@@ -1,0 +1,22 @@
+#include "resources.h"
+
+STRUCT(VsIn)
+{
+	DATA(float2, position, Position);
+	DATA(float2, texCoord, TEXCOORD0);
+};
+
+STRUCT(PsIn)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD0);
+};
+
+PsIn VS_MAIN( VsIn In )
+{
+	INIT_MAIN;
+	PsIn Out;
+	Out.position = mul(Get(mvp)[VR_VIEW_ID], float4(In.position * Get(scaleBias).xy, 1.0f, 1.0f));
+	Out.texCoord = In.texCoord;
+	RETURN(Out);
+}

@@ -33,16 +33,17 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
+#include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
-
-//ui
-#include "../../../../Middleware_3/UI/AppUI.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -67,7 +68,7 @@ float gMuC[4] = { -.278f, -.479f, -.231f, .235f };
 
 struct UniformBlock
 {
-	mat4  mProjectView;
+	CameraMatrix  mProjectView;
 	vec4  mDiffuseColor;
 	vec4  mMu;
 	float mEpsilon;
@@ -108,29 +109,25 @@ DescriptorSet*    pDescriptorSetUniforms = NULL;
 DescriptorSet*    pDescriptorSetComputeTexture = NULL;
 DescriptorSet*    pDescriptorSetTexture = NULL;
 
-VirtualJoystickUI* pVirtualJoystick = NULL;
-
 uint32_t     gFrameIndex = 0;
 ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 UniformBlock gUniformData;
 
-UIApp*              pAppUI = NULL;
 ICameraController* pCameraController = NULL;
-static uint32_t		  gSelectedApiIndex = 0;
 
 struct ObjectProperty
 {
 	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
 
-GuiComponent* pGuiWindow = 0;
+uint32_t gFontID = 0; 
 
 class Compute: public IApp
 {
 	public:
-	Compute()
+	Compute()  //-V832
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
@@ -150,8 +147,9 @@ class Compute: public IApp
 		initNoise();
 
 		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -182,18 +180,11 @@ class Compute: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		ShaderLoadDesc displayShader = {};
-		displayShader.mStages[0] = { "display.vert", NULL, 0 };
-		displayShader.mStages[1] = { "display.frag", NULL, 0 };
+		displayShader.mStages[0] = { "display.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		displayShader.mStages[1] = { "display.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		ShaderLoadDesc computeShader = {};
-		computeShader.mStages[0] = { "compute.comp", NULL, 0 };
+		computeShader.mStages[0] = { "compute.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &displayShader, &pShader);
 		addShader(pRenderer, &computeShader, &pComputeShader);
@@ -249,51 +240,30 @@ class Compute: public IApp
 		// Width and height needs to be same as Texture's
 		gUniformData.mHeight = mSettings.mHeight;
 		gUniformData.mWidth = mSettings.mWidth;
+		
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
 		// Initialize profile
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
 
 		waitForAllResourceLoads();
 
@@ -313,8 +283,11 @@ class Compute: public IApp
 
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
-			return false;	
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
+			return false;
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -325,7 +298,7 @@ class Compute: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -334,9 +307,8 @@ class Compute: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -359,13 +331,11 @@ class Compute: public IApp
 
 		exitCameraController(pCameraController);
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-
-		exitProfilerUI();
-
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitFontSystem(); 
+
+		exitUserInterface();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -397,6 +367,7 @@ class Compute: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL;
 	}
 
 	bool Load()
@@ -407,10 +378,14 @@ class Compute: public IApp
 		if (!addJuliaFractalUAV())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		waitForAllResourceLoads();
@@ -447,9 +422,9 @@ class Compute: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
 
-		removeAppGUIDriver(pAppUI);
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pPipeline);
 
@@ -485,7 +460,7 @@ class Compute: public IApp
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 		gUniformData.mProjectView = projMat * viewMat * rotMat;
 
 		gUniformData.mDiffuseColor = vec4(gColorC[0], gColorC[1], gColorC[2], gColorC[3]);
@@ -495,11 +470,6 @@ class Compute: public IApp
 		gUniformData.mMu = vec4(gMuC[0], gMuC[1], gMuC[2], gMuC[3]);
 		gUniformData.mWidth = mSettings.mWidth;
 		gUniformData.mHeight = mSettings.mHeight;
-
-		/************************************************************************/
-		// Update GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -547,7 +517,7 @@ class Compute: public IApp
 
 		uint32_t groupCountX = (mSettings.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
 		uint32_t groupCountY = (mSettings.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
-		cmdDispatch(cmd, groupCountX, groupCountY, pThreadGroupSize[2]);
+		cmdDispatch(cmd, groupCountX, groupCountY, pTextureComputeOutput->mArraySizeMinusOne + 1);
 
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
@@ -571,16 +541,15 @@ class Compute: public IApp
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
+		const float txtIndent = 8.f;
 
-		const float	txtIndent = 8.f;
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID; 
 		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 		cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
-        cmdDrawProfilerUI();
-		appUIGui(pAppUI, pGuiWindow);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -644,6 +613,7 @@ class Compute: public IApp
 		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+        desc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		textureDesc.pDesc = &desc;
 		textureDesc.ppTexture = &pTextureComputeOutput;
 		addResource(&textureDesc, NULL);

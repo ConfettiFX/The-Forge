@@ -83,6 +83,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	if (!error)
 	{
 		gResourceMounts[RM_DEBUG] = [[gDebugUrl path] UTF8String];
+		gResourceMounts[RM_SAVE_0] = [[gDebugUrl path] UTF8String];
 	}
 	else
 	{
@@ -92,6 +93,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	const char* path = [[[NSBundle mainBundle] bundlePath] UTF8String];
 	fsGetParentPath(path, gApplicationPath);
 	gResourceMounts[RM_DEBUG] = gApplicationPath;
+	gResourceMounts[RM_SAVE_0] = gApplicationPath;
 #endif
 
 	// Override Resource mounts

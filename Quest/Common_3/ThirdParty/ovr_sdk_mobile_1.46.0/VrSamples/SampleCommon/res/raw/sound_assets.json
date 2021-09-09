@@ -1,0 +1,16 @@
+{
+  "Sounds": {
+    "sv_active_to_drag"			: "sv_active_to_drag.wav",
+    "sv_deselect"				: "sv_deselect.wav",
+    "sv_focusgained"			: "sv_focusgained.wav",
+    "sv_panel_touch_down"		: "sv_panel_touch_down.wav",
+	"sv_panel_touch_up"			: "sv_panel_touch_up.wav",
+    "sv_release"				: "sv_release.wav",
+	"sv_release_active"			: "sv_release_active.wav",
+    "sv_select"					: "sv_select.wav",
+	"sv_simple_swipe"			: "sv_simple_swipe.wav",
+    "sv_swipe"					: "sv_swipe.wav",
+    "sv_touch_active"			: "sv_touch_active.wav",
+    "sv_touch_inactive"			: "sv_touch_inactive.wav"
+  }
+}

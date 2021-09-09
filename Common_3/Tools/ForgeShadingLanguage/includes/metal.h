@@ -48,7 +48,7 @@ float length(int2 x)
 #define STATIC constant
 #define INLINE inline
 
-#define flat(X) X
+#define FLAT(X) X
 
 // #define SHADER_VIS_VS   1
 // #define SHADER_VIS_TC   2
@@ -431,6 +431,7 @@ int4   _to4(int    x) { return int4(x, 0, 0, 0); }
 
 
 #define LoadTex2DMS(NAME, SAMPLER, COORD, SMP) _to4(NAME.read( (COORD).xy, SMP ))
+#define LoadTex2DArrayMS(NAME, SAMPLER, COORD, SMP) _to4(NAME.read( (COORD).xyz, SMP ))
 #define SampleLvlTex2D(NAME, SAMPLER, COORD, LEVEL) _to4(NAME.sample(SAMPLER, COORD, level(LEVEL)))
 #define SampleTex2DProj(NAME, SAMPLER, COORD) _to4(NAME.sample(SAMPLER, float4(COORD).xy / float4(COORD).w))
 
@@ -535,5 +536,12 @@ bool any(float3 x) { return any(x!= 0.0f); }
 #define INDIRECT_DRAW()
 #define SET_OUTPUT_FORMAT(FMT)
 #define PS_ZORDER_EARLYZ()
+
+#ifndef STAGE_VERT
+    #define VR_VIEW_ID(VID) (0)
+#else
+    #define VR_VIEW_ID 0
+#endif
+#define VR_MULTIVIEW_COUNT 1
 
 #endif // _METAL_H

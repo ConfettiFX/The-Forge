@@ -8,6 +8,10 @@
 	#extension GL_EXT_nonuniform_qualifier : enable
 #endif
 
+#if VR_MULTIVIEW_ENABLED && defined(STAGE_VERT)
+    #extension GL_OVR_multiview2 : require
+#endif
+
 #define f4(X) vec4(X)
 #define f3(X) vec3(X)
 #define f2(X) vec2(X)
@@ -23,6 +27,16 @@
 #define half3 float3
 #define half2 float2
 #define half  float
+
+#define short4 int4
+#define short3 int3
+#define short2 int2
+#define short  int
+
+#define ushort4 uint4
+#define ushort3 uint3
+#define ushort2 uint2
+#define ushort  uint
 
 #define SV_VERTEXID         gl_VertexIndex
 #define SV_INSTANCEID       gl_InstanceIndex
@@ -75,6 +89,7 @@
 
 #define STRUCT(NAME) struct NAME
 #define DATA(TYPE, NAME, SEM) TYPE NAME
+#define FLAT(TYPE) TYPE
 
 #define AnyLessThan(X, Y)         any( LessThan((X), (Y)) )
 #define AnyLessThanEqual(X, Y)    any( LessThanEqual((X), (Y)) )
@@ -172,6 +187,8 @@ vec4 SampleLvlTex2D( texture2D NAME, sampler SAMPLER, vec2 COORD, float LEVEL )
 { return textureLod(sampler2D(NAME, SAMPLER), COORD, LEVEL); }
 vec4 SampleLvlTex3D( texture3D NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
 { return textureLod(sampler3D(NAME, SAMPLER), COORD, LEVEL); }
+vec4 SampleLvlTex3D( texture2DArray NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
+{ return textureLod(sampler2DArray(NAME, SAMPLER), COORD, LEVEL); }
 vec4 SampleLvlTexCube( textureCube NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
 { return textureLod(samplerCube(NAME, SAMPLER), COORD, LEVEL); }
 
@@ -248,9 +265,20 @@ vec4 _LoadLvlOffsetTex2D( texture2D TEX, sampler SMP, ivec2 P, int L, ivec2 O)
     return texelFetch(sampler2D(TEX, SMP), P+O, L);
 }
 
+#define LoadLvlOffsetTex3D(TEX, SMP, P, L, O) _LoadLvlOffsetTex3D((TEX), (SMP), (P), (L), (O))
+vec4 _LoadLvlOffsetTex3D( texture2DArray TEX, sampler SMP, ivec3 P, int L, ivec3 O)
+{
+    return texelFetch(sampler2DArray(TEX, SMP), P+O, L);
+}
+
 
 #define LoadTex2DMS(NAME, SMP, P, S) _LoadTex2DMS((NAME), (SMP), ivec2(P.xy), int(S))
 vec4 _LoadTex2DMS(texture2DMS TEX, sampler SMP, ivec2 P, int S) { return texelFetch(sampler2DMS(TEX, SMP), P, S); }
+#define LoadTex2DArrayMS(NAME, SMP, P, S) _LoadTex2DArrayMS((NAME), (SMP), ivec3(P.xyz), int(S))
+vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, sampler SMP, ivec3 P, int S) { return texelFetch(sampler2DMSArray(TEX, SMP), P, S); }
+#ifdef GL_EXT_samplerless_texture_functions
+vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, uint _NO_SAMPLER, ivec3 P, int S) { return texelFetch(TEX, P, S); }
+#endif
 
 #define SampleGradTex2D(TEX, SMP, P, DX, DY) _SampleGradTex2D((TEX), (SMP), vec2((P).xy), vec2((DX).xy), vec2((DY).xy))
 vec4 _SampleGradTex2D(texture2D TEX, sampler SMP, vec2 P, vec2 DX, vec2 DY)
@@ -505,6 +533,8 @@ f4x4 setCol(inout(f4x4) M, in(vec4) col, const uint i)
 int2 imageSize(utexture2D TEX) { return textureSize(TEX, 0); }
 int2 imageSize(texture2D TEX) { return textureSize(TEX, 0); }
 int2 imageSize(textureCube TEX) { return textureSize(TEX, 0); }
+int3 imageSize(texture2DArray TEX) { return textureSize(TEX, 0); }
+int3 imageSize(utexture2DArray TEX) { return textureSize(TEX, 0); }
 
 #define GetDimensions(TEX, SMP) imageSize(TEX)
 
@@ -542,7 +572,7 @@ int2 imageSize(textureCube TEX) { return textureSize(TEX, 0); }
 
 #define Tex1DArray(T)        VK_T_##T(texture1DArray)
 #define Tex2DArray(T)        VK_T_##T(texture2DArray)
-#define Tex2DArrayMS(T)      VK_T_##T(texture2DMSArray)
+#define Tex2DArrayMS(T, S)   VK_T_##T(texture2DMSArray)
 
 #define RWTexCube(T)         VK_T_##T(imageCube)
 #define RWTexCubeArray(T)    VK_T_##T(imageCubeArray)
@@ -571,9 +601,12 @@ int2 imageSize(textureCube TEX) { return textureSize(TEX, 0); }
 #define RWTex2DArrayMS(T, S) VK_T_##T(image2DMSArray)
 
 #define RasterizerOrderedTex2D(T) VK_T_##T(image2D)
+#define RasterizerOrderedTex2DArray(T) VK_T_##T(image2DArray)
 
-#define Depth2D(T)           VK_T_##T(texture2D)
-#define Depth2DMS(T, S)           VK_T_##T(texture2DMS)
+#define Depth2D(T)              VK_T_##T(texture2D)
+#define Depth2DMS(T, S)         VK_T_##T(texture2DMS)
+#define Depth2DArray(T)         VK_T_##T(texture2DArray)
+#define Depth2DArrayMS(T, S)    VK_T_##T(texture2DMSArray)
 
 // matching hlsl semantics, glsl mod preserves sign(Y)
 #define fmod(X, Y)           (abs(mod(X, Y))*sign(X))
@@ -711,5 +744,21 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
 #define INDIRECT_DRAW()
 #define SET_OUTPUT_FORMAT(FMT)
 #define PS_ZORDER_EARLYZ()
+
+#if VR_MULTIVIEW_ENABLED
+    #ifndef STAGE_VERT
+        #define VR_VIEW_ID(VID) VID
+    #else
+        #define VR_VIEW_ID (gl_ViewID_OVR)
+    #endif
+    #define VR_MULTIVIEW_COUNT 2
+#else
+    #ifndef STAGE_VERT
+        #define VR_VIEW_ID(VID) (0)
+    #else
+        #define VR_VIEW_ID 0
+    #endif
+    #define VR_MULTIVIEW_COUNT 1
+#endif
 
 #endif // _VULKAN_H

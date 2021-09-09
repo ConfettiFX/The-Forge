@@ -1,9 +1,32 @@
+/*
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
 #include "../OS/Interfaces/ILog.h"
 #include "IRenderer.h"
 #include "IRay.h"
 
 // API functions
-exitRendererFn					exitRenderer;
 addFenceFn						addFence;
 removeFenceFn					removeFence;
 addSemaphoreFn					addSemaphore;
@@ -165,6 +188,8 @@ DECLARE_INTERNAL_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRender
 // Internal initialization settings
 /************************************************************************/
 RendererApi gSelectedRendererApi;
+bool        gD3D11Unsupported = false; 
+bool        gGLESUnsupported = false; 
 
 /************************************************************************/
 // Internal initialization functions
@@ -172,34 +197,56 @@ RendererApi gSelectedRendererApi;
 #if defined(DIRECT3D11)
 extern void initD3D11Renderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initD3D11RaytracingFunctions();
+extern void exitD3D11Renderer(Renderer* pRenderer); 
 #endif
 
 #if defined(DIRECT3D12)
 extern void initD3D12Renderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initD3D12RaytracingFunctions();
+extern void exitD3D12Renderer(Renderer* pRenderer);
 #endif
 
 #if defined(VULKAN)
 extern void initVulkanRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initVulkanRaytracingFunctions();
+extern void exitVulkanRenderer(Renderer* pRenderer);
 #endif
 
 #if defined(METAL)
 extern void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initMetalRaytracingFunctions();
+extern void exitMetalRenderer(Renderer* pRenderer);
 #endif
 
 #if defined(GLES)
 extern void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
+extern void exitGLESRenderer(Renderer* pRenderer);
 #endif
 
 #if defined(ORBIS)
 extern void initOrbisRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
+extern void exitOrbisRenderer(Renderer* pRenderer);
 #endif
 
 #if defined(PROSPERO)
 extern void initProsperoRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
+extern void exitProsperoRenderer(Renderer* pRenderer);
 #endif
+
+static bool apiIsUnsupported(const RendererApi api)
+{
+#if defined(GLES)
+	if (api == RENDERER_API_GLES && gGLESUnsupported)
+		return true;
+#endif
+
+#if defined(DIRECT3D11)
+	if (api == RENDERER_API_D3D11 && gD3D11Unsupported)
+		return true;
+#endif
+
+	return false; 
+}
 
 static void initRendererAPI(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer, const RendererApi api)
 {
@@ -250,24 +297,91 @@ static void initRendererAPI(const char* appName, const RendererDesc* pSettings, 
 	}
 }
 
+static void exitRendererAPI(Renderer* pRenderer, const RendererApi api)
+{
+	switch (api)
+	{
+#if defined(DIRECT3D11)
+	case RENDERER_API_D3D11:
+		exitD3D11Renderer(pRenderer);
+		break;
+#endif
+#if defined(DIRECT3D12)
+	case RENDERER_API_D3D12:
+		exitD3D12Renderer(pRenderer);
+		break;
+#endif
+#if defined(VULKAN)
+	case RENDERER_API_VULKAN:
+		exitVulkanRenderer(pRenderer);
+		break;
+#endif
+#if defined(METAL)
+	case RENDERER_API_METAL:
+		exitMetalRenderer(pRenderer);
+		break;
+#endif
+#if defined(GLES)
+	case RENDERER_API_GLES:
+		exitGLESRenderer(pRenderer);
+		break;
+#endif
+#if defined(ORBIS)
+	case RENDERER_API_ORBIS:
+		exitOrbisRenderer(pRenderer);
+		break;
+#endif
+#if defined(PROSPERO)
+	case RENDERER_API_PROSPERO:
+		exitProsperoRenderer(pRenderer);
+		break;
+#endif
+	default:
+		LOGF(LogLevel::eERROR, "No Renderer API defined!");
+		break;
+	}
+}
+
 void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
 {
 	ASSERT(ppRenderer);
+	ASSERT(*ppRenderer == NULL);
+
 	ASSERT(pSettings);
 
+	gD3D11Unsupported = pSettings->mD3D11Unsupported;
+	gGLESUnsupported = pSettings->mGLESUnsupported; 
+
 	// Init requested renderer API
-	gSelectedRendererApi = pSettings->mApi;
-	initRendererAPI(appName, pSettings, ppRenderer, gSelectedRendererApi);
+	if (!apiIsUnsupported(gSelectedRendererApi))
+	{
+		initRendererAPI(appName, pSettings, ppRenderer, gSelectedRendererApi);
+	}
+	else
+	{
+		LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+		LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+	}
 
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	// Fallback on other available APIs
 	for (uint32_t i = 0; i < RENDERER_API_COUNT && !*ppRenderer; ++i)
 	{
-		if (i == pSettings->mApi)
+		if (i == gSelectedRendererApi || apiIsUnsupported((RendererApi)i))
 			continue;
 
 		gSelectedRendererApi = (RendererApi)i;
 		initRendererAPI(appName, pSettings, ppRenderer, gSelectedRendererApi);
 	}
 #endif
+}
+
+void exitRenderer(Renderer* pRenderer)
+{
+	ASSERT(pRenderer);
+
+	exitRendererAPI(pRenderer, gSelectedRendererApi);
+
+	gD3D11Unsupported = false;
+	gGLESUnsupported = false;
 }

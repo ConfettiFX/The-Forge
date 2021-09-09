@@ -183,27 +183,42 @@ FCR::Float4Var::Float4Var()
 
 bool FCR::TransformMatrixVar::operator==(const TransformMatrixVar &otherVar) const
 {
+	const Vector4 otherCols[4] =
+	{
+		otherVar.value.getCol0(),
+		otherVar.value.getCol1(),
+		otherVar.value.getCol2(),
+		otherVar.value.getCol3(),
+	};
+	const Vector4 thisCols[4] =
+	{
+		value.getCol0(),
+		value.getCol1(),
+		value.getCol2(),
+		value.getCol3(),
+	};
+
 	const float EPSILON = 0.001f;
 	return (
-		approximatelyEqual(otherVar.value.getCol0().getX(), value.getCol0().getX(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol0().getY(), value.getCol0().getY(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol0().getZ(), value.getCol0().getZ(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol0().getW(), value.getCol0().getW(), EPSILON) &&
+		approximatelyEqual(otherCols[0].getX(), thisCols[0].getX(), EPSILON) &&
+		approximatelyEqual(otherCols[0].getY(), thisCols[0].getY(), EPSILON) &&
+		approximatelyEqual(otherCols[0].getZ(), thisCols[0].getZ(), EPSILON) &&
+		approximatelyEqual(otherCols[0].getW(), thisCols[0].getW(), EPSILON) &&
 
-		approximatelyEqual(otherVar.value.getCol1().getX(), value.getCol1().getX(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol1().getY(), value.getCol1().getY(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol1().getZ(), value.getCol1().getZ(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol1().getW(), value.getCol1().getW(), EPSILON) &&
+		approximatelyEqual(otherCols[1].getX(), thisCols[1].getX(), EPSILON) &&
+		approximatelyEqual(otherCols[1].getY(), thisCols[1].getY(), EPSILON) &&
+		approximatelyEqual(otherCols[1].getZ(), thisCols[1].getZ(), EPSILON) &&
+		approximatelyEqual(otherCols[1].getW(), thisCols[1].getW(), EPSILON) &&
 
-		approximatelyEqual(otherVar.value.getCol2().getX(), value.getCol2().getX(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol2().getY(), value.getCol2().getY(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol2().getZ(), value.getCol2().getZ(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol2().getW(), value.getCol2().getW(), EPSILON) &&
+		approximatelyEqual(otherCols[2].getX(), thisCols[2].getX(), EPSILON) &&
+		approximatelyEqual(otherCols[2].getY(), thisCols[2].getY(), EPSILON) &&
+		approximatelyEqual(otherCols[2].getZ(), thisCols[2].getZ(), EPSILON) &&
+		approximatelyEqual(otherCols[2].getW(), thisCols[2].getW(), EPSILON) &&
 
-		approximatelyEqual(otherVar.value.getCol3().getX(), value.getCol3().getX(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol3().getY(), value.getCol3().getY(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol3().getZ(), value.getCol3().getZ(), EPSILON) &&
-		approximatelyEqual(otherVar.value.getCol3().getW(), value.getCol3().getW(), EPSILON) 
+		approximatelyEqual(otherCols[3].getX(), thisCols[3].getX(), EPSILON) &&
+		approximatelyEqual(otherCols[3].getY(), thisCols[3].getY(), EPSILON) &&
+		approximatelyEqual(otherCols[3].getZ(), thisCols[3].getZ(), EPSILON) &&
+		approximatelyEqual(otherCols[3].getW(), thisCols[3].getW(), EPSILON) 
 		);
 }
 

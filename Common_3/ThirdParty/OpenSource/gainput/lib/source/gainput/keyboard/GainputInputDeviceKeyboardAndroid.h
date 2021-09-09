@@ -20,8 +20,7 @@ public:
 		textInputEnabled_(true),
 		textCount_(0),
 		dialect_(manager_.GetAllocator()),
-		state_(&state),
-		previousState_(&previousState),
+		state_(&state),		
 		nextState_(manager.GetAllocator(), KeyCount_),
 		delta_(0)
 	{
@@ -245,8 +244,7 @@ private:
 	wchar_t textBuffer_[GAINPUT_TEXT_INPUT_QUEUE_LENGTH];
 	uint32_t textCount_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
-	InputState* state_;
-	InputState* previousState_;
+	InputState* state_;	
 	InputState nextState_;
 	InputDeltaState* delta_;
 };

@@ -36,10 +36,12 @@
 #import <MetalKit/MetalKit.h>
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_set.h"
 #include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 
+#include "../../OS/Interfaces/IOperatingSystem.h"
 #import "../IRenderer.h"
 
 #ifdef ENABLE_OS_PROC_MEMORY
@@ -52,6 +54,7 @@
 
 #include "MetalMemoryAllocatorImpl.h"
 
+#include "../../OS/Math/MathTypes.h"
 #include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Core/Atomics.h"
 #include "../../OS/Core/GPUConfig.h"
@@ -63,56 +66,28 @@
 
 #include "MetalCapBuilder.h"
 
-#define MAX_BUFFER_BINDINGS             31
+#define MAX_BUFFER_BINDINGS 31
 // Start vertex attribute bindings at index 30 and decrement so we can bind regular buffers from index 0 for simplicity
-#define VERTEX_BINDING_OFFSET           (MAX_BUFFER_BINDINGS - 1)
-#define DESCRIPTOR_UPDATE_FREQ_PADDING  0
-#define BUILTIN_DRAW_ID_BINDING_INDEX   (DESCRIPTOR_UPDATE_FREQ_COUNT)
+#define VERTEX_BINDING_OFFSET (MAX_BUFFER_BINDINGS - 1)
+#define DESCRIPTOR_UPDATE_FREQ_PADDING 0
+#define BUILTIN_DRAW_ID_BINDING_INDEX (DESCRIPTOR_UPDATE_FREQ_COUNT)
 
-VkAllocationCallbacks gMtlAllocationCallbacks =
-{
+
+VkAllocationCallbacks gMtlAllocationCallbacks = {
 	// pUserData
 	NULL,
 	// pfnAllocation
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	size_t                                      alignment,
-	VkSystemAllocationScope                     allocationScope)
-	{
-		return tf_memalign(alignment, size);
-	},
+	[](void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) { return tf_memalign(alignment, size); },
 	// pfnReallocation
-	[](
-	void*                                       pUserData,
-	void*                                       pOriginal,
-	size_t                                      size,
-	size_t                                      alignment,
-	VkSystemAllocationScope                     allocationScope)
-	{
+	[](void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
 		return tf_realloc(pOriginal, size);
 	},
 	// pfnFree
-	[](
-		void*                                       pUserData,
-		void*                                       pMemory)
-	{
-		tf_free(pMemory);
-	},
+	[](void* pUserData, void* pMemory) { tf_free(pMemory); },
 	// pfnInternalAllocation
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	VkInternalAllocationType                    allocationType,
-	VkSystemAllocationScope                     allocationScope)
-	{},
+	[](void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {},
 	// pfnInternalFree
-	[](
-	void*                                       pUserData,
-	size_t                                      size,
-	VkInternalAllocationType                    allocationType,
-	VkSystemAllocationScope                     allocationScope)
-	{}
+	[](void* pUserData, size_t size, VkInternalAllocationType allocationType, VkSystemAllocationScope allocationScope) {}
 };
 
 extern void mtl_createShaderReflection(
@@ -224,9 +199,9 @@ namespace RENDERER_CPP_NAMESPACE {
 
 #if defined(RENDERER_IMPLEMENTATION)
 
-#define SAFE_FREE(p_var)         \
-	if (p_var)                   \
-	{                            \
+#define SAFE_FREE(p_var)       \
+	if (p_var)                 \
+	{                          \
 		tf_free((void*)p_var); \
 	}
 
@@ -249,14 +224,16 @@ void util_set_resources_compute(Cmd* pCmd);
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT);
 
 // GPU frame time accessor for macOS and iOS
-#define GPU_FREQUENCY   1000000.0
+#define GPU_FREQUENCY 1000000.0
 
 DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(
+	void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
+DECLARE_RENDERER_FUNCTION(
+	void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
 DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
@@ -273,11 +250,11 @@ static Texture* pDefault3DTexture = {};
 static Texture* pDefaultCubeTexture = {};
 static Texture* pDefaultCubeTextureArray = {};
 
-static Buffer * pDefaultBuffer = {};
+static Buffer*  pDefaultBuffer = {};
 static Sampler* pDefaultSampler = {};
 
-static id<MTLDepthStencilState>  pDefaultDepthState = nil;
-static RasterizerStateDesc       gDefaultRasterizerState = {};
+static id<MTLDepthStencilState> pDefaultDepthState = nil;
+static RasterizerStateDesc      gDefaultRasterizerState = {};
 
 // Since there are no descriptor tables in Metal, we just hold a map of all descriptors.
 using DescriptorMap = eastl::unordered_map<uint64_t, DescriptorInfo>;
@@ -289,14 +266,15 @@ using DescriptorNameToIndexMap = eastl::unordered_map<uint32_t, uint32_t>;
 /************************************************************************/
 const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
-	decltype(pRootSignature->pDescriptorNameToIndexMap->mMap)::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->mMap.find(pResName);
+	decltype(pRootSignature->pDescriptorNameToIndexMap->mMap)::const_iterator it =
+		pRootSignature->pDescriptorNameToIndexMap->mMap.find(pResName);
 	if (it != pRootSignature->pDescriptorNameToIndexMap->mMap.end())
 	{
 		return &pRootSignature->pDescriptors[it->second];
 	}
 	else
 	{
-        LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
+		LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
 		return NULL;
 	}
 }
@@ -305,18 +283,18 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 /************************************************************************/
 enum BarrierFlag
 {
-	BARRIER_FLAG_BUFFERS		= 0x1,
-	BARRIER_FLAG_TEXTURES		= 0x2,
-	BARRIER_FLAG_RENDERTARGETS	= 0x4,
-	BARRIER_FLAG_FENCE			= 0x8,
+	BARRIER_FLAG_BUFFERS = 0x1,
+	BARRIER_FLAG_TEXTURES = 0x2,
+	BARRIER_FLAG_RENDERTARGETS = 0x4,
+	BARRIER_FLAG_FENCE = 0x8,
 };
 
 typedef struct RootDescriptorHandle
 {
-	id                             pResource;
-	uint32_t                       mStage : 5;
-	uint32_t                       mBinding : 27;
-	uint32_t                       mOffset;
+	id       pResource;
+	uint32_t mStage : 5;
+	uint32_t mBinding : 27;
+	uint32_t mOffset;
 } RootDescriptorHandle;
 
 typedef struct RootDescriptorData
@@ -335,19 +313,19 @@ void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void*
 
 void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
-    ASSERT(pCmd);
-    ASSERT(pDescriptorSet);
-    ASSERT(index < pDescriptorSet->mMaxSets);
-	
+	ASSERT(pCmd);
+	ASSERT(pDescriptorSet);
+	ASSERT(index < pDescriptorSet->mMaxSets);
+
 	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
-        
+
 	if (pDescriptorSet->pRootDescriptorData)
 	{
 		RootDescriptorData* pData = pDescriptorSet->pRootDescriptorData + index;
 		for (uint32_t i = 0; i < pRootSignature->mRootBufferCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pBuffers[i];
-			
+
 			if (pHandle->mStage & SHADER_STAGE_VERT)
 			{
 				[pCmd->mtlRenderEncoder setVertexBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:pHandle->mBinding];
@@ -361,11 +339,11 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 				[pCmd->mtlComputeEncoder setBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:pHandle->mBinding];
 			}
 		}
-		
+
 		for (uint32_t i = 0; i < pRootSignature->mRootTextureCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pTextures[i];
-			
+
 			if (pHandle->mStage & SHADER_STAGE_VERT)
 			{
 				[pCmd->mtlRenderEncoder setVertexTexture:pHandle->pResource atIndex:pHandle->mBinding];
@@ -379,11 +357,11 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 				[pCmd->mtlComputeEncoder setTexture:pHandle->pResource atIndex:pHandle->mBinding];
 			}
 		}
-		
+
 		for (uint32_t i = 0; i < pRootSignature->mRootSamplerCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pSamplers[i];
-			
+
 			if (pHandle->mStage & SHADER_STAGE_VERT)
 			{
 				[pCmd->mtlRenderEncoder setVertexSamplerState:pHandle->pResource atIndex:pHandle->mBinding];
@@ -398,7 +376,7 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 			}
 		}
 	}
-	
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
@@ -408,28 +386,22 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 		}
 
 		const id<MTLBuffer> buffer = pDescriptorSet->mArgumentBuffer->mtlBuffer;
-		const uint64_t offset = pDescriptorSet->mArgumentBuffer->mOffset + index * pDescriptorSet->mChunkSize;
-		
+		const uint64_t      offset = pDescriptorSet->mArgumentBuffer->mOffset + index * pDescriptorSet->mChunkSize;
+
 		// argument buffers
 		if (pDescriptorSet->mStages & SHADER_STAGE_VERT)
 		{
-			[pCmd->mtlRenderEncoder setVertexBuffer: buffer
-											 offset: offset
-											atIndex: pDescriptorSet->mUpdateFrequency];
+			[pCmd->mtlRenderEncoder setVertexBuffer:buffer offset:offset atIndex:pDescriptorSet->mUpdateFrequency];
 		}
 
 		if (pDescriptorSet->mStages & SHADER_STAGE_FRAG)
 		{
-			[pCmd->mtlRenderEncoder setFragmentBuffer: buffer
-											   offset: offset
-											  atIndex: pDescriptorSet->mUpdateFrequency];
+			[pCmd->mtlRenderEncoder setFragmentBuffer:buffer offset:offset atIndex:pDescriptorSet->mUpdateFrequency];
 		}
-			
+
 		if (pDescriptorSet->mStages & SHADER_STAGE_COMP)
 		{
-			[pCmd->mtlComputeEncoder setBuffer: buffer
-										offset: offset
-									   atIndex: pDescriptorSet->mUpdateFrequency];
+			[pCmd->mtlComputeEncoder setBuffer:buffer offset:offset atIndex:pDescriptorSet->mUpdateFrequency];
 		}
 	}
 #endif
@@ -440,22 +412,22 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 //
 void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
-    ASSERT(pCmd);
-    ASSERT(pRootSignature);
-    ASSERT(pName);
-    
+	ASSERT(pCmd);
+	ASSERT(pRootSignature);
+	ASSERT(pName);
+
 	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
 	ASSERT(pDesc);
 	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
-    util_bind_push_constant(pCmd, pDesc, pConstants);
+	util_bind_push_constant(pCmd, pDesc, pConstants);
 }
 
 void mtl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
-    ASSERT(pCmd);
-    ASSERT(pRootSignature);
-    ASSERT(paramIndex != (uint32_t)-1);
-    
+	ASSERT(pCmd);
+	ASSERT(pRootSignature);
+	ASSERT(paramIndex != (uint32_t)-1);
+
 	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
 	ASSERT(pDesc);
 	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
@@ -467,17 +439,17 @@ void mtl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, u
 //
 void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
-    ASSERT(pRenderer);
-    ASSERT(pDesc);
-    ASSERT(ppDescriptorSet);
-	
-    const RootSignature* pRootSignature(pDesc->pRootSignature);
-    const uint32_t updateFreq(pDesc->mUpdateFrequency + DESCRIPTOR_UPDATE_FREQ_PADDING);
-    const uint32_t nodeIndex = pDesc->mNodeIndex;
-	const bool needRootData =(pRootSignature->mRootBufferCount || pRootSignature->mRootTextureCount || pRootSignature->mRootSamplerCount);
-	
+	ASSERT(pRenderer);
+	ASSERT(pDesc);
+	ASSERT(ppDescriptorSet);
+
+	const RootSignature* pRootSignature(pDesc->pRootSignature);
+	const uint32_t       updateFreq(pDesc->mUpdateFrequency + DESCRIPTOR_UPDATE_FREQ_PADDING);
+	const uint32_t       nodeIndex = pDesc->mNodeIndex;
+	const bool needRootData = (pRootSignature->mRootBufferCount || pRootSignature->mRootTextureCount || pRootSignature->mRootSamplerCount);
+
 	uint32_t totalSize = sizeof(DescriptorSet);
-	
+
 	if (needRootData)
 	{
 		totalSize += pDesc->mMaxSets * sizeof(RootDescriptorData);
@@ -485,19 +457,19 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 		totalSize += pDesc->mMaxSets * pRootSignature->mRootBufferCount * sizeof(RootDescriptorHandle);
 		totalSize += pDesc->mMaxSets * pRootSignature->mRootSamplerCount * sizeof(RootDescriptorHandle);
 	}
-    
-    DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
-    ASSERT(pDescriptorSet);
-    
-    pDescriptorSet->pRootSignature = pRootSignature;
-    pDescriptorSet->mUpdateFrequency = updateFreq;
-    pDescriptorSet->mNodeIndex = nodeIndex;
-    pDescriptorSet->mMaxSets = pDesc->mMaxSets;
-	
+
+	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
+	ASSERT(pDescriptorSet);
+
+	pDescriptorSet->pRootSignature = pRootSignature;
+	pDescriptorSet->mUpdateFrequency = updateFreq;
+	pDescriptorSet->mNodeIndex = nodeIndex;
+	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
+
 	if (needRootData)
 	{
 		pDescriptorSet->pRootDescriptorData = (RootDescriptorData*)(pDescriptorSet + 1);
-		
+
 		uint8_t* mem = (uint8_t*)(pDescriptorSet->pRootDescriptorData + pDesc->mMaxSets);
 
 		for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
@@ -512,30 +484,31 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 			mem += pRootSignature->mRootSamplerCount * sizeof(RootDescriptorHandle);
 		}
 	}
-    
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		NSMutableArray<MTLArgumentDescriptor*>* descriptors = pRootSignature->mArgumentDescriptors[pDesc->mUpdateFrequency];
-			
+
 		if (descriptors.count)
 		{
-			ShaderStage shaderStages = (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE ? SHADER_STAGE_COMP : (SHADER_STAGE_VERT | SHADER_STAGE_FRAG));
-			
+			ShaderStage shaderStages =
+				(pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE ? SHADER_STAGE_COMP : (SHADER_STAGE_VERT | SHADER_STAGE_FRAG));
+
 			NSArray* sortedArray;
 			sortedArray = [descriptors sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
-				MTLArgumentDescriptor *first = a;
-				MTLArgumentDescriptor *second = b;
+				MTLArgumentDescriptor* first = a;
+				MTLArgumentDescriptor* second = b;
 				return (NSComparisonResult)(first.index > second.index);
 			}];
 			ASSERT(sortedArray.count);
-			
+
 			// create encoder
-			pDescriptorSet->mArgumentEncoder = [pRenderer->pDevice newArgumentEncoderWithArguments: sortedArray];
+			pDescriptorSet->mArgumentEncoder = [pRenderer->pDevice newArgumentEncoderWithArguments:sortedArray];
 			ASSERT(pDescriptorSet->mArgumentEncoder);
-			
+
 			// Create argument buffer
-			uint32_t argumentBufferSize = (uint32_t)round_up_64(pDescriptorSet->mArgumentEncoder.encodedLength, 256);
+			uint32_t   argumentBufferSize = (uint32_t)round_up_64(pDescriptorSet->mArgumentEncoder.encodedLength, 256);
 			BufferDesc bufferDesc = {};
 			bufferDesc.mAlignment = 256;
 			bufferDesc.mSize = argumentBufferSize * pDesc->mMaxSets;
@@ -547,14 +520,13 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 		}
 	}
 #endif
-	
+
 	// bind static samplers
 	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 	{
 		const DescriptorInfo& descriptorInfo(pRootSignature->pDescriptors[i]);
-		
-		if (descriptorInfo.mType == DESCRIPTOR_TYPE_SAMPLER &&
-			descriptorInfo.mtlStaticSampler)
+
+		if (descriptorInfo.mType == DESCRIPTOR_TYPE_SAMPLER && descriptorInfo.mtlStaticSampler)
 		{
 			if (descriptorInfo.mIsArgumentBufferField)
 			{
@@ -565,10 +537,11 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 					{
 						for (uint32_t j = 0; j < pDescriptorSet->mMaxSets; ++j)
 						{
-							[pDescriptorSet->mArgumentEncoder setArgumentBuffer: pDescriptorSet->mArgumentBuffer->mtlBuffer
-																				   offset: pDescriptorSet->mArgumentBuffer->mOffset + j * pDescriptorSet->mChunkSize];
-							[pDescriptorSet->mArgumentEncoder setSamplerState: descriptorInfo.mtlStaticSampler
-																				atIndex: descriptorInfo.mHandleIndex];
+							[pDescriptorSet->mArgumentEncoder
+								setArgumentBuffer:pDescriptorSet->mArgumentBuffer->mtlBuffer
+										   offset:pDescriptorSet->mArgumentBuffer->mOffset + j * pDescriptorSet->mChunkSize];
+							[pDescriptorSet->mArgumentEncoder setSamplerState:descriptorInfo.mtlStaticSampler
+																	  atIndex:descriptorInfo.mHandleIndex];
 						}
 					}
 				}
@@ -586,8 +559,8 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 			}
 		}
 	}
-    
-    *ppDescriptorSet = pDescriptorSet;
+
+	*ppDescriptorSet = pDescriptorSet;
 }
 
 void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
@@ -596,14 +569,14 @@ void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		pDescriptorSet->mArgumentEncoder = nil;
-		
+
 		if (pDescriptorSet->mArgumentBuffer)
 		{
 			removeBuffer(pRenderer, pDescriptorSet->mArgumentBuffer);
 		}
 	}
 #endif
-	
+
 	if (pDescriptorSet->pRootDescriptorData)
 	{
 		for (uint32_t i = 0; i < pDescriptorSet->mMaxSets; ++i)
@@ -623,38 +596,41 @@ void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 		}
 	}
 
-    SAFE_FREE(pDescriptorSet);
+	SAFE_FREE(pDescriptorSet);
 }
 
-void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+void mtl_updateDescriptorSet(
+	Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-    ASSERT(pRenderer);
-    ASSERT(pDescriptorSet);
-    ASSERT(index < pDescriptorSet->mMaxSets);
-    
-    const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
-	
+	ASSERT(pRenderer);
+	ASSERT(pDescriptorSet);
+	ASSERT(index < pDescriptorSet->mMaxSets);
+
+	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	// If this is called to update root buffer offset we can return early
 	bool skipUpdate = true;
-	
+
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		if (pDescriptorSet->mArgumentEncoder)
 		{
 			// set argument buffer to update
-			[pDescriptorSet->mArgumentEncoder setArgumentBuffer: pDescriptorSet->mArgumentBuffer->mtlBuffer offset: pDescriptorSet->mArgumentBuffer->mOffset + index * pDescriptorSet->mChunkSize];
+			[pDescriptorSet->mArgumentEncoder
+				setArgumentBuffer:pDescriptorSet->mArgumentBuffer->mtlBuffer
+						   offset:pDescriptorSet->mArgumentBuffer->mOffset + index * pDescriptorSet->mChunkSize];
 		}
 	}
 #endif
-	
+
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam(pParams + i);
-		const uint32_t paramIndex = pParam->mIndex;
-		
+		const uint32_t        paramIndex = pParam->mIndex;
+
 		const DescriptorInfo* pDesc = NULL;
-		
+
 		if (paramIndex != (uint32_t)-1)
 		{
 			pDesc = &pRootSignature->pDescriptors[paramIndex];
@@ -663,27 +639,27 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 		{
 			pDesc = get_descriptor(pRootSignature, pParam->pName);
 		}
-		
+
 		if (pDesc)
 		{
 			const DescriptorType type((DescriptorType)pDesc->mType);
-			const uint32_t arrayCount(max(1U, pParam->mCount));
-			
+			const uint32_t       arrayCount(max(1U, pParam->mCount));
+
 			switch (type)
 			{
 				case DESCRIPTOR_TYPE_SAMPLER:
 				{
 #if defined(ENABLE_ARGUMENT_BUFFERS)
-					if(pDesc->mIsArgumentBufferField)
+					if (pDesc->mIsArgumentBufferField)
 					{
 						if (@available(macOS 10.13, iOS 11.0, *))
 						{
 							skipUpdate = false;
-							
+
 							for (uint32_t j = 0; j < arrayCount; ++j)
 							{
-								[pDescriptorSet->mArgumentEncoder setSamplerState: pParam->ppSamplers[j]->mtlSamplerState
-																				   atIndex: pDesc->mHandleIndex + j];
+								[pDescriptorSet->mArgumentEncoder setSamplerState:pParam->ppSamplers[j]->mtlSamplerState
+																		  atIndex:pDesc->mHandleIndex + j];
 							}
 						}
 					}
@@ -696,25 +672,25 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 						pData->mStage = pDesc->mUsedStages;
 						pData->pResource = pParam->ppSamplers[0]->mtlSamplerState;
 					}
-					
+
 					break;
 				}
 				case DESCRIPTOR_TYPE_TEXTURE:
 				case DESCRIPTOR_TYPE_RW_TEXTURE:
 				{
 #if defined(ENABLE_ARGUMENT_BUFFERS)
-					if(pDesc->mIsArgumentBufferField)
+					if (pDesc->mIsArgumentBufferField)
 					{
 						if (@available(macOS 10.13, iOS 11.0, *))
 						{
 							skipUpdate = false;
-							
+
 							if (pParam->mBindMipChain)
 							{
 								for (uint32_t j = 0; j < pParam->ppTextures[0]->mMipLevels; ++j)
 								{
-									[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[0]->pMtlUAVDescriptors[j]
-																				   atIndex: pDesc->mHandleIndex + j];
+									[pDescriptorSet->mArgumentEncoder setTexture:pParam->ppTextures[0]->pMtlUAVDescriptors[j]
+																		 atIndex:pDesc->mHandleIndex + j];
 								}
 							}
 							else
@@ -723,13 +699,14 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 								{
 									if (type == DESCRIPTOR_TYPE_RW_TEXTURE && pParam->ppTextures[j]->pMtlUAVDescriptors)
 									{
-										[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[j]->pMtlUAVDescriptors[pParam->mUAVMipSlice]
-																					   atIndex: pDesc->mHandleIndex + j];
+										[pDescriptorSet->mArgumentEncoder
+											setTexture:pParam->ppTextures[j]->pMtlUAVDescriptors[pParam->mUAVMipSlice]
+											   atIndex:pDesc->mHandleIndex + j];
 									}
 									else
 									{
-									[pDescriptorSet->mArgumentEncoder setTexture: pParam->ppTextures[j]->mtlTexture
-																					   atIndex: pDesc->mHandleIndex + j];
+										[pDescriptorSet->mArgumentEncoder setTexture:pParam->ppTextures[j]->mtlTexture
+																			 atIndex:pDesc->mHandleIndex + j];
 									}
 								}
 							}
@@ -742,7 +719,7 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 						RootDescriptorHandle* pData = &pDescriptorSet->pRootDescriptorData[index].pTextures[pDesc->mHandleIndex];
 						pData->mBinding = pDesc->mReg;
 						pData->mStage = pDesc->mUsedStages;
-						
+
 						if (type == DESCRIPTOR_TYPE_RW_TEXTURE && pParam->ppTextures[0]->pMtlUAVDescriptors)
 						{
 							pData->pResource = pParam->ppTextures[0]->pMtlUAVDescriptors[pParam->mUAVMipSlice];
@@ -772,11 +749,12 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 								if (@available(macOS 10.14, iOS 12.0, *))
 								{
 									skipUpdate = false;
-									
+
 									for (uint32_t j = 0; j < arrayCount; ++j)
 									{
-										[pDescriptorSet->mArgumentEncoder setIndirectCommandBuffer: pParam->ppBuffers[j]->mtlIndirectCommandBuffer
-											atIndex: pDesc->mHandleIndex + j];
+										[pDescriptorSet->mArgumentEncoder
+											setIndirectCommandBuffer:pParam->ppBuffers[j]->mtlIndirectCommandBuffer
+															 atIndex:pDesc->mHandleIndex + j];
 									}
 								}
 #endif
@@ -784,26 +762,27 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 							else
 							{
 								skipUpdate = false;
-								
+
 								id<MTLBuffer> buffer = nil;
-								uint64_t offset = 0;
-								
+								uint64_t      offset = 0;
+
 								for (uint32_t j = 0; j < arrayCount; ++j)
 								{
 									if (pParam->mExtractBuffer)
 									{
 										buffer = pParam->ppDescriptorSet[0]->mArgumentBuffer->mtlBuffer;
-										offset = pParam->ppDescriptorSet[0]->mArgumentBuffer->mOffset + pParam->mDescriptorSetBufferIndex * pParam->ppDescriptorSet[0]->mChunkSize;
+										offset = pParam->ppDescriptorSet[0]->mArgumentBuffer->mOffset +
+												 pParam->mDescriptorSetBufferIndex * pParam->ppDescriptorSet[0]->mChunkSize;
 									}
 									else
 									{
 										buffer = pParam->ppBuffers[j]->mtlBuffer;
 										offset = pParam->ppBuffers[j]->mOffset;
 									}
-									
-									[pDescriptorSet->mArgumentEncoder setBuffer: (id<MTLBuffer>)buffer
-										offset: offset + (pParam->pOffsets ? pParam->pOffsets[j] : 0)
-										atIndex: pDesc->mHandleIndex + j];
+
+									[pDescriptorSet->mArgumentEncoder
+										setBuffer:(id<MTLBuffer>)buffer
+										   offset:offset + (pParam->pOffsets ? pParam->pOffsets[j] : 0)atIndex:pDesc->mHandleIndex + j];
 								}
 							}
 						}
@@ -818,7 +797,7 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 						pData->pResource = pParam->ppBuffers[0]->mtlBuffer;
 						pData->mOffset = (uint32_t)(pParam->ppBuffers[0]->mOffset + (pParam->pOffsets ? pParam->pOffsets[0] : 0));
 					}
-					
+
 					break;
 				}
 #if !defined(TARGET_IOS) && defined(ENABLE_ARGUMENT_BUFFERS)
@@ -827,12 +806,12 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 					if (@available(macOS 10.14, *))
 					{
 						skipUpdate = false;
-						
+
 						ASSERT(pDesc->mIsArgumentBufferField);
 						for (uint32_t j = 0; j < arrayCount; ++j)
 						{
-							[pDescriptorSet->mArgumentEncoder setRenderPipelineState: pParam->ppPipelines[j]->mtlRenderPipelineState
-								atIndex: pDesc->mHandleIndex + j];
+							[pDescriptorSet->mArgumentEncoder setRenderPipelineState:pParam->ppPipelines[j]->mtlRenderPipelineState
+																			 atIndex:pDesc->mHandleIndex + j];
 						}
 					}
 					break;
@@ -846,7 +825,7 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 				}
 				default:
 				{
-					ASSERT(0); // unsupported descriptor type
+					ASSERT(0);    // unsupported descriptor type
 					break;
 				}
 			}
@@ -857,23 +836,13 @@ void mtl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet*
 // Logging
 /************************************************************************/
 // Proxy log callback
-static void internal_log(LogType type, const char* msg, const char* component)
+static void internal_log(LogLevel level, const char* msg, const char* component)
 {
-	switch (type)
-	{
-		case LOG_TYPE_INFO: LOGF(LogLevel::eINFO, "%s ( %s )", component, msg); break;
-		case LOG_TYPE_WARN: LOGF(LogLevel::eWARNING, "%s ( %s )", component, msg); break;
-		case LOG_TYPE_DEBUG: LOGF(LogLevel::eDEBUG, "%s ( %s )", component, msg); break;
-		case LOG_TYPE_ERROR: LOGF(LogLevel::eERROR, "%s ( %s )", component, msg); break;
-		default: break;
-	}
+	LOGF(level, "%s ( %s )", component, msg);
 }
 
 // Resource allocation statistics.
-void mtl_calculateMemoryStats(Renderer* pRenderer, char** ppStats)
-{
-	vmaBuildStatsString(pRenderer->pVmaAllocator, ppStats, VK_TRUE);
-}
+void mtl_calculateMemoryStats(Renderer* pRenderer, char** ppStats) { vmaBuildStatsString(pRenderer->pVmaAllocator, ppStats, VK_TRUE); }
 
 void mtl_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
 {
@@ -883,10 +852,7 @@ void mtl_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* 
 	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
 }
 
-void mtl_freeMemoryStats(Renderer* pRenderer, char* pStats)
-{
-	vmaFreeStatsString(pRenderer->pVmaAllocator, pStats);
-}
+void mtl_freeMemoryStats(Renderer* pRenderer, char* pStats) { vmaFreeStatsString(pRenderer->pVmaAllocator, pStats); }
 /************************************************************************/
 // Pipeline state functions
 /************************************************************************/
@@ -919,11 +885,11 @@ void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttac
 		if (pDesc->mRenderTargetMask & (1 << i))
 		{
 			bool blendEnable =
-			(gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != MTLBlendFactorOne ||
-			 gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != MTLBlendFactorZero ||
-			 gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != MTLBlendFactorOne ||
-			 gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != MTLBlendFactorZero);
-			
+				(gMtlBlendConstantTranslator[pDesc->mSrcFactors[blendDescIndex]] != MTLBlendFactorOne ||
+				 gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]] != MTLBlendFactorZero ||
+				 gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]] != MTLBlendFactorOne ||
+				 gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]] != MTLBlendFactorZero);
+
 			attachments[i].blendingEnabled = blendEnable;
 			attachments[i].rgbBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendModes[blendDescIndex]];
 			attachments[i].alphaBlendOperation = gMtlBlendOpTranslator[pDesc->mBlendAlphaModes[blendDescIndex]];
@@ -954,13 +920,15 @@ id<MTLDepthStencilState> util_to_depth_state(Renderer* pRenderer, const DepthSta
 	// Set comparison function to always if depth test is disabled
 	descriptor.depthCompareFunction = pDesc->mDepthTest ? gMtlComparisonFunctionTranslator[pDesc->mDepthFunc] : MTLCompareFunctionAlways;
 	descriptor.depthWriteEnabled = pDesc->mDepthWrite;
-	descriptor.backFaceStencil.stencilCompareFunction = pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc] : MTLCompareFunctionAlways;
+	descriptor.backFaceStencil.stencilCompareFunction =
+		pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc] : MTLCompareFunctionAlways;
 	descriptor.backFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthBackFail];
 	descriptor.backFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilBackFail];
 	descriptor.backFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilBackPass];
 	descriptor.backFaceStencil.readMask = pDesc->mStencilReadMask;
 	descriptor.backFaceStencil.writeMask = pDesc->mStencilWriteMask;
-	descriptor.frontFaceStencil.stencilCompareFunction = pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc] : MTLCompareFunctionAlways;
+	descriptor.frontFaceStencil.stencilCompareFunction =
+		pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc] : MTLCompareFunctionAlways;
 	descriptor.frontFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthFrontFail];
 	descriptor.frontFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontFail];
 	descriptor.frontFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontPass];
@@ -969,7 +937,7 @@ id<MTLDepthStencilState> util_to_depth_state(Renderer* pRenderer, const DepthSta
 
 	id<MTLDepthStencilState> ds = [pRenderer->pDevice newDepthStencilStateWithDescriptor:descriptor];
 	ASSERT(ds);
-	
+
 	return ds;
 }
 /************************************************************************/
@@ -1080,10 +1048,7 @@ void remove_default_resources(Renderer* pRenderer)
 // API functions
 // -------------------------------------------------------------------------------------------------
 
-TinyImageFormat mtl_getRecommendedSwapchainFormat(bool hintHDR)
-{
-	return TinyImageFormat_B8G8R8A8_UNORM;
-}
+TinyImageFormat mtl_getRecommendedSwapchainFormat(bool hintHDR) { return TinyImageFormat_B8G8R8A8_UNORM; }
 
 #ifndef TARGET_IOS
 // Returns the CFDictionary that contains the system profiler data type described in inDataType.
@@ -1137,12 +1102,12 @@ void retrieveSystemProfilerInformation(eastl::string& outVendorId)
 	bytesRead = fread(streamBuffer, sizeof(char), sizeof(streamBuffer), sys_profile);
 	// Close the stream
 	pclose(sys_profile);
-        if (bytesRead == 0)
-        {
-            LOGF(LogLevel::eERROR, "Couldn't read SPDisplaysData from system_profiler");
-            outVendorId = eastl::string("0x0000");
-            return;
-        }
+	if (bytesRead == 0)
+	{
+		LOGF(LogLevel::eERROR, "Couldn't read SPDisplaysData from system_profiler");
+		outVendorId = eastl::string("0x0000");
+		return;
+	}
 	// Create a CFDataRef with the xml data
 	xmlData = CFDataCreate(kCFAllocatorDefault, (UInt8*)streamBuffer, bytesRead);
 	// CFPropertyListCreateFromXMLData reads in the XML data and will parse it into a CFArrayRef for us.
@@ -1164,20 +1129,22 @@ void retrieveSystemProfilerInformation(eastl::string& outVendorId)
 
 			for (i = 0; i < arrayCount; i++)
 			{
-				CFMutableStringRef outputString;
-
-				// Create a mutable CFStringRef with the dictionary value found with key ???machine_name???
-				// This is the machine_name of this mac machine.
-				// Here you can give any value in key tag,to get its corresponding content
-				outputString = CFStringCreateMutableCopy(
-					kCFAllocatorDefault, 0,
-					(CFStringRef)CFDictionaryGetValue(
-						(CFDictionaryRef)CFArrayGetValueAtIndex(itemsArray, i), CFSTR("spdisplays_device-id")));
-				NSString* outNS = (__bridge NSString*)outputString;
-				outVendorId = [outNS.lowercaseString UTF8String];
-				//your code here
-				//(you can append output string OR modify your function according to your need )
-				CFRelease(outputString);
+				CFDictionaryRef dicRef = (CFDictionaryRef)CFArrayGetValueAtIndex(itemsArray, i);
+				if (dicRef) {
+				  CFStringRef strRef = (CFStringRef)CFDictionaryGetValue(dicRef, CFSTR("spdisplays_device-id"));
+				  if (strRef) {
+					// Create a mutable CFStringRef with the dictionary value found with key ???machine_name???
+					// This is the machine_name of this mac machine.
+					// Here you can give any value in key tag,to get its corresponding content
+					CFMutableStringRef outputString = CFStringCreateMutableCopy(
+					  kCFAllocatorDefault, 0, strRef);
+					NSString* outNS = (__bridge NSString*)outputString;
+					outVendorId = [outNS.lowercaseString UTF8String];
+					//your code here
+					//(you can append output string OR modify your function according to your need )
+					CFRelease(outputString);
+				  }
+				}
 			}
 
 			CFRelease(itemsArray);
@@ -1237,7 +1204,7 @@ void collectGraphicsInfo(uint64_t regId, eastl::string inModel, GPUVendorPreset&
 					vendorId = [@"0x" stringByAppendingString:vendorId];
 					eastl::string modelIdString = [modelId.lowercaseString UTF8String];
 					eastl::string vendorIdString = [vendorId.lowercaseString UTF8String];
-					//filter out unwated model id's
+					//filter out unwanted model id's
 					if (modelIdString != inModel)
 						continue;
 
@@ -1247,9 +1214,9 @@ void collectGraphicsInfo(uint64_t regId, eastl::string inModel, GPUVendorPreset&
 					break;
 				}
 			}
-			
+
 			NSString* vramMB = (NSString*)CFDictionaryGetValue(serviceDictionary, CFSTR("VRAM,totalMB"));
-			
+
 			if (vramMB)
 			{
 				*pOutVRAM = (uint64_t)[vramMB longLongValue] * 1024 * 1024;
@@ -1302,17 +1269,18 @@ uint32_t queryThreadExecutionWidth(Renderer* pRenderer)
 	id<MTLComputePipelineState> computePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:kernelFunction error:&error];
 	if (error != nil)
 	{
-		LOGF(LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s", [[error localizedDescription] UTF8String]);
+		LOGF(
+			LogLevel::eWARNING, "Could not create compute pipeline state for simple compute shader: %s",
+			[[error localizedDescription] UTF8String]);
 		return 0;
 	}
 
 	return (uint32_t)computePipelineState.threadExecutionWidth;
 }
 
-static MTLResourceOptions gMemoryOptions[RESOURCE_MEMORY_USAGE_COUNT] =
-{
+static MTLResourceOptions gMemoryOptions[RESOURCE_MEMORY_USAGE_COUNT] = {
 	0,
-#ifdef TARGET_IOS
+#if defined(TARGET_APPLE_ARM64)
 	MTLResourceStorageModeShared,
 #else
 	MTLResourceStorageModePrivate,
@@ -1322,26 +1290,19 @@ static MTLResourceOptions gMemoryOptions[RESOURCE_MEMORY_USAGE_COUNT] =
 	MTLResourceStorageModeShared | MTLResourceCPUCacheModeDefaultCache,
 };
 
-static MTLCPUCacheMode gMemoryCacheModes[RESOURCE_MEMORY_USAGE_COUNT] =
-{
-	MTLCPUCacheModeDefaultCache,
-	MTLCPUCacheModeDefaultCache,
-	MTLCPUCacheModeDefaultCache,
-	MTLCPUCacheModeWriteCombined,
-	MTLCPUCacheModeDefaultCache,
+static MTLCPUCacheMode gMemoryCacheModes[RESOURCE_MEMORY_USAGE_COUNT] = {
+	MTLCPUCacheModeDefaultCache,  MTLCPUCacheModeDefaultCache, MTLCPUCacheModeDefaultCache,
+	MTLCPUCacheModeWriteCombined, MTLCPUCacheModeDefaultCache,
 };
 
-static MTLStorageMode gMemoryStorageModes[RESOURCE_MEMORY_USAGE_COUNT] =
-{
+static MTLStorageMode gMemoryStorageModes[RESOURCE_MEMORY_USAGE_COUNT] = {
 	MTLStorageModePrivate,
-#ifdef TARGET_IOS
+#if defined(TARGET_APPLE_ARM64)
 	MTLStorageModeShared,
 #else
 	MTLStorageModePrivate,
 #endif
-	MTLStorageModeShared,
-	MTLStorageModeShared,
-	MTLStorageModeShared,
+	MTLStorageModeShared,  MTLStorageModeShared, MTLStorageModeShared,
 };
 
 #if defined(ENABLE_HEAPS)
@@ -1353,23 +1314,23 @@ void vkGetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice, VkPhysicalDe
 #ifdef TARGET_IOS
 static uint64_t util_get_free_memory()
 {
-    mach_port_t hostPort;
-    mach_msg_type_number_t hostSize;
-    vm_size_t pageSize;
+	mach_port_t            hostPort;
+	mach_msg_type_number_t hostSize;
+	vm_size_t              pageSize;
 
-    hostPort = mach_host_self();
-    hostSize = sizeof(vm_statistics_data_t) / sizeof(integer_t);
-    host_page_size(hostPort, &pageSize);
+	hostPort = mach_host_self();
+	hostSize = sizeof(vm_statistics_data_t) / sizeof(integer_t);
+	host_page_size(hostPort, &pageSize);
 
-    vm_statistics_data_t vmStat;
+	vm_statistics_data_t vmStat;
 
-    if (host_statistics(hostPort, HOST_VM_INFO, (host_info_t)&vmStat, &hostSize) != KERN_SUCCESS)
+	if (host_statistics(hostPort, HOST_VM_INFO, (host_info_t)&vmStat, &hostSize) != KERN_SUCCESS)
 	{
-        NSLog(@"Failed to fetch vm statistics");
+		NSLog(@"Failed to fetch vm statistics");
 		return UINT64_MAX;
-    }
+	}
 
-    return vmStat.free_count * pageSize;
+	return vmStat.free_count * pageSize;
 }
 #endif
 
@@ -1377,7 +1338,7 @@ void vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice, VkPhys
 {
 	pMemoryProperties->memoryHeapCount = VK_MAX_MEMORY_HEAPS;
 	constexpr uint32_t sharedHeapIndex = VK_MAX_MEMORY_HEAPS - 1;
-	
+
 #ifdef TARGET_IOS
 #if defined(ENABLE_OS_PROC_MEMORY)
 	if (@available(iOS 13.0, *))
@@ -1385,7 +1346,7 @@ void vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice, VkPhys
 		pMemoryProperties->memoryHeaps[0].size = os_proc_available_memory();
 	}
 #endif
-	
+
 	if (pMemoryProperties->memoryHeaps[0].size <= 0)
 	{
 		pMemoryProperties->memoryHeaps[0].size = util_get_free_memory();
@@ -1399,36 +1360,40 @@ void vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice, VkPhys
 	pMemoryProperties->memoryHeaps[0].size = physicalDevice->mVRAM;
 	pMemoryProperties->memoryHeaps[1].size = [[NSProcessInfo processInfo] physicalMemory];
 #endif
-	
+
 	pMemoryProperties->memoryHeaps[0].flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT;
 	pMemoryProperties->memoryTypeCount = RESOURCE_MEMORY_USAGE_COUNT;
-	
+
 	// GPU friendly for textures, gpu buffers, ...
 	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_GPU_ONLY].heapIndex = 0;
 	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_GPU_ONLY].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	
+
 	// Only for staging data
 	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_ONLY].heapIndex = sharedHeapIndex;
-	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_ONLY].propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	
+	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_ONLY].propertyFlags =
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
 	// For frequently changing data on CPU and read once on GPU like constant buffers
 	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_TO_GPU].heapIndex = sharedHeapIndex;
-	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_TO_GPU].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_ONLY].propertyFlags;
-	
+	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_TO_GPU].propertyFlags =
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_CPU_ONLY].propertyFlags;
+
 	// For readback
 	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_GPU_TO_CPU].heapIndex = sharedHeapIndex;
-	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_GPU_TO_CPU].propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	pMemoryProperties->memoryTypes[RESOURCE_MEMORY_USAGE_GPU_TO_CPU].propertyFlags =
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 }
 
 API_AVAILABLE(macos(10.13), ios(10.0))
-VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory)
+VkResult vkAllocateMemory(
+	VkDevice device, const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory)
 {
 	MTLResourceOptions resourceOptions = gMemoryOptions[pAllocateInfo->memoryTypeIndex];
-	MTLCPUCacheMode cacheMode = gMemoryCacheModes[pAllocateInfo->memoryTypeIndex];
-	MTLStorageMode storageMode = gMemoryStorageModes[pAllocateInfo->memoryTypeIndex];
+	MTLCPUCacheMode    cacheMode = gMemoryCacheModes[pAllocateInfo->memoryTypeIndex];
+	MTLStorageMode     storageMode = gMemoryStorageModes[pAllocateInfo->memoryTypeIndex];
 	MTLHeapDescriptor* heapDesc = [[MTLHeapDescriptor alloc] init];
 	[heapDesc setSize:pAllocateInfo->allocationSize];
-	
+
 	UNREF_PARAM(cacheMode);
 	UNREF_PARAM(storageMode);
 
@@ -1441,7 +1406,7 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 		}
 	}
 #endif
-	
+
 	if (@available(macOS 10.15, iOS 13.0, *))
 	{
 #if defined(ENABLE_HEAP_RESOURCE_OPTIONS)
@@ -1454,18 +1419,18 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 		[heapDesc setStorageMode:storageMode];
 		[heapDesc setCpuCacheMode:cacheMode];
 	}
-	
+
 	// We cannot create heap with MTLStorageModeShared in macOS
 	// Instead we allocate a big buffer which acts as our heap
 	// and create suballocations out of it
-#ifndef TARGET_IOS
+#if !defined(TARGET_APPLE_ARM64)
 	if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pAllocateInfo->memoryTypeIndex)
 #endif
 	{
 		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)tf_calloc(1, sizeof(VkDeviceMemory_T));
 		memory->pHeap = [device->pDevice newHeapWithDescriptor:heapDesc];
 		*pMemory = memory;
-		
+
 		if ((device->mHeapCount + 1) > device->mHeapCapacity)
 		{
 			if (!device->mHeapCapacity)
@@ -1484,11 +1449,11 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 			SAFE_FREE(device->pHeaps);
 			device->pHeaps = heaps;
 		}
-		
+
 		device->pHeaps[device->mHeapCount++] = memory->pHeap;
 	}
 	
-#ifndef TARGET_IOS
+#if !defined(TARGET_APPLE_ARM64)
 	if (!(*pMemory) && (RESOURCE_MEMORY_USAGE_GPU_ONLY != pAllocateInfo->memoryTypeIndex))
 	{
 		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)tf_calloc(1, sizeof(VkDeviceMemory_T));
@@ -1496,14 +1461,14 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 		*pMemory = memory;
 	}
 #endif
-	
+
 	ASSERT(*pMemory);
-	
+
 	if (!(*pMemory))
 	{
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
-	
+
 	return VK_SUCCESS;
 }
 
@@ -1520,7 +1485,7 @@ void vkFreeMemory(VkDevice device, VkDeviceMemory memory, const VkAllocationCall
 				break;
 			}
 		}
-		
+
 		if (heapIndex != UINT32_MAX)
 		{
 			// Put the null heap at the end
@@ -1530,7 +1495,7 @@ void vkFreeMemory(VkDevice device, VkDeviceMemory memory, const VkAllocationCall
 			}
 			--device->mHeapCount;
 		}
-		
+
 		[memory->pHeap setPurgeableState:MTLPurgeableStateEmpty];
 		memory->pHeap = nil;
 		SAFE_FREE(memory);
@@ -1538,23 +1503,42 @@ void vkFreeMemory(VkDevice device, VkDeviceMemory memory, const VkAllocationCall
 }
 
 // Stub functions to prevent VMA from asserting during runtime
-VkResult vkMapMemory(VkDevice device, VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) { return VK_SUCCESS; }
-void vkUnmapMemory(VkDevice device, VkDeviceMemory memory) {}
-VkResult vkFlushMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount, const VkMappedMemoryRange* pMemoryRanges) { return VK_SUCCESS; }
-VkResult vkInvalidateMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount, const VkMappedMemoryRange* pMemoryRanges) { return VK_SUCCESS; }
+VkResult vkMapMemory(VkDevice device, VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData)
+{
+	return VK_SUCCESS;
+}
+void     vkUnmapMemory(VkDevice device, VkDeviceMemory memory) {}
+VkResult vkFlushMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount, const VkMappedMemoryRange* pMemoryRanges)
+{
+	return VK_SUCCESS;
+}
+VkResult vkInvalidateMappedMemoryRanges(VkDevice device, uint32_t memoryRangeCount, const VkMappedMemoryRange* pMemoryRanges)
+{
+	return VK_SUCCESS;
+}
 VkResult vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset) { return VK_SUCCESS; }
 VkResult vkBindImageMemory(VkDevice device, VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) { return VK_SUCCESS; }
-void vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements) {}
-void vkGetImageMemoryRequirements(VkDevice device, VkImage image, VkMemoryRequirements* pMemoryRequirements) {}
-VkResult vkCreateBuffer(VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer) { return VK_SUCCESS; }
-void vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator) {}
-VkResult vkCreateImage(VkDevice device, const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) { return VK_SUCCESS; }
-void vkDestroyImage(VkDevice device, VkImage image, const VkAllocationCallbacks* pAllocator) {}
-void vkCmdCopyBuffer(VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions) {}
-
-static VmaAllocationInfo util_render_alloc(Renderer* pRenderer, ResourceMemoryUsage memUsage, NSUInteger size, NSUInteger align, VmaAllocation* pAlloc)
+void     vkGetBufferMemoryRequirements(VkDevice device, VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements) {}
+void     vkGetImageMemoryRequirements(VkDevice device, VkImage image, VkMemoryRequirements* pMemoryRequirements) {}
+VkResult vkCreateBuffer(VkDevice device, const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer)
 {
-	VmaAllocationInfo allocInfo = {};
+	return VK_SUCCESS;
+}
+void     vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks* pAllocator) {}
+VkResult vkCreateImage(VkDevice device, const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage)
+{
+	return VK_SUCCESS;
+}
+void vkDestroyImage(VkDevice device, VkImage image, const VkAllocationCallbacks* pAllocator) {}
+void vkCmdCopyBuffer(
+	VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
+{
+}
+
+static VmaAllocationInfo
+	util_render_alloc(Renderer* pRenderer, ResourceMemoryUsage memUsage, NSUInteger size, NSUInteger align, VmaAllocation* pAlloc)
+{
+	VmaAllocationInfo    allocInfo = {};
 	VkMemoryRequirements memReqs = {};
 	memReqs.alignment = (VkDeviceSize)align;
 	memReqs.size = (VkDeviceSize)size;
@@ -1580,37 +1564,37 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, ResourceMemoryUsa
 {
 	// No heaps available which fulfill our requirements. Create a new heap
 	uint32_t index = pRenderer->mHeapCount;
-	
-	MTLStorageMode storageMode = gMemoryStorageModes[memUsage];
+
+	MTLStorageMode  storageMode = gMemoryStorageModes[memUsage];
 	MTLCPUCacheMode cacheMode = gMemoryCacheModes[memUsage];
 
 	if (@available(macOS 10.13, iOS 10.0, *))
 	{
 		MutexLock lock(*pRenderer->pHeapMutex);
-		
+
 		for (uint32_t i = 0; i < pRenderer->mHeapCount; ++i)
 		{
 			if ([pRenderer->pHeaps[i] storageMode] == storageMode && [pRenderer->pHeaps[i] cpuCacheMode] == cacheMode)
 			{
 				uint64_t maxAllocationSize = [pRenderer->pHeaps[i] maxAvailableSizeWithAlignment:sizeAlign.align];
-				
+
 				if (maxAllocationSize >= sizeAlign.size)
 				{
 					return i;
 				}
 			}
 		}
-		
+
 		// Allocate 1/8, 1/4, 1/2 as first blocks.
-		uint64_t newBlockSize = VMA_SMALL_HEAP_MAX_SIZE;
-		uint32_t newBlockSizeShift = 0;
+		uint64_t       newBlockSize = VMA_SMALL_HEAP_MAX_SIZE;
+		uint32_t       newBlockSizeShift = 0;
 		const uint32_t NEW_BLOCK_SIZE_SHIFT_MAX = 3;
-		
+
 		const VkDeviceSize maxExistingBlockSize = 0;
-		for(uint32_t i = 0; i < NEW_BLOCK_SIZE_SHIFT_MAX; ++i)
+		for (uint32_t i = 0; i < NEW_BLOCK_SIZE_SHIFT_MAX; ++i)
 		{
 			const VkDeviceSize smallerNewBlockSize = newBlockSize / 2;
-			if(smallerNewBlockSize > maxExistingBlockSize && smallerNewBlockSize >= sizeAlign.size * 2)
+			if (smallerNewBlockSize > maxExistingBlockSize && smallerNewBlockSize >= sizeAlign.size * 2)
 			{
 				newBlockSize = smallerNewBlockSize;
 				++newBlockSizeShift;
@@ -1620,8 +1604,8 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, ResourceMemoryUsa
 				break;
 			}
 		}
-		
-		VkDeviceMemory heap = nil;
+
+		VkDeviceMemory       heap = nil;
 		VkMemoryAllocateInfo allocInfo = {};
 		allocInfo.allocationSize = max((uint64_t)sizeAlign.size, newBlockSize);
 		allocInfo.memoryTypeIndex = memUsage;
@@ -1630,7 +1614,7 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, ResourceMemoryUsa
 		UNREF_PARAM(res);
 		ASSERT(VK_SUCCESS == res);
 	}
-	
+
 	return index;
 }
 #endif
@@ -1642,11 +1626,11 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 
 	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	memcpy(pRenderer->pName, appName, strlen(appName));
-	
+
 	pRenderer->mGpuMode = settings->mGpuMode;
 	pRenderer->mEnableGpuBasedValidation = settings->mEnableGPUBasedValidation;
 	pRenderer->mShaderTarget = settings->mShaderTarget;
-	
+
 	// Initialize the Metal bits
 	{
 		// Get the systems default device.
@@ -1657,10 +1641,10 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 		//get gpu vendor and model id.
 		GPUVendorPreset gpuVendor = {};
 		gpuVendor.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
-		
+
 		eastl::string mDeviceName = [pRenderer->pDevice.name UTF8String];
 		strncpy(gpuVendor.mGpuName, mDeviceName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-		
+
 #ifndef TARGET_IOS
 		eastl::string outModelId;
 		retrieveSystemProfilerInformation(outModelId);
@@ -1668,36 +1652,42 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 		{
 			collectGraphicsInfo(pRenderer->pDevice.registryID, outModelId, gpuVendor, &pRenderer->mVRAM);
 		}
-		
+
 		if (!pRenderer->mVRAM)
 		{
+#if defined(TARGET_APPLE_ARM64)
+			LOGF(LogLevel::eWARNING, "Could not find VRAM through IORegistryEntryCreateCFProperties. Using default value of 8 GB for M1");
+			pRenderer->mVRAM = 8192llu * 1024 * 1024;
+#else
 			// Default value of 1.5 GB in case we cannot find the VRAM programmatically
 			LOGF(LogLevel::eWARNING, "Could not find VRAM through IORegistryEntryCreateCFProperties. Using default value of 1.5 GB");
 			pRenderer->mVRAM = 1536llu * 1024 * 1024;
+#endif
 		}
 #else
 		strncpy(gpuVendor.mVendorId, "Apple", MAX_GPU_VENDOR_STRING_LENGTH);
 		strncpy(gpuVendor.mModelId, "iOS", MAX_GPU_VENDOR_STRING_LENGTH);
 #endif
-		
+
 		LOGF(LogLevel::eINFO, "Current Gpu Name: %s", gpuVendor.mGpuName);
 		LOGF(LogLevel::eINFO, "Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
 		LOGF(LogLevel::eINFO, "Current Gpu Model ID: %s", gpuVendor.mModelId);
 
 		// Set the default GPU settings.
-		
+
 		pRenderer->mLinkedNodeCount = 1;
 		GPUSettings gpuSettings[1] = {};
 		gpuSettings[0].mUniformBufferAlignment = 256;
 		gpuSettings[0].mUploadBufferTextureAlignment = 16;
 		gpuSettings[0].mUploadBufferTextureRowAlignment = 1;
-		gpuSettings[0].mMaxVertexInputBindings = MAX_VERTEX_BINDINGS;    // there are no special vertex buffers for input in Metal, only regular buffers
+		gpuSettings[0].mMaxVertexInputBindings =
+			MAX_VERTEX_BINDINGS;                      // there are no special vertex buffers for input in Metal, only regular buffers
 		gpuSettings[0].mMultiDrawIndirect = false;    // multi draw indirect is not supported on Metal: only single draw indirect
 		gpuSettings[0].mGpuVendorPreset = gpuVendor;
-		
+
 		// Features
 		// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-		
+
 #if defined(ENABLE_ROVS)
 		if (@available(macOS 10.13, iOS 11.0, *))
 		{
@@ -1707,15 +1697,15 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 		gpuSettings[0].mTessellationSupported = true;
 		gpuSettings[0].mGeometryShaderSupported = false;
 		gpuSettings[0].mWaveLaneCount = queryThreadExecutionWidth(pRenderer);
-		
+
 		// Wave ops crash the compiler if not supported by gpu
 		gpuSettings[0].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
 #ifdef TARGET_IOS
 		gpuSettings[0].mDrawIndexVertexOffsetSupported = [pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1];
-		
+
 		if (@available(iOS 13.0, *))
 		{
-			if ([pRenderer->pDevice supportsFamily:(MTLGPUFamily)1006]) // family 6
+			if ([pRenderer->pDevice supportsFamily:(MTLGPUFamily)1006])    // family 6
 			{
 				gpuSettings[0].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_ALL;
 			}
@@ -1729,14 +1719,14 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 			}
 		}
 #endif
-		
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 		// argument buffer capabilities
 		if (@available(macOS 10.13, iOS 11.0, *))
 		{
 			MTLArgumentBuffersTier abTier = pRenderer->pDevice.argumentBuffersSupport;
 			LOGF(LogLevel::eINFO, "Metal: Argument Buffer Tier: %lu", abTier);
-			
+
 			//
 			if (abTier == MTLArgumentBuffersTier2)
 			{
@@ -1749,7 +1739,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 				if (@available(macOS 10.15, iOS 13.0, *))
 				{
 					// iOS caps
-					if ([pRenderer->pDevice supportsFamily: MTLGPUFamilyApple4]) // A11 and higher
+					if ([pRenderer->pDevice supportsFamily:MTLGPUFamilyApple4])    // A11 and higher
 					{
 						gpuSettings[0].mArgumentBufferMaxTextures = 96;
 					}
@@ -1760,7 +1750,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 				}
 				else if (@available(iOS 12.0, *))
 				{
-					if ([pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v2])
+					if ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v2])
 					{
 						gpuSettings[0].mArgumentBufferMaxTextures = 96;
 					}
@@ -1774,11 +1764,11 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 				gpuSettings[0].mArgumentBufferMaxTextures = 128;
 #endif
 			}
-			
+
 			LOGF(LogLevel::eINFO, "Metal: Max Arg Buffer Textures: %u", gpuSettings[0].mArgumentBufferMaxTextures);
 		}
 #endif
-		
+
 		// Heap and Placement heap support
 #if defined(ENABLE_HEAPS)
 #if defined(TARGET_IOS)
@@ -1786,7 +1776,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 		if (@available(iOS 10.0, *))
 		{
 			gpuSettings[0].mHeaps = 1;
-			
+
 #if defined(ENABLE_HEAP_PLACEMENT)
 			if (@available(iOS 13.0, *))
 			{
@@ -1802,7 +1792,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 			if (gpuSettings[0].mHeaps)
 			{
 #if defined(ENABLE_HEAP_PLACEMENT)
-				if (@available(macOS 10.14, *))
+				if (@available(macOS 10.15, *))
 				{
 					gpuSettings[0].mPlacementHeaps = ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily2_v1] ? 1 : 0);
 				}
@@ -1813,13 +1803,13 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 #endif
 		LOGF(LogLevel::eINFO, "Metal: Heaps: %s", gpuSettings[0].mHeaps ? "true" : "false");
 		LOGF(LogLevel::eINFO, "Metal: Placement Heaps: %s", gpuSettings[0].mPlacementHeaps ? "true" : "false");
-		
+
 #ifndef TARGET_IOS
 		MTLFeatureSet featureSet = MTLFeatureSet_macOS_GPUFamily1_v1;
 #else
 		MTLFeatureSet featureSet = MTLFeatureSet_iOS_GPUFamily1_v1;
 #endif
-		while(1)
+		while (1)
 		{
 			BOOL supports = [pRenderer->pDevice supportsFeatureSet:featureSet];
 			if (!supports)
@@ -1827,21 +1817,21 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 				featureSet = (MTLFeatureSet)((uint64_t)featureSet - 1);
 				break;
 			}
-			
+
 			featureSet = (MTLFeatureSet)((uint64_t)featureSet + 1);
 		}
-		
+
 		LOGF(LogLevel::eINFO, "Metal: GPU Family: %lu", featureSet);
-		
+
 		pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 		*pRenderer->pActiveGpuSettings = gpuSettings[0];
-		
+
 		if (!pRenderer->pActiveGpuSettings->mPlacementHeaps)
 		{
 			pRenderer->pHeapMutex = (Mutex*)tf_malloc(sizeof(Mutex));
-			pRenderer->pHeapMutex->Init();
+			initMutex(pRenderer->pHeapMutex);
 		}
-		
+
 #ifndef TARGET_IOS
 		setGPUPresetLevel(pRenderer, 1, gpuSettings);
 		//exit app if gpu being used has an office preset.
@@ -1867,9 +1857,9 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 			return;
 		}
 #endif
-		
+
 		LOGF(LogLevel::eINFO, "Renderer: GPU Preset Level: %u", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel);
-		
+
 		// Create allocator
 #if defined(ENABLE_HEAP_PLACEMENT)
 		if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
@@ -1877,7 +1867,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 			if (@available(macOS 10.15, iOS 13.0, *))
 			{
 				VmaAllocatorCreateInfo createInfo = {};
-				VmaVulkanFunctions vulkanFunctions = {};
+				VmaVulkanFunctions     vulkanFunctions = {};
 				// Only 3 relevant functions for our memory allocation. The rest are there to just keep VMA from asserting failure
 				vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
 				vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
@@ -1908,21 +1898,20 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 				ASSERT(VK_SUCCESS == result);
 			}
 		}
-		
+
 		LOGF(LogLevel::eINFO, "Renderer: VMA Allocator: %s", pRenderer->pVmaAllocator ? "true" : "false");
 #endif
 
 		// Create default resources.
 		add_default_resources(pRenderer);
-		
-		ShaderMacro rendererShaderDefines[] =
-		{
-			{ "UPDATE_FREQ_NONE",      "0"  },
-			{ "UPDATE_FREQ_PER_FRAME", "1"  },
-			{ "UPDATE_FREQ_PER_BATCH", "2"  },
-			{ "UPDATE_FREQ_PER_DRAW",  "3"  },
-			{ "UPDATE_FREQ_USER",      "4"  },
-			{ "MAX_BUFFER_BINDINGS",   "31" },
+
+		ShaderMacro rendererShaderDefines[] = {
+			{ "UPDATE_FREQ_NONE", "0" },
+			{ "UPDATE_FREQ_PER_FRAME", "1" },
+			{ "UPDATE_FREQ_PER_BATCH", "2" },
+			{ "UPDATE_FREQ_PER_DRAW", "3" },
+			{ "UPDATE_FREQ_USER", "4" },
+			{ "MAX_BUFFER_BINDINGS", "31" },
 #ifdef TARGET_IOS
 			{ "TARGET_IOS", "" },
 #endif
@@ -1942,7 +1931,7 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 void mtl_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
-	
+
 	remove_default_resources(pRenderer);
 
 #if defined(ENABLE_HEAP_PLACEMENT)
@@ -1956,12 +1945,12 @@ void mtl_exitRenderer(Renderer* pRenderer)
 #endif
 
 	pRenderer->pDevice = nil;
-	
+
 	if (pRenderer->pHeapMutex)
 	{
-		pRenderer->pHeapMutex->Destroy();
+		destroyMutex(pRenderer->pHeapMutex);
 	}
-	
+
 	SAFE_FREE(pRenderer->pHeapMutex);
 	SAFE_FREE(pRenderer->pBuiltinShaderDefines);
 #if defined(ENABLE_HEAPS)
@@ -1981,7 +1970,7 @@ void mtl_addFence(Renderer* pRenderer, Fence** ppFence)
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppFence);
-	
+
 	Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
 
@@ -2003,7 +1992,7 @@ void mtl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 {
 	ASSERT(pRenderer);
 	ASSERT(ppSemaphore);
-	
+
 	Semaphore* pSemaphore = (Semaphore*)tf_calloc(1, sizeof(Semaphore));
 	ASSERT(pSemaphore);
 
@@ -2020,7 +2009,7 @@ void mtl_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 void mtl_removeSemaphore(Renderer* pRenderer, Semaphore* pSemaphore)
 {
 	ASSERT(pSemaphore);
-	
+
 #if defined(ENABLE_EVENT_SEMAPHORE)
 	if (@available(macOS 10.14, iOS 12.0, *))
 	{
@@ -2035,7 +2024,7 @@ void mtl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
 	ASSERT(pDesc);
 	ASSERT(ppQueue);
-	
+
 	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
@@ -2073,7 +2062,7 @@ void mtl_addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppC
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppCmdPool);
-	
+
 	CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
 	ASSERT(pCmdPool);
 
@@ -2093,7 +2082,7 @@ void mtl_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppCmd);
-	
+
 	Cmd* pCmd = (Cmd*)tf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
 	ASSERT(pCmd);
 
@@ -2158,7 +2147,7 @@ void mtl_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapchain)
 
 	//only available on mac OS.
 	//VSync seems to be necessary on iOS.
-	
+
 	if (@available(macOS 10.13, *))
 	{
 		if (!pSwapchain->mEnableVsync)
@@ -2210,17 +2199,17 @@ void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain
 	}
 #endif
 #else
-    pSwapChain->pForgeView = (__bridge UIView*)pDesc->mWindowHandle.window;
-    pSwapChain->pForgeView.autoresizesSubviews = TRUE;
-   
-    CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-#endif
-    // Set the view pixel format to match the swapchain's pixel format.
-    layer.pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mColorFormat);
+	pSwapChain->pForgeView = (__bridge UIView*)pDesc->mWindowHandle.window;
+	pSwapChain->pForgeView.autoresizesSubviews = TRUE;
 
-    pSwapChain->mMTKDrawable = nil;
-    
-    // Create present command buffer for the swapchain.
+	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+#endif
+	// Set the view pixel format to match the swapchain's pixel format.
+	layer.pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mColorFormat);
+
+	pSwapChain->mMTKDrawable = nil;
+
+	// Create present command buffer for the swapchain.
 	pSwapChain->presentCommandBuffer = [pDesc->ppPresentQueues[0]->mtlCommandQueue commandBuffer];
 
 	// Create the swapchain RT descriptor.
@@ -2239,7 +2228,7 @@ void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain
 		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
 		pSwapChain->ppRenderTargets[i]->pTexture->mtlTexture = nil;
 	}
-	
+
 	pSwapChain->mImageCount = pDesc->mImageCount;
 	pSwapChain->mEnableVsync = pDesc->mEnableVsync;
 
@@ -2266,11 +2255,11 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 	ASSERT(pDesc);
 	ASSERT((pDesc->mDescriptors & DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER) || pDesc->mSize > 0);
 	ASSERT(pRenderer->pDevice != nil);
-    
+
 	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(pBuffer);
 
-	uint64_t allocationSize = pDesc->mSize;
+	uint64_t           allocationSize = pDesc->mSize;
 	MTLResourceOptions resourceOptions = gMemoryOptions[pDesc->mMemoryUsage];
 	// Align the buffer size to multiples of the dynamic uniform buffer minimum size
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER)
@@ -2280,13 +2269,13 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 		((BufferDesc*)pDesc)->mAlignment = (uint32_t)minAlignment;
 	}
 
-//	//Use isLowPower to determine if running intel integrated gpu
-//	//There's currently an intel driver bug with placed resources so we need to create
-//	//new resources that are GPU only in their own memory space
-//	//0x8086 is intel vendor id
-//	if (strcmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId, "0x8086") == 0 &&
-//		(ResourceMemoryUsage)pDesc->mMemoryUsage & RESOURCE_MEMORY_USAGE_GPU_ONLY)
-//		((BufferDesc*)pDesc)->mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	//	//Use isLowPower to determine if running intel integrated gpu
+	//	//There's currently an intel driver bug with placed resources so we need to create
+	//	//new resources that are GPU only in their own memory space
+	//	//0x8086 is intel vendor id
+	//	if (strcmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId, "0x8086") == 0 &&
+	//		(ResourceMemoryUsage)pDesc->mMemoryUsage & RESOURCE_MEMORY_USAGE_GPU_ONLY)
+	//		((BufferDesc*)pDesc)->mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 
 	// Indirect command buffer does not need backing buffer memory
 	// Directly allocated through device
@@ -2296,19 +2285,14 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 		if (@available(macOS 10.14, iOS 12.0, *))
 		{
 			MTLIndirectCommandBufferDescriptor* icbDescriptor = [MTLIndirectCommandBufferDescriptor alloc];
-			
+
 			switch (pDesc->mICBDrawType)
 			{
-				case INDIRECT_DRAW:
-					icbDescriptor.commandTypes = MTLIndirectCommandTypeDraw;
-					break;
-				case INDIRECT_DRAW_INDEX:
-					icbDescriptor.commandTypes = MTLIndirectCommandTypeDrawIndexed;
-					break;
-				default:
-					ASSERT(false); // unsupported command type
+				case INDIRECT_DRAW: icbDescriptor.commandTypes = MTLIndirectCommandTypeDraw; break;
+				case INDIRECT_DRAW_INDEX: icbDescriptor.commandTypes = MTLIndirectCommandTypeDrawIndexed; break;
+				default: ASSERT(false);    // unsupported command type
 			}
-			
+
 			icbDescriptor.inheritBuffers = (pDesc->mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS);
 #if defined(ENABLE_INDIRECT_COMMAND_BUFFER_INHERIT_PIPELINE)
 			if (@available(macOS 10.14, iOS 13.0, *))
@@ -2316,11 +2300,13 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 				icbDescriptor.inheritPipelineState = (pDesc->mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE);
 			}
 #endif
-			
+
 			icbDescriptor.maxVertexBufferBindCount = pDesc->mICBMaxVertexBufferBind + 1;
 			icbDescriptor.maxFragmentBufferBindCount = pDesc->mICBMaxFragmentBufferBind + 1;
-			
-			pBuffer->mtlIndirectCommandBuffer = [pRenderer->pDevice newIndirectCommandBufferWithDescriptor:icbDescriptor maxCommandCount:pDesc->mElementCount options:0];
+
+			pBuffer->mtlIndirectCommandBuffer = [pRenderer->pDevice newIndirectCommandBufferWithDescriptor:icbDescriptor
+																						   maxCommandCount:pDesc->mElementCount
+																								   options:0];
 		}
 #endif
 	}
@@ -2336,16 +2322,15 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 			// We cannot use heaps on macOS for upload buffers.
 			// Instead we sub-allocate out of a buffer resource
 			// which we treat as a pseudo-heap
-#ifdef TARGET_IOS
+#if defined(TARGET_APPLE_ARM64)
 			bool canUseHeaps = true;
 #else
 			bool canUseHeaps = RESOURCE_MEMORY_USAGE_GPU_ONLY == pDesc->mMemoryUsage;
 #endif
-			
-			MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapBufferSizeAndAlignWithLength:allocationSize
-				options:resourceOptions];
+
+			MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapBufferSizeAndAlignWithLength:allocationSize options:resourceOptions];
 			sizeAlign.align = max((NSUInteger)pDesc->mAlignment, sizeAlign.align);
-			
+
 			if (canUseHeaps)
 			{
 				if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
@@ -2353,11 +2338,8 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 #if defined(ENABLE_HEAP_PLACEMENT)
 					if (@available(macOS 10.15, iOS 13.0, *))
 					{
-						VmaAllocationInfo allocInfo = util_render_alloc(pRenderer,
-																		pDesc->mMemoryUsage,
-																		sizeAlign.size,
-																		sizeAlign.align,
-																		&pBuffer->pAllocation);
+						VmaAllocationInfo allocInfo =
+							util_render_alloc(pRenderer, pDesc->mMemoryUsage, sizeAlign.size, sizeAlign.align, &pBuffer->pAllocation);
 
 						pBuffer->mtlBuffer = [allocInfo.deviceMemory->pHeap newBufferWithLength:allocationSize
 																						options:resourceOptions
@@ -2371,17 +2353,17 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 					// If placement heaps are not supported we cannot use VMA
 					// Instead we have to rely on MTLHeap automatic placement
 					uint32_t heapIndex = util_find_heap_with_space(pRenderer, pDesc->mMemoryUsage, sizeAlign);
-						
+
 					// Fallback on earlier versions
-					pBuffer->mtlBuffer = [pRenderer->pHeaps[heapIndex] newBufferWithLength:allocationSize
-																				   options:resourceOptions];
+					pBuffer->mtlBuffer = [pRenderer->pHeaps[heapIndex] newBufferWithLength:allocationSize options:resourceOptions];
 					ASSERT(pBuffer->mtlBuffer);
 				}
 			}
 			else
 			{
-				VmaAllocationInfo allocInfo = util_render_alloc(pRenderer, pDesc->mMemoryUsage, sizeAlign.size, sizeAlign.align, &pBuffer->pAllocation);
-				
+				VmaAllocationInfo allocInfo =
+					util_render_alloc(pRenderer, pDesc->mMemoryUsage, sizeAlign.size, sizeAlign.align, &pBuffer->pAllocation);
+
 				pBuffer->mtlBuffer = (id<MTLBuffer>)allocInfo.deviceMemory->pHeap;
 				pBuffer->mOffset = allocInfo.offset;
 			}
@@ -2390,17 +2372,17 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 #endif
 	else
 	{
-		pBuffer->mtlBuffer = [pRenderer->pDevice newBufferWithLength:allocationSize
-															 options:resourceOptions];
+		pBuffer->mtlBuffer = [pRenderer->pDevice newBufferWithLength:allocationSize options:resourceOptions];
 	}
 	
-#ifndef TARGET_IOS
-	if (pBuffer->mtlBuffer && !(resourceOptions & MTLResourceStorageModePrivate) && (pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT))
+#if !defined(TARGET_APPLE_ARM64)
+	if (pBuffer->mtlBuffer && !(resourceOptions & MTLResourceStorageModePrivate) &&
+		(pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT))
 #endif
 	{
 		mapBuffer(pRenderer, pBuffer, NULL);
 	}
-	
+
 	pBuffer->mSize = (uint32_t)pDesc->mSize;
 	pBuffer->mMemoryUsage = pDesc->mMemoryUsage;
 	pBuffer->mNodeIndex = pDesc->mNodeIndex;
@@ -2417,26 +2399,26 @@ void mtl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuff
 void mtl_removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
 	ASSERT(pBuffer);
-	
+
 	if (!(pBuffer->mDescriptors & DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER))
 	{
 		ASSERT(pBuffer->mtlBuffer);
 	}
-	
+
 	pBuffer->mtlBuffer = nil;
-	
+
 #if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
 	if (@available(macOS 10.14, iOS 12.0, *))
 	{
 		pBuffer->mtlIndirectCommandBuffer = nil;
 	}
 #endif
-	
+
 	if (pBuffer->pAllocation)
 	{
 		vmaFreeMemory(pRenderer->pVmaAllocator, pBuffer->pAllocation);
 	}
-	
+
 	SAFE_FREE(pBuffer);
 }
 
@@ -2446,17 +2428,17 @@ void mtl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppT
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
 	if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
 	{
-		internal_log(LOG_TYPE_ERROR, "Multi-Sampled textures cannot have mip maps", "MetalRenderer");
+		internal_log(eERROR, "Multi-Sampled textures cannot have mip maps", "MetalRenderer");
 		return;
 	}
-	
+
 	add_texture(pRenderer, pDesc, ppTexture, false);
 }
 
 void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pTexture);
-	
+
 #if defined(ENABLE_RAYTRACING)
 	if (pTexture->mpsTextureAllocator)
 	{
@@ -2467,7 +2449,7 @@ void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 		}
 	}
 #endif
-	
+
 	pTexture->mtlTexture = nil;
 
 	// Destroy descriptors
@@ -2478,7 +2460,7 @@ void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 			pTexture->pMtlUAVDescriptors[i] = nil;
 		}
 	}
-	
+
 	if (pTexture->pAllocation)
 	{
 		vmaFreeMemory(pRenderer->pVmaAllocator, pTexture->pAllocation);
@@ -2515,7 +2497,7 @@ void mtl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Ren
 	rtDesc.mDescriptors |= pDesc->mDescriptors;
 
 	add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
-	
+
 	pRenderTarget->mClearValue = pDesc->mClearValue;
 	pRenderTarget->mWidth = pDesc->mWidth;
 	pRenderTarget->mHeight = pDesc->mHeight;
@@ -2541,7 +2523,7 @@ void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppS
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(pDesc->mCompareFunc < MAX_COMPARE_MODES);
 	ASSERT(ppSampler);
-	
+
 	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
 
@@ -2562,7 +2544,7 @@ void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppS
 	{
 		addressModeTable = gMtlAddressModeTranslatorFallback;
 	}
-	
+
 	samplerDesc.sAddressMode = addressModeTable[pDesc->mAddressU];
 	samplerDesc.tAddressMode = addressModeTable[pDesc->mAddressV];
 	samplerDesc.rAddressMode = addressModeTable[pDesc->mAddressW];
@@ -2593,24 +2575,24 @@ void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShad
 	ASSERT(pDesc);
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppShaderProgram);
-	
+
 	Shader* pShaderProgram = (Shader*)tf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
 	ASSERT(pShaderProgram);
 
 	pShaderProgram->mStages = pDesc->mStages;
 	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
-	
+
 	eastl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
 
 	uint32_t         reflectionCount = 0;
 	ShaderReflection stageReflections[SHADER_STAGE_COUNT];
 	const char*      entryNames[SHADER_STAGE_COUNT] = {};
-	
+
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
 		eastl::string              source = NULL;
-		const char*                  entry_point = NULL;
-		const char*                  shader_name = NULL;
+		const char*                entry_point = NULL;
+		const char*                shader_name = NULL;
 		eastl::vector<ShaderMacro> shader_macros;
 		__strong id<MTLFunction>* compiled_code = NULL;
 
@@ -2651,23 +2633,23 @@ void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShad
 				break;
 				default: break;
 			}
-			
+
 			entryNames[reflectionCount] = entry_point;
 
 			// Create a NSDictionary for all the shader macros.
 			NSNumberFormatter* numberFormatter =
 				[[NSNumberFormatter alloc] init];    // Used for reading NSNumbers macro values from strings.
 			numberFormatter.numberStyle = NSNumberFormatterDecimalStyle;
-            
-            NSMutableDictionary* macroDictionary = [NSMutableDictionary dictionaryWithCapacity:shader_macros.size()];
+
+			NSMutableDictionary* macroDictionary = [NSMutableDictionary dictionaryWithCapacity:shader_macros.size()];
 			for (uint i = 0; i < shader_macros.size(); i++)
 			{
-                NSString *key = [NSString stringWithUTF8String:shader_macros[i].definition];
+				NSString* key = [NSString stringWithUTF8String:shader_macros[i].definition];
 
 				// Try reading the macro value as a NSNumber. If failed, use it as an NSString.
 				NSString* valueString = [NSString stringWithUTF8String:shader_macros[i].value];
 				NSNumber* valueNumber = [numberFormatter numberFromString:valueString];
-                macroDictionary[key] = valueNumber ? valueNumber : valueString;
+				macroDictionary[key] = valueNumber ? valueNumber : valueString;
 			}
 
 			// Compile the code
@@ -2683,25 +2665,27 @@ void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShad
 			{
 				if (lib)
 				{
-					LOGF(LogLevel::eWARNING,
-						"Loaded shader %s with the following warnings:\n %s", shader_name, [[error localizedDescription] UTF8String]);
+					LOGF(
+						LogLevel::eWARNING, "Loaded shader %s with the following warnings:\n %s", shader_name,
+						[[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
-                    //ASSERT(0);
+								  //ASSERT(0);
 				}
 				// Error
 				else
 				{
-					LOGF(LogLevel::eERROR,
-						"Couldn't load shader %s with the following error:\n %s", shader_name, [[error localizedDescription] UTF8String]);
+					LOGF(
+						LogLevel::eERROR, "Couldn't load shader %s with the following error:\n %s", shader_name,
+						[[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
-                    ASSERT(0);
+					ASSERT(0);
 				}
 			}
 
 			if (lib)
 			{
 				pShaderProgram->mtlLibrary = lib;
-				
+
 				NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:entry_point];
 				id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 				assert(function != nil && "Entry point not found in shader.");
@@ -2713,11 +2697,11 @@ void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShad
 				&stageReflections[reflectionCount++]);
 		}
 	}
-	
+
 	pShaderProgram->pEntryNames = (char**)tf_calloc(reflectionCount, sizeof(char*));
 	memcpy(pShaderProgram->pEntryNames, entryNames, reflectionCount * sizeof(char*));
 	createPipelineReflection(stageReflections, reflectionCount, pShaderProgram->pReflection);
-	
+
 #if defined(ENABLE_TESSELLATION)
 	if (@available(macOS 10.12, iOS 10.0, *))
 	{
@@ -2745,7 +2729,7 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
 	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
 
 	eastl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
-	const char* entryNames[SHADER_STAGE_COUNT] = {};
+	const char*                                     entryNames[SHADER_STAGE_COUNT] = {};
 
 	uint32_t reflectionCount = 0;
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
@@ -2784,20 +2768,20 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
 				dispatch_data_create(pStage->pByteCode, pStage->mByteCodeSize, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 			id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithData:byteCode error:nil];
 			pShaderProgram->mtlLibrary = lib;
-			
+
 			// Create a MTLFunction from the loaded MTLLibrary.
 			NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->pEntryPoint];
 			id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 			*compiled_code = function;
-			
+
 			entryNames[reflectionCount] = pStage->pEntryPoint;
 
 			mtl_createShaderReflection(
-				pRenderer, pShaderProgram, (const uint8_t*)pStage->pSource, pStage->mSourceSize, stage_mask,
-				&vertexAttributeFormats, &pShaderProgram->pReflection->mStageReflections[reflectionCount++]);
+				pRenderer, pShaderProgram, (const uint8_t*)pStage->pSource, pStage->mSourceSize, stage_mask, &vertexAttributeFormats,
+				&pShaderProgram->pReflection->mStageReflections[reflectionCount++]);
 		}
 	}
-	
+
 	pShaderProgram->pEntryNames = (char**)tf_calloc(reflectionCount, sizeof(char*));
 	memcpy(pShaderProgram->pEntryNames, entryNames, reflectionCount * sizeof(char*));
 
@@ -2809,7 +2793,7 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
 		pShaderProgram->mNumThreadsPerGroup[1] = pShaderProgram->pReflection->mStageReflections[0].mNumThreadsPerGroup[1];
 		pShaderProgram->mNumThreadsPerGroup[2] = pShaderProgram->pReflection->mStageReflections[0].mNumThreadsPerGroup[2];
 	}
-	
+
 #if defined(ENABLE_TESSELLATION)
 	if (@available(macOS 10.12, iOS 10.0, *))
 	{
@@ -2841,15 +2825,15 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppRootSignature);
-		
-	eastl::vector<ShaderResource>        shaderResources;
+
+	eastl::vector<ShaderResource> shaderResources;
 
 	// Collect static samplers
 	eastl::vector<eastl::pair<ShaderResource const*, Sampler*> > staticSamplers;
 	eastl::string_hash_map<Sampler*>                             staticSamplerMap;
 	DescriptorIndexMap                                           indexMap;
-	ShaderStage shaderStages = SHADER_STAGE_NONE;
-	PipelineType pipelineType = PIPELINE_TYPE_UNDEFINED;
+	ShaderStage                                                  shaderStages = SHADER_STAGE_NONE;
+	PipelineType                                                 pipelineType = PIPELINE_TYPE_UNDEFINED;
 
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
 	{
@@ -2878,36 +2862,37 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 		{
 			ShaderResource const* pRes = &pReflection->pShaderResources[i];
 			uint32_t              setIndex = pRes->set;
-			
+
 			// If the size of the resource is zero, assume its a bindless resource
 			// All bindless resources will go in the static descriptor table
 			if (pRes->size == 0)
 				setIndex = 0;
-			
+
 			if (pRes->type == DESCRIPTOR_TYPE_ARGUMENT_BUFFER)
 			{
 				continue;
 			}
 
 			// Find all unique resources
-			decltype(indexMap.mMap)::iterator it =
-				indexMap.mMap.find(pRes->name);
+			decltype(indexMap.mMap)::iterator it = indexMap.mMap.find(pRes->name);
 			if (it == indexMap.mMap.end())
 			{
-				decltype(shaderResources)::iterator it = eastl::find(shaderResources.begin(), shaderResources.end(), *pRes,
-					[](const ShaderResource& a, const ShaderResource& b)
-				{
-					// HLSL - Every type has different register type unlike Vulkan where all registers are shared by all types
-					if (a.mIsArgumentBufferField != b.mIsArgumentBufferField)
-					{
-						return false;
-					}
-					else if (!a.mIsArgumentBufferField && !b.mIsArgumentBufferField)
-					{
-						return (a.type == b.type) && (a.used_stages == b.used_stages) && (((a.reg ^ b.reg) | (a.set ^ b.set)) == 0);
-					}
-					return (a.type == b.type) && ((((uint64_t)a.mtlArgumentDescriptors.mArgumentIndex << 32) | ((uint64_t)a.mtlArgumentDescriptors.mBufferIndex & 0xFFFFFFFF)) == (((uint64_t)b.mtlArgumentDescriptors.mArgumentIndex << 32) | ((uint64_t)b.mtlArgumentDescriptors.mBufferIndex & 0xFFFFFFFF)));
-				});
+				decltype(shaderResources)::iterator it = eastl::find(
+					shaderResources.begin(), shaderResources.end(), *pRes, [](const ShaderResource& a, const ShaderResource& b) {
+						// HLSL - Every type has different register type unlike Vulkan where all registers are shared by all types
+						if (a.mIsArgumentBufferField != b.mIsArgumentBufferField)
+						{
+							return false;
+						}
+						else if (!a.mIsArgumentBufferField && !b.mIsArgumentBufferField)
+						{
+							return (a.type == b.type) && (a.used_stages == b.used_stages) && (((a.reg ^ b.reg) | (a.set ^ b.set)) == 0);
+						}
+						return (a.type == b.type) && ((((uint64_t)a.mtlArgumentDescriptors.mArgumentIndex << 32) |
+													   ((uint64_t)a.mtlArgumentDescriptors.mBufferIndex & 0xFFFFFFFF)) ==
+													  (((uint64_t)b.mtlArgumentDescriptors.mArgumentIndex << 32) |
+													   ((uint64_t)b.mtlArgumentDescriptors.mBufferIndex & 0xFFFFFFFF)));
+					});
 				if (it == shaderResources.end())
 				{
 					indexMap.mMap.insert(pRes->name, (uint32_t)shaderResources.size());
@@ -2930,7 +2915,8 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 					ASSERT(pRes->type == it->type);
 					if (pRes->type != it->type)
 					{
-						LOGF(LogLevel::eERROR,
+						LOGF(
+							LogLevel::eERROR,
 							"\nFailed to create root signature\n"
 							"Shared shader resources %s and %s have mismatching types (%u) and (%u). All shader resources "
 							"sharing the same register and space addRootSignature "
@@ -2940,8 +2926,7 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 						return;
 					}
 
-					indexMap.mMap.insert(pRes->name,
-						indexMap.mMap[it->name]);
+					indexMap.mMap.insert(pRes->name, indexMap.mMap[it->name]);
 
 					it->used_stages |= pRes->used_stages;
 				}
@@ -2952,7 +2937,8 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			{
 				if (shaderResources[it->second].reg != pRes->reg)
 				{
-					LOGF( LogLevel::eERROR,
+					LOGF(
+						LogLevel::eERROR,
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching register. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2963,7 +2949,8 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 				}
 				if (shaderResources[it->second].set != pRes->set)
 				{
-					LOGF( LogLevel::eERROR,
+					LOGF(
+						LogLevel::eERROR,
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching space. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2984,7 +2971,7 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			}
 		}
 	}
-    
+
 	size_t totalSize = sizeof(RootSignature);
 	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
 	totalSize += sizeof(DescriptorIndexMap);
@@ -2997,25 +2984,25 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + shaderResources.size());
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
 	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
-        
+
 	// Collect all shader resources in the given shaders
 	{
 		for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
 		{
 			ShaderResource const* pRes = &shaderResources[i];
-			
+
 			//
-			DescriptorInfo*           pDesc = &pRootSignature->pDescriptors[i];
-							
-			uint32_t                  setIndex = pRes->set;
+			DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
+
+			uint32_t                        setIndex = pRes->set;
 			const DescriptorUpdateFrequency updateFreq((DescriptorUpdateFrequency)setIndex);
 
 			pRootSignature->pDescriptorNameToIndexMap->mMap[pRes->name] = i;
-			
+
 			pDesc->mReg = pRes->reg;
-//                pDesc->mDesc.set = pRes->set;
+			//                pDesc->mDesc.set = pRes->set;
 			pDesc->mSize = pRes->size;
-//                pDesc->mDesc.alignment = pRes->alignment;
+			//                pDesc->mDesc.alignment = pRes->alignment;
 			pDesc->mType = pRes->type;
 			pDesc->mUsedStages = pRes->used_stages;
 			pDesc->mIsArgumentBufferField = pRes->mIsArgumentBufferField;
@@ -3029,22 +3016,18 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			{
 				switch (pDesc->mType)
 				{
-					case DESCRIPTOR_TYPE_SAMPLER:
-						pDesc->mHandleIndex = pRootSignature->mRootSamplerCount++;
-						break;
+					case DESCRIPTOR_TYPE_SAMPLER: pDesc->mHandleIndex = pRootSignature->mRootSamplerCount++; break;
 					case DESCRIPTOR_TYPE_TEXTURE:
 					case DESCRIPTOR_TYPE_RW_TEXTURE:
 						pDesc->mHandleIndex = pRootSignature->mRootTextureCount++;
 						break;
 						// Everything else is a buffer
-					default:
-						pDesc->mHandleIndex = pRootSignature->mRootBufferCount++;
-						break;
+					default: pDesc->mHandleIndex = pRootSignature->mRootBufferCount++; break;
 				}
 			}
-			
+
 			pDesc->mtlStaticSampler = nil;
-			
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 			if (@available(macOS 10.13, iOS 11.0, *))
 			{
@@ -3066,9 +3049,9 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			// In case we're binding a texture, we need to specify the texture type so the bound resource type matches the one defined in the shader.
 			if (pRes->type == DESCRIPTOR_TYPE_TEXTURE || pRes->type == DESCRIPTOR_TYPE_RW_TEXTURE)
 			{
-//                    pDesc->mDesc.mtlTextureType = pRes->mtlTextureType;
+				//                    pDesc->mDesc.mtlTextureType = pRes->mtlTextureType;
 			}
-			
+
 			// static samplers
 			if (pRes->type == DESCRIPTOR_TYPE_SAMPLER)
 			{
@@ -3080,7 +3063,7 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			}
 		}
 	}
-	
+
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
@@ -3088,18 +3071,19 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 		{
 			pRootSignature->mArgumentDescriptors[i] = [[NSMutableArray alloc] init];
 		}
-		
+
 		// Create argument buffer descriptors (update template)
 		for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 		{
 			const DescriptorInfo& descriptorInfo(pRootSignature->pDescriptors[i]);
-			
+
 			if (descriptorInfo.mIsArgumentBufferField)
 			{
 				const ArgumentDescriptor& memberDescriptor(shaderResources[i].mtlArgumentDescriptors);
-				
-				DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)(memberDescriptor.mBufferIndex - DESCRIPTOR_UPDATE_FREQ_PADDING);
-				
+
+				DescriptorUpdateFrequency updateFreq =
+					(DescriptorUpdateFrequency)(memberDescriptor.mBufferIndex - DESCRIPTOR_UPDATE_FREQ_PADDING);
+
 				if (updateFreq < (uint32_t)DESCRIPTOR_UPDATE_FREQ_COUNT)
 				{
 					MTLArgumentDescriptor* argDescriptor = [MTLArgumentDescriptor argumentDescriptor];
@@ -3109,20 +3093,19 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 					argDescriptor.dataType = memberDescriptor.mDataType;
 					argDescriptor.index = memberDescriptor.mArgumentIndex;
 					argDescriptor.textureType = memberDescriptor.mTextureType;
-					
+
 					ASSERT(argDescriptor.dataType != MTLDataTypeNone);
-					
+
 					[pRootSignature->mArgumentDescriptors[updateFreq] addObject:argDescriptor];
 				}
 			}
 		}
-		
+
 		for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		{
-			[pRootSignature->mArgumentDescriptors[i] sortedArrayUsingComparator:^NSComparisonResult(id a, id b)
-			{
-				MTLArgumentDescriptor *first = a;
-				MTLArgumentDescriptor *second = b;
+			[pRootSignature->mArgumentDescriptors[i] sortedArrayUsingComparator:^NSComparisonResult(id a, id b) {
+				MTLArgumentDescriptor* first = a;
+				MTLArgumentDescriptor* second = b;
 				return (NSComparisonResult)(first.index > second.index);
 			}];
 		}
@@ -3146,7 +3129,7 @@ void mtl_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		}
 	}
 #endif
-	
+
 	pRootSignature->pDescriptorNameToIndexMap->mMap.clear(true);
 	SAFE_FREE(pRootSignature);
 }
@@ -3159,7 +3142,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	ASSERT(pDesc->pShaderProgram);
 	ASSERT(pDesc->pRootSignature);
 	ASSERT(ppPipeline);
-	
+
 	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
@@ -3178,7 +3161,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 		renderPipelineDesc.supportIndirectCommandBuffers = pDesc->mSupportIndirectCommandBuffer;
 	}
 #endif
-    
+
 	// add vertex layout to descriptor
 	if (pDesc->pVertexLayout != nil)
 	{
@@ -3189,7 +3172,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			// #NOTE: Buffer index starts at 30 and decrements based on binding
 			// Example: If attrib->mBinding is 3, bufferIndex will be 27
 			const uint32_t bufferIndex = VERTEX_BINDING_OFFSET - attrib->mBinding;
-			
+
 			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].offset = attrib->mOffset;
 			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].bufferIndex = bufferIndex;
 			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].format = util_to_mtl_vertex_format(attrib->mFormat);
@@ -3197,7 +3180,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			//setup layout for all bindings instead of just 0.
 			renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stride += TinyImageFormat_BitSizeOfBlock(attrib->mFormat) / 8;
 			renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stepRate = 1;
-			
+
 #if defined(ENABLE_TESSELLATION)
 			if (pDesc->pShaderProgram->mTessellation)
 			{
@@ -3208,7 +3191,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			}
 			else
 #endif
-			if (attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
+				if (attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
 			{
 				renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stepFunction = MTLVertexStepFunctionPerInstance;
 			}
@@ -3235,16 +3218,16 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	// assign blend state
 	if (pDesc->pBlendState)
 		util_to_blend_desc(pDesc->pBlendState, renderPipelineDesc.colorAttachments, pDesc->mRenderTargetCount);
-	
+
 	// assign render target pixel format for all attachments
 	for (uint32_t i = 0; i < pDesc->mRenderTargetCount; ++i)
 	{
 		renderPipelineDesc.colorAttachments[i].pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->pColorFormats[i]);
 	}
-	
+
 	// assign rasterizer state
 	const RasterizerStateDesc* pRasterizer = pDesc->pRasterizerState ? pDesc->pRasterizerState : &gDefaultRasterizerState;
-    pPipeline->mCullMode = (uint32_t)gMtlCullModeTranslator[pRasterizer->mCullMode];
+	pPipeline->mCullMode = (uint32_t)gMtlCullModeTranslator[pRasterizer->mCullMode];
 	pPipeline->mFillMode = (uint32_t)gMtlFillModeTranslator[pRasterizer->mFillMode];
 	pPipeline->mDepthBias = pRasterizer->mDepthBias;
 	pPipeline->mSlopeScale = pRasterizer->mSlopeScaledDepthBias;
@@ -3253,15 +3236,16 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	//	rasterizerState.scissorEnable = pDesc->mScissor;
 	//	rasterizerState.multisampleEnable = pDesc->mMultiSample;
 	pPipeline->mWinding = (pRasterizer->mFrontFace == FRONT_FACE_CCW ? MTLWindingCounterClockwise : MTLWindingClockwise);
-	
+
 	// assign depth state
 	pPipeline->mtlDepthStencilState = pDesc->pDepthState ? util_to_depth_state(pRenderer, pDesc->pDepthState) : pDefaultDepthState;
 
 	// assign pixel format form depth attachment
 	if (pDesc->mDepthStencilFormat != TinyImageFormat_UNDEFINED)
 	{
-		renderPipelineDesc.depthAttachmentPixelFormat = (MTLPixelFormat) TinyImageFormat_ToMTLPixelFormat(pDesc->mDepthStencilFormat);
-		if (pDesc->mDepthStencilFormat == TinyImageFormat_D24_UNORM_S8_UINT || pDesc->mDepthStencilFormat == TinyImageFormat_D32_SFLOAT_S8_UINT)
+		renderPipelineDesc.depthAttachmentPixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mDepthStencilFormat);
+		if (pDesc->mDepthStencilFormat == TinyImageFormat_D24_UNORM_S8_UINT ||
+			pDesc->mDepthStencilFormat == TinyImageFormat_D32_SFLOAT_S8_UINT)
 			renderPipelineDesc.stencilAttachmentPixelFormat = renderPipelineDesc.depthAttachmentPixelFormat;
 	}
 
@@ -3291,16 +3275,16 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	// create pipeline from descriptor
 	NSError* error = nil;
 	pPipeline->mtlRenderPipelineState = [pRenderer->pDevice newRenderPipelineStateWithDescriptor:renderPipelineDesc
-                                                            options:MTLPipelineOptionNone
-                                                            reflection:nil
-                                                            error:&error];
+																						 options:MTLPipelineOptionNone
+																					  reflection:nil
+																						   error:&error];
 	if (!pPipeline->mtlRenderPipelineState)
 	{
 		LOGF(LogLevel::eERROR, "Failed to create render pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
 		ASSERT(false);
 		return;
 	}
-	
+
 	switch (pDesc->mPrimitiveTopo)
 	{
 		case PRIMITIVE_TOPO_POINT_LIST: pPipeline->mMtlPrimitiveType = (uint32_t)MTLPrimitiveTypePoint; break;
@@ -3322,7 +3306,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	ASSERT(pDesc->pShaderProgram);
 	ASSERT(pDesc->pRootSignature);
 	ASSERT(ppPipeline);
-	
+
 	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
@@ -3330,7 +3314,8 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	pPipeline->pShader = pDesc->pShaderProgram;
 
 	NSError* error = nil;
-	pPipeline->mtlComputePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:pDesc->pShaderProgram->mtlComputeShader error:&error];
+	pPipeline->mtlComputePipelineState = [pRenderer->pDevice newComputePipelineStateWithFunction:pDesc->pShaderProgram->mtlComputeShader
+																						   error:&error];
 	if (!pPipeline->mtlComputePipelineState)
 	{
 		LOGF(LogLevel::eERROR, "Failed to create compute pipeline state, error:\n%s", [[error localizedDescription] UTF8String]);
@@ -3345,36 +3330,36 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
 extern void removeRaytracingPipeline(RaytracingPipeline* pPipeline);
 #endif
-    
+
 void mtl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPipeline)
 {
-    ASSERT(pRenderer);
-    ASSERT(pRenderer->pDevice != nil);
-    
-    switch (pDesc->mType)
-    {
-        case(PIPELINE_TYPE_COMPUTE):
-        {
-            addComputePipelineImpl(pRenderer, &pDesc->mComputeDesc, ppPipeline);
-            break;
-        }
-        case(PIPELINE_TYPE_GRAPHICS):
-        {
-            addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
-            break;
-        }
+	ASSERT(pRenderer);
+	ASSERT(pRenderer->pDevice != nil);
+
+	switch (pDesc->mType)
+	{
+		case (PIPELINE_TYPE_COMPUTE):
+		{
+			addComputePipelineImpl(pRenderer, &pDesc->mComputeDesc, ppPipeline);
+			break;
+		}
+		case (PIPELINE_TYPE_GRAPHICS):
+		{
+			addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
+			break;
+		}
 #if defined(ENABLE_RAYTRACING)
-        case(PIPELINE_TYPE_RAYTRACING):
-        {
-            addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
-            break;
-        }
+		case (PIPELINE_TYPE_RAYTRACING):
+		{
+			addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
+			break;
+		}
 #endif
-        default:
-            ASSERT(false); // unknown pipeline type
-            break;
-    }
-	
+		default:
+			ASSERT(false);    // unknown pipeline type
+			break;
+	}
+
 	if (*ppPipeline && pDesc->pName)
 	{
 		setPipelineName(pRenderer, *ppPipeline, pDesc->pName);
@@ -3387,9 +3372,9 @@ void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 	pPipeline->mtlRenderPipelineState = nil;
 	pPipeline->mtlComputePipelineState = nil;
 	pPipeline->mtlDepthStencilState = nil;
-	
+
 #if defined(ENABLE_RAYTRACING)
-    if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
+	if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
 	{
 		removeRaytracingPipeline(pPipeline->pRaytracingPipeline);
 	}
@@ -3398,24 +3383,19 @@ void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 	SAFE_FREE(pPipeline);
 }
 
-void mtl_addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**)
-{
-}
+void mtl_addPipelineCache(Renderer*, const PipelineCacheDesc*, PipelineCache**) {}
 
-void mtl_removePipelineCache(Renderer*, PipelineCache*)
-{
-}
+void mtl_removePipelineCache(Renderer*, PipelineCache*) {}
 
-void mtl_getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*)
-{
-}
+void mtl_getPipelineCacheData(Renderer*, PipelineCache*, size_t*, void*) {}
 
 void mtl_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc* pDesc, CommandSignature** ppCommandSignature)
 {
 	ASSERT(pRenderer != nil);
 	ASSERT(pDesc != nil);
 
-	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature) + sizeof(IndirectArgument) * pDesc->mIndirectArgCount);
+	CommandSignature* pCommandSignature =
+		(CommandSignature*)tf_calloc(1, sizeof(CommandSignature) + sizeof(IndirectArgument) * pDesc->mIndirectArgCount);
 	ASSERT(pCommandSignature);
 
 	pCommandSignature->pIndirectArguments = (IndirectArgument*)(pCommandSignature + 1);
@@ -3443,8 +3423,7 @@ void mtl_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignature
 				break;
 			case INDIRECT_COMMAND_BUFFER:
 			case INDIRECT_COMMAND_BUFFER_RESET:
-			case INDIRECT_COMMAND_BUFFER_OPTIMIZE:
-				break;
+			case INDIRECT_COMMAND_BUFFER_OPTIMIZE: break;
 			default:
 				pCommandSignature->mStride += pDesc->pArgDescs[i].mByteSize;
 				offset += pDesc->pArgDescs[i].mByteSize;
@@ -3452,7 +3431,7 @@ void mtl_addIndirectCommandSignature(Renderer* pRenderer, const CommandSignature
 				break;
 		}
 	}
-	
+
 	if (!pDesc->mPacked)
 	{
 		pCommandSignature->mStride = round_up(pCommandSignature->mStride, 16);
@@ -3504,16 +3483,16 @@ void mtl_beginCmd(Cmd* pCmd)
 		pCmd->pLastFrameQuery = nil;
 		pCmd->mtlCommandBuffer = [pCmd->pQueue->mtlCommandQueue commandBuffer];
 	}
-	
+
 	pCmd->mPipelineType = PIPELINE_TYPE_UNDEFINED;
 }
 
 void mtl_endCmd(Cmd* pCmd)
 {
-    @autoreleasepool
-    {
-        util_end_current_encoders(pCmd, true);
-    }
+	@autoreleasepool
+	{
+		util_end_current_encoders(pCmd, true);
+	}
 }
 
 void mtl_cmdBindRenderTargets(
@@ -3521,7 +3500,7 @@ void mtl_cmdBindRenderTargets(
 	uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
 {
 	ASSERT(pCmd);
-	
+
 	if (!renderTargetCount && !pDepthStencil)
 	{
 		return;
@@ -3554,11 +3533,11 @@ void mtl_cmdBindRenderTargets(
 				pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mDepth;
 			}
 
-            // For on-tile (memoryless) textures, we never need to load or store.
+			// For on-tile (memoryless) textures, we never need to load or store.
 			if (colorAttachment->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
 			{
 				pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
-                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
+					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
 				pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionDontCare;
 			}
 			else
@@ -3583,44 +3562,44 @@ void mtl_cmdBindRenderTargets(
 #ifndef TARGET_IOS
 			bool isStencilEnabled = pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
 #else
-            bool isStencilEnabled = false;
+			bool isStencilEnabled = false;
 #endif
-            isStencilEnabled = isStencilEnabled || pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
+			isStencilEnabled = isStencilEnabled || pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
 			if (isStencilEnabled)
 			{
 				pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->mtlTexture;
 				pCmd->pRenderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
 				pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 			}
-            
-            // For on-tile (memoryless) textures, we never need to load or store.
-            if (pDepthStencil->pTexture->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
-            {
-                pCmd->pRenderPassDesc.depthAttachment.loadAction =
-                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
-                pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
-                pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare);
-                pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-            }
-            else
-            {
-                pCmd->pRenderPassDesc.depthAttachment.loadAction =
-                pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
-                pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
-                if (isStencilEnabled)
-                {
-                    pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-                    pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
-                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
-                }
-                else
-                {
-                    pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
-                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-                }
-            }
-            
+
+			// For on-tile (memoryless) textures, we never need to load or store.
+			if (pDepthStencil->pTexture->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
+			{
+				pCmd->pRenderPassDesc.depthAttachment.loadAction =
+					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
+				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
+				pCmd->pRenderPassDesc.stencilAttachment.loadAction =
+					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare);
+				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+			}
+			else
+			{
+				pCmd->pRenderPassDesc.depthAttachment.loadAction =
+					pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
+				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+				if (isStencilEnabled)
+				{
+					pCmd->pRenderPassDesc.stencilAttachment.loadAction =
+						pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
+					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+				}
+				else
+				{
+					pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+				}
+			}
+
 			if (pLoadActions)
 			{
 				pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
@@ -3638,13 +3617,14 @@ void mtl_cmdBindRenderTargets(
 
 		util_end_current_encoders(pCmd, false);
 		pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
-		util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS); // apply the graphics barriers before flushing them
-		
+		util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);    // apply the graphics barriers before flushing them
+
 		util_set_heaps_graphics(pCmd);
 	}
 }
 
-void mtl_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
+void mtl_cmdSetShadingRate(
+	Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
 {
 }
 
@@ -3653,7 +3633,7 @@ void mtl_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, 
 	ASSERT(pCmd);
 	if (pCmd->mtlRenderEncoder == nil)
 	{
-		internal_log(LOG_TYPE_ERROR, "Using cmdSetViewport out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetViewport");
+		internal_log(eERROR, "Using cmdSetViewport out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetViewport");
 		return;
 	}
 
@@ -3673,7 +3653,7 @@ void mtl_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32
 	ASSERT(pCmd);
 	if (pCmd->mtlRenderEncoder == nil)
 	{
-		internal_log(LOG_TYPE_ERROR, "Using cmdSetScissor out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetScissor");
+		internal_log(eERROR, "Using cmdSetScissor out of a cmdBeginRender / cmdEndRender block is not allowed", "cmdSetScissor");
 		return;
 	}
 
@@ -3686,27 +3666,27 @@ void mtl_cmdSetScissor(Cmd* pCmd, uint32_t x, uint32_t y, uint32_t width, uint32
 							   : (uint32_t)pCmd->pRenderPassDesc.depthAttachment.texture.height;
 	uint32_t maxScissorW = maxScissorX;
 	uint32_t maxScissorH = maxScissorY;
-	
+
 	// ensure scissor rect does not exceed RT size
 	width = min(width, maxScissorW);
 	height = min(height, maxScissorH);
-	
+
 	// Make sure neither width or height are 0 (unsupported by Metal).
 	if (width == 0u)
 		width = 1u;
 	if (height == 0u)
 		height = 1u;
-	
+
 	MTLScissorRect scissor;
 	scissor.x = min(x, maxScissorX);
 	scissor.y = min(y, maxScissorY);
-	scissor.width =  width;
-	scissor.height =  height;
-	
+	scissor.width = width;
+	scissor.height = height;
+
 	// ensure position is smaller than width / height otherwise metal throws errors.
 	scissor.x = scissor.x + width > maxScissorX ? max(0, int32_t(maxScissorX - width)) : scissor.x;
-	scissor.y = scissor.y + height  > maxScissorY ? max(0, int32_t(maxScissorY - height)): scissor.y ;
-	
+	scissor.y = scissor.y + height > maxScissorY ? max(0, int32_t(maxScissorY - height)) : scissor.y;
+
 	[pCmd->mtlRenderEncoder setScissorRect:scissor];
 }
 
@@ -3723,10 +3703,17 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	ASSERT(pPipeline);
 
 	pCmd->pShader = pPipeline->pShader;
-	
+
 	bool barrierRequired = pCmd->mPipelineType != pPipeline->mType;
 	pCmd->mPipelineType = pPipeline->mType;
-	
+#ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
+	pCmd->mFirstVertex = 0;
+	for (int i = 0; i < MAX_VERTEX_BINDINGS; ++i)
+	{
+		pCmd->mStrides[i] = 0;
+	}
+#endif
+
 	@autoreleasepool
 	{
 		if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
@@ -3748,9 +3735,9 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 			{
 				[pCmd->mtlRenderEncoder setDepthStencilState:pPipeline->mtlDepthStencilState];
 			}
-			
+
 			pCmd->mSelectedPrimitiveType = (uint32_t)pPipeline->mMtlPrimitiveType;
-			
+
 			util_set_resources_graphics(pCmd);
 		}
 		else if (pPipeline->mType == PIPELINE_TYPE_COMPUTE)
@@ -3759,29 +3746,29 @@ void mtl_cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 			{
 				util_end_current_encoders(pCmd, barrierRequired);
 				pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
-				
+
 				util_set_heaps_compute(pCmd);
 			}
 			[pCmd->mtlComputeEncoder setComputePipelineState:pPipeline->mtlComputePipelineState];
-			
+
 			util_set_resources_compute(pCmd);
 		}
-        else if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
-        {
-            if (!pCmd->mtlComputeEncoder)
-            {
-                util_end_current_encoders(pCmd, barrierRequired);
-                pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
-				
+		else if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
+		{
+			if (!pCmd->mtlComputeEncoder)
+			{
+				util_end_current_encoders(pCmd, barrierRequired);
+				pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
+
 				util_set_heaps_compute(pCmd);
-            }
-			
+			}
+
 			util_set_resources_compute(pCmd);
-        }
-        else
-        {
-            ASSERT(false); // unknown pipline type
-        }
+		}
+		else
+		{
+			ASSERT(false);    // unknown pipeline type
+		}
 	}
 }
 
@@ -3810,7 +3797,8 @@ void mtl_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers
 		if (pCmd->pShader && pCmd->pShader->mTessellation)
 		{
 			startIdx = 1;
-			[pCmd->mtlRenderEncoder setTessellationFactorBuffer:ppBuffers[0]->mtlBuffer offset:ppBuffers[0]->mOffset + (pOffsets ? pOffsets[0] : 0) instanceStride:0];
+			[pCmd->mtlRenderEncoder setTessellationFactorBuffer:ppBuffers[0]->mtlBuffer
+														 offset:ppBuffers[0]->mOffset + (pOffsets ? pOffsets[0] : 0)instanceStride:0];
 		}
 	}
 #endif
@@ -3818,19 +3806,26 @@ void mtl_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers
 	for (uint32_t i = 0; i < bufferCount - startIdx; i++)
 	{
 		uint32_t index = startIdx + i;
-		[pCmd->mtlRenderEncoder setVertexBuffer:ppBuffers[index]->mtlBuffer
-										 offset:ppBuffers[index]->mOffset + (pOffsets ? pOffsets[index] : 0)
-										atIndex:((VERTEX_BINDING_OFFSET - i))];
+		uint64_t offset = ppBuffers[index]->mOffset + (pOffsets ? pOffsets[index] : 0);
+		[pCmd->mtlRenderEncoder
+			setVertexBuffer:ppBuffers[index]->mtlBuffer
+					 offset:offset atIndex:(VERTEX_BINDING_OFFSET - i)];
+#ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
+		pCmd->mOffsets[i] = offset;
+		pCmd->mStrides[i] = pStrides[index];
+#endif
 	}
 }
-    
+
 void mtl_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
-	
+
 	if (!pCmd->pShader->mTessellation)
 	{
-		[pCmd->mtlRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType vertexStart:firstVertex vertexCount:vertexCount];
+		[pCmd->mtlRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+								   vertexStart:firstVertex
+								   vertexCount:vertexCount];
 	}
 #if defined(ENABLE_TESSELLATION)
 	else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
@@ -3849,7 +3844,7 @@ void mtl_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 void mtl_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uint32_t instanceCount, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
-	
+
 	if (!pCmd->pShader->mTessellation)
 	{
 		if (firstInstance == 0)
@@ -3885,7 +3880,7 @@ void mtl_cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex,
 void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
-	
+
 	id           indexBuffer = pCmd->mSelectedIndexBuffer;
 	MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
 	uint64_t     offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * pCmd->mIndexStride);
@@ -3893,6 +3888,30 @@ void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uin
 	if (!pCmd->pShader->mTessellation)
 	{
 #ifdef TARGET_IOS
+#ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
+		if (firstVertex != pCmd->mFirstVertex)
+		{
+			pCmd->mFirstVertex = firstVertex;
+			for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
+			{
+				uint64_t offset = pCmd->mOffsets[i];
+				uint32_t stride = pCmd->mStrides[i];
+				
+				if (stride != 0)
+				{
+					[pCmd->mtlRenderEncoder
+						setVertexBufferOffset: offset + stride * firstVertex atIndex: (VERTEX_BINDING_OFFSET - i)];
+				}
+			}
+		}
+		
+		[pCmd->mtlRenderEncoder
+			drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+										indexCount:indexCount
+										indexType:indexType
+										indexBuffer:indexBuffer
+										indexBufferOffset:offset];
+#else
 		if (!firstVertex)
 		{
 			[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
@@ -3922,6 +3941,7 @@ void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uin
 				return;
 			}
 		}
+#endif
 #else
 		[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 										   indexCount:indexCount
@@ -3934,9 +3954,9 @@ void mtl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uin
 #endif
 	}
 #if defined(ENABLE_TESSELLATION)
-	else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
+	else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
 	{
-		//to supress warning passing nil to controlPointIndexBuffer
+		//to suppress warning passing nil to controlPointIndexBuffer
 		//todo: Add control point index buffer to be passed when necessary
 		id<MTLBuffer> _Nullable indexBuf = nil;
 		[pCmd->mtlRenderEncoder drawIndexedPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
@@ -3956,7 +3976,7 @@ void mtl_cmdDrawIndexedInstanced(
 	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
-	
+
 	id           indexBuffer = pCmd->mSelectedIndexBuffer;
 	MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
 	uint64_t     offset = pCmd->mSelectedIndexBufferOffset + (firstIndex * pCmd->mIndexStride);
@@ -3964,13 +3984,43 @@ void mtl_cmdDrawIndexedInstanced(
 	if (!pCmd->pShader->mTessellation)
 	{
 #ifdef TARGET_IOS
+#ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
+		if (firstInstance)
+		{
+			LOGF(LogLevel::eERROR, "Current device does not support firstInstance (3_v1 feature set)");
+			ASSERT(false);
+			return;
+		}
+		else
+		{
+			if (firstVertex != pCmd->mFirstVertex)
+			{
+				pCmd->mFirstVertex = firstVertex;
+				for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
+				{
+					uint64_t offset = pCmd->mOffsets[i];
+					uint32_t stride = pCmd->mStrides[i];
+					
+					if (stride != 0)
+					{
+						[pCmd->mtlRenderEncoder
+							setVertexBufferOffset: offset + stride * firstVertex atIndex: (VERTEX_BINDING_OFFSET - i)];
+					}
+				}
+			}
+			
+			[pCmd->mtlRenderEncoder
+				drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+											indexCount:indexCount
+											indexType:indexType
+											indexBuffer:indexBuffer
+											indexBufferOffset:offset
+											instanceCount:instanceCount];
+		}
+#else
 		if (firstInstance || firstVertex)
 		{
-			//only ios devices supporting gpu family 3_v1 and above can use baseVertex and baseInstance
-			//if lower than 3_v1 render without base info but artifacts will occur if used.
-			if ([pCmd->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
-			{
-				[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+			[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 												   indexCount:indexCount
 													indexType:indexType
 												  indexBuffer:indexBuffer
@@ -3978,12 +4028,6 @@ void mtl_cmdDrawIndexedInstanced(
 												instanceCount:instanceCount
 												   baseVertex:firstVertex
 												 baseInstance:firstInstance];
-			}
-			else
-			{
-				LOGF(LogLevel::eERROR, "Current device does not support firstVertex and firstInstance (3_v1 feature set)");
-				return;
-			}
 		}
 		else
 		{
@@ -3994,6 +4038,8 @@ void mtl_cmdDrawIndexedInstanced(
 										indexBufferOffset:offset
 											instanceCount:instanceCount];
 		}
+#endif
+		
 #else
 		[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 										   indexCount:indexCount
@@ -4028,12 +4074,12 @@ void mtl_cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint
 {
 	ASSERT(pCmd);
 	ASSERT(pCmd->mtlComputeEncoder != nil);
-	
+
 	// There might have been a barrier inserted since last dispatch call
 	// This only applies to dispatch since you can issue barriers inside compute pass but this is not possible inside render pass
 	// For render pass, barriers are issued in cmdBindRenderTargets after beginning new encoder
 	util_barrier_required(pCmd, QUEUE_TYPE_COMPUTE);
-	
+
 	Shader* shader = pCmd->pShader;
 
 	MTLSize threadsPerThreadgroup =
@@ -4048,8 +4094,8 @@ void mtl_cmdExecuteIndirect(
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
 	ASSERT(pCmd);
-	
-    /*
+
+	/*
     // CPU encoded ICB
     MTLIndirectCommandBufferDescriptor* icbDescriptor = [MTLIndirectCommandBufferDescriptor alloc];
     icbDescriptor.commandTypes = MTLIndirectCommandTypeDrawIndexed;
@@ -4106,10 +4152,10 @@ void mtl_cmdExecuteIndirect(
     util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
     [pCmd->mtlRenderEncoder executeCommandsInBuffer:_indirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
     */
-	for(int32_t indirectArgIndex = 0; indirectArgIndex < pCommandSignature->mIndirectArgumentCount; ++indirectArgIndex)
+	for (int32_t indirectArgIndex = 0; indirectArgIndex < pCommandSignature->mIndirectArgumentCount; ++indirectArgIndex)
 	{
-		IndirectArgument* pIndirectArgument = &pCommandSignature->pIndirectArguments[indirectArgIndex];
-		uint64_t offset = bufferOffset + pIndirectArgument->mOffset;
+		IndirectArgument*          pIndirectArgument = &pCommandSignature->pIndirectArguments[indirectArgIndex];
+		uint64_t                   offset = bufferOffset + pIndirectArgument->mOffset;
 		const IndirectArgumentType drawType = pIndirectArgument->mType;
 
 #if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
@@ -4118,27 +4164,30 @@ void mtl_cmdExecuteIndirect(
 			if (drawType == INDIRECT_COMMAND_BUFFER_OPTIMIZE && maxCommandCount)
 			{
 				util_end_current_encoders(pCmd, false);
-				
+
 				pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 				util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
-				
-				[pCmd->mtlBlitEncoder optimizeIndirectCommandBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+
+				[pCmd->mtlBlitEncoder optimizeIndirectCommandBuffer:pIndirectBuffer->mtlIndirectCommandBuffer
+														  withRange:NSMakeRange(0, maxCommandCount)];
 				return;
 			}
 			else if (drawType == INDIRECT_COMMAND_BUFFER_RESET && maxCommandCount)
 			{
 				util_end_current_encoders(pCmd, false);
-				
+
 				pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 				util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
-			
-				[pCmd->mtlBlitEncoder resetCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+
+				[pCmd->mtlBlitEncoder resetCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer
+												  withRange:NSMakeRange(0, maxCommandCount)];
 				return;
 			}
 			else if (drawType == INDIRECT_COMMAND_BUFFER && maxCommandCount)
 			{
 				util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
-				[pCmd->mtlRenderEncoder executeCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
+				[pCmd->mtlRenderEncoder executeCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer
+													  withRange:NSMakeRange(0, maxCommandCount)];
 				return;
 			}
 		}
@@ -4154,22 +4203,22 @@ void mtl_cmdExecuteIndirect(
 				{
 					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
 					[pCmd->mtlRenderEncoder drawPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
-										indirectBuffer:pIndirectBuffer->mtlBuffer
-								  indirectBufferOffset:indirectBufferOffset];
+											indirectBuffer:pIndirectBuffer->mtlBuffer
+									  indirectBufferOffset:indirectBufferOffset];
 				}
 			}
 #if defined(ENABLE_TESSELLATION)
-			else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
+			else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
 			{
 				for (uint32_t i = 0; i < maxCommandCount; i++)
 				{
 #ifndef TARGET_IOS
 					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
 					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-								   patchIndexBuffer:nil
-							 patchIndexBufferOffset:0
-									 indirectBuffer:pIndirectBuffer->mtlBuffer
-							   indirectBufferOffset:indirectBufferOffset];
+									   patchIndexBuffer:nil
+								 patchIndexBufferOffset:0
+										 indirectBuffer:pIndirectBuffer->mtlBuffer
+								   indirectBufferOffset:indirectBufferOffset];
 #else
 					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
 					// Tessellated indirect-draw is not supported on iOS.
@@ -4180,14 +4229,13 @@ void mtl_cmdExecuteIndirect(
 
 					if (pDrawArgs->mVertexCount)
 					{
-					
-					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
-											 patchStart:pDrawArgs->mStartVertex
-											 patchCount:pDrawArgs->mVertexCount
-									   patchIndexBuffer:nil
-								 patchIndexBufferOffset:0
-										  instanceCount:pDrawArgs->mInstanceCount
-										   baseInstance:pDrawArgs->mStartInstance];
+						[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
+												 patchStart:pDrawArgs->mStartVertex
+												 patchCount:pDrawArgs->mVertexCount
+										   patchIndexBuffer:nil
+									 patchIndexBufferOffset:0
+											  instanceCount:pDrawArgs->mInstanceCount
+											   baseInstance:pDrawArgs->mStartInstance];
 					}
 #endif
 				}
@@ -4205,8 +4253,8 @@ void mtl_cmdExecuteIndirect(
 					id           indexBuffer = pCmd->mSelectedIndexBuffer;
 					MTLIndexType indexType = (MTLIndexType)pCmd->mIndexType;
 					uint64_t     indirectBufferOffset = offset + pCommandSignature->mStride * i;
-					[pCmd->mtlRenderEncoder setVertexBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
-					[pCmd->mtlRenderEncoder setFragmentBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX]; // drawId
+					[pCmd->mtlRenderEncoder setVertexBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX];      // drawId
+					[pCmd->mtlRenderEncoder setFragmentBytes:&i length:sizeof(i) atIndex:BUILTIN_DRAW_ID_BINDING_INDEX];    // drawId
 
 					[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 														indexType:indexType
@@ -4221,8 +4269,8 @@ void mtl_cmdExecuteIndirect(
 			{
 				for (uint32_t i = 0; i < maxCommandCount; ++i)
 				{
-					id           indexBuffer = pCmd->mSelectedIndexBuffer;
-					uint64_t     indirectBufferOffset = offset + pCommandSignature->mStride * i;
+					id       indexBuffer = pCmd->mSelectedIndexBuffer;
+					uint64_t indirectBufferOffset = offset + pCommandSignature->mStride * i;
 #ifndef TARGET_IOS
 					[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
 									   patchIndexBuffer:indexBuffer
@@ -4263,46 +4311,46 @@ void mtl_cmdExecuteIndirect(
 				MTLSize threadsPerThreadgroup =
 					MTLSizeMake(shader->mNumThreadsPerGroup[0], shader->mNumThreadsPerGroup[1], shader->mNumThreadsPerGroup[2]);
 
-				[pCmd->mtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->mtlBuffer indirectBufferOffset:offset + pCommandSignature->mStride * i threadsPerThreadgroup:threadsPerThreadgroup];
+				[pCmd->mtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->mtlBuffer
+														   indirectBufferOffset:offset + pCommandSignature->mStride * i
+														  threadsPerThreadgroup:threadsPerThreadgroup];
 			}
 		}
 	}
 }
 
-void mtl_cmdResourceBarrier(Cmd* pCmd,
-uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
-uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
-uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
+void mtl_cmdResourceBarrier(
+	Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
+	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
-    if (numBufferBarriers)
-    {
+	if (numBufferBarriers)
+	{
 		pCmd->pQueue->mBarrierFlags |= BARRIER_FLAG_BUFFERS;
-    }
-    
-    if (numTextureBarriers)
-    {
+	}
+
+	if (numTextureBarriers)
+	{
 		pCmd->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
-    }
-	
+	}
+
 	if (numRtBarriers)
-    {
-        for (uint32_t i = 0; i < numRtBarriers; ++i)
-        {
-            RenderTargetBarrier* pTrans = &pRtBarriers[i];
-            Texture*        pTexture = pTrans->pRenderTarget->pTexture;
-			
+	{
+		for (uint32_t i = 0; i < numRtBarriers; ++i)
+		{
+			RenderTargetBarrier* pTrans = &pRtBarriers[i];
+			Texture*             pTexture = pTrans->pRenderTarget->pTexture;
+
 			pCmd->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
 			pCmd->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
-			
+
 			// If color attachment transitioned to shader read
-			if ((RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState ||
-			(RESOURCE_STATE_SHADER_RESOURCE & pTrans->mNewState)) &&
-			RESOURCE_STATE_RENDER_TARGET == pTrans->mCurrentState)
+			if ((RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState || (RESOURCE_STATE_SHADER_RESOURCE & pTrans->mNewState)) &&
+				RESOURCE_STATE_RENDER_TARGET == pTrans->mCurrentState)
 			{
 				util_track_color_attachment(pCmd, pTexture->mtlTexture);
-			}			
-        }
-    }
+			}
+		}
+	}
 }
 
 void mtl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
@@ -4320,7 +4368,7 @@ void mtl_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer*
 		util_end_current_encoders(pCmd, false);
 		pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 	}
-	
+
 	[pCmd->mtlBlitEncoder copyFromBuffer:pSrcBuffer->mtlBuffer
 							sourceOffset:srcOffset + pSrcBuffer->mOffset
 								toBuffer:pBuffer->mtlBuffer
@@ -4340,29 +4388,32 @@ typedef struct SubresourceDataDesc
 void mtl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, const SubresourceDataDesc* pSubresourceDesc)
 {
 	MTLSize sourceSize = MTLSizeMake(
-			max(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel),
-			max(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel),
-			max(1, pTexture->mDepth >> pSubresourceDesc->mMipLevel));
-	
+		max(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel), max(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel),
+		max(1, pTexture->mDepth >> pSubresourceDesc->mMipLevel));
+
 #ifdef TARGET_IOS
-    uint64_t formatNamespace = (TinyImageFormat_Code((TinyImageFormat)pTexture->mFormat) & ((1 << TinyImageFormat_NAMESPACE_REQUIRED_BITS) - 1));
-    bool isPvrtc = (TinyImageFormat_NAMESPACE_PVRTC == formatNamespace);
-	
+	uint64_t formatNamespace =
+		(TinyImageFormat_Code((TinyImageFormat)pTexture->mFormat) & ((1 << TinyImageFormat_NAMESPACE_REQUIRED_BITS) - 1));
+	bool isPvrtc = (TinyImageFormat_NAMESPACE_PVRTC == formatNamespace);
+
 	// PVRTC - replaceRegion is the most straightforward method
 	if (isPvrtc)
 	{
 		MTLRegion region = MTLRegionMake3D(0, 0, 0, sourceSize.width, sourceSize.height, sourceSize.depth);
-		[pTexture->mtlTexture replaceRegion:region mipmapLevel:pSubresourceDesc->mMipLevel withBytes:(uint8_t*)pIntermediate->pCpuMappedAddress + pSubresourceDesc->mSrcOffset bytesPerRow:0];
+		[pTexture->mtlTexture replaceRegion:region
+								mipmapLevel:pSubresourceDesc->mMipLevel
+								  withBytes:(uint8_t*)pIntermediate->pCpuMappedAddress + pSubresourceDesc->mSrcOffset
+								bytesPerRow:0];
 		return;
 	}
 #endif
-	
+
 	if (!pCmd->mtlBlitEncoder)
 	{
 		util_end_current_encoders(pCmd, false);
 		pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 	}
-	
+
 	// Copy to the texture's final subresource.
 	[pCmd->mtlBlitEncoder copyFromBuffer:pIntermediate->mtlBuffer
 							sourceOffset:pSubresourceDesc->mSrcOffset + pIntermediate->mOffset
@@ -4387,10 +4438,10 @@ void mtl_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore*
 	{
 		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
 		pSwapChain->mMTKDrawable = [layer nextDrawable];
-		
+
 		pSwapChain->mIndex = (pSwapChain->mIndex + 1) % pSwapChain->mImageCount;
 		*pImageIndex = pSwapChain->mIndex;
-		
+
 		pSwapChain->ppRenderTargets[pSwapChain->mIndex]->pTexture->mtlTexture = pSwapChain->mMTKDrawable.texture;
 	}
 }
@@ -4399,15 +4450,15 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	ASSERT(pQueue);
 	ASSERT(pDesc);
-	
-	uint32_t cmdCount = pDesc->mCmdCount;
-	Cmd** ppCmds = pDesc->ppCmds;
-	Fence* pFence = pDesc->pSignalFence;
-	uint32_t waitSemaphoreCount = pDesc->mWaitSemaphoreCount;
+
+	uint32_t    cmdCount = pDesc->mCmdCount;
+	Cmd**       ppCmds = pDesc->ppCmds;
+	Fence*      pFence = pDesc->pSignalFence;
+	uint32_t    waitSemaphoreCount = pDesc->mWaitSemaphoreCount;
 	Semaphore** ppWaitSemaphores = pDesc->ppWaitSemaphores;
-	uint32_t signalSemaphoreCount = pDesc->mSignalSemaphoreCount;
+	uint32_t    signalSemaphoreCount = pDesc->mSignalSemaphoreCount;
 	Semaphore** ppSignalSemaphores = pDesc->ppSignalSemaphores;
-	
+
 	ASSERT(cmdCount > 0);
 	ASSERT(ppCmds);
 	if (waitSemaphoreCount > 0)
@@ -4424,21 +4475,19 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		// set the queue built-in semaphore to signal when all command lists finished their execution
 		__block uint32_t commandsFinished = 0;
 		__block Fence* completedFence = NULL;
-		
+
 		if (pFence)
 		{
 			completedFence = pFence;
 			pFence->mSubmitted = true;
 		}
-		
+
 		for (uint32_t i = 0; i < cmdCount; i++)
 		{
 			__block Cmd* pCmd = ppCmds[i];
-			[pCmd->mtlCommandBuffer
-			addCompletedHandler:^(id<MTLCommandBuffer> buffer)
-			{
+			[pCmd->mtlCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
 				commandsFinished++;
-				
+
 #if defined(ENABLE_GPU_TIMESTAMPS)
 				if (pCmd->pLastFrameQuery)
 				{
@@ -4446,14 +4495,15 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 					{
 						const double gpuStartTime([buffer GPUStartTime]);
 						const double gpuEndTime([buffer GPUEndTime]);
-						
-						pCmd->pLastFrameQuery->mGpuTimestampStart = min(pCmd->pLastFrameQuery->mGpuTimestampStart, gpuStartTime * GPU_FREQUENCY);
-						
+
+						pCmd->pLastFrameQuery->mGpuTimestampStart =
+							min(pCmd->pLastFrameQuery->mGpuTimestampStart, gpuStartTime * GPU_FREQUENCY);
+
 						pCmd->pLastFrameQuery->mGpuTimestampEnd = max(pCmd->pLastFrameQuery->mGpuTimestampEnd, gpuEndTime * GPU_FREQUENCY);
 					}
 				}
 #endif
-				
+
 				if (commandsFinished == cmdCount)
 				{
 					if (completedFence)
@@ -4463,7 +4513,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 				}
 			}];
 		}
-		
+
 		// Signal the signal semaphores after the last command buffer has finished execution
 #if defined(ENABLE_EVENT_SEMAPHORE)
 		if (@available(macOS 10.14, iOS 12.0, *))
@@ -4471,10 +4521,10 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 			for (uint32_t i = 0; i < signalSemaphoreCount; i++)
 			{
 				[ppCmds[cmdCount - 1]->mtlCommandBuffer encodeSignalEvent:ppSignalSemaphores[i]->pMtlSemaphore value:1];
-				
+
 				ppSignalSemaphores[i]->mSignaled = 1;
 			}
-			
+
 			bool waitCommandBufferRequired = false;
 			for (uint32_t i = 0; i < waitSemaphoreCount; ++i)
 			{
@@ -4484,7 +4534,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 					break;
 				}
 			}
-			
+
 			// Commit a wait command buffer if there are wait semaphores
 			// To make sure command buffers from different queues get executed in correct order
 			if (waitCommandBufferRequired)
@@ -4495,11 +4545,11 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 					if (ppWaitSemaphores[i]->mSignaled)
 					{
 						[waitCommandBuffer encodeWaitForEvent:ppWaitSemaphores[i]->pMtlSemaphore value:1];
-						
+
 						ppWaitSemaphores[i]->mSignaled = 0;
 					}
 				}
-				
+
 				[waitCommandBuffer commit];
 				waitCommandBuffer = nil;
 			}
@@ -4509,7 +4559,7 @@ void mtl_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 		// commit the command lists
 		for (uint32_t i = 0; i < cmdCount; i++)
 		{
-			// Commit any uncommited encoder. This is necessary before committing the command buffer
+			// Commit any uncommitted encoder. This is necessary before committing the command buffer
 			util_end_current_encoders(ppCmds[i], false);
 
 			[ppCmds[i]->mtlCommandBuffer commit];
@@ -4523,7 +4573,7 @@ void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 	ASSERT(pQueue);
 	ASSERT(pDesc);
 	ASSERT(pDesc->pSwapChain);
-	
+
 	@autoreleasepool
 	{
 		SwapChain* pSwapChain = pDesc->pSwapChain;
@@ -4531,7 +4581,7 @@ void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 
 		// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
 		pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
-		
+
 #ifndef TARGET_IOS
 		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #else
@@ -4539,10 +4589,10 @@ void mtl_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 		//							 afterMinimumDuration:1.0 / 120.0];
 		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #endif
-	
+
 		pSwapChain->ppRenderTargets[pSwapChain->mIndex]->pTexture->mtlTexture = nil;
 		pSwapChain->mMTKDrawable = nil;
-		
+
 		[pSwapChain->presentCommandBuffer commit];
 		pSwapChain->presentCommandBuffer = nil;
 	}
@@ -4570,8 +4620,8 @@ void mtl_waitQueueIdle(Queue* pQueue)
 	id<MTLCommandBuffer> waitCmdBuf = [pQueue->mtlCommandQueue commandBufferWithUnretainedReferences];
 
 	[waitCmdBuf commit];
-    [waitCmdBuf waitUntilCompleted];
-	
+	[waitCmdBuf waitUntilCompleted];
+
 	waitCmdBuf = nil;
 }
 
@@ -4581,7 +4631,7 @@ void mtl_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceS
 	*pFenceStatus = FENCE_STATUS_COMPLETE;
 	if (pFence->mSubmitted)
 	{
-		// Check the fence status (and mark it as unsubmitted it if it has succesfully decremented).
+		// Check the fence status (and mark it as unsubmitted it if it has successfully decremented).
 		long status = dispatch_semaphore_wait(pFence->pMtlSemaphore, DISPATCH_TIME_NOW);
 		if (status == 0)
 		{
@@ -4647,50 +4697,48 @@ uint32_t mtl_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerVal
 	return 0;
 }
 
-void mtl_getTimestampFrequency(Queue* pQueue, double* pFrequency)
-{
-    *pFrequency = GPU_FREQUENCY;
-}
-    
+void mtl_getTimestampFrequency(Queue* pQueue, double* pFrequency) { *pFrequency = GPU_FREQUENCY; }
+
 void mtl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
 	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
 	ASSERT(pQueryPool);
 
 	pQueryPool->mCount = pDesc->mQueryCount;
-    pQueryPool->mGpuTimestampStart = DBL_MAX;
-    pQueryPool->mGpuTimestampEnd = DBL_MIN;
+	pQueryPool->mGpuTimestampStart = DBL_MAX;
+	pQueryPool->mGpuTimestampEnd = DBL_MIN;
 
 	*ppQueryPool = pQueryPool;
 }
 
-void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
-{
-	SAFE_FREE(pQueryPool);
-}
+void mtl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool) { SAFE_FREE(pQueryPool); }
 
-void mtl_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
-{
-}
+void mtl_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount) {}
 
-void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
-{
-    pCmd->pLastFrameQuery = pQueryPool;
-}
-    
-void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
-{
-}
+void mtl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) { pCmd->pLastFrameQuery = pQueryPool; }
+
+void mtl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) {}
 
 void mtl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
-    uint64_t* data = (uint64_t*)((uint8_t*)pReadbackBuffer->mtlBuffer.contents + pReadbackBuffer->mOffset);
-    
-    data[0] = pQueryPool->mGpuTimestampStart;
-    data[1] = pQueryPool->mGpuTimestampEnd;
+	uint64_t* data = (uint64_t*)((uint8_t*)pReadbackBuffer->mtlBuffer.contents + pReadbackBuffer->mOffset);
 	
-	pQueryPool->mGpuTimestampStart = DBL_MAX;
-	pQueryPool->mGpuTimestampEnd = DBL_MIN;
+	// Temporary workaround for a race condition: sometimes the command list
+	// completion handler which populates these variables has not yet run,
+	// so they are still DBL_MAX/DBL_MIN. These checks prevent undefined behavior
+	// from trying to cast a too-large or too-small double value to a uint64_t.
+	double timestampStart = pQueryPool->mGpuTimestampStart;
+	double timestampEnd = pQueryPool->mGpuTimestampEnd;
+	if (timestampStart != DBL_MAX)
+	{
+		data[0] = (uint64_t)timestampStart;
+		pQueryPool->mGpuTimestampStart = DBL_MAX;
+	}
+	if (timestampEnd != DBL_MIN)
+	{
+		data[1] = (uint64_t)timestampEnd;
+		pQueryPool->mGpuTimestampEnd = DBL_MIN;
+	}
 }
 /************************************************************************/
 // Resource Debug Naming Interface
@@ -4715,7 +4763,7 @@ void mtl_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pNam
 	ASSERT(pRenderer);
 	ASSERT(pTexture);
 	ASSERT(pName);
-	
+
 #if defined(ENABLE_GRAPHICS_DEBUG)
 	NSString* str = [NSString stringWithUTF8String:pName];
 	pTexture->mtlTexture.label = str;
@@ -4727,9 +4775,7 @@ void mtl_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, c
 	setTextureName(pRenderer, pRenderTarget->pTexture, pName);
 }
 
-void mtl_setPipelineName(Renderer*, Pipeline*, const char*)
-{
-}
+void mtl_setPipelineName(Renderer*, Pipeline*, const char*) {}
 // -------------------------------------------------------------------------------------------------
 // Utility functions
 // -------------------------------------------------------------------------------------------------
@@ -4740,26 +4786,20 @@ void mtl_setPipelineName(Renderer*, Pipeline*, const char*)
 
 void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void* pConstants)
 {
-    if (pDesc->mUsedStages & SHADER_STAGE_VERT)
-    {
-        [pCmd->mtlRenderEncoder setVertexBytes: pConstants
-                                        length: pDesc->mSize
-                                       atIndex: pDesc->mReg];
-    }
-    
-    if (pDesc->mUsedStages & SHADER_STAGE_FRAG)
-    {
-        [pCmd->mtlRenderEncoder setFragmentBytes: pConstants
-                                          length: pDesc->mSize
-                                         atIndex: pDesc->mReg];
-    }
+	if (pDesc->mUsedStages & SHADER_STAGE_VERT)
+	{
+		[pCmd->mtlRenderEncoder setVertexBytes:pConstants length:pDesc->mSize atIndex:pDesc->mReg];
+	}
 
-    if (pDesc->mUsedStages & SHADER_STAGE_COMP)
-    {
-        [pCmd->mtlComputeEncoder setBytes: pConstants
-                                   length: pDesc->mSize
-                                  atIndex: pDesc->mReg];
-    }
+	if (pDesc->mUsedStages & SHADER_STAGE_FRAG)
+	{
+		[pCmd->mtlRenderEncoder setFragmentBytes:pConstants length:pDesc->mSize atIndex:pDesc->mReg];
+	}
+
+	if (pDesc->mUsedStages & SHADER_STAGE_COMP)
+	{
+		[pCmd->mtlComputeEncoder setBytes:pConstants length:pDesc->mSize atIndex:pDesc->mReg];
+	}
 }
 
 void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource)
@@ -4777,18 +4817,17 @@ void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource)
 			{
 				pCmd->mColorAttachmentCapacity <<= 1;
 			}
-			
-			NOREFS id<MTLResource>* resources = (NOREFS id<MTLResource>*)tf_calloc(
-				 pCmd->mColorAttachmentCapacity, sizeof(id<MTLResource>));
+
+			NOREFS id<MTLResource>* resources = (NOREFS id<MTLResource>*)tf_calloc(pCmd->mColorAttachmentCapacity, sizeof(id<MTLResource>));
 			for (uint32_t i = 0; i < pCmd->mColorAttachmentCount; ++i)
 			{
 				resources[i] = pCmd->pColorAttachments[i];
 			}
-			
+
 			SAFE_FREE(pCmd->pColorAttachments);
 			pCmd->pColorAttachments = resources;
 		}
-		
+
 		pCmd->pColorAttachments[pCmd->mColorAttachmentCount++] = resource;
 	}
 #else
@@ -4806,7 +4845,9 @@ void util_set_heaps_graphics(Cmd* pCmd)
 #if defined(ENABLE_ARGUMENT_BUFFER_USE_STAGES)
 	if (@available(macOS 10.15, iOS 14.0, *))
 	{
-		[pCmd->mtlRenderEncoder useHeaps:pCmd->pRenderer->pHeaps count:pCmd->pRenderer->mHeapCount stages:MTLRenderStageVertex|MTLRenderStageFragment];
+		[pCmd->mtlRenderEncoder useHeaps:pCmd->pRenderer->pHeaps
+								   count:pCmd->pRenderer->mHeapCount
+								  stages:MTLRenderStageVertex | MTLRenderStageFragment];
 	}
 #else
 	if (@available(macOS 10.13, iOS 14.0, *))
@@ -4840,7 +4881,7 @@ void util_set_resources_graphics(Cmd* pCmd)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		[pCmd->mtlRenderEncoder useResources:pCmd->pColorAttachments count:pCmd->mColorAttachmentCount usage:MTLResourceUsageRead];
-		
+
 		pCmd->mColorAttachmentCount = 0;
 	}
 #endif
@@ -4855,7 +4896,7 @@ void util_set_resources_compute(Cmd* pCmd)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		[pCmd->mtlComputeEncoder useResources:pCmd->pColorAttachments count:pCmd->mColorAttachmentCount usage:MTLResourceUsageRead];
-		
+
 		pCmd->mColorAttachmentCount = 0;
 	}
 #endif
@@ -4906,10 +4947,11 @@ MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format)
 		case TinyImageFormat_R32_UINT: return MTLVertexFormatUInt;
 		case TinyImageFormat_R32G32_UINT: return MTLVertexFormatUInt2;
 		case TinyImageFormat_R32G32B32_UINT: return MTLVertexFormatUInt3;
-		case TinyImageFormat_R32G32B32A32_UINT: return MTLVertexFormatUInt4;
+		case TinyImageFormat_R32G32B32A32_UINT:
+			return MTLVertexFormatUInt4;
 
-		// TODO add this UINT + UNORM format to TinyImageFormat
-//		case TinyImageFormat_RGB10A2: return MTLVertexFormatUInt1010102Normalized;
+			// TODO add this UINT + UNORM format to TinyImageFormat
+			//		case TinyImageFormat_RGB10A2: return MTLVertexFormatUInt1010102Normalized;
 		default: break;
 	}
 	LOGF(LogLevel::eERROR, "Unknown vertex format: %d", format);
@@ -4930,11 +4972,11 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 {
 	const bool barrierRequired(pCmd->pQueue->mBarrierFlags);
 	UNREF_PARAM(barrierRequired);
-	
+
 	if (pCmd->mtlRenderEncoder != nil)
 	{
 		ASSERT(pCmd->mtlComputeEncoder == nil && pCmd->mtlBlitEncoder == nil);
-		
+
 #if defined(ENABLE_FENCES)
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
@@ -4945,15 +4987,15 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 			}
 		}
 #endif
-		
+
 		[pCmd->mtlRenderEncoder endEncoding];
 		pCmd->mtlRenderEncoder = nil;
 	}
-	
+
 	if (pCmd->mtlComputeEncoder != nil)
 	{
 		ASSERT(pCmd->mtlRenderEncoder == nil && pCmd->mtlBlitEncoder == nil);
-		
+
 #if defined(ENABLE_FENCES)
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
@@ -4964,15 +5006,15 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 			}
 		}
 #endif
-		
+
 		[pCmd->mtlComputeEncoder endEncoding];
 		pCmd->mtlComputeEncoder = nil;
 	}
-	
+
 	if (pCmd->mtlBlitEncoder != nil)
 	{
 		ASSERT(pCmd->mtlRenderEncoder == nil && pCmd->mtlComputeEncoder == nil);
-		
+
 #if defined(ENABLE_FENCES)
 		if (@available(macOS 10.13, iOS 10.0, *))
 		{
@@ -4983,7 +5025,7 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 			}
 		}
 #endif
-		
+
 		[pCmd->mtlBlitEncoder endEncoding];
 		pCmd->mtlBlitEncoder = nil;
 	}
@@ -5003,14 +5045,9 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 					case QUEUE_TYPE_GRAPHICS:
 						[pCmd->mtlRenderEncoder waitForFence:pCmd->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
 						break;
-					case QUEUE_TYPE_COMPUTE:
-						[pCmd->mtlComputeEncoder waitForFence:pCmd->pQueue->mtlQueueFence];
-						break;
-					case QUEUE_TYPE_TRANSFER:
-						[pCmd->mtlBlitEncoder waitForFence:pCmd->pQueue->mtlQueueFence];
-						break;
-					default:
-						ASSERT(false);
+					case QUEUE_TYPE_COMPUTE: [pCmd->mtlComputeEncoder waitForFence:pCmd->pQueue->mtlQueueFence]; break;
+					case QUEUE_TYPE_TRANSFER: [pCmd->mtlBlitEncoder waitForFence:pCmd->pQueue->mtlQueueFence]; break;
+					default: ASSERT(false);
 				}
 			}
 			else
@@ -5023,17 +5060,23 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 #if defined(ENABLE_MEMORY_BARRIERS_GRAPHICS)
 							if (pCmd->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
 							{
-								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers
+																   afterStages:MTLRenderStageFragment
+																  beforeStages:MTLRenderStageVertex];
 							}
-							
+
 							if (pCmd->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
 							{
-								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeTextures afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeTextures
+																   afterStages:MTLRenderStageFragment
+																  beforeStages:MTLRenderStageVertex];
 							}
-							
+
 							if (pCmd->pQueue->mBarrierFlags & BARRIER_FLAG_RENDERTARGETS)
 							{
-								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeRenderTargets afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
+								[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeRenderTargets
+																   afterStages:MTLRenderStageFragment
+																  beforeStages:MTLRenderStageVertex];
 							}
 #endif
 						}
@@ -5043,7 +5086,7 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 							[pCmd->mtlRenderEncoder waitForFence:pCmd->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
 						}
 						break;
-						
+
 					case QUEUE_TYPE_COMPUTE:
 						if (@available(macOS 10.14, iOS 12.0, *))
 						{
@@ -5052,7 +5095,7 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 							{
 								[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
 							}
-							
+
 							if (pCmd->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
 							{
 								[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeTextures];
@@ -5065,7 +5108,7 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 							[pCmd->mtlComputeEncoder waitForFence:pCmd->pQueue->mtlQueueFence];
 						}
 						break;
-						
+
 					case QUEUE_TYPE_TRANSFER:
 						// we cant use barriers with blit encoder, only fence if available
 						if (pCmd->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
@@ -5073,12 +5116,11 @@ void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 							[pCmd->mtlBlitEncoder waitForFence:pCmd->pQueue->mtlQueueFence];
 						}
 						break;
-						
-					default:
-						ASSERT(false);
+
+					default: ASSERT(false);
 				}
 			}
-			
+
 			pCmd->pQueue->mBarrierFlags = 0;
 		}
 	}
@@ -5095,7 +5137,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 
 	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), totalSize);
 	ASSERT(pTexture);
-	
+
 	void* mem = (pTexture + 1);
 
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
@@ -5103,14 +5145,14 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 
 	if (pDesc->mHeight == 1)
 		((TextureDesc*)pDesc)->mMipLevels = 1;
-	
+
 	bool isDepthBuffer = TinyImageFormat_HasDepth(pDesc->mFormat) || TinyImageFormat_HasStencil(pDesc->mFormat);
 
-	pTexture->mtlPixelFormat = (uint32_t) TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
+	pTexture->mtlPixelFormat = (uint32_t)TinyImageFormat_ToMTLPixelFormat(pDesc->mFormat);
 
-    if (pDesc->mFormat == TinyImageFormat_D24_UNORM_S8_UINT && !pRenderer->pCapBits->canRenderTargetWriteTo[pDesc->mFormat])
-    {
-		internal_log(LOG_TYPE_WARN, "Format D24S8 is not supported on this device. Using D32S8 instead", "addTexture");
+	if (pDesc->mFormat == TinyImageFormat_D24_UNORM_S8_UINT && !pRenderer->pCapBits->canRenderTargetWriteTo[pDesc->mFormat])
+	{
+		internal_log(eWARNING, "Format D24S8 is not supported on this device. Using D32S8 instead", "addTexture");
 		pTexture->mtlPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 		((TextureDesc*)pDesc)->mFormat = TinyImageFormat_D32_SFLOAT_S8_UINT;
 	}
@@ -5139,7 +5181,15 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		textureDesc.storageMode = gMemoryStorageModes[RESOURCE_MEMORY_USAGE_GPU_ONLY];
 		textureDesc.cpuCacheMode = gMemoryCacheModes[RESOURCE_MEMORY_USAGE_GPU_ONLY];
 		textureDesc.resourceOptions = gMemoryOptions[RESOURCE_MEMORY_USAGE_GPU_ONLY];
-		
+// Simulator doesn't support shared depth/stencil textures
+#ifdef TARGET_IOS_SIMULATOR
+		if (isDepthBuffer)
+		{
+			textureDesc.storageMode = MTLStorageModePrivate;
+			textureDesc.resourceOptions = MTLResourceStorageModePrivate;
+		}
+#endif
+
 		MTLTextureType textureType = {};
 		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
 		{
@@ -5160,74 +5210,73 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 				textureType = MTLTextureType1D;
 		}
 
-		switch(textureType)
+		switch (textureType)
 		{
-		case MTLTextureType3D:
-		{
-			textureDesc.textureType = MTLTextureType3D;
-			break;
-		}
-		case MTLTextureType2D:
-		{
-			if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (pDesc->mDescriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE))
+			case MTLTextureType3D:
 			{
-				if (pDesc->mArraySize == 6)
+				textureDesc.textureType = MTLTextureType3D;
+				break;
+			}
+			case MTLTextureType2D:
+			{
+				if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (pDesc->mDescriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE))
 				{
-					textureDesc.textureType = MTLTextureTypeCube;
-					textureDesc.arrayLength = 1;
-				}
+					if (pDesc->mArraySize == 6)
+					{
+						textureDesc.textureType = MTLTextureTypeCube;
+						textureDesc.arrayLength = 1;
+					}
 #ifndef TARGET_IOS
-				else
-				{
-					textureDesc.textureType = MTLTextureTypeCubeArray;
-					textureDesc.arrayLength /= 6;
-				}
-#else
-				else if (@available(iOS 11.0, *))
-				{
-#if defined(ENABLE_TEXTURE_CUBE_ARRAYS)
-					if ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1])
+					else
 					{
 						textureDesc.textureType = MTLTextureTypeCubeArray;
 						textureDesc.arrayLength /= 6;
 					}
-					else
-#endif
+#else
+					else if (@available(iOS 11.0, *))
 					{
-						internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+#if defined(ENABLE_TEXTURE_CUBE_ARRAYS)
+						if ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily4_v1])
+						{
+							textureDesc.textureType = MTLTextureTypeCubeArray;
+							textureDesc.arrayLength /= 6;
+						}
+						else
+#endif
+						{
+							internal_log(eERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+						}
 					}
+					else
+					{
+						internal_log(eERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+					}
+#endif
 				}
 				else
 				{
-					internal_log(LOG_TYPE_ERROR, "Cube Array textures are not supported on this iOS device", "addTexture");
+					if (pDesc->mArraySize > 1)
+						textureDesc.textureType = MTLTextureType2DArray;
+					else if (pDesc->mSampleCount > SAMPLE_COUNT_1)
+						textureDesc.textureType = MTLTextureType2DMultisample;
+					else
+						textureDesc.textureType = MTLTextureType2D;
 				}
-#endif
+
+				break;
 			}
-			else
+			case MTLTextureType1D:
 			{
 				if (pDesc->mArraySize > 1)
-					textureDesc.textureType = MTLTextureType2DArray;
-				else if (pDesc->mSampleCount > SAMPLE_COUNT_1)
-					textureDesc.textureType = MTLTextureType2DMultisample;
+					textureDesc.textureType = MTLTextureType1DArray;
 				else
-					textureDesc.textureType = MTLTextureType2D;
+					textureDesc.textureType = MTLTextureType1D;
+
+				break;
 			}
-			
-			break;
+			default: break;
 		}
-		case MTLTextureType1D:
-		{
-			if (pDesc->mArraySize > 1)
-				textureDesc.textureType = MTLTextureType1DArray;
-			else
-				textureDesc.textureType = MTLTextureType1D;
-			
-			break;
-		}
-		default:
-			break;
-		}
-		
+
 		if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_TEXTURE) != 0)
 		{
 			textureDesc.usage |= MTLTextureUsageShaderRead;
@@ -5237,7 +5286,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		{
 			textureDesc.usage |= MTLTextureUsageRenderTarget;
 		}
-		
+
 		// RW texture flags
 		if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE) != 0)
 		{
@@ -5252,7 +5301,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
 			{
 				textureDesc.resourceOptions = MTLResourceStorageModeMemoryless;
-				
+
 				pTexture->mtlTexture = [pRenderer->pDevice newTextureWithDescriptor:textureDesc];
 				ASSERT(pTexture->mtlTexture);
 #if defined(ENABLE_GRAPHICS_DEBUG)
@@ -5271,27 +5320,29 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 					MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapTextureSizeAndAlignWithDescriptor:textureDesc];
 #if defined(ENABLE_HEAP_PLACEMENT)
 					bool useHeapPlacementHeaps = false;
-					
+
 					// Need to check mPlacementHeaps since it depends on gpu family as well as macOS/iOS version
 					if (@available(macOS 10.15, iOS 13.0, *))
 					{
 						if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
 						{
-							VmaAllocationInfo allocInfo = util_render_alloc(pRenderer, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign.size, sizeAlign.align, &pTexture->pAllocation);
+							VmaAllocationInfo allocInfo = util_render_alloc(
+								pRenderer, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign.size, sizeAlign.align, &pTexture->pAllocation);
 
-							pTexture->mtlTexture = [allocInfo.deviceMemory->pHeap newTextureWithDescriptor:textureDesc offset:allocInfo.offset];
-							
+							pTexture->mtlTexture = [allocInfo.deviceMemory->pHeap newTextureWithDescriptor:textureDesc
+																									offset:allocInfo.offset];
+
 							useHeapPlacementHeaps = true;
 						}
 					}
-					
+
 					if (!useHeapPlacementHeaps)
 #endif
 					{
 						// If placement heaps are not supported we cannot use VMA
 						// Instead we have to rely on MTLHeap automatic placement
 						uint32_t heapIndex = util_find_heap_with_space(pRenderer, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign);
-						
+
 						pTexture->mtlTexture = [pRenderer->pHeaps[heapIndex] newTextureWithDescriptor:textureDesc];
 					}
 				}
@@ -5328,7 +5379,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 			}
 		}
 #endif
-		
+
 		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
 			NSRange levels = NSMakeRange(i, 1);
@@ -5338,7 +5389,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 																						   slices:slices];
 		}
 	}
-	
+
 	pTexture->mIsColorAttachment = (isRT && !isDepthBuffer);
 	pTexture->mNodeIndex = pDesc->mNodeIndex;
 	pTexture->mUav = pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE;
@@ -5359,17 +5410,11 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 }
 
 // Virtual Textures
-void mtl_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
-{
-}
+void mtl_addVirtualTexture(Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData) {}
 
-void mtl_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
-{
-}
+void mtl_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt) {}
 
-void mtl_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
-{
-}
+void mtl_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture, uint32_t currentImage) {}
 
 /************************************************************************/
 /************************************************************************/
@@ -5378,7 +5423,6 @@ void mtl_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)
 void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
 {
 	// API functions
-	exitRenderer = mtl_exitRenderer;
 	addFence = mtl_addFence;
 	removeFence = mtl_removeFence;
 	addSemaphore = mtl_addSemaphore;
@@ -5397,7 +5441,7 @@ void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Rende
 	removeCmd_n = mtl_removeCmd_n;
 
 	addRenderTarget = mtl_addRenderTarget;
-	removeRenderTarget= mtl_removeRenderTarget;
+	removeRenderTarget = mtl_removeRenderTarget;
 	addSampler = mtl_addSampler;
 	removeSampler = mtl_removeSampler;
 
@@ -5508,8 +5552,14 @@ void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Rende
 	setRenderTargetName = mtl_setRenderTargetName;
 	setPipelineName = mtl_setPipelineName;
 
-
 	mtl_initRenderer(appName, pSettings, ppRenderer);
+}
+
+void exitMetalRenderer(Renderer* pRenderer)
+{
+	ASSERT(pRenderer);
+
+	mtl_exitRenderer(pRenderer);
 }
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)

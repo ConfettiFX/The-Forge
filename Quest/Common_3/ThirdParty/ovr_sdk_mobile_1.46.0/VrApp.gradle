@@ -1,0 +1,297 @@
+import org.gradle.internal.os.OperatingSystem;
+import com.android.ddmlib.AndroidDebugBridge
+import com.android.ddmlib.IDevice
+import com.android.ddmlib.CollectingOutputReceiver
+import org.apache.tools.ant.taskdefs.condition.Os
+
+buildscript {
+  repositories {
+    google()
+    jcenter()
+  }
+
+  dependencies {
+    classpath 'com.android.tools.build:gradle:4.0.0'
+  }
+
+  tasks.register("wrapper")
+}
+
+class VrAppPlugin implements Plugin<Project> {
+  Project project = null
+
+  // per-device methods //
+
+  boolean isPackageInstalled( IDevice device, String packageName ) {
+    CollectingOutputReceiver receiver = new CollectingOutputReceiver();
+    device.executeShellCommand( "pm list packages " + packageName, receiver );
+    def out = receiver.getOutput();
+    def ret = false;
+    out.split('\n').each {
+      if ( it =~ packageName )
+      {
+        ret = true;
+      }
+    }
+    return ret;
+  }
+
+  void clearAdbLog( IDevice device ) {
+    CollectingOutputReceiver receiver = new CollectingOutputReceiver()
+    device.executeShellCommand( "logcat -c", receiver )
+  }
+
+  void installApk( IDevice device, File apkFile, String applicationId ) {
+    project.logger.quiet "Installing ${applicationId} on device ${device.serialNumber}"
+
+    String toinstall = "/data/local/tmp/toinstall.apk"
+
+    try {
+      device.pushFile( apkFile.path, toinstall )
+    } catch ( Exception e ) {
+      throw new RuntimeException(  "Failed to push ${apkFile.path} to ${toinstall}. ${e}", e )
+    }
+
+    while ( true ) {
+      try {
+        device.installRemotePackage( toinstall, true )
+        break
+      } catch ( Exception e ) {
+        project.logger.quiet "Failed to install ${applicationId} on device ${device.serialNumber} (${e}). Trying to uninstall first."
+      }
+      // this only needs to happen if we fail to install (i.e. not having matching sigs)
+      stopApk( device, "com.oculus.horizon" )
+      try {
+        device.uninstallPackage( applicationId )
+      } catch ( Exception e ) {
+        throw new RuntimeException(  "Failed to uninstall ${applicationId}. ${e}", e )
+      }
+    }
+  }
+
+  void stopApk( IDevice device, String packageName ) {
+    CollectingOutputReceiver receiver = new CollectingOutputReceiver()
+    device.executeShellCommand( "am force-stop ${packageName}", receiver )
+  }
+
+  void runApk( IDevice device, manifestFile ) {
+    CollectingOutputReceiver receiver = new CollectingOutputReceiver()
+      def activityClass =   new XmlSlurper().parse( manifestFile ).application.activity.find{ it.'intent-filter'.find{ filter ->
+        return filter.action  .find{it.'@android:name'.text() == 'android.intent.action.MAIN'      } \
+            && ( filter.category.find{it.'@android:name'.text() == 'android.intent.category.LAUNCHER'} \
+            || filter.category.find{it.'@android:name'.text() == 'android.intent.category.INFO'} )
+      }}.'@android:name'
+      def startActivity = "${project.android.defaultConfig.applicationId}/${activityClass}"
+      project.logger.quiet "Starting \'$startActivity\' on ${project.deviceMap.size()} devices:"
+      project.logger.quiet "- ${device.serialNumber}"
+      device.executeShellCommand( "am start $startActivity", receiver )
+  }
+
+  void apply( Project project ) {
+    this.project = project
+
+    // FIXME: The Task.leftShift(Closure) method has been deprecated and is scheduled to be removed in Gradle 5.0. Please use Task.doLast(Action) instead.
+    project.task( "cleanWorkAround" ) {
+      description "Workaround for .externalNativeBuild not being deleted on clean"
+    }.doLast {
+      project.delete project.file( ".externalNativeBuild" )
+    }
+
+    project.android {
+      compileSdkVersion 26
+
+      defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 25
+
+        externalNativeBuild {
+          ndk {
+          }
+          ndkBuild {
+            def numProcs = Runtime.runtime.availableProcessors()
+            arguments "V=0", "-j$numProcs", "-C$project.buildDir.parent", "APP_PLATFORM=android-24", "NDK_TOOLCHAIN_VERSION=clang", "APP_STL=c++_static"
+          }
+        }
+      }
+
+      externalNativeBuild {
+        ndkBuild {
+          path 'jni/Android.mk'
+        }
+      }
+
+      signingConfigs {
+        def keystorePath = (project.hasProperty('key.store')) ?
+          new File(project.getProperty('key.store')) :
+          project.file('android.debug.keystore')
+
+        def keystorePassword = (project.hasProperty('key.store.password')) ?
+          project.getProperty('key.store.password') : 'android'
+
+        def keystoreKeyAlias = (project.hasProperty('key.alias')) ?
+          project.getProperty('key.alias') : 'androiddebugkey'
+
+        def keystoreKeyPassword = (project.hasProperty('key.alias.password')) ?
+          project.getProperty('key.alias.password') : 'android'
+
+        debug {
+          storeFile keystorePath
+          storePassword keystorePassword
+          keyAlias keystoreKeyAlias
+          keyPassword keystoreKeyPassword
+          v2SigningEnabled true
+        }
+
+        release {
+          storeFile keystorePath
+          storePassword keystorePassword
+          keyAlias keystoreKeyAlias
+          keyPassword keystoreKeyPassword
+          v2SigningEnabled true
+        }
+      }
+
+      buildTypes {
+        debug {
+          signingConfig signingConfigs.debug
+          debuggable true
+          jniDebuggable true
+
+          externalNativeBuild {
+            ndkBuild {
+              arguments "NDK_DEBUG=1","OVR_DEBUG=1","USE_ASAN=1"
+            }
+          }
+        }
+
+        release {
+          signingConfig signingConfigs.release
+          debuggable false
+          jniDebuggable false
+
+          externalNativeBuild {
+            ndkBuild {
+              arguments "NDK_DEBUG=0","OVR_DEBUG=0","USE_ASAN=0"
+            }
+          }
+        }
+      }
+    }
+
+    // WORKAROUND: On Mac OS X, running ndk-build clean with a high num of parallel executions
+    // set may result in the following build error:  rm: fts_read: No such file or directory.
+    // Currently, there isn't a good way to specify numProcs=1 only on clean. So, in order
+    // to work around the issue, delete the auto-generated .externalNativeBuild artifacts
+    // (where $numProcs specified) before executing the clean task.
+    project.clean.dependsOn project.cleanWorkAround
+
+    project.clean {
+      // remove the auto-generated debug keystore (currently generated by python build script)
+      delete "android.debug.keystore"
+    }
+
+    project.afterEvaluate {
+      Task initDeviceList = project.task( "initDeviceList()" ).doLast {
+        project.ext.deviceMap = [ : ]
+        if (project.hasProperty( "should_install" ) == true) {
+          AndroidDebugBridge.initIfNeeded( false )
+          AndroidDebugBridge bridge = AndroidDebugBridge.createBridge( project.android.getAdbExe().absolutePath, false )
+
+          long timeOut = 30000 // 30 sec
+          int sleepTime = 1000
+          while ( !bridge.hasInitialDeviceList() && timeOut > 0 ) {
+            sleep( sleepTime )
+            timeOut -= sleepTime
+          }
+          if ( timeOut <= 0 && !bridge.hasInitialDeviceList() ) {
+            throw new RuntimeException( "Timeout getting device list.", null )
+          }
+
+          // if a device is connected both physically and over the network, only include the physical ID
+          if ( project.hasProperty( "should_install" ) == true ) {
+            bridge.devices.split { it.getProperty( "ro.serialno" ) != it.serialNumber }.each {
+              it.collectEntries( project.deviceMap, { [ ( it.getProperty( "ro.serialno" )) : it ] } )
+            }
+          }
+        }
+      }
+
+      project.task( "stopApk", dependsOn: initDeviceList ) {
+          description "Stops app if currently running on device"
+      }.doLast {
+        project.deviceMap.each { deviceSerial, device ->
+          stopApk( device, android.defaultConfig.applicationId )
+        }
+      }
+
+      project.android.applicationVariants.all { variant ->
+        Task installAndRun = project.task( "installAndRun${variant.name.capitalize()}" ) {
+          dependsOn variant.assembleProvider.get()
+          dependsOn initDeviceList
+          onlyIf { project.hasProperty( "should_install" ) }
+          description "Installs and runs the APK file"
+        }.doLast { variant.outputs.each { output ->
+            if ( output.outputFile.exists() ) {
+              if ( project.deviceMap.size() == 0 ) {
+                project.logger.quiet "Install requested, but no devices found."
+              } else {
+                project.deviceMap.each { deviceSerial, device ->
+                  installApk( device, output.outputFile, project.android.defaultConfig.applicationId )
+                  if ( project.hasProperty( "clear_logcat" ) ) {
+                    clearAdbLog( device ) 
+                  }
+                  runApk( device, new File(output.processManifest.manifestOutputDirectory.get().asFile, "AndroidManifest.xml"))
+                }
+              }
+            }
+          }
+        }
+        variant.assembleProvider.get().finalizedBy installAndRun
+      }
+    }
+  }
+}
+
+// *******************************
+// GEN DEBUG KEYSTORE TASK
+// *******************************
+
+class GenDebugKeystore extends DefaultTask {
+  @TaskAction
+  genDebugKeystore() {
+    if ( !project.file("android.debug.keystore").exists() ) {
+      def pythonCmd = 'python'
+      if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        pythonCmd = "${project.rootProject.projectDir}/bin/scripts/build/ovrbuild_keystore.py.bat"
+        project.exec {
+          commandLine pythonCmd
+        }
+      } else {
+        project.exec {
+          commandLine pythonCmd,
+          "${project.rootProject.projectDir}/bin/scripts/build/ovrbuild_keystore.py"
+        }
+      }
+    }
+  }
+}
+
+project.task('genDebugKeystore', type: GenDebugKeystore ) {
+  description 'generate debug keystore'
+}
+
+
+// **************************************************************
+// Task interceptor to add dependant tasks
+// **************************************************************
+
+project.tasks.whenTaskAdded { task ->
+  if (task.name == 'validateSigningDebug') {
+    task.dependsOn 'genDebugKeystore'
+  }
+  if (task.name == 'validateSigningRelease') {
+    task.dependsOn 'genDebugKeystore'
+  }
+}
+
+apply plugin: VrAppPlugin

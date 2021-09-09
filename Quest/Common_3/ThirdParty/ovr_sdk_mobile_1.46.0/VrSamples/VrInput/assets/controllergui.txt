@@ -1,0 +1,2136 @@
+itemParms {
+	// root
+	VRMenuObjectParms {
+		Type = VRMENU_CONTAINER;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER | VRMENUOBJECT_DONT_RENDER_TEXT;
+		Components {
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 1.0f, 1.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		ParentId = -1;
+		Id = 0;
+		Name = "root";		
+	}
+
+	// panel
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.1294f, 0.13333f, 0.14117f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 552.0f, 884.0f );
+			}
+		}
+		Text = "VrInput";
+		LocalPose {
+			Position = ( 0.0f, 00.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 552.0f, 884.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 376.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_BASELINE;
+			Scale = 0.75f;
+		}
+		ParentName = "root";
+		Id = 3;
+		Name = "panel";
+	}
+
+	// primare Input MENU
+	//=================================================
+
+	// primary_input_foreground
+	VRMenuObjectParms {
+		Type = VRMENU_CONTAINER;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER | VRMENUOBJECT_DONT_RENDER_TEXT;
+		TexelCoords = true;
+		Components {
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 0.0f, 104.0f, 0.05f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 1.0f, 1.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		ParentName = "panel";
+		Id = 1;
+		Name = "primary_input_foreground";		
+	}
+	// primare Input trigger
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Trigger";
+		LocalPose {
+			Position = ( -217.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 4;
+		Name = "primary_input_trigger";
+	}
+	// primare Input triggersana
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panelana";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "";
+		LocalPose {
+			Position = ( -217.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 15;
+		Name = "primary_input_triggerana";
+	}
+	// primare Input touchpad click
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "TPClick";
+		LocalPose {
+			Position = ( -109.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 5;
+		Name = "primary_input_touchpad_click";
+	}
+	// primare Input touch
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Touch";
+		LocalPose {
+			Position = ( 0.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 6;
+		Name = "primary_input_touch";
+	}
+	// primare Input A
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "A";
+		LocalPose {
+			Position = ( -129.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 32.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 2.5f, 2.5f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 6;
+		Name = "primary_input_a";
+	}
+	// primare Input B
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "B";
+		LocalPose {
+			Position = ( -89.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 32.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 2.5f, 2.5f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 6;
+		Name = "primary_input_b";
+	}
+	// primare Input back
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Back";
+		LocalPose {
+			Position = ( 109.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 7;
+		Name = "primary_input_back";
+	}
+	// primare Input index point
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Point";
+		LocalPose {
+			Position = ( 0.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 18;
+		Name = "primary_input_index_point";
+	}
+	// primare Input thumb up
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Thumb";
+		LocalPose {
+			Position = ( 109.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 19;
+		Name = "primary_input_thumb_up";
+	}
+	// primare Input grip
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Grip";
+		LocalPose {
+			Position = ( 217.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 16;
+		Name = "primary_input_grip";
+	}
+	// primare Input gripana
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panelana";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 217.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 17;
+		Name = "primary_input_gripana";
+	}
+	// primare Input touch position
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Pos( ?, ? ) Min( ?, ? ) Max( ?, ? )";
+		LocalPose {
+			Position = ( 0.0f, -164.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 8;
+		Name = "primary_input_touch_pos";
+	}
+	// button caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "button_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Buttons: ?";
+		LocalPose {
+			Position = ( 0.0f, -128.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -260.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 9;
+		Name = "primary_input_button_caps";
+	}
+	// size caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "primary_input_size_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Touch Size: ( ?, ? )";
+		LocalPose {
+			Position = ( -136.0f, -92.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 10;
+		Name = "primary_input_size_caps";
+	}
+	// range caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "primary_input_range_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Touch Range: ( ?, ? )";
+		LocalPose {
+			Position = ( -136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 11;
+		Name = "primary_input_range_caps";
+	}
+	// primare Input battery
+    VRMenuObjectParms {
+        Type = VRMENU_STATIC;
+        Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+        TexelCoords = true;
+        SurfaceParms {
+            VRMenuSurfaceParms {
+                SurfaceName = "primary_input_battery_panel";
+                ImageNames {
+                    string[0] = "apk:///assets/panel.ktx";
+                }
+                TextureTypes {
+                    eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+                }
+                Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+                Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+                Dims = ( 264.0f, 32.0f );
+            }
+        }
+        Text = "Battery: ?";
+        LocalPose {
+            Position = ( 136.0f, -92.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        LocalScale = ( 264.0f, 32.0f, 1.0f );
+        TextLocalPose {
+            Position = ( -128.0f, 0.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+        FontParms {
+            AlignHoriz = HORIZONTAL_LEFT;
+            AlignVert = VERTICAL_CENTER;
+            Scale = 0.5f;
+            WrapWidth = 520.0f;
+            MultiLine = false;
+        }
+        ParentName = "primary_input_foreground";
+        Id = 14;
+        Name = "primary_input_battery";
+    }
+	// primare Input hand
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "hand_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Hand: Right";
+		LocalPose {
+			Position = ( 136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 12;
+		Name = "primary_input_hand";
+	}
+	// primare Input header
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.75f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Primary Input";
+		LocalPose {
+			Position = ( 0.0f, -20.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "primary_input_foreground";
+		Id = 13;
+		Name = "primary_input_header";
+	}
+
+	// Secondary Input MENU
+	//=================================================
+
+	// secondary_input_foreground
+	VRMenuObjectParms {
+		Type = VRMENU_CONTAINER;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER | VRMENUOBJECT_DONT_RENDER_TEXT;
+		TexelCoords = true;
+		Components {
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 0.0f, 352.0f, 0.05f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 1.0f, 1.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		ParentName = "panel";
+		Id = 2;
+		Name = "secondary_input_foreground";		
+	}
+	// Secondary Input trigger
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Trigger";
+		LocalPose {
+			Position = ( -217.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 50;
+		Name = "secondary_input_trigger";
+	}
+	// Secondary Input triggersana
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panelana";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "";
+		LocalPose {
+			Position = ( -217.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 15;
+		Name = "secondary_input_triggerana";
+	}
+	// Secondary Input touchpad click
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_touchpad_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "TPClick";
+		LocalPose {
+			Position = ( -109.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 51;
+		Name = "secondary_input_touchpad_click";
+	}
+	// Secondary Input touch
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_touch_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Touch";
+		LocalPose {
+			Position = ( 0.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 52;
+		Name = "secondary_input_touch";
+	}
+	// secondary Input A
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "A";
+		LocalPose {
+			Position = ( -129.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 32.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 2.5f, 2.5f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 6;
+		Name = "secondary_input_a";
+	}
+	// secondary Input B
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "B";
+		LocalPose {
+			Position = ( -89.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 32.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 2.5f, 2.5f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 6;
+		Name = "secondary_input_b";
+	}
+	// Secondary Input back
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Back";
+		LocalPose {
+			Position = ( 109.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 53;
+		Name = "secondary_input_back";
+	}
+	// Secondary Input touch
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_touch_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Point";
+		LocalPose {
+			Position = ( 0.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 63;
+		Name = "secondary_input_index_point";
+	}
+	// Secondary Input Thumb Up
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Thumb";
+		LocalPose {
+			Position = ( 109.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 64;
+		Name = "secondary_input_thumb_up";
+	}
+	// Secondary Input grip
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Grip";
+		LocalPose {
+			Position = ( 217.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 61;
+		Name = "secondary_input_grip";
+	}
+	// Secondary Input gripana
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panelana";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 217.0f, -232.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 62;
+		Name = "secondary_input_gripana";
+	}
+	// Secondary Input touch position
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Pos( ?, ? ) Min( ?, ? ) Max( ?, ? )";
+		LocalPose {
+			Position = ( 0.0f, -164.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 54;
+		Name = "secondary_input_touch_pos";
+	}
+	// button caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "button_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Buttons: ?";
+		LocalPose {
+			Position = ( 0.0f, -128.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -260.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 55;
+		Name = "secondary_input_button_caps";
+	}
+	// size caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_size_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Touch Size: ( ?, ? )";
+		LocalPose {
+			Position = ( -136.0f, -92.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 56;
+		Name = "secondary_input_size_caps";
+	}
+	// range caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "secondary_input_range_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Touch Range: ( ?, ? )";
+		LocalPose {
+			Position = ( -136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 57;
+		Name = "secondary_input_range_caps";
+	}
+	// Secondary Input battery
+    VRMenuObjectParms {
+        Type = VRMENU_STATIC;
+        Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+        TexelCoords = true;
+        SurfaceParms {
+            VRMenuSurfaceParms {
+                SurfaceName = "secondary_input_battery_panel";
+                ImageNames {
+                    string[0] = "apk:///assets/panel.ktx";
+                }
+                TextureTypes {
+                    eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+                }
+                Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+                Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+                Dims = ( 264.0f, 32.0f );
+            }
+        }
+        Text = "Battery: ?";
+        LocalPose {
+            Position = ( 136.0f, -92.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        LocalScale = ( 264.0f, 32.0f, 1.0f );
+        TextLocalPose {
+            Position = ( -128.0f, 0.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+        FontParms {
+            AlignHoriz = HORIZONTAL_LEFT;
+            AlignVert = VERTICAL_CENTER;
+            Scale = 0.5f;
+            WrapWidth = 520.0f;
+            MultiLine = false;
+        }
+        ParentName = "secondary_input_foreground";
+        Id = 60;
+        Name = "secondary_input_battery";
+    }
+	// Secondary Input hand
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "hand_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "Hand: Right";
+		LocalPose {
+			Position = ( 136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 58;
+		Name = "secondary_input_hand";
+	}
+	// Secondary Input header
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.75f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Secondary Input";
+		LocalPose {
+			Position = ( 0.0f, -24.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "secondary_input_foreground";
+		Id = 59;
+		Name = "secondary_input_header";
+	}
+
+	// Tertiary Input MENU
+	//=================================================
+
+	// tertiary_input_foreground
+	VRMenuObjectParms {
+		Type = VRMENU_CONTAINER;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER | VRMENUOBJECT_DONT_RENDER_TEXT;
+		TexelCoords = true;
+		Components {
+		}
+		Text = "";
+		LocalPose {
+			Position = ( 0.0f, -162.0f, 0.05f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 1.0f, 1.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		ParentName = "panel";
+		Id = 2;
+		Name = "tertiary_input_foreground";		
+	}
+	// Tertiary Input Y
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Y";
+		LocalPose {
+			Position = ( -109.0f, -238.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 50;
+		Name = "tertiary_input_y";
+	}
+	// Tertiary Input X
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panelana";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "X";
+		LocalPose {
+			Position = ( -217.0f, -238.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 15;
+		Name = "tertiary_input_x";
+	}
+	// Tertiary Input left stick
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_touchpad_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Lstick";
+		LocalPose {
+			Position = ( 0.0f, -200.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -260.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 51;
+		Name = "tertiary_input_lstick";
+	}
+	// Tertiary Input touch
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_touch_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "B";
+		LocalPose {
+			Position = ( 109.0f, -238.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 52;
+		Name = "tertiary_input_b";
+	}
+	// Tertiary Input back
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "Back";
+		LocalPose {
+			Position = ( 217.0f, -238.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 53;
+		Name = "tertiary_input_back";
+	}
+	// Tertiary Input touch
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_touch_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 128.0f, 64.0f );
+			}
+		}
+		Text = "A";
+		LocalPose {
+			Position = ( 0.0f, -238.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 102.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.50f;
+			WrapWidth = 120.0f;
+			MultiLine = true;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 63;
+		Name = "tertiary_input_A";
+	}
+	// Tertiary Input rstick
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Rstick";
+		LocalPose {
+			Position = ( 0.0f, -164.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -260.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 61;
+		Name = "tertiary_input_rstick";
+	}
+	// Tertiary Input touch position
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "DPAD: ";
+		LocalPose {
+			Position = ( 0.0f, -128.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -260.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 54;
+		Name = "tertiary_input_dpad";
+	}
+	// size caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_size_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "l2: ";
+		LocalPose {
+			Position = ( -136.0f, -92.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 56;
+		Name = "tertiary_input_l2";
+	}
+	// range caps
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "tertiary_input_range_caps_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "l1: ";
+		LocalPose {
+			Position = ( -136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.4f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 57;
+		Name = "tertiary_input_l1";
+	}
+	// Tertiary Input battery
+    VRMenuObjectParms {
+        Type = VRMENU_STATIC;
+        Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+        TexelCoords = true;
+        SurfaceParms {
+            VRMenuSurfaceParms {
+                SurfaceName = "tertiary_input_battery_panel";
+                ImageNames {
+                    string[0] = "apk:///assets/panel.ktx";
+                }
+                TextureTypes {
+                    eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+                }
+                Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+                Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+                Dims = ( 264.0f, 32.0f );
+            }
+        }
+        Text = "r2: ";
+        LocalPose {
+            Position = ( 136.0f, -92.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        LocalScale = ( 264.0f, 32.0f, 1.0f );
+        TextLocalPose {
+            Position = ( -128.0f, 0.0f, 0.0f );
+            Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+        }
+        TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+        FontParms {
+            AlignHoriz = HORIZONTAL_LEFT;
+            AlignVert = VERTICAL_CENTER;
+            Scale = 0.5f;
+            WrapWidth = 520.0f;
+            MultiLine = false;
+        }
+        ParentName = "tertiary_input_foreground";
+        Id = 60;
+        Name = "tertiary_input_r2";
+    }
+	// Tertiary Input hand
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "hand_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.25f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );				
+				Dims = ( 264.0f, 32.0f );
+			}
+		}
+		Text = "r1: ";
+		LocalPose {
+			Position = ( 136.0f, -56.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 264.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( -128.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_LEFT;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 58;
+		Name = "tertiary_input_r1";
+	}
+	// Tertiary Input header
+	VRMenuObjectParms {
+		Type = VRMENU_STATIC;
+		Flags = VRMENUOBJECT_RENDER_HIERARCHY_ORDER;
+		TexelCoords = true;
+		SurfaceParms {
+			VRMenuSurfaceParms {
+				SurfaceName = "trigger_panel";
+				ImageNames {
+					string[0] = "apk:///assets/panel.ktx";
+				}
+				TextureTypes {
+					eSurfaceTextureType[0] =  SURFACE_TEXTURE_DIFFUSE;
+				}
+				Color = ( 0.25f, 0.25f, 0.75f, 1.0f );
+				Border = ( 16.0f, 16.0f, 16.0f, 16.0f );
+				Dims = ( 536.0f, 32.0f );
+			}
+		}
+		Text = "Tertiary Input";
+		LocalPose {
+			Position = ( 0.0f, -24.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		LocalScale = ( 536.0f, 32.0f, 1.0f );
+		TextLocalPose {
+			Position = ( 0.0f, 0.0f, 0.0f );
+			Orientation = ( 0.0f, 0.0f, 0.0f, 1.0f );
+		}
+		TextLocalScale = ( 1.0f, 1.0f, 1.0f );
+		FontParms {
+			AlignHoriz = HORIZONTAL_CENTER;
+			AlignVert = VERTICAL_CENTER;
+			Scale = 0.5f;
+			WrapWidth = 520.0f;
+			MultiLine = false;
+		}
+		ParentName = "tertiary_input_foreground";
+		Id = 59;
+		Name = "tertiary_input_header";
+	}
+}

@@ -114,8 +114,6 @@
 		B2729485260B360300678538 /* RenderSky.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B272947C260B360300678538 /* RenderSky.vert.fsl */; };
 		B2729486260B360300678538 /* RenderSky.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B272947E260B360300678538 /* RenderSky.frag.fsl */; };
 		B2729487260B360300678538 /* RenderSky.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B272947E260B360300678538 /* RenderSky.frag.fsl */; };
-		B27E01EE25254E3400AA6B42 /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B27E01E525254E1E00AA6B42 /* libLuaManager.a */; };
-		B27E01F325254E5000AA6B42 /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B27E01E725254E1E00AA6B42 /* libLuaManager_iOS.a */; };
 		B27E01F425254E5B00AA6B42 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C1E6762247BF2D3006F49D1 /* libThe-Forge_iOS.a */; };
 		B296C8FB26148D7C0011E416 /* SpaceObjects.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B296C8FA26148D7C0011E416 /* SpaceObjects.cpp */; };
 		B296C90426148E1C0011E416 /* Perlin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B296C90226148E1C0011E416 /* Perlin.cpp */; };
@@ -169,34 +167,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
-		};
-		B27E01E425254E1E00AA6B42 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
-			remoteInfo = LuaManager;
-		};
-		B27E01E625254E1E00AA6B42 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
-			remoteInfo = LuaManager_iOS;
-		};
-		B27E01EA25254E2900AA6B42 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = LuaManager;
-		};
-		B27E01EF25254E4500AA6B42 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C172FC721414C490074EE71;
-			remoteInfo = LuaManager_iOS;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -323,7 +293,6 @@
 		B272947E260B360300678538 /* RenderSky.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = RenderSky.frag.fsl; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/RenderSky.frag.fsl"; sourceTree = "<group>"; };
 		B272947F260B360300678538 /* SkyCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/SkyCommon.h"; sourceTree = "<group>"; };
 		B27294AE260C886200678538 /* ExampleCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ExampleCommon.h; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ExampleCommon.h"; sourceTree = "<group>"; };
-		B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../../Unit_Tests/macOS Xcode/The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		B296C8F926148D7C0011E416 /* SpaceObjects.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpaceObjects.h; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.h"; sourceTree = "<group>"; };
 		B296C8FA26148D7C0011E416 /* SpaceObjects.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = SpaceObjects.cpp; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.cpp"; sourceTree = "<group>"; };
 		B296C90226148E1C0011E416 /* Perlin.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Perlin.cpp; path = "../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"; sourceTree = "<group>"; };
@@ -350,7 +319,6 @@
 				5CBCE931247BEFF4007A9C7C /* MetalKit.framework in Frameworks */,
 				5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */,
 				B27E01F425254E5B00AA6B42 /* libThe-Forge_iOS.a in Frameworks */,
-				B27E01F325254E5000AA6B42 /* libLuaManager_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -363,7 +331,6 @@
 				B2087DD421421A13006F372D /* Metal.framework in Frameworks */,
 				B21B9C0F23F4D9D8003EBFAC /* IOKit.framework in Frameworks */,
 				5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */,
-				B27E01EE25254E3400AA6B42 /* libLuaManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -545,15 +512,6 @@
 			name = Sky;
 			sourceTree = "<group>";
 		};
-		B27E01E025254E1D00AA6B42 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B27E01E525254E1E00AA6B42 /* libLuaManager.a */,
-				B27E01E725254E1E00AA6B42 /* libLuaManager_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		B296C8E8261489460011E416 /* Source Files */ = {
 			isa = PBXGroup;
 			children = (
@@ -611,7 +569,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */,
 				5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */,
 				EA463C941EF81E8F005AC8C7 /* Ephemeris */,
 				C95132EE2010E68A002E584B /* Ephemeris_iOS */,
@@ -661,7 +618,6 @@
 				B272949B260B383000678538 /* PBXBuildRule */,
 			);
 			dependencies = (
-				B27E01F025254E4500AA6B42 /* PBXTargetDependency */,
 			);
 			name = Ephemeris_iOS;
 			productName = 01_Transformations_iOS;
@@ -681,7 +637,6 @@
 				B272949A260B37AD00678538 /* PBXBuildRule */,
 			);
 			dependencies = (
-				B27E01EB25254E2900AA6B42 /* PBXTargetDependency */,
 			);
 			name = Ephemeris;
 			productName = 02_Texture;
@@ -722,10 +677,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B27E01E025254E1D00AA6B42 /* Products */;
-					ProjectRef = B27E01DF25254E1D00AA6B42 /* LuaManager.xcodeproj */;
-				},
-				{
 					ProductGroup = 5C1E675A247BF2D3006F49D1 /* Products */;
 					ProjectRef = 5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */;
 				},
@@ -751,20 +702,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C1E6761247BF2D3006F49D1 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B27E01E525254E1E00AA6B42 /* libLuaManager.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager.a;
-			remoteRef = B27E01E425254E1E00AA6B42 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B27E01E725254E1E00AA6B42 /* libLuaManager_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager_iOS.a;
-			remoteRef = B27E01E625254E1E00AA6B42 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -926,19 +863,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		B27E01EB25254E2900AA6B42 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager;
-			targetProxy = B27E01EA25254E2900AA6B42 /* PBXContainerItemProxy */;
-		};
-		B27E01F025254E4500AA6B42 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager_iOS;
-			targetProxy = B27E01EF25254E4500AA6B42 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
@@ -1172,7 +1096,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				OBJROOT = build;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1201,7 +1125,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				OBJROOT = build;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

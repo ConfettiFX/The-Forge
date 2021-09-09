@@ -24,9 +24,9 @@
 
 #include "Clip.h"
 
-void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig)
+void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName, const char* password, Rig* rig)
 {
-	LoadClip(resourceDir, fileName);
+	LoadClip(resourceDir, fileName, password);
 }
 
 void Clip::Exit()
@@ -50,10 +50,10 @@ bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTrans
 	return true;
 }
 
-bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
+bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName, const char* password)
 {
 	FileStream file = {};
-	if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ_BINARY, &file))
+	if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ_BINARY, password, &file))
 	{
 		LOGF(eERROR, "Cannot open skeleton file");
 		return false;

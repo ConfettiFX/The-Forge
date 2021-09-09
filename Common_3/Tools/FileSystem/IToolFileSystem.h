@@ -27,7 +27,6 @@
 #include "../../OS/Interfaces/IOperatingSystem.h"
 #include "../../OS/Interfaces/IFileSystem.h"
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 
 /************************************************************************/
@@ -60,12 +59,12 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher);
 void fsRegisterUTIForExtension(const char* uti, const char* extension);
 #endif
 
-/// Returns array of all directories inside input resourceDir + directory. String also contains subDirectory
-void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, eastl::vector<eastl::string>& out);
+/// Returns and allocates an array of all directories inside input resourceDir + directory. String also contains subDirectory
+void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char *** out, int * count);
 
-/// Returns array of all files inside input resourceDir + subDirectory. String also contains subDirectory
+/// Returns and allocates array of all files inside input resourceDir + subDirectory. String also contains subDirectory
 /// Specifying empty extension will collect all files
-void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out);
+void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char *** out, int * count);
 /************************************************************************/
 /************************************************************************/
 

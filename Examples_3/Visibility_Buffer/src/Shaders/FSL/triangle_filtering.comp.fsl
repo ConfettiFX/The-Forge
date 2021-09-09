@@ -55,7 +55,6 @@
 GroupShared(atomic_uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
 GroupShared(atomic_uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);
 
-#define ENABLE_CULL_INDEX				1
 #define ENABLE_CULL_BACKFACE			1
 #define ENABLE_CULL_FRUSTUM				1
 #define ENABLE_CULL_SMALL_PRIMITIVES	1
@@ -71,22 +70,17 @@ STATIC const uint cullFlags = 0xFFFFFFFF;
 // Performs all the culling tests given 3 vertices
 bool FilterTriangle(uint indices[3], float4 vertices[3], bool cullBackFace, float2 windowSize, uint samples)
 {
-#if ENABLE_CULL_INDEX
-	if (indices[0] == indices[1]
-		|| indices[1] == indices[2]
-		|| indices[0] == indices[2])
-	{
-		return true;
-	}
-#endif
 #if ENABLE_CULL_BACKFACE
 	if (cullBackFace)
 	{
 		// Culling in homogeneus coordinates.
 		// Read: "Triangle Scan Conversion using 2D Homogeneus Coordinates"
 		//       by Marc Olano, Trey Greer
+		//
+		// If the determinant is = 0, the triangle is being viewed edge-on or is degenerate, and has 0 screen-space area.
+		// If the determinant is > 0, the triangle is backfacing.
 		float3x3 m = float3x3(vertices[0].xyw, vertices[1].xyw, vertices[2].xyw);
-		if (determinant(m) > 0)
+		if (determinant(m) >= 0)
 			return true;
 	}
 #endif

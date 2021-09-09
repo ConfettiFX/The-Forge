@@ -1430,6 +1430,44 @@ inline const Matrix4 Matrix4::perspectiveReverseZ(float fovxRadians, float aspec
   return perspMatrix;
 }
 
+inline const Matrix4 Matrix4::perspectiveAsymmetricFov(const float leftDegrees, const float rightDegrees, const float upDegrees, const float downDegrees, const float zNear, const float zFar)
+{
+    const float PI = 3.14159265358979323846f;
+    float leftTan = tanf(leftDegrees * (PI / 180.0f));
+    float rightTan = tanf(rightDegrees * (PI / 180.0f));
+    float downTan = tanf(downDegrees * (PI / 180.0f));
+    float upTan = tanf(upDegrees * (PI / 180.0f));
+
+    float projXScale = 2.0f / (leftTan + rightTan);
+    float projXOffset = (leftTan - rightTan) * projXScale * 0.5f;
+    float projYScale = 2.0f / (upTan + downTan);
+    float projYOffset = (upTan - downTan) * projYScale * 0.5f;
+
+    float rangeInv;
+    SSEFloat tmp;
+    __m128 col0, col1, col2, col3;
+    rangeInv = 1.0f / (zFar - zNear);
+
+    const __m128 zero = _mm_setzero_ps();
+    tmp.m128 = zero;
+    tmp.f[0] = projXScale;
+    col0 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[1] = projYScale;
+    col1 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[0] = projXOffset;
+    tmp.f[1] = -projYOffset;
+    tmp.f[2] = (zFar)* rangeInv;
+    tmp.f[3] = +1.0f;
+    col2 = tmp.m128;
+    tmp.m128 = zero;
+    tmp.f[2] = -zNear * zFar * rangeInv;
+    col3 = tmp.m128;
+
+    return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
+}
+
 inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom, float top, float zNear, float zFar)
 {
 	// LH - DirectX: Z -> [0, 1]

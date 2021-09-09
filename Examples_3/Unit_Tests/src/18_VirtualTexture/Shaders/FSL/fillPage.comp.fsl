@@ -22,23 +22,16 @@
 * under the License.
 */
 
+#include "resources.h"
+
 #define THREAD_SIZE_X 1024
 #define THREAD_SIZE_Y 1
 #define THREAD_SIZE_Z 1
 
-CBUFFER(PageCountInfo, UPDATE_FREQ_NONE, b0, binding = 0)
-{
-	DATA(uint, MaxPageCount, None);
-  DATA(uint, PageOffset, None);
-  DATA(uint, Pad1, None);
-  DATA(uint, Pad2, None);
-};
-
-RES(RWBuffer(uint), PrevPageTableBuffer,   UPDATE_FREQ_PER_FRAME, u0, binding = 0);
-RES(RWBuffer(uint), PageTableBuffer,       UPDATE_FREQ_PER_FRAME, u1, binding = 1);
-RES(RWBuffer(uint), AlivePageTableBuffer,  UPDATE_FREQ_PER_FRAME, u2, binding = 2);
-RES(RWBuffer(uint), RemovePageTableBuffer, UPDATE_FREQ_PER_FRAME, u3, binding = 3);
-RES(RWBuffer(uint), PageCountsBuffer,      UPDATE_FREQ_PER_FRAME, u4, binding = 4);
+// If true, only add pages to the alive or remove page buffers if their visibility has changed.
+// If false, add all visible pages to the alive page buffer, and all hidden pages to the
+// remove page buffer, and let the CPU sort it out.
+STATIC const bool DELTAS_ONLY = true;
 
 NUM_THREADS(THREAD_SIZE_X, 1, 1)
 void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupThreadID(uint3) GTid, SV_GroupIndex(uint) GI )
@@ -47,31 +40,29 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 	// Fill mips of Page table
 	uint Index = DTid.x;
 
-  if(Index >= MaxPageCount)
+  if(Index >= VT_TOTAL_PAGE_COUNT())
     RETURN();
 
-  Index += PageOffset;
-   
-  if (PageTableBuffer[Index] == 1)
+  if (VT_VISIBLE_PAGES(Index) == 1 && (!DELTAS_ONLY || VT_PREV_VISIBLE_PAGES(Index) == 0))
 	{
     uint currentTexureID;
-    AtomicAdd(PageCountsBuffer[0], 1, currentTexureID);
+    AtomicAdd(VT_ALIVE_PAGE_COUNT(), 1, currentTexureID);
 
     // save the index of alive page
-    AlivePageTableBuffer[currentTexureID] = Index;    
+    VT_ALIVE_PAGES(currentTexureID) = Index;
   }
-  else if(PrevPageTableBuffer[Index] == 1)
+  else if(VT_VISIBLE_PAGES(Index) == 0 && (!DELTAS_ONLY || VT_PREV_VISIBLE_PAGES(Index) == 1))
   {
     uint currentTexureID;
-    AtomicAdd(PageCountsBuffer[1], 1, currentTexureID);
+    AtomicAdd(VT_REMOVE_PAGE_COUNT(), 1, currentTexureID);
 
     // remove the index of alive page
-    RemovePageTableBuffer[currentTexureID] = Index;
+    VT_REMOVE_PAGES(currentTexureID) = Index;
   }
 
-  PrevPageTableBuffer[Index] = PageTableBuffer[Index];
+  VT_PREV_VISIBLE_PAGES(Index) = VT_VISIBLE_PAGES(Index);
 
   // clear page
-  PageTableBuffer[Index] = 0;
+  VT_VISIBLE_PAGES(Index) = 0;
 	RETURN();
 }

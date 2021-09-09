@@ -53,6 +53,20 @@ public:
     {
         supportsPressure_ = supports;
     }
+	
+	int GetTouchID(void* id)
+	{
+		int touchIdx = -1;
+		for (unsigned i = 0; i < touches_.size(); ++i)
+		{
+			if (touches_[i] == static_cast<void*>(id))
+			{
+				touchIdx = i;
+				break;
+			}
+		}
+		return touchIdx;
+	}
 
 	void HandleTouch(void* id, float x, float y, float z = 0.f)
 	{

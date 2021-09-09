@@ -45,4 +45,9 @@
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\18_VirtualTexture\Shaders\FSL\resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

@@ -23,50 +23,134 @@
 */
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Math/MathTypes.h"
 
 #ifndef _THREAD_H_
 #define _THREAD_H_
 
 #if defined(_WINDOWS) || defined(XBOX)
 typedef unsigned long ThreadID;
-#elif defined(NX64)
 #else
 #include <pthread.h>
-#if !defined(__APPLE__) || defined(TARGET_IOS)
 #define ThreadID pthread_t
 #endif
+
+#if defined(_WINDOWS) || defined(XBOX)
+#define THREAD_LOCAL __declspec( thread )
+#define INIT_CALL_ONCE_GUARD INIT_ONCE_STATIC_INIT
+typedef INIT_ONCE CallOnceGuard;
+#else
+#define THREAD_LOCAL __thread
+#define INIT_CALL_ONCE_GUARD PTHREAD_ONCE_INIT
+typedef pthread_once_t CallOnceGuard;
 #endif
+
+
+
+
 
 #define TIMEOUT_INFINITE UINT32_MAX
 
-/// Operating system mutual exclusion primitive.
-struct Mutex
+#ifdef __cplusplus
+extern "C"
 {
-	static const uint32_t kDefaultSpinCount = 1500;
-	
-	bool Init(uint32_t spinCount = kDefaultSpinCount, const char* name = NULL);
-	void Destroy();
+#endif
+	typedef void(*CallOnceFn)(void);
+	/*
+	 * Brief:
+	 *   Guaranties that CallOnceFn will be called once in a thread-safe way.
+	 * Notes:
+	 *   CallOnceGuard has to be a pointer to a global variable initialized with INIT_CALL_ONCE_GUARD
+	 */
+	void callOnce(CallOnceGuard* pGuard, CallOnceFn pFn);
 
-	void Acquire();
-	bool TryAcquire();
-	void Release();
+	/// Operating system mutual exclusion primitive.
+	typedef struct Mutex
+	{
+#if defined(_WINDOWS) || defined(XBOX)
+		CRITICAL_SECTION mHandle;
+#elif defined(NX64)
+		MutexTypeNX             mMutexPlatformNX;
+		uint32_t                mSpinCount;
+#else
+		pthread_mutex_t pHandle;
+		uint32_t        mSpinCount;
+#endif
+	} Mutex;
+
+#define MUTEX_DEFAULT_SPIN_COUNT 1500
+
+	bool initMutex(Mutex* pMutex);
+	void destroyMutex(Mutex* pMutex);
+
+	void acquireMutex(Mutex* pMutex);
+	bool tryAcquireMutex(Mutex* pMutex);
+	void releaseMutex(Mutex* pMutex);
+
+	typedef struct ConditionVariable
+	{
+#if defined(_WINDOWS) || defined(XBOX)
+		void* pHandle;
+#elif defined(NX64)
+	ConditionVariableTypeNX mCondPlatformNX;
+#else
+	pthread_cond_t  pHandle;
+#endif
+	} ConditionVariable;
+
+	bool initConditionVariable(ConditionVariable* cv);
+	void destroyConditionVariable(ConditionVariable* cv);
+
+	void waitConditionVariable(ConditionVariable* cv, const Mutex* pMutex, uint32_t timeout);
+	void wakeOneConditionVariable(ConditionVariable* cv);
+	void wakeAllConditionVariable(ConditionVariable* cv);
+
+	typedef void (*ThreadFunction)(void*);
+
+	/// Work queue item.
+	typedef struct ThreadDesc
+	{
+#if defined(NX64)
+		ThreadHandle hThread;
+		void*        pThreadStack;
+		const char*  pThreadName;
+		int          preferredCore;
+		bool         migrateEnabled;
+#endif
+		/// Work item description and thread index (Main thread => 0)
+		ThreadFunction pFunc;
+		void*          pData;
+	} ThreadDesc;
 
 #if defined(_WINDOWS) || defined(XBOX)
-	CRITICAL_SECTION mHandle;
-#elif defined(NX64)
-	MutexTypeNX mMutexPlatformNX;
-	uint32_t mSpinCount;
-#else
-	pthread_mutex_t pHandle;
-	uint32_t mSpinCount;
+	typedef void* ThreadHandle;
+#elif !defined(NX64)
+	typedef pthread_t ThreadHandle;
 #endif
-};
+
+	void         initThread(ThreadDesc* pItem, ThreadHandle* pHandle);
+	void         destroyThread(ThreadHandle handle);
+	void         joinThread(ThreadHandle handle);
+
+	void            setMainThread(void);
+	ThreadID       getCurrentThreadID(void);
+	void            getCurrentThreadName(char* buffer, int buffer_size);
+	void            setCurrentThreadName(const char* name);
+	bool            isMainThread(void);
+	void            threadSleep(unsigned mSec);
+	unsigned int    getNumCPUCores(void);
+
+// Max thread name should be 15 + null character
+#ifndef MAX_THREAD_NAME_LENGTH
+#define MAX_THREAD_NAME_LENGTH 31
+#endif
+
+#ifdef __cplusplus
+}    // extern "C"
 
 struct MutexLock
 {
-	MutexLock(Mutex& rhs) : mMutex(rhs) { rhs.Acquire(); }
-	~MutexLock() { mMutex.Release(); }
+	MutexLock(Mutex& rhs): mMutex(rhs) { acquireMutex(&rhs); }
+	~MutexLock() { releaseMutex(&mMutex); }
 
 	/// Prevent copy construction.
 	MutexLock(const MutexLock& rhs) = delete;
@@ -75,71 +159,6 @@ struct MutexLock
 
 	Mutex& mMutex;
 };
-
-struct ConditionVariable
-{
-	bool Init(const char* name = NULL);
-	void Destroy();
-
-	void Wait(const Mutex& mutex, uint32_t md = TIMEOUT_INFINITE);
-	void WakeOne();
-	void WakeAll();
-
-#if defined(_WINDOWS) || defined(XBOX)
-	void* pHandle;
-#elif defined(NX64)
-	ConditionVariableTypeNX mCondPlatformNX;	
-#else
-	pthread_cond_t  pHandle;
-#endif
-};
-
-typedef void(*ThreadFunction)(void*);
-
-/// Work queue item.
-struct ThreadDesc
-{
-#if defined(NX64)
-	ThreadHandle hThread;
-	void *pThreadStack;
-	const char* pThreadName;
-	int preferredCore;
-	bool migrateEnabled;
-#endif
-	/// Work item description and thread index (Main thread => 0)
-	ThreadFunction pFunc;
-	void*          pData;
-};
-
-#if defined(_WINDOWS) || defined(XBOX)
-typedef void* ThreadHandle;
-#elif !defined(NX64)
-typedef pthread_t ThreadHandle;
-#endif
-
-ThreadHandle create_thread(ThreadDesc* pItem);
-void         destroy_thread(ThreadHandle handle);
-void         join_thread(ThreadHandle handle);
-
-struct Thread
-{
-	static ThreadID     mainThreadID;
-	static void         SetMainThread();
-	static ThreadID     GetCurrentThreadID();
-	static void         GetCurrentThreadName(char * buffer, int buffer_size);
-	static void         SetCurrentThreadName(const char * name);
-	static bool         IsMainThread();
-	static void         Sleep(unsigned mSec);
-	static unsigned int GetNumCPUCores(void);
-};
-
-// Max thread name should be 15 + null character
-#ifndef MAX_THREAD_NAME_LENGTH
-#define MAX_THREAD_NAME_LENGTH 31
-#endif
-
-#if defined(_WINDOWS) || defined(XBOX)
-void sleep(unsigned mSec);
 #endif
 
 #endif

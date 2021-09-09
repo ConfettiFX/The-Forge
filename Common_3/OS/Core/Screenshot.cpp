@@ -25,6 +25,8 @@
 #include "../Interfaces/IScreenshot.h"
 
 #if defined(SCREENSHOT_ENABLED)
+#include "../Math/MathTypes.h"
+
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
@@ -42,9 +44,9 @@
 #define STBIW_ASSERT ASSERT
 #include "../../ThirdParty/OpenSource/Nothings/stb_image_write.h"
 
-static Cmd* pCmd = 0;
-static CmdPool* pCmdPool = 0;
-static Renderer* pRendererRef = 0;
+static Cmd*        pCmd = 0;
+static CmdPool*    pCmdPool = 0;
+static Renderer*   pRendererRef = 0;
 extern RendererApi gSelectedRendererApi;
 
 void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
@@ -65,7 +67,8 @@ void initScreenshotInterface(Renderer* pRenderer, Queue* pGraphicsQueue)
 	addCmd(pRenderer, &cmdDesc, &pCmd);
 }
 // Helper function to generate screenshot data. Not part of IScreenshot.h
-void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget* pRenderTarget, ResourceState currentResourceState, void* pImageData)
+void mapRenderTarget(
+	Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget* pRenderTarget, ResourceState currentResourceState, void* pImageData)
 {
 	ASSERT(pImageData);
 	ASSERT(pRenderTarget);
@@ -78,8 +81,8 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 		DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 		// Add a staging buffer.
-		uint16_t formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-		Buffer* buffer = 0;
+		uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+		Buffer*    buffer = 0;
 		BufferDesc bufferDesc = {};
 		bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
@@ -93,8 +96,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 		RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
 		cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
 
-
-		uint32_t rowPitch = pRenderTarget->mWidth * formatByteWidth;
+		uint32_t              rowPitch = pRenderTarget->mWidth * formatByteWidth;
 		const uint32_t        width = pRenderTarget->pTexture->mWidth;
 		const uint32_t        height = pRenderTarget->pTexture->mHeight;
 		const uint32_t        depth = max<uint32_t>(1, pRenderTarget->pTexture->mDepth);
@@ -115,7 +117,9 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 		copy.imageExtent.width = width;
 		copy.imageExtent.height = height;
 		copy.imageExtent.depth = depth;
-		vkCmdCopyImageToBuffer(pCmd->mVulkan.pVkCmdBuf, pRenderTarget->pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buffer->mVulkan.pVkBuffer, 1, &copy);
+		vkCmdCopyImageToBuffer(
+			pCmd->mVulkan.pVkCmdBuf, pRenderTarget->pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			buffer->mVulkan.pVkBuffer, 1, &copy);
 
 		srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
 		cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
@@ -169,15 +173,16 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 
 		// Map texture for copy.
 		D3D11_MAPPED_SUBRESOURCE resource = {};
-		unsigned int subresource = D3D11CalcSubresource(0, 0, 0);
+		unsigned int             subresource = D3D11CalcSubresource(0, 0, 0);
 		pRenderer->mD3D11.pDxContext->Map(pNewTexture, subresource, D3D11_MAP_READ, 0, &resource);
 
 		// Copy to CPU memory.
 		uint16_t formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
 		for (uint32_t i = 0; i < pRenderTarget->mHeight; ++i)
 		{
-			memcpy((uint8_t*)pImageData + i * pRenderTarget->mWidth * formatByteWidth,
-				(uint8_t*)resource.pData + i * resource.RowPitch, pRenderTarget->mWidth * formatByteWidth);
+			memcpy(
+				(uint8_t*)pImageData + i * pRenderTarget->mWidth * formatByteWidth, (uint8_t*)resource.pData + i * resource.RowPitch,
+				pRenderTarget->mWidth * formatByteWidth);
 		}
 
 		pNewTexture->Release();
@@ -190,16 +195,16 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 		DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 
 		// Calculate the size of buffer required for copying the src texture.
-		D3D12_RESOURCE_DESC resourceDesc = pRenderTarget->pTexture->mD3D12.pDxResource->GetDesc();
-		uint64_t padded_size = 0;
-		uint64_t row_size = 0;
-		uint32_t num_rows = 0;
+		D3D12_RESOURCE_DESC                resourceDesc = pRenderTarget->pTexture->mD3D12.pDxResource->GetDesc();
+		uint64_t                           padded_size = 0;
+		uint64_t                           row_size = 0;
+		uint32_t                           num_rows = 0;
 		D3D12_PLACED_SUBRESOURCE_FOOTPRINT imageLayout = {};
 		pRenderer->mD3D12.pDxDevice->GetCopyableFootprints(&resourceDesc, 0, 1, 0, &imageLayout, &num_rows, &row_size, &padded_size);
 
 		// Add a staging buffer.
-		uint16_t formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-		Buffer* buffer = 0;
+		uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+		Buffer*    buffer = 0;
 		BufferDesc bufferDesc = {};
 		bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 		bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
@@ -266,12 +271,11 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 	DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
 	DECLARE_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 	DECLARE_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
-	extern void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
-	
-	
+	extern void util_end_current_encoders(Cmd * pCmd, bool forceBarrier);
+
 	// Add a staging buffer.
-	uint16_t formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-	Buffer* buffer = 0;
+	uint16_t   formatByteWidth = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
+	Buffer*    buffer = 0;
 	BufferDesc bufferDesc = {};
 	bufferDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 	bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
@@ -284,23 +288,23 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 
 	RenderTargetBarrier srcBarrier = { pRenderTarget, currentResourceState, RESOURCE_STATE_COPY_SOURCE };
 	cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
-	
+
 	if (!pCmd->mtlBlitEncoder)
 	{
 		util_end_current_encoders(pCmd, false);
 		pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 	}
-	
+
 	// Copy to staging buffer.
 	[pCmd->mtlBlitEncoder copyFromTexture:pRenderTarget->pTexture->mtlTexture
-							sourceSlice:0
-							sourceLevel:0
-							sourceOrigin:MTLOriginMake(0, 0, 0)
-							sourceSize:MTLSizeMake(pRenderTarget->mWidth, pRenderTarget->mHeight, pRenderTarget->mDepth)
-							toBuffer:buffer->mtlBuffer
-							destinationOffset:0
-							destinationBytesPerRow:pRenderTarget->mWidth * formatByteWidth
-							destinationBytesPerImage:bufferDesc.mSize];
+							  sourceSlice:0
+							  sourceLevel:0
+							 sourceOrigin:MTLOriginMake(0, 0, 0)
+							   sourceSize:MTLSizeMake(pRenderTarget->mWidth, pRenderTarget->mHeight, pRenderTarget->mDepth)
+								 toBuffer:buffer->mtlBuffer
+						destinationOffset:0
+				   destinationBytesPerRow:pRenderTarget->mWidth * formatByteWidth
+				 destinationBytesPerImage:bufferDesc.mSize];
 
 	srcBarrier = { pRenderTarget, RESOURCE_STATE_COPY_SOURCE, currentResourceState };
 	cmdResourceBarrier(pCmd, 0, 0, 0, 0, 1, &srcBarrier);
@@ -316,7 +320,7 @@ void mapRenderTarget(Renderer* pRenderer, Queue* pQueue, Cmd* pCmd, RenderTarget
 
 	// Wait for work to finish on the GPU.
 	waitQueueIdle(pQueue);
-	
+
 	mapBuffer(pRenderer, buffer, 0);
 	memcpy(pImageData, buffer->pCpuMappedAddress, pRenderTarget->mWidth * pRenderTarget->mHeight * formatByteWidth);
 	unmapBuffer(pRenderer, buffer);
@@ -332,7 +336,7 @@ bool prepareScreenshot(SwapChain* pSwapChain)
 {
 #if defined(METAL)
 	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-	if(layer.framebufferOnly)
+	if (layer.framebufferOnly)
 	{
 		layer.framebufferOnly = false;
 		return false;
@@ -341,33 +345,34 @@ bool prepareScreenshot(SwapChain* pSwapChain)
 	return true;
 }
 
-void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool noAlpha)
+void captureScreenshot(
+	SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool noAlpha)
 {
 	ASSERT(pRendererRef);
 	ASSERT(pCmdPool->pQueue);
 	ASSERT(pSwapChain);
 	// initScreenshotInterface not called.
 	ASSERT(pCmd);
-	
+
 #if defined(METAL)
 	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-	if(layer.framebufferOnly)
+	if (layer.framebufferOnly)
 	{
 		LOGF(eERROR, "prepareScreenshot() must be used one frame before using captureScreenshot()");
 		ASSERT(0);
 		return;
 	}
 #endif
-	
+
 	RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapChainRtIndex];
-	
+
 	// Wait for queue to finish rendering.
 	waitQueueIdle(pCmdPool->pQueue);
 
 	// Allocate temp space
 	uint16_t byteSize = TinyImageFormat_BitSizeOfBlock(pRenderTarget->mFormat) / 8;
-	uint8_t channelCount = TinyImageFormat_ChannelCount(pRenderTarget->mFormat);
-	void* alloc = tf_malloc(pRenderTarget->mWidth * pRenderTarget->mHeight * byteSize);
+	uint8_t  channelCount = TinyImageFormat_ChannelCount(pRenderTarget->mFormat);
+	void*    alloc = tf_malloc(pRenderTarget->mWidth * pRenderTarget->mHeight * byteSize);
 
 	resetCmdPool(pRendererRef, pCmdPool);
 
@@ -385,7 +390,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, Resourc
 			for (uint32_t w = 0; w < pRenderTarget->mWidth; ++w)
 			{
 				uint32_t pixelIndex = (h * pRenderTarget->mWidth + w) * channelCount;
-				int8_t* pixel = imageData + pixelIndex;
+				int8_t*  pixel = imageData + pixelIndex;
 
 				// Swap blue and red.
 				int8_t r = pixel[0];
@@ -398,19 +403,20 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, Resourc
 	if (noAlpha)
 	{
 		uint8_t* imageData = ((uint8_t*)alloc);
-		for (uint32_t i = 3; i < pRenderTarget->mWidth * pRenderTarget->mHeight*byteSize; i+=byteSize)
+		for (uint32_t i = 3; i < pRenderTarget->mWidth * pRenderTarget->mHeight * byteSize; i += byteSize)
 		{
 			imageData[i] = 255u;
 		}
 	}
 
 	// Convert image data to png.
-	int len = 0;
-	unsigned char* png = stbi_write_png_to_mem((unsigned char*)alloc, pRenderTarget->mWidth * byteSize, pRenderTarget->mWidth, pRenderTarget->mHeight, channelCount, &len);
-	
+	int            len = 0;
+	unsigned char* png = stbi_write_png_to_mem(
+		(unsigned char*)alloc, pRenderTarget->mWidth * byteSize, pRenderTarget->mWidth, pRenderTarget->mHeight, channelCount, &len);
+
 	// Save png to disk.
 	FileStream fs = {};
-	fsOpenStreamFromPath(RD_SCREENSHOTS, pngFileName, FM_WRITE_BINARY, &fs);
+	fsOpenStreamFromPath(RD_SCREENSHOTS, pngFileName, FM_WRITE_BINARY, NULL, &fs);
 	fsWriteToStream(&fs, png, (size_t)len);
 	fsCloseStream(&fs);
 
@@ -424,7 +430,7 @@ void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, Resourc
 
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName)
 {
-    captureScreenshot(pSwapChain, swapChainRtIndex, renderTargetCurrentState, pngFileName, true);
+	captureScreenshot(pSwapChain, swapChainRtIndex, renderTargetCurrentState, pngFileName, true);
 }
 
 void exitScreenshotInterface()
@@ -434,8 +440,11 @@ void exitScreenshotInterface()
 }
 #else
 void initScreenshotInterface(Renderer* pRenderer, Queue* pQueue) {}
-bool prepareScreenshot(SwapChain* pSwapChain) {return false;}
+bool prepareScreenshot(SwapChain* pSwapChain) { return false; }
 void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName) {}
-void captureScreenshot(SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool noAlpha) {}
+void captureScreenshot(
+	SwapChain* pSwapChain, uint32_t swapChainRtIndex, ResourceState renderTargetCurrentState, const char* pngFileName, bool noAlpha)
+{
+}
 void exitScreenshotInterface() {}
 #endif

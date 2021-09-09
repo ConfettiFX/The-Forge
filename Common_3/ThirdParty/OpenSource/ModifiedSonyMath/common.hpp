@@ -215,7 +215,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 #include <stdint.h>
 #include <stdlib.h>
 
-#if defined(TARGET_IOS)
+#if (defined(__aarch64__) || defined(__arm__)) && defined(__APPLE__)
 #elif defined(__ANDROID__)
 #elif defined(NN_NINTENDO_SDK)
 #else

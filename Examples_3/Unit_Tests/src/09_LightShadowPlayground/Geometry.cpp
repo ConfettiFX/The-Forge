@@ -872,6 +872,9 @@ static void SetMaterials(Scene* pScene)
 	//101	wall04
 	setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", MATERIAL_FLAG_NONE);
 
+	const size_t defaultAlbedoSize = strlen(DEFAULT_ALBEDO) + 1;
+	const size_t defaultNormalSize = strlen(DEFAULT_NORMAL) + 1;
+	const size_t defaultSpecSize = strlen(DEFAULT_SPEC) + 1;
 	for (uint32_t i = index; i < pScene->geom->mDrawArgCount; i++)
 	{
 		pScene->materialFlags[i] = MATERIAL_FLAG_TWO_SIDED | MATERIAL_FLAG_ALPHA_TESTED;
@@ -881,13 +884,13 @@ static void SetMaterials(Scene* pScene)
 		m.alphaTested = true;*/
 
 		// default textures
-		pScene->textures[i] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+		pScene->textures[i] = (char*)tf_calloc(defaultAlbedoSize, sizeof(char));
 		strcpy(pScene->textures[i], DEFAULT_ALBEDO);
 
-		pScene->normalMaps[i] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+		pScene->normalMaps[i] = (char*)tf_calloc(defaultNormalSize, sizeof(char));
 		strcpy(pScene->normalMaps[i], DEFAULT_NORMAL);
 
-		pScene->specularMaps[i] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+		pScene->specularMaps[i] = (char*)tf_calloc(defaultSpecSize, sizeof(char));
 		strcpy(pScene->specularMaps[i], DEFAULT_SPEC);
 	}
 }

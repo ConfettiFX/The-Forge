@@ -23,12 +23,30 @@
 */
 
 #include "ProfilerBase.h"
+#include "GpuProfiler.h"
+
+// EASTL Includes
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
+#include "../../ThirdParty/OpenSource/EASTL/algorithm.h"
+
+// RENDERER
+#include "../../Renderer/IRenderer.h"
+
+// INTERFACES
+#include "../Interfaces/IFileSystem.h"
+#include "../Interfaces/IScripting.h"
+#include "../Interfaces/IProfiler.h"
+#include "../Interfaces/IFont.h"
+#include "../Interfaces/IUI.h"
+
+#include "../Interfaces/IMemory.h"
+
 #if 0 == PROFILE_ENABLED
 void initProfiler(Renderer* pRenderer, Queue** ppQueue, const char** ppProfilerNames, ProfileToken* pProfileTokens, uint32_t nGpuProfilerCount) {}
 void exitProfiler() {}
 void flipProfiler() {}
-void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFrames) {}
-void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName) {}
+void dumpProfileData(const char* appName, uint32_t nMaxFrames) {}
+void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char* appName) {}
 void setAggregateFrames(uint32_t nFrames) {}
 float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
 float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
@@ -44,10 +62,231 @@ uint64_t cpuProfileEnter(ProfileToken nToken) { return 0; }
 void cpuProfileLeave(ProfileToken nToken, uint64_t nTick) {}
 ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor) { return PROFILE_INVALID_TOKEN; }
 
+float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc) {}
+float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, FontDrawDesc* pDrawDesc) {}
+void toggleProfilerUI() {}
 #else
-#include  "../../Renderer/IRenderer.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IMemory.h"
+
+/////////////////////////////////////////////////////////////////////////////
+// PROFILER UI DECLARATIONS
+
+#define MAX_DETAILED_TIMERS_DRAW 2048
+#define MAX_TIME_STR_LEN 32
+#define MAX_TITLE_STR_LEN 256
+#define FRAME_HISTORY_LEN 128
+#define CRITICAL_COLOR_THRESHOLD 0.5f
+#define WARNING_COLOR_THRESHOLD 0.3f
+#define MAX_TOOLTIP_STR_LEN 256
+#define PROFILER_WINDOW_X 0.f
+#define PROFILER_WINDOW_Y 0.f
+
+// Must be initialized with application's ui before drawing.
+Renderer*      pRendererRef = 0;
+UIComponent*  pWidgetUIComponent = 0;
+UIComponent*  pMenuUIComponent = 0;
+float          gGuiTransparency = 0.1f;
+
+bool gProfilerWidgetUIEnabled = false;
+// To re-alloc all dynamic data when screen resize unloads it.
+bool   gUnloaded = true;
+float2 gCurrWindowSize;
+
+float2 gScreenPos;
+char gCpuProfileText[32] = { 0 };
+
+#ifndef __ANDROID__
+#ifdef USE_FORGE_FONTS
+const char gGpuProfileTitleText[] = "-----GPU Times-----";
+#endif
+#endif
+
+GpuProfiler* getGpuProfiler(ProfileToken nProfileToken);
+
+typedef struct GpuProfileDrawDesc
+{
+	float mChildIndent = 25.0f;
+	float mHeightOffset = 5.0f;
+} GpuProfileDrawDesc;
+
+static GpuProfileDrawDesc gDefaultGpuProfileDrawDesc = {};
+
+struct ProfileDetailedModeTime
+{
+	uint32_t mTimerInfoIndex;
+	float    mStartTime;
+	float    mEndTime;
+	uint32_t mFrameNum;
+	float    mCurrFrameTime;
+	char     mThreadName[64];
+};
+
+struct ProfileDetailedModeFrame
+{
+	float                                  mFrameTime;
+	eastl::vector<ProfileDetailedModeTime> mTimers;
+};
+
+struct ProfileDetailedModeTooltip
+{
+	ProfileDetailedModeTooltip() = default; //-V730
+	ProfileDetailedModeTooltip(const ProfileDetailedModeTime& detailedLogTimer, UIWidget* widget) :
+		mTimer(detailedLogTimer),
+		mWidget(widget) {}
+
+	ProfileDetailedModeTime mTimer;
+	UIWidget*                mWidget;
+};
+
+enum ProfileModes
+{
+	PROFILE_MODE_TIMER,
+	PROFILE_MODE_DETAILED,
+	PROFILE_MODE_PLOT,
+	PROFILE_MODE_MAX
+};
+
+enum ProfileAggregateFrames
+{
+	PROFILE_AGGREGATE_NUM_INF,
+	PROFILE_AGGREGATE_NUM_10,
+	PROFILE_AGGREGATE_NUM_20,
+	PROFILE_AGGREGATE_NUM_30,
+	PROFILE_AGGREGATE_NUM_60,
+	PROFILE_AGGREGATE_NUM_120,
+	PROFILE_AGGREGATE_FRAMES_MAX
+};
+
+enum ProfileDumpFramesFile
+{
+	PROFILE_DUMPFILE_NUM_32,
+	PROFILE_DUMPFILE_NUM_64,
+	PROFILE_DUMPFILE_NUM_128,
+	PROFILE_DUMPFILE_NUM_256,
+	PROFILE_DUMPFILE_NUM_512,
+	PROFILE_DUMPFILE_MAX
+};
+
+enum ProfileDumpFramesDetailedMode
+{
+	PROFILE_DUMPFRAME_NUM_2,
+	PROFILE_DUMPFRAME_NUM_4,
+	PROFILE_DUMPFRAME_NUM_8,
+	PROFILE_DUMPFRAME_NUM_16,
+	PROFILE_DUMPFRAME_MAX
+};
+
+enum ProfileReferenceTimes
+{
+	PROFILE_REFTIME_MS_1,
+	PROFILE_REFTIME_MS_2,
+	PROFILE_REFTIME_MS_5,
+	PROFILE_REFTIME_MS_10,
+	PROFILE_REFTIME_MS_15,
+	PROFILE_REFTIME_MS_20,
+	PROFILE_REFTIME_MS_33,
+	PROFILE_REFTIME_MS_66,
+	PROFILE_REFTIME_MS_100,
+	PROFILE_REFTIME_MS_250,
+	PROFILE_REFTIME_MS_500,
+	PROFILE_REFTIME_MS_1000,
+	PROFILE_REFTIME_MAX
+};
+
+const char* pProfileModesNames[] = { "Timer", "Detailed", "Plot" };
+
+const char* pAggregateFramesNames[] = { "Infinite", "10", "20", "30", "60", "120" };
+
+const char* pReferenceTimesNames[] = { "1ms", "2ms", "5ms", "10ms", "15ms", "20ms", "33ms", "66ms", "100ms", "250ms", "500ms", "1000ms" };
+
+const char* pDumpFramesToFileNames[] = { "32", "64", "128", "256", "512" };
+
+const char* pDumpFramesDetailedViewNames[] = {
+	"2",
+	"4",
+	"8",
+	"16",
+};
+
+#ifdef USE_FORGE_UI
+const uint32_t gProfileModesValues[] = {
+	PROFILE_MODE_TIMER,
+	PROFILE_MODE_DETAILED,
+	PROFILE_MODE_PLOT,
+};
+
+const uint32_t gAggregateFramesValues[] = { PROFILE_AGGREGATE_NUM_INF, PROFILE_AGGREGATE_NUM_10, PROFILE_AGGREGATE_NUM_20,
+											PROFILE_AGGREGATE_NUM_30,  PROFILE_AGGREGATE_NUM_60, PROFILE_AGGREGATE_NUM_120 };
+
+const uint32_t gReferenceTimesValues[] = {
+	PROFILE_REFTIME_MS_1,   PROFILE_REFTIME_MS_2,   PROFILE_REFTIME_MS_5,   PROFILE_REFTIME_MS_10,
+	PROFILE_REFTIME_MS_15,  PROFILE_REFTIME_MS_20,  PROFILE_REFTIME_MS_33,  PROFILE_REFTIME_MS_66,
+	PROFILE_REFTIME_MS_100, PROFILE_REFTIME_MS_250, PROFILE_REFTIME_MS_500, PROFILE_REFTIME_MS_1000
+};
+
+const uint32_t gDumpFramesToFileValues[] = { PROFILE_DUMPFILE_NUM_32, PROFILE_DUMPFILE_NUM_64, PROFILE_DUMPFILE_NUM_128,
+											 PROFILE_DUMPFILE_NUM_256, PROFILE_DUMPFILE_NUM_512 };
+
+const uint32_t gDumpFramesDetailedValues[] = {
+	PROFILE_DUMPFRAME_NUM_2,
+	PROFILE_DUMPFRAME_NUM_4,
+	PROFILE_DUMPFRAME_NUM_8,
+	PROFILE_DUMPFRAME_NUM_16,
+};
+#endif
+
+// Common top-menu data.
+ProfileModes                  gProfileMode = PROFILE_MODE_TIMER;
+ProfileModes                  gPrevProfileMode = PROFILE_MODE_TIMER;
+ProfileAggregateFrames        gAggregateFrames = PROFILE_AGGREGATE_NUM_60;
+ProfileReferenceTimes         gReferenceTime = PROFILE_REFTIME_MS_15;
+ProfileDumpFramesFile         gDumpFramesToFile = PROFILE_DUMPFILE_NUM_32;
+ProfileDumpFramesDetailedMode gDumpFramesDetailedMode = PROFILE_DUMPFRAME_NUM_4;
+bool                          gProfilerPaused = false;
+float                         gMinPlotReferenceTime = 0.f;
+float                         gFrameTime = 0.f;
+float                         gFrameTimeData[FRAME_HISTORY_LEN] = { 0.f };
+float                         gGPUFrameTime[PROFILE_MAX_GROUPS];
+float                         gGPUFrameTimeData[PROFILE_MAX_GROUPS][FRAME_HISTORY_LEN] = { { 0.0f } };
+char                          gFrameTimerTitle[MAX_TITLE_STR_LEN] = "FrameTimer";
+char                          gGPUTimerTitle[PROFILE_MAX_GROUPS][MAX_TITLE_STR_LEN]{};
+float2                        gHistogramSize;
+
+// Timer mode data.
+uint32_t                                gTotalGroups = 0;
+uint32_t                                gTotalTimers = 0;
+eastl::vector<eastl::vector<UIWidget*> > gWidgetTable;
+eastl::vector<eastl::vector<char*> >    gTimerData;
+eastl::vector<eastl::vector<float4*> >  gTimerColorData;
+
+// Timer mode color coding.
+float4 gCriticalColor = float4(1.f, 0.f, 0.f, 1.f);
+float4 gWarningColor = float4(1.f, 1.f, 0.f, 1.f);
+float4 gNormalColor = float4(1.f, 1.f, 1.f, 1.f);
+float4 gFernGreenColor = float4(0.31f, 0.87f, 0.26f, 1.0f);
+float4 gLilacColor = float4(0.f, 1.f, 1.f, 1.0f);
+
+// Plot mode data.
+struct PlotModeData
+{
+	float2*  mTimeData;
+	uint32_t mTimerInfo;
+	bool     mEnabled;
+};
+
+eastl::vector<PlotModeData> gPlotModeData;
+eastl::vector<UIWidget*>     gPlotModeWidgets;
+bool                        gUpdatePlotModeGUI = false;
+
+// Detailed mode data.
+eastl::vector<ProfileDetailedModeFrame>   gDetailedModeDump;
+eastl::vector<ProfileDetailedModeTooltip> gDetailedModeTooltips;
+eastl::vector<UIWidget*>                   gDetailedModeWidgets;
+bool                                      gDumpFramesNow = true;
+bool                                      gShowTooltip = true;
+char                                      gTooltipData[MAX_TOOLTIP_STR_LEN] = "0";
+
+/////////////////////////////////////////////////////////////////////////////
+// PROFILER DECLARATIONS
 
 void initGpuProfilers();
 void exitGpuProfilers();
@@ -57,7 +296,7 @@ void exitGpuProfilers();
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#if !defined(_MSC_VER) || _MSC_VER < 1900 // VS2015 includes proper snprintf
+#if !defined(_MSC_VER) || _MSC_VER < 1900    // VS2015 includes proper snprintf
 #define snprintf _snprintf
 #endif
 
@@ -79,10 +318,6 @@ int64_t ProfileGetTick()
 
 #endif
 
-//EASTL Includes
-#include "../../ThirdParty/OpenSource/EASTL/sort.h"
-#include "../../ThirdParty/OpenSource/EASTL/algorithm.h"
-
 #if PROFILE_WEBSERVER
 
 #if defined(_WINDOWS) || defined(XBOX)
@@ -103,74 +338,1402 @@ int64_t ProfileGetTick()
 #define P_INVALID_SOCKET(f) ((f) < 0)
 #endif
 
-#endif 
-
+#endif
 
 #if PROFILE_WEBSERVER || PROFILE_CONTEXT_SWITCH_TRACE
 typedef ThreadFunction ProfileThreadFunc;
 
 inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
 {
-	static ThreadDesc desc[5];
-	static int count = 0;
-#if defined(_WINDOWS) || defined(XBOX)
-	*pThread = static_cast<ProfileThread>(tf_malloc(sizeof(ThreadHandle)));
-#else
-	// Need to check if this actually works right
-  *pThread = static_cast<ProfileThread>(tf_malloc(sizeof(ThreadHandle)));
-#endif
-	desc[count].pFunc = Func;
-	desc[count].pData = *pThread;
-	create_thread(&desc[count++]);
+	*pThread = (ThreadHandle*)tf_malloc(sizeof(ThreadHandle));
+	ThreadDesc desc;
+	desc.pFunc = Func;
+	desc.pData = *pThread;
+	initThread(&desc, *pThread);
 }
 inline void ProfileThreadJoin(ProfileThread* pThread)
 {
-	join_thread(**pThread);
+	joinThread(**pThread);
 	tf_free(*pThread);
 	*pThread = nullptr;
 }
 #endif
 
-
 #ifndef PROFILE_DEBUG
 #define PROFILE_DEBUG 0
 #endif
 
-
 Profile g_Profile;
 
-static bool g_bUseLock = false; /// This is used because windows does not support using mutexes under dll init(which is where global initialization is handled)
-static bool g_bOnce = true;
+static bool g_bUseLock =
+	false;    /// This is used because windows does not support using mutexes under dll init(which is where global initialization is handled)
+static bool           g_bOnce = true;
 
 #ifndef P_THREAD_LOCAL
-static pthread_key_t g_ProfileThreadLogKey;
+static pthread_key_t  g_ProfileThreadLogKey;
 static pthread_once_t g_ProfileThreadLogKeyOnce = PTHREAD_ONCE_INIT;
-static void ProfileCreateThreadLogKey()
-{
-	pthread_key_create(&g_ProfileThreadLogKey, NULL);
-}
+static void           ProfileCreateThreadLogKey() { pthread_key_create(&g_ProfileThreadLogKey, NULL); }
 #else
 P_THREAD_LOCAL ProfileThreadLog* g_ProfileThreadLog = nullptr;
 
 struct ForceProfileThreadExit
-{	
+{
 	~ForceProfileThreadExit()
 	{
-        if(g_bUseLock)
-		    ProfileOnThreadExit();
+		if (g_bUseLock)
+			ProfileOnThreadExit();
 	}
 
 	// NOTE: The thread_local object needs to be used on Linux or it'll never get created!
 	//       According to the standard:
 	//       "A variable with thread storage duration shall be initialized before its first odr-use (3.2) and, if constructed, shall be destroyed on thread exit."
 	// So the following is used on thread creation to ensure the object is properly constructed.
-	void EnsureConstruction() {dummy = 0;}
+	void   EnsureConstruction() { dummy = 0; }
 	int8_t dummy;
 };
 
 P_THREAD_LOCAL ForceProfileThreadExit g_ForceProfileThreadExit;
 #endif
 
+/////////////////////////////////////////////////////////////////////////////
+// PROFILER UI FUNCTIONS
+
+// Utility functions.
+float profileUtilRoundFloatByPrecision(const float& number, float precision = 2.f)
+{
+	return roundf(number * powf(10.f, precision)) / powf(10.f, precision);
+}
+
+float profileUtilReferenceTimeFromEnum(const ProfileReferenceTimes& referenceTime)
+{
+	switch (referenceTime)
+	{
+	case PROFILE_REFTIME_MS_1: return 1.f;
+	case PROFILE_REFTIME_MS_2: return 2.f;
+	case PROFILE_REFTIME_MS_5: return 5.f;
+	case PROFILE_REFTIME_MS_10: return 10.f;
+	case PROFILE_REFTIME_MS_15: return 15.f;
+	case PROFILE_REFTIME_MS_20: return 20.f;
+	case PROFILE_REFTIME_MS_33: return 33.f;
+	case PROFILE_REFTIME_MS_66: return 66.f;
+	case PROFILE_REFTIME_MS_100: return 100.f;
+	case PROFILE_REFTIME_MS_250: return 250.f;
+	case PROFILE_REFTIME_MS_500: return 500.f;
+	case PROFILE_REFTIME_MS_1000: return 1000.f;
+	default: return 15.f;
+	}
+}
+
+uint32_t profileUtilAggregateFramesFromEnum(const ProfileAggregateFrames& aggregateFrames)
+{
+	switch (aggregateFrames)
+	{
+	case PROFILE_AGGREGATE_NUM_INF: return 0;
+	case PROFILE_AGGREGATE_NUM_10: return 10;
+	case PROFILE_AGGREGATE_NUM_20: return 20;
+	case PROFILE_AGGREGATE_NUM_30: return 30;
+	case PROFILE_AGGREGATE_NUM_60: return 60;
+	case PROFILE_AGGREGATE_NUM_120: return 120;
+	default: return 60;
+	}
+}
+
+uint32_t profileUtilDumpFramesFromFileEnum(const ProfileDumpFramesFile& dumpFrames)
+{
+	switch (dumpFrames)
+	{
+	case PROFILE_DUMPFILE_NUM_32: return 32;
+	case PROFILE_DUMPFILE_NUM_64: return 64;
+	case PROFILE_DUMPFILE_NUM_128: return 128;
+	case PROFILE_DUMPFILE_NUM_256: return 256;
+	case PROFILE_DUMPFILE_NUM_512: return 512;
+	default: return 32;
+	}
+}
+
+uint32_t profileUtilDumpFramesDetailedModeEnum(const ProfileDumpFramesDetailedMode& dumpFrames)
+{
+	switch (dumpFrames)
+	{
+	case PROFILE_DUMPFRAME_NUM_2: return 2;
+	case PROFILE_DUMPFRAME_NUM_4: return 4;
+	case PROFILE_DUMPFRAME_NUM_8: return 8;
+	case PROFILE_DUMPFRAME_NUM_16: return 16;
+	default: return 8;
+	}
+}
+
+void profileUtilTrimFloatString(char* numericString, char* result, uint32_t precision = 2u)
+{
+	char* delim = strchr(numericString, '.');
+	ASSERT(delim);
+	size_t delimPos = delim - numericString;    //-V769
+	strncpy(result, numericString, delimPos + 1 + precision);
+}
+
+int profileUtilGroupIndexFromName(Profile& S, const char* groupName)
+{
+	for (uint32_t i = 0; i < S.nGroupCount; ++i)
+	{
+		if (strcmp(S.GroupInfo[i].pName, groupName) == 0)
+		{
+			return S.GroupInfo[i].nGroupIndex;
+		}
+	}
+	return 0;
+}
+
+vec2 profileUtilCalcWindowSize(int32_t width, int32_t height) { return vec2((float)(width >> 1), (float)(height >> 1)); }
+
+// Callback functions.
+void profileCallbkDumpFramesToFile()
+{
+	dumpProfileData(pRendererRef->pName, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
+}
+
+void profileCallbkDumpFrames()
+{
+	// Dump fresh frames to detailed mode and clear any old data.
+	gDumpFramesNow = true;
+	gDetailedModeDump.clear();
+}
+
+void profileCallbkPauseProfiler() { ProfileTogglePause(); }
+
+void ProfileCallbkReferenceTimeUpdated()
+{
+	if (gProfileMode == PROFILE_MODE_PLOT)
+	{
+		gUpdatePlotModeGUI = true;
+	}
+}
+
+// Detailed mode functions.
+void profileDrawDetailedModeGrid(
+	float startHeightPixels, float startWidthPixels, float interLineDistance, uint32_t totalLines, float lineHeight)
+{
+#ifdef USE_FORGE_UI
+	float x = startWidthPixels;
+
+	for (uint32_t i = 0; i < totalLines; ++i)
+	{
+		// Alternate between dark lines as whole numbers and light lines decimal mid.
+		uint32_t color = 0x64646464;
+
+		if (i % 2 != 0)
+		{
+			color = 0x32323232;
+		}
+
+		DrawLineWidget lineWidget;
+		lineWidget.mPos1 = float2(x, startHeightPixels);
+		lineWidget.mPos2 = float2(x, lineHeight);
+		lineWidget.mColor = color;
+		lineWidget.mAddItem = false;
+		gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &lineWidget, WIDGET_TYPE_DRAW_LINE));
+		luaRegisterWidget(gDetailedModeWidgets.back());
+		x += interLineDistance;
+	}
+#endif
+}
+
+void profileGetDetailedModeFrameTimeBetweenTicks(
+	int64_t nTicks, int64_t nTicksEnd, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
+{
+	Profile& S = *ProfileGet();
+	ASSERT(nLogIndex >= 0 && S.Pool[nLogIndex]);
+
+	bool     bGpu = S.Pool[nLogIndex]->nGpu != 0;
+	uint32_t nPut = tfrg_atomic32_load_relaxed(&S.Pool[nLogIndex]->nPut);
+
+	uint32_t nBegin = S.nFrameCurrent;
+
+	for (uint32_t i = 0; i < PROFILE_MAX_FRAME_HISTORY - PROFILE_GPU_FRAME_DELAY; ++i)
+	{
+		uint32_t nFrame = (S.nFrameCurrent + PROFILE_MAX_FRAME_HISTORY - i) % PROFILE_MAX_FRAME_HISTORY;
+		uint32_t nCurrStart = S.Frames[nBegin].nLogStart[nLogIndex];
+		uint32_t nPrevStart = S.Frames[nFrame].nLogStart[nLogIndex];
+		bool bOverflow = (nPrevStart <= nCurrStart) ? (nPut >= nPrevStart && nPut < nCurrStart) : (nPut < nCurrStart || nPut >= nPrevStart);
+		if (bOverflow)
+			break;
+
+		nBegin = nFrame;
+		if ((bGpu ? S.Frames[nBegin].nFrameStartGpu[nLogIndex] : S.Frames[nBegin].nFrameStartCpu) <= nTicks)
+			break;
+	}
+
+	uint32_t nEnd = nBegin;
+
+	while (nEnd != S.nFrameCurrent)
+	{
+		nEnd = (nEnd + 1) % PROFILE_MAX_FRAME_HISTORY;
+		if ((bGpu ? S.Frames[nEnd].nFrameStartGpu[nLogIndex] : S.Frames[nEnd].nFrameStartCpu) >= nTicksEnd)
+			break;
+	}
+
+	*nFrameBegin = nBegin;
+	*nFrameEnd = nEnd;
+}
+
+/// Get data for detailed mode UI from the microprofiler.
+void profileUpdateDetailedModeData(Profile& S)
+{
+	int64_t nTicksPerSecondCpu = ProfileTicksPerSecondCpu();
+	float   fToMsCpu = ProfileTickToMsMultiplier(nTicksPerSecondCpu);
+	float   fDetailedRange = profileUtilReferenceTimeFromEnum(gReferenceTime);
+	int64_t nBaseTicksCpu = S.Frames[S.nFrameCurrent].nFrameStartCpu;
+	int64_t nBaseTicksEndCpu = nBaseTicksCpu + ProfileMsToTick(fDetailedRange, nTicksPerSecondCpu);
+
+	uint64_t                 nActiveGroup = S.nAllGroupsWanted ? S.nGroupMask : S.nActiveGroupWanted;
+	ProfileDetailedModeFrame frameLog;
+	frameLog.mFrameTime = fDetailedRange;
+
+	// Go over each active thread to profile.
+	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
+	{
+		ProfileThreadLog* pLog = S.Pool[i];
+		if (!pLog)
+			continue;
+
+		bool    bGpu = pLog->nGpu != 0;
+		float   fToMs = bGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(pLog->nGpuToken)) : fToMsCpu;
+		int64_t nBaseTicks = bGpu ? S.Frames[S.nFrameCurrent].nFrameStartGpu[i] : nBaseTicksCpu;
+		int64_t nBaseTicksEnd =
+			bGpu ? nBaseTicks + ProfileMsToTick(fDetailedRange, (int64_t)getGpuProfileTicksPerSecond(pLog->nGpuToken)) : nBaseTicksEndCpu;
+		int64_t  nGapTime = 0;
+		uint32_t nLogFrameBegin, nLogFrameEnd;
+		profileGetDetailedModeFrameTimeBetweenTicks(nBaseTicks - nGapTime, nBaseTicksEnd + nGapTime, i, &nLogFrameBegin, &nLogFrameEnd);
+
+		uint32_t nGet = S.Frames[nLogFrameBegin].nLogStart[i];
+		uint32_t nPut = nLogFrameEnd == S.nFrameCurrent ? tfrg_atomic32_load_relaxed(&pLog->nPut) : S.Frames[nLogFrameEnd].nLogStart[i];
+		if (nPut == nGet)
+			continue;
+
+		uint32_t nRange[2][2] = { { 0, 0 }, { 0, 0 } };
+		ProfileGetRange(nPut, nGet, nRange);
+
+		uint32_t nStack[PROFILE_STACK_MAX];
+		uint32_t nStackPos = 0;
+
+		{
+			uint32_t nStart = nRange[0][0];
+			uint32_t nEnd = nRange[0][1];
+
+			for (uint32_t k = nStart; k < nEnd; ++k)
+			{
+				ProfileLogEntry* pEntry = pLog->Log + k;
+				uint64_t         nType = ProfileLogType(*pEntry);
+
+				if (P_LOG_ENTER == nType)
+				{
+					ASSERT(nStackPos < PROFILE_STACK_MAX);
+					nStack[nStackPos++] = k;
+				}
+				else if (P_LOG_LEAVE == nType)
+				{
+					if (0 == nStackPos)
+					{
+						continue;
+					}
+
+					ProfileLogEntry* pEntryEnter = pLog->Log + nStack[nStackPos - 1];
+
+					// Make sure the entry timer points belong to the same event index.
+					if (ProfileLogTimerIndex(*pEntryEnter) != ProfileLogTimerIndex(*pEntry))
+					{
+						continue;
+					}
+
+					int64_t  nTickStart = ProfileLogGetTick(*pEntryEnter);
+					int64_t  nTickEnd = ProfileLogGetTick(*pEntry);
+					uint64_t nTimerIndex = ProfileLogTimerIndex(*pEntry);
+
+					// Make sure the timer is in the groups being processed.
+					if (!(nActiveGroup & (1ull << S.TimerInfo[nTimerIndex].nGroupIndex)))
+					{
+						nStackPos--;
+						continue;
+					}
+
+					float fMsStart = fToMs * ProfileLogTickDifference(nBaseTicks, nTickStart);
+					float fMsEnd = fToMs * ProfileLogTickDifference(nBaseTicks, nTickEnd);
+					// Add relevant profile data for the frame to be drawn in UI.
+					if (fMsEnd < fDetailedRange && fMsStart > 0 && abs(fMsStart - fMsEnd) > 0.0001f)
+					{
+						ProfileDetailedModeTime timerLog;
+						timerLog.mTimerInfoIndex = (uint32_t)nTimerIndex;
+						timerLog.mStartTime = fMsStart;
+						timerLog.mEndTime = fMsEnd;
+						strncpy(timerLog.mThreadName, pLog->ThreadName, 64);
+						timerLog.mFrameNum = (uint32_t)gDetailedModeDump.size() + 1;
+						frameLog.mTimers.push_back(timerLog);
+					}
+
+					nStackPos--;
+
+					if (0 == nStackPos && ProfileLogTickDifference(nTickEnd, nBaseTicksEnd) < 0)
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+/// Get data to display as a tooltip in detailed mode. To enable tooltop just hover over any text in detailed mode.
+void profileUpdateDetailedModeTooltip(Profile& S)
+{
+	gShowTooltip = false;
+
+	for (uint32_t i = 0; i < gDetailedModeTooltips.size(); ++i)
+	{
+		// Need tooltip.
+		if (gDetailedModeTooltips[i].mWidget->mHovered)
+		{
+			// Update tooltip data for this frame.
+			memset(gTooltipData, 0, MAX_TOOLTIP_STR_LEN);
+			const ProfileDetailedModeTime& timer = gDetailedModeTooltips[i].mTimer;
+			const ProfileTimerInfo&        timerInfo = S.TimerInfo[timer.mTimerInfoIndex];
+
+			strcat(gTooltipData, timerInfo.pName);
+			strcat(gTooltipData, "\n------------------------------\n");
+
+			strcat(gTooltipData, "Group Name: ");
+			strcat(gTooltipData, S.GroupInfo[timerInfo.nGroupIndex].pName);
+			strcat(gTooltipData, "\n");
+
+			strcat(gTooltipData, "Thread: ");
+			strcat(gTooltipData, timer.mThreadName);
+			strcat(gTooltipData, "\n");
+
+			char buffer[30]{};
+
+			sprintf(buffer, "%u", timer.mFrameNum);
+			strcat(gTooltipData, "Frame Number: ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
+
+			sprintf(buffer, "%f", timer.mCurrFrameTime + timer.mStartTime);
+			strcat(gTooltipData, "Start Time(ms): ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
+
+			sprintf(buffer, "%f", timer.mCurrFrameTime + timer.mEndTime);
+			strcat(gTooltipData, "End Time(ms)  : ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
+
+			sprintf(buffer, "%f", timer.mEndTime - timer.mStartTime);
+			strcat(gTooltipData, "Total Time(ms): ");
+			strcat(gTooltipData, buffer);
+			strcat(gTooltipData, "\n");
+
+			gShowTooltip = true;
+		}
+	}
+}
+
+/// Main functionality to draw the horizontal UI for detailed mode.
+void profileDrawDetailedMode(Profile& S)
+{
+#ifdef USE_FORGE_UI
+	// Remove any tooltip widgets.
+	for (uint32_t i = 0; i < gDetailedModeTooltips.size(); ++i)
+	{
+		uiDestroyComponentWidget(pWidgetUIComponent, gDetailedModeTooltips[i].mWidget);
+	}
+
+	// Remove all other widgets.
+	for (uint32_t i = 0; i < gDetailedModeWidgets.size(); ++i)
+	{
+		uiDestroyComponentWidget(pWidgetUIComponent, gDetailedModeWidgets[i]);
+	}
+
+	gDetailedModeTooltips.clear();
+	gDetailedModeWidgets.clear();
+
+	const float startHeightPixels = gCurrWindowSize.y * 0.2f;
+	const float startWidthPixels = gCurrWindowSize.x * 0.02f;
+	const float interTimerHeight = gCurrWindowSize.y * 0.01f;
+	const float msToPixels = gCurrWindowSize.y * 0.1f;
+	const float timerHeight = gCurrWindowSize.y * 0.025f;
+	float       frameTime = 0.0f;
+	float       frameHeight = 0.f;
+	uint32_t    timerCount = 0;
+	// Draw all frames in the dump into a timeline.
+	for (uint32_t frameIndex = 0; frameIndex < gDetailedModeDump.size(); ++frameIndex)
+	{
+		ProfileDetailedModeFrame& frameToDraw = gDetailedModeDump[frameIndex];
+		if (timerCount > MAX_DETAILED_TIMERS_DRAW)
+		{
+			LOGF(LogLevel::eWARNING, "Reached maximum amount of drawable detailed timers");
+			break;
+		}
+
+		// Draw all timers as rectangles on the timeline.
+		for (uint32_t i = 0; i < (uint32_t)frameToDraw.mTimers.size(); ++i)
+		{
+			if (timerCount > MAX_DETAILED_TIMERS_DRAW)
+				break;
+			ProfileDetailedModeTime& timer = frameToDraw.mTimers[i];
+			timer.mCurrFrameTime = frameTime;
+			ProfileTimerInfo& timerInfo = S.TimerInfo[timer.mTimerInfoIndex];
+			// timer.mFrameNum = frameIndex + 1;
+			float height = startHeightPixels + gCurrWindowSize.y * 0.035f + (interTimerHeight + timerHeight) * timer.mTimerInfoIndex;
+
+			// Overall start and end times.
+			float startTime = frameTime + timer.mStartTime;
+			float endTime = frameTime + timer.mEndTime;
+
+			float2   pos = float2(startWidthPixels + startTime * msToPixels, height);
+			float2   scale = float2(max((endTime - startTime), 0.05f) * msToPixels, timerHeight);
+			uint32_t color = (timerInfo.nColor | 0x7D000000);
+
+			// Draw the timer bar and text.
+			FilledRectWidget rectWidget;
+			rectWidget.mPos = pos;
+			rectWidget.mScale = scale;
+			rectWidget.mColor = color;
+			gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &rectWidget, WIDGET_TYPE_FILLED_RECT));
+			luaRegisterWidget(gDetailedModeWidgets.back());
+
+			// Add data to draw a tooltip for this timer.
+			DrawTextWidget textWidget;
+			textWidget.mPos = pos + float2(scale.x, 0.f);
+			textWidget.mColor = 0xFFFFFFFF;
+			gDetailedModeTooltips.push_back(
+				ProfileDetailedModeTooltip(timer, uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT)));
+			luaRegisterWidget(gDetailedModeTooltips.back().mWidget);
+			frameHeight = max(frameHeight, height * 1.2f);
+			++timerCount;
+		}
+		frameTime += frameToDraw.mFrameTime;
+	}
+
+	// Add timeline.
+	for (uint32_t i = 0; i < (uint32_t)ceilf(frameTime); ++i)
+	{
+		char indexStr[10];
+		sprintf(indexStr, "%u", i);
+
+		DrawTextWidget textWidget;
+		textWidget.mPos = float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f);
+		textWidget.mColor = 0xFFFFFFFF;
+		gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT));
+		luaRegisterWidget(gDetailedModeWidgets.back());
+	}
+
+	// Backgroud vertical lines.
+	profileDrawDetailedModeGrid(startHeightPixels, startWidthPixels, msToPixels / 2.f, (uint32_t)ceilf(frameTime * 2.f), frameHeight);
+	// Horizontal Separator lines.
+
+	DrawLineWidget topLine;
+	topLine.mPos1 = float2(startWidthPixels, startHeightPixels);
+	topLine.mPos2 = float2(ceilf(frameTime) * msToPixels, startHeightPixels);
+	topLine.mColor = 0x64646464;
+	topLine.mAddItem = true;
+	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE));
+	luaRegisterWidget(gDetailedModeWidgets.back());
+
+	DrawLineWidget bottomLine;
+	bottomLine.mPos1 = float2(startWidthPixels, frameHeight);
+	bottomLine.mPos2 = float2(ceilf(frameTime) * msToPixels, frameHeight);
+	bottomLine.mColor = 0x64646464;
+	bottomLine.mAddItem = true;
+	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE));
+	luaRegisterWidget(gDetailedModeWidgets.back());
+	// Tooltip widget.
+
+	DrawTooltipWidget tooltip;
+	tooltip.mShowTooltip = &gShowTooltip;
+	tooltip.mText = gTooltipData;
+	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP));
+	luaRegisterWidget(gDetailedModeWidgets.back());
+#endif
+}
+
+// Plot mode functions.
+/// Get data for plot mode UI.
+void profileUpdatePlotModeData(Profile& S, int frameNum)
+{
+	const float timeHeightStart = gCurrWindowSize.y * 0.2f;
+	const float timeHeightEnd = timeHeightStart + gCurrWindowSize.y * 0.4f;
+	const float timeHeight = timeHeightEnd - timeHeightStart;
+	const float widthOffsetLeft = gCurrWindowSize.x * 0.02f;
+	;
+	const float widthOffsetRight = 0.f;
+
+	// Go over all timers and store frame's data into plotData if enabled.
+	uint32_t timerLocation = 0;
+	for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+	{
+		float fToMs = ProfileTickToMsMultiplier(
+			S.GroupInfo[groupIndex].Type == ProfileTokenTypeGpu ? getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken)
+			: ProfileTicksPerSecondCpu());
+		for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+		{
+			if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
+			{
+				float referenceTime = profileUtilReferenceTimeFromEnum(gReferenceTime);
+				float fTime = profileUtilRoundFloatByPrecision(fToMs * S.Frame[timerIndex].nTicks);
+				float percentY = clamp(fTime / referenceTime, 0.f, 1.f);
+				float x = (float)frameNum / FRAME_HISTORY_LEN * gCurrWindowSize.x;
+				if (gPlotModeData[timerLocation].mEnabled)
+				{
+					gPlotModeData[timerLocation].mTimeData[frameNum] =
+						float2(clamp(x, widthOffsetLeft, gCurrWindowSize.x - widthOffsetRight), timeHeightEnd - percentY * timeHeight);
+				}
+				else
+				{
+					// Don't render this value as the timer is not enabled.
+					gPlotModeData[timerLocation].mTimeData[frameNum] = float2(FLT_MAX, FLT_MAX);
+				}
+				timerLocation++;
+			}
+		}
+	}
+}
+
+void profileDrawPlotMode(Profile& S)
+{
+#ifdef USE_FORGE_UI
+	// Remove any previous widgets.
+	for (uint32_t i = 0; i < gPlotModeWidgets.size(); ++i)
+	{
+		uiDestroyComponentWidget(pWidgetUIComponent, gPlotModeWidgets[i]);
+	}
+
+	gPlotModeWidgets.clear();
+
+	float       referenceTime = profileUtilReferenceTimeFromEnum(gReferenceTime);
+	const float baseWidthOffset = gCurrWindowSize.x * 0.02f;
+	const float timelineCount = min(10.f, referenceTime);
+	const float timeHeightStart = gCurrWindowSize.y * 0.2f;
+	const float timeHeightEnd = timeHeightStart + gCurrWindowSize.y * 0.4f;
+	const float timeHeight = timeHeightEnd - timeHeightStart;
+
+	// Draw Reference Separator.
+	DrawLineWidget lineSeparator;
+	lineSeparator.mPos1 = float2(baseWidthOffset, timeHeightStart);
+	lineSeparator.mPos2 = float2(baseWidthOffset, timeHeightEnd);
+	lineSeparator.mColor = 0x64646464;
+	lineSeparator.mAddItem = false;
+	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+	luaRegisterWidget(gPlotModeWidgets.back());
+
+	lineSeparator.mPos1 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightStart);
+	lineSeparator.mPos2 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightEnd);
+	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator2", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+	luaRegisterWidget(gPlotModeWidgets.back());
+
+	// Draw Reference times and reference lines.
+	for (uint32_t i = 0; i <= (uint32_t)timelineCount; ++i)
+	{
+		float       percentHeight = (float)i / timelineCount;
+		const float xStart = baseWidthOffset;
+		const float xEnd = gCurrWindowSize.x - baseWidthOffset;
+		float       y = timeHeightStart + percentHeight * timeHeight;
+
+		char floatStr[30];
+		sprintf(floatStr, "%f", (1.f - percentHeight) * referenceTime);
+
+		char resultStr[30]{};
+		profileUtilTrimFloatString(floatStr, resultStr, 1);
+		strcat(resultStr, "ms");
+
+		char yStr[30];
+		sprintf(yStr, "%f", y);
+
+		lineSeparator.mPos1 = float2(xStart, y);
+		lineSeparator.mPos2 = float2(xEnd, y);
+		lineSeparator.mColor = 0x32323232;
+		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE));
+		luaRegisterWidget(gPlotModeWidgets.back());
+
+		DrawTextWidget text;
+		text.mPos = float2(baseWidthOffset, y);
+		text.mColor = 0xFFFFFFFF;
+		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT));
+		luaRegisterWidget(gPlotModeWidgets.back());
+	}
+
+	// Add some space after the graph drawing.
+	CursorLocationWidget cursor;
+	cursor.mLocation = float2(baseWidthOffset, timeHeightEnd * 1.05f);
+	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &cursor, WIDGET_TYPE_CURSOR_LOCATION));
+	luaRegisterWidget(gPlotModeWidgets.back());
+
+	// Draw Timer Infos.
+	for (uint32_t i = 0; i < (uint32_t)gPlotModeData.size(); ++i)
+	{
+		ProfileTimerInfo& timerInfo = S.TimerInfo[gPlotModeData[i].mTimerInfo];
+		uint32_t          color = (timerInfo.nColor | 0xFF000000);
+
+		OneLineCheckboxWidget oneLineCheckbox;
+		oneLineCheckbox.pData = &gPlotModeData[i].mEnabled;
+		oneLineCheckbox.mColor = color;
+		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &oneLineCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
+		luaRegisterWidget(gPlotModeWidgets.back());
+
+		// Only 6 timer names in one line to not overflow horizontally.
+		if ((i + 1) % 10 != 0)
+		{
+			HorizontalSpaceWidget space;
+			gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &space, WIDGET_TYPE_HORIZONTAL_SPACE));
+			luaRegisterWidget(gPlotModeWidgets.back());
+		}
+	}
+#endif
+}
+
+// Timer mode functions.
+void profileDrawTimerMode(Profile& S)
+{
+#ifdef USE_FORGE_UI
+	const char* headerNames[10] = { "Group/Timer",  "Time",       "Average Time",   "Max Time",          "Min Time",
+									"Call Average", "Call Count", "Exclusive Time", "Exclusive Average", "Exclusive Max Time" };
+
+	// Create the table header.
+	eastl::vector<UIWidget*> header;
+
+	for (uint32_t i = 0; i < 10; ++i)
+	{
+		UIWidget* pLabel = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+		pLabel->mType = WIDGET_TYPE_COLOR_LABEL;
+		strcpy(pLabel->mLabel, headerNames[i]);
+
+		ColorLabelWidget* pColorLabel = (ColorLabelWidget*)tf_calloc(1, sizeof(ColorLabelWidget));
+		pColorLabel->mColor = gLilacColor;
+		pLabel->pWidget = pColorLabel;
+
+		header.push_back(pLabel);
+	}
+	gWidgetTable.push_back(header);
+
+	// Add the header coloumn.
+	ColumnWidget headerColumn;
+	headerColumn.mNumColumns = (uint32_t)header.size();
+	headerColumn.mPerColumnWidgets = eastl::move(header);
+	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "Header", &headerColumn, WIDGET_TYPE_COLUMN));
+
+	SeparatorWidget separator;
+	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	// Add other coloumn data.
+	for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+	{
+		ColorLabelWidget colorLabel;
+		colorLabel.mColor = gFernGreenColor;
+		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
+		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+		// Timers are not 1-1 with the groups so search entire list(not very large) every time.
+		for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+		{
+			if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
+			{
+				eastl::vector<UIWidget*> timerCol;
+
+				UIWidget* pLabel = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+				pLabel->mType = WIDGET_TYPE_LABEL;
+				strcpy(pLabel->mLabel, S.TimerInfo[timerIndex].pName);
+				pLabel->pWidget = (LabelWidget*)tf_calloc(1, sizeof(LabelWidget));
+				timerCol.push_back(pLabel);
+
+				eastl::vector<char*>   timeRowData;
+				eastl::vector<float4*> timeColorData;
+
+				// There are 9 time categories in the header above.
+				for (uint32_t i = 0; i < 9; ++i)
+				{
+					char* timeResult = (char*)tf_calloc(MAX_TIME_STR_LEN, sizeof(char));
+					sprintf(timeResult, "-");
+					float4* timeColor = (float4*)tf_calloc(1, sizeof(float4));
+					*timeColor = gNormalColor;
+
+					UIWidget* pDynamicTextBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+					pDynamicTextBase->mType = WIDGET_TYPE_DYNAMIC_TEXT;
+
+					DynamicTextWidget* pDynamicText = (DynamicTextWidget*)tf_calloc(1, sizeof(DynamicTextWidget));
+					pDynamicText->pData = timeResult;
+					pDynamicText->mLength = MAX_TIME_STR_LEN;
+					pDynamicText->pColor = timeColor;
+					pDynamicTextBase->pWidget = pDynamicText;
+
+					timerCol.push_back(pDynamicTextBase);
+
+					timeRowData.push_back(timeResult);
+					timeColorData.push_back(timeColor);
+				}
+
+				// Store for dynamic text update.
+				gTimerData.push_back(timeRowData);
+				gTimerColorData.push_back(timeColorData);
+
+				// Add the time data to the column.
+				ColumnWidget timerColWidget;
+				timerColWidget.mNumColumns = (uint32_t)timerCol.size();
+				timerColWidget.mPerColumnWidgets = timerCol;
+				luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
+				gWidgetTable.push_back(timerCol);
+			}
+		}
+
+		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+	}
+#endif
+}
+
+void profileResetTimerModeData(uint32_t tableLocation)
+{
+	eastl::vector<char*>&   timeCol = gTimerData[tableLocation];
+	eastl::vector<float4*>& timeColor = gTimerColorData[tableLocation];
+	sprintf(timeCol[0], "-");
+	sprintf(timeCol[1], "-");
+	sprintf(timeCol[2], "-");
+	sprintf(timeCol[3], "-");
+	sprintf(timeCol[4], "-");
+	sprintf(timeCol[5], "-");
+	sprintf(timeCol[6], "-");
+	sprintf(timeCol[7], "-");
+	sprintf(timeCol[8], "-");
+	*timeColor[0] = gNormalColor;
+	*timeColor[1] = gNormalColor;
+	*timeColor[2] = gNormalColor;
+	*timeColor[3] = gNormalColor;
+	*timeColor[4] = gNormalColor;
+	*timeColor[5] = gNormalColor;
+	*timeColor[6] = gNormalColor;
+	*timeColor[7] = gNormalColor;
+	*timeColor[8] = gNormalColor;
+}
+
+/// Get data for timer mode functionality.
+void profileUpdateTimerModeData(Profile& S, uint32_t groupIndex, uint32_t timerIndex, uint32_t tableLocation)
+{
+	if (!S.Aggregate[timerIndex].nCount)
+	{
+		profileResetTimerModeData(tableLocation);
+		return;
+	}
+	bool  bGpu = S.GroupInfo[groupIndex].Type == ProfileTokenTypeGpu;
+	float fToMs = ProfileTickToMsMultiplier(
+		bGpu ? getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken) : ProfileTicksPerSecondCpu());
+
+	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+	uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
+
+	// Data to append to the horizontal list of times.
+	float    fTime = profileUtilRoundFloatByPrecision(fToMs * S.Frame[timerIndex].nTicks);
+	float    fAverage = profileUtilRoundFloatByPrecision(fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames));
+	float    fCallAverage = profileUtilRoundFloatByPrecision(fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateCount));
+	float    fMax = profileUtilRoundFloatByPrecision(fToMs * (S.AggregateMax[timerIndex]));
+	float    fMin = profileUtilRoundFloatByPrecision(fToMs * (S.AggregateMin[timerIndex]));
+	uint32_t fCallCount = S.Frame[timerIndex].nCount;
+	float    fFrameMsExclusive = profileUtilRoundFloatByPrecision(fToMs * (S.FrameExclusive[timerIndex]));
+	float    fAverageExclusive = profileUtilRoundFloatByPrecision(fToMs * (S.AggregateExclusive[timerIndex] / nAggregateFrames));
+	float    fMaxExclusive = profileUtilRoundFloatByPrecision(fToMs * (S.AggregateMaxExclusive[timerIndex]));
+
+	eastl::vector<char*>&  timeCol = gTimerData[tableLocation];
+	eastl::vector<float4*> timeColor = gTimerColorData[tableLocation];
+
+	// Fill the timer data buffers with selected timer's data.
+	char floatStr[30];
+	memset(timeCol[0], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fTime);
+	profileUtilTrimFloatString(floatStr, timeCol[0]);
+
+	memset(timeCol[1], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fAverage);
+	profileUtilTrimFloatString(floatStr, timeCol[1]);
+
+	memset(timeCol[2], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fMax);
+	profileUtilTrimFloatString(floatStr, timeCol[2]);
+
+	memset(timeCol[3], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fMin);
+	profileUtilTrimFloatString(floatStr, timeCol[3]);
+
+	memset(timeCol[4], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", fCallAverage);
+	profileUtilTrimFloatString(floatStr, timeCol[4]);
+
+	memset(timeCol[5], 0, MAX_TIME_STR_LEN);
+	sprintf(floatStr, "%f", (float)fCallCount);
+	profileUtilTrimFloatString(floatStr, timeCol[5]);
+
+	if (!bGpu)    // No exclusive times for GPU
+	{
+		memset(timeCol[6], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fFrameMsExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[6]);
+
+		memset(timeCol[7], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fAverageExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[7]);
+
+		memset(timeCol[8], 0, MAX_TIME_STR_LEN);
+		sprintf(floatStr, "%f", fMaxExclusive);
+		profileUtilTrimFloatString(floatStr, timeCol[8]);
+	}
+
+	// Also add color coding to the times relative to the current selected reference time.
+	float          criticalTime = CRITICAL_COLOR_THRESHOLD * profileUtilReferenceTimeFromEnum(gReferenceTime);
+	float          warnTime = WARNING_COLOR_THRESHOLD * profileUtilReferenceTimeFromEnum(gReferenceTime);
+	const uint32_t criticalCount = 10;
+	const uint32_t warnCount = 5;
+
+	// Change colors to warning/criticals and back to normal.
+	fTime > warnTime ? *timeColor[0] = gWarningColor : *timeColor[0] = gNormalColor;
+	fAverage > warnTime ? *timeColor[1] = gWarningColor : *timeColor[1] = gNormalColor;
+	fMax > warnTime ? *timeColor[2] = gWarningColor : *timeColor[2] = gNormalColor;
+	fMin > warnTime ? *timeColor[3] = gWarningColor : *timeColor[3] = gNormalColor;
+	fCallAverage > warnTime ? *timeColor[4] = gWarningColor : *timeColor[4] = gNormalColor;
+	fCallCount > warnCount ? *timeColor[5] = gWarningColor : *timeColor[5] = gNormalColor;
+	fFrameMsExclusive > warnTime ? *timeColor[6] = gWarningColor : *timeColor[6] = gNormalColor;
+	fAverageExclusive > warnTime ? *timeColor[7] = gWarningColor : *timeColor[7] = gNormalColor;
+	fMaxExclusive > warnTime ? *timeColor[8] = gWarningColor : *timeColor[8] = gNormalColor;
+
+	fTime > criticalTime ? *timeColor[0] = gCriticalColor : float4(0.0f);
+	fAverage > criticalTime ? *timeColor[1] = gCriticalColor : float4(0.0f);
+	fMax > criticalTime ? *timeColor[2] = gCriticalColor : float4(0.0f);
+	fMin > criticalTime ? *timeColor[3] = gCriticalColor : float4(0.0f);
+	fCallAverage > criticalTime ? *timeColor[4] = gCriticalColor : float4(0.0f);
+	fCallCount > criticalCount ? *timeColor[5] = gCriticalColor : float4(0.0f);
+	fFrameMsExclusive > criticalTime ? *timeColor[6] = gCriticalColor : float4(0.0f);
+	fAverageExclusive > criticalTime ? *timeColor[7] = gCriticalColor : float4(0.0f);
+	fMaxExclusive > criticalTime ? *timeColor[8] = gCriticalColor : float4(0.0f);
+}
+
+void resetProfilerUI()
+{
+#ifdef USE_FORGE_UI
+	if (pWidgetUIComponent)
+	{
+		uiDestroyAllComponentWidgets(pWidgetUIComponent);
+	}
+
+	// Free any allocated widget memory.
+	for (uint32_t i = 0; i < gWidgetTable.size(); ++i)
+	{
+		for (uint32_t j = 0; j < gWidgetTable[i].size(); ++j)
+		{
+			// Not a public Widget function
+			extern void destroyWidget(UIWidget* pWidget, bool freeUnderlying);
+			destroyWidget(gWidgetTable[i][j], true);
+		}
+	}
+	gWidgetTable.clear();
+
+	// Free any allocated timer data mem.
+	for (uint32_t i = 0; i < gTimerData.size(); ++i)
+	{
+		for (uint32_t j = 0; j < gTimerData[i].size(); ++j)
+		{
+			tf_delete(gTimerData[i][j]);
+			tf_delete(gTimerColorData[i][j]);
+		}
+	}
+	gTimerData.clear();
+	gTimerColorData.clear();
+
+	// Free any allocated graph data mem.
+	for (uint32_t i = 0; i < gPlotModeData.size(); ++i)
+	{
+		tf_free(gPlotModeData[i].mTimeData);
+	}
+	gPlotModeData.clear();
+	gDetailedModeTooltips.clear();
+	gDetailedModeWidgets.clear();
+	gDetailedModeDump.clear();
+	gPlotModeWidgets.clear();
+	memset(gFrameTimerTitle, 0, MAX_TITLE_STR_LEN);
+#endif
+}
+
+void drawGpuProfileRecursive(
+	Cmd* pCmd, const GpuProfiler* pGpuProfiler, const FontDrawDesc* pDrawDesc, float2& origin, const uint32_t index,
+	float2& curTotalTxtSizePx)
+{
+	GpuTimer* pRoot = &pGpuProfiler->pGpuTimerPool[index];
+	ASSERT(pRoot);
+	uint32_t nTimerIndex = ProfileGetTimerIndex(pRoot->mMicroProfileToken);
+	Profile& S = *ProfileGet();
+	if (!S.Aggregate[nTimerIndex].nCount)
+		return;
+
+	const GpuProfileDrawDesc* pGpuDrawDesc = &gDefaultGpuProfileDrawDesc;
+	float2                    pos(origin.x + pGpuDrawDesc->mChildIndent * pRoot->mDepth, origin.y);
+	uint32_t                  nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+	float                     fsToMs = ProfileTickToMsMultiplier((uint64_t)pGpuProfiler->mGpuTimeStampFrequency);
+	float                     fAverage = fsToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
+
+	char printableString[128]{};
+	strcpy(printableString, pRoot->mName);
+	strcat(printableString, " - ");
+
+	char buffer[30];
+	sprintf(buffer, "%f", fAverage);
+	strcat(printableString, buffer);
+
+	sprintf(buffer, " ms");
+	strcat(printableString, buffer);
+
+	FontDrawDesc drawDesc = {};
+	drawDesc.pText = printableString;
+	drawDesc.mFontID = pDrawDesc->mFontID;
+	drawDesc.mFontColor = pDrawDesc->mFontColor;
+	drawDesc.mFontSize = pDrawDesc->mFontSize;
+	drawDesc.mFontSpacing = pDrawDesc->mFontSpacing;
+	drawDesc.mFontBlur = pDrawDesc->mFontBlur;
+	cmdDrawTextWithFont(pCmd, pos, &drawDesc);
+
+	float2 textSizePx = fntMeasureFontText(printableString, pDrawDesc);
+	origin.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+	textSizePx.x += pGpuDrawDesc->mChildIndent * pRoot->mDepth;
+	curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
+	curTotalTxtSizePx.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+
+	// Metal only supports gpu timers on command buffer boundaries so all timers other than root will be zero
+#ifdef METAL
+	return;
+#else
+	for (uint32_t i = index + 1; i < pGpuProfiler->mCurrentPoolIndex; ++i)
+	{
+		if (pGpuProfiler->pGpuTimerPool[i].pParent == pRoot)
+		{
+			drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, origin, i, curTotalTxtSizePx);
+		}
+	}
+#endif
+}
+
+float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc)
+{
+#ifndef __ANDROID__
+#ifdef USE_FORGE_FONTS
+	ASSERT(pDrawDesc);
+
+	GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
+	if (!pGpuProfiler)
+	{
+		return float2(0.f, 0.f);
+	}
+
+	gScreenPos = screenCoordsInPx;
+
+	pDrawDesc->pText = gGpuProfileTitleText;
+	cmdDrawTextWithFont(pCmd, gScreenPos, pDrawDesc);
+
+	float2 totalTextSizePx = fntMeasureFontText(gGpuProfileTitleText, pDrawDesc);
+	gScreenPos.y += totalTextSizePx.y + gDefaultGpuProfileDrawDesc.mHeightOffset;
+	drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, gScreenPos, 0, totalTextSizePx);
+
+	return totalTextSizePx;
+#else
+	return float2(0.f, 0.f);
+#endif
+#else 
+	return float2(0.f, 0.f);
+#endif
+}
+
+float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc)
+{
+#ifdef USE_FORGE_FONTS
+	ASSERT(pDrawDesc);
+
+	sprintf(gCpuProfileText, "CPU %f ms", getCpuAvgFrameTime());
+
+	pDrawDesc->pText = gCpuProfileText;
+
+	cmdDrawTextWithFont(pCmd, screenCoordsInPx, pDrawDesc);
+
+	float2 totalTextSizePx = fntMeasureFontText(gCpuProfileText, pDrawDesc);
+	return totalTextSizePx;
+#else
+	return float2(0.f, 0.f);
+#endif
+}
+/// Draws the top menu and draws the selected timer mode.
+void profileLoadWidgetUI(Profile& S)
+{
+#ifdef USE_FORGE_UI
+	resetProfilerUI();
+
+	eastl::vector<UIWidget*> topMenu;
+
+	// Profile mode
+	UIWidget* pProfileModeBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+	pProfileModeBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pProfileModeBase->mLabel, "Select Profile Mode");
+	DropdownWidget* pProfileMode = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pProfileMode->pData = (uint32_t*)&gProfileMode;
+	pProfileModeBase->pWidget = pProfileMode;
+
+	for (uint32_t i = 0; i < PROFILE_MODE_MAX; ++i)
+	{
+		char* profileModeName = (char*)tf_calloc(strlen(pProfileModesNames[i]) + 1, sizeof(char));
+		strcpy(profileModeName, pProfileModesNames[i]);
+		pProfileMode->mNames.push_back(profileModeName);
+
+		pProfileMode->mValues.push_back(gProfileModesValues[i]);
+	}
+	topMenu.push_back(pProfileModeBase);
+
+	// Aggregate frames
+	UIWidget* pAggregateBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+	pAggregateBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pAggregateBase->mLabel, "Aggregate Frames");
+	DropdownWidget* pAggregate = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pAggregate->pData = (uint32_t*)&gAggregateFrames;
+	pAggregateBase->pWidget = pAggregate;
+
+	for (uint32_t i = 0; i < PROFILE_AGGREGATE_FRAMES_MAX; ++i)
+	{
+		char* aggregateName = (char*)tf_calloc(strlen(pAggregateFramesNames[i]) + 1, sizeof(char));
+		strcpy(aggregateName, pAggregateFramesNames[i]);
+		pAggregate->mNames.push_back(aggregateName);
+
+		pAggregate->mValues.push_back(gAggregateFramesValues[i]);
+	}
+	topMenu.push_back(pAggregateBase);
+
+	// Reference times
+	UIWidget* pReferenceBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+	pReferenceBase->mType = WIDGET_TYPE_DROPDOWN;
+	strcpy(pReferenceBase->mLabel, "Reference Times");
+	DropdownWidget* pReference = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+	pReference->pData = (uint32_t*)&gReferenceTime;
+	pReferenceBase->pWidget = pReference;
+
+	for (uint32_t i = 0; i < PROFILE_REFTIME_MAX; ++i)
+	{
+		char* referenceName = (char*)tf_calloc(strlen(pReferenceTimesNames[i]) + 1, sizeof(char));
+		strcpy(referenceName, pReferenceTimesNames[i]);
+		pReference->mNames.push_back(referenceName);
+
+		pReference->mValues.push_back(gReferenceTimesValues[i]);
+	}
+	topMenu.push_back(pReferenceBase);
+	uiSetWidgetOnEditedCallback(topMenu.back(), ProfileCallbkReferenceTimeUpdated);    //-V807
+
+	// Don't dump frames to disk in detailed mode.
+	if (gProfileMode == PROFILE_MODE_DETAILED)
+	{
+		UIWidget* pDetailedBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+		pDetailedBase->mType = WIDGET_TYPE_DROPDOWN;
+		strcpy(pDetailedBase->mLabel, "Dump Frames Detailed View");
+		DropdownWidget* pDetailed = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+		pDetailed->pData = (uint32_t*)&gDumpFramesDetailedMode;
+		pDetailedBase->pWidget = pDetailed;
+
+		for (uint32_t i = 0; i < PROFILE_DUMPFRAME_MAX; ++i)
+		{
+			char* detailedName = (char*)tf_calloc(strlen(pDumpFramesDetailedViewNames[i]) + 1, sizeof(char));
+			strcpy(detailedName, pDumpFramesDetailedViewNames[i]);
+			pDetailed->mNames.push_back(detailedName);
+
+			pDetailed->mValues.push_back(gDumpFramesDetailedValues[i]);
+		}
+		topMenu.push_back(pDetailedBase);
+		uiSetWidgetOnEditedCallback(topMenu.back(), profileCallbkDumpFrames); 
+
+		gDumpFramesNow = true;
+	}
+	else
+	{
+		UIWidget* pDumpBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+		pDumpBase->mType = WIDGET_TYPE_DROPDOWN;
+		strcpy(pDumpBase->mLabel, "Dump Frames Detailed View");
+		DropdownWidget* pDump = (DropdownWidget*)tf_calloc(1, sizeof(DropdownWidget));
+		pDump->pData = (uint32_t*)&gDumpFramesToFile;
+		pDumpBase->pWidget = pDump;
+
+		for (uint32_t i = 0; i < PROFILE_DUMPFILE_MAX; ++i)
+		{
+			char* dumpName = (char*)tf_calloc(strlen(pDumpFramesToFileNames[i]) + 1, sizeof(char));
+			strcpy(dumpName, pDumpFramesToFileNames[i]);
+			pDump->mNames.push_back(dumpName);
+
+			pDump->mValues.push_back(gDumpFramesToFileValues[i]);
+		}
+		topMenu.push_back(pDumpBase);
+		uiSetWidgetOnEditedCallback(topMenu.back(), profileCallbkDumpFramesToFile);
+	}
+
+	UIWidget* pCheckboxBase = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
+	pCheckboxBase->mType = WIDGET_TYPE_CHECKBOX;
+	strcpy(pCheckboxBase->mLabel, "Profiler Paused");
+	CheckboxWidget* pCheckbox = (CheckboxWidget*)tf_calloc(1, sizeof(CheckboxWidget));
+	pCheckbox->pData = &gProfilerPaused;
+	pCheckboxBase->pWidget = pCheckbox;
+
+	topMenu.push_back(pCheckboxBase);
+	topMenu.back()->pOnEdited = profileCallbkPauseProfiler;
+
+	ColumnWidget topMenuCol;
+	topMenuCol.mNumColumns = (uint32_t)topMenu.size();
+	topMenuCol.mPerColumnWidgets = topMenu;
+
+	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "topmenu", &topMenuCol, WIDGET_TYPE_COLUMN));
+	gWidgetTable.push_back(topMenu);
+
+	SeparatorWidget separator;
+	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	if (gProfileMode == PROFILE_MODE_TIMER)
+	{
+		PlotLinesWidget plotLines;
+		plotLines.mValues = gFrameTimeData;
+		plotLines.mNumValues = FRAME_HISTORY_LEN;
+		plotLines.mScaleMin = &gMinPlotReferenceTime;
+		plotLines.mScaleMax = &S.fReferenceTime;
+		plotLines.mPlotScale = &gHistogramSize;
+		plotLines.mTitle = gFrameTimerTitle;
+
+		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+		for (uint32_t i = 0; i < S.nGroupCount; ++i)
+		{
+			if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
+			{
+				plotLines.mValues = gGPUFrameTimeData[i];
+				plotLines.mNumValues = FRAME_HISTORY_LEN;
+				plotLines.mScaleMin = &gMinPlotReferenceTime;
+				plotLines.mScaleMax = &S.fReferenceTime;
+				plotLines.mPlotScale = &gHistogramSize;
+				plotLines.mTitle = gGPUTimerTitle[i];
+
+				luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+			}
+		}
+
+		profileDrawTimerMode(S);
+	}
+	else if (gProfileMode == PROFILE_MODE_DETAILED)
+	{
+		profileDrawDetailedMode(S);
+	}
+	else if (gProfileMode == PROFILE_MODE_PLOT)
+	{
+		// Allocate plot data for all timers.
+		for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+		{
+			for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+			{
+				if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
+				{
+					PlotModeData graphTimer;
+					graphTimer.mTimerInfo = timerIndex;
+					graphTimer.mTimeData = (float2*)tf_malloc(FRAME_HISTORY_LEN * sizeof(float2));
+					graphTimer.mEnabled = false;
+					uint32_t color = (S.TimerInfo[timerIndex].nColor | 0x7D000000);
+
+					DrawCurveWidget curve;
+					curve.mPos = graphTimer.mTimeData;
+					curve.mNumPoints = FRAME_HISTORY_LEN;
+					curve.mThickness = 1.f;
+					curve.mColor = color;
+					luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE));
+					gPlotModeData.push_back(graphTimer);
+				}
+			}
+		}
+
+		profileDrawPlotMode(S);
+	}
+#endif
+}
+
+/// Checks for a change in profile mode so we don't have to draw UI widget every frame (expensive).
+void profileUpdateProfileMode(Profile& S)
+{
+	if (gPrevProfileMode != gProfileMode)
+	{
+		profileLoadWidgetUI(S);
+		gPrevProfileMode = gProfileMode;
+	}
+}
+
+/// Get data for the header histograms and updates the plot mode data. Called every frame.
+void profileUpdateWidgetUI(Profile& S)
+{
+#ifdef USE_FORGE_UI
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+
+	// Check windowSize change.
+	float2 windowSize = float2(pWidgetUIComponent->mCurrentWindowRect.getZ(), pWidgetUIComponent->mCurrentWindowRect.getW());
+	if (windowSize.x != gCurrWindowSize.x || windowSize.y != gCurrWindowSize.y)
+	{
+		gCurrWindowSize = windowSize;
+		gUpdatePlotModeGUI = true;
+	}
+
+	gHistogramSize = float2(gCurrWindowSize.x, 0.1f * gCurrWindowSize.y);
+	gFrameTime = fToMs * (S.nFlipTicks);
+
+	// Currently take gpu ticks per second from first Gpu group found
+	for (uint32_t i = 0; i < S.nGroupCount; ++i)
+	{
+		if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
+		{
+			gGPUFrameTime[i] = getGpuProfileTime(S.GroupInfo[i].nGpuProfileToken);
+		}
+	}
+
+	S.fReferenceTime = profileUtilReferenceTimeFromEnum(gReferenceTime);
+	S.nAggregateFlip = profileUtilAggregateFramesFromEnum(gAggregateFrames);
+
+	static int frameNum = 0;
+	frameNum = (frameNum + 1) % FRAME_HISTORY_LEN;
+
+	// Add the data to histogram array.
+	if (!gProfilerPaused)
+	{
+		gFrameTimeData[frameNum] = gFrameTime;
+
+		sprintf(gFrameTimerTitle, "Frame: Time[");
+
+		char buffer[30];
+
+		sprintf(buffer, "%f", gFrameTime);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Avg[");
+
+		sprintf(buffer, "%f", fToMs * (S.nFlipAggregateDisplay / nAggregateFrames));
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Min[");
+
+		sprintf(buffer, "%f", fToMs * S.nFlipMinDisplay);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms] Max[");
+
+		sprintf(buffer, "%f", fToMs * S.nFlipMaxDisplay);
+		strcat(gFrameTimerTitle, buffer);
+		strcat(gFrameTimerTitle, "ms]");
+
+		for (uint32_t i = 0; i < S.nGroupCount; ++i)
+		{
+			if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
+			{
+				gGPUFrameTimeData[i][frameNum] = gGPUFrameTime[i];
+
+				memset(gGPUTimerTitle[i], 0, MAX_TITLE_STR_LEN);
+				strcpy(gGPUTimerTitle[i], S.GroupInfo[i].pName);
+				strcat(gGPUTimerTitle[i], ": Time[");
+
+				char buffer[30];
+				sprintf(buffer, "%f", gGPUFrameTime[i]);
+				strcat(gGPUTimerTitle[i], buffer);
+
+				strcat(gGPUTimerTitle[i], "ms]");
+			}
+		}
+
+		static int frameNumPlot = 0;
+		if (gProfileMode == PROFILE_MODE_PLOT)
+		{
+			profileUpdatePlotModeData(S, frameNumPlot);
+			frameNumPlot = (frameNumPlot + 1) % FRAME_HISTORY_LEN;
+		}
+		else
+		{
+			frameNumPlot = 0;
+		}
+	}
+#endif
+}
+
+void toggleProfilerUI() { gProfilerWidgetUIEnabled = (gProfilerWidgetUIEnabled == true) ? false : true; }
+
+void drawProfilerUI()
+{
+#ifdef USE_FORGE_UI
+	if (!pMenuUIComponent || !pWidgetUIComponent)
+		return; 
+
+	PROFILER_SET_CPU_SCOPE("MicroProfilerUI", "WidgetsUI", 0x737373);
+
+	pMenuUIComponent->mAlpha = 1.0f - gGuiTransparency;
+
+	Profile& S = *ProfileGet();
+	uiSetComponentActive(pWidgetUIComponent, gProfilerWidgetUIEnabled);
+
+	// Profiler enabled.
+	if (gProfilerWidgetUIEnabled)
+	{
+		// New groups or timers were found. Create the widget table.
+		if (S.nGroupCount != gTotalGroups || S.nTotalTimers != gTotalTimers || gUnloaded)
+		{
+			profileLoadWidgetUI(S);
+			gTotalGroups = S.nGroupCount;
+			gTotalTimers = S.nTotalTimers;
+			gUnloaded = false;
+		}
+
+		// Select profile mode to display.
+		profileUpdateProfileMode(S);
+		// Update frame history, etc.
+		profileUpdateWidgetUI(S);
+
+		// Update timer mode buffers.
+		if (gProfileMode == PROFILE_MODE_TIMER)
+		{
+			uint32_t timerTableLocation = 0;
+			for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+			{
+				// Timers are not 1-1 with the groups so search entire list every time.
+				for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+				{
+					if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
+					{
+						profileUpdateTimerModeData(S, groupIndex, timerIndex, timerTableLocation++);
+					}
+				}
+			}
+		}
+
+		// Accumulate frames for detailed view.
+		if (gProfileMode == PROFILE_MODE_DETAILED)
+		{
+			if (gDumpFramesNow)
+			{
+				// Add this frame data.
+				profileUpdateDetailedModeData(S);
+				// Finish dumping required number of frames and display in GUI.
+				if (gDetailedModeDump.size() >= profileUtilDumpFramesDetailedModeEnum(gDumpFramesDetailedMode))
+				{
+					gDumpFramesNow = false;
+					profileDrawDetailedMode(S);
+				}
+			}
+
+			// Update mouse hover tooltip for detailed mode.
+			profileUpdateDetailedModeTooltip(S);
+		}
+
+		// Update plot mode GUI.
+		if (gProfileMode == PROFILE_MODE_PLOT)
+		{
+			// Recreate Plot mode GUI if reference settings are changed.
+			if (gUpdatePlotModeGUI)
+			{
+				profileDrawPlotMode(S);
+				gUpdatePlotModeGUI = false;
+			}
+		}
+
+		pWidgetUIComponent->mAlpha = 1.0f - gGuiTransparency;
+
+	}    // profiler enabled.
+#endif
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// PROFILER FUNCTIONS
 
 inline Mutex& ProfileMutex()
 {
@@ -178,28 +1741,21 @@ inline Mutex& ProfileMutex()
 	return sMutex;
 }
 
-Mutex& ProfileGetMutex()
-{
-	return ProfileMutex();
-}
+Mutex& ProfileGetMutex() { return ProfileMutex(); }
 
-PROFILE_API Profile* ProfileGet()
-{
-	return &g_Profile;
-}
-
+PROFILE_API Profile* ProfileGet() { return &g_Profile; }
 
 void ProfileInit()
 {
-	Mutex& mutex = ProfileMutex();
-	Profile & S = g_Profile;
-	bool bUseLock = g_bUseLock;
-    if (bUseLock)
-        mutex.Acquire();
+	Mutex&   mutex = ProfileMutex();
+	Profile& S = g_Profile;
+	bool     bUseLock = g_bUseLock;
+	if (bUseLock)
+		acquireMutex(&mutex);
 	if (g_bOnce)
 	{
 		g_bOnce = false;
-        mutex.Init();
+		initMutex(&mutex);
 		memset(&S, 0, sizeof(S));
 		S.nMemUsage = sizeof(S);
 		for (int i = 0; i < PROFILE_MAX_GROUPS; ++i)
@@ -244,7 +1800,7 @@ void ProfileInit()
 		for (int i = 0; i < PROFILE_MAX_FRAME_HISTORY; ++i)
 		{
 			S.Frames[i].nFrameStartCpu = nTick;
-            memset(&S.Frames[i].nFrameStartGpu[0], 0, PROFILE_MAX_THREADS * sizeof(S.Frames[i].nFrameStartGpu[0]));
+			memset(&S.Frames[i].nFrameStartGpu[0], 0, PROFILE_MAX_THREADS * sizeof(S.Frames[i].nFrameStartGpu[0]));
 		}
 
 #if PROFILE_COUNTER_HISTORY
@@ -257,28 +1813,96 @@ void ProfileInit()
 #endif
 	}
 	if (bUseLock)
-		mutex.Release();
+		releaseMutex(&mutex);
 }
 
-void initProfiler(Renderer* pRenderer, Queue** ppQueue, const char** ppProfilerNames, ProfileToken* pProfileTokens, uint32_t nGpuProfilerCount)
+void initProfiler(ProfilerDesc* pDesc)
 {
+	// PROFILER BASE
+
 #if PROFILE_ENABLED
-    ProfileInit();
-    ProfileSetEnableAllGroups(true);
-    ProfileWebServerStart();
+	ProfileInit();
+	ProfileSetEnableAllGroups(true);
+	ProfileWebServerStart();
 
 #if GPU_PROFILER_SUPPORTED
-    initGpuProfilers();
+	initGpuProfilers();
 
-    if (nGpuProfilerCount > 0)
-    {
-        ASSERT(pRenderer != NULL && ppQueue != NULL && ppProfilerNames != NULL);
-        for (uint32_t i = 0; i < nGpuProfilerCount; ++i)
-        {
-            pProfileTokens[i] = addGpuProfiler(pRenderer, ppQueue[i], ppProfilerNames[i]);
-        }
-    }
+	if (pDesc->mGpuProfilerCount > 0)
+	{
+		ASSERT(pDesc->pRenderer != NULL && pDesc->ppQueues != NULL && pDesc->ppProfilerNames != NULL);
+		for (uint32_t i = 0; i < pDesc->mGpuProfilerCount; ++i)
+		{
+			pDesc->pProfileTokens[i] = addGpuProfiler(pDesc->pRenderer, pDesc->ppQueues[i], pDesc->ppProfilerNames[i]);
+		}
+	}
 #endif
+	//store active gpu settings
+	ProfileGet()->pGpuSettings = pDesc->pRenderer->pActiveGpuSettings;
+#endif
+
+	// PROFILER UI
+
+#ifdef USE_FORGE_UI
+	// Remove previous GUI component.
+	if (pWidgetUIComponent)
+	{
+		uiDestroyComponent(pWidgetUIComponent);
+	}
+
+	pRendererRef = pDesc->pRenderer;
+
+	UIComponentDesc profilerComponentDesc = {};
+	profilerComponentDesc.mStartSize = profileUtilCalcWindowSize(pDesc->mWidthUI, pDesc->mHeightUI);
+	profilerComponentDesc.mStartPosition = vec2(PROFILER_WINDOW_X, PROFILER_WINDOW_Y);
+	uiCreateComponent(" Micro Profiler ", &profilerComponentDesc, &pWidgetUIComponent);
+
+	// Disable auto resize and enable manual re-size for the profiler window with scrollbars.
+	pWidgetUIComponent->mFlags |= GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR;
+	pWidgetUIComponent->mFlags |= GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR;
+	pWidgetUIComponent->mFlags &= (~GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE);
+	pWidgetUIComponent->mFlags &= (~GUI_COMPONENT_FLAGS_NO_RESIZE);
+
+	gUnloaded = true;
+
+	// We won't be drawing the default profiler UI anymore.
+	Profile& S = *ProfileGet();
+	S.nDisplay = P_DRAW_OFF;
+
+	UIComponentDesc guiMenuDesc = {};
+	float   dpiScale;
+	{
+		float dpiScaleArr[2];
+		getDpiScale(dpiScaleArr);
+		dpiScale = dpiScaleArr[0];
+	}
+
+	guiMenuDesc.mStartPosition = vec2(pDesc->mWidthUI - 300.0f * dpiScale, pDesc->mHeightUI * 0.5f);
+
+	uiCreateComponent("Micro Profiler", &guiMenuDesc, &pMenuUIComponent);
+
+	CheckboxWidget checkbox;
+	checkbox.pData = &gProfilerWidgetUIEnabled;
+	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
+
+	SeparatorWidget separator;
+	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	ButtonWidget dumpButtonWidget;
+	UIWidget*     pDumpButton = uiCreateComponentWidget(pMenuUIComponent, "Dump Profile", &dumpButtonWidget, WIDGET_TYPE_BUTTON);
+	pDumpButton->pOnDeactivatedAfterEdit = profileCallbkDumpFramesToFile;
+	luaRegisterWidget(pDumpButton);
+
+	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+
+	SliderFloatWidget sliderFloat;
+	sliderFloat.pData = &gGuiTransparency;
+	sliderFloat.mMin = 0.f;
+	sliderFloat.mMax = 0.9f;
+	sliderFloat.mStep = 0.01f;
+	memset(sliderFloat.mFormat, 0, MAX_FORMAT_STR_LENGTH);
+	strcpy(sliderFloat.mFormat, "%.2f");
+	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 #endif
 }
 
@@ -290,17 +1914,44 @@ void exitCpuProfiler()
 	ProfileWebServerStop();
 	ProfileContextSwitchTraceStop();
 
-    g_bOnce = true;
-    g_bUseLock = false;
+	g_bOnce = true;
+	g_bUseLock = false;
 }
 
 void exitProfiler()
 {
+	// PROFILER UI
+
+#ifdef USE_FORGE_UI
+	resetProfilerUI();
+
+	gWidgetTable.set_capacity(0);
+	gTimerData.set_capacity(0);
+	gTimerColorData.set_capacity(0);
+	gPlotModeData.set_capacity(0);
+	gDetailedModeTooltips.set_capacity(0);
+	gDetailedModeWidgets.set_capacity(0);
+	gDetailedModeDump.set_capacity(0);
+	gPlotModeWidgets.set_capacity(0);
+	memset(gFrameTimerTitle, 0, MAX_TITLE_STR_LEN);
+	for (uint32_t i = 0; i < PROFILE_MAX_GROUPS; ++i)
+	{
+		memset(gGPUTimerTitle[i], 0, MAX_TITLE_STR_LEN);
+	}
+	pWidgetUIComponent = 0;
+	pMenuUIComponent = 0;
+	gTotalGroups = 0;
+	gTotalTimers = 0;
+	gUnloaded = true;
+#endif
+
+	// PROFILER BASE
+
 #if PROFILE_ENABLED
-    exitCpuProfiler();
+	exitCpuProfiler();
 
 #if GPU_PROFILER_SUPPORTED
-    exitGpuProfilers();
+	exitGpuProfilers();
 #endif
 #endif
 }
@@ -318,22 +1969,15 @@ inline void ProfileSetThreadLog(ProfileThreadLog* pLog)
 	pthread_setspecific(g_ProfileThreadLogKey, pLog);
 }
 #else
-ProfileThreadLog* ProfileGetThreadLog()
-{
-	return g_ProfileThreadLog;
-}
+ProfileThreadLog* ProfileGetThreadLog() { return g_ProfileThreadLog; }
 
-void ProfileSetThreadLog(ProfileThreadLog* pLog)
-{
-	g_ProfileThreadLog = pLog;
-}
+void ProfileSetThreadLog(ProfileThreadLog* pLog) { g_ProfileThreadLog = pLog; }
 #endif
 
-
-PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog * pLog)
+PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog* pLog)
 {
 	MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
+	Profile&  S = g_Profile;
 	if (pLog)
 	{
 		int32_t nLogIndex = -1;
@@ -347,11 +1991,11 @@ PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog * pLog)
 		}
 		P_ASSERT(nLogIndex >= 0 && nLogIndex < PROFILE_MAX_THREADS);
 
-		S.Pool[nLogIndex] = 0; //-V557
+		S.Pool[nLogIndex] = 0;    //-V557
 
 		for (int i = 0; i < PROFILE_MAX_FRAME_HISTORY; ++i)
 		{
-			S.Frames[i].nLogStart[nLogIndex] = 0; //-V557
+			S.Frames[i].nLogStart[nLogIndex] = 0;    //-V557
 		}
 
 		if (pLog->Log)
@@ -368,15 +2012,15 @@ PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog * pLog)
 
 ProfileThreadLog* ProfileCreateThreadLog(const char* pName)
 {
-	Profile & S = g_Profile;
+	Profile&          S = g_Profile;
 	ProfileThreadLog* pLog = 0;
-	uint32_t nLogIndex = 0;
+	uint32_t          nLogIndex = 0;
 	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
 	{
 		if (!S.Pool[i])
 		{
 			nLogIndex = i;
-			pLog = static_cast<ProfileThreadLog *>(tf_malloc(sizeof(ProfileThreadLog)));
+			pLog = static_cast<ProfileThreadLog*>(tf_malloc(sizeof(ProfileThreadLog)));
 			memset(pLog, 0, sizeof(ProfileThreadLog));
 			S.nMemUsage += sizeof(ProfileThreadLog);
 			S.Pool[i] = pLog;
@@ -394,7 +2038,7 @@ ProfileThreadLog* ProfileCreateThreadLog(const char* pName)
 	len = len < maxlen ? len : maxlen;
 	memcpy(&pLog->ThreadName[0], pName, len);
 	pLog->ThreadName[len] = '\0';
-	pLog->nThreadId = Thread::GetCurrentThreadID();
+	pLog->nThreadId = getCurrentThreadID();
 	return pLog;
 }
 
@@ -414,8 +2058,8 @@ void ProfileOnThreadCreate(const char* pThreadName)
 
 void ProfileOnThreadExit()
 {
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
+	MutexLock         lock(ProfileMutex());
+	Profile&          S = g_Profile;
 	ProfileThreadLog* pLog = ProfileGetThreadLog();
 	if (pLog)
 	{
@@ -430,11 +2074,11 @@ void ProfileOnThreadExit()
 		}
 		P_ASSERT(nLogIndex >= 0 && nLogIndex < PROFILE_MAX_THREADS);
 
-		S.Pool[nLogIndex] = 0; //-V557
+		S.Pool[nLogIndex] = 0;    //-V557
 
 		for (int i = 0; i < PROFILE_MAX_FRAME_HISTORY; ++i)
 		{
-			S.Frames[i].nLogStart[nLogIndex] = 0; //-V557
+			S.Frames[i].nLogStart[nLogIndex] = 0;    //-V557
 		}
 
 		if (pLog->Log)
@@ -464,27 +2108,28 @@ ProfileThreadLog* ProfileGetOrCreateThreadLog()
 	return pLog;
 }
 
-const char * ProfileGetThreadName()
+const char* ProfileGetThreadName()
 {
-	static char buffer[MAX_THREAD_NAME_LENGTH + 1]; // Plus null character
-	Thread::GetCurrentThreadName(buffer, MAX_THREAD_NAME_LENGTH);
+	static char buffer[MAX_THREAD_NAME_LENGTH + 1];    // Plus null character
+	getCurrentThreadName(buffer, MAX_THREAD_NAME_LENGTH);
 	return buffer;
 }
 
 ProfileToken ProfileFindToken(const char* pGroup, const char* pName, ThreadID* pThreadID)
 {
 	ProfileInit();
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
-    ThreadID threadID;
-    if (!pThreadID)
-        threadID = Thread::GetCurrentThreadID();
-    else
-        threadID = *pThreadID;
+	MutexLock lock(ProfileMutex());
+	Profile&  S = g_Profile;
+	ThreadID  threadID;
+	if (!pThreadID)
+		threadID = getCurrentThreadID();
+	else
+		threadID = *pThreadID;
 
 	for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 	{
-		if (!P_STRCASECMP(pName, S.TimerInfo[i].pName) && !P_STRCASECMP(pGroup, S.GroupInfo[S.TimerToGroup[i]].pName) && threadID == S.TimerInfo[i].threadID)
+		if (!P_STRCASECMP(pName, S.TimerInfo[i].pName) && !P_STRCASECMP(pGroup, S.GroupInfo[S.TimerToGroup[i]].pName) &&
+			threadID == S.TimerInfo[i].threadID)
 		{
 			return S.TimerInfo[i].nToken;
 		}
@@ -494,7 +2139,7 @@ ProfileToken ProfileFindToken(const char* pGroup, const char* pName, ThreadID* p
 
 uint16_t ProfileGetGroup(const char* pGroup, ProfileTokenType Type)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < S.nGroupCount; ++i)
 	{
 		if (!P_STRCASECMP(pGroup, S.GroupInfo[i].pName))
@@ -533,20 +2178,20 @@ uint16_t ProfileGetGroup(const char* pGroup, ProfileTokenType Type)
 ProfileToken ProfileGetToken(const char* pGroup, const char* pName, uint32_t nColor, ProfileTokenType Type)
 {
 	ProfileInit();
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
+	MutexLock    lock(ProfileMutex());
+	Profile&     S = g_Profile;
 	ProfileToken ret = ProfileFindToken(pGroup, pName);
 	if (ret != PROFILE_INVALID_TOKEN)
 		return ret;
 	if (S.nTotalTimers == PROFILE_MAX_TIMERS)
 		return PROFILE_INVALID_TOKEN;
-	uint16_t nGroupIndex = ProfileGetGroup(pGroup, Type);
-	uint16_t nTimerIndex = (uint16_t)(S.nTotalTimers++);
-	uint64_t nGroupMask = 1ll << nGroupIndex;
+	uint16_t     nGroupIndex = ProfileGetGroup(pGroup, Type);
+	uint16_t     nTimerIndex = (uint16_t)(S.nTotalTimers++);
+	uint64_t     nGroupMask = 1ll << nGroupIndex;
 	ProfileToken nToken = ProfileMakeToken(nGroupMask, nTimerIndex);
 	S.GroupInfo[nGroupIndex].nNumTimers++;
 	S.GroupInfo[nGroupIndex].nMaxTimerNameLen = ProfileMax(S.GroupInfo[nGroupIndex].nMaxTimerNameLen, (uint32_t)strlen(pName));
-	P_ASSERT(S.GroupInfo[nGroupIndex].Type == Type); //dont mix cpu & gpu timers in the same group
+	P_ASSERT(S.GroupInfo[nGroupIndex].Type == Type);    //dont mix cpu & gpu timers in the same group
 	S.nMaxGroupSize = ProfileMax(S.nMaxGroupSize, S.GroupInfo[nGroupIndex].nNumTimers);
 	S.TimerInfo[nTimerIndex].nToken = nToken;
 	uint32_t nLen = (uint32_t)strlen(pName);
@@ -557,14 +2202,10 @@ ProfileToken ProfileGetToken(const char* pGroup, const char* pName, uint32_t nCo
 	if (nColor == 0xffffffff)
 	{
 		// http://www.two4u.com/color/small-txt.html with some omissions
-		static const int kDebugColors[] =
-		{
-			0x70DB93, 0xB5A642, 0x5F9F9F, 0xB87333, 0x4F6F4F, 0x9932CD,
-			0x871F78, 0x855E42, 0x545454, 0x8E2323, 0x238E23, 0xCD7F32,
-			0xDBDB70, 0x527F76, 0x9F9F5F, 0x8E236B, 0xFF2F4F, 0xCFB53B,
-			0xFF7F00, 0xDB70DB, 0x5959AB, 0x8C1717, 0x238E68, 0x6B4226,
-			0x8E6B23, 0x007FFF, 0x00FF7F, 0x236B8E, 0x38B0DE, 0xDB9370,
-			0xCC3299, 0x99CC32,
+		static const int kDebugColors[] = {
+			0x70DB93, 0xB5A642, 0x5F9F9F, 0xB87333, 0x4F6F4F, 0x9932CD, 0x871F78, 0x855E42, 0x545454, 0x8E2323, 0x238E23,
+			0xCD7F32, 0xDBDB70, 0x527F76, 0x9F9F5F, 0x8E236B, 0xFF2F4F, 0xCFB53B, 0xFF7F00, 0xDB70DB, 0x5959AB, 0x8C1717,
+			0x238E68, 0x6B4226, 0x8E6B23, 0x007FFF, 0x00FF7F, 0x236B8E, 0x38B0DE, 0xDB9370, 0xCC3299, 0x99CC32,
 		};
 
 		// djb2
@@ -582,26 +2223,26 @@ ProfileToken ProfileGetToken(const char* pGroup, const char* pName, uint32_t nCo
 	S.TimerInfo[nTimerIndex].nColor = nColor & 0xffffff;
 	S.TimerInfo[nTimerIndex].nGroupIndex = nGroupIndex;
 	S.TimerInfo[nTimerIndex].nTimerIndex = nTimerIndex;
-	S.TimerInfo[nTimerIndex].threadID = Thread::GetCurrentThreadID();
+	S.TimerInfo[nTimerIndex].threadID = getCurrentThreadID();
 	S.TimerToGroup[nTimerIndex] = (uint8_t)nGroupIndex;
 	return nToken;
 }
 
-ProfileToken getCpuProfileToken(const char * pGroup, const char * pName, uint32_t nColor)
+ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor)
 {
 #if PROFILE_ENABLED
-    return ProfileGetToken(pGroup, pName, nColor);
+	return ProfileGetToken(pGroup, pName, nColor);
 #endif
-    return 0;
+	return 0;
 }
 
 ProfileToken ProfileGetLabelToken(const char* pGroup, ProfileTokenType Type)
 {
 	ProfileInit();
-    MutexLock lock(ProfileMutex());
+	MutexLock lock(ProfileMutex());
 
-	uint16_t nGroupIndex = ProfileGetGroup(pGroup, Type);
-	uint64_t nGroupMask = 1ll << nGroupIndex;
+	uint16_t     nGroupIndex = ProfileGetGroup(pGroup, Type);
+	uint64_t     nGroupMask = 1ll << nGroupIndex;
 	ProfileToken nToken = ProfileMakeToken(nGroupMask, 0);
 
 	return nToken;
@@ -610,8 +2251,8 @@ ProfileToken ProfileGetLabelToken(const char* pGroup, ProfileTokenType Type)
 ProfileToken ProfileGetMetaToken(const char* pName)
 {
 	ProfileInit();
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
+	MutexLock lock(ProfileMutex());
+	Profile&  S = g_Profile;
 	for (uint32_t i = 0; i < PROFILE_META_MAX; ++i)
 	{
 		if (!S.MetaCounters[i].pName)
@@ -624,35 +2265,31 @@ ProfileToken ProfileGetMetaToken(const char* pName)
 			return i;
 		}
 	}
-	P_ASSERT(0);//out of slots, increase PROFILE_META_MAX
+	P_ASSERT(0);    //out of slots, increase PROFILE_META_MAX
 	return (ProfileToken)-1;
 }
 
 const char* ProfileNextName(const char* pName, char* pNameOut, uint32_t* nSubNameLen)
 {
-	uint32_t nMaxLen = PROFILE_NAME_MAX_LEN - 1;
+	uint32_t    nMaxLen = PROFILE_NAME_MAX_LEN - 1;
 	const char* pRet = 0;
-	bool bDone = false;
-	uint32_t nChars = 0;
+	bool        bDone = false;
+	uint32_t    nChars = 0;
 	for (uint32_t i = 0; i < nMaxLen && !bDone; ++i)
 	{
 		char c = *pName++;
 		switch (c)
 		{
-		case 0:
-			bDone = true;
-			break;
-		case '\\':
-		case '/':
-			if (nChars)
-			{
-				bDone = true;
-				pRet = pName;
-			}
-			break;
-		default:
-			nChars++;
-			*pNameOut++ = c;
+			case 0: bDone = true; break;
+			case '\\':
+			case '/':
+				if (nChars)
+				{
+					bDone = true;
+					pRet = pName;
+				}
+				break;
+			default: nChars++; *pNameOut++ = c;
 		}
 	}
 	*nSubNameLen = nChars;
@@ -660,13 +2297,12 @@ const char* ProfileNextName(const char* pName, char* pNameOut, uint32_t* nSubNam
 	return pRet;
 }
 
-
 const char* ProfileCounterFullName(int nCounter)
 {
-	Profile & S = g_Profile;
+	Profile&    S = g_Profile;
 	static char Buffer[1024];
-	int nNodes[32];
-	int nIndex = 0;
+	int         nNodes[32];
+	int         nIndex = 0;
 	do
 	{
 		nNodes[nIndex++] = nCounter;
@@ -675,7 +2311,7 @@ const char* ProfileCounterFullName(int nCounter)
 	int nOffset = 0;
 	while (nIndex >= 0 && nOffset < (int)sizeof(Buffer) - 2)
 	{
-		uint32_t nLen = S.CounterInfo[nNodes[nIndex]].nNameLen + nOffset;// < sizeof(Buffer)-1 
+		uint32_t nLen = S.CounterInfo[nNodes[nIndex]].nNameLen + nOffset;    // < sizeof(Buffer)-1
 		nLen = ProfileMin((uint32_t)(sizeof(Buffer) - 2 - nOffset), nLen);
 		memcpy(&Buffer[nOffset], S.CounterInfo[nNodes[nIndex]].pName, nLen);
 
@@ -691,7 +2327,7 @@ const char* ProfileCounterFullName(int nCounter)
 
 int ProfileGetCounterTokenByParent(int nParent, const char* pName)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < S.nNumCounters; ++i)
 	{
 		if (nParent == S.CounterInfo[i].nParent && !P_STRCASECMP(S.CounterInfo[i].pName, pName))
@@ -731,10 +2367,10 @@ int ProfileGetCounterTokenByParent(int nParent, const char* pName)
 ProfileToken ProfileGetCounterToken(const char* pName)
 {
 	ProfileInit();
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
-	char SubName[PROFILE_NAME_MAX_LEN];
-	int nResult = -1;
+	MutexLock lock(ProfileMutex());
+	Profile&  S = g_Profile;
+	char      SubName[PROFILE_NAME_MAX_LEN];
+	int       nResult = -1;
 	do
 	{
 		uint32_t nLen = 0;
@@ -754,8 +2390,8 @@ ProfileToken ProfileGetCounterToken(const char* pName)
 
 inline void ProfileLogPut(ProfileToken nToken_, uint64_t nTick, uint64_t nBegin, ProfileThreadLog* pLog)
 {
-	P_ASSERT(pLog != 0); //this assert is hit if ProfileOnCreateThread is not called
-	Profile & S = g_Profile;
+	P_ASSERT(pLog != 0);    //this assert is hit if ProfileOnCreateThread is not called
+	Profile& S = g_Profile;
 	uint32_t nPos = tfrg_atomic32_load_relaxed(&pLog->nPut);
 	uint32_t nNextPos = (nPos + 1) % PROFILE_BUFFER_SIZE;
 	if (nNextPos == tfrg_atomic32_load_relaxed(&pLog->nGet))
@@ -766,18 +2402,18 @@ inline void ProfileLogPut(ProfileToken nToken_, uint64_t nTick, uint64_t nBegin,
 	{
 		if (!pLog->Log)
 		{
-			pLog->Log = static_cast<ProfileLogEntry *>(tf_malloc(sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE));
+			pLog->Log = static_cast<ProfileLogEntry*>(tf_malloc(sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE));
 			memset(pLog->Log, 0, sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE);
 			S.nMemUsage += sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE;
 		}
 		pLog->Log[nPos] = ProfileMakeLogIndex(nBegin, nToken_, nTick);
-        tfrg_atomic32_store_release(&pLog->nPut, nNextPos);
+		tfrg_atomic32_store_release(&pLog->nPut, nNextPos);
 	}
 }
 
 uint64_t cpuProfileEnter(ProfileToken nToken_)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint64_t nGroupMask = ProfileGetGroupMask(nToken_);
 	if (nGroupMask & S.nActiveGroup)
 	{
@@ -793,31 +2429,31 @@ uint64_t cpuProfileEnter(ProfileToken nToken_)
 
 PROFILE_API uint64_t ProfileEnterGpu(ProfileToken nToken_, uint64_t nTick, ProfileThreadLog* pLog)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint64_t nGroupMask = ProfileGetGroupMask(nToken_);
 	if (nGroupMask & S.nActiveGroup)
 	{
-			if (nTick != (uint32_t)-1)
-			{
-                ProfileLogPut(nToken_, nTick, P_LOG_ENTER, pLog);
-				return 0;
-			}
+		if (nTick != (uint32_t)-1)
+		{
+			ProfileLogPut(nToken_, nTick, P_LOG_ENTER, pLog);
+			return 0;
+		}
 	}
 	return PROFILE_INVALID_TICK;
 }
 
 uint64_t ProfileAllocateLabel(const char* pName)
 {
-	Profile & S = g_Profile;
-    char* pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
+	Profile& S = g_Profile;
+	char*    pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
 	if (!pLabelBuffer)
 	{
-        MutexLock lock(ProfileMutex());
+		MutexLock lock(ProfileMutex());
 
 		pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
 		if (!pLabelBuffer)
 		{
-			pLabelBuffer = static_cast<char *>(tf_malloc(PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN));
+			pLabelBuffer = static_cast<char*>(tf_malloc(PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN));
 			memset(pLabelBuffer, 0, PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN);
 			S.nMemUsage += PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN;
 			tfrg_atomic64_store_release(&S.LabelBuffer, *pLabelBuffer);
@@ -829,9 +2465,8 @@ uint64_t ProfileAllocateLabel(const char* pName)
 	if (nLen > PROFILE_LABEL_MAX_LEN - 1)
 		nLen = PROFILE_LABEL_MAX_LEN - 1;
 
-   
 	uint64_t nLabel = tfrg_atomic64_add_relaxed(&S.nLabelPut, nLen + 1);
-	char* pLabel = &pLabelBuffer[nLabel % PROFILE_LABEL_BUFFER_SIZE];
+	char*    pLabel = &pLabelBuffer[nLabel % PROFILE_LABEL_BUFFER_SIZE];
 
 	memcpy(pLabel, pName, nLen);
 	pLabel[nLen] = 0;
@@ -867,26 +2502,25 @@ void ProfilePutLabelLiteral(ProfileToken nToken_, const char* pName)
 		// This will automatically safely ignore pointers that don't fit.
 		nLabel = (nLabel & P_LOG_TICK_MASK) == nLabel ? nLabel : 0;
 
-
-	    ProfileLogPut(nToken_, nLabel, P_LOG_LABEL_LITERAL, pLog);
+		ProfileLogPut(nToken_, nLabel, P_LOG_LABEL_LITERAL, pLog);
 	}
 }
 
 void ProfileCounterAdd(ProfileToken nToken, int64_t nCount)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	P_ASSERT(nToken < S.nNumCounters);
-    tfrg_atomic64_add_relaxed(&S.Counters[nToken], nCount);
+	tfrg_atomic64_add_relaxed(&S.Counters[nToken], nCount);
 }
 void ProfileCounterSet(ProfileToken nToken, int64_t nCount)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	P_ASSERT(nToken < S.nNumCounters);
-    tfrg_atomic64_store_relaxed(&S.Counters[nToken], nCount);
+	tfrg_atomic64_store_relaxed(&S.Counters[nToken], nCount);
 }
 void ProfileCounterSetLimit(ProfileToken nToken, int64_t nCount)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	P_ASSERT(nToken < S.nNumCounters);
 	S.CounterInfo[nToken].nLimit = nCount;
 }
@@ -894,7 +2528,7 @@ void ProfileCounterSetLimit(ProfileToken nToken, int64_t nCount)
 void ProfileCounterConfig(const char* pName, uint32_t eFormat, int64_t nLimit, uint32_t nFlags)
 {
 	ProfileToken nToken = ProfileGetCounterToken(pName);
-	Profile & S = g_Profile;
+	Profile&     S = g_Profile;
 	S.CounterInfo[nToken].eFormat = (ProfileCounterFormat)eFormat;
 	S.CounterInfo[nToken].nLimit = nLimit;
 	S.CounterInfo[nToken].nFlags |= (nFlags & ~PROFILE_COUNTER_FLAG_INTERNAL_MASK);
@@ -908,9 +2542,9 @@ const char* ProfileGetLabel(uint32_t eType, uint64_t nLabel)
 	if (eType == P_LOG_LABEL_LITERAL)
 		return (const char*)uintptr_t(nLabel);
 
-	Profile & S = g_Profile;
-    char* pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
-    uint64_t nLabelPut = tfrg_atomic64_load_relaxed(&S.nLabelPut);
+	Profile& S = g_Profile;
+	char*    pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
+	uint64_t nLabelPut = tfrg_atomic64_load_relaxed(&S.nLabelPut);
 
 	P_ASSERT(pLabelBuffer && nLabel < nLabelPut);
 
@@ -922,7 +2556,7 @@ const char* ProfileGetLabel(uint32_t eType, uint64_t nLabel)
 
 void ProfileLabel(ProfileToken nToken_, const char* pName)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (ProfileGetGroupMask(nToken_) & S.nActiveGroup)
 	{
 		ProfilePutLabel(nToken_, pName);
@@ -939,7 +2573,7 @@ void ProfileLabelFormat(ProfileToken nToken_, const char* pName, ...)
 
 void ProfileLabelFormatV(ProfileToken nToken_, const char* pName, va_list args)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (ProfileGetGroupMask(nToken_) & S.nActiveGroup)
 	{
 		char buffer[PROFILE_LABEL_MAX_LEN];
@@ -953,7 +2587,7 @@ void ProfileLabelFormatV(ProfileToken nToken_, const char* pName, va_list args)
 
 void ProfileLabelLiteral(ProfileToken nToken_, const char* pName)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (ProfileGetGroupMask(nToken_) & S.nActiveGroup)
 	{
 		ProfilePutLabelLiteral(nToken_, pName);
@@ -962,14 +2596,14 @@ void ProfileLabelLiteral(ProfileToken nToken_, const char* pName)
 
 void ProfileMetaUpdate(ProfileToken nToken, int nCount, ProfileTokenType eTokenType)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if ((P_DRAW_META_FIRST << nToken) & S.nActiveBars)
 	{
 		if (ProfileThreadLog* pLog = ProfileGetThreadLog())
 		{
 			P_ASSERT(nToken < PROFILE_META_MAX);
 
-		    ProfileLogPut(nToken, nCount, P_LOG_META, pLog);
+			ProfileLogPut(nToken, nCount, P_LOG_META, pLog);
 		}
 	}
 }
@@ -990,13 +2624,13 @@ PROFILE_API void ProfileLeaveGpu(ProfileToken nToken_, uint64_t nTick, ProfileTh
 {
 	if (PROFILE_INVALID_TOKEN != nToken_)
 	{
-        ProfileLogPut(nToken_, nTick, P_LOG_LEAVE, pLog);
+		ProfileLogPut(nToken_, nTick, P_LOG_LEAVE, pLog);
 	}
 }
 
 void ProfileContextSwitchPut(ProfileContextSwitch* pContextSwitch)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (S.nRunning || pContextSwitch->nTicks <= S.nPauseTicks)
 	{
 		uint32_t nPut = S.nContextSwitchPut;
@@ -1004,7 +2638,6 @@ void ProfileContextSwitchPut(ProfileContextSwitch* pContextSwitch)
 		S.nContextSwitchPut = (S.nContextSwitchPut + 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE;
 	}
 }
-
 
 void ProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2])
 {
@@ -1029,9 +2662,9 @@ void ProfileDumpToFile(Renderer* pRenderer);
 
 void ProfileFlipCpu()
 {
-    MutexLock lock(ProfileMutex());
+	MutexLock lock(ProfileMutex());
 
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 
 	if (S.nToggleRunning)
 	{
@@ -1053,7 +2686,7 @@ void ProfileFlipCpu()
 	{
 		ProfileDumpToFile(nullptr);
 		S.nDumpFileNextFrame = 0;
-		S.nAutoClearFrames = PROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
+		S.nAutoClearFrames = PROFILE_GPU_FRAME_DELAY + 3;    //hide spike from dumping webpage
 	}
 
 	if (S.nAutoClearFrames)
@@ -1062,7 +2695,6 @@ void ProfileFlipCpu()
 		nAggregateFlip = 1;
 		S.nAutoClearFrames -= 1;
 	}
-
 
 	if (S.nRunning || S.nForceEnable)
 	{
@@ -1089,7 +2721,7 @@ void ProfileFlipCpu()
 		ProfileFrameState* pFrameNext = &S.Frames[nFrameNext];
 
 		pFramePut->nFrameStartCpu = P_TICK();
-        memset(&pFramePut->nFrameStartGpu[0], 0, PROFILE_MAX_THREADS * sizeof(pFramePut->nFrameStartGpu[0]));
+		memset(&pFramePut->nFrameStartGpu[0], 0, PROFILE_MAX_THREADS * sizeof(pFramePut->nFrameStartGpu[0]));
 
 		uint64_t nFrameStartCpu = pFrameCurrent->nFrameStartCpu;
 		uint64_t nFrameEndCpu = pFrameNext->nFrameStartCpu;
@@ -1098,7 +2730,7 @@ void ProfileFlipCpu()
 			uint64_t nTick = nFrameEndCpu - nFrameStartCpu;
 			S.nFlipTicks = nTick;
 			S.nFlipAggregate += nTick;
-            S.nFlipMin = ProfileMin(S.nFlipMin, nTick);
+			S.nFlipMin = ProfileMin(S.nFlipMin, nTick);
 			S.nFlipMax = ProfileMax(S.nFlipMax, nTick);
 		}
 
@@ -1115,13 +2747,13 @@ void ProfileFlipCpu()
 				uint32_t nPut = tfrg_atomic32_load_acquire(&pLog->nPut);
 				pFramePut->nLogStart[i] = nPut;
 				P_ASSERT(nPut < PROFILE_BUFFER_SIZE);
-                if (pLog->nGpu && pLog->Log && pFramePut->nFrameStartGpu[i] == 0)
-                {
-                    uint32_t nPreviousPos = (nPut - 1) % PROFILE_BUFFER_SIZE;
-                    pFramePut->nFrameStartGpu[i] = ProfileLogGetTick(pLog->Log[nPreviousPos]);
-                }
+				if (pLog->nGpu && pLog->Log && pFramePut->nFrameStartGpu[i] == 0)
+				{
+					uint32_t nPreviousPos = (nPut - 1) % PROFILE_BUFFER_SIZE;
+					pFramePut->nFrameStartGpu[i] = ProfileLogGetTick(pLog->Log[nPreviousPos]);
+				}
 				//need to keep last frame around to close timers. timers more than 1 frame old is ditched.
-                tfrg_atomic32_store_relaxed(&pLog->nGet, nPut);
+				tfrg_atomic32_store_relaxed(&pLog->nGet, nPut);
 			}
 		}
 
@@ -1129,13 +2761,13 @@ void ProfileFlipCpu()
 		{
 			uint64_t* pFrameGroup = &S.FrameGroup[0];
 			{
-                PROFILER_SET_CPU_SCOPE("Profile", "Clear", 0x3355ee);
+				PROFILER_SET_CPU_SCOPE("Profile", "Clear", 0x3355ee);
 				for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 				{
-                    if (S.GroupInfo[S.TimerInfo[i].nGroupIndex].Type == ProfileTokenTypeGpu)
-                    {
-                        continue;
-                    }
+					if (S.GroupInfo[S.TimerInfo[i].nGroupIndex].Type == ProfileTokenTypeGpu)
+					{
+						continue;
+					}
 					S.Frame[i].nTicks = 0;
 					S.Frame[i].nCount = 0;
 					S.FrameExclusive[i] = 0;
@@ -1155,10 +2787,9 @@ void ProfileFlipCpu()
 						}
 					}
 				}
-
 			}
 			{
-                PROFILER_SET_CPU_SCOPE("Profile", "ThreadLoop", 0x3355ee);
+				PROFILER_SET_CPU_SCOPE("Profile", "ThreadLoop", 0x3355ee);
 				for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
 				{
 					ProfileThreadLog* pLog = S.Pool[i];
@@ -1166,24 +2797,25 @@ void ProfileFlipCpu()
 						continue;
 
 					uint8_t* pGroupStackPos = &pLog->nGroupStackPos[0];
-					int64_t nGroupTicks[PROFILE_MAX_GROUPS] = { 0 };
-
+					int64_t  nGroupTicks[PROFILE_MAX_GROUPS] = { 0 };
 
 					uint32_t nPut = pFrameNext->nLogStart[i];
 					uint32_t nGet = pFrameCurrent->nLogStart[i];
-					uint32_t nRange[2][2] = { {0, 0}, {0, 0}, };
+					uint32_t nRange[2][2] = {
+						{ 0, 0 },
+						{ 0, 0 },
+					};
 					ProfileGetRange(nPut, nGet, nRange);
-
 
 					//fetch gpu results.
 					//if (pLog->nGpu)
 					//{
 					//	// Get current log's initial gpu tick
 					//	uint64_t nGPUTick = PROFILE_INVALID_TICK;
-					//	if (pFrameCurrent->nFrameStartGpuTimer != (uint32_t)-1) 
+					//	if (pFrameCurrent->nFrameStartGpuTimer != (uint32_t)-1)
 					//		nGPUTick = ProfileGpuGetTimeStamp(pLog, pFrameCurrent->nFrameStartGpuTimer);
 					//	uint64_t nLastTick = (nGPUTick == PROFILE_INVALID_TICK) ? pFrameCurrent->nFrameStartGpu : nGPUTick;
-                    //
+					//
 					//	for (uint32_t j = 0; j < 2; ++j)
 					//	{
 					//		uint32_t nStart = nRange[j][0];
@@ -1191,27 +2823,26 @@ void ProfileFlipCpu()
 					//		for (uint32_t k = nStart; k < nEnd; ++k)
 					//		{
 					//			ProfileLogEntry L = pLog->Log[k];
-                    //
+					//
 					//			uint64_t Type = ProfileLogType(L);
-                    //
+					//
 					//			if (Type == P_LOG_ENTER || Type == P_LOG_LEAVE)
 					//			{
 					//				uint32_t nTimer = (uint32_t)ProfileLogGetTick(L);
 					//				uint64_t nTick = ProfileGpuGetTimeStamp(pLog, nTimer);
-                    //
+					//
 					//				if (nTick != PROFILE_INVALID_TICK)
 					//					nLastTick = nTick;
-                    //
+					//
 					//				pLog->Log[k] = ProfileLogSetTick(L, nLastTick);
 					//			}
 					//		}
 					//	}
 					//}
 
-
 					uint32_t* pStack = &pLog->nStack[0];
-					int64_t* pChildTickStack = &pLog->nChildTickStack[0];
-					uint32_t nStackPos = pLog->nStackPos;
+					int64_t*  pChildTickStack = &pLog->nChildTickStack[0];
+					uint32_t  nStackPos = pLog->nStackPos;
 
 					for (uint32_t j = 0; j < 2; ++j)
 					{
@@ -1220,12 +2851,12 @@ void ProfileFlipCpu()
 						for (uint32_t k = nStart; k < nEnd; ++k)
 						{
 							ProfileLogEntry LE = pLog->Log[k];
-							uint64_t nType = ProfileLogType(LE);
+							uint64_t        nType = ProfileLogType(LE);
 
 							if (P_LOG_ENTER == nType)
 							{
 								uint64_t nTimer = ProfileLogTimerIndex(LE);
-								uint8_t nGroup = pTimerToGroup[nTimer];
+								uint8_t  nGroup = pTimerToGroup[nTimer];
 								P_ASSERT(nStackPos < PROFILE_STACK_MAX);
 								P_ASSERT(nGroup < PROFILE_MAX_GROUPS);
 								pGroupStackPos[nGroup]++;
@@ -1247,7 +2878,7 @@ void ProfileFlipCpu()
 							else if (P_LOG_LEAVE == nType)
 							{
 								uint64_t nTimer = ProfileLogTimerIndex(LE);
-								uint8_t nGroup = pTimerToGroup[nTimer];
+								uint8_t  nGroup = pTimerToGroup[nTimer];
 								P_ASSERT(nGroup < PROFILE_MAX_GROUPS);
 								if (nStackPos)
 								{
@@ -1257,13 +2888,13 @@ void ProfileFlipCpu()
 									nStackPos--;
 									pChildTickStack[nStackPos] += nTicks;
 
-                                    if (!pLog->nGpu)
-                                    {
-									    uint32_t nTimerIndex = (uint32_t)ProfileLogTimerIndex(LE);
-                                        S.Frame[nTimerIndex].nTicks += nTicks;
-                                        S.FrameExclusive[nTimerIndex] += (nTicks - nChildTicks);
-                                        S.Frame[nTimerIndex].nCount += 1;
-                                    }
+									if (!pLog->nGpu)
+									{
+										uint32_t nTimerIndex = (uint32_t)ProfileLogTimerIndex(LE);
+										S.Frame[nTimerIndex].nTicks += nTicks;
+										S.FrameExclusive[nTimerIndex] += (nTicks - nChildTicks);
+										S.Frame[nTimerIndex].nCount += 1;
+									}
 									uint8_t nGroupStackPos = pGroupStackPos[nGroup];
 									if (nGroupStackPos)
 									{
@@ -1287,14 +2918,14 @@ void ProfileFlipCpu()
 				}
 			}
 			{
-                PROFILER_SET_CPU_SCOPE("Profile", "Accumulate", 0x3355ee);
+				PROFILER_SET_CPU_SCOPE("Profile", "Accumulate", 0x3355ee);
 				for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 				{
-                    if (S.GroupInfo[S.TimerInfo[i].nGroupIndex].Type == ProfileTokenTypeGpu)
-                    {
-                        continue;
-                    }
-                     
+					if (S.GroupInfo[S.TimerInfo[i].nGroupIndex].Type == ProfileTokenTypeGpu)
+					{
+						continue;
+					}
+
 					S.AccumTimers[i].nTicks += S.Frame[i].nTicks;
 					S.AccumTimers[i].nCount += S.Frame[i].nCount;
 					S.AccumMaxTimers[i] = ProfileMax(S.AccumMaxTimers[i], S.Frame[i].nTicks);
@@ -1313,8 +2944,9 @@ void ProfileFlipCpu()
 				{
 					if (S.MetaCounters[j].pName && 0 != (S.nActiveBars & (P_DRAW_META_FIRST << j)))
 					{
-						auto& Meta = S.MetaCounters[j];
-						uint64_t nSum = 0;;
+						auto&    Meta = S.MetaCounters[j];
+						uint64_t nSum = 0;
+						;
 						for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 						{
 							uint64_t nCounter = Meta.nCounters[i];
@@ -1336,14 +2968,12 @@ void ProfileFlipCpu()
 				}
 			}
 			S.nGraphPut = (S.nGraphPut + 1) % PROFILE_GRAPH_HISTORY;
-
 		}
-
 
 		if (S.nRunning && S.nAggregateFlip <= ++S.nAggregateFlipCount)
 		{
 			nAggregateFlip = 1;
-			if (S.nAggregateFlip) // if 0 accumulate indefinitely
+			if (S.nAggregateFlip)    // if 0 accumulate indefinitely
 			{
 				nAggregateClear = 1;
 			}
@@ -1393,14 +3023,10 @@ void ProfileFlipCpu()
 			}
 		}
 
-
-
-
-
 		S.nAggregateFrames = S.nAggregateFlipCount;
 		S.nFlipAggregateDisplay = S.nFlipAggregate;
 		S.nFlipMaxDisplay = S.nFlipMax;
-        S.nFlipMinDisplay = S.nFlipMin;
+		S.nFlipMinDisplay = S.nFlipMin;
 		if (nAggregateClear)
 		{
 			memset(&S.AccumTimers[0], 0, sizeof(S.Aggregate[0]) * S.nTotalTimers);
@@ -1414,7 +3040,7 @@ void ProfileFlipCpu()
 			S.nAggregateFlipCount = 0;
 			S.nFlipAggregate = 0;
 			S.nFlipMax = 0;
-            S.nFlipMin = -1;
+			S.nFlipMin = -1;
 
 			S.nAggregateFlipTick = P_TICK();
 		}
@@ -1464,32 +3090,32 @@ void ProfileFlipCpu()
 
 void flipProfiler()
 {
-    PROFILER_SET_CPU_SCOPE("Profile", "ProfileFlip", 0x3355ee);
+	PROFILER_SET_CPU_SCOPE("Profile", "ProfileFlip", 0x3355ee);
 
 	ProfileFlipCpu();
 }
 
 void ProfileSetForceEnable(bool bEnable)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	S.nForceEnable = bEnable ? 1 : 0;
 }
 bool ProfileGetForceEnable()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return S.nForceEnable != 0;
 }
 
 void ProfileSetEnableAllGroups(bool bEnableAllGroups)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	S.nAllGroupsWanted = bEnableAllGroups ? 1 : 0;
 }
 
 void ProfileEnableCategory(const char* pCategory, bool bEnabled)
 {
-	int nCategoryIndex = -1;
-	Profile & S = g_Profile;
+	int      nCategoryIndex = -1;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < S.nCategoryCount; ++i)
 	{
 		if (!P_STRCASECMP(pCategory, S.CategoryInfo[i].pName))
@@ -1511,37 +3137,30 @@ void ProfileEnableCategory(const char* pCategory, bool bEnabled)
 	}
 }
 
-
-void ProfileEnableCategory(const char* pCategory)
-{
-	ProfileEnableCategory(pCategory, true);
-}
-void ProfileDisableCategory(const char* pCategory)
-{
-	ProfileEnableCategory(pCategory, false);
-}
+void ProfileEnableCategory(const char* pCategory) { ProfileEnableCategory(pCategory, true); }
+void ProfileDisableCategory(const char* pCategory) { ProfileEnableCategory(pCategory, false); }
 
 bool ProfileGetEnableAllGroups()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return 0 != S.nAllGroupsWanted;
 }
 
 void ProfileSetForceMetaCounters(bool bForce)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	S.nForceMetaCounters = bForce ? 1 : 0;
 }
 
 bool ProfileGetForceMetaCounters()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return 0 != S.nForceMetaCounters;
 }
 
 void ProfileEnableMetaCounter(const char* pMeta)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < PROFILE_META_MAX; ++i)
 	{
 		if (S.MetaCounters[i].pName && 0 == P_STRCASECMP(S.MetaCounters[i].pName, pMeta))
@@ -1553,7 +3172,7 @@ void ProfileEnableMetaCounter(const char* pMeta)
 }
 void ProfileDisableMetaCounter(const char* pMeta)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < PROFILE_META_MAX; ++i)
 	{
 		if (S.MetaCounters[i].pName && 0 == P_STRCASECMP(S.MetaCounters[i].pName, pMeta))
@@ -1566,7 +3185,7 @@ void ProfileDisableMetaCounter(const char* pMeta)
 
 void setAggregateFrames(uint32_t nFrames)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	S.nAggregateFlip = (uint32_t)nFrames;
 	if (0 == nFrames)
 	{
@@ -1576,64 +3195,67 @@ void setAggregateFrames(uint32_t nFrames)
 
 int ProfileGetAggregateFrames()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return S.nAggregateFlip;
 }
 
 int ProfileGetCurrentAggregateFrames()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return int(S.nAggregateFlip ? S.nAggregateFlip : S.nAggregateFlipCount);
 }
-
 
 void ProfileForceEnableGroup(const char* pGroup, ProfileTokenType Type)
 {
 	ProfileInit();
-	Profile & S = g_Profile;
-    MutexLock lock(ProfileMutex());
-	uint16_t nGroup = ProfileGetGroup(pGroup, Type);
+	Profile&  S = g_Profile;
+	MutexLock lock(ProfileMutex());
+	uint16_t  nGroup = ProfileGetGroup(pGroup, Type);
 	S.nForceEnableGroup |= (1ll << nGroup);
 }
 
 void ProfileForceDisableGroup(const char* pGroup, ProfileTokenType Type)
 {
 	ProfileInit();
-	Profile & S = g_Profile;
-    MutexLock lock(ProfileMutex());
-	uint16_t nGroup = ProfileGetGroup(pGroup, Type);
+	Profile&  S = g_Profile;
+	MutexLock lock(ProfileMutex());
+	uint16_t  nGroup = ProfileGetGroup(pGroup, Type);
 	S.nForceDisableGroup |= (1ll << nGroup);
 }
 
-void ProfileCalcAllTimers(float* pTimers, float* pAverage, float* pMax, float* pMin, float* pCallAverage, float* pExclusive, float* pAverageExclusive, float* pMaxExclusive, float* pTotal, uint32_t nSize)
+void ProfileCalcAllTimers(
+	float* pTimers, float* pAverage, float* pMax, float* pMin, float* pCallAverage, float* pExclusive, float* pAverageExclusive,
+	float* pMaxExclusive, float* pTotal, uint32_t nSize)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < S.nTotalTimers && i < nSize; ++i)
 	{
 		const uint32_t nGroupId = S.TimerInfo[i].nGroupIndex;
-		const float fToMs = ProfileTickToMsMultiplier(S.GroupInfo[nGroupId].Type == ProfileTokenTypeGpu ? getGpuProfileTicksPerSecond(S.GroupInfo[nGroupId].nGpuProfileToken) : ProfileTicksPerSecondCpu());
+		const float    fToMs = ProfileTickToMsMultiplier(
+            S.GroupInfo[nGroupId].Type == ProfileTokenTypeGpu ? getGpuProfileTicksPerSecond(S.GroupInfo[nGroupId].nGpuProfileToken)
+                                                              : ProfileTicksPerSecondCpu());
 		uint32_t nTimer = i;
 		uint32_t nIdx = i * 2;
 		uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 		uint32_t nAggregateCount = S.Aggregate[nTimer].nCount ? S.Aggregate[nTimer].nCount : 1;
-		float fToPrc = S.fRcpReferenceTime;
-		float fMs = fToMs * (S.Frame[nTimer].nTicks);
-		float fPrc = ProfileMin(fMs * fToPrc, 1.f);
-		float fAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateFrames);
-		float fAveragePrc = ProfileMin(fAverageMs * fToPrc, 1.f);
-		float fMaxMs = fToMs * (S.AggregateMax[nTimer]);
-		float fMaxPrc = ProfileMin(fMaxMs * fToPrc, 1.f);
-		float fMinMs = fToMs * (S.AggregateMin[nTimer] != uint64_t(-1) ? S.AggregateMin[nTimer] : 0);
-		float fMinPrc = ProfileMin(fMinMs * fToPrc, 1.f);
-		float fCallAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateCount);
-		float fCallAveragePrc = ProfileMin(fCallAverageMs * fToPrc, 1.f);
-		float fMsExclusive = fToMs * (S.FrameExclusive[nTimer]);
-		float fPrcExclusive = ProfileMin(fMsExclusive * fToPrc, 1.f);
-		float fAverageMsExclusive = fToMs * (float)(S.AggregateExclusive[nTimer] / nAggregateFrames);
-		float fAveragePrcExclusive = ProfileMin(fAverageMsExclusive * fToPrc, 1.f);
-		float fMaxMsExclusive = fToMs * (S.AggregateMaxExclusive[nTimer]);
-		float fMaxPrcExclusive = ProfileMin(fMaxMsExclusive * fToPrc, 1.f);
-		float fTotalMs = fToMs * S.Aggregate[nTimer].nTicks;
+		float    fToPrc = S.fRcpReferenceTime;
+		float    fMs = fToMs * (S.Frame[nTimer].nTicks);
+		float    fPrc = ProfileMin(fMs * fToPrc, 1.f);
+		float    fAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateFrames);
+		float    fAveragePrc = ProfileMin(fAverageMs * fToPrc, 1.f);
+		float    fMaxMs = fToMs * (S.AggregateMax[nTimer]);
+		float    fMaxPrc = ProfileMin(fMaxMs * fToPrc, 1.f);
+		float    fMinMs = fToMs * (S.AggregateMin[nTimer] != uint64_t(-1) ? S.AggregateMin[nTimer] : 0);
+		float    fMinPrc = ProfileMin(fMinMs * fToPrc, 1.f);
+		float    fCallAverageMs = fToMs * (float)(S.Aggregate[nTimer].nTicks / nAggregateCount);
+		float    fCallAveragePrc = ProfileMin(fCallAverageMs * fToPrc, 1.f);
+		float    fMsExclusive = fToMs * (S.FrameExclusive[nTimer]);
+		float    fPrcExclusive = ProfileMin(fMsExclusive * fToPrc, 1.f);
+		float    fAverageMsExclusive = fToMs * (float)(S.AggregateExclusive[nTimer] / nAggregateFrames);
+		float    fAveragePrcExclusive = ProfileMin(fAverageMsExclusive * fToPrc, 1.f);
+		float    fMaxMsExclusive = fToMs * (S.AggregateMaxExclusive[nTimer]);
+		float    fMaxPrcExclusive = ProfileMin(fMaxMsExclusive * fToPrc, 1.f);
+		float    fTotalMs = fToMs * S.Aggregate[nTimer].nTicks;
 		pTimers[nIdx] = fMs;
 		pTimers[nIdx + 1] = fPrc;
 		pAverage[nIdx] = fAverageMs;
@@ -1657,48 +3279,48 @@ void ProfileCalcAllTimers(float* pTimers, float* pAverage, float* pMax, float* p
 
 void ProfileTogglePause()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	S.nToggleRunning = 1;
 }
 
 float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
 {
-    ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
-    if (nToken == PROFILE_INVALID_TOKEN)
-    {
-        return 0.f;
-    }
-    Profile & S = g_Profile;
-    uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    return fToMs * (S.AggregateMin[nTimerIndex] != uint64_t(-1) ? S.AggregateMin[nTimerIndex] : 0);
+	ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
+	if (nToken == PROFILE_INVALID_TOKEN)
+	{
+		return 0.f;
+	}
+	Profile& S = g_Profile;
+	uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	return fToMs * (S.AggregateMin[nTimerIndex] != uint64_t(-1) ? S.AggregateMin[nTimerIndex] : 0);
 }
 
 float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
 {
-    ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
-    if (nToken == PROFILE_INVALID_TOKEN)
-    {
-        return 0.f;
-    }
-    Profile & S = g_Profile;
-    uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    return fToMs * (S.AggregateMax[nTimerIndex]);
+	ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
+	if (nToken == PROFILE_INVALID_TOKEN)
+	{
+		return 0.f;
+	}
+	Profile& S = g_Profile;
+	uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	return fToMs * (S.AggregateMax[nTimerIndex]);
 }
 
 float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
 {
-    ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
-    if (nToken == PROFILE_INVALID_TOKEN)
-    {
-        return 0.f;
-    }
-    Profile & S = g_Profile;
-    uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    return fToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
+	ProfileToken nToken = ProfileFindToken(pGroup, pName, pThreadID);
+	if (nToken == PROFILE_INVALID_TOKEN)
+	{
+		return 0.f;
+	}
+	Profile& S = g_Profile;
+	uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
+	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	return fToMs * (float)(S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
 }
 
 float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID)
@@ -1708,41 +3330,40 @@ float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThread
 	{
 		return 0.f;
 	}
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-	float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
 	return S.Frame[nTimerIndex].nTicks * fToMs;
 }
 
 float getCpuMinFrameTime()
 {
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    Profile & S = g_Profile;
-    return fToMs * (S.nFlipMinDisplay);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	Profile& S = g_Profile;
+	return fToMs * (S.nFlipMinDisplay);
 }
 
 float getCpuMaxFrameTime()
 {
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    Profile & S = g_Profile;
-    return fToMs * (S.nFlipMaxDisplay);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	Profile& S = g_Profile;
+	return fToMs * (S.nFlipMaxDisplay);
 }
 
 float getCpuAvgFrameTime()
 {
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    Profile & S = g_Profile;
-    uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-    return fToMs * (float)(S.nFlipAggregateDisplay / nAggregateFrames);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	Profile& S = g_Profile;
+	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+	return fToMs * (float)(S.nFlipAggregateDisplay / nAggregateFrames);
 }
 
 float getCpuFrameTime()
 {
-    float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-    Profile & S = g_Profile;
-    return fToMs * (S.nFlipTicks);
+	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
+	Profile& S = g_Profile;
+	return fToMs * (S.nFlipTicks);
 }
-
 
 int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBufferSize)
 {
@@ -1752,78 +3373,78 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
 		pOut[1] = '\0';
 		return 1;
 	}
-	int nLen = 0;
+	int   nLen = 0;
 	char* pBase = pOut;
 	char* pTmp = pOut;
 	char* pEnd = pOut + nBufferSize;
 
 	switch (eFormat)
 	{
-	case PROFILE_COUNTER_FORMAT_DEFAULT:
-	{
-		int nNegative = 0;
-		if (nCounter < 0)
+		case PROFILE_COUNTER_FORMAT_DEFAULT:
 		{
-			nCounter = -nCounter;
-			nNegative = 1;
-		}
-		int nSeperate = 0;
-		while (nCounter)
-		{
-			if (nSeperate)
+			int nNegative = 0;
+			if (nCounter < 0)
 			{
-				*pTmp++ = ' ';
+				nCounter = -nCounter;
+				nNegative = 1;
 			}
-			nSeperate = 1;
-			for (uint32_t i = 0; nCounter && i < 3; ++i)
+			int nSeperate = 0;
+			while (nCounter)
 			{
-				int nDigit = nCounter % 10;
-				nCounter /= 10;
-				*pTmp++ = '0' + nDigit;
+				if (nSeperate)
+				{
+					*pTmp++ = ' ';
+				}
+				nSeperate = 1;
+				for (uint32_t i = 0; nCounter && i < 3; ++i)
+				{
+					int nDigit = nCounter % 10;
+					nCounter /= 10;
+					*pTmp++ = '0' + nDigit;
+				}
+			}
+			if (nNegative)
+			{
+				*pTmp++ = '-';
+			}
+			nLen = int(pTmp - pOut);
+			--pTmp;
+			P_ASSERT(pTmp <= pEnd);
+			while (pTmp > pOut)    //reverse string
+			{
+				char c = *pTmp;
+				*pTmp = *pOut;
+				*pOut = c;
+				pTmp--;
+				pOut++;
 			}
 		}
-		if (nNegative)
+		break;
+		case PROFILE_COUNTER_FORMAT_BYTES:
 		{
-			*pTmp++ = '-';
+			const char* pExt[] = { "b", "kb", "mb", "gb", "tb", "pb", "eb", "zb", "yb" };
+			size_t      nNumExt = sizeof(pExt) / sizeof(pExt[0]);
+			int64_t     nShift = 0;
+			int64_t     nDivisor = 1;
+			int64_t     nCountShifted = nCounter >> 10;
+			while (nCountShifted)
+			{
+				nDivisor <<= 10;
+				nCountShifted >>= 10;
+				nShift++;
+			}
+			P_ASSERT(nShift < (int64_t)nNumExt);
+			if (nShift)
+			{
+				snprintf(pOut, nBufferSize - 1, "%3.2f%s", (double)nCounter / nDivisor, pExt[nShift]);
+			}
+			else
+			{
+				snprintf(pOut, nBufferSize - 1, "%lld%s", (long long)nCounter, pExt[nShift]);
+			}
+			nLen = (int)strlen(pOut);
 		}
-		nLen = int(pTmp - pOut);
-		--pTmp;
-		P_ASSERT(pTmp <= pEnd);
-		while (pTmp > pOut) //reverse string
-		{
-			char c = *pTmp;
-			*pTmp = *pOut;
-			*pOut = c;
-			pTmp--;
-			pOut++;
-		}
-	}
-	break;
-	case PROFILE_COUNTER_FORMAT_BYTES:
-	{
-		const char* pExt[] = { "b","kb","mb","gb","tb","pb", "eb","zb", "yb" };
-		size_t nNumExt = sizeof(pExt) / sizeof(pExt[0]);
-		int64_t nShift = 0;
-		int64_t nDivisor = 1;
-		int64_t nCountShifted = nCounter >> 10;
-		while (nCountShifted)
-		{
-			nDivisor <<= 10;
-			nCountShifted >>= 10;
-			nShift++;
-		}
-		P_ASSERT(nShift < (int64_t)nNumExt);
-		if (nShift)
-		{
-			snprintf(pOut, nBufferSize - 1, "%3.2f%s", (double)nCounter / nDivisor, pExt[nShift]);
-		}
-		else
-		{
-			snprintf(pOut, nBufferSize - 1, "%lld%s", (long long)nCounter, pExt[nShift]);
-		}
-		nLen = (int)strlen(pOut);
-	}
-	break;
+		break;
 	}
 	pBase[nLen] = '\0';
 
@@ -1832,7 +3453,7 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
 
 void ProfileDumpFile(const char* pDumpFile, ProfileDumpType eType, uint32_t nFrames)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 
 	S.DumpFile = pDumpFile;
 	S.nDumpFileNextFrame = 1;
@@ -1842,7 +3463,7 @@ void ProfileDumpFile(const char* pDumpFile, ProfileDumpType eType, uint32_t nFra
 
 PROFILE_FORMAT(3, 4) void ProfilePrintf(ProfileWriteCallback CB, void* Handle, const char* pFmt, ...)
 {
-	char buffer[4096];
+	char    buffer[4096];
 	va_list args;
 	va_start(args, pFmt);
 #if defined(_WINDOWS) || defined(XBOX)
@@ -1880,41 +3501,40 @@ void ProfilePrintUIntComma(ProfileWriteCallback CB, void* Handle, uint64_t nData
 	CB(Handle, sizeof(Buffer) - nOffset, &Buffer[nOffset]);
 }
 
-void ProfilePrintString(ProfileWriteCallback CB, void* Handle, const char* pData)
-{
-	CB(Handle, strlen(pData), pData);
-}
+void ProfilePrintString(ProfileWriteCallback CB, void* Handle, const char* pData) { CB(Handle, strlen(pData), pData); }
 
 void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 {
 	(void)nMaxFrames;
 
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-	float fToMsCPU = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
-
+	float    fToMsCPU = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
 
 	ProfilePrintf(CB, Handle, "frames,%d\n", nAggregateFrames);
 	ProfilePrintf(CB, Handle, "group,name,average,max,callaverage\n");
 
 	uint32_t nNumTimers = S.nTotalTimers;
 	uint32_t nBlockSize = 2 * nNumTimers;
-	float* pTimers = (float*)alloca(nBlockSize * 9 * sizeof(float));
-	float* pAverage = pTimers + nBlockSize;
-	float* pMax = pTimers + 2 * nBlockSize;
-	float* pMin = pTimers + 3 * nBlockSize;
-	float* pCallAverage = pTimers + 4 * nBlockSize;
-	float* pTimersExclusive = pTimers + 5 * nBlockSize;
-	float* pAverageExclusive = pTimers + 6 * nBlockSize;
-	float* pMaxExclusive = pTimers + 7 * nBlockSize;
-	float* pTotal = pTimers + 8 * nBlockSize;
+	float*   pTimers = (float*)alloca(nBlockSize * 9 * sizeof(float));
+	float*   pAverage = pTimers + nBlockSize;
+	float*   pMax = pTimers + 2 * nBlockSize;
+	float*   pMin = pTimers + 3 * nBlockSize;
+	float*   pCallAverage = pTimers + 4 * nBlockSize;
+	float*   pTimersExclusive = pTimers + 5 * nBlockSize;
+	float*   pAverageExclusive = pTimers + 6 * nBlockSize;
+	float*   pMaxExclusive = pTimers + 7 * nBlockSize;
+	float*   pTotal = pTimers + 8 * nBlockSize;
 
-	ProfileCalcAllTimers(pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
+	ProfileCalcAllTimers(
+		pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
 
 	for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 	{
 		uint32_t nIdx = i * 2;
-		ProfilePrintf(CB, Handle, "\"%s\",\"%s\",%f,%f,%f\n", S.TimerInfo[i].pName, S.GroupInfo[S.TimerInfo[i].nGroupIndex].pName, pAverage[nIdx], pMax[nIdx], pCallAverage[nIdx]);
+		ProfilePrintf(
+			CB, Handle, "\"%s\",\"%s\",%f,%f,%f\n", S.TimerInfo[i].pName, S.GroupInfo[S.TimerInfo[i].nGroupIndex].pName, pAverage[nIdx],
+			pMax[nIdx], pCallAverage[nIdx]);
 	}
 
 	ProfilePrintf(CB, Handle, "\n\n");
@@ -1923,10 +3543,14 @@ void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 	for (uint32_t j = 0; j < PROFILE_MAX_GROUPS; ++j)
 	{
 		const char* pGroupName = S.GroupInfo[j].pName;
-		float fToMs = S.GroupInfo[j].Type == ProfileTokenTypeGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[j].nGpuProfileToken)) : fToMsCPU;
+		float       fToMs = S.GroupInfo[j].Type == ProfileTokenTypeGpu
+						  ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[j].nGpuProfileToken))
+						  : fToMsCPU;
 		if (pGroupName[0] != '\0')
 		{
-			ProfilePrintf(CB, Handle, "\"%s\",%.3f,%.3f,%.3f\n", pGroupName, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j]);
+			ProfilePrintf(
+				CB, Handle, "\"%s\",%.3f,%.3f,%.3f\n", pGroupName, fToMs * S.AggregateGroup[j] / nAggregateFrames,
+				fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j]);
 		}
 	}
 
@@ -1940,11 +3564,12 @@ void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 			{
 				const char* pThreadName = &S.Pool[i]->ThreadName[0];
 				// ProfilePrintf(CB, Handle, "var ThreadGroupTime%d = [", i);
-				float fToMs = S.Pool[i]->nGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[j].nGpuProfileToken)) : fToMsCPU;
+				float fToMs =
+					S.Pool[i]->nGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[j].nGpuProfileToken)) : fToMsCPU;
 				{
 					uint64_t nTicks = S.Pool[i]->nAggregateGroupTicks[j];
-					float fTime = (float)(nTicks / nAggregateFrames) * fToMs;
-					float fTimeTotal = nTicks * fToMs;
+					float    fTime = (float)(nTicks / nAggregateFrames) * fToMs;
+					float    fTimeTotal = nTicks * fToMs;
 					if (fTimeTotal > 0.01f)
 					{
 						const char* pGroupName = S.GroupInfo[j].pName;
@@ -1980,29 +3605,30 @@ void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 		ProfilePrintf(CB, Handle, "%" PRIu64 ",", nTicks);
 	}
 	ProfilePrintf(CB, Handle, "\n\n");
-	ProfilePrintf(CB, Handle, "Meta\n");//only single frame snapshot
+	ProfilePrintf(CB, Handle, "Meta\n");    //only single frame snapshot
 	ProfilePrintf(CB, Handle, "name,average,max,total\n");
 	for (int j = 0; j < PROFILE_META_MAX; ++j)
 	{
 		if (S.MetaCounters[j].pName)
 		{
-			ProfilePrintf(CB, Handle, "\"%s\",%f,%lld,%lld\n", S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, (long long)S.MetaCounters[j].nSumAggregateMax, (long long)S.MetaCounters[j].nSumAggregate);
+			ProfilePrintf(
+				CB, Handle, "\"%s\",%f,%lld,%lld\n", S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames,
+				(long long)S.MetaCounters[j].nSumAggregateMax, (long long)S.MetaCounters[j].nSumAggregate);
 		}
 	}
 }
 
 #if PROFILE_EMBED_HTML
 extern const char* g_ProfileHtml_begin[];
-extern size_t g_ProfileHtml_begin_sizes[];
-extern size_t g_ProfileHtml_begin_count;
+extern size_t      g_ProfileHtml_begin_sizes[];
+extern size_t      g_ProfileHtml_begin_count;
 extern const char* g_ProfileHtml_end[];
-extern size_t g_ProfileHtml_end_sizes[];
-extern size_t g_ProfileHtml_end_count;
+extern size_t      g_ProfileHtml_end_sizes[];
+extern size_t      g_ProfileHtml_end_count;
 
-
-void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost, Renderer* pRenderer)
+void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint32_t nRunning = S.nRunning;
 	S.nRunning = 0;
 
@@ -2017,11 +3643,11 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 
 	//dump info
-    if (pRenderer != NULL)
+    if (g_Profile.pGpuSettings != NULL)
     {
-        ProfilePrintf(CB, Handle, "var GpuName = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-        ProfilePrintf(CB, Handle, "var VendorID = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-        ProfilePrintf(CB, Handle, "var ModelID = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+        ProfilePrintf(CB, Handle, "var GpuName = '%s';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mGpuName);
+        ProfilePrintf(CB, Handle, "var VendorID = '%s';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mVendorId);
+        ProfilePrintf(CB, Handle, "var ModelID = '%s';\n", g_Profile.pGpuSettings->mGpuVendorPreset.mModelId);
     }
 
 	uint64_t nTicks = P_TICK();
@@ -2048,35 +3674,34 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	for (uint32_t i = 0; i < S.nGroupCount; ++i)
 	{
 		P_ASSERT(i == S.GroupInfo[i].nGroupIndex);
-		float fToMs = S.GroupInfo[i].Type == ProfileTokenTypeCpu ? fToMsCPU : ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[i].nGpuProfileToken));
+		float fToMs = S.GroupInfo[i].Type == ProfileTokenTypeCpu
+						  ? fToMsCPU
+						  : ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[i].nGpuProfileToken));
 		uint32_t nColor = S.TimerInfo[i].nColor;
-		ProfilePrintf(CB, Handle, "GroupInfo[%d] = MakeGroup(%d, \"%s\", %d, %d, %d, %f, %f, %f, '#%06x');\n",
-			S.GroupInfo[i].nGroupIndex,
-			S.GroupInfo[i].nGroupIndex,
-			S.GroupInfo[i].pName,
-			S.GroupInfo[i].nCategory,
-			S.GroupInfo[i].nNumTimers,
-			S.GroupInfo[i].Type == ProfileTokenTypeGpu ? 1 : 0,
-			fToMs * S.AggregateGroup[i],
-			fToMs * S.AggregateGroup[i] / nAggregateFrames,
+		ProfilePrintf(
+			CB, Handle, "GroupInfo[%d] = MakeGroup(%d, \"%s\", %d, %d, %d, %f, %f, %f, '#%06x');\n", S.GroupInfo[i].nGroupIndex,
+			S.GroupInfo[i].nGroupIndex, S.GroupInfo[i].pName, S.GroupInfo[i].nCategory, S.GroupInfo[i].nNumTimers,
+			S.GroupInfo[i].Type == ProfileTokenTypeGpu ? 1 : 0, fToMs * S.AggregateGroup[i], fToMs * S.AggregateGroup[i] / nAggregateFrames,
 			fToMs * S.AggregateGroupMax[i],
-			((PROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) | (PROFILE_UNPACK_BLUE(nColor) & 0xff));
+			((PROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) |
+				(PROFILE_UNPACK_BLUE(nColor) & 0xff));
 	}
 	//timers
 
 	uint32_t nNumTimers = S.nTotalTimers;
 	uint32_t nBlockSize = 2 * nNumTimers;
-    float* pTimers = (float*)tf_calloc(nBlockSize * 9, sizeof(float));
-	float* pAverage = pTimers + nBlockSize;
-	float* pMax = pTimers + 2 * nBlockSize;
-	float* pMin = pTimers + 3 * nBlockSize;
-	float* pCallAverage = pTimers + 4 * nBlockSize;
-	float* pTimersExclusive = pTimers + 5 * nBlockSize;
-	float* pAverageExclusive = pTimers + 6 * nBlockSize;
-	float* pMaxExclusive = pTimers + 7 * nBlockSize;
-	float* pTotal = pTimers + 8 * nBlockSize;
+	float*   pTimers = (float*)tf_calloc(nBlockSize * 9, sizeof(float));
+	float*   pAverage = pTimers + nBlockSize;
+	float*   pMax = pTimers + 2 * nBlockSize;
+	float*   pMin = pTimers + 3 * nBlockSize;
+	float*   pCallAverage = pTimers + 4 * nBlockSize;
+	float*   pTimersExclusive = pTimers + 5 * nBlockSize;
+	float*   pAverageExclusive = pTimers + 6 * nBlockSize;
+	float*   pMaxExclusive = pTimers + 7 * nBlockSize;
+	float*   pTotal = pTimers + 8 * nBlockSize;
 
-	ProfileCalcAllTimers(pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
+	ProfileCalcAllTimers(
+		pTimers, pAverage, pMax, pMin, pCallAverage, pTimersExclusive, pAverageExclusive, pMaxExclusive, pTotal, nNumTimers);
 
 	ProfilePrintf(CB, Handle, "\nvar TimerInfo = Array(%d);\n\n", S.nTotalTimers);
 	for (uint32_t i = 0; i < S.nTotalTimers; ++i)
@@ -2086,17 +3711,14 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 
 		uint32_t nColor = S.TimerInfo[i].nColor;
 		uint32_t nColorDark = (nColor >> 1) & ~0x80808080;
-		ProfilePrintf(CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%06x','#%06x', %f, %f, %f, %f, %f, %f, %d, %f,\n",
+		ProfilePrintf(
+			CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%06x','#%06x', %f, %f, %f, %f, %f, %f, %d, %f,\n",
 			S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].pName, S.TimerInfo[i].nGroupIndex,
-			((PROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) | (PROFILE_UNPACK_BLUE(nColor) & 0xff),
-			((PROFILE_UNPACK_RED(nColorDark) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColorDark) & 0xff) << 8) | (PROFILE_UNPACK_BLUE(nColorDark) & 0xff),
-			pAverage[nIdx],
-			pMax[nIdx],
-			pMin[nIdx],
-			pAverageExclusive[nIdx],
-			pMaxExclusive[nIdx],
-			pCallAverage[nIdx],
-			S.Aggregate[i].nCount,
+			((PROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) |
+				(PROFILE_UNPACK_BLUE(nColor) & 0xff),
+			((PROFILE_UNPACK_RED(nColorDark) & 0xff) << 16) | ((PROFILE_UNPACK_GREEN(nColorDark) & 0xff) << 8) |
+				(PROFILE_UNPACK_BLUE(nColorDark) & 0xff),
+			pAverage[nIdx], pMax[nIdx], pMin[nIdx], pAverageExclusive[nIdx], pMaxExclusive[nIdx], pCallAverage[nIdx], S.Aggregate[i].nCount,
 			pTotal[nIdx]);
 
 		ProfilePrintString(CB, Handle, "\t[");
@@ -2135,7 +3757,6 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 	ProfilePrintString(CB, Handle, "];\n\n");
 
-
 	ProfilePrintString(CB, Handle, "\nvar ThreadIds = [");
 	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
 	{
@@ -2145,7 +3766,6 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 	ProfilePrintString(CB, Handle, "];\n\n");
 
-
 	ProfilePrintString(CB, Handle, "\nvar ThreadGpu = [");
 	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
 	{
@@ -2154,7 +3774,6 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		ProfilePrintUIntComma(CB, Handle, S.Pool[i]->nGpu);
 	}
 	ProfilePrintString(CB, Handle, "];\n\n");
-
 
 	ProfilePrintString(CB, Handle, "\nvar ThreadGroupTimeArray = [\n");
 	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
@@ -2171,7 +3790,6 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 	ProfilePrintString(CB, Handle, "];");
 
-
 	ProfilePrintString(CB, Handle, "\nvar MetaNames = [");
 	for (int i = 0; i < PROFILE_META_MAX; ++i)
 	{
@@ -2187,8 +3805,8 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	{
 		int64_t nCounter = tfrg_atomic64_load_relaxed(&S.Counters[i]);
 		int64_t nLimit = S.CounterInfo[i].nLimit;
-		float fCounterPrc = 0.f;
-		float fBoxPrc = 1.f;
+		float   fCounterPrc = 0.f;
+		float   fBoxPrc = 1.f;
 		if (nLimit)
 		{
 			fCounterPrc = (float)nCounter / nLimit;
@@ -2210,23 +3828,11 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		char FormattedLimit[64];
 		ProfileFormatCounter(S.CounterInfo[i].eFormat, nCounter, Formatted, sizeof(Formatted) - 1);
 		ProfileFormatCounter(S.CounterInfo[i].eFormat, S.CounterInfo[i].nLimit, FormattedLimit, sizeof(FormattedLimit) - 1);
-		ProfilePrintf(CB, Handle, "MakeCounter(%d, %d, %d, %d, %d, '%s', %lld, %lld, %lld, '%s', %lld, '%s', %d, %f, %f, [",
-			i,
-			S.CounterInfo[i].nParent,
-			S.CounterInfo[i].nSibling,
-			S.CounterInfo[i].nFirstChild,
-			S.CounterInfo[i].nLevel,
-			S.CounterInfo[i].pName,
-			(long long)nCounter,
-			(long long)nCounterMin,
-			(long long)nCounterMax,
-			Formatted,
-			(long long)nLimit,
-			FormattedLimit,
-			S.CounterInfo[i].eFormat == PROFILE_COUNTER_FORMAT_BYTES ? 1 : 0,
-			fCounterPrc,
-			fBoxPrc
-		);
+		ProfilePrintf(
+			CB, Handle, "MakeCounter(%d, %d, %d, %d, %d, '%s', %lld, %lld, %lld, '%s', %lld, '%s', %d, %f, %f, [", i,
+			S.CounterInfo[i].nParent, S.CounterInfo[i].nSibling, S.CounterInfo[i].nFirstChild, S.CounterInfo[i].nLevel,
+			S.CounterInfo[i].pName, (long long)nCounter, (long long)nCounterMin, (long long)nCounterMax, Formatted, (long long)nLimit,
+			FormattedLimit, S.CounterInfo[i].eFormat == PROFILE_COUNTER_FORMAT_BYTES ? 1 : 0, fCounterPrc, fBoxPrc);
 
 #if PROFILE_COUNTER_HISTORY
 		if (0 != (S.CounterInfo[i].nFlags & PROFILE_COUNTER_FLAG_DETAILED))
@@ -2235,7 +3841,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 			for (uint32_t j = 0; j < PROFILE_GRAPH_HISTORY; ++j)
 			{
 				uint32_t nHistoryIndex = (nBaseIndex + j) % PROFILE_GRAPH_HISTORY;
-				int64_t nValue = ProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
+				int64_t  nValue = ProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
 				ProfilePrintUIntComma(CB, Handle, nValue - nCounterMin);
 			}
 		}
@@ -2245,25 +3851,23 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 	ProfilePrintString(CB, Handle, "];\n\n");
 
-
-	uint32_t nNumFrames = (PROFILE_MAX_FRAME_HISTORY - PROFILE_GPU_FRAME_DELAY - 3); //leave a few to not overwrite
+	uint32_t nNumFrames = (PROFILE_MAX_FRAME_HISTORY - PROFILE_GPU_FRAME_DELAY - 3);    //leave a few to not overwrite
 	nNumFrames = ProfileMin(nNumFrames, (uint32_t)nMaxFrames);
 
 	const uint32_t nFirstFrame = (S.nFrameCurrent + PROFILE_MAX_FRAME_HISTORY - nNumFrames) % PROFILE_MAX_FRAME_HISTORY;
-	uint32_t nLastFrame = (nFirstFrame + nNumFrames) % PROFILE_MAX_FRAME_HISTORY;
+	uint32_t       nLastFrame = (nFirstFrame + nNumFrames) % PROFILE_MAX_FRAME_HISTORY;
 	P_ASSERT(nLastFrame == (S.nFrameCurrent % PROFILE_MAX_FRAME_HISTORY));
 	const int64_t nTickStart = S.Frames[nFirstFrame].nFrameStartCpu;
 	const int64_t nTickEnd = S.Frames[nLastFrame].nFrameStartCpu;
 	const int64_t nTickStartGpu = S.Frames[nFirstFrame].nFrameStartGpu[0];
 
 	int64_t nTicksPerSecondCpu = ProfileTicksPerSecondCpu();
-    int64_t nTicksPerSecondGpu = 0;
-	
+	int64_t nTicksPerSecondGpu = 0;
+
 #if PROFILE_DEBUG
 	printf("dumping %d frames\n", nNumFrames);
 	printf("dumping frame %d to %d\n", nFirstFrame, nLastFrame);
 #endif
-
 
 	uint32_t* nTimerCounter = (uint32_t*)tf_calloc(S.nTotalTimers, sizeof(uint32_t));
 	memset(nTimerCounter, 0, sizeof(uint32_t) * S.nTotalTimers);
@@ -2280,8 +3884,8 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 			if (!S.Pool[j])
 				continue;
 			ProfileThreadLog* pLog = S.Pool[j];
-			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
-			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
+			uint32_t          nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t          nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			ProfilePrintString(CB, Handle, "[");
 			for (uint32_t k = nLogStart; k != nLogEnd; k = (k + 1) % PROFILE_BUFFER_SIZE)
@@ -2306,25 +3910,25 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		ProfilePrintf(CB, Handle, "var ts%d = [\n", i);
 		for (uint32_t j = 0; j < PROFILE_MAX_THREADS; ++j)
 		{
-			if (!S.Pool[j] )
+			if (!S.Pool[j])
 				continue;
 			ProfileThreadLog* pLog = S.Pool[j];
-			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
-			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
+			uint32_t          nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t          nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			int64_t nStartTick = pLog->nGpu ? S.Frames[nFirstFrame].nFrameStartGpu[j] : nTickStart;
-			float fToMs = pLog->nGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(pLog->nGpuToken)) : fToMsCPU;
+			float   fToMs = pLog->nGpu ? ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(pLog->nGpuToken)) : fToMsCPU;
 
 			//if (pLog->nGpu)
 			//	ProfilePrintf(CB, Handle, "MakeTimesExtra(%e,%e,tt%d[%d],[", fToMs, fToMsCPU, i, j);
 			//else
-				ProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
+			ProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
 			for (uint32_t k = nLogStart; k != nLogEnd; k = (k + 1) % PROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = (uint32_t)ProfileLogType(pLog->Log[k]);
 				uint64_t nTick = (nLogType == P_LOG_ENTER || nLogType == P_LOG_LEAVE)
-                    ? ProfileLogTickDifference( nStartTick, pLog->Log[k]) :
-                    (nLogType == P_LOG_GPU_EXTRA) ? ProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
+									 ? ProfileLogTickDifference(nStartTick, pLog->Log[k])
+									 : (nLogType == P_LOG_GPU_EXTRA) ? ProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
 				ProfilePrintUIntComma(CB, Handle, nTick);
 			}
 			ProfilePrintString(CB, Handle, "]),\n");
@@ -2337,8 +3941,8 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 			if (!S.Pool[j])
 				continue;
 			ProfileThreadLog* pLog = S.Pool[j];
-			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
-			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
+			uint32_t          nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t          nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			uint32_t nLabelIndex = 0;
 			ProfilePrintString(CB, Handle, "[");
@@ -2362,10 +3966,10 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 			if (!S.Pool[j])
 				continue;
 			ProfileThreadLog* pLog = S.Pool[j];
-            if (nTicksPerSecondGpu == 0 && pLog->nGpu) // Set nTicksPerSecondsGpu on first gpu profiler found
-            {
-                nTicksPerSecondGpu = getGpuProfileTicksPerSecond(pLog->nGpuToken);
-            }
+			if (nTicksPerSecondGpu == 0 && pLog->nGpu)    // Set nTicksPerSecondsGpu on first gpu profiler found
+			{
+				nTicksPerSecondGpu = getGpuProfileTicksPerSecond(pLog->nGpuToken);
+			}
 			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
 			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
@@ -2375,7 +3979,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 				uint32_t nLogType = (uint32_t)ProfileLogType(pLog->Log[k]);
 				if (nLogType == P_LOG_LABEL || nLogType == P_LOG_LABEL_LITERAL)
 				{
-					uint64_t nLabel = ProfileLogGetTick(pLog->Log[k]);
+					uint64_t    nLabel = ProfileLogGetTick(pLog->Log[k]);
 					const char* pLabelName = ProfileGetLabel(nLogType, nLabel);
 
 					if (pLabelName)
@@ -2395,17 +3999,17 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		int64_t nFrameStart = S.Frames[nFrameIndex].nFrameStartCpu;
 		int64_t nFrameEnd = S.Frames[nFrameIndexNext].nFrameStartCpu;
 
-        // Get largest frame window over all gpu profilers
-        int64_t nFrameStartGpu = nFrameEnd; 
-        int64_t nFrameEndGpu = nFrameStart;
-        for (uint32_t nGpuStart = 0; nGpuStart < PROFILE_MAX_THREADS; ++nGpuStart)
-        {
-            if (S.Pool[nGpuStart] && S.Pool[nGpuStart]->nGpu)
-            {
-                nFrameStartGpu = min(nFrameStartGpu, S.Frames[nFrameIndex].nFrameStartGpu[nGpuStart]);
-                nFrameEndGpu = max(nFrameEndGpu, S.Frames[nFrameIndexNext].nFrameStartGpu[nGpuStart]);
-            }
-        }
+		// Get largest frame window over all gpu profilers
+		int64_t nFrameStartGpu = nFrameEnd;
+		int64_t nFrameEndGpu = nFrameStart;
+		for (uint32_t nGpuStart = 0; nGpuStart < PROFILE_MAX_THREADS; ++nGpuStart)
+		{
+			if (S.Pool[nGpuStart] && S.Pool[nGpuStart]->nGpu)
+			{
+				nFrameStartGpu = min(nFrameStartGpu, S.Frames[nFrameIndex].nFrameStartGpu[nGpuStart]);
+				nFrameEndGpu = max(nFrameEndGpu, S.Frames[nFrameIndexNext].nFrameStartGpu[nGpuStart]);
+			}
+		}
 
 		float fToMs = ProfileTickToMsMultiplier(nTicksPerSecondCpu);
 		float fToMsGPU = ProfileTickToMsMultiplier(nTicksPerSecondGpu);
@@ -2414,9 +4018,10 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		float fFrameGpuMs = ProfileLogTickDifference(nTickStartGpu, nFrameStartGpu) * fToMsGPU;
 		float fFrameGpuEndMs = ProfileLogTickDifference(nTickStartGpu, nFrameEndGpu) * fToMsGPU;
 
-		ProfilePrintf(CB, Handle, "Frames[%d] = MakeFrame(%d, %f, %f, %f, %f, ts%d, tt%d, ti%d, tl%d);\n", i, 0, fFrameMs, fFrameEndMs, fFrameGpuMs, fFrameGpuEndMs, i, i, i, i);
+		ProfilePrintf(
+			CB, Handle, "Frames[%d] = MakeFrame(%d, %f, %f, %f, %f, ts%d, tt%d, ti%d, tl%d);\n", i, 0, fFrameMs, fFrameEndMs, fFrameGpuMs,
+			fFrameGpuEndMs, i, i, i, i);
 	}
-
 
 	uint32_t nContextSwitchStart = 0;
 	uint32_t nContextSwitchEnd = 0;
@@ -2426,7 +4031,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	for (uint32_t j = nContextSwitchStart; j != nContextSwitchEnd; j = (j + 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
 	{
 		ProfileContextSwitch CS = S.ContextSwitch[j];
-		int nCpu = CS.nCpu;
+		int                  nCpu = CS.nCpu;
 		ProfilePrintUIntComma(CB, Handle, 0);
 		ProfilePrintUIntComma(CB, Handle, 0);
 		ProfilePrintUIntComma(CB, Handle, nCpu);
@@ -2438,31 +4043,28 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	for (uint32_t j = nContextSwitchStart; j != nContextSwitchEnd; j = (j + 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
 	{
 		ProfileContextSwitch CS = S.ContextSwitch[j];
-		float fTime = ProfileLogTickDifference(nTickStart, CS.nTicks) * fToMsCpu;
+		float                fTime = ProfileLogTickDifference(nTickStart, CS.nTicks) * fToMsCpu;
 		ProfilePrintf(CB, Handle, "%f,", fTime);
 	}
 	ProfilePrintString(CB, Handle, "];\n");
 
 	ProfileThreadInfo Threads[PROFILE_MAX_CONTEXT_SWITCH_THREADS];
-	uint32_t nNumThreadsBase = 0;
-	uint32_t nNumThreads = ProfileContextSwitchGatherThreads(nContextSwitchStart, nContextSwitchEnd, Threads, &nNumThreadsBase);
+	uint32_t          nNumThreadsBase = 0;
+	uint32_t          nNumThreads = ProfileContextSwitchGatherThreads(nContextSwitchStart, nContextSwitchEnd, Threads, &nNumThreadsBase);
 
 	ProfilePrintString(CB, Handle, "var CSwitchThreads = {");
 
 	for (uint32_t i = 0; i < nNumThreads; ++i)
 	{
-		char Name[256];
+		char        Name[256];
 		const char* pProcessName = ProfileGetProcessName(Threads[i].nProcessId, Name, sizeof(Name));
 
 		const char* p1 = i < nNumThreadsBase && S.Pool[i] ? S.Pool[i]->ThreadName : "?";
 		const char* p2 = pProcessName ? pProcessName : "?";
 
-		ProfilePrintf(CB, Handle, "%lld:{\'tid\':%lld,\'pid\':%lld,\'t\':\'%s\',\'p\':\'%s\'},",
-			(long long)Threads[i].nThreadId,
-			(long long)Threads[i].nThreadId,
-			(long long)Threads[i].nProcessId,
-			p1, p2
-		);
+		ProfilePrintf(
+			CB, Handle, "%lld:{\'tid\':%lld,\'pid\':%lld,\'t\':\'%s\',\'p\':\'%s\'},", (long long)Threads[i].nThreadId,
+			(long long)Threads[i].nThreadId, (long long)Threads[i].nProcessId, p1, p2);
 	}
 
 	ProfilePrintString(CB, Handle, "};\n");
@@ -2491,19 +4093,13 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	{
 		nTimerCounterSort[i] = i;
 	}
-	eastl::sort(nGroupCounterSort, nGroupCounterSort + S.nGroupCount,
-		[nGroupCounter](const uint32_t l, const uint32_t r)
-	{
+	eastl::sort(nGroupCounterSort, nGroupCounterSort + S.nGroupCount, [nGroupCounter](const uint32_t l, const uint32_t r) {
 		return nGroupCounter[l] > nGroupCounter[r];
-	}
-	);
+	});
 
-	eastl::sort(nTimerCounterSort, nTimerCounterSort + S.nTotalTimers,
-		[nTimerCounter](const uint32_t l, const uint32_t r)
-	{
+	eastl::sort(nTimerCounterSort, nTimerCounterSort + S.nTotalTimers, [nTimerCounter](const uint32_t l, const uint32_t r) {
 		return nTimerCounter[l] > nTimerCounter[r];
-	}
-	);
+	});
 
 	ProfilePrintf(CB, Handle, "\n<!--\nMarker Per Group\n");
 	for (uint32_t i = 0; i < S.nGroupCount; ++i)
@@ -2515,22 +4111,23 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	for (uint32_t i = 0; i < S.nTotalTimers; ++i)
 	{
 		uint32_t idx = nTimerCounterSort[i];
-		ProfilePrintf(CB, Handle, "%8d:%s(%s)\n", nTimerCounter[idx], S.TimerInfo[idx].pName, S.GroupInfo[S.TimerInfo[idx].nGroupIndex].pName);
+		ProfilePrintf(
+			CB, Handle, "%8d:%s(%s)\n", nTimerCounter[idx], S.TimerInfo[idx].pName, S.GroupInfo[S.TimerInfo[idx].nGroupIndex].pName);
 	}
 	ProfilePrintf(CB, Handle, "\n-->\n");
 
 	S.nActiveGroup = nActiveGroup;
 	S.nRunning = nRunning;
 
-    tf_free(nTimerCounterSort);
-    tf_free(nGroupCounterSort);
-    tf_free(nGroupCounter);
-    tf_free(nTimerCounter);
-    tf_free(pTimers);
+	tf_free(nTimerCounterSort);
+	tf_free(nGroupCounterSort);
+	tf_free(nGroupCounter);
+	tf_free(nTimerCounter);
+	tf_free(pTimers);
 
 #if PROFILE_DEBUG
 	int64_t nTicksEnd = P_TICK();
-	float fMs = fToMsCpu * (nTicksEnd - S.nPauseTicks);
+	float   fMs = fToMsCpu * (nTicksEnd - S.nPauseTicks);
 	printf("html dump took %6.2fms\n", fMs);
 #endif
 }
@@ -2541,66 +4138,73 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 }
 #endif
 
-void ProfileWriteFile(void* Handle, size_t nSize, const char* pData)
-{
-	fsWriteToStream((FileStream*)Handle, pData, nSize);
-}
+void ProfileWriteFile(void* Handle, size_t nSize, const char* pData) { fsWriteToStream((FileStream*)Handle, pData, nSize); }
 
 void ProfileDumpToFile(Renderer* pRenderer)
 {
-    MutexLock lock(ProfileMutex());
-	Profile & S = g_Profile;
-	
+	if (!g_Profile.nRunning)
+		return;
+
+	MutexLock lock(ProfileMutex());
+	Profile&  S = g_Profile;
+
 	FileStream fh = {};
-	if (fsOpenStreamFromPath(RD_LOG, S.DumpFile, FM_WRITE, &fh))
+	if (fsOpenStreamFromPath(RD_LOG, S.DumpFile, FM_WRITE, NULL, &fh))
 	{
 		if (S.eDumpType == ProfileDumpTypeHtml)
-			ProfileDumpHtml(ProfileWriteFile, &fh, S.nDumpFrames, 0, pRenderer);
+			ProfileDumpHtml(ProfileWriteFile, &fh, S.nDumpFrames, 0);
 		else if (S.eDumpType == ProfileDumpTypeCsv)
 			ProfileDumpCsv(ProfileWriteFile, &fh, S.nDumpFrames);
 
-        fsCloseStream(&fh);
+		fsCloseStream(&fh);
 	}
 }
 
-void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFrames)
+void dumpProfileData(const char* appName, uint32_t nMaxFrames)
 {
-    MutexLock lock(ProfileMutex());
-    // Dump frames to file.
-    time_t t = time(0);
+	if (!g_Profile.nRunning)
+		return;
+
+	MutexLock lock(ProfileMutex());	
+	
+	// Dump frames to file.
+	time_t t = time(0);
 
 	char tempName[128];
 	sprintf(tempName, "%s", appName);
 	strcat(tempName, R"(Profile-%Y-%m-%d-%H.%M.%S.html)");
 
-    char name[128] = {};
-    strftime(name, sizeof(name), tempName, localtime(&t));
+	char name[128] = {};
+	strftime(name, sizeof(name), tempName, localtime(&t));
 	FileStream fh = {};
-    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &fh))
-    {
-        ProfileDumpHtml(ProfileWriteFile, &fh, nMaxFrames, 0, pRenderer);
-        fsCloseStream(&fh);
-    }
+	if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, NULL, &fh))
+	{
+		ProfileDumpHtml(ProfileWriteFile, &fh, nMaxFrames, 0);
+		fsCloseStream(&fh);
+	}
 }
 
-void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName)
+void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char * appName)
 {
+	if (!g_Profile.nRunning)
+		return;
+
     time_t t = time(0);
-    eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
-    char name[128] = {};
+    eastl::string tempName = eastl::string().sprintf("%s_%s", appName, outFilename) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.profile)");
+    char name[256] = {};
     strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
 	FileStream statsFile = {};
-    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &statsFile))
-    {
+	if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, NULL, &statsFile))
+	{
 		eastl::string output = "";
 		
 		output += "{\n";		
 		output.append_sprintf("\"Application\": \"%s\", \n", appName);
 		output.append_sprintf("\"Width\": %d, \n", pSettings->mWidth);
 		output.append_sprintf("\"Height\": %d, \n\n", pSettings->mHeight);
-		output.append_sprintf("\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-		output.append_sprintf("\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-		output.append_sprintf("\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+		output.append_sprintf("\"GpuName\": \"%s\", \n", g_Profile.pGpuSettings->mGpuVendorPreset.mGpuName);
+		output.append_sprintf("\"VendorID\": \"%s\", \n", g_Profile.pGpuSettings->mGpuVendorPreset.mVendorId);
+		output.append_sprintf("\"ModelID\": \"%s\", \n\n", g_Profile.pGpuSettings->mGpuVendorPreset.mModelId);
 
         const Profile& S = *ProfileGet();
         for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
@@ -2617,7 +4221,7 @@ void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const cha
                     float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
                     uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
                     uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
-                    float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
+                    float fAverage = fToMs * (float)(S.Aggregate[timerIndex].nTicks / nAggregateFrames);
                     float fMax = fToMs * (S.AggregateMax[timerIndex]);
                     float fMin = fToMs * (S.AggregateMin[timerIndex]);
 
@@ -2642,13 +4246,12 @@ void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const cha
 		fsWriteToStream(&statsFile, output.c_str(), output.length() * sizeof(char));
         fsCloseStream(&statsFile);
     }
-
 }
 
 #if PROFILE_WEBSERVER
 uint32_t ProfileWebServerPort()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	return S.nWebServerPort;
 }
 
@@ -2657,7 +4260,7 @@ void ProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 #ifdef MSG_NOSIGNAL
 	int nFlags = MSG_NOSIGNAL;
 #else
-	int nFlags = 0;
+	int                          nFlags = 0;
 #endif
 
 	send(Socket, pData, (int)nSize, nFlags);
@@ -2665,7 +4268,7 @@ void ProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 
 void ProfileFlushSocket(MpSocket Socket)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (S.nWebServerPut)
 	{
 		ProfileSendSocket(Socket, &S.WebServerBuffer[0], S.nWebServerPut);
@@ -2675,7 +4278,7 @@ void ProfileFlushSocket(MpSocket Socket)
 
 void ProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	MpSocket Socket = *(MpSocket*)Handle;
 	if (nSize > PROFILE_WEBSERVER_SOCKET_BUFFER_SIZE / 2)
 	{
@@ -2697,25 +4300,25 @@ void ProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 
 #if PROFILE_MINIZ
 #ifndef PROFILE_COMPRESS_BUFFER_SIZE
-#define PROFILE_COMPRESS_BUFFER_SIZE (256<<10)
+#define PROFILE_COMPRESS_BUFFER_SIZE (256 << 10)
 #endif
 
-#define PROFILE_COMPRESS_CHUNK (PROFILE_COMPRESS_BUFFER_SIZE/2)
+#define PROFILE_COMPRESS_CHUNK (PROFILE_COMPRESS_BUFFER_SIZE / 2)
 struct ProfileCompressedSocketState
 {
 	unsigned char DeflateOut[PROFILE_COMPRESS_CHUNK];
 	unsigned char DeflateIn[PROFILE_COMPRESS_CHUNK];
-	mz_stream Stream;
-	MpSocket Socket;
-	uint32_t nSize;
-	uint32_t nCompressedSize;
-	uint32_t nFlushes;
-	uint32_t nMemmoveBytes;
+	mz_stream     Stream;
+	MpSocket      Socket;
+	uint32_t      nSize;
+	uint32_t      nCompressedSize;
+	uint32_t      nFlushes;
+	uint32_t      nMemmoveBytes;
 };
 
 void ProfileCompressedSocketFlush(ProfileCompressedSocketState* pState)
 {
-	mz_stream& Stream = pState->Stream;
+	mz_stream&     Stream = pState->Stream;
 	unsigned char* pSendStart = &pState->DeflateOut[0];
 	unsigned char* pSendEnd = &pState->DeflateOut[PROFILE_COMPRESS_CHUNK - Stream.avail_out];
 	if (pSendStart != pSendEnd)
@@ -2725,7 +4328,6 @@ void ProfileCompressedSocketFlush(ProfileCompressedSocketState* pState)
 	}
 	Stream.next_out = &pState->DeflateOut[0];
 	Stream.avail_out = PROFILE_COMPRESS_CHUNK;
-
 }
 void ProfileCompressedSocketStart(ProfileCompressedSocketState* pState, MpSocket Socket)
 {
@@ -2741,7 +4343,6 @@ void ProfileCompressedSocketStart(ProfileCompressedSocketState* pState, MpSocket
 	pState->nCompressedSize = 0;
 	pState->nFlushes = 0;
 	pState->nMemmoveBytes = 0;
-
 }
 void ProfileCompressedSocketFinish(ProfileCompressedSocketState* pState)
 {
@@ -2757,10 +4358,10 @@ void ProfileCompressedSocketFinish(ProfileCompressedSocketState* pState)
 void ProfileCompressedWriteSocket(void* Handle, size_t nSize, const char* pData)
 {
 	ProfileCompressedSocketState* pState = (ProfileCompressedSocketState*)Handle;
-	mz_stream& Stream = pState->Stream;
-	const unsigned char* pDeflateInEnd = Stream.next_in + Stream.avail_in;
-	const unsigned char* pDeflateInStart = &pState->DeflateIn[0];
-	const unsigned char* pDeflateInRealEnd = &pState->DeflateIn[PROFILE_COMPRESS_CHUNK];
+	mz_stream&                    Stream = pState->Stream;
+	const unsigned char*          pDeflateInEnd = Stream.next_in + Stream.avail_in;
+	const unsigned char*          pDeflateInStart = &pState->DeflateIn[0];
+	const unsigned char*          pDeflateInRealEnd = &pState->DeflateIn[PROFILE_COMPRESS_CHUNK];
 	pState->nSize += nSize;
 	if (nSize <= pDeflateInRealEnd - pDeflateInEnd)
 	{
@@ -2824,8 +4425,8 @@ void ProfileWebServerHello(int nPort)
 		{
 			if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
 			{
-				void* pAddress = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-				char Ip[INET_ADDRSTRLEN];
+				void* pAddress = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+				char  Ip[INET_ADDRSTRLEN];
 				if (inet_ntop(AF_INET, pAddress, Ip, sizeof(Ip)))
 				{
 					PROFILE_PRINTF("Profile: Web server started on %s:%d\n", Ip, nPort);
@@ -2846,7 +4447,7 @@ void ProfileWebServerHello(int nPort)
 
 void ProfileWebServerStart()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (!S.WebServerThread)
 	{
 		ProfileThreadStart(&S.WebServerThread, ProfileWebServerUpdate);
@@ -2855,7 +4456,7 @@ void ProfileWebServerStart()
 
 void ProfileWebServerStop()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (S.WebServerThread)
 	{
 		ProfileWebServerUpdateStop();
@@ -2872,7 +4473,7 @@ const char* ProfileParseHeader(char* pRequest, const char* pPrefix)
 	{
 		if ((i == 0 || pRequest[i - 1] == '\n') && strncmp(&pRequest[i], pPrefix, nPrefixSize) == 0)
 		{
-			char* pResult = &pRequest[i + nPrefixSize];
+			char*  pResult = &pRequest[i + nPrefixSize];
 			size_t nResultSize = strcspn(pResult, " \r\n");
 
 			pResult[nResultSize] = '\0';
@@ -2905,9 +4506,9 @@ int ProfileParseGet(const char* pGet)
 
 void ProfileWebServerHandleRequest(MpSocket Connection)
 {
-	Profile & S = g_Profile;
-	char Request[8192];
-	long nReceived = recv(Connection, Request, sizeof(Request) - 1, 0);
+	Profile& S = g_Profile;
+	char     Request[8192];
+	long     nReceived = recv(Connection, Request, sizeof(Request) - 1, 0);
 	if (nReceived <= 0)
 		return;
 	Request[nReceived] = 0;
@@ -2917,7 +4518,8 @@ void ProfileWebServerHandleRequest(MpSocket Connection)
 	PROFILE_SCOPEI("Profile", "WebServerUpdate", 0xDD7300);
 
 #if PROFILE_MINIZ
-#define PROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Encoding: deflate\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
+#define PROFILE_HTML_HEADER \
+	"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Encoding: deflate\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
 #else
 #define PROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
 #endif
@@ -2953,10 +4555,11 @@ void ProfileWebServerHandleRequest(MpSocket Connection)
 	uint64_t nDataEnd = S.nWebServerDataSent;
 	uint64_t nTickEnd = P_TICK();
 	uint64_t nDiff = (nTickEnd - nTickStart);
-	float fMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu()) * nDiff;
-	int nKb = ((nDataEnd - nDataStart) >> 10) + 1;
-	int nCompressedKb = ((CompressState.nCompressedSize) >> 10) + 1;
-	ProfilePrintf(ProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
+	float    fMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu()) * nDiff;
+	int      nKb = ((nDataEnd - nDataStart) >> 10) + 1;
+	int      nCompressedKb = ((CompressState.nCompressedSize) >> 10) + 1;
+	ProfilePrintf(
+		ProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
 	ProfileCompressedSocketFinish(&CompressState);
 	ProfileFlushSocket(Connection);
 #endif
@@ -2974,9 +4577,9 @@ void ProfileWebServerCloseSocket(MpSocket Connection)
 
 void ProfileWebServerUpdate(void*)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 #if defined(_WINDOWS) || defined(XBOX)
-	WSADATA wsa;
+	WSADATA  wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa))
 		return;
 #endif
@@ -3009,7 +4612,8 @@ void ProfileWebServerUpdate(void*)
 		for (;;)
 		{
 			MpSocket Connection = accept(S.WebServerSocket, 0, 0);
-			if (P_INVALID_SOCKET(Connection)) break;
+			if (P_INVALID_SOCKET(Connection))
+				break;
 
 #ifdef SO_NOSIGPIPE
 			int nConnectionOption = 1;
@@ -3019,7 +4623,7 @@ void ProfileWebServerUpdate(void*)
 			ProfileWebServerHandleRequest(Connection);
 
 			ProfileWebServerCloseSocket(Connection);
-            ProfileOnThreadExit();
+			ProfileOnThreadExit();
 		}
 
 		S.nWebServerPort = 0;
@@ -3038,24 +4642,16 @@ void ProfileWebServerUpdate(void*)
 
 void ProfileWebServerUpdateStop()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	ProfileWebServerCloseSocket(S.WebServerSocket);
 }
 #else
-void ProfileWebServerStart()
-{
-}
+void ProfileWebServerStart() {}
 
-void ProfileWebServerStop()
-{
-}
+void ProfileWebServerStop() {}
 
-uint32_t ProfileWebServerPort()
-{
-	return 0;
-}
+uint32_t ProfileWebServerPort() { return 0; }
 #endif
-
 
 #if PROFILE_CONTEXT_SWITCH_TRACE
 //functions that need to be implemented per platform.
@@ -3063,7 +4659,7 @@ void ProfileTraceThread(void* unused);
 
 void ProfileContextSwitchTraceStart()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (!S.ContextSwitchThread)
 	{
 		ProfileThreadStart(&S.ContextSwitchThread, ProfileTraceThread);
@@ -3072,7 +4668,7 @@ void ProfileContextSwitchTraceStart()
 
 void ProfileContextSwitchTraceStop()
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	if (S.ContextSwitchThread)
 	{
 		S.bContextSwitchStop = true;
@@ -3081,13 +4677,15 @@ void ProfileContextSwitchTraceStop()
 	}
 }
 
-void ProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
+void ProfileContextSwitchSearch(
+	uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
 {
 	PROFILE_SCOPEI("Profile", "ContextSwitchSearch", 0xDD7300);
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	uint32_t nContextSwitchPut = S.nContextSwitchPut;
 	uint64_t nContextSwitchStart, nContextSwitchEnd;
-	nContextSwitchStart = nContextSwitchEnd = (nContextSwitchPut + PROFILE_CONTEXT_SWITCH_BUFFER_SIZE - 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE;
+	nContextSwitchStart = nContextSwitchEnd =
+		(nContextSwitchPut + PROFILE_CONTEXT_SWITCH_BUFFER_SIZE - 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE;
 	int64_t nSearchEnd = nBaseTicksEndCpu + ProfileMsToTick(30.f, ProfileTicksPerSecondCpu());
 	int64_t nSearchBegin = nBaseTicksCpu - ProfileMsToTick(30.f, ProfileTicksPerSecondCpu());
 	for (uint32_t i = 0; i < PROFILE_CONTEXT_SWITCH_BUFFER_SIZE; ++i)
@@ -3107,12 +4705,13 @@ void ProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContex
 	*pContextSwitchEnd = (uint32_t)nContextSwitchEnd;
 }
 
-uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, ProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
+uint32_t ProfileContextSwitchGatherThreads(
+	uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, ProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
 {
 	ProfileProcessIdType nCurrentProcessId = P_GETCURRENTPROCESSID();
 
 	uint32_t nNumThreads = 0;
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
 	{
 		if (!S.Pool[i])
@@ -3127,7 +4726,7 @@ uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_
 	for (uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i + 1) % PROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
 	{
 		ProfileContextSwitch CS = S.ContextSwitch[i];
-		ProfileThreadIdType nThreadId = CS.nThreadIn;
+		ProfileThreadIdType  nThreadId = CS.nThreadIn;
 		if (nThreadId)
 		{
 			ProfileProcessIdType nProcessId = CS.nProcessIn;
@@ -3175,13 +4774,13 @@ const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32
 
 void ProfileTraceThread(void* unused)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	while (!S.bContextSwitchStop)
 	{
-		PathHandle path = fsCreatePath(fsGetSystemFileSystem(), "\\\\.\\pipe\\microprofile-contextswitch");
+		PathHandle  path = fsCreatePath(fsGetSystemFileSystem(), "\\\\.\\pipe\\microprofile-contextswitch");
 		FileStream* fh = fsOpenStreamFromPath(path, FM_WRITE_BINARY);
-	
-		if(!fh)
+
+		if (!fh)
 		{
 			Sleep(1000);
 			continue;
@@ -3224,13 +4823,13 @@ const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32
 
 void ProfileTraceThread(void*)
 {
-	Profile & S = g_Profile;
+	Profile& S = g_Profile;
 	while (!S.bContextSwitchStop)
 	{
 		FileSystem* fileSystem = fsGetSystemFileSystem();
 		PathHandle path = fsCreatePath(fileSystem, "/tmp/microprofile-contextswitch");
 		FileStream* fh = fsOpenStreamFromPath(path, FM_READ);
-		if(!fh)
+		if (!fh)
 		{
 			usleep(1000000);
 			continue;
@@ -3276,15 +4875,12 @@ void ProfileTraceThread(void*)
 }
 #endif
 #else
-void ProfileContextSwitchTraceStart()
-{
-}
+void     ProfileContextSwitchTraceStart() {}
 
-void ProfileContextSwitchTraceStop()
-{
-}
+void ProfileContextSwitchTraceStop() {}
 
-void ProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
+void ProfileContextSwitchSearch(
+	uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
 {
 	(void)nBaseTicksCpu;
 	(void)nBaseTicksEndCpu;
@@ -3293,7 +4889,8 @@ void ProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContex
 	*pContextSwitchEnd = 0;
 }
 
-uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, ProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
+uint32_t ProfileContextSwitchGatherThreads(
+	uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, ProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
 {
 	(void)nContextSwitchStart;
 	(void)nContextSwitchEnd;
@@ -3315,6 +4912,6 @@ const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32
 
 #if PROFILE_EMBED_HTML
 #include "ProfilerHTML.h"
-#endif //PROFILE_EMBED_HTML
+#endif    //PROFILE_EMBED_HTML
 
 #endif

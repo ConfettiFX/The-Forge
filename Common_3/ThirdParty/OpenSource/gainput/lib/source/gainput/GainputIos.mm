@@ -4,6 +4,7 @@
 #if defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_TVOS)
 
 #include "../../include/gainput/GainputIos.h"
+#include "../../../../../../OS/Interfaces/IMemory.h"
 
 #include "touch/GainputInputDeviceTouchIos.h"
 #include "keyboard/GainputInputDeviceKeyboardIOS.h"
@@ -149,6 +150,38 @@
 }
 @end
 
+gainput::GesturePhase GetGestureState(UIGestureRecognizerState state)
+{
+	switch (state) {
+		case UIGestureRecognizerStateBegan:
+			return gainput::GesturePhase::GesturePhaseStarted;
+		case UIGestureRecognizerStateChanged:
+			return gainput::GesturePhase::GesturePhaseUpdated;
+		case UIGestureRecognizerStateEnded:
+		case UIGestureRecognizerStateCancelled:
+			return gainput::GesturePhase::GesturePhaseEnded;
+		case UIGestureRecognizerStateFailed:
+		default:
+			return gainput::GesturePhase::GesturePhaseCanceled;
+	}
+}
+gainput::GesturePhase GetGesturePhase(UITouchPhase phase)
+{
+	switch (phase) {
+		case UITouchPhaseBegan:
+			return gainput::GesturePhase::GesturePhaseStarted;
+		case UITouchPhaseMoved:
+		case UITouchPhaseStationary:
+			return gainput::GesturePhase::GesturePhaseUpdated;
+		case UITouchPhaseEnded:
+			return gainput::GesturePhase::GesturePhaseEnded;
+		case UITouchPhaseCancelled:
+			return gainput::GesturePhase::GesturePhaseCanceled;
+		default:
+			return gainput::GesturePhase::GesturePhaseCanceled;
+	}
+}
+
 @interface GainputGestureRecognizerDelegate : NSObject<UIGestureRecognizerDelegate> {}
 @property(nonnull) gainput::InputDeviceTouchImplIos* inputManager;
 @property unsigned gestureId;
@@ -156,76 +189,39 @@
 @end
 
 @implementation GainputGestureRecognizerDelegate
--(IBAction) handlePan:(UIPanGestureRecognizer *)gesture
-{
-	if (gesture.state ==  UIGestureRecognizerStateChanged && gesture.numberOfTouches == self.gestureConfig.mMinNumberOfTouches)
-	{
-		CGPoint translation = [gesture translationInView:[gesture.view superview]];
-		CGPoint location = [gesture locationInView:[gesture.view superview]];
-		float contentScale = [gesture.view.layer contentsScale];
-		location.x *= contentScale;
-		location.y *= contentScale;
-		translation.x *= contentScale;
-		translation.y *= contentScale;
-		
-		gainput::GestureChange gestureData = {};
-		gestureData.type = gainput::GesturePan;
-		gestureData.position[0] = location.x;
-		gestureData.position[1] = location.y;
-		gestureData.translation[0] = translation.x;
-		gestureData.translation[1] = translation.y;
-		self.inputManager->HandleGesture(self.gestureId, gestureData);
-	}
-	
-	[gesture setTranslation:CGPointMake(0.0f, 0.0f) inView:[gesture.view superview]];
-}
 
 -(void) handlePinch:(UIPinchGestureRecognizer *)gesture
 {
-	if (gesture.state ==  UIGestureRecognizerStateChanged && gesture.numberOfTouches == 2)
+	float velocity = 0.0f;
+	if (!isnan(gesture.velocity))
+		velocity = gesture.velocity;
+	float contentScale = [gesture.view.layer contentsScale];
+	CGPoint touch0 = [gesture locationOfTouch:0 inView:[gesture.view superview]];
+	touch0.x *= contentScale;
+	touch0.y *= contentScale;
+	CGPoint touch1 = CGPointMake(0.0f,0.0f);
+	if([gesture numberOfTouches] > 1)
 	{
-		float velocity = 0.0f;
-		if (!isnan(gesture.velocity))
-			velocity = gesture.velocity;
-		float contentScale = [gesture.view.layer contentsScale];
-		CGPoint touch0 = [gesture locationOfTouch:0 inView:[gesture.view superview]];
-		touch0.x *= contentScale;
-		touch0.y *= contentScale;
-		
-		CGPoint touch1 = [gesture locationOfTouch:1 inView:[gesture.view superview]];
+		touch1 = [gesture locationOfTouch:1 inView:[gesture.view superview]];
 		touch1.x *= contentScale;
 		touch1.y *= contentScale;
-		
-		CGPoint location = [gesture locationInView:[gesture.view superview]];
-		location.x *= contentScale;
-		location.y *= contentScale;
-		
-		gainput::GestureChange gestureData = {};
-		gestureData.type = gainput::GesturePinch;
-		gestureData.position[0] = location.x;
-		gestureData.position[1] = location.y;
-		gestureData.scale = gesture.scale;
-		gestureData.velocity = velocity;
-		gestureData.distance[0] = (touch1.x - touch0.x);
-		gestureData.distance[1] = (touch1.y - touch0.y);
-		self.inputManager->HandleGesture(self.gestureId, gestureData);
 	}
-	
-	gesture.scale = 1.0f;
-}
-
--(void) handleTap:(UIPinchGestureRecognizer *)gesture
-{
 	CGPoint location = [gesture locationInView:[gesture.view superview]];
-	float contentScale = [gesture.view.layer contentsScale];
 	location.x *= contentScale;
 	location.y *= contentScale;
 	
 	gainput::GestureChange gestureData = {};
-	gestureData.type = gainput::GestureTap;
+	gestureData.phase = GetGestureState(gesture.state);
+	gestureData.type = gainput::GesturePinch;
 	gestureData.position[0] = location.x;
 	gestureData.position[1] = location.y;
+	gestureData.scale = gesture.scale;
+	gestureData.velocity = velocity;
+	gestureData.distance[0] = (touch1.x - touch0.x);
+	gestureData.distance[1] = (touch1.y - touch0.y);
 	self.inputManager->HandleGesture(self.gestureId, gestureData);
+	
+	gesture.scale = 1.0f;
 }
 
 -(void) handleLongPress:(UILongPressGestureRecognizer *)gesture
@@ -236,6 +232,7 @@
 	location.y *= contentScale;
 	
 	gainput::GestureChange gestureData = {};
+	gestureData.phase = GetGestureState(gesture.state);
 	gestureData.type = gainput::GestureLongPress;
 	gestureData.position[0] = location.x;
 	gestureData.position[1] = location.y;
@@ -244,7 +241,7 @@
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
 {
-	return YES; // Works for most use cases of pinch + zoom + pan
+	return YES;
 }
 @end
 
@@ -357,7 +354,6 @@
 {
 	[self touchesEnded:touches withEvent:event];
 }
-
 @end
 
 @interface GainputPanGestureRecognizer : UIPanGestureRecognizer {}
@@ -370,27 +366,49 @@
 
 @implementation GainputPanGestureRecognizer
 
+
+-(BOOL) cancelsTouchesInView
+{
+	return false;
+}
+-(BOOL) delaysTouchesEnded
+{
+	return false;
+}
+
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesBegan:touches withEvent:event];
 	[self.inputManager touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesMoved:touches withEvent:event];
 	[self.inputManager touchesMoved:touches withEvent:event];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesEnded:touches withEvent:event];
 	[self.inputManager touchesEnded:touches withEvent:event];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesCancelled:touches withEvent:event];
 	[self.inputManager touchesCancelled:touches withEvent:event];
 }
 
@@ -406,7 +424,6 @@
 @end
 
 @implementation GainputPinchGestureRecognizer
-
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	[super touchesBegan:touches withEvent:event];
@@ -431,11 +448,22 @@
 	[self.inputManager touchesCancelled:touches withEvent:event];
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return YES;
+}
 @end
+
+struct ActiveFingers
+{
+	CGPoint downLocations[gainput::TouchPointCount];
+	void* downTouches[gainput::TouchPointCount];
+};
 
 @interface GainputTapGestureRecognizer : UITapGestureRecognizer {}
 @property(nonnull, retain) GainputGestureRecognizerImpl* inputManager;
-
+@property unsigned gestureID;
+@property(nonnull) ActiveFingers * activeGestures;
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
@@ -444,28 +472,283 @@
 
 @implementation GainputTapGestureRecognizer
 
+-(BOOL) cancelsTouchesInView
+{
+	return false;
+}
+-(BOOL) delaysTouchesEnded
+{
+	return false;
+}
+
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
+-(void) dealloc
+{
+	if(_activeGestures)
+		tf_free(_activeGestures);
+	
+	[super dealloc];
+}
+
+-(int) AddAndGetTapIndex:(UITouch *) touch Location:(CGPoint) loc
+{
+	for(int i = 0 ; i < gainput::TouchPointCount; i++)
+	{
+		if(_activeGestures->downTouches[i] == NULL)
+		{
+			_activeGestures->downTouches[i] = static_cast<void*>(touch);
+			_activeGestures->downLocations[i] = loc;
+			return i;
+		}
+	}
+	
+	return -1;
+}
+-(int) GetTapIndex:(UITouch *) touch
+{
+	for(unsigned i = 0 ; i < gainput::TouchPointCount; i++)
+	{
+		if(_activeGestures->downTouches[i] == static_cast<void*>(touch))
+		{
+			return i;
+		}
+	}
+	
+	return -1;
+}
+
+-(void) RemoveTap:(int) tapIndex
+{
+	_activeGestures->downTouches[tapIndex] = NULL;
+}
+
+-(void) handleCustomTap:(NSSet *)touches
+{
+	gainput::InputDeviceTouchImplIos* deviceImpl = [self.inputManager inputManager];
+	UIView * view = [[self.inputManager gainputView] superview];
+	
+	for (UITouch *touch in touches)
+	{
+		UITouchPhase currentPhase = [touch phase];
+		if(currentPhase == UITouchPhaseMoved)
+			continue;
+		
+		CGPoint point = [touch locationInView:view];
+		float contentScale = [view.layer contentsScale];
+		point.x *= contentScale;
+		point.y *= contentScale;
+
+		int tapIndex = -1;
+		if(currentPhase == UITouchPhaseBegan)
+		{
+			tapIndex = [self AddAndGetTapIndex:(touch) Location:point];
+		}
+		else
+			tapIndex = [self GetTapIndex:touch];
+		
+		if(tapIndex != -1)
+		{
+			gainput::GestureChange gestureData = {};
+			gestureData.phase = GetGesturePhase(currentPhase);
+			gestureData.fingerIndex = tapIndex;
+			gestureData.type = gainput::GestureTap;
+			gestureData.position[0] = point.x;
+			gestureData.position[1] = point.y;
+			
+			if(gestureData.phase == gainput::GesturePhaseEnded || gestureData.phase== gainput::GesturePhaseCanceled)
+			{
+				CGPoint prevPoint = _activeGestures->downLocations[tapIndex];
+				
+				if(prevPoint.x != point.x || prevPoint.y != point.y)
+				{
+					gestureData.phase = gainput::GesturePhaseCanceled;
+				}
+				
+				gestureData.position[0] = prevPoint.x;
+				gestureData.position[1] = prevPoint.y;
+				[self RemoveTap:tapIndex];
+			}
+			
+			deviceImpl->HandleGesture([self gestureID], gestureData);
+		}
+	}
+}
+
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesBegan:touches withEvent:event];
-	[self.inputManager touchesBegan:touches withEvent:event];
+	[self handleCustomTap:touches];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesMoved:touches withEvent:event];
-	[self.inputManager touchesMoved:touches withEvent:event];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesEnded:touches withEvent:event];
-	[self.inputManager touchesEnded:touches withEvent:event];
+	[self handleCustomTap:touches];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
 {
-	[super touchesCancelled:touches withEvent:event];
-	[self.inputManager touchesCancelled:touches withEvent:event];
+	[self handleCustomTap:touches];
+}
+
+@end
+
+@interface GainputCustomPanGestureRecognizer : UIPanGestureRecognizer {}
+@property(nonnull, retain) GainputGestureRecognizerImpl* inputManager;
+@property unsigned gestureID;
+@property(nonnull) ActiveFingers * activeGestures;
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
+@end
+
+@implementation GainputCustomPanGestureRecognizer
+
+-(BOOL) cancelsTouchesInView
+{
+	return false;
+}
+-(BOOL) delaysTouchesEnded
+{
+	return false;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+	return NO;
+}
+
+-(void) dealloc
+{
+	if(_activeGestures)
+		tf_free(_activeGestures);
+	
+	[super dealloc];
+}
+
+-(int) AddAndGetPanIndex:(UITouch *) touch Location:(CGPoint) loc
+{
+	for(int i = 0 ; i < gainput::TouchPointCount; i++)
+	{
+		if(_activeGestures->downTouches[i] == NULL)
+		{
+			_activeGestures->downTouches[i] = static_cast<void*>(touch);
+			_activeGestures->downLocations[i] = loc;
+			return i;
+		}
+	}
+	
+	return -1;
+}
+-(int) GetPanIndex:(UITouch *) touch
+{
+	for(unsigned i = 0 ; i < gainput::TouchPointCount; i++)
+	{
+		if(_activeGestures->downTouches[i] == static_cast<void*>(touch))
+		{
+			return i;
+		}
+	}
+	
+	return -1;
+}
+
+-(void) RemovePan:(int) panIndex
+{
+	_activeGestures->downTouches[panIndex] = NULL;
+}
+
+-(void) handleCustomPan:(NSSet *)touches
+{
+	gainput::InputDeviceTouchImplIos* deviceImpl = [self.inputManager inputManager];
+	UIView * view = [[self.inputManager gainputView] superview];
+	
+	for (UITouch *touch in touches)
+	{
+		UITouchPhase currentPhase = [touch phase];
+		
+		CGPoint point = [touch locationInView:view];
+		float contentScale = [view.layer contentsScale];
+		point.x *= contentScale;
+		point.y *= contentScale;
+
+		int panIndex = -1;
+		if(currentPhase == UITouchPhaseBegan)
+		{
+			panIndex = [self AddAndGetPanIndex:(touch) Location:point];
+		}
+		else
+			panIndex = [self GetPanIndex:touch];
+		
+		if(panIndex != -1)
+		{
+			gainput::GestureChange gestureData = {};
+			gestureData.phase = GetGesturePhase(currentPhase);
+			gestureData.fingerIndex = panIndex;
+			gestureData.type = gainput::GesturePan;
+
+			gestureData.position[0] = point.x;
+			gestureData.position[1] = point.y;
+			
+			gestureData.translation[0] = point.x - _activeGestures->downLocations[panIndex].x;
+			gestureData.translation[1] = point.y - _activeGestures->downLocations[panIndex].y;
+
+			if(gestureData.phase == gainput::GesturePhaseEnded || gestureData.phase == gainput::GesturePhaseCanceled)
+			{
+				[self RemovePan:panIndex];
+			}
+
+			deviceImpl->HandleGesture([self gestureID], gestureData);
+		}
+	}
+}
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	[self handleCustomPan:touches];
+}
+
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	[self handleCustomPan:touches];
+}
+
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	[self handleCustomPan:touches];
+}
+
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
+	[self handleCustomPan:touches];
 }
 
 @end
@@ -520,7 +803,6 @@
 	if (self)
 	{
 		inputManager_ = &inputManager;
-		
 #if !defined(GAINPUT_PLATFORM_TVOS)
 		[self setMultipleTouchEnabled:YES];
 #endif
@@ -560,7 +842,7 @@
 			gestureRecognizerImpl.inputManager = deviceImpl;
 			gestureRecognizerImpl.gainputView = self;
 			
-			gestureRecognizerDelegates = [NSMutableArray<GainputGestureRecognizerDelegate*> new];
+			gestureRecognizerDelegates = [[NSMutableArray<GainputGestureRecognizerDelegate*> alloc] init];
 			
 			GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:self action:NULL];
 			uiPan.minimumNumberOfTouches = 1;
@@ -649,7 +931,7 @@
 (unsigned)gestureId
 withConfig:(gainput::GestureConfig&)gestureConfig
 {
-    const gainput::GestureType gestureType = gestureConfig.mType;
+	const gainput::GestureType gestureType = gestureConfig.mType;
 	gainput::DeviceId deviceId = inputManager_->FindDeviceId(gainput::InputDevice::DT_TOUCH, 0);
 	gainput::InputDeviceTouch* device = static_cast<gainput::InputDeviceTouch*>(inputManager_->GetDevice(deviceId));
 	gainput::InputDeviceTouchImplIos* deviceImpl = static_cast<gainput::InputDeviceTouchImplIos*>(device->GetPimpl());
@@ -662,22 +944,26 @@ withConfig:(gainput::GestureConfig&)gestureConfig
 	
 	if (gestureType == gainput::GestureTap)
 	{
-		GainputTapGestureRecognizer* uiTap = [[GainputTapGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handleTap:)];
+		GainputTapGestureRecognizer* uiTap = [[GainputTapGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:NULL];
 		uiTap.delegate = gestureRecognizerDelegate;
 		uiTap.inputManager = gestureRecognizerImpl;
+		uiTap.gestureID = gestureId;
+		uiTap.activeGestures = (ActiveFingers*)tf_calloc(1, sizeof(ActiveFingers));
 		if (gestureConfig.mNumberOfTapsRequired)
 			uiTap.numberOfTapsRequired = gestureConfig.mNumberOfTapsRequired;
 		[self addGestureRecognizer:uiTap];
 	}
 	if (gestureType == gainput::GesturePan)
 	{
-		GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:@selector(handlePan:)];
+		GainputCustomPanGestureRecognizer* uiPan = [[GainputCustomPanGestureRecognizer alloc] initWithTarget:gestureRecognizerDelegate action:NULL];
 		if (gestureConfig.mMinNumberOfTouches)
 			uiPan.minimumNumberOfTouches = gestureConfig.mMinNumberOfTouches;
 		if (gestureConfig.mMaxNumberOfTouches)
 			uiPan.maximumNumberOfTouches = gestureConfig.mMaxNumberOfTouches;
 		uiPan.delegate = gestureRecognizerDelegate;
 		uiPan.inputManager = gestureRecognizerImpl;
+		uiPan.gestureID = gestureId;
+		uiPan.activeGestures = (ActiveFingers*)tf_calloc(1, sizeof(ActiveFingers));
 		[self addGestureRecognizer:uiPan];
 	}
 	if (gestureType == gainput::GesturePinch)

@@ -25,10 +25,11 @@
 #pragma once
 
 #include "IOperatingSystem.h"
+#include "../Math/MathTypes.h"
 
-extern uint32_t MAX_INPUT_MULTI_TOUCHES;
-extern uint32_t MAX_INPUT_GAMEPADS;
-extern uint32_t MAX_INPUT_ACTIONS;
+const uint32_t MAX_INPUT_GAMEPADS = 4;
+const uint32_t MAX_INPUT_MULTI_TOUCHES = 4;
+const uint32_t MAX_INPUT_ACTIONS = 128;
 
 typedef struct InputBindings
 {
@@ -53,20 +54,20 @@ typedef struct InputBindings
 		BUTTON_DPAD_RIGHT,
 		BUTTON_DPAD_UP,
 		BUTTON_DPAD_DOWN,
-		BUTTON_SOUTH, // A/CROSS
-		BUTTON_EAST, // B/CIRCLE
-		BUTTON_WEST, // X/SQUARE
-		BUTTON_NORTH, // Y/TRIANGLE
+		BUTTON_SOUTH,    // A/CROSS
+		BUTTON_EAST,     // B/CIRCLE
+		BUTTON_WEST,     // X/SQUARE
+		BUTTON_NORTH,    // Y/TRIANGLE
 		BUTTON_L1,
 		BUTTON_R1,
 		BUTTON_L2,
 		BUTTON_R2,
-		BUTTON_L3, // LEFT THUMB
-		BUTTON_R3, // RIGHT THUMB
-		BUTTON_HOME, // PS BUTTON
+		BUTTON_L3,      // LEFT THUMB
+		BUTTON_R3,      // RIGHT THUMB
+		BUTTON_HOME,    // PS BUTTON
 		BUTTON_START,
 		BUTTON_SELECT,
-		BUTTON_TOUCH,//PS4 TOUCH
+		BUTTON_TOUCH,    //PS4 TOUCH
 		BUTTON_BACK,
 		BUTTON_FULLSCREEN,
 		BUTTON_EXIT,
@@ -163,17 +164,17 @@ typedef struct InputBindings
 		BUTTON_KEYKPSUBTRACT,
 		BUTTON_KEYKPADD,
 		BUTTON_KEYKPENTER,
-		BUTTON_KEYKPINSERT, // 0
-		BUTTON_KEYKPEND, // 1
-		BUTTON_KEYKPDOWN, // 2
-		BUTTON_KEYKPPAGEDOWN, // 3
-		BUTTON_KEYKPLEFT, // 4
-		BUTTON_KEYKPBEGIN, // 5
-		BUTTON_KEYKPRIGHT, // 6
-		BUTTON_KEYKPHOME, // 7
-		BUTTON_KEYKPUP, // 8
-		BUTTON_KEYKPPAGEUP, // 9
-		BUTTON_KEYKPDELETE, // ,
+		BUTTON_KEYKPINSERT,      // 0
+		BUTTON_KEYKPEND,         // 1
+		BUTTON_KEYKPDOWN,        // 2
+		BUTTON_KEYKPPAGEDOWN,    // 3
+		BUTTON_KEYKPLEFT,        // 4
+		BUTTON_KEYKPBEGIN,       // 5
+		BUTTON_KEYKPRIGHT,       // 6
+		BUTTON_KEYKPHOME,        // 7
+		BUTTON_KEYKPUP,          // 8
+		BUTTON_KEYKPPAGEUP,      // 9
+		BUTTON_KEYKPDELETE,      // ,
 		BUTTON_KEYBACKSPACE,
 		BUTTON_KEYTAB,
 		BUTTON_KEYRETURN,
@@ -269,8 +270,6 @@ typedef struct InputBindings
 		GESTURE_BINDINGS_BEGIN,
 		GESTURE_TAP = GESTURE_BINDINGS_BEGIN,
 		GESTURE_PAN,
-		GESTURE_PINCH,
-		GESTURE_ROTATE,
 		GESTURE_LONG_PRESS,
 		GESTURE_BINDINGS_END = GESTURE_LONG_PRESS,
 		/**********************************************/
@@ -281,12 +280,12 @@ typedef struct InputBindings
 	typedef struct GestureDesc
 	{
 		/// Configuring Pan gesture
-		uint32_t    mMinNumberOfTouches;
-		uint32_t    mMaxNumberOfTouches;
+		uint32_t mMinNumberOfTouches;
+		uint32_t mMaxNumberOfTouches;
 		/// Configuring Tap gesture (single tap, double tap, ...)
-		uint32_t    mNumberOfTapsRequired;
+		uint32_t mNumberOfTapsRequired;
 		/// Configuring Long press gesture
-		float       mMinimumPressDuration;
+		float mMinimumPressDuration;
 	} GestureDesc;
 } InputBindings;
 
@@ -306,37 +305,41 @@ typedef enum InputActionPhase
 	/// Action is initiated
 	INPUT_ACTION_PHASE_STARTED = 0,
 	/// Example: mouse delta changed, key pressed, ...
-	INPUT_ACTION_PHASE_PERFORMED,
+	INPUT_ACTION_PHASE_UPDATED,
+	/// Example: mouse delta changed, key pressed, ...
+	INPUT_ACTION_PHASE_ENDED,
 	/// Example: left mouse button was pressed and now released, gesture was started but got canceled
 	INPUT_ACTION_PHASE_CANCELED,
 } InputActionPhase;
 
 typedef struct InputActionContext
 {
-	void*            pUserData;
+	void*		pUserData;
+	/// Indicer of fingers for detected gesture
+	int32_t		mFingerIndices[MAX_INPUT_MULTI_TOUCHES];
 	union
 	{
 		/// Gesture input
-		float4       mFloat4;
+		float4 mFloat4;
 		/// 3D input (gyroscope, ...)
-		float3       mFloat3;
+		float3 mFloat3;
 		/// 2D input (mouse position, delta, composite input (wasd), gamepad stick, joystick, ...)
-		float2       mFloat2;
+		float2 mFloat2;
 		/// 1D input (composite input (ws), gamepad left trigger, ...)
-		float        mFloat;
+		float mFloat;
 		/// Button input (mouse left button, keyboard keys, ...)
-		bool         mBool;
+		bool mBool;
 		/// Text input
-		wchar_t*     pText;
+		wchar_t* pText;
 	};
 
-	float2*          pPosition;
-	const bool*      pCaptured;
-	float		 mScrollValue;
-	uint32_t         mBinding;
+	float2*     pPosition;
+	const bool* pCaptured;
+	float       mScrollValue;
+	uint32_t    mBinding;
 	/// What phase is the action currently in
-	uint8_t          mPhase;
-	uint8_t          mDeviceType;
+	uint8_t mPhase;
+	uint8_t mDeviceType;
 } InputActionContext;
 
 typedef bool (*InputActionCallback)(InputActionContext* pContext);
@@ -344,34 +347,46 @@ typedef bool (*InputActionCallback)(InputActionContext* pContext);
 typedef struct InputActionDesc
 {
 	/// Value from InputBindings::Binding enum
-	uint32_t                    mBinding;
+	uint32_t mBinding;
 	/// Callback when an action is initiated, performed or canceled
-	InputActionCallback         pFunction;
+	InputActionCallback pFunction;
 	/// User data which will be assigned to InputActionContext::pUserData when calling pFunction
-	void*                       pUserData;
+	void* pUserData;
 	/// Virtual joystick
-	float                       mDeadzone;
-	float                       mOutsideRadius;
-	float                       mScale;
+	float mDeadzone;
+	float mOutsideRadius;
+	float mScale;
 	/// User management (which user does this action apply to)
-	uint8_t                     mUserId;
+	uint8_t mUserId;
 	/// Gesture desc
 	InputBindings::GestureDesc* pGesture;
 } InputActionDesc;
 
-bool          initInputSystem(WindowsDesc* pWindow);
-void          exitInputSystem();
-void          updateInputSystem(uint32_t width, uint32_t height);
-InputAction*  addInputAction(const InputActionDesc* pDesc);
-void          removeInputAction(InputAction* pAction);
-bool          setEnableCaptureInput(bool enable);
+typedef struct InputSystemDesc
+{
+
+	void*           pRenderer = NULL; // Renderer*
+	WindowsDesc*    pWindow = NULL;
+	
+	bool           mDisableVirtualJoystick = false; 
+
+} InputSystemDesc;
+
+bool         initInputSystem(InputSystemDesc* pDesc);
+void         exitInputSystem();
+void         updateInputSystem(uint32_t width, uint32_t height);
+
+InputAction* addInputAction(const InputActionDesc* pDesc);
+void         removeInputAction(InputAction* pAction);
+bool         setEnableCaptureInput(bool enable);
+
 /// Used to enable/disable text input for non-keyboard setups (virtual keyboards for console/mobile, ...)
-void          setVirtualKeyboard(uint32_t type);
+void setVirtualKeyboard(uint32_t type);
 
 void setDeadZone(unsigned int controllerIndex, float deadZoneSize);
 void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b);
 bool setRumbleEffect(int gamePadIndex, float left_motor, float right_motor, uint32_t duration_ms);
 
 const char* getGamePadName(int gamePadIndex);
-bool gamePadConnected(int gamePadIndex);
-void setOnDeviceChangeCallBack(void(*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex);
+bool 		gamePadConnected(int gamePadIndex);
+void 		setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex);

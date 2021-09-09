@@ -24,44 +24,51 @@
 
 #pragma once
 
-#include "stdint.h"
+#include <stdint.h>
+#include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 // High res timer functions
-int64_t getUSec();
-int64_t getTimerFrequency();
+int64_t getUSec(void);
+int64_t getTimerFrequency(void);
 
 // Time related functions
-uint32_t getSystemTime();
-uint32_t getTimeSinceStart();
+uint32_t getSystemTime(void);
+uint32_t getTimeSinceStart(void);
+
 
 /// Low res OS timer
-class Timer
+typedef struct Timer
 {
-	public:
-	Timer();
-	uint32_t GetMSec(bool reset);
-	void     Reset();
-
-	private:
 	uint32_t mStartTime;
-};
+}Timer;
+
+void		initTimer(Timer* pTimer);
+void		resetTimer(Timer* pTimer);
+uint32_t	getTimerMSec(Timer* pTimer, bool reset);
+
 
 /// High-resolution OS timer
-class HiresTimer
+#define HIRES_TIMER_LENGTH_OF_HISTORY 60
+
+typedef struct HiresTimer
 {
-	public:
-	HiresTimer();
+	int64_t		mStartTime;
 
-	int64_t GetUSec(bool reset);
-	int64_t GetUSecAverage();
-	float   GetSeconds(bool reset);
-	float   GetSecondsAverage();
-	void    Reset();
+	int64_t		mHistory[HIRES_TIMER_LENGTH_OF_HISTORY];
+	uint32_t	mHistoryIndex;
+}HiresTimer;
 
-	private:
-	int64_t mStartTime;
+void		initHiresTimer(HiresTimer* pTimer);
+int64_t		getHiresTimerUSec(HiresTimer* pTimer, bool reset);
+int64_t		getHiresTimerUSecAverage(HiresTimer* pTimer);
+float		getHiresTimerSeconds(HiresTimer* pTimer, bool reset);
+float		getHiresTimerSecondsAverage(HiresTimer* pTimer);
+void		resetHiresTimer(HiresTimer* pTimer);
 
-	static const uint32_t LENGTH_OF_HISTORY = 60;
-	int64_t               mHistory[LENGTH_OF_HISTORY];
-	uint32_t              mHistoryIndex;
-};
+
+#ifdef __cplusplus
+}
+#endif

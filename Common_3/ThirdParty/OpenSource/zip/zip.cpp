@@ -98,40 +98,40 @@ static char *strrpl(const char *str, size_t n, char oldchar, char newchar) {
 struct zip_entry_t {
   int index;
   char *name;
-  mz_uint64 uncomp_size;
-  mz_uint64 comp_size;
-  mz_uint32 uncomp_crc32;
-  mz_uint64 offset;
-  mz_uint8 header[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
-  mz_uint64 header_offset;
-  mz_uint16 method;
-  mz_zip_writer_add_state state;
+  miniz_uint64 uncomp_size;
+  miniz_uint64 comp_size;
+  miniz_uint32 uncomp_crc32;
+  miniz_uint64 offset;
+  miniz_uint8 header[MINIZ_ZIP_LOCAL_DIR_HEADER_SIZE];
+  miniz_uint64 header_offset;
+  miniz_uint16 method;
+  miniz_zip_writer_add_state state;
   tdefl_compressor comp;
-  mz_uint32 external_attr;
+  miniz_uint32 external_attr;
   time_t m_time;
 };
 
 struct zip_t {
-  mz_zip_archive archive;
-  mz_uint level;
+  miniz_zip_archive archive;
+  miniz_uint level;
   struct zip_entry_t entry;
 };
 
 // CONFFX_BEGIN - Custom Allocator
 // Heap allocation callbacks.
-// Note that mz_alloc_func parameter types purpsosely differ from zlib's:
+// Note that miniz_alloc_func parameter types purpsosely differ from zlib's:
 // items/size is size_t, not unsigned long.
-static void* tf_mz_alloc_func(void *opaque, size_t items, size_t size)
+static void* tf_miniz_alloc_func(void *opaque, size_t items, size_t size)
 {
 	return tf_calloc(items, size);
 }
 
-static void tf_mz_free_func(void *opaque, void *address)
+static void tf_miniz_free_func(void *opaque, void *address)
 {
 	tf_free(address);
 }
 
-static void* tf_mz_realloc_func(void *opaque, void *address, size_t items, size_t size)
+static void* tf_miniz_realloc_func(void *opaque, void *address, size_t items, size_t size)
 {
 	return tf_realloc(address, items * size);
 }
@@ -147,8 +147,8 @@ struct zip_t *zip_open(ResourceDirectory resourceDirectory, const char* fileName
   }
 
   if (level < 0)
-    level = MZ_DEFAULT_LEVEL;
-  if ((level & 0xF) > MZ_UBER_COMPRESSION) {
+    level = MINIZ_DEFAULT_LEVEL;
+  if ((level & 0xF) > MINIZ_UBER_COMPRESSION) {
     // Wrong compression level
     goto cleanup;
   }
@@ -159,17 +159,17 @@ struct zip_t *zip_open(ResourceDirectory resourceDirectory, const char* fileName
   if (!zip)
     goto cleanup;
 
-  zip->level = (mz_uint)level;
+  zip->level = (miniz_uint)level;
   // CONFFX_BEGIN - Custom Allocator
-  zip->archive.m_pAlloc = tf_mz_alloc_func;
-  zip->archive.m_pFree = tf_mz_free_func;
-  zip->archive.m_pRealloc = tf_mz_realloc_func;
+  zip->archive.m_pAlloc = tf_miniz_alloc_func;
+  zip->archive.m_pFree = tf_miniz_free_func;
+  zip->archive.m_pRealloc = tf_miniz_realloc_func;
   // CONFFX_END
 
   switch (mode) {
   case 'w':
     // Create a new archive.
-    if (!mz_zip_writer_init_file(&(zip->archive), resourceDirectory, fileName, 0)) {
+    if (!miniz_zip_writer_init_file(&(zip->archive), resourceDirectory, fileName, 0)) {
       // Cannot initialize zip_archive writer
       goto cleanup;
     }
@@ -177,16 +177,16 @@ struct zip_t *zip_open(ResourceDirectory resourceDirectory, const char* fileName
 
   case 'r':
   case 'a':
-    if (!mz_zip_reader_init_file(
+    if (!miniz_zip_reader_init_file(
             &(zip->archive), resourceDirectory, fileName,
-            zip->level | MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
+            zip->level | MINIZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY)) {
       // An archive file does not exist or cannot initialize
       // zip_archive reader
       goto cleanup;
     }
     if (mode == 'a' &&
-        !mz_zip_writer_init_from_reader(&(zip->archive), resourceDirectory, fileName)) {
-      mz_zip_reader_end(&(zip->archive));
+        !miniz_zip_writer_init_from_reader(&(zip->archive), resourceDirectory, fileName)) {
+      miniz_zip_reader_end(&(zip->archive));
       goto cleanup;
     }
     break;
@@ -206,10 +206,10 @@ void zip_close(struct zip_t *zip) {
   if (zip) {
     // Always finalize, even if adding failed for some reason, so we have a
     // valid central directory.
-    mz_zip_writer_finalize_archive(&(zip->archive));
+    miniz_zip_writer_finalize_archive(&(zip->archive));
 
-    mz_zip_writer_end(&(zip->archive));
-    mz_zip_reader_end(&(zip->archive));
+    miniz_zip_writer_end(&(zip->archive));
+    miniz_zip_reader_end(&(zip->archive));
 
     CLEANUP(zip);
   }
@@ -231,9 +231,9 @@ int zip_is64(struct zip_t *zip) {
 
 int zip_entry_open(struct zip_t *zip, const char *entryname) {
   size_t entrylen = 0;
-  mz_zip_archive *pzip = NULL;
-  mz_uint num_alignment_padding_bytes, level;
-  mz_zip_archive_file_stat stats;
+  miniz_zip_archive *pzip = NULL;
+  miniz_uint num_alignment_padding_bytes, level;
+  miniz_zip_archive_file_stat stats;
 
   if (!zip || !entryname) {
     return -1;
@@ -262,14 +262,14 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   }
 
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
+  if (pzip->m_zip_mode == MINIZ_ZIP_MODE_READING) {
     zip->entry.index =
-        mz_zip_reader_locate_file(pzip, zip->entry.name, NULL, 0);
+        miniz_zip_reader_locate_file(pzip, zip->entry.name, NULL, 0);
     if (zip->entry.index < 0) {
       goto cleanup;
     }
 
-    if (!mz_zip_reader_file_stat(pzip, (mz_uint)zip->entry.index, &stats)) {
+    if (!miniz_zip_reader_file_stat(pzip, (miniz_uint)zip->entry.index, &stats)) {
       goto cleanup;
     }
 
@@ -288,40 +288,40 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
   zip->entry.index = (int)zip->archive.m_total_files;
   zip->entry.comp_size = 0;
   zip->entry.uncomp_size = 0;
-  zip->entry.uncomp_crc32 = MZ_CRC32_INIT;
+  zip->entry.uncomp_crc32 = MINIZ_CRC32_INIT;
   zip->entry.offset = zip->archive.m_archive_size;
   zip->entry.header_offset = zip->archive.m_archive_size;
-  memset(zip->entry.header, 0, MZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(mz_uint8));
+  memset(zip->entry.header, 0, MINIZ_ZIP_LOCAL_DIR_HEADER_SIZE * sizeof(miniz_uint8));
   zip->entry.method = 0;
 
   // UNIX or APPLE
-#if MZ_PLATFORM == 3 || MZ_PLATFORM == 19
+#if MINIZ_PLATFORM == 3 || MINIZ_PLATFORM == 19
   // regular file with rw-r--r-- persmissions
-  zip->entry.external_attr = (mz_uint32)(0100644) << 16;
+  zip->entry.external_attr = (miniz_uint32)(0100644) << 16;
 #else
   zip->entry.external_attr = 0;
 #endif
 
   num_alignment_padding_bytes =
-      mz_zip_writer_compute_padding_needed_for_file_alignment(pzip);
+      miniz_zip_writer_compute_padding_needed_for_file_alignment(pzip);
 
-  if (!pzip->m_pState || (pzip->m_zip_mode != MZ_ZIP_MODE_WRITING)) {
+  if (!pzip->m_pState || (pzip->m_zip_mode != MINIZ_ZIP_MODE_WRITING)) {
     // Wrong zip mode
     goto cleanup;
   }
-  if (zip->level & MZ_ZIP_FLAG_COMPRESSED_DATA) {
+  if (zip->level & MINIZ_ZIP_FLAG_COMPRESSED_DATA) {
     // Wrong zip compression level
     goto cleanup;
   }
   // no zip64 support yet
   if ((pzip->m_total_files == 0xFFFF) ||
       ((pzip->m_archive_size + num_alignment_padding_bytes +
-        MZ_ZIP_LOCAL_DIR_HEADER_SIZE + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
+        MINIZ_ZIP_LOCAL_DIR_HEADER_SIZE + MINIZ_ZIP_CENTRAL_DIR_HEADER_SIZE +
         entrylen) > 0xFFFFFFFF)) {
     // No zip64 support yet
     goto cleanup;
   }
-  if (!mz_zip_writer_write_zeros(pzip, zip->entry.offset,
+  if (!miniz_zip_writer_write_zeros(pzip, zip->entry.offset,
                                  num_alignment_padding_bytes +
                                      sizeof(zip->entry.header))) {
     // Cannot memset zip entry header
@@ -330,7 +330,7 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
 
   zip->entry.header_offset += num_alignment_padding_bytes;
   if (pzip->m_file_offset_alignment) {
-    MZ_ASSERT(
+    MINIZ_ASSERT(
         (zip->entry.header_offset & (pzip->m_file_offset_alignment - 1)) == 0);
   }
   zip->entry.offset += num_alignment_padding_bytes + sizeof(zip->entry.header);
@@ -348,10 +348,10 @@ int zip_entry_open(struct zip_t *zip, const char *entryname) {
     zip->entry.state.m_cur_archive_file_ofs = zip->entry.offset;
     zip->entry.state.m_comp_size = 0;
 
-    if (tdefl_init(&(zip->entry.comp), mz_zip_writer_add_put_buf_callback,
+    if (tdefl_init(&(zip->entry.comp), miniz_zip_writer_add_put_buf_callback,
                    &(zip->entry.state),
                    (int)tdefl_create_comp_flags_from_zip_params(
-                       (int)level, -15, MZ_DEFAULT_STRATEGY)) !=
+                       (int)level, -15, MINIZ_DEFAULT_STRATEGY)) !=
         TDEFL_STATUS_OKAY) {
       // Cannot initialize the zip compressor
       goto cleanup;
@@ -368,10 +368,10 @@ cleanup:
 }
 
 int zip_entry_openbyindex(struct zip_t *zip, int index) {
-  mz_zip_archive *pZip = NULL;
-  mz_zip_archive_file_stat stats;
-  mz_uint namelen;
-  const mz_uint8 *pHeader;
+  miniz_zip_archive *pZip = NULL;
+  miniz_zip_archive_file_stat stats;
+  miniz_uint namelen;
+  const miniz_uint8 *pHeader;
   const char *pFilename;
 
   if (!zip) {
@@ -380,26 +380,26 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
   }
 
   pZip = &(zip->archive);
-  if (pZip->m_zip_mode != MZ_ZIP_MODE_READING) {
+  if (pZip->m_zip_mode != MINIZ_ZIP_MODE_READING) {
     // open by index requires readonly mode
     return -1;
   }
 
-  if (index < 0 || (mz_uint)index >= pZip->m_total_files) {
+  if (index < 0 || (miniz_uint)index >= pZip->m_total_files) {
     // index out of range
     return -1;
   }
 
-  if (!(pHeader = &MZ_ZIP_ARRAY_ELEMENT(
-            &pZip->m_pState->m_central_dir, mz_uint8,
-            MZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets,
-                                 mz_uint32, index)))) {
+  if (!(pHeader = &MINIZ_ZIP_ARRAY_ELEMENT(
+            &pZip->m_pState->m_central_dir, miniz_uint8,
+            MINIZ_ZIP_ARRAY_ELEMENT(&pZip->m_pState->m_central_dir_offsets,
+                                 miniz_uint32, index)))) {
     // cannot find header in central directory
     return -1;
   }
 
-  namelen = MZ_READ_LE16(pHeader + MZ_ZIP_CDH_FILENAME_LEN_OFS);
-  pFilename = (const char *)pHeader + MZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
+  namelen = MINIZ_READ_LE16(pHeader + MINIZ_ZIP_CDH_FILENAME_LEN_OFS);
+  pFilename = (const char *)pHeader + MINIZ_ZIP_CENTRAL_DIR_HEADER_SIZE;
 
   /*
     .ZIP File Format Specification Version: 6.3.3
@@ -418,7 +418,7 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
     return -1;
   }
 
-  if (!mz_zip_reader_file_stat(pZip, (mz_uint)index, &stats)) {
+  if (!miniz_zip_reader_file_stat(pZip, (miniz_uint)index, &stats)) {
     return -1;
   }
 
@@ -436,11 +436,11 @@ int zip_entry_openbyindex(struct zip_t *zip, int index) {
 }
 
 int zip_entry_close(struct zip_t *zip) {
-  mz_zip_archive *pzip = NULL;
-  mz_uint level;
+  miniz_zip_archive *pzip = NULL;
+  miniz_uint level;
   tdefl_status done;
-  mz_uint16 entrylen;
-  mz_uint16 dos_time, dos_date;
+  miniz_uint16 entrylen;
+  miniz_uint16 dos_time, dos_date;
   int status = -1;
 
   if (!zip) {
@@ -449,7 +449,7 @@ int zip_entry_close(struct zip_t *zip) {
   }
 
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode == MZ_ZIP_MODE_READING) {
+  if (pzip->m_zip_mode == MINIZ_ZIP_MODE_READING) {
     status = 0;
     goto cleanup;
   }
@@ -463,18 +463,18 @@ int zip_entry_close(struct zip_t *zip) {
     }
     zip->entry.comp_size = zip->entry.state.m_comp_size;
     zip->entry.offset = zip->entry.state.m_cur_archive_file_ofs;
-    zip->entry.method = MZ_DEFLATED;
+    zip->entry.method = MINIZ_DEFLATED;
   }
 
-  entrylen = (mz_uint16)strlen(zip->entry.name);
+  entrylen = (miniz_uint16)strlen(zip->entry.name);
   // no zip64 support yet
   if ((zip->entry.comp_size > 0xFFFFFFFF) || (zip->entry.offset > 0xFFFFFFFF)) {
     // No zip64 support, yet
     goto cleanup;
   }
 
-  mz_zip_time_t_to_dos_time(zip->entry.m_time, &dos_time, &dos_date);
-  if (!mz_zip_writer_create_local_dir_header(
+  miniz_zip_time_t_to_dos_time(zip->entry.m_time, &dos_time, &dos_date);
+  if (!miniz_zip_writer_create_local_dir_header(
           pzip, zip->entry.header, entrylen, 0, zip->entry.uncomp_size,
           zip->entry.comp_size, zip->entry.uncomp_crc32, zip->entry.method, 0,
           dos_time, dos_date)) {
@@ -489,7 +489,7 @@ int zip_entry_close(struct zip_t *zip) {
     goto cleanup;
   }
 
-  if (!mz_zip_writer_add_to_central_dir(
+  if (!miniz_zip_writer_add_to_central_dir(
           pzip, zip->entry.name, entrylen, NULL, 0, "", 0,
           zip->entry.uncomp_size, zip->entry.comp_size, zip->entry.uncomp_crc32,
           zip->entry.method, 0, dos_time, dos_date, zip->entry.header_offset,
@@ -539,8 +539,8 @@ int zip_entry_isdir(struct zip_t *zip) {
     return -1;
   }
 
-  return (int)mz_zip_reader_is_file_a_directory(&zip->archive,
-                                                (mz_uint)zip->entry.index);
+  return (int)miniz_zip_reader_is_file_a_directory(&zip->archive,
+                                                (miniz_uint)zip->entry.index);
 }
 
 unsigned long long zip_entry_size(struct zip_t *zip) {
@@ -556,8 +556,8 @@ time_t zip_entry_time(struct zip_t *zip) {
 }
 
 int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
-  mz_uint level;
-  mz_zip_archive *pzip = NULL;
+  miniz_uint level;
+  miniz_zip_archive *pzip = NULL;
   tdefl_status status;
 
   if (!zip) {
@@ -568,8 +568,8 @@ int zip_entry_write(struct zip_t *zip, const void *buf, size_t bufsize) {
   pzip = &(zip->archive);
   if (buf && bufsize > 0) {
     zip->entry.uncomp_size += bufsize;
-    zip->entry.uncomp_crc32 = (mz_uint32)mz_crc32(
-        zip->entry.uncomp_crc32, (const mz_uint8 *)buf, bufsize);
+    zip->entry.uncomp_crc32 = (miniz_uint32)miniz_crc32(
+        zip->entry.uncomp_crc32, (const miniz_uint8 *)buf, bufsize);
 
     level = zip->level & 0xF;
     if (!level) {
@@ -597,17 +597,17 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
   int status = 0;
   size_t n = 0;
   FILE *stream = NULL;
-  mz_uint8 buf[MZ_ZIP_MAX_IO_BUF_SIZE];
-  struct MZ_FILE_STAT_STRUCT file_stat;
+  miniz_uint8 buf[MINIZ_ZIP_MAX_IO_BUF_SIZE];
+  struct MINIZ_FILE_STAT_STRUCT file_stat;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
-  memset(buf, 0, MZ_ZIP_MAX_IO_BUF_SIZE);
-  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
-  if (MZ_FILE_STAT(filename, &file_stat) != 0) {
+  memset(buf, 0, MINIZ_ZIP_MAX_IO_BUF_SIZE);
+  memset((void *)&file_stat, 0, sizeof(struct MINIZ_FILE_STAT_STRUCT));
+  if (MINIZ_FILE_STAT(filename, &file_stat) != 0) {
     // problem getting information - check errno
     return -1;
   }
@@ -616,7 +616,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     // MS-DOS read-only attribute
     zip->entry.external_attr |= 0x01;
   }
-  zip->entry.external_attr |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
+  zip->entry.external_attr |= (miniz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
   zip->entry.m_time = file_stat.st_mtime;
 
 #if defined(_MSC_VER)
@@ -629,7 +629,7 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
     return -1;
   }
 
-  while ((n = fread(buf, sizeof(mz_uint8), MZ_ZIP_MAX_IO_BUF_SIZE, stream)) >
+  while ((n = fread(buf, sizeof(miniz_uint8), MINIZ_ZIP_MAX_IO_BUF_SIZE, stream)) >
          0) {
     if (zip_entry_write(zip, buf, n) < 0) {
       status = -1;
@@ -642,8 +642,8 @@ int zip_entry_fwrite(struct zip_t *zip, const char *filename) {
 }
 
 ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
-  mz_zip_archive *pzip = NULL;
-  mz_uint idx;
+  miniz_zip_archive *pzip = NULL;
+  miniz_uint idx;
   size_t size = 0;
 
   if (!zip) {
@@ -652,18 +652,18 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
   }
 
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
+  if (pzip->m_zip_mode != MINIZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
     return -1;
   }
 
-  idx = (mz_uint)zip->entry.index;
-  if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
+  idx = (miniz_uint)zip->entry.index;
+  if (miniz_zip_reader_is_file_a_directory(pzip, idx)) {
     // the entry is a directory
     return -1;
   }
 
-  *buf = mz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
+  *buf = miniz_zip_reader_extract_to_heap(pzip, idx, &size, 0);
   if (*buf && bufsize) {
     *bufsize = size;
   }
@@ -671,7 +671,7 @@ ssize_t zip_entry_read(struct zip_t *zip, void **buf, size_t *bufsize) {
 }
 
 ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
-  mz_zip_archive *pzip = NULL;
+  miniz_zip_archive *pzip = NULL;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -679,12 +679,12 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
   }
 
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
+  if (pzip->m_zip_mode != MINIZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
     return -1;
   }
 
-  if (!mz_zip_reader_extract_to_mem_no_alloc(pzip, (mz_uint)zip->entry.index,
+  if (!miniz_zip_reader_extract_to_mem_no_alloc(pzip, (miniz_uint)zip->entry.index,
                                              buf, bufsize, 0, NULL, 0)) {
     return -1;
   }
@@ -694,36 +694,36 @@ ssize_t zip_entry_noallocread(struct zip_t *zip, void *buf, size_t bufsize) {
 
 // CONFFX_CHANGE - Custom File IO
 int zip_entry_fread(struct zip_t *zip, const ResourceDirectory resourceDirectory, const char* fileName) {
-  mz_zip_archive *pzip = NULL;
-  mz_uint idx;
-  mz_uint32 xattr = 0;
-  mz_zip_archive_file_stat info;
+  miniz_zip_archive *pzip = NULL;
+  miniz_uint idx;
+  miniz_uint32 xattr = 0;
+  miniz_zip_archive_file_stat info;
 
   if (!zip) {
     // zip_t handler is not initialized
     return -1;
   }
 
-  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
+  memset((void *)&info, 0, sizeof(miniz_zip_archive_file_stat));
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
+  if (pzip->m_zip_mode != MINIZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
     return -1;
   }
 
-  idx = (mz_uint)zip->entry.index;
-  if (mz_zip_reader_is_file_a_directory(pzip, idx)) {
+  idx = (miniz_uint)zip->entry.index;
+  if (miniz_zip_reader_is_file_a_directory(pzip, idx)) {
     // the entry is a directory
     return -1;
   }
 
-  if (!mz_zip_reader_extract_to_file(pzip, idx, resourceDirectory, fileName, 0)) {
+  if (!miniz_zip_reader_extract_to_file(pzip, idx, resourceDirectory, fileName, 0)) {
     return -1;
   }
 
 #if defined(_MSC_VER)
 #else
-  if (!mz_zip_reader_file_stat(pzip, idx, &info)) {
+  if (!miniz_zip_reader_file_stat(pzip, idx, &info)) {
     // Cannot get information about zip archive;
     return -1;
   }
@@ -745,8 +745,8 @@ int zip_entry_extract(struct zip_t *zip,
                       size_t (*on_extract)(void *arg, unsigned long long offset,
                                            const void *buf, size_t bufsize),
                       void *arg) {
-  mz_zip_archive *pzip = NULL;
-  mz_uint idx;
+  miniz_zip_archive *pzip = NULL;
+  miniz_uint idx;
 
   if (!zip) {
     // zip_t handler is not initialized
@@ -754,13 +754,13 @@ int zip_entry_extract(struct zip_t *zip,
   }
 
   pzip = &(zip->archive);
-  if (pzip->m_zip_mode != MZ_ZIP_MODE_READING || zip->entry.index < 0) {
+  if (pzip->m_zip_mode != MINIZ_ZIP_MODE_READING || zip->entry.index < 0) {
     // the entry is not found or we do not have read access
     return -1;
   }
 
-  idx = (mz_uint)zip->entry.index;
-  return (mz_zip_reader_extract_to_callback(pzip, idx, on_extract, arg, 0))
+  idx = (miniz_uint)zip->entry.index;
+  return (miniz_zip_reader_extract_to_callback(pzip, idx, on_extract, arg, 0))
              ? 0
              : -1;
 }
@@ -778,9 +778,9 @@ int zip_total_entries(struct zip_t *zip) {
 int zip_create(const ResourceDirectory resourceDirectory, const char* fileName, const char *filenames[], size_t len) {
   int status = 0;
   size_t i;
-  mz_zip_archive zip_archive;
-  struct MZ_FILE_STAT_STRUCT file_stat;
-  mz_uint32 ext_attributes = 0;
+  miniz_zip_archive zip_archive;
+  struct MINIZ_FILE_STAT_STRUCT file_stat;
+  miniz_uint32 ext_attributes = 0;
 
   if (!strlen(fileName)) {
     // zip_t archive name is empty or NULL
@@ -793,12 +793,12 @@ int zip_create(const ResourceDirectory resourceDirectory, const char* fileName, 
     return -1;
   }
 
-  if (!mz_zip_writer_init_file(&zip_archive, resourceDirectory, fileName, 0)) {
+  if (!miniz_zip_writer_init_file(&zip_archive, resourceDirectory, fileName, 0)) {
     // Cannot initialize zip_archive writer
     return -1;
   }
 
-  memset((void *)&file_stat, 0, sizeof(struct MZ_FILE_STAT_STRUCT));
+  memset((void *)&file_stat, 0, sizeof(struct MINIZ_FILE_STAT_STRUCT));
 
   for (i = 0; i < len; ++i) {
     const char *name = filenames[i];
@@ -817,10 +817,10 @@ int zip_create(const ResourceDirectory resourceDirectory, const char* fileName, 
       // MS-DOS read-only attribute
       ext_attributes |= 0x01;
     }
-    ext_attributes |= (mz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
+    ext_attributes |= (miniz_uint32)((file_stat.st_mode & 0xFFFF) << 16);
 	char tempFileName[FS_MAX_PATH] = {};
 	fsGetPathFileName(name, tempFileName);
-    if (!mz_zip_writer_add_file(&zip_archive, tempFileName, resourceDirectory, name, "", 0,
+    if (!miniz_zip_writer_add_file(&zip_archive, tempFileName, resourceDirectory, name, "", 0,
                                 ZIP_DEFAULT_COMPRESSION_LEVEL,
                                 ext_attributes)) {
       // Cannot add file to zip_archive
@@ -829,8 +829,8 @@ int zip_create(const ResourceDirectory resourceDirectory, const char* fileName, 
     }
   }
 
-  mz_zip_writer_finalize_archive(&zip_archive);
-  mz_zip_writer_end(&zip_archive);
+  miniz_zip_writer_finalize_archive(&zip_archive);
+  miniz_zip_writer_end(&zip_archive);
   return status;
 }
 
@@ -838,11 +838,11 @@ int zip_create(const ResourceDirectory resourceDirectory, const char* fileName, 
 int zip_extract(const ResourceDirectory resourceDirectory, const char* fileName, const ResourceDirectory dir,
                 int (*on_extract)(const char *path, void *arg), void *arg) {
   int status = -1;
-  mz_uint i, n;
+  miniz_uint i, n;
   char symlink_to[FS_MAX_PATH + 1];
-  mz_zip_archive zip_archive;
-  mz_zip_archive_file_stat info;
-  mz_uint32 xattr = 0;
+  miniz_zip_archive zip_archive;
+  miniz_zip_archive_file_stat info;
+  miniz_uint32 xattr = 0;
 
   memset(symlink_to, 0, sizeof(symlink_to));
   if (!memset(&(zip_archive), 0, sizeof(zip_archive))) {
@@ -856,17 +856,17 @@ int zip_extract(const ResourceDirectory resourceDirectory, const char* fileName,
   }
 
   // Now try to open the archive.
-  if (!mz_zip_reader_init_file(&zip_archive, resourceDirectory, fileName, 0)) {
+  if (!miniz_zip_reader_init_file(&zip_archive, resourceDirectory, fileName, 0)) {
     // Cannot initialize zip_archive reader
     return -1;
   }
 
-  memset((void *)&info, 0, sizeof(mz_zip_archive_file_stat));
+  memset((void *)&info, 0, sizeof(miniz_zip_archive_file_stat));
 
   // Get and print information about each file in the archive.
-  n = mz_zip_reader_get_num_files(&zip_archive);
+  n = miniz_zip_reader_get_num_files(&zip_archive);
   for (i = 0; i < n; ++i) {
-    if (!mz_zip_reader_file_stat(&zip_archive, i, &info)) {
+    if (!miniz_zip_reader_file_stat(&zip_archive, i, &info)) {
       // Cannot get information about zip archive;
       goto out;
     }
@@ -885,7 +885,7 @@ int zip_extract(const ResourceDirectory resourceDirectory, const char* fileName,
     defined(__MINGW32__)
 #else
       if (info.m_uncomp_size > FS_MAX_PATH ||
-          !mz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlink_to,
+          !miniz_zip_reader_extract_to_mem_no_alloc(&zip_archive, i, symlink_to,
                                                  FS_MAX_PATH, 0, NULL, 0)) {
         goto out;
       }
@@ -895,8 +895,8 @@ int zip_extract(const ResourceDirectory resourceDirectory, const char* fileName,
       }
 #endif
     } else {
-      if (!mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-        if (!mz_zip_reader_extract_to_file(&zip_archive, i, resourceDirectory, path, 0)) {
+      if (!miniz_zip_reader_is_file_a_directory(&zip_archive, i)) {
+        if (!miniz_zip_reader_extract_to_file(&zip_archive, i, resourceDirectory, path, 0)) {
           // Cannot extract zip archive to file
           goto out;
         }
@@ -923,7 +923,7 @@ int zip_extract(const ResourceDirectory resourceDirectory, const char* fileName,
 
 out:
   // Close the archive, freeing any resources it was using
-  if (!mz_zip_reader_end(&zip_archive)) {
+  if (!miniz_zip_reader_end(&zip_archive)) {
     // Cannot end zip reader
     status = -1;
   }

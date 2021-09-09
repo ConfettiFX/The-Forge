@@ -1,0 +1,6 @@
+
+rootProject.projectDir = new File(settingsDir, '../../../..')
+rootProject.name = "VrCompositor_NativeActivity"
+
+include ':', \
+    ':VrSamples:VrCompositor_NativeActivity:Projects:Android'

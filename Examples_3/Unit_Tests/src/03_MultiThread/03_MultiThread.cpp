@@ -36,13 +36,14 @@
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
-
 
 // for cpu usage query
 #if defined(_WINDOWS)
@@ -67,7 +68,7 @@
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 // startdust hash function, use this to generate all the seed and update the position of all particles
-#define RND_GEN(x) ((x) = (x) * 196314165 + 907633515)
+#define RND_GEN(x) ((x) = (x)*196314165 + 907633515)
 
 #define MAX_CORES 64
 #define MAX_GPU_PROFILE_NAME_LENGTH 256
@@ -81,14 +82,14 @@ struct ParticleData
 
 struct ThreadData
 {
-	CmdPool*          pCmdPool;
-	Cmd*              pCmd;
-	RenderTarget*     pRenderTarget;
-	int               mStartPoint;
-	int               mDrawCount;
-    int               mThreadIndex;
-    ThreadID          mThreadID;
-	uint32_t          mFrameIndex;
+	CmdPool*      pCmdPool;
+	Cmd*          pCmd;
+	RenderTarget* pRenderTarget;
+	int           mStartPoint;
+	int           mDrawCount;
+	int           mThreadIndex;
+	ThreadID      mThreadID;
+	uint32_t      mFrameIndex;
 };
 
 struct ObjectProperty
@@ -128,16 +129,16 @@ struct CpuGraph
 	ViewPortState mViewPort;                     //view port for different core
 };
 
-int gTotalParticleCount = 2000000;
-uint32_t  gGraphWidth = 200;
-uint32_t  gGraphHeight = 100;
+int      gTotalParticleCount = 2000000;
+uint32_t gGraphWidth = 200;
+uint32_t gGraphHeight = 100;
 
 Renderer* pRenderer = NULL;
 
-Queue*    pGraphicsQueue = NULL;
-CmdPool*  pCmdPool[gImageCount] = { NULL };
-Cmd*      ppCmds[gImageCount] = { NULL };
-Cmd*      ppGraphCmds[gImageCount] = { NULL };
+Queue*   pGraphicsQueue = NULL;
+CmdPool* pCmdPool[gImageCount] = { NULL };
+Cmd*     ppCmds[gImageCount] = { NULL };
+Cmd*     ppGraphCmds[gImageCount] = { NULL };
 
 Cmd**     ppThreadCmds[gImageCount] = { NULL };
 CmdPool** pThreadCmdPools[gImageCount] = { NULL };
@@ -148,30 +149,29 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 SwapChain* pSwapChain = NULL;
 
-Shader*        pShader = NULL;
-Shader*        pSkyBoxDrawShader = NULL;
-Shader*        pGraphShader = NULL;
-Buffer*        pParticleVertexBuffer = NULL;
-Buffer*        pProjViewUniformBuffer[gImageCount] = { NULL };
-Buffer*        pSkyboxUniformBuffer[gImageCount] = { NULL };
-Buffer*        pSkyBoxVertexBuffer = NULL;
-Buffer*        pBackGroundVertexBuffer[gImageCount] = { NULL };
-Pipeline*      pPipeline = NULL;
-Pipeline*      pSkyBoxDrawPipeline = NULL;
-Pipeline*      pGraphLinePipeline = NULL;
-Pipeline*      pGraphLineListPipeline = NULL;
-Pipeline*      pGraphTrianglePipeline = NULL;
-RootSignature* pRootSignature = NULL;
-RootSignature* pGraphRootSignature = NULL;
-DescriptorSet* pDescriptorSet = NULL;
-DescriptorSet* pDescriptorSetUniforms = NULL;
-Texture*       pTextures[5];
-Texture*       pSkyBoxTextures[6];
-VirtualJoystickUI* pVirtualJoystick = NULL;
-Sampler* pSampler = NULL;
-Sampler* pSamplerSkyBox = NULL;
-uint32_t gFrameIndex = 0;
-bool	 bShowThreadsPlot = true;
+Shader*            pShader = NULL;
+Shader*            pSkyBoxDrawShader = NULL;
+Shader*            pGraphShader = NULL;
+Buffer*            pParticleVertexBuffer = NULL;
+Buffer*            pProjViewUniformBuffer[gImageCount] = { NULL };
+Buffer*            pSkyboxUniformBuffer[gImageCount] = { NULL };
+Buffer*            pSkyBoxVertexBuffer = NULL;
+Buffer*            pBackGroundVertexBuffer[gImageCount] = { NULL };
+Pipeline*          pPipeline = NULL;
+Pipeline*          pSkyBoxDrawPipeline = NULL;
+Pipeline*          pGraphLinePipeline = NULL;
+Pipeline*          pGraphLineListPipeline = NULL;
+Pipeline*          pGraphTrianglePipeline = NULL;
+RootSignature*     pRootSignature = NULL;
+RootSignature*     pGraphRootSignature = NULL;
+DescriptorSet*     pDescriptorSet = NULL;
+DescriptorSet*     pDescriptorSetUniforms = NULL;
+Texture*           pTextures[5];
+Texture*           pSkyBoxTextures[6];
+Sampler*           pSampler = NULL;
+Sampler*           pSamplerSkyBox = NULL;
+uint32_t           gFrameIndex = 0;
+bool               bShowThreadsPlot = true;
 
 #if defined(_WINDOWS)
 IWbemServices* pService;
@@ -194,17 +194,18 @@ float* pCoresLoadData;
 
 uint32_t     gThreadCount = 0;
 ThreadData*  pThreadData;
-mat4         gProjectView;
-mat4         gSkyboxProjectView;
+CameraMatrix gProjectView;
+CameraMatrix gSkyboxProjectView;
 ParticleData gParticleData;
 uint32_t     gSeed;
 float        gPaletteFactor;
 uint         gTextureIndex;
 
-GuiComponent* pGuiWindow;
-UIApp*             pAppUI = NULL;
+char gMainThreadTxt[64] = { 0 };
+char gParticleThreadText[64] = { 0 };
+
+UIComponent*      pGuiWindow;
 ICameraController* pCameraController = NULL;
-static uint32_t	   gSelectedApiIndex = 0;
 
 ThreadSystem* pThreadSystem;
 
@@ -214,18 +215,21 @@ CpuGraphData* pCpuData;
 CpuGraph*     pCpuGraph;
 
 const char* pImageFileNames[] = { "Palette_Fire", "Palette_Purple", "Palette_Muted", "Palette_Rainbow", "Palette_Sky" };
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
-										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1", "Skybox_left2", "Skybox_top3", "Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 14);
+FontDrawDesc gFrameTimeDraw;
 
 uint32_t* gSeedArray = NULL;
-uint64_t gParDataSize = 0;
+uint64_t  gParDataSize = 0;
+
+ThreadID initialThread;
+
+uint32_t gFontID = 0; 
 
 class MultiThread: public IApp
 {
 	public:
-	MultiThread()
+	MultiThread()  //-V832
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
@@ -234,25 +238,26 @@ class MultiThread: public IApp
 		//We reduce particles quantity for Android in order to keep 30fps
 		gTotalParticleCount = 750000;
 		bShowThreadsPlot = false;
-#endif // ANDROID
-
+#endif    // ANDROID
 	}
-	
+
 	bool Init()
 	{
-        // FILE PATHS
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,			"Scripts");
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+
 		InitCpuUsage();
 
 		// gThreadCount is the amount of secondary threads: the amount of physical cores except the main thread
 		gThreadCount = gCoresCount - 1;
 		pThreadData = (ThreadData*)tf_calloc(gThreadCount, sizeof(ThreadData));
+
+		initialThread = getCurrentThreadID();
 
 		// initial needed data for each thread
 		for (uint32_t i = 0; i < gThreadCount; ++i)
@@ -261,12 +266,12 @@ class MultiThread: public IApp
 			pThreadData[i].mStartPoint = i * (gTotalParticleCount / gThreadCount);
 			pThreadData[i].mDrawCount = (gTotalParticleCount / gThreadCount);
 			pThreadData[i].mThreadIndex = i;
-			pThreadData[i].mThreadID = Thread::mainThreadID;
+			pThreadData[i].mThreadID = initialThread;
 		}
 
 		// This information is per core
-        pGpuProfiletokens = (ProfileToken*)tf_calloc(gCoresCount, sizeof(ProfileToken));
-        
+		pGpuProfiletokens = (ProfileToken*)tf_calloc(gCoresCount, sizeof(ProfileToken));
+
 		initThreadSystem(&pThreadSystem);
 
 		// generate partcile data
@@ -288,13 +293,16 @@ class MultiThread: public IApp
 		char gpuProfileNames[MAX_CORES][MAX_GPU_PROFILE_NAME_LENGTH];
 
 		const char** ppConstGpuProfileNames = (const char**)tf_calloc(gCoresCount, sizeof(const char*));
-		Queue** ppQueues = (Queue**)tf_calloc(gCoresCount, sizeof(Queue*));
+		Queue**      ppQueues = (Queue**)tf_calloc(gCoresCount, sizeof(Queue*));
 
 		gGraphWidth = mSettings.mWidth / 6;    //200;
 		gGraphHeight = gCoresCount ? (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount : 0;
 
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		// DirectX 11 not supported on this unit test
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -309,11 +317,11 @@ class MultiThread: public IApp
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
 			if (i == 0)
-				sprintf(gpuProfileNames[i], "Gpu Main thread");
+				sprintf(gpuProfileNames[i], "Graphics");
 			else
 				sprintf(gpuProfileNames[i], "Gpu Particle thread %u", i - 1);
 
-			ppConstGpuProfileNames[i] = gpuProfileNames[i]; //-V507
+			ppConstGpuProfileNames[i] = gpuProfileNames[i];    //-V507
 			ppQueues[i] = pGraphicsQueue;
 		}
 
@@ -346,6 +354,7 @@ class MultiThread: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		HiresTimer timer;
+		initHiresTimer(&timer);
 		initResourceLoaderInterface(pRenderer);
 
 		// load all image to GPU
@@ -365,24 +374,17 @@ class MultiThread: public IApp
 			addResource(&textureDesc, NULL);
 		}
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		ShaderLoadDesc graphShader = {};
 		graphShader.mStages[0] = { "Graph.vert", NULL, 0 };
 		graphShader.mStages[1] = { "Graph.frag", NULL, 0 };
 
 		ShaderLoadDesc particleShader = {};
-		particleShader.mStages[0] = { "Particle.vert", NULL, 0 };
-		particleShader.mStages[1] = { "Particle.frag", NULL, 0 };
+		particleShader.mStages[0] = { "Particle.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+        particleShader.mStages[1] = { "Particle.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "Skybox.vert", NULL, 0 };
-		skyShader.mStages[1] = { "Skybox.frag", NULL, 0 };
+		skyShader.mStages[0] = { "Skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyShader.mStages[1] = { "Skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &particleShader, &pShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -470,7 +472,7 @@ class MultiThread: public IApp
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(mat4);
+		ubDesc.mDesc.mSize = sizeof(CameraMatrix);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -527,16 +529,31 @@ class MultiThread: public IApp
 			addResource(&vbDesc, NULL);
 		}
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
 		// Initialize profiler
-		initProfiler(pRenderer, ppQueues, ppConstGpuProfileNames, pGpuProfiletokens, gCoresCount);
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.ppQueues = ppQueues;
+		profiler.ppProfilerNames = ppConstGpuProfileNames; 
+		profiler.pProfileTokens = pGpuProfiletokens; 
+		profiler.mGpuProfilerCount = gCoresCount; 
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		tf_free(ppQueues);
 		tf_free(ppConstGpuProfileNames);
@@ -544,46 +561,21 @@ class MultiThread: public IApp
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.01f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
 #if !defined(TARGET_IOS) && !defined(DURANGO) && !defined(ANDROID)
 
 		CheckboxWidget threadPlotsBox;
 		threadPlotsBox.pData = &bShowThreadsPlot;
-		IWidget* pThreadPlotsBox = addGuiWidget(pGuiWindow, "Show threads plot", &threadPlotsBox, WIDGET_TYPE_CHECKBOX);
-		addWidgetLua(pThreadPlotsBox);
+		UIWidget* pThreadPlotsBox = uiCreateComponentWidget(pGuiWindow, "Show threads plot", &threadPlotsBox, WIDGET_TYPE_CHECKBOX);
+		luaRegisterWidget(pThreadPlotsBox);
 
 #endif
 
 		waitForAllResourceLoads();
-		LOGF(LogLevel::eINFO, "Load Time %lld", timer.GetUSec(false) / 1000);
+		LOGF(LogLevel::eINFO, "Load Time %lld", getHiresTimerUSec(&timer, false) / 1000);
 
 		// Prepare descriptor sets
 		DescriptorData params[7] = {};
@@ -624,39 +616,53 @@ class MultiThread: public IApp
 
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+									   [](InputActionContext* ctx) {
+										   toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
+										   return true;
+									   },
+									   this };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+						  requestShutdown();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
-		actionDesc =
-		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+		actionDesc = { InputBindings::BUTTON_ANY,
+					   [](InputActionContext* ctx) {
+						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+						   return true;
+					   },
+					   this };
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
-		};
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
-			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {
+			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f
+		};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {
+			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
+		};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
+						  pCameraController->resetView();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
 
 		gFrameIndex = 0;
@@ -676,10 +682,13 @@ class MultiThread: public IApp
 
 		tf_free(gSeedArray);
 		tf_free(pThreadData);
-        tf_free(pGpuProfiletokens);
-		exitProfilerUI();
+		tf_free(pGpuProfiletokens);
+
 		exitProfiler();
-		exitAppUI(pAppUI);
+
+		exitUserInterface();
+
+		exitFontSystem();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -705,8 +714,6 @@ class MultiThread: public IApp
 			removeResource(pTextures[i]);
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-
-		exitVirtualJoystickUI(pVirtualJoystick);
 
 		removeSampler(pRenderer, pSampler);
 		removeSampler(pRenderer, pSamplerSkyBox);
@@ -743,6 +750,7 @@ class MultiThread: public IApp
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitResourceLoaderInterface(pRenderer);
 		exitRenderer(pRenderer);
+		pRenderer = NULL;
 	}
 
 	bool Load()
@@ -750,10 +758,14 @@ class MultiThread: public IApp
 		if (!addSwapChain())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		//vertexlayout and pipeline for particles
@@ -855,9 +867,9 @@ class MultiThread: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
 
-		removeAppGUIDriver(pAppUI);
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pPipeline);
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
@@ -894,7 +906,7 @@ class MultiThread: public IApp
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 0.1f, 100.0f);
 		gProjectView = projMat * viewMat * modelMat;
 		// update particle position matrix
 
@@ -934,11 +946,6 @@ class MultiThread: public IApp
 
 			currentTime = 0.0f;
 		}
-
-		/************************************************************************/
-		// Update GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -987,16 +994,16 @@ class MultiThread: public IApp
 
 		Cmd* cmd = ppCmds[frameIdx];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
-		
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[0]);    // pGpuProfiletokens[0] is reserved for main thread
+
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&viewProjCbv);
-		*(mat4*)viewProjCbv.pMappedData = gProjectView;
+		*(CameraMatrix*)viewProjCbv.pMappedData = gProjectView;
 		endUpdateResource(&viewProjCbv, NULL);
 
 		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&skyboxViewProjCbv);
-		*(mat4*)skyboxViewProjCbv.pMappedData = gSkyboxProjectView;
+		*(CameraMatrix*)skyboxViewProjCbv.pMappedData = gSkyboxProjectView;
 		endUpdateResource(&skyboxViewProjCbv, NULL);
 
 		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
@@ -1007,7 +1014,7 @@ class MultiThread: public IApp
 
 		//// draw skybox
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
-        cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSet);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
 		const uint32_t skyboxStride = sizeof(float) * 4;
@@ -1016,35 +1023,26 @@ class MultiThread: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
 				
 		const float yTxtOffset = 12.f;
-		const float	xTxtOffset = 8.f;
-		float yTxtOrig = yTxtOffset;
+		const float xTxtOffset = 8.f;
+		float       yTxtOrig = yTxtOffset;
 
-		char mainThreadTxt[64];
-		sprintf(mainThreadTxt, "CPU Main Thread - %f ms", getCpuAvgFrameTime());
-		float2 txtSizePx = measureAppUIText(pAppUI, mainThreadTxt, &gFrameTimeDraw);
+		sprintf(gMainThreadTxt, "CPU Main Thread - %f ms", getCpuAvgFrameTime());
+		float2 txtSizePx = fntMeasureFontText(gMainThreadTxt, &gFrameTimeDraw);
+
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 14.0f;
+		gFrameTimeDraw.pText = gMainThreadTxt;
+		cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
 		
-		float2 screenCoords(xTxtOffset, yTxtOrig);
-		drawAppUIText(pAppUI, 
-			cmd, &screenCoords,
-			mainThreadTxt,
-			&gFrameTimeDraw);
 		yTxtOrig += txtSizePx.y + yTxtOffset;
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			char text[64];
-			sprintf(text, "CPU Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID));
-
-			screenCoords = float2(xTxtOffset, yTxtOrig);
-			drawAppUIText(pAppUI,
-				cmd, &screenCoords,
-				text,
-				&gFrameTimeDraw);
+			sprintf(gParticleThreadText, "CPU Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID));
+			gFrameTimeDraw.pText = gParticleThreadText;
+			cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
 			yTxtOrig += txtSizePx.y + yTxtOffset;
 		}
 
@@ -1054,13 +1052,10 @@ class MultiThread: public IApp
 			yTxtOrig += txtSizePx.y + yTxtOffset;
 		}
 
-#if !defined(TARGET_IOS) && !defined(DURANGO) && !defined(ANDROID)
-		appUIGui(pAppUI, pGuiWindow);
-#endif
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdEndDebugMarker(cmd);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
+		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[0]);    // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 
 		beginCmd(ppGraphCmds[frameIdx]);
@@ -1081,7 +1076,7 @@ class MultiThread: public IApp
 					pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 				cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-				const uint32_t graphDataStride = sizeof(GraphVertex);                     // vec2(position) + vec4(color)
+				const uint32_t graphDataStride = sizeof(GraphVertex);    // vec2(position) + vec4(color)
 
 				cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
 				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], &graphDataStride, NULL);
@@ -1100,7 +1095,8 @@ class MultiThread: public IApp
 				cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
 			}
 		}
-		cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
+		cmdSetViewport(
+			ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
 		cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
 
 		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1108,8 +1104,6 @@ class MultiThread: public IApp
 		barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
 		endCmd(ppGraphCmds[frameIdx]);
-
-		cmdDrawProfilerUI();
 
 		// wait all particle threads done
 		waitThreadSystemIdle(pThreadSystem);
@@ -1119,7 +1113,7 @@ class MultiThread: public IApp
 		/***************draw cpu graph*****************************/
 		// gather all command buffer, it is important to keep the screen clean command at the beginning
 		uint32_t cmdCount = gThreadCount + 2;
-		Cmd** allCmds = (Cmd**)alloca(cmdCount * sizeof(Cmd*));
+		Cmd**    allCmds = (Cmd**)alloca(cmdCount * sizeof(Cmd*));
 		allCmds[0] = cmd;
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
@@ -1173,8 +1167,8 @@ class MultiThread: public IApp
 					NUM_CPU_STATES };
 	typedef struct CPUData
 	{
-		char cpu[64];
-		size_t          times[NUM_CPU_STATES];
+		char   cpu[64];
+		size_t times[NUM_CPU_STATES];
 	} CPUData;
 
 	size_t GetIdleTime(const CPUData& e) { return e.times[S_IDLE] + e.times[S_IOWAIT]; }
@@ -1189,56 +1183,56 @@ class MultiThread: public IApp
 	void CalCpuUsage()
 	{
 #ifdef _WINDOWS
-        ULONG   retVal;
-        UINT    i;
+		ULONG retVal;
+		UINT  i;
 
-        IWbemClassObject*     pclassObj;
-        IEnumWbemClassObject* pEnumerator;
+		IWbemClassObject*     pclassObj;
+		IEnumWbemClassObject* pEnumerator;
 
-        pService->ExecQuery(
-            bstr_t("WQL"),
-            bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
-            WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
-        for (i = 0; i < gCoresCount; i++)
-        {
-            //Waiting for inifinite blocks resources and app.
-            //Waiting for 15 ms (arbitrary) instead works much better
-            pEnumerator->Next(15, 1, &pclassObj, &retVal);
-            if (!retVal)
-            {
-                break;
-            }
+		pService->ExecQuery(
+			bstr_t("WQL"),
+			bstr_t("SELECT TimeStamp_Sys100NS, PercentProcessorTime, Frequency_PerfTime FROM Win32_PerfRawData_PerfOS_Processor"),
+			WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
+		for (i = 0; i < gCoresCount; i++)
+		{
+			//Waiting for inifinite blocks resources and app.
+			//Waiting for 15 ms (arbitrary) instead works much better
+			pEnumerator->Next(15, 1, &pclassObj, &retVal);
+			if (!retVal)
+			{
+				break;
+			}
 
-            VARIANT vtPropTime;
-            VARIANT vtPropClock;
-            VariantInit(&vtPropTime);
-            VariantInit(&vtPropClock);
+			VARIANT vtPropTime;
+			VARIANT vtPropClock;
+			VariantInit(&vtPropTime);
+			VariantInit(&vtPropClock);
 
-            pclassObj->Get(L"TimeStamp_Sys100NS", 0, &vtPropTime, 0, 0);
-            UINT64 newTimeStamp = _wtoi64(vtPropTime.bstrVal);
+			pclassObj->Get(L"TimeStamp_Sys100NS", 0, &vtPropTime, 0, 0);
+			UINT64 newTimeStamp = _wtoi64(vtPropTime.bstrVal);
 
-            pclassObj->Get(L"PercentProcessorTime", 0, &vtPropClock, 0, 0);
-            UINT64 newPProcUsage = _wtoi64(vtPropClock.bstrVal);
+			pclassObj->Get(L"PercentProcessorTime", 0, &vtPropClock, 0, 0);
+			UINT64 newPProcUsage = _wtoi64(vtPropClock.bstrVal);
 
-            pCoresLoadData[i] =
-                (float)(1.0 - (((double)newPProcUsage - (double)pOldPprocUsage[i]) / ((double)newTimeStamp - (double)pOldTimeStamp[i]))) *
-                100.0f;
+			pCoresLoadData[i] =
+				(float)(1.0 - (((double)newPProcUsage - (double)pOldPprocUsage[i]) / ((double)newTimeStamp - (double)pOldTimeStamp[i]))) *
+				100.0f;
 
-            if (pCoresLoadData[i] < 0)
-                pCoresLoadData[i] = 0.0;
-            else if (pCoresLoadData[i] > 100.0)
-                pCoresLoadData[i] = 100.0;
+			if (pCoresLoadData[i] < 0)
+				pCoresLoadData[i] = 0.0;
+			else if (pCoresLoadData[i] > 100.0)
+				pCoresLoadData[i] = 100.0;
 
-            pOldPprocUsage[i] = newPProcUsage;
-            pOldTimeStamp[i] = newTimeStamp;
+			pOldPprocUsage[i] = newPProcUsage;
+			pOldTimeStamp[i] = newTimeStamp;
 
-            VariantClear(&vtPropTime);
-            VariantClear(&vtPropClock);
+			VariantClear(&vtPropTime);
+			VariantClear(&vtPropClock);
 
-            pclassObj->Release();
-        }
+			pclassObj->Release();
+		}
 
-        pEnumerator->Release();
+		pEnumerator->Release();
 #elif defined(__linux__) && !(__ANDROID__)
 		eastl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
@@ -1254,9 +1248,9 @@ class MultiThread: public IApp
 				entries.emplace_back(CPUData());
 				CPUData& entry = entries.back();
 				char     dummyCpuName[256];    // dummy cpu name, not used.
-				fscanf(fh, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
-					&entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8],
-					&entry.times[9]);
+				fscanf(
+					fh, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1], &entry.times[2],
+					&entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8], &entry.times[9]);
 			}
 			// Close the cpu stat file
 			fclose(fh);
@@ -1336,56 +1330,56 @@ class MultiThread: public IApp
 		gCoresCount = 0;
 #if defined(_WINDOWS)
 		IWbemClassObject*     pclassObj;
-        IEnumWbemClassObject* pEnumerator;
-        HRESULT               hr;
-        ULONG                 retVal;
+		IEnumWbemClassObject* pEnumerator;
+		HRESULT               hr;
+		ULONG                 retVal;
 
-        pService = NULL;
-        pLocator = NULL;
-        pOldTimeStamp = NULL;
-        pOldPprocUsage = NULL;
-        pCoresLoadData = NULL;
+		pService = NULL;
+		pLocator = NULL;
+		pOldTimeStamp = NULL;
+		pOldPprocUsage = NULL;
+		pCoresLoadData = NULL;
 
-        CoInitializeEx(0, COINIT_MULTITHREADED);
-        CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
+		CoInitializeEx(0, COINIT_MULTITHREADED);
+		CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL);
 
-        hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLocator);
-        if (FAILED(hr))
-        {
-            return 0;
-        }
-        hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
-        if (FAILED(hr))
-        {
-            return 0;
-        }
+		hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLocator);
+		if (FAILED(hr))
+		{
+			return 0;
+		}
+		hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
+		if (FAILED(hr))
+		{
+			return 0;
+		}
 
-        CoSetProxyBlanket(
-            pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+		CoSetProxyBlanket(
+			pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
 
-        pService->ExecQuery(
-            bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Processor"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL,
-            &pEnumerator);
-        pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
-        if (retVal)
-        {
-            VARIANT vtProp;
-            VariantInit(&vtProp);
-            pclassObj->Get(L"NumberOfLogicalProcessors", 0, &vtProp, 0, 0);
-            gCoresCount = vtProp.uintVal;
-            VariantClear(&vtProp);
-        }
+		pService->ExecQuery(
+			bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Processor"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL,
+			&pEnumerator);
+		pEnumerator->Next(WBEM_INFINITE, 1, &pclassObj, &retVal);
+		if (retVal)
+		{
+			VARIANT vtProp;
+			VariantInit(&vtProp);
+			pclassObj->Get(L"NumberOfLogicalProcessors", 0, &vtProp, 0, 0);
+			gCoresCount = vtProp.uintVal;
+			VariantClear(&vtProp);
+		}
 
-        pclassObj->Release();
-        pEnumerator->Release();
+		pclassObj->Release();
+		pEnumerator->Release();
 
-        if (gCoresCount)
-        {
-            pOldTimeStamp = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
-            pOldPprocUsage = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
-        }
+		if (gCoresCount)
+		{
+			pOldTimeStamp = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
+			pOldPprocUsage = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
+		}
 #elif defined(XBOX)
-		gCoresCount = Thread::GetNumCPUCores();
+		gCoresCount = getNumCPUCores();
 #elif defined(__linux__)
 		int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
 		gCoresCount = numCPU;
@@ -1407,7 +1401,7 @@ class MultiThread: public IApp
 
 		CPUUsageLock = [[NSLock alloc] init];
 #elif defined(ORBIS) || defined(PROSPERO) || defined(NX64)
-		gCoresCount = Thread::GetNumCPUCores();
+		gCoresCount = getNumCPUCores();
 #endif
 
 		pCpuData = (CpuGraphData*)tf_malloc(sizeof(CpuGraphData) * gCoresCount);
@@ -1437,8 +1431,8 @@ class MultiThread: public IApp
 	{
 		tf_free(pCpuData);
 #if defined(_WINDOWS) || defined(__linux__)
-        tf_free(pOldTimeStamp);
-        tf_free(pOldPprocUsage);
+		tf_free(pOldTimeStamp);
+		tf_free(pOldPprocUsage);
 #endif
 		tf_free(pCoresLoadData);
 	}
@@ -1552,17 +1546,17 @@ class MultiThread: public IApp
 	static void ParticleThreadDraw(void* pData, uintptr_t i)
 	{
 		ThreadData& data = ((ThreadData*)pData)[i];
-        if(data.mThreadID ==  Thread::mainThreadID)
-            data.mThreadID = Thread::GetCurrentThreadID();
-        //PROFILER_SET_CPU_SCOPE("Threads", "Cpu draw", 0xffffff);
-		Cmd*        cmd = data.pCmd;
+		if (data.mThreadID == initialThread)
+			data.mThreadID = getCurrentThreadID();
+		//PROFILER_SET_CPU_SCOPE("Threads", "Cpu draw", 0xffffff);
+		Cmd* cmd = data.pCmd;
 		resetCmdPool(pRenderer, data.pCmdPool);
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]); // pGpuProfiletokens[0] is reserved for main thread
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]);    // pGpuProfiletokens[0] is reserved for main thread
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-		
+
 		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mWidth, (float)data.pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mWidth, data.pRenderTarget->mHeight);
@@ -1576,7 +1570,7 @@ class MultiThread: public IApp
 
 		cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]);  // pGpuProfiletokens[0] is reserved for main thread
+		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]);    // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 	}
 };

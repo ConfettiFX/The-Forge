@@ -54,7 +54,7 @@
 
 // Compiler support for SSE intrinsics
 ////////////////////////////////////////////////////////////////////////
-#if (defined(__SSE__) || defined(_M_IX86) || defined(_M_X64))
+#if (defined(__SSE__) || defined(_M_IX86) || defined(_M_X64)) && !defined(__aarch64__)
 
 #define MT_SSE_INTRINSICS_SUPPORTED (1)
 

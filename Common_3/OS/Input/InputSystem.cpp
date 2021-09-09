@@ -23,11 +23,17 @@
  * under the License.
  */
 
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_set.h"
 #include "../../ThirdParty/OpenSource/EASTL/array.h"
 
 #include "../../ThirdParty/OpenSource/gainput/lib/include/gainput/gainput.h"
+
+#if defined(__ANDROID__) || defined(NX64)
+#include "../../ThirdParty/OpenSource/gainput/lib/include/gainput/GainputInputDeltaState.h"
+#endif
+
 #ifdef __APPLE__
 #ifdef TARGET_IOS
 #include "../../ThirdParty/OpenSource/gainput/lib/include/gainput/GainputIos.h"
@@ -52,20 +58,24 @@
 #endif
 #endif
 
+#include "../../Renderer/IRenderer.h"
+#include "../../Renderer/IResourceLoader.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
+
 #include "../Interfaces/ILog.h"
+#include "../Interfaces/IUI.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IInput.h"
 #include "../Interfaces/IMemory.h"
 
 #ifdef GAINPUT_PLATFORM_GGP
-namespace gainput
-{
-	extern void SetWindow(void* pData);
+namespace gainput {
+extern void SetWindow(void* pData);
 }
 #endif
 
-#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
+#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64) && !defined(QUEST_VR)
 #define TOUCH_INPUT 1
 #endif
 
@@ -80,10 +90,6 @@ namespace gainput
 
 #define MAX_DEVICES 16U
 
-uint32_t MAX_INPUT_GAMEPADS = 4;
-uint32_t MAX_INPUT_MULTI_TOUCHES = 4;
-uint32_t MAX_INPUT_ACTIONS = 128;
-
 /**
 //List of TODO:
 //Change HandleButtonBool to mirror HandleButtonFloat and unify GetButtonData + HandleButton common logic for detecting which buttons need to be queried.
@@ -94,12 +100,303 @@ uint32_t MAX_INPUT_ACTIONS = 128;
 //need to add max,min to input mapping
 **/
 
+/**********************************************/
+// VirtualJoystick
+/**********************************************/
+
+typedef struct VirtualJoystickDesc
+{
+
+	void* pRenderer;              // Renderer*
+	const char* pJoystickTexture;
+
+} VirtualJoystickDesc;
+
+typedef struct VirtualJoystick
+{
+#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
+	Renderer*      pRenderer = NULL;
+	Shader*        pShader = NULL;
+	RootSignature* pRootSignature = NULL;
+	DescriptorSet* pDescriptorSet = NULL;
+	Pipeline*      pPipeline = NULL;
+	Texture*       pTexture = NULL;
+	Sampler*       pSampler = NULL;
+	Buffer*        pMeshBuffer = NULL;
+	float2         mRenderSize = float2(0.f, 0.f);
+
+	//input related
+	float          mInsideRadius = 100.f;
+	float          mOutsideRadius = 200.f;
+
+	struct StickInput
+	{
+		bool   mPressed = false;
+		float2 mStartPos = float2(0.f, 0.f);
+		float2 mCurrPos = float2(0.f, 0.f);
+	};
+	// Left -> Index 0
+	// Right -> Index 1
+	StickInput       mSticks[2];
+#endif
+} VirtualJoystick;
+
+static VirtualJoystick* pVirtualJoystick = NULL; 
+
+void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtualJoystick)
+{
+	ASSERT(ppVirtualJoystick);
+	ASSERT(pVirtualJoystick == NULL);
+
+	pVirtualJoystick = tf_new(VirtualJoystick);
+
+#if TOUCH_INPUT
+	Renderer* pRenderer = (Renderer*)pDesc->pRenderer;
+	pVirtualJoystick->pRenderer = pRenderer;
+
+	TextureLoadDesc loadDesc = {};
+	SyncToken token = {};
+	loadDesc.pFileName = pDesc->pJoystickTexture;
+	loadDesc.ppTexture = &pVirtualJoystick->pTexture;
+	addResource(&loadDesc, &token);
+	waitForToken(&token);
+
+	if (!pVirtualJoystick->pTexture)
+	{
+		LOGF(LogLevel::eWARNING, "Could not load virtual joystick texture file: %s", pDesc->pJoystickTexture);
+		tf_delete(pVirtualJoystick);
+		pVirtualJoystick = NULL; 
+		return;
+	}
+	/************************************************************************/
+	// States
+	/************************************************************************/
+	SamplerDesc samplerDesc = { FILTER_LINEAR,
+								FILTER_LINEAR,
+								MIPMAP_MODE_NEAREST,
+								ADDRESS_MODE_CLAMP_TO_EDGE,
+								ADDRESS_MODE_CLAMP_TO_EDGE,
+								ADDRESS_MODE_CLAMP_TO_EDGE };
+	addSampler(pRenderer, &samplerDesc, &pVirtualJoystick->pSampler);
+	/************************************************************************/
+	// Shader
+	/************************************************************************/
+	ShaderLoadDesc texturedShaderDesc = {};
+	texturedShaderDesc.mStages[0] = { "textured_mesh.vert", NULL, 0 };
+	texturedShaderDesc.mStages[1] = { "textured_mesh.frag", NULL, 0 };
+	addShader(pRenderer, &texturedShaderDesc, &pVirtualJoystick->pShader);
+
+	const char* pStaticSamplerNames[] = { "uSampler" };
+	RootSignatureDesc textureRootDesc = { &pVirtualJoystick->pShader, 1 };
+	textureRootDesc.mStaticSamplerCount = 1;
+	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+	textureRootDesc.ppStaticSamplers = &pVirtualJoystick->pSampler;
+	addRootSignature(pRenderer, &textureRootDesc, &pVirtualJoystick->pRootSignature);
+
+	DescriptorSetDesc descriptorSetDesc = { pVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &descriptorSetDesc, &pVirtualJoystick->pDescriptorSet);
+	/************************************************************************/
+	// Resources
+	/************************************************************************/
+	BufferLoadDesc vbDesc = {};
+	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
+	vbDesc.ppBuffer = &pVirtualJoystick->pMeshBuffer;
+	addResource(&vbDesc, NULL);
+	/************************************************************************/
+	// Prepare descriptor sets
+	/************************************************************************/
+	DescriptorData params[1] = {};
+	params[0].pName = "uTex";
+	params[0].ppTextures = &pVirtualJoystick->pTexture;
+	updateDescriptorSet(pRenderer, 0, pVirtualJoystick->pDescriptorSet, 1, params);
+#endif
+
+	// Joystick is good!
+	*ppVirtualJoystick = pVirtualJoystick;
+}
+
+void exitVirtualJoystick(VirtualJoystick* pVirtualJoystick)
+{
+	if (!pVirtualJoystick)
+		return; 
+
+#if TOUCH_INPUT
+	removeSampler(pVirtualJoystick->pRenderer, pVirtualJoystick->pSampler);
+	removeResource(pVirtualJoystick->pMeshBuffer);
+	removeDescriptorSet(pVirtualJoystick->pRenderer, pVirtualJoystick->pDescriptorSet);
+	removeRootSignature(pVirtualJoystick->pRenderer, pVirtualJoystick->pRootSignature);
+	removeShader(pVirtualJoystick->pRenderer, pVirtualJoystick->pShader);
+	removeResource(pVirtualJoystick->pTexture);
+#endif
+
+	tf_delete(pVirtualJoystick);
+	pVirtualJoystick = NULL;
+}
+
+bool addVirtualJoystickPipeline(void* pScreenRenderTarget)
+{
+#if TOUCH_INPUT
+	if (pVirtualJoystick)
+	{
+		RenderTarget* pScreenRT = (RenderTarget*)pScreenRenderTarget;
+
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = false;
+		depthStateDesc.mDepthWrite = false;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		rasterizerStateDesc.mScissor = true;
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
+		pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
+		pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+		pipelineDesc.mRenderTargetCount = 1;
+		pipelineDesc.mSampleCount = pScreenRT->mSampleCount;
+		pipelineDesc.mSampleQuality = pScreenRT->mSampleQuality;
+		pipelineDesc.pBlendState = &blendStateDesc;
+		pipelineDesc.pColorFormats = &pScreenRT->mFormat;
+		pipelineDesc.pDepthState = &depthStateDesc;
+		pipelineDesc.pRasterizerState = &rasterizerStateDesc;
+		pipelineDesc.pRootSignature = pVirtualJoystick->pRootSignature;
+		pipelineDesc.pShaderProgram = pVirtualJoystick->pShader;
+		pipelineDesc.pVertexLayout = &vertexLayout;
+		addPipeline(pVirtualJoystick->pRenderer, &desc, &pVirtualJoystick->pPipeline);
+
+		pVirtualJoystick->mRenderSize[0] = (float)pScreenRT->mWidth;
+		pVirtualJoystick->mRenderSize[1] = (float)pScreenRT->mHeight;
+	}
+#endif
+	return true;
+}
+
+void removeVirtualJoystickPipeline()
+{
+#if TOUCH_INPUT
+	if (pVirtualJoystick)
+	{
+		removePipeline(pVirtualJoystick->pRenderer, pVirtualJoystick->pPipeline);
+	}
+#endif
+}
+
+void drawVirtualJoystick(Cmd* pCmd, const float4* color)
+{
+#if TOUCH_INPUT
+	if (!pVirtualJoystick || !(pVirtualJoystick->mSticks[0].mPressed || pVirtualJoystick->mSticks[1].mPressed))
+		return;
+
+	struct RootConstants
+	{
+		float4 color;
+		float2 scaleBias;
+	} data = {};
+
+	cmdBindPipeline(pCmd, pVirtualJoystick->pPipeline);
+	cmdBindDescriptorSet(pCmd, 0, pVirtualJoystick->pDescriptorSet);
+	data.color = *color;
+	data.scaleBias = { 2.0f / (float)pVirtualJoystick->mRenderSize[0], -2.0f / (float)pVirtualJoystick->mRenderSize[1] };
+	cmdBindPushConstants(pCmd, pVirtualJoystick->pRootSignature, "uRootConstants", &data);
+
+	// Draw the camera controller's virtual joysticks.
+	float extSide = pVirtualJoystick->mOutsideRadius;
+	float intSide = pVirtualJoystick->mInsideRadius;
+
+	uint64_t bufferOffset = 0;
+	for (uint i = 0; i < 2; i++)
+	{
+		if (pVirtualJoystick->mSticks[i].mPressed)
+		{
+			float2 joystickSize = float2(extSide);
+			float2 joystickCenter = pVirtualJoystick->mSticks[i].mStartPos - float2(0.0f, pVirtualJoystick->mRenderSize.y * 0.1f);
+			float2 joystickPos = joystickCenter - joystickSize * 0.5f;
+
+			const uint32_t vertexStride = sizeof(float4);
+			BufferUpdateDesc updateDesc = { pVirtualJoystick->pMeshBuffer, bufferOffset };
+			beginUpdateResource(&updateDesc);
+			TexVertex* vertices = (TexVertex*)updateDesc.pMappedData;
+			// the last variable can be used to create a border
+			MAKETEXQUAD(vertices, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+			endUpdateResource(&updateDesc, NULL);
+			cmdBindVertexBuffer(pCmd, 1, &pVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
+			cmdDraw(pCmd, 4, 0);
+			bufferOffset += sizeof(TexVertex) * 4;
+
+			joystickSize = float2(intSide);
+			joystickCenter = pVirtualJoystick->mSticks[i].mCurrPos - float2(0.0f, pVirtualJoystick->mRenderSize.y * 0.1f);
+			joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
+
+			updateDesc = { pVirtualJoystick->pMeshBuffer, bufferOffset };
+			beginUpdateResource(&updateDesc);
+			TexVertex* verticesInner = (TexVertex*)updateDesc.pMappedData;
+			// the last variable can be used to create a border
+			MAKETEXQUAD(verticesInner, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+			endUpdateResource(&updateDesc, NULL);
+			cmdBindVertexBuffer(pCmd, 1, &pVirtualJoystick->pMeshBuffer, &vertexStride, &bufferOffset);
+			cmdDraw(pCmd, 4, 0);
+			bufferOffset += sizeof(TexVertex) * 4;
+		}
+	}
+#endif
+}
+
+bool virtualJoystickOnMove(VirtualJoystick* pVirtualJoystick, uint32_t id, bool press, const float2* pVec)
+{
+#if TOUCH_INPUT
+	if (!pVec) return false;
+
+
+	if (!pVirtualJoystick->mSticks[id].mPressed)
+	{
+		pVirtualJoystick->mSticks[id].mStartPos = *pVec;
+		pVirtualJoystick->mSticks[id].mCurrPos = *pVec;
+	}
+	else
+	{
+		pVirtualJoystick->mSticks[id].mCurrPos = *pVec;
+	}
+	pVirtualJoystick->mSticks[id].mPressed = press;
+	return true;
+#else
+	return false;
+#endif
+}
+#endif
+
 struct InputAction
 {
 	InputActionDesc mDesc;
 };
 
-struct InputSystemImpl : public gainput::InputListener
+struct InputSystemImpl: public gainput::InputListener
 {
 	enum InputControlType
 	{
@@ -123,7 +420,7 @@ struct InputSystemImpl : public gainput::InputListener
 		InputControlType mType;
 	};
 
-	struct CompositeControl : public IControl
+	struct CompositeControl: public IControl
 	{
 		CompositeControl(const eastl::array<uint32_t, 4>& controls, uint8_t composite)
 		{
@@ -132,15 +429,15 @@ struct InputSystemImpl : public gainput::InputListener
 			memcpy(mControls, controls.data(), sizeof(mControls));
 			mType = CONTROL_COMPOSITE;
 		}
-		float2          mValue;
-		uint32_t        mControls[4];
-		uint8_t         mComposite;
-		uint8_t         mStarted;
-		uint8_t         mPerformed[4];
-		uint8_t         mPressedVal[4];
+		float2   mValue;
+		uint32_t mControls[4];
+		uint8_t  mComposite;
+		uint8_t  mStarted;
+		uint8_t  mPerformed[4];
+		uint8_t  mPressedVal[4];
 	};
 
-	struct FloatControl : public IControl
+	struct FloatControl: public IControl
 	{
 		FloatControl(uint16_t start, uint8_t target, bool raw, bool delta)
 		{
@@ -150,15 +447,15 @@ struct InputSystemImpl : public gainput::InputListener
 			mType = CONTROL_FLOAT;
 			mDelta = (1 << (uint8_t)raw) | (uint8_t)delta;
 		}
-		float3          mValue;
-		uint16_t        mStartButton;
-		uint8_t         mTarget;
-		uint8_t         mStarted;
-		uint8_t         mPerformed;
-		uint8_t         mDelta;
+		float3   mValue;
+		uint16_t mStartButton;
+		uint8_t  mTarget;
+		uint8_t  mStarted;
+		uint8_t  mPerformed;
+		uint8_t  mDelta;
 	};
 
-	struct AxisControl : public IControl
+	struct AxisControl: public IControl
 	{
 		AxisControl(uint16_t start, uint8_t target, uint8_t axis)
 		{
@@ -168,40 +465,39 @@ struct InputSystemImpl : public gainput::InputListener
 			mAxisCount = axis;
 			mType = CONTROL_AXIS;
 		}
-		float3          mValue;
-		float3          mNewValue;
-		uint16_t        mStartButton;
-		uint8_t         mTarget;
-		uint8_t         mAxisCount;
-		uint8_t         mStarted;
-		uint8_t         mPerformed;
-	};
-
-	struct VirtualJoystickControl : public IControl
-	{
-		float2   mStartPos;
-		float2   mCurrPos;
-		float    mOutsideRadius;
-		float    mDeadzone;
-		float    mScale;
-		uint8_t  mTouchIndex;
+		float3   mValue;
+		float3   mNewValue;
+		uint16_t mStartButton;
+		uint8_t  mTarget;
+		uint8_t  mAxisCount;
 		uint8_t  mStarted;
 		uint8_t  mPerformed;
-		uint8_t  mArea;
-		uint8_t  mIsPressed;
-		uint8_t  mInitialized;
-		uint8_t  mActive;
 	};
 
-	struct ComboControl : public IControl
+	struct VirtualJoystickControl: public IControl
+	{
+		float2  mStartPos;
+		float2  mCurrPos;
+		float   mOutsideRadius;
+		float   mDeadzone;
+		float   mScale;
+		uint8_t mTouchIndex;
+		uint8_t mStarted;
+		uint8_t mPerformed;
+		uint8_t mArea;
+		uint8_t mIsPressed;
+		uint8_t mInitialized;
+		uint8_t mActive;
+	};
+
+	struct ComboControl: public IControl
 	{
 		uint16_t mPressButton;
 		uint16_t mTriggerButton;
 		uint8_t  mPressed;
 	};
 
-	const eastl::unordered_map<uint32_t, gainput::MouseButton> mMouseMap =
-	{
+	const eastl::unordered_map<uint32_t, gainput::MouseButton> mMouseMap = {
 #ifndef NO_DEFAULT_BINDINGS
 		{ InputBindings::BUTTON_SOUTH, gainput::MouseButtonLeft },
 		// Following are for UI windows
@@ -216,13 +512,13 @@ struct InputSystemImpl : public gainput::InputListener
 		{ InputBindings::BUTTON_MOUSE_MIDDLE, gainput::MouseButtonMiddle },
 		{ InputBindings::BUTTON_MOUSE_SCROLL_UP, gainput::MouseButtonWheelUp },
 		{ InputBindings::BUTTON_MOUSE_SCROLL_DOWN, gainput::MouseButtonWheelDown },
-		{ InputBindings::BUTTON_MOUSE_5, gainput::MouseButton5},
-		{ InputBindings::BUTTON_MOUSE_6, gainput::MouseButton6},
+		{ InputBindings::BUTTON_MOUSE_5, gainput::MouseButton5 },
+		{ InputBindings::BUTTON_MOUSE_6, gainput::MouseButton6 },
 #endif
 	};
 
-	const eastl::unordered_map<uint32_t, gainput::Key> mKeyMap =
-	{
+	
+	const eastl::unordered_map<uint32_t, gainput::Key> mKeyMap = {
 #ifndef NO_DEFAULT_BINDINGS
 		{ InputBindings::BUTTON_EXIT, gainput::KeyEscape },
 		{ InputBindings::BUTTON_BACK, gainput::KeyBackSpace },
@@ -231,216 +527,209 @@ struct InputSystemImpl : public gainput::InputListener
 		{ InputBindings::BUTTON_L3, gainput::KeyF2 },
 		{ InputBindings::BUTTON_DUMP, gainput::KeyF3 },
 		// Following are for UI text inputs
-		{ InputBindings::BUTTON_KEYLEFT, gainput::KeyLeft},
-		{ InputBindings::BUTTON_KEYRIGHT, gainput::KeyRight},
-		{ InputBindings::BUTTON_KEYSHIFTL, gainput::KeyShiftL},
-		{ InputBindings::BUTTON_KEYSHIFTR, gainput::KeyShiftR},
-		{ InputBindings::BUTTON_KEYHOME, gainput::KeyHome},
-		{ InputBindings::BUTTON_KEYEND, gainput::KeyEnd},
-		{ InputBindings::BUTTON_KEYDELETE, gainput::KeyDelete},
+		{ InputBindings::BUTTON_KEYLEFT, gainput::KeyLeft },
+		{ InputBindings::BUTTON_KEYRIGHT, gainput::KeyRight },
+		{ InputBindings::BUTTON_KEYSHIFTL, gainput::KeyShiftL },
+		{ InputBindings::BUTTON_KEYSHIFTR, gainput::KeyShiftR },
+		{ InputBindings::BUTTON_KEYHOME, gainput::KeyHome },
+		{ InputBindings::BUTTON_KEYEND, gainput::KeyEnd },
+		{ InputBindings::BUTTON_KEYDELETE, gainput::KeyDelete },
 #else
-		{ InputBindings::BUTTON_KEYESCAPE, gainput::KeyEscape},
-		{ InputBindings::BUTTON_KEYF1, gainput::KeyF1},
-		{ InputBindings::BUTTON_KEYF2, gainput::KeyF2},
-		{ InputBindings::BUTTON_KEYF3, gainput::KeyF3},
-		{ InputBindings::BUTTON_KEYF4, gainput::KeyF4},
-		{ InputBindings::BUTTON_KEYF5, gainput::KeyF5},
-		{ InputBindings::BUTTON_KEYF6, gainput::KeyF6},
-		{ InputBindings::BUTTON_KEYF7, gainput::KeyF7},
-		{ InputBindings::BUTTON_KEYF8, gainput::KeyF8},
-		{ InputBindings::BUTTON_KEYF9, gainput::KeyF9},
-		{ InputBindings::BUTTON_KEYF10, gainput::KeyF10},
-		{ InputBindings::BUTTON_KEYF11, gainput::KeyF11},
-		{ InputBindings::BUTTON_KEYF12, gainput::KeyF12},
-		{ InputBindings::BUTTON_KEYF13, gainput::KeyF13},
-		{ InputBindings::BUTTON_KEYF14, gainput::KeyF14},
-		{ InputBindings::BUTTON_KEYF15, gainput::KeyF15},
-		{ InputBindings::BUTTON_KEYF16, gainput::KeyF16},
-		{ InputBindings::BUTTON_KEYF17, gainput::KeyF17},
-		{ InputBindings::BUTTON_KEYF18, gainput::KeyF18},
-		{ InputBindings::BUTTON_KEYF19, gainput::KeyF19},
-		{ InputBindings::BUTTON_KEYPRINT, gainput::KeyPrint},
-		{ InputBindings::BUTTON_KEYSCROLLLOCK, gainput::KeyScrollLock},
-		{ InputBindings::BUTTON_KEYBREAK, gainput::KeyBreak},
-		{ InputBindings::BUTTON_KEYSPACE, gainput::KeySpace},
-		{ InputBindings::BUTTON_KEYAPOSTROPHE, gainput::KeyApostrophe},
-		{ InputBindings::BUTTON_KEYCOMMA, gainput::KeyComma},
-		{ InputBindings::BUTTON_KEYMINUS, gainput::KeyMinus},
-		{ InputBindings::BUTTON_KEYPERIOD, gainput::KeyPeriod},
-		{ InputBindings::BUTTON_KEYSLASH, gainput::KeySlash},
-		{ InputBindings::BUTTON_KEY0, gainput::Key0},
-		{ InputBindings::BUTTON_KEY1, gainput::Key1},
-		{ InputBindings::BUTTON_KEY2, gainput::Key2},
-		{ InputBindings::BUTTON_KEY3, gainput::Key3},
-		{ InputBindings::BUTTON_KEY4, gainput::Key4},
-		{ InputBindings::BUTTON_KEY5, gainput::Key5},
-		{ InputBindings::BUTTON_KEY6, gainput::Key6},
-		{ InputBindings::BUTTON_KEY7, gainput::Key7},
-		{ InputBindings::BUTTON_KEY8, gainput::Key8},
-		{ InputBindings::BUTTON_KEY9, gainput::Key9},
-		{ InputBindings::BUTTON_KEYSEMICOLON, gainput::KeySemicolon},
-		{ InputBindings::BUTTON_KEYLESS, gainput::KeyLess},
-		{ InputBindings::BUTTON_KEYEQUAL, gainput::KeyEqual},
-		{ InputBindings::BUTTON_KEYA, gainput::KeyA},
-		{ InputBindings::BUTTON_KEYB, gainput::KeyB},
-		{ InputBindings::BUTTON_KEYC, gainput::KeyC},
-		{ InputBindings::BUTTON_KEYD, gainput::KeyD},
-		{ InputBindings::BUTTON_KEYE, gainput::KeyE},
-		{ InputBindings::BUTTON_KEYF, gainput::KeyF},
-		{ InputBindings::BUTTON_KEYG, gainput::KeyG},
-		{ InputBindings::BUTTON_KEYH, gainput::KeyH},
-		{ InputBindings::BUTTON_KEYI, gainput::KeyI},
-		{ InputBindings::BUTTON_KEYJ, gainput::KeyJ},
-		{ InputBindings::BUTTON_KEYK, gainput::KeyK},
-		{ InputBindings::BUTTON_KEYL, gainput::KeyL},
-		{ InputBindings::BUTTON_KEYM, gainput::KeyM},
-		{ InputBindings::BUTTON_KEYN, gainput::KeyN},
-		{ InputBindings::BUTTON_KEYO, gainput::KeyO},
-		{ InputBindings::BUTTON_KEYP, gainput::KeyP},
-		{ InputBindings::BUTTON_KEYQ, gainput::KeyQ},
-		{ InputBindings::BUTTON_KEYR, gainput::KeyR},
-		{ InputBindings::BUTTON_KEYS, gainput::KeyS},
-		{ InputBindings::BUTTON_KEYT, gainput::KeyT},
-		{ InputBindings::BUTTON_KEYU, gainput::KeyU},
-		{ InputBindings::BUTTON_KEYV, gainput::KeyV},
-		{ InputBindings::BUTTON_KEYW, gainput::KeyW},
-		{ InputBindings::BUTTON_KEYX, gainput::KeyX},
-		{ InputBindings::BUTTON_KEYY, gainput::KeyY},
-		{ InputBindings::BUTTON_KEYZ, gainput::KeyZ},
-		{ InputBindings::BUTTON_KEYBRACKETLEFT, gainput::KeyBracketLeft},
-		{ InputBindings::BUTTON_KEYBACKSLASH, gainput::KeyBackslash},
-		{ InputBindings::BUTTON_KEYBRACKETRIGHT, gainput::KeyBracketRight},
-		{ InputBindings::BUTTON_KEYGRAVE, gainput::KeyGrave},
-		{ InputBindings::BUTTON_KEYLEFT, gainput::KeyLeft},
-		{ InputBindings::BUTTON_KEYRIGHT, gainput::KeyRight},
-		{ InputBindings::BUTTON_KEYUP, gainput::KeyUp},
-		{ InputBindings::BUTTON_KEYDOWN, gainput::KeyDown},
-		{ InputBindings::BUTTON_KEYINSERT, gainput::KeyInsert},
-		{ InputBindings::BUTTON_KEYHOME, gainput::KeyHome},
-		{ InputBindings::BUTTON_KEYDELETE, gainput::KeyDelete},
-		{ InputBindings::BUTTON_KEYEND, gainput::KeyEnd},
-		{ InputBindings::BUTTON_KEYPAGEUP, gainput::KeyPageUp},
-		{ InputBindings::BUTTON_KEYPAGEDOWN, gainput::KeyPageDown},
-		{ InputBindings::BUTTON_KEYNUMLOCK, gainput::KeyNumLock},
-		{ InputBindings::BUTTON_KEYKPEQUAL, gainput::KeyKpEqual},
-		{ InputBindings::BUTTON_KEYKPDIVIDE, gainput::KeyKpDivide},
-		{ InputBindings::BUTTON_KEYKPMULTIPLY, gainput::KeyKpMultiply},
-		{ InputBindings::BUTTON_KEYKPSUBTRACT, gainput::KeyKpSubtract},
-		{ InputBindings::BUTTON_KEYKPADD, gainput::KeyKpAdd},
-		{ InputBindings::BUTTON_KEYKPENTER, gainput::KeyKpEnter},
-		{ InputBindings::BUTTON_KEYKPINSERT, gainput::KeyKpInsert},
-		{ InputBindings::BUTTON_KEYKPEND, gainput::KeyKpEnd},
-		{ InputBindings::BUTTON_KEYKPDOWN, gainput::KeyKpDown},
-		{ InputBindings::BUTTON_KEYKPPAGEDOWN, gainput::KeyKpPageDown},
-		{ InputBindings::BUTTON_KEYKPLEFT, gainput::KeyKpLeft},
-		{ InputBindings::BUTTON_KEYKPBEGIN, gainput::KeyKpBegin},
-		{ InputBindings::BUTTON_KEYKPRIGHT, gainput::KeyKpRight},
-		{ InputBindings::BUTTON_KEYKPHOME, gainput::KeyKpHome},
-		{ InputBindings::BUTTON_KEYKPUP, gainput::KeyKpUp},
-		{ InputBindings::BUTTON_KEYKPPAGEUP, gainput::KeyKpPageUp},
-		{ InputBindings::BUTTON_KEYKPDELETE, gainput::KeyKpDelete},
-		{ InputBindings::BUTTON_KEYBACKSPACE, gainput::KeyBackSpace},
-		{ InputBindings::BUTTON_KEYTAB, gainput::KeyTab},
-		{ InputBindings::BUTTON_KEYRETURN, gainput::KeyReturn},
-		{ InputBindings::BUTTON_KEYCAPSLOCK, gainput::KeyCapsLock},
-		{ InputBindings::BUTTON_KEYSHIFTL, gainput::KeyShiftL},
-		{ InputBindings::BUTTON_KEYCTRLL, gainput::KeyCtrlL},
-		{ InputBindings::BUTTON_KEYSUPERL, gainput::KeySuperL},
-		{ InputBindings::BUTTON_KEYALTL, gainput::KeyAltL},
-		{ InputBindings::BUTTON_KEYALTR, gainput::KeyAltR},
-		{ InputBindings::BUTTON_KEYSUPERR, gainput::KeySuperR},
-		{ InputBindings::BUTTON_KEYMENU, gainput::KeyMenu},
-		{ InputBindings::BUTTON_KEYCTRLR, gainput::KeyCtrlR},
-		{ InputBindings::BUTTON_KEYSHIFTR, gainput::KeyShiftR},
-		{ InputBindings::BUTTON_KEYBACK, gainput::KeyBack},
-		{ InputBindings::BUTTON_KEYSOFTLEFT, gainput::KeySoftLeft},
-		{ InputBindings::BUTTON_KEYSOFTRIGHT, gainput::KeySoftRight},
-		{ InputBindings::BUTTON_KEYCALL, gainput::KeyCall},
-		{ InputBindings::BUTTON_KEYENDCALL, gainput::KeyEndcall},
-		{ InputBindings::BUTTON_KEYSTAR, gainput::KeyStar},
-		{ InputBindings::BUTTON_KEYPOUND, gainput::KeyPound},
-		{ InputBindings::BUTTON_KEYDPADCENTER, gainput::KeyDpadCenter},
-		{ InputBindings::BUTTON_KEYVOLUMEUP, gainput::KeyVolumeUp},
-		{ InputBindings::BUTTON_KEYVOLUMEDOWN, gainput::KeyVolumeDown},
-		{ InputBindings::BUTTON_KEYPOWER, gainput::KeyPower},
-		{ InputBindings::BUTTON_KEYCAMERA, gainput::KeyCamera},
-		{ InputBindings::BUTTON_KEYCLEAR, gainput::KeyClear},
-		{ InputBindings::BUTTON_KEYSYMBOL, gainput::KeySymbol},
-		{ InputBindings::BUTTON_KEYEXPLORER, gainput::KeyExplorer},
-		{ InputBindings::BUTTON_KEYENVELOPE, gainput::KeyEnvelope},
-		{ InputBindings::BUTTON_KEYEQUALS, gainput::KeyEquals},
-		{ InputBindings::BUTTON_KEYAT, gainput::KeyAt},
-		{ InputBindings::BUTTON_KEYHEADSETHOOK, gainput::KeyHeadsethook},
-		{ InputBindings::BUTTON_KEYFOCUS, gainput::KeyFocus},
-		{ InputBindings::BUTTON_KEYPLUS, gainput::KeyPlus},
-		{ InputBindings::BUTTON_KEYNOTIFICATION, gainput::KeyNotification},
-		{ InputBindings::BUTTON_KEYSEARCH, gainput::KeySearch},
-		{ InputBindings::BUTTON_KEYMEDIAPLAYPAUSE, gainput::KeyMediaPlayPause},
-		{ InputBindings::BUTTON_KEYMEDIASTOP, gainput::KeyMediaStop},
-		{ InputBindings::BUTTON_KEYMEDIANEXT, gainput::KeyMediaNext},
-		{ InputBindings::BUTTON_KEYMEDIAPREVIOUS, gainput::KeyMediaPrevious},
-		{ InputBindings::BUTTON_KEYMEDIAREWIND, gainput::KeyMediaRewind},
-		{ InputBindings::BUTTON_KEYMEDIAFASTFORWARD, gainput::KeyMediaFastForward},
-		{ InputBindings::BUTTON_KEYMUTE, gainput::KeyMute},
-		{ InputBindings::BUTTON_KEYPICTSYMBOLS, gainput::KeyPictsymbols},
-		{ InputBindings::BUTTON_KEYSWITCHCHARSET, gainput::KeySwitchCharset},
-		{ InputBindings::BUTTON_KEYFORWARD, gainput::KeyForward},
-		{ InputBindings::BUTTON_KEYEXTRA1, gainput::KeyExtra1},
-		{ InputBindings::BUTTON_KEYEXTRA2, gainput::KeyExtra2},
-		{ InputBindings::BUTTON_KEYEXTRA3, gainput::KeyExtra3},
-		{ InputBindings::BUTTON_KEYEXTRA4, gainput::KeyExtra4},
-		{ InputBindings::BUTTON_KEYEXTRA5, gainput::KeyExtra5},
-		{ InputBindings::BUTTON_KEYEXTRA6, gainput::KeyExtra6},
-		{ InputBindings::BUTTON_KEYFN, gainput::KeyFn},
-		{ InputBindings::BUTTON_KEYCIRCUMFLEX, gainput::KeyCircumflex},
-		{ InputBindings::BUTTON_KEYSSHARP, gainput::KeySsharp},
-		{ InputBindings::BUTTON_KEYACUTE, gainput::KeyAcute},
-		{ InputBindings::BUTTON_KEYALTGR, gainput::KeyAltGr},
-		{ InputBindings::BUTTON_KEYNUMBERSIGN, gainput::KeyNumbersign},
-		{ InputBindings::BUTTON_KEYUDIAERESIS, gainput::KeyUdiaeresis},
-		{ InputBindings::BUTTON_KEYADIAERESIS, gainput::KeyAdiaeresis},
-		{ InputBindings::BUTTON_KEYODIAERESIS, gainput::KeyOdiaeresis},
-		{ InputBindings::BUTTON_KEYSECTION, gainput::KeySection},
-		{ InputBindings::BUTTON_KEYARING, gainput::KeyAring},
-		{ InputBindings::BUTTON_KEYDIAERESIS, gainput::KeyDiaeresis},
-		{ InputBindings::BUTTON_KEYTWOSUPERIOR, gainput::KeyTwosuperior},
-		{ InputBindings::BUTTON_KEYRIGHTPARENTHESIS, gainput::KeyRightParenthesis},
-		{ InputBindings::BUTTON_KEYDOLLAR, gainput::KeyDollar},
-		{ InputBindings::BUTTON_KEYUGRAVE, gainput::KeyUgrave},
-		{ InputBindings::BUTTON_KEYASTERISK, gainput::KeyAsterisk},
-		{ InputBindings::BUTTON_KEYCOLON, gainput::KeyColon},
-		{ InputBindings::BUTTON_KEYEXCLAM, gainput::KeyExclam},
-		{ InputBindings::BUTTON_KEYBRACELEFT, gainput::KeyBraceLeft},
-		{ InputBindings::BUTTON_KEYBRACERIGHT, gainput::KeyBraceRight},
-		{ InputBindings::BUTTON_KEYSYSRQ, gainput::KeySysRq},
+		{ InputBindings::BUTTON_KEYESCAPE, gainput::KeyEscape },
+		{ InputBindings::BUTTON_KEYF1, gainput::KeyF1 },
+		{ InputBindings::BUTTON_KEYF2, gainput::KeyF2 },
+		{ InputBindings::BUTTON_KEYF3, gainput::KeyF3 },
+		{ InputBindings::BUTTON_KEYF4, gainput::KeyF4 },
+		{ InputBindings::BUTTON_KEYF5, gainput::KeyF5 },
+		{ InputBindings::BUTTON_KEYF6, gainput::KeyF6 },
+		{ InputBindings::BUTTON_KEYF7, gainput::KeyF7 },
+		{ InputBindings::BUTTON_KEYF8, gainput::KeyF8 },
+		{ InputBindings::BUTTON_KEYF9, gainput::KeyF9 },
+		{ InputBindings::BUTTON_KEYF10, gainput::KeyF10 },
+		{ InputBindings::BUTTON_KEYF11, gainput::KeyF11 },
+		{ InputBindings::BUTTON_KEYF12, gainput::KeyF12 },
+		{ InputBindings::BUTTON_KEYF13, gainput::KeyF13 },
+		{ InputBindings::BUTTON_KEYF14, gainput::KeyF14 },
+		{ InputBindings::BUTTON_KEYF15, gainput::KeyF15 },
+		{ InputBindings::BUTTON_KEYF16, gainput::KeyF16 },
+		{ InputBindings::BUTTON_KEYF17, gainput::KeyF17 },
+		{ InputBindings::BUTTON_KEYF18, gainput::KeyF18 },
+		{ InputBindings::BUTTON_KEYF19, gainput::KeyF19 },
+		{ InputBindings::BUTTON_KEYPRINT, gainput::KeyPrint },
+		{ InputBindings::BUTTON_KEYSCROLLLOCK, gainput::KeyScrollLock },
+		{ InputBindings::BUTTON_KEYBREAK, gainput::KeyBreak },
+		{ InputBindings::BUTTON_KEYSPACE, gainput::KeySpace },
+		{ InputBindings::BUTTON_KEYAPOSTROPHE, gainput::KeyApostrophe },
+		{ InputBindings::BUTTON_KEYCOMMA, gainput::KeyComma },
+		{ InputBindings::BUTTON_KEYMINUS, gainput::KeyMinus },
+		{ InputBindings::BUTTON_KEYPERIOD, gainput::KeyPeriod },
+		{ InputBindings::BUTTON_KEYSLASH, gainput::KeySlash },
+		{ InputBindings::BUTTON_KEY0, gainput::Key0 },
+		{ InputBindings::BUTTON_KEY1, gainput::Key1 },
+		{ InputBindings::BUTTON_KEY2, gainput::Key2 },
+		{ InputBindings::BUTTON_KEY3, gainput::Key3 },
+		{ InputBindings::BUTTON_KEY4, gainput::Key4 },
+		{ InputBindings::BUTTON_KEY5, gainput::Key5 },
+		{ InputBindings::BUTTON_KEY6, gainput::Key6 },
+		{ InputBindings::BUTTON_KEY7, gainput::Key7 },
+		{ InputBindings::BUTTON_KEY8, gainput::Key8 },
+		{ InputBindings::BUTTON_KEY9, gainput::Key9 },
+		{ InputBindings::BUTTON_KEYSEMICOLON, gainput::KeySemicolon },
+		{ InputBindings::BUTTON_KEYLESS, gainput::KeyLess },
+		{ InputBindings::BUTTON_KEYEQUAL, gainput::KeyEqual },
+		{ InputBindings::BUTTON_KEYA, gainput::KeyA },
+		{ InputBindings::BUTTON_KEYB, gainput::KeyB },
+		{ InputBindings::BUTTON_KEYC, gainput::KeyC },
+		{ InputBindings::BUTTON_KEYD, gainput::KeyD },
+		{ InputBindings::BUTTON_KEYE, gainput::KeyE },
+		{ InputBindings::BUTTON_KEYF, gainput::KeyF },
+		{ InputBindings::BUTTON_KEYG, gainput::KeyG },
+		{ InputBindings::BUTTON_KEYH, gainput::KeyH },
+		{ InputBindings::BUTTON_KEYI, gainput::KeyI },
+		{ InputBindings::BUTTON_KEYJ, gainput::KeyJ },
+		{ InputBindings::BUTTON_KEYK, gainput::KeyK },
+		{ InputBindings::BUTTON_KEYL, gainput::KeyL },
+		{ InputBindings::BUTTON_KEYM, gainput::KeyM },
+		{ InputBindings::BUTTON_KEYN, gainput::KeyN },
+		{ InputBindings::BUTTON_KEYO, gainput::KeyO },
+		{ InputBindings::BUTTON_KEYP, gainput::KeyP },
+		{ InputBindings::BUTTON_KEYQ, gainput::KeyQ },
+		{ InputBindings::BUTTON_KEYR, gainput::KeyR },
+		{ InputBindings::BUTTON_KEYS, gainput::KeyS },
+		{ InputBindings::BUTTON_KEYT, gainput::KeyT },
+		{ InputBindings::BUTTON_KEYU, gainput::KeyU },
+		{ InputBindings::BUTTON_KEYV, gainput::KeyV },
+		{ InputBindings::BUTTON_KEYW, gainput::KeyW },
+		{ InputBindings::BUTTON_KEYX, gainput::KeyX },
+		{ InputBindings::BUTTON_KEYY, gainput::KeyY },
+		{ InputBindings::BUTTON_KEYZ, gainput::KeyZ },
+		{ InputBindings::BUTTON_KEYBRACKETLEFT, gainput::KeyBracketLeft },
+		{ InputBindings::BUTTON_KEYBACKSLASH, gainput::KeyBackslash },
+		{ InputBindings::BUTTON_KEYBRACKETRIGHT, gainput::KeyBracketRight },
+		{ InputBindings::BUTTON_KEYGRAVE, gainput::KeyGrave },
+		{ InputBindings::BUTTON_KEYLEFT, gainput::KeyLeft },
+		{ InputBindings::BUTTON_KEYRIGHT, gainput::KeyRight },
+		{ InputBindings::BUTTON_KEYUP, gainput::KeyUp },
+		{ InputBindings::BUTTON_KEYDOWN, gainput::KeyDown },
+		{ InputBindings::BUTTON_KEYINSERT, gainput::KeyInsert },
+		{ InputBindings::BUTTON_KEYHOME, gainput::KeyHome },
+		{ InputBindings::BUTTON_KEYDELETE, gainput::KeyDelete },
+		{ InputBindings::BUTTON_KEYEND, gainput::KeyEnd },
+		{ InputBindings::BUTTON_KEYPAGEUP, gainput::KeyPageUp },
+		{ InputBindings::BUTTON_KEYPAGEDOWN, gainput::KeyPageDown },
+		{ InputBindings::BUTTON_KEYNUMLOCK, gainput::KeyNumLock },
+		{ InputBindings::BUTTON_KEYKPEQUAL, gainput::KeyKpEqual },
+		{ InputBindings::BUTTON_KEYKPDIVIDE, gainput::KeyKpDivide },
+		{ InputBindings::BUTTON_KEYKPMULTIPLY, gainput::KeyKpMultiply },
+		{ InputBindings::BUTTON_KEYKPSUBTRACT, gainput::KeyKpSubtract },
+		{ InputBindings::BUTTON_KEYKPADD, gainput::KeyKpAdd },
+		{ InputBindings::BUTTON_KEYKPENTER, gainput::KeyKpEnter },
+		{ InputBindings::BUTTON_KEYKPINSERT, gainput::KeyKpInsert },
+		{ InputBindings::BUTTON_KEYKPEND, gainput::KeyKpEnd },
+		{ InputBindings::BUTTON_KEYKPDOWN, gainput::KeyKpDown },
+		{ InputBindings::BUTTON_KEYKPPAGEDOWN, gainput::KeyKpPageDown },
+		{ InputBindings::BUTTON_KEYKPLEFT, gainput::KeyKpLeft },
+		{ InputBindings::BUTTON_KEYKPBEGIN, gainput::KeyKpBegin },
+		{ InputBindings::BUTTON_KEYKPRIGHT, gainput::KeyKpRight },
+		{ InputBindings::BUTTON_KEYKPHOME, gainput::KeyKpHome },
+		{ InputBindings::BUTTON_KEYKPUP, gainput::KeyKpUp },
+		{ InputBindings::BUTTON_KEYKPPAGEUP, gainput::KeyKpPageUp },
+		{ InputBindings::BUTTON_KEYKPDELETE, gainput::KeyKpDelete },
+		{ InputBindings::BUTTON_KEYBACKSPACE, gainput::KeyBackSpace },
+		{ InputBindings::BUTTON_KEYTAB, gainput::KeyTab },
+		{ InputBindings::BUTTON_KEYRETURN, gainput::KeyReturn },
+		{ InputBindings::BUTTON_KEYCAPSLOCK, gainput::KeyCapsLock },
+		{ InputBindings::BUTTON_KEYSHIFTL, gainput::KeyShiftL },
+		{ InputBindings::BUTTON_KEYCTRLL, gainput::KeyCtrlL },
+		{ InputBindings::BUTTON_KEYSUPERL, gainput::KeySuperL },
+		{ InputBindings::BUTTON_KEYALTL, gainput::KeyAltL },
+		{ InputBindings::BUTTON_KEYALTR, gainput::KeyAltR },
+		{ InputBindings::BUTTON_KEYSUPERR, gainput::KeySuperR },
+		{ InputBindings::BUTTON_KEYMENU, gainput::KeyMenu },
+		{ InputBindings::BUTTON_KEYCTRLR, gainput::KeyCtrlR },
+		{ InputBindings::BUTTON_KEYSHIFTR, gainput::KeyShiftR },
+		{ InputBindings::BUTTON_KEYBACK, gainput::KeyBack },
+		{ InputBindings::BUTTON_KEYSOFTLEFT, gainput::KeySoftLeft },
+		{ InputBindings::BUTTON_KEYSOFTRIGHT, gainput::KeySoftRight },
+		{ InputBindings::BUTTON_KEYCALL, gainput::KeyCall },
+		{ InputBindings::BUTTON_KEYENDCALL, gainput::KeyEndcall },
+		{ InputBindings::BUTTON_KEYSTAR, gainput::KeyStar },
+		{ InputBindings::BUTTON_KEYPOUND, gainput::KeyPound },
+		{ InputBindings::BUTTON_KEYDPADCENTER, gainput::KeyDpadCenter },
+		{ InputBindings::BUTTON_KEYVOLUMEUP, gainput::KeyVolumeUp },
+		{ InputBindings::BUTTON_KEYVOLUMEDOWN, gainput::KeyVolumeDown },
+		{ InputBindings::BUTTON_KEYPOWER, gainput::KeyPower },
+		{ InputBindings::BUTTON_KEYCAMERA, gainput::KeyCamera },
+		{ InputBindings::BUTTON_KEYCLEAR, gainput::KeyClear },
+		{ InputBindings::BUTTON_KEYSYMBOL, gainput::KeySymbol },
+		{ InputBindings::BUTTON_KEYEXPLORER, gainput::KeyExplorer },
+		{ InputBindings::BUTTON_KEYENVELOPE, gainput::KeyEnvelope },
+		{ InputBindings::BUTTON_KEYEQUALS, gainput::KeyEquals },
+		{ InputBindings::BUTTON_KEYAT, gainput::KeyAt },
+		{ InputBindings::BUTTON_KEYHEADSETHOOK, gainput::KeyHeadsethook },
+		{ InputBindings::BUTTON_KEYFOCUS, gainput::KeyFocus },
+		{ InputBindings::BUTTON_KEYPLUS, gainput::KeyPlus },
+		{ InputBindings::BUTTON_KEYNOTIFICATION, gainput::KeyNotification },
+		{ InputBindings::BUTTON_KEYSEARCH, gainput::KeySearch },
+		{ InputBindings::BUTTON_KEYMEDIAPLAYPAUSE, gainput::KeyMediaPlayPause },
+		{ InputBindings::BUTTON_KEYMEDIASTOP, gainput::KeyMediaStop },
+		{ InputBindings::BUTTON_KEYMEDIANEXT, gainput::KeyMediaNext },
+		{ InputBindings::BUTTON_KEYMEDIAPREVIOUS, gainput::KeyMediaPrevious },
+		{ InputBindings::BUTTON_KEYMEDIAREWIND, gainput::KeyMediaRewind },
+		{ InputBindings::BUTTON_KEYMEDIAFASTFORWARD, gainput::KeyMediaFastForward },
+		{ InputBindings::BUTTON_KEYMUTE, gainput::KeyMute },
+		{ InputBindings::BUTTON_KEYPICTSYMBOLS, gainput::KeyPictsymbols },
+		{ InputBindings::BUTTON_KEYSWITCHCHARSET, gainput::KeySwitchCharset },
+		{ InputBindings::BUTTON_KEYFORWARD, gainput::KeyForward },
+		{ InputBindings::BUTTON_KEYEXTRA1, gainput::KeyExtra1 },
+		{ InputBindings::BUTTON_KEYEXTRA2, gainput::KeyExtra2 },
+		{ InputBindings::BUTTON_KEYEXTRA3, gainput::KeyExtra3 },
+		{ InputBindings::BUTTON_KEYEXTRA4, gainput::KeyExtra4 },
+		{ InputBindings::BUTTON_KEYEXTRA5, gainput::KeyExtra5 },
+		{ InputBindings::BUTTON_KEYEXTRA6, gainput::KeyExtra6 },
+		{ InputBindings::BUTTON_KEYFN, gainput::KeyFn },
+		{ InputBindings::BUTTON_KEYCIRCUMFLEX, gainput::KeyCircumflex },
+		{ InputBindings::BUTTON_KEYSSHARP, gainput::KeySsharp },
+		{ InputBindings::BUTTON_KEYACUTE, gainput::KeyAcute },
+		{ InputBindings::BUTTON_KEYALTGR, gainput::KeyAltGr },
+		{ InputBindings::BUTTON_KEYNUMBERSIGN, gainput::KeyNumbersign },
+		{ InputBindings::BUTTON_KEYUDIAERESIS, gainput::KeyUdiaeresis },
+		{ InputBindings::BUTTON_KEYADIAERESIS, gainput::KeyAdiaeresis },
+		{ InputBindings::BUTTON_KEYODIAERESIS, gainput::KeyOdiaeresis },
+		{ InputBindings::BUTTON_KEYSECTION, gainput::KeySection },
+		{ InputBindings::BUTTON_KEYARING, gainput::KeyAring },
+		{ InputBindings::BUTTON_KEYDIAERESIS, gainput::KeyDiaeresis },
+		{ InputBindings::BUTTON_KEYTWOSUPERIOR, gainput::KeyTwosuperior },
+		{ InputBindings::BUTTON_KEYRIGHTPARENTHESIS, gainput::KeyRightParenthesis },
+		{ InputBindings::BUTTON_KEYDOLLAR, gainput::KeyDollar },
+		{ InputBindings::BUTTON_KEYUGRAVE, gainput::KeyUgrave },
+		{ InputBindings::BUTTON_KEYASTERISK, gainput::KeyAsterisk },
+		{ InputBindings::BUTTON_KEYCOLON, gainput::KeyColon },
+		{ InputBindings::BUTTON_KEYEXCLAM, gainput::KeyExclam },
+		{ InputBindings::BUTTON_KEYBRACELEFT, gainput::KeyBraceLeft },
+		{ InputBindings::BUTTON_KEYBRACERIGHT, gainput::KeyBraceRight },
+		{ InputBindings::BUTTON_KEYSYSRQ, gainput::KeySysRq },
 
 #endif
 	};
 
-	const eastl::unordered_map<uint32_t, gainput::PadButton> mGamepadMap =
-	{
-		{ InputBindings::BUTTON_DPAD_LEFT, gainput::PadButtonLeft },
-		{ InputBindings::BUTTON_DPAD_RIGHT, gainput::PadButtonRight },
-		{ InputBindings::BUTTON_DPAD_UP, gainput::PadButtonUp },
-		{ InputBindings::BUTTON_DPAD_DOWN, gainput::PadButtonDown },
-		{ InputBindings::BUTTON_SOUTH, gainput::PadButtonA }, // A/CROSS
-		{ InputBindings::BUTTON_EAST, gainput::PadButtonB }, // B/CIRCLE
-		{ InputBindings::BUTTON_WEST, gainput::PadButtonX }, // X/SQUARE
-		{ InputBindings::BUTTON_NORTH, gainput::PadButtonY }, // Y/TRIANGLE
-		{ InputBindings::BUTTON_L1, gainput::PadButtonL1 },
-		{ InputBindings::BUTTON_R1, gainput::PadButtonR1 },
-		{ InputBindings::BUTTON_L2, gainput::PadButtonL2 },
-		{ InputBindings::BUTTON_R2, gainput::PadButtonR2 },
-		{ InputBindings::BUTTON_L3, gainput::PadButtonL3 }, // LEFT THUMB
-		{ InputBindings::BUTTON_R3, gainput::PadButtonR3 }, // RIGHT THUMB
-		{ InputBindings::BUTTON_START, gainput::PadButtonStart },
-		{ InputBindings::BUTTON_SELECT, gainput::PadButtonSelect },
-		{ InputBindings::BUTTON_TOUCH, gainput::PadButton17 }, // PS BUTTON
-		{ InputBindings::BUTTON_HOME, gainput::PadButtonHome}, // PS BUTTON
+	const eastl::unordered_map<uint32_t, gainput::PadButton> mGamepadMap = {
+		{ InputBindings::BUTTON_DPAD_LEFT, gainput::PadButtonLeft }, { InputBindings::BUTTON_DPAD_RIGHT, gainput::PadButtonRight },
+		{ InputBindings::BUTTON_DPAD_UP, gainput::PadButtonUp },     { InputBindings::BUTTON_DPAD_DOWN, gainput::PadButtonDown },
+		{ InputBindings::BUTTON_SOUTH, gainput::PadButtonA },    // A/CROSS
+		{ InputBindings::BUTTON_EAST, gainput::PadButtonB },     // B/CIRCLE
+		{ InputBindings::BUTTON_WEST, gainput::PadButtonX },     // X/SQUARE
+		{ InputBindings::BUTTON_NORTH, gainput::PadButtonY },    // Y/TRIANGLE
+		{ InputBindings::BUTTON_L1, gainput::PadButtonL1 },          { InputBindings::BUTTON_R1, gainput::PadButtonR1 },
+		{ InputBindings::BUTTON_L2, gainput::PadButtonL2 },          { InputBindings::BUTTON_R2, gainput::PadButtonR2 },
+		{ InputBindings::BUTTON_L3, gainput::PadButtonL3 },    // LEFT THUMB
+		{ InputBindings::BUTTON_R3, gainput::PadButtonR3 },    // RIGHT THUMB
+		{ InputBindings::BUTTON_START, gainput::PadButtonStart },    { InputBindings::BUTTON_SELECT, gainput::PadButtonSelect },
+		{ InputBindings::BUTTON_TOUCH, gainput::PadButton17 },     // PS BUTTON
+		{ InputBindings::BUTTON_HOME, gainput::PadButtonHome },    // PS BUTTON
 	};
 
-	const eastl::unordered_map<uint32_t, AxisControl> mGamepadAxisMap =
-	{
+	const eastl::unordered_map<uint32_t, AxisControl> mGamepadAxisMap = {
 		{ InputBindings::FLOAT_L2, { (uint16_t)gainput::PadButtonAxis4, 1, 1 } },
 		{ InputBindings::FLOAT_R2, { (uint16_t)gainput::PadButtonAxis5, 1, 1 } },
 		{ InputBindings::FLOAT_LEFTSTICK, { (uint16_t)gainput::PadButtonLeftStickX, (1 << 1) | 1, 2 } },
@@ -448,15 +737,13 @@ struct InputSystemImpl : public gainput::InputListener
 	};
 
 #ifndef NO_DEFAULT_BINDINGS
-	const eastl::unordered_map<uint32_t, CompositeControl> mGamepadCompositeMap
-	{
+	const eastl::unordered_map<uint32_t, CompositeControl> mGamepadCompositeMap{
 		{ InputBindings::FLOAT_LEFTSTICK, { { gainput::KeyD, gainput::KeyA, gainput::KeyW, gainput::KeyS }, 4 } },
 		{ InputBindings::FLOAT_RIGHTSTICK, { { gainput::KeyL, gainput::KeyJ, gainput::KeyI, gainput::KeyK }, 4 } },
 	};
 #endif
 
-	const eastl::unordered_map<uint32_t, FloatControl> mGamepadFloatMap =
-	{
+	const eastl::unordered_map<uint32_t, FloatControl> mGamepadFloatMap = {
 		{ InputBindings::FLOAT_RIGHTSTICK, { (uint16_t)gainput::MouseAxisX, (1 << 1) | 1, true, true } },
 	};
 
@@ -532,6 +819,8 @@ struct InputSystemImpl : public gainput::InputListener
 
 #if defined(_WINDOWS) || defined(XBOX)
 		pInputManager->SetWindowsInstance(window->handle.window);
+#elif defined(ANDROID) && !defined(QUEST_VR)
+        pInputManager->SetWindowsInstance(window->handle.configuration);
 #endif
 
 		// create all necessary devices
@@ -631,9 +920,8 @@ struct InputSystemImpl : public gainput::InputListener
 		{
 			InputActionContext ctx = {};
 			ctx.pUserData = pControl->pAction->mDesc.pUserData;
-			ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+			ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
 			ctx.pCaptured = &mDefaultCapture;
-			ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
 			ctx.mBinding = InputBindings::BUTTON_SOUTH;
 			ctx.pPosition = &mTouchPositions[pControl->pAction->mDesc.mUserId];
 			ctx.mBool = true;
@@ -653,7 +941,7 @@ struct InputSystemImpl : public gainput::InputListener
 			{
 				InputActionContext ctx = {};
 				ctx.pText = pText;
-				ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+				ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
 				for (InputAction* pAction : mTextInputControls)
 				{
 					ctx.pUserData = pAction->mDesc.pUserData;
@@ -686,7 +974,7 @@ struct InputSystemImpl : public gainput::InputListener
 #endif
 	}
 
-	template<typename T>
+	template <typename T>
 	T* AllocateControl()
 	{
 		T* pControl = (T*)tf_calloc(1, sizeof(T));
@@ -710,8 +998,8 @@ struct InputSystemImpl : public gainput::InputListener
 			const InputBindings::GestureDesc* pGesture = pDesc->pGesture;
 			ASSERT(pGesture);
 
-			GainputView* view = (__bridge GainputView*)pGainputView;
-			uint32_t gestureId = (uint32_t)mGestureControls.size();
+			GainputView*           view = (__bridge GainputView*)pGainputView;
+			uint32_t               gestureId = (uint32_t)mGestureControls.size();
 			gainput::GestureConfig gestureConfig = {};
 			gestureConfig.mType = (gainput::GestureType)(pDesc->mBinding - InputBindings::GESTURE_BINDINGS_BEGIN);
 			gestureConfig.mMaxNumberOfTouches = pGesture->mMaxNumberOfTouches;
@@ -722,6 +1010,26 @@ struct InputSystemImpl : public gainput::InputListener
 			mGestureControls.emplace_back(pAction);
 			return pAction;
 		}
+#elif defined(ANDROID)
+		if (InputBindings::GESTURE_BINDINGS_BEGIN <= pDesc->mBinding && InputBindings::GESTURE_BINDINGS_END >= pDesc->mBinding)
+		{
+			const InputBindings::GestureDesc* pGesture = pDesc->pGesture;
+			ASSERT(pGesture);
+
+			gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
+
+			uint32_t gestureId = (uint32_t)mGestureControls.size();
+			gainput::GestureConfig gestureConfig = {};
+			gestureConfig.mType = (gainput::GestureType)(pDesc->mBinding - InputBindings::GESTURE_BINDINGS_BEGIN);
+			gestureConfig.mMaxNumberOfTouches = pGesture->mMaxNumberOfTouches;
+			gestureConfig.mMinNumberOfTouches = pGesture->mMinNumberOfTouches;
+			gestureConfig.mMinimumPressDuration = pGesture->mMinimumPressDuration;
+			gestureConfig.mNumberOfTapsRequired = pGesture->mNumberOfTapsRequired;
+			pTouch->AddGestureMapping(gestureId, gestureConfig);
+			mGestureControls.emplace_back(pAction);
+			return pAction;
+		}
+
 #endif
 
 		if (pDesc->mBinding == InputBindings::TEXT)
@@ -731,7 +1039,7 @@ struct InputSystemImpl : public gainput::InputListener
 			return pAction;
 		}
 
-		const uint32_t control = pDesc->mBinding;
+		const uint32_t          control = pDesc->mBinding;
 		const gainput::DeviceId gamepadDeviceId = pGamepadDeviceIDs[pDesc->mUserId];
 
 		if (InputBindings::BUTTON_ANY == control)
@@ -810,7 +1118,7 @@ struct InputSystemImpl : public gainput::InputListener
 				mControls[mMouseDeviceID][mouseIt->second].emplace_back(pControl);
 #endif
 		}
-		else if (InputBindings::FLOAT_BINDINGS_BEGIN <= control && InputBindings::FLOAT_BINDINGS_END >= control) //-V560
+		else if (InputBindings::FLOAT_BINDINGS_BEGIN <= control && InputBindings::FLOAT_BINDINGS_END >= control)    //-V560
 		{
 			if (InputBindings::FLOAT_DPAD == control)
 			{
@@ -829,7 +1137,7 @@ struct InputSystemImpl : public gainput::InputListener
 			}
 			else
 			{
-				uint32_t axisCount = 0;
+				uint32_t                                  axisCount = 0;
 				decltype(mGamepadAxisMap)::const_iterator gamepadIt = mGamepadAxisMap.find(control);
 				ASSERT(gamepadIt != mGamepadAxisMap.end());
 				if (gamepadIt != mGamepadAxisMap.end())
@@ -920,35 +1228,34 @@ struct InputSystemImpl : public gainput::InputListener
 			void* view = pWindow->handle.window;
 			if (!view)
 				return false;
-			
+
 #ifdef TARGET_IOS
 			UIView*      mainView = (UIView*)CFBridgingRelease(view);
-			GainputView* newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager : *pInputManager];
+			GainputView* newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager:*pInputManager];
 			//we want everything to resize with main view.
-			[newView setAutoresizingMask : (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleTopMargin |
-				UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
-				UIViewAutoresizingFlexibleBottomMargin)];
+			[newView setAutoresizingMask:(UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight |
+										  UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin |
+										  UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin)];
 #else
-			NSView* mainView = (__bridge NSView*)view;
-			float retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
+			NSView*              mainView = (__bridge NSView*)view;
+			float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
 			GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds
-				window : mainView.window
-				retinaScale : retinScale
-				inputManager : *pInputManager];
+																			   window:mainView.window
+																		  retinaScale:retinScale
+																		 inputManager:*pInputManager];
 			newView.nextKeyView = mainView;
-			[newView setAutoresizingMask : NSViewWidthSizable | NSViewHeightSizable];
+			[newView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 #endif
+			[mainView addSubview:newView];
 
-			[mainView addSubview : newView];
-		
 #ifdef TARGET_IOS
 #else
 			NSWindow* window = [newView window];
-			BOOL madeFirstResponder = [window makeFirstResponder:newView];
+			BOOL      madeFirstResponder = [window makeFirstResponder:newView];
 			if (!madeFirstResponder)
 				return false;
 #endif
-			
+
 			pGainputView = (__bridge void*)newView;
 		}
 #endif
@@ -1061,8 +1368,8 @@ struct InputSystemImpl : public gainput::InputListener
 				invisibleCursor = XCreatePixmapCursor(pWindow->handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
 				// Capture mouse
 				unsigned int masks = PointerMotionMask |    //Mouse movement
-					ButtonPressMask |      //Mouse click
-					ButtonReleaseMask;     // Mouse release
+									 ButtonPressMask |      //Mouse click
+									 ButtonReleaseMask;     // Mouse release
 				int XRes = XGrabPointer(
 					pWindow->handle.display, pWindow->handle.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
 					invisibleCursor, CurrentTime);
@@ -1099,8 +1406,8 @@ struct InputSystemImpl : public gainput::InputListener
 			return;
 
 		GainputView* view = (__bridge GainputView*)(pGainputView);
-		[view setVirtualKeyboard : type];
-#elif defined(__ANDROID__)		
+		[view setVirtualKeyboard:type];
+#elif defined(__ANDROID__)
 		if ((type > 0) != mVirtualKeyboardActive)
 		{
 			mVirtualKeyboardActive = (type > 0);
@@ -1129,7 +1436,6 @@ struct InputSystemImpl : public gainput::InputListener
 
 			jni->DeleteLocalRef(serviceName);
 			activity->vm->DetachCurrentThread();
-
 		}
 		else
 			return;
@@ -1190,191 +1496,191 @@ struct InputSystemImpl : public gainput::InputListener
 
 				switch (type)
 				{
-				case CONTROL_BUTTON:
-				{
-					if (pDesc->pFunction)
+					case CONTROL_BUTTON:
 					{
-						ctx.mBool = newValue;
-						if (newValue && !oldValue)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-#if TOUCH_INPUT
-							mButtonControlPerformQueue.insert(control);
-#else
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-#endif
-						}
-						else if (oldValue && !newValue)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-					}
-					break;
-				}
-				case CONTROL_COMPOSITE:
-				{
-					CompositeControl* pControl = (CompositeControl*)control;
-					uint32_t index = 0;
-					for (; index < pControl->mComposite; ++index)
-						if (deviceButton == pControl->mControls[index])
-							break;
-
-					const uint32_t axis = (index > 1) ? 1 : 0;
-					if (newValue)
-					{
-						pControl->mPressedVal[index] = 1;
-						pControl->mValue[axis] = (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
-					}
-
-					if (pControl->mComposite == 2)
-					{
-						ctx.mFloat = pControl->mValue[axis];
-					}
-					else
-					{
-						if (!pControl->mValue[0] && !pControl->mValue[1])
-							ctx.mFloat2 = float2(0.0f);
-						else
-							ctx.mFloat2 = pControl->mValue;
-					}
-
-					// Action Started
-					if (!pControl->mStarted && !oldValue && newValue)
-					{
-						pControl->mStarted = 1;
-						ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-						if (pDesc->pFunction)
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-					}
-					// Action Performed
-					if (pControl->mStarted && newValue && !pControl->mPerformed[index])
-					{
-						pControl->mPerformed[index] = 1;
-						ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-						if (pDesc->pFunction)
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-					}
-					// Action Canceled
-					if (oldValue && !newValue)
-					{
-						pControl->mPerformed[index] = 0;
-						pControl->mPressedVal[index] = 0;
-						bool allReleased = true;
-						for (uint8_t i = 0; i < pControl->mComposite; ++i)
-						{
-							if (pControl->mPerformed[i])
-							{
-								allReleased = false;
-								break;
-							}
-						}
-						if (allReleased)
-						{
-							pControl->mValue = float2(0.0f);
-							pControl->mStarted = 0;
-							ctx.mFloat2 = pControl->mValue;
-							ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-							if (pDesc->pFunction)
-								executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-						else if (pDesc->pFunction)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							pControl->mValue[axis] = (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
-							ctx.mFloat2 = pControl->mValue;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-					}
-
-					break;
-				}
-				// Mouse scroll is using OnDeviceButtonBool
-				case CONTROL_FLOAT:
-				{
-					if (!oldValue && newValue)
-					{
-						ASSERT(deviceButton == gainput::MouseButtonWheelUp || deviceButton == gainput::MouseButtonWheelDown);
-
-						FloatControl* pControl = (FloatControl*)control;
-						ctx.mFloat2[1] = deviceButton == gainput::MouseButtonWheelUp ? 1.0f : -1.0f;
 						if (pDesc->pFunction)
 						{
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-
-						mFloatDeltaControlCancelQueue.insert(pControl);
-					}
-					break;
-				}
-#if TOUCH_INPUT
-				case CONTROL_VIRTUAL_JOYSTICK:
-				{
-					VirtualJoystickControl* pControl = (VirtualJoystickControl*)control;
-
-					if (!oldValue && newValue && !pControl->mStarted)
-					{
-						pControl->mStartPos = mTouchPositions[touchIndex];
-						if ((AREA_LEFT == pControl->mArea && pControl->mStartPos[0] <= pInputManager->GetDisplayWidth() * 0.5f) ||
-							(AREA_RIGHT == pControl->mArea && pControl->mStartPos[0] > pInputManager->GetDisplayWidth() * 0.5f))
-						{
-							pControl->mStarted = 0x3;
-							pControl->mTouchIndex = touchIndex;
-							pControl->mCurrPos = pControl->mStartPos;
-
-							if (pDesc->pFunction)
+							ctx.mBool = newValue;
+							if (newValue && !oldValue)
 							{
 								ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-								ctx.mFloat2 = float2(0.0f);
-								ctx.pPosition = &pControl->mCurrPos;
 								executeNext = pDesc->pFunction(&ctx) && executeNext;
+#if TOUCH_INPUT
+								mButtonControlPerformQueue.insert(control);
+#else
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+#endif
 							}
-						}
-						else
-						{
-							pControl->mStarted = 0;
-							pControl->mTouchIndex = 0xFF;
-						}
-					}
-					else if (oldValue && !newValue)
-					{
-						if (pControl->mTouchIndex == touchIndex)
-						{
-							pControl->mIsPressed = 0;
-							pControl->mTouchIndex = 0xFF;
-							pControl->mStarted = 0;
-							pControl->mPerformed = 0;
-							if (pDesc->pFunction)
+							else if (oldValue && !newValue)
 							{
-								ctx.mFloat2 = float2(0.0f);
 								ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
 								executeNext = pDesc->pFunction(&ctx) && executeNext;
 							}
 						}
+						break;
 					}
-					break;
-				}
+					case CONTROL_COMPOSITE:
+					{
+						CompositeControl* pControl = (CompositeControl*)control;
+						uint32_t          index = 0;
+						for (; index < pControl->mComposite; ++index)
+							if (deviceButton == pControl->mControls[index])
+								break;
+
+						const uint32_t axis = (index > 1) ? 1 : 0;
+						if (newValue)
+						{
+							pControl->mPressedVal[index] = 1;
+							pControl->mValue[axis] = (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
+						}
+
+						if (pControl->mComposite == 2)
+						{
+							ctx.mFloat = pControl->mValue[axis];
+						}
+						else
+						{
+							if (!pControl->mValue[0] && !pControl->mValue[1])
+								ctx.mFloat2 = float2(0.0f);
+							else
+								ctx.mFloat2 = pControl->mValue;
+						}
+
+						// Action Started
+						if (!pControl->mStarted && !oldValue && newValue)
+						{
+							pControl->mStarted = 1;
+							ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+							if (pDesc->pFunction)
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+						}
+						// Action Performed
+						if (pControl->mStarted && newValue && !pControl->mPerformed[index])
+						{
+							pControl->mPerformed[index] = 1;
+							ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+							if (pDesc->pFunction)
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+						}
+						// Action Canceled
+						if (oldValue && !newValue)
+						{
+							pControl->mPerformed[index] = 0;
+							pControl->mPressedVal[index] = 0;
+							bool allReleased = true;
+							for (uint8_t i = 0; i < pControl->mComposite; ++i)
+							{
+								if (pControl->mPerformed[i])
+								{
+									allReleased = false;
+									break;
+								}
+							}
+							if (allReleased)
+							{
+								pControl->mValue = float2(0.0f);
+								pControl->mStarted = 0;
+								ctx.mFloat2 = pControl->mValue;
+								ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+								if (pDesc->pFunction)
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+							else if (pDesc->pFunction)
+							{
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								pControl->mValue[axis] = (float)pControl->mPressedVal[axis * 2 + 0] - (float)pControl->mPressedVal[axis * 2 + 1];
+								ctx.mFloat2 = pControl->mValue;
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+						}
+
+						break;
+					}
+					// Mouse scroll is using OnDeviceButtonBool
+					case CONTROL_FLOAT:
+					{
+						if (!oldValue && newValue)
+						{
+							ASSERT(deviceButton == gainput::MouseButtonWheelUp || deviceButton == gainput::MouseButtonWheelDown);
+
+							FloatControl* pControl = (FloatControl*)control;
+							ctx.mFloat2[1] = deviceButton == gainput::MouseButtonWheelUp ? 1.0f : -1.0f;
+							if (pDesc->pFunction)
+							{
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+
+							mFloatDeltaControlCancelQueue.insert(pControl);
+						}
+						break;
+					}
+#if TOUCH_INPUT
+					case CONTROL_VIRTUAL_JOYSTICK:
+					{
+						VirtualJoystickControl* pControl = (VirtualJoystickControl*)control;
+
+						if (!oldValue && newValue && !pControl->mStarted)
+						{
+							pControl->mStartPos = mTouchPositions[touchIndex];
+							if ((AREA_LEFT == pControl->mArea && pControl->mStartPos[0] <= pInputManager->GetDisplayWidth() * 0.5f) ||
+								(AREA_RIGHT == pControl->mArea && pControl->mStartPos[0] > pInputManager->GetDisplayWidth() * 0.5f))
+							{
+								pControl->mStarted = 0x3;
+								pControl->mTouchIndex = touchIndex;
+								pControl->mCurrPos = pControl->mStartPos;
+
+								if (pDesc->pFunction)
+								{
+									ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+									ctx.mFloat2 = float2(0.0f);
+									ctx.pPosition = &pControl->mCurrPos;
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+								}
+							}
+							else
+							{
+								pControl->mStarted = 0;
+								pControl->mTouchIndex = 0xFF;
+							}
+						}
+						else if (oldValue && !newValue)
+						{
+							if (pControl->mTouchIndex == touchIndex)
+							{
+								pControl->mIsPressed = 0;
+								pControl->mTouchIndex = 0xFF;
+								pControl->mStarted = 0;
+								pControl->mPerformed = 0;
+								if (pDesc->pFunction)
+								{
+									ctx.mFloat2 = float2(0.0f);
+									ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+								}
+							}
+						}
+						break;
+					}
 #endif
-				case CONTROL_COMBO:
-				{
-					ComboControl* pControl = (ComboControl*)control;
-					if (deviceButton == pControl->mPressButton)
+					case CONTROL_COMBO:
 					{
-						pControl->mPressed = (uint8_t)newValue;
+						ComboControl* pControl = (ComboControl*)control;
+						if (deviceButton == pControl->mPressButton)
+						{
+							pControl->mPressed = (uint8_t)newValue;
+						}
+						else if (pControl->mPressed && oldValue && !newValue && pDesc->pFunction)
+						{
+							ctx.mBool = true;
+							ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+							pDesc->pFunction(&ctx);
+						}
+						break;
 					}
-					else if (pControl->mPressed && oldValue && !newValue && pDesc->pFunction)
-					{
-						ctx.mBool = true;
-						ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-						pDesc->pFunction(&ctx);
-					}
-					break;
-				}
-				default:
-					break;
+					default:
+						break;
 				}
 			}
 		}
@@ -1413,127 +1719,127 @@ struct InputSystemImpl : public gainput::InputListener
 
 				const InputControlType type = control->mType;
 				const InputActionDesc* pDesc = &control->pAction->mDesc;
-				InputActionContext ctx = {};
+				InputActionContext     ctx = {};
 				ctx.mDeviceType = pDeviceTypes[device];
 				ctx.pUserData = pDesc->pUserData;
 				ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
 
 				switch (type)
 				{
-				case CONTROL_FLOAT:
-				{
-					FloatControl* pControl = (FloatControl*)control;
-					const InputActionDesc* pDesc = &pControl->pAction->mDesc;
-					const uint32_t axis = (deviceButton - pControl->mStartButton);
-
-					if (pControl->mDelta & 0x1)
+					case CONTROL_FLOAT:
 					{
-						pControl->mValue[axis] += (axis > 0 ? -1.0f : 1.0f) * (newValue - oldValue);
-						ctx.mFloat3 = pControl->mValue;
+						FloatControl*          pControl = (FloatControl*)control;
+						const InputActionDesc* pDesc = &pControl->pAction->mDesc;
+						const uint32_t         axis = (deviceButton - pControl->mStartButton);
 
-						if (((pControl->mStarted >> axis) & 0x1) == 0)
+						if (pControl->mDelta & 0x1)
 						{
-							pControl->mStarted |= (1 << axis);
-							if (pControl->mStarted == pControl->mTarget && pDesc->pFunction)
+							pControl->mValue[axis] += (axis > 0 ? -1.0f : 1.0f) * (newValue - oldValue);
+							ctx.mFloat3 = pControl->mValue;
+
+							if (((pControl->mStarted >> axis) & 0x1) == 0)
 							{
-								ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-								executeNext = pDesc->pFunction(&ctx) && executeNext;
+								pControl->mStarted |= (1 << axis);
+								if (pControl->mStarted == pControl->mTarget && pDesc->pFunction)
+								{
+									ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+								}
+
+								mFloatDeltaControlCancelQueue.insert(pControl);
 							}
 
-							mFloatDeltaControlCancelQueue.insert(pControl);
-						}
+							pControl->mPerformed |= (1 << axis);
 
+							if (pControl->mPerformed == pControl->mTarget)
+							{
+								pControl->mPerformed = 0;
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								if (pDesc->pFunction)
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+						}
+						else if (pDesc->pFunction)
+						{
+							pControl->mPerformed |= (1 << axis);
+							pControl->mValue[axis] = newValue;
+							if (pControl->mPerformed == pControl->mTarget)
+							{
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								pControl->mPerformed = 0;
+								ctx.mFloat3 = pControl->mValue;
+								executeNext = pDesc->pFunction(&ctx) && executeNext;
+							}
+						}
+						break;
+					}
+					case CONTROL_AXIS:
+					{
+						AxisControl* pControl = (AxisControl*)control;
+						const InputActionDesc* pDesc = &pControl->pAction->mDesc;
+
+						const uint32_t axis = (deviceButton - pControl->mStartButton);
+
+						pControl->mNewValue[axis] = newValue;
 						pControl->mPerformed |= (1 << axis);
 
 						if (pControl->mPerformed == pControl->mTarget)
 						{
-							pControl->mPerformed = 0;
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+							bool equal = true;
+							for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
+								equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
+
+							pControl->mValue = pControl->mNewValue;
+
+							if (pDesc->pFunction)
+							{
+								ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+								ctx.mFloat3 = pControl->mValue;
+
+								if (!equal)
+								{
+									executeNext = pDesc->pFunction(&ctx) && executeNext;
+								}
+							}
+						}
+						else
+							continue;
+
+						pControl->mPerformed = 0;
+						break;
+					}
+#if TOUCH_INPUT
+					case CONTROL_VIRTUAL_JOYSTICK:
+					{
+						VirtualJoystickControl* pControl = (VirtualJoystickControl*)control;
+
+						const uint32_t axis = TOUCH_AXIS(deviceButton);
+
+						if (!pControl->mStarted || TOUCH_USER(deviceButton) != pControl->mTouchIndex)
+							continue;
+
+						pControl->mPerformed |= (1 << axis);
+						pControl->mCurrPos[axis] = newValue;
+						if (pControl->mPerformed == 0x3)
+						{
+							// Calculate the new joystick positions
+							vec2 delta = f2Tov2(pControl->mCurrPos - pControl->mStartPos);
+							float halfRad = (pControl->mOutsideRadius * 0.5f) - pControl->mDeadzone;
+							if (length(delta) > halfRad)
+								pControl->mCurrPos = pControl->mStartPos + halfRad * v2ToF2(normalize(delta));
+
+							ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+							float2 dir = ((pControl->mCurrPos - pControl->mStartPos) / halfRad) * pControl->mScale;
+							ctx.mFloat2 = float2(dir[0], -dir[1]);
+							ctx.pPosition = &pControl->mCurrPos;
 							if (pDesc->pFunction)
 								executeNext = pDesc->pFunction(&ctx) && executeNext;
 						}
+						break;
 					}
-					else if (pDesc->pFunction)
-					{
-						pControl->mPerformed |= (1 << axis);
-						pControl->mValue[axis] = newValue;
-						if (pControl->mPerformed == pControl->mTarget)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							pControl->mPerformed = 0;
-							ctx.mFloat3 = pControl->mValue;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-					}
-					break;
-				}
-				case CONTROL_AXIS:
-				{
-					AxisControl* pControl = (AxisControl*)control;
-					const InputActionDesc* pDesc = &pControl->pAction->mDesc;
-
-					const uint32_t axis = (deviceButton - pControl->mStartButton);
-
-					pControl->mNewValue[axis] = newValue;
-					pControl->mPerformed |= (1 << axis);
-
-					if (pControl->mPerformed == pControl->mTarget)
-					{
-						bool equal = true;
-						for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
-							equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
-
-						pControl->mValue = pControl->mNewValue;
-
-						if (pDesc->pFunction)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							ctx.mFloat3 = pControl->mValue;
-
-							if (!equal)
-							{
-								executeNext = pDesc->pFunction(&ctx) && executeNext;
-							}
-						}
-					}
-					else
-						continue;
-
-					pControl->mPerformed = 0;
-					break;
-				}
-#if TOUCH_INPUT
-				case CONTROL_VIRTUAL_JOYSTICK:
-				{
-					VirtualJoystickControl* pControl = (VirtualJoystickControl*)control;
-
-					const uint32_t axis = TOUCH_AXIS(deviceButton);
-
-					if (!pControl->mStarted || TOUCH_USER(deviceButton) != pControl->mTouchIndex)
-						continue;
-
-					pControl->mPerformed |= (1 << axis);
-					pControl->mCurrPos[axis] = newValue;
-					if (pControl->mPerformed == 0x3)
-					{
-						// Calculate the new joystick positions
-						vec2 delta = f2Tov2(pControl->mCurrPos - pControl->mStartPos);
-						float halfRad = (pControl->mOutsideRadius * 0.5f) - pControl->mDeadzone;
-						if (length(delta) > halfRad)
-							pControl->mCurrPos = pControl->mStartPos + halfRad * v2ToF2(normalize(delta));
-
-						ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-						float2 dir = ((pControl->mCurrPos - pControl->mStartPos) / halfRad) * pControl->mScale;
-						ctx.mFloat2 = float2(dir[0], -dir[1]);
-						ctx.pPosition = &pControl->mCurrPos;
-						if (pDesc->pFunction)
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-					}
-					break;
-				}
 #endif
-				default:
-					break;
+					default:
+						break;
 				}
 			}
 		}
@@ -1543,7 +1849,7 @@ struct InputSystemImpl : public gainput::InputListener
 
 	bool OnDeviceButtonGesture(gainput::DeviceId device, gainput::DeviceButtonId deviceButton, const struct gainput::GestureChange& gesture)
 	{
-#if defined(TARGET_IOS)
+#if defined(TOUCH_INPUT)
 		const InputActionDesc* pDesc = &mGestureControls[deviceButton]->mDesc;
 		if (pDesc->pFunction)
 		{
@@ -1551,9 +1857,18 @@ struct InputSystemImpl : public gainput::InputListener
 			ctx.pUserData = pDesc->pUserData;
 			ctx.mDeviceType = pDeviceTypes[device];
 			ctx.pPosition = (float2*)gesture.position;
-			if (gesture.type == gainput::GesturePan)
+			for ( uint32_t i = 0; i < MAX_INPUT_MULTI_TOUCHES; ++i )
+				ctx.mFingerIndices[i] = -1;
+						
+			if ( gesture.type == gainput::GestureTap )
 			{
+				ctx.mFingerIndices[0] = gesture.fingerIndex;
+			}
+			else if (gesture.type == gainput::GesturePan)
+			{
+				ctx.mFingerIndices[0] = gesture.fingerIndex;
 				ctx.mFloat2 = { gesture.translation[0], gesture.translation[1] };
+				ctx.mFingerIndices[0] = gesture.fingerIndex;
 			}
 			else if (gesture.type == gainput::GesturePinch)
 			{
@@ -1565,8 +1880,21 @@ struct InputSystemImpl : public gainput::InputListener
 					gesture.distance[1]
 				};
 			}
-
-			ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+			switch (gesture.phase) {
+				case gainput::GesturePhase::GesturePhaseStarted:
+					ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
+					break;
+				case gainput::GesturePhase::GesturePhaseUpdated:
+					ctx.mPhase = INPUT_ACTION_PHASE_UPDATED;
+					break;
+				case gainput::GesturePhase::GesturePhaseEnded:
+					ctx.mPhase = INPUT_ACTION_PHASE_ENDED;
+					break;
+				case gainput::GesturePhase::GesturePhaseCanceled:
+				default:
+					ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+					break;
+			}
 			pDesc->pFunction(&ctx);
 		}
 #endif
@@ -1574,10 +1902,7 @@ struct InputSystemImpl : public gainput::InputListener
 		return true;
 	}
 
-	int GetPriority() const
-	{
-		return 0;
-	}
+	int GetPriority() const { return 0; }
 
 	void SetDeadZone(unsigned int controllerIndex, float deadZoneSize)
 	{
@@ -1596,7 +1921,7 @@ struct InputSystemImpl : public gainput::InputListener
 		pDevicePad->SetDeadZone(gainput::PadButton::PadButtonAxis5, deadZoneSize);
 	}
 
-	const char* GetGamePadName(unsigned  gamePadIndex)
+	const char* GetGamePadName(unsigned gamePadIndex)
 	{
 		if (gamePadIndex >= MAX_INPUT_GAMEPADS)
 			return "Incorrect gamePadIndex";
@@ -1628,7 +1953,7 @@ struct InputSystemImpl : public gainput::InputListener
 		pDevicePad->SetLEDColor(r, g, b);
 	}
 
-	void setOnDeviceChangeCallBack(void(*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
+	void setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
 	{
 		if (gamePadIndex >= MAX_INPUT_GAMEPADS)
 			return;
@@ -1663,27 +1988,65 @@ int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 	{
 		ResetInputStates();
 	}
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) && !defined(QUEST_VR)
 	return pInputSystem->pInputManager->HandleInput((AInputEvent*)msg, pWindow->handle.activity);
-#elif defined(__linux__) && !defined(GAINPUT_PLATFORM_GGP)
+#elif defined(__linux__) && !defined(GAINPUT_PLATFORM_GGP) && !defined(QUEST_VR)
 	pInputSystem->pInputManager->HandleEvent(*(XEvent*)msg);
 #endif
 
 	return 0;
 }
 
-bool initInputSystem(WindowsDesc* window)
+bool initInputSystem(InputSystemDesc* pDesc)
 {
+	ASSERT(pDesc); 
+	ASSERT(pDesc->pWindow); 
+	ASSERT(pDesc->pRenderer); 
+
 	pInputSystem = tf_new(InputSystemImpl);
 
 	setCustomMessageProcessor(InputSystemHandleMessage);
 
-	return pInputSystem->Init(window);
+	bool success = pInputSystem->Init(pDesc->pWindow);
+
+#if TOUCH_INPUT
+	if (!pDesc->mDisableVirtualJoystick)
+	{
+		VirtualJoystickDesc joystickDesc = {};
+		joystickDesc.pRenderer = (Renderer*)pDesc->pRenderer;
+		joystickDesc.pJoystickTexture = "circlepad";
+		initVirtualJoystick(&joystickDesc, &pVirtualJoystick);
+
+		if (pVirtualJoystick && success)
+		{
+			typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+			static CameraInputHandler onJoystickInput = [](InputActionContext* ctx, uint32_t index)
+			{
+				if (!uiIsFocused() && *ctx->pCaptured)
+				{
+					virtualJoystickOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				}
+				return true;
+			};
+
+			InputActionDesc actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onJoystickInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+			addInputAction(&actionDesc);
+			actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onJoystickInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+			addInputAction(&actionDesc);
+		}
+	}
+#endif
+
+	return success;
 }
 
 void exitInputSystem()
 {
 	ASSERT(pInputSystem);
+
+#if TOUCH_INPUT
+	exitVirtualJoystick(pVirtualJoystick);
+#endif
 
 	setCustomMessageProcessor(nullptr);
 
@@ -1762,9 +2125,8 @@ void setLEDColor(int gamePadIndex, uint8_t r, uint8_t g, uint8_t b)
 	pInputSystem->SetLEDColor(gamePadIndex, r, g, b);
 }
 
-void setOnDeviceChangeCallBack(void(*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
+void setOnDeviceChangeCallBack(void (*onDeviceChnageCallBack)(const char* name, bool added), unsigned int gamePadIndex)
 {
 	ASSERT(pInputSystem);
 	pInputSystem->setOnDeviceChangeCallBack(onDeviceChnageCallBack, gamePadIndex);
 }
-#endif

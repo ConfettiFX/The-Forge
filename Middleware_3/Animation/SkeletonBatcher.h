@@ -26,6 +26,7 @@
 
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/IResourceLoader.h"
+#include "../../Common_3/OS/Interfaces/ICameraController.h"
 
 #include "Rig.h"
 
@@ -40,7 +41,7 @@ const uint32_t ImageCount = 3;    // must match the application
 // Uniform data to send
 struct UniformSkeletonBlock
 {
-	mat4 mProjectView;
+    CameraMatrix mProjectView;
 
 	vec4 mColor[MAX_INSTANCES];
 	// Point Light Information
@@ -86,7 +87,7 @@ class SkeletonBatcher
 	void SetActiveRigs(uint32_t activeRigs) { mNumActiveRigs = min(activeRigs, mNumRigs); }
 
 	// Update uniforms that will be shared between all skeletons
-	void SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor);
+	void SetSharedUniforms(const CameraMatrix& projViewMat, const Vector3& lightPos, const Vector3& lightColor);
 
 	// Update all the instanced uniform data for each batch of joints and bones
 	void SetPerInstanceUniforms(const uint32_t& frameIndex, int numRigs = -1, uint32_t rigsOffset = 0);

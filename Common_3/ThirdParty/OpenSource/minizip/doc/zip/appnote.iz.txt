@@ -1,0 +1,3686 @@
+[Info-ZIP note, 20040528:  this file is based on PKWARE's appnote.txt of
+ 15 February 1996, taking into account PKWARE's revised appnote.txt
+ version 6.2.0 of 26 April 2004.  It has been unofficially corrected
+ and extended by Info-ZIP without explicit permission by PKWARE.
+ Although Info-ZIP believes the information to be accurate and complete,
+ it is provided under a disclaimer similar to the PKWARE disclaimer below,
+ differing only in the substitution of "Info-ZIP" for "PKWARE".  In other
+ words, use this information at your own risk, but we think it's correct.
+
+ Specification info from PKWARE that was obviously wrong has been corrected
+ silently (e.g. missing structure fields, wrong numbers).
+ As of PKZIPW 2.50, two new incompatibilities have been introduced by PKWARE;
+ they are noted below.  Note that the "NTFS tag" conflict is currently not
+ real; PKZIPW 2.50 actually tags NTFS files as having come from a FAT
+ file system, too.]
+
+File:    APPNOTE.TXT - .ZIP File Format Specification
+Version: 6.2.0 - NOTIFICATION OF CHANGE
+Revised: 04/26/2004 [2004-05-28 Info-ZIP]
+Copyright (c) 1989 - 2004 PKWARE Inc., All Rights Reserved.
+
+I. Purpose
+----------
+
+This specification is intended to define a cross-platform,
+interoperable file format.  Since its first publication
+in 1989, PKWARE has remained committed to ensuring the
+interoperability of the .ZIP file format through this
+specification.  We trust that all .ZIP compatible vendors
+and application developers that have adopted this format
+will share and support this commitment.
+
+
+II. Disclaimer
+--------------
+
+Although PKWARE will attempt to supply current and accurate
+information relating to its file formats, algorithms, and the
+subject programs, the possibility of error or omission can not
+be eliminated. PKWARE therefore expressly disclaims any warranty
+that the information contained in the associated materials relating
+to the subject programs and/or the format of the files created or
+accessed by the subject programs and/or the algorithms used by
+the subject programs, or any other matter, is current, correct or
+accurate as delivered.  Any risk of damage due to any possible
+inaccurate information is assumed by the user of the information.
+Furthermore, the information relating to the subject programs
+and/or the file formats created or accessed by the subject
+programs and/or the algorithms used by the subject programs is
+subject to change without notice.
+
+If the version of this file is marked as a NOTIFICATION OF CHANGE,
+the content defines an Early Feature Specification (EFS) change
+to the .ZIP file format that may be subject to modification prior
+to publication of the Final Feature Specification (FFS).  This
+document may also contain information on Planned Feature
+Specifications (PFS) defining recognized future extensions.
+
+
+III. Change Log
+---------------
+
+Version       Change Description                      Date
+-------       ------------------                     ----------
+5.2           -Single Password Symmetric Encryption  06/02/2003
+               storage
+
+6.1.0         -Smart Card compatibility              01/20/2004
+              -Documentation on certificate storage
+
+6.2.0         -Introduction of Central Directory     04/26/2004
+               Encryption for encrypting metadata
+              -Added OS/X to Version Made By values
+
+
+IV. General Format of a .ZIP file
+---------------------------------
+
+  Files stored in arbitrary order.  Large .ZIP files can span multiple
+  diskette media or be split into user-defined segment sizes.  [The
+  minimum user-defined segment size for a split .ZIP file is 64K.
+  (removed by PKWare 2003-06-01)]
+
+  Overall .ZIP file format:
+
+    [local file header 1]
+    [file data 1]
+    [data descriptor 1]
+    .
+    .
+    .
+    [local file header n]
+    [file data n]
+    [data descriptor n]
+    [archive decryption header] (EFS)
+    [archive extra data record] (EFS)
+    [central directory]
+    [zip64 end of central directory record]
+    [zip64 end of central directory locator]
+    [end of central directory record]
+
+
+  A.  Local file header:
+
+        local file header signature     4 bytes  (0x04034b50)
+        version needed to extract       2 bytes
+        general purpose bit flag        2 bytes
+        compression method              2 bytes
+        last mod file time              2 bytes
+        last mod file date              2 bytes
+        crc-32                          4 bytes
+        compressed size                 4 bytes
+        uncompressed size               4 bytes
+        file name length                2 bytes
+        extra field length              2 bytes
+
+        file name (variable size)
+        extra field (variable size)
+
+
+  B.  File data
+
+      Immediately following the local header for a file
+      is the compressed or stored data for the file.
+      The series of [local file header][file data][data
+      descriptor] repeats for each file in the .ZIP archive.
+
+
+  C.  Data descriptor:
+
+      [Info-ZIP discrepancy:
+       The Info-ZIP zip program starts the data descriptor with a 4-byte
+       PK-style signature.  Despite the specification, none of the PKWARE
+       programs supports the data descriptor.  PKZIP 4.0 -fix function
+       (and PKZIPFIX 2.04) ignores the data descriptor info even when bit 3
+       of the general purpose bit flag is set.
+        data descriptor signature       4 bytes  (0x08074b50)
+      ]
+        crc-32                          4 bytes
+        compressed size                 4 bytes
+        uncompressed size               4 bytes
+
+      This descriptor exists only if bit 3 of the general
+      purpose bit flag is set (see below).  It is byte aligned
+      and immediately follows the last byte of compressed data.
+      This descriptor is used only when it was not possible to
+      seek in the output .ZIP file, e.g., when the output .ZIP file
+      was standard output or a non seekable device.  For Zip64 format
+      archives, the compressed and uncompressed sizes are 8 bytes each.
+
+
+  D.  Archive decryption header:  (EFS)
+
+      The Archive Decryption Header is introduced in version 6.2
+      of the ZIP format specification.  This record exists in support
+      of the Central Directory Encryption Feature implemented as part of
+      the Strong Encryption Specification as described in this document.
+      When the Central Directory Structure is encrypted, this decryption
+      header will precede the encrypted data segment.  The encrypted
+      data segment will consist of the Archive extra data record (if
+      present) and the encrypted Central Directory Structure data.
+      The format of this data record is identical to the Decryption
+      header record preceding compressed file data.  If the central
+      directory structure is encrypted, the location of the start of
+      this data record is determined using the Start of Central Directory
+      field in the Zip64 End of Central Directory record.  Refer to the
+      section on the Strong Encryption Specification for information
+      on the fields used in the Archive Decryption Header record.
+
+
+  E.  Archive extra data record: (EFS)
+
+        archive extra data signature    4 bytes  (0x08064b50)
+        extra field length              4 bytes
+        extra field data                (variable size)
+
+      The Archive Extra Data Record is introduced in version 6.2
+      of the ZIP format specification.  This record exists in support
+      of the Central Directory Encryption Feature implemented as part of
+      the Strong Encryption Specification as described in this document.
+      When present, this record immediately precedes the central
+      directory data structure.  The size of this data record will be
+      included in the Size of the Central Directory field in the
+      End of Central Directory record.  If the central directory structure
+      is compressed, but not encrypted, the location of the start of
+      this data record is determined using the Start of Central Directory
+      field in the Zip64 End of Central Directory record.
+
+
+  F.  Central directory structure:
+
+      [file header 1]
+      .
+      .
+      .
+      [file header n]
+      [digital signature]
+
+      File header:
+
+        central file header signature   4 bytes  (0x02014b50)
+        version made by                 2 bytes
+        version needed to extract       2 bytes
+        general purpose bit flag        2 bytes
+        compression method              2 bytes
+        last mod file time              2 bytes
+        last mod file date              2 bytes
+        crc-32                          4 bytes
+        compressed size                 4 bytes
+        uncompressed size               4 bytes
+        file name length                2 bytes
+        extra field length              2 bytes
+        file comment length             2 bytes
+        disk number start               2 bytes
+        internal file attributes        2 bytes
+        external file attributes        4 bytes
+        relative offset of local header 4 bytes
+
+        file name (variable size)
+        extra field (variable size)
+        file comment (variable size)
+
+      Digital signature:
+
+        header signature                4 bytes  (0x05054b50)
+        size of data                    2 bytes
+        signature data (variable size)
+
+      With the introduction of the Central Directory Encryption
+      feature in version 6.2 of this specification, the Central
+      Directory Structure may be stored both compressed and encrypted.
+      Although not required, it is assumed when encrypting the
+      Central Directory Structure, that it will be compressed
+      for greater storage efficiency.  Information on the
+      Central Directory Encryption feature can be found in the section
+      describing the Strong Encryption Specification. The Digital
+      Signature record will be neither compressed nor encrypted.
+
+
+  G.  Zip64 end of central directory record
+
+        zip64 end of central dir
+        signature                       4 bytes  (0x06064b50)
+        size of zip64 end of central
+        directory record                8 bytes
+        version made by                 2 bytes
+        version needed to extract       2 bytes
+        number of this disk             4 bytes
+        number of the disk with the
+        start of the central directory  4 bytes
+        total number of entries in the
+        central directory on this disk  8 bytes
+        total number of entries in the
+        central directory               8 bytes
+        size of the central directory   8 bytes
+        offset of start of central
+        directory with respect to
+        the starting disk number        8 bytes
+        zip64 extensible data sector    (variable size)
+
+        The above record structure defines Version 1 of the
+        Zip64 end of central directory record. Version 1 was
+        implemented in versions of this specification preceding
+        6.2 in support of the ZIP64(tm) large file feature. The
+        introduction of the Central Directory Encryption feature
+        implemented in version 6.2 as part of the Strong Encryption
+        Specification defines Version 2 of this record structure.
+        Refer to the section describing the Strong Encryption
+        Specification for details on the version 2 format for
+        this record.
+
+
+  H.  Zip64 end of central directory locator
+
+        zip64 end of central dir locator
+        signature                       4 bytes  (0x07064b50)
+        number of the disk with the
+        start of the zip64 end of
+        central directory               4 bytes
+        relative offset of the zip64
+        end of central directory record 8 bytes
+        total number of disks           4 bytes
+
+
+  I.  End of central directory record:
+
+        end of central dir signature    4 bytes  (0x06054b50)
+        number of this disk             2 bytes
+        number of the disk with the
+        start of the central directory  2 bytes
+        total number of entries in the
+        central directory on this disk  2 bytes
+        total number of entries in
+        the central directory           2 bytes
+        size of the central directory   4 bytes
+        offset of start of central
+        directory with respect to
+        the starting disk number        4 bytes
+        .ZIP file comment length        2 bytes
+        .ZIP file comment       (variable size)
+
+
+  J.  Explanation of fields:
+
+      version made by (2 bytes)
+
+          [PKWARE describes "OS made by" now (since 1998) as follows:
+          The upper byte indicates the compatibility of the file
+          attribute information.  If the external file attributes
+          are compatible with MS-DOS and can be read by PKZIP for
+          DOS version 2.04g then this value will be zero.  If these
+          attributes are not compatible, then this value will
+          identify the host system on which the attributes are
+          compatible.]
+          The upper byte indicates the host system (OS) for the
+          file.  Software can use this information to determine
+          the line record format for text files etc.  The current
+          mappings are:
+
+          0 - FAT file system (DOS, OS/2, NT)      + PKWARE 2.50+ VFAT, NTFS
+          1 - Amiga
+          2 - OpenVMS
+          3 - Unix
+          4 - VM/CMS
+          5 - Atari ST
+          6 - HPFS file system (OS/2, NT 3.x)
+          7 - Macintosh
+          8 - Z-System
+          9 - CP/M
+          ---------------------------------------------------------------------
+               PKWARE assignment             | Info-ZIP assignment
+          -----------------------------------|---------------------------------
+          10 - Windows NTFS                  | TOPS-20
+               (since PKZIPW 2.50, but       | (assigned Oct-1992,
+                not used by any PKWARE prog) |  no longer used)
+          11 - MVS                           | NTFS file system (WinNT)
+                                             | (actively used by Info-ZIP's
+                                             |  Zip for NT since Sep-1993)
+          12 - VSE                           | SMS/QDOS
+          ---------------------------------------------------------------------
+          13 - Acorn RISC OS
+          14 - VFAT file system (Win95, NT)     [Info-ZIP reservation, unused]
+          15 - MVS [PKWARE describes this assignment as "alternate MVS"]
+          16 - BeOS (BeBox or PowerMac)
+          17 - Tandem
+          18 - OS/400 (IBM)                  | THEOS
+          19 - OS/X (Darwin)
+          20 thru 29 - unused
+          30 - AtheOS/Syllable
+          31 thru 255 - unused
+
+          The lower byte indicates the ZIP specification version
+          (the version of this document) supported by the software
+          used to encode the file.  The value/10 indicates the major
+          version number, and the value mod 10 is the minor version
+          number.
+
+      version needed to extract (2 bytes)
+
+          The minimum supported ZIP specification version needed to
+          extract the file, mapped as above.  This value is based on
+          the specific format features a ZIP program must support to
+          be able to extract the file.  If multiple features are
+          applied to a file, the minimum version should be set to the
+          feature having the highest value. New features or feature
+          changes affecting the published format specification will be
+          implemented using higher version numbers than the last
+          published value to avoid conflict.
+
+          Current minimum feature versions are as defined below:
+
+          1.0 - Default value
+          1.1 - File is a volume label
+          2.0 - File is a folder (directory)
+          2.0 - File is compressed using Deflate compression
+          2.0 - File is encrypted using traditional PKWARE encryption
+          2.1 - File is compressed using Deflate64(tm)
+          2.5 - File is compressed using PKWARE DCL Implode
+          2.7 - File is a patch data set
+          4.5 - File uses ZIP64 format extensions
+          4.6 - File is compressed using BZIP2 compression*
+          5.0 - File is encrypted using DES
+          5.0 - File is encrypted using 3DES
+          5.0 - File is encrypted using original RC2 encryption
+          5.0 - File is encrypted using RC4 encryption
+          5.1 - File is encrypted using AES encryption
+          5.1 - File is encrypted using corrected RC2 encryption**
+          5.2 - File is encrypted using corrected RC2-64 encryption**
+          6.1 - File is encrypted using non-OAEP key wrapping***
+          6.2 - Central directory encryption
+
+
+          * Early 7.x (pre-7.2) versions of PKZIP incorrectly set the
+          version needed to extract for BZIP2 compression to be 50
+          when it should have been 46.
+
+          ** Refer to the section on Strong Encryption Specification
+          for additional information regarding RC2 corrections.
+
+          *** Certificate encryption using non-OAEP key wrapping is the
+          intended mode of operation for all versions beginning with 6.1.
+          Support for OAEP key wrapping should only be used for
+          backward compatibility when sending ZIP files to be opened by
+          versions of PKZIP older than 6.1 (5.0 or 6.0).
+
+          When using ZIP64 extensions, the corresponding value in the
+          Zip64 end of central directory record should also be set.
+          This field currently supports only the value 45 to indicate
+          ZIP64 extensions are present.
+
+      general purpose bit flag: (2 bytes)
+
+          Bit 0: If set, indicates that the file is encrypted.
+
+          (For Method 6 - Imploding)
+          Bit 1: If the compression method used was type 6,
+                 Imploding, then this bit, if set, indicates
+                 an 8K sliding dictionary was used.  If clear,
+                 then a 4K sliding dictionary was used.
+          Bit 2: If the compression method used was type 6,
+                 Imploding, then this bit, if set, indicates
+                 3 Shannon-Fano trees were used to encode the
+                 sliding dictionary output.  If clear, then 2
+                 Shannon-Fano trees were used.
+
+          (For Methods 8 and 9 - Deflating)
+          Bit 2  Bit 1
+            0      0    Normal (-en) compression option was used.
+            0      1    Maximum (-exx/-ex) compression option was used.
+            1      0    Fast (-ef) compression option was used.
+            1      1    Super Fast (-es) compression option was used.
+
+          Note:  Bits 1 and 2 are undefined if the compression
+                 method is any other.
+
+          Bit 3: If this bit is set, the fields crc-32, compressed
+                 size and uncompressed size are set to zero in the
+                 local header.  The correct values are put in the
+                 data descriptor immediately following the compressed
+                 data.  (Note: PKZIP version 2.04g for DOS only
+                 recognizes this bit for method 8 compression, newer
+                 versions of PKZIP recognize this bit for any
+                 compression method.)
+                [Info-ZIP note: This bit was introduced by PKZIP 2.04 for
+                 DOS. In general, this feature can only be reliably used
+                 together with compression methods that allow intrinsic
+                 detection of the "end-of-compressed-data" condition. From
+                 the set of compression methods described in this Zip archive
+                 specification, only "deflate" and "bzip2" fulfill this
+                 requirement.
+                 Especially, the method STORED does not work!
+                 The Info-ZIP tools recognize this bit regardless of the
+                 compression method; but, they rely on correctly set
+                 "compressed size" information in the central directory entry.]
+
+          Bit 4: Reserved for use with method 8, for enhanced
+                 deflating.
+
+          Bit 5: If this bit is set, this indicates that the file is
+                 compressed patched data.  (Note: Requires PKZIP
+                 version 2.70 or greater)
+
+          Bit 6: Strong encryption.  If this bit is set, you should
+                 set the version needed to extract value to at least
+                 50 and you must also set bit 0.  If AES encryption
+                 is used, the version needed to extract value must
+                 be at least 51.
+
+          Bit 7: Currently unused.
+
+          Bit 8: Currently unused.
+
+          Bit 9: Currently unused.
+
+          Bit 10: Currently unused.
+
+          Bit 11: Currently unused.
+
+          Bit 12: Reserved by PKWARE for enhanced compression.
+
+          Bit 13: Used when encrypting the Central Directory to indicate
+                  selected data values in the Local Header are masked to
+                  hide their actual values.  See the section describing
+                  the Strong Encryption Specification for details.
+
+          Bit 14: Reserved by PKWARE.
+
+          Bit 15: Reserved by PKWARE.
+
+      compression method: (2 bytes)
+
+          (see accompanying documentation for algorithm
+          descriptions)
+
+          0 - The file is stored (no compression)
+          1 - The file is Shrunk
+          2 - The file is Reduced with compression factor 1
+          3 - The file is Reduced with compression factor 2
+          4 - The file is Reduced with compression factor 3
+          5 - The file is Reduced with compression factor 4
+          6 - The file is Imploded
+          7 - Reserved for Tokenizing compression algorithm
+          8 - The file is Deflated
+          9 - Enhanced Deflating using Deflate64(tm)
+         10 - PKWARE Data Compression Library Imploding
+         11 - Reserved by PKWARE
+         12 - File is compressed using BZIP2 algorithm
+
+      date and time fields: (2 bytes each)
+
+          The date and time are encoded in standard MS-DOS format.
+          If input came from standard input, the date and time are
+          those at which compression was started for this data.
+          If encrypting the central directory and general purpose bit
+          flag 13 is set indicating masking, the value stored in the
+          Local Header will be zero.
+
+      CRC-32: (4 bytes)
+
+          The CRC-32 algorithm was generously contributed by
+          David Schwaderer and can be found in his excellent
+          book "C Programmers Guide to NetBIOS" published by
+          Howard W. Sams & Co. Inc.  The 'magic number' for
+          the CRC is 0xdebb20e3.  The proper CRC pre and post
+          conditioning is used, meaning that the CRC register
+          is pre-conditioned with all ones (a starting value
+          of 0xffffffff) and the value is post-conditioned by
+          taking the one's complement of the CRC residual.
+          If bit 3 of the general purpose flag is set, this
+          field is set to zero in the local header and the correct
+          value is put in the data descriptor and in the central
+          directory.  If encrypting the central directory and general
+          purpose bit flag 13 is set indicating masking, the value
+          stored in the Local Header will be zero.
+
+      compressed size: (4 bytes)
+      uncompressed size: (4 bytes)
+
+          The size of the file compressed and uncompressed,
+          respectively.  If bit 3 of the general purpose bit flag
+          is set, these fields are set to zero in the local header
+          and the correct values are put in the data descriptor and
+          in the central directory.  If an archive is in zip64 format
+          and the value in this field is 0xFFFFFFFF, the size will be
+          in the corresponding 8 byte zip64 extended information
+          extra field.  If encrypting the central directory and general
+          purpose bit flag 13 is set indicating masking, the value stored
+          for the uncompressed size in the Local Header will be zero.
+
+      file name length: (2 bytes)
+      extra field length: (2 bytes)
+      file comment length: (2 bytes)
+
+          The length of the file name, extra field, and comment
+          fields respectively.  The combined length of any
+          directory record and these three fields should not
+          generally exceed 65,535 bytes.  If input came from standard
+          input, the file name length is set to zero.
+
+         [Info-ZIP note:
+          This feature is not yet supported by any PKWARE version of ZIP
+          (at least not in PKZIP for DOS and PKZIP for Windows/WinNT).
+          The Info-ZIP programs handle standard input differently:
+          If input came from standard input, the filename is set to "-"
+          (length one).]
+
+
+      disk number start: (2 bytes)
+
+          The number of the disk on which this file begins.  If an
+          archive is in zip64 format and the value in this field is
+          0xFFFF, the size will be in the corresponding 4 byte zip64
+          extended information extra field.
+
+      internal file attributes: (2 bytes)
+
+          Bits 1 and 2 are reserved for use by PKWARE.
+
+          The lowest bit of this field indicates, if set, that
+          the file is apparently an ASCII or text file.  If not
+          set, that the file apparently contains binary data.
+          The remaining bits are unused in version 1.0.
+
+          The 0x0002 bit of this field indicates, if set, that a
+          4 byte variable record length control field precedes each
+          logical record indicating the length of the record. This
+          flag is independent of text control characters, and if used
+          in conjunction with text data, includes any control
+          characters in the total length of the record. This value is
+          provided for mainframe data transfer support.
+
+      external file attributes: (4 bytes)
+
+          The mapping of the external attributes is
+          host-system dependent (see 'version made by').  For
+          MS-DOS, the low order byte is the MS-DOS directory
+          attribute byte.  If input came from standard input, this
+          field is set to zero.
+
+      relative offset of local header: (4 bytes)
+
+          This is the offset from the start of the first disk on
+          which this file appears, to where the local header should
+          be found.  If an archive is in zip64 format and the value
+          in this field is 0xFFFFFFFF, the size will be in the
+          corresponding 8 byte zip64 extended information extra field.
+
+      file name: (Variable)
+
+          The name of the file, with optional relative path.
+          The path stored should not contain a drive or
+          device letter, or a leading slash.  All slashes
+          should be forward slashes '/' as opposed to
+          backwards slashes '\' for compatibility with Amiga
+          and Unix file systems etc.  If input came from standard
+          input, there is no file name field.  If encrypting
+          the central directory and general purpose bit flag 13 is set
+          indicating masking, the file name stored in the Local Header
+          will not be the actual file name.  A masking value consisting
+          of a unique hexadecimal value will be stored.  This value will
+          be sequentially incremented for each file in the archive.  See
+          the section on the Strong Encryption Specification for details
+          on retrieving the encrypted file name.
+         [Info-ZIP discrepancy:
+          If input came from standard input, the file name is set
+          to "-" (without the quotes).
+          As far as we know, the PKWARE specification for "input from
+          stdin" is not supported by PKZIP/PKUNZIP for DOS, OS/2, Windows
+          Windows NT.]
+
+      extra field: (Variable)
+
+          This is for expansion.  If additional information
+          needs to be stored for special needs or for specific
+          platforms, it should be stored here.  Earlier versions
+          of the software can then safely skip this file, and
+          find the next file or header.  This field will be 0
+          length in version 1.0.
+
+          In order to allow different programs and different types
+          of information to be stored in the 'extra' field in .ZIP
+          files, the following structure should be used for all
+          programs storing data in this field:
+
+          header1+data1 + header2+data2 . . .
+
+          Each header should consist of:
+
+            Header ID - 2 bytes
+            Data Size - 2 bytes
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          The Header ID field indicates the type of data that is in
+          the following data block.
+
+          Header ID's of 0 thru 31 are reserved for use by PKWARE.
+          The remaining ID's can be used by third party vendors for
+          proprietary usage.
+
+          The current Header ID mappings defined by PKWARE are:
+
+          0x0001        ZIP64 extended information extra field
+          0x0007        AV Info
+          0x0008        Reserved for future Unicode file name data (PFS)
+          0x0009        OS/2 extended attributes      (also Info-ZIP)
+          0x000a        NTFS (Win9x/WinNT FileTimes)
+          0x000c        OpenVMS                       (also Info-ZIP)
+          0x000d        Unix
+          0x000e        Reserved for file stream and fork descriptors
+          0x000f        Patch Descriptor
+          0x0014        PKCS#7 Store for X.509 Certificates
+          0x0015        X.509 Certificate ID and Signature for
+                        individual file
+          0x0016        X.509 Certificate ID for Central Directory
+          0x0017        Strong Encryption Header
+          0x0018        Record Management Controls
+          0x0019        PKCS#7 Encryption Recipient Certificate List
+          0x0065        IBM S/390 (Z390), AS/400 (I400) attributes
+                        - uncompressed
+          0x0066        Reserved for IBM S/390 (Z390), AS/400 (I400)
+                        attributes - compressed
+
+          The Header ID mappings defined by Info-ZIP and third parties are:
+
+          0x07c8        Info-ZIP Macintosh (old, J. Lee)
+          0x2605        ZipIt Macintosh (first version)
+          0x2705        ZipIt Macintosh v 1.3.5 and newer (w/o full filename)
+          0x2805        ZipIt Macintosh 1.3.5+
+          0x334d        Info-ZIP Macintosh (new, D. Haase's 'Mac3' field)
+          0x4154        Tandem NSK
+          0x4341        Acorn/SparkFS (David Pilling)
+          0x4453        Windows NT security descriptor (binary ACL)
+          0x4704        VM/CMS
+          0x470f        MVS
+          0x4854        Theos, old inofficial port
+          0x4b46        FWKCS MD5 (see below)
+          0x4c41        OS/2 access control list (text ACL)
+          0x4d49        Info-ZIP OpenVMS (obsolete)
+          0x4d63        Macintosh SmartZIP, by Macro Bambini
+          0x4f4c        Xceed original location extra field
+          0x5356        AOS/VS (binary ACL)
+          0x5455        extended timestamp
+          0x554e        Xceed unicode extra field
+          0x5855        Info-ZIP Unix (original; also OS/2, NT, etc.)
+          0x6542        BeOS (BeBox, PowerMac, etc.)
+          0x6854        Theos
+          0x7441        AtheOS (AtheOS/Syllable attributes)
+          0x756e        ASi Unix
+          0x7855        Info-ZIP Unix (new)
+          0xfb4a        SMS/QDOS
+
+          Detailed descriptions of Extra Fields defined by third
+          party mappings will be documented as information on
+          these data structures is made available to PKWARE.
+          PKWARE does not guarantee the accuracy of any published
+          third party data.
+
+          The Data Size field indicates the size of the following
+          data block. Programs can use this value to skip to the
+          next header block, passing over any data blocks that are
+          not of interest.
+
+          Note: As stated above, the size of the entire .ZIP file
+                header, including the file name, comment, and extra
+                field should not exceed 64K in size.
+
+          In case two different programs should appropriate the same
+          Header ID value, it is strongly recommended that each
+          program place a unique signature of at least two bytes in
+          size (and preferably 4 bytes or bigger) at the start of
+          each data area.  Every program should verify that its
+          unique signature is present, in addition to the Header ID
+          value being correct, before assuming that it is a block of
+          known type.
+
+          In the following descriptions, note that "Short" means two bytes,
+          "Long" means four bytes, and "Long-Long" means eight bytes,
+          regardless of their native sizes.  Unless specifically noted, all
+          integer fields should be interpreted as unsigned (non-negative)
+          numbers.
+
+
+         -ZIP64 Extended Information Extra Field (0x0001):
+          ===============================================
+
+          The following is the layout of the ZIP64 extended
+          information "extra" block. If one of the size or
+          offset fields in the Local or Central directory
+          record is too small to hold the required data,
+          a ZIP64 extended information record is created.
+          The order of the fields in the ZIP64 extended
+          information record is fixed, but the fields will
+          only appear if the corresponding Local or Central
+          directory record field is set to 0xFFFF or 0xFFFFFFFF.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value      Size       Description
+          -----      ----       -----------
+  (ZIP64) 0x0001     2 bytes    Tag for this "extra" block type
+          Size       2 bytes    Size of this "extra" block
+          Original
+          Size       8 bytes    Original uncompressed file size
+          Compressed
+          Size       8 bytes    Size of compressed data
+          Relative Header
+          Offset     8 bytes    Offset of local header record
+          Disk Start
+          Number     4 bytes    Number of the disk on which
+                                this file starts
+
+          This entry in the Local header must include BOTH original
+          and compressed file sizes.
+
+
+         -OS/2 Extended Attributes Extra Field (0x0009):
+          =============================================
+
+          The following is the layout of the OS/2 extended attributes "extra"
+          block.  (Last Revision 19960922)
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (OS/2)  0x0009        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed EA data size
+          CType         Short       compression type
+          EACRC         Long        CRC value for uncompressed EA data
+          (var.)        variable    compressed EA data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (OS/2)  0x0009        Short       tag for this extra block type
+          TSize         Short       total data size for this block (4)
+          BSize         Long        size of uncompressed local EA data
+
+          The value of CType is interpreted according to the "compression
+          method" section above; i.e., 0 for stored, 8 for deflated, etc.
+
+          The OS/2 extended attribute structure (FEA2LIST) is
+          compressed and then stored in its entirety within this
+          structure.  There will only ever be one "block" of data in
+          the variable-length field.
+
+
+         -OS/2 Access Control List Extra Field:
+          ====================================
+
+          The following is the layout of the OS/2 ACL extra block.
+          (Last Revision 19960922)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (ACL)   0x4c41        Short       tag for this extra block type ("AL")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed ACL data size
+          CType         Short       compression type
+          EACRC         Long        CRC value for uncompressed ACL data
+          (var.)        variable    compressed ACL data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (ACL)   0x4c41        Short       tag for this extra block type ("AL")
+          TSize         Short       total data size for this block (4)
+          BSize         Long        size of uncompressed local ACL data
+
+          The value of CType is interpreted according to the "compression
+          method" section above; i.e., 0 for stored, 8 for deflated, etc.
+
+          The uncompressed ACL data consist of a text header of the form
+          "ACL1:%hX,%hd\n", where the first field is the OS/2 ACCINFO acc_attr
+          member and the second is acc_count, followed by acc_count strings
+          of the form "%s,%hx\n", where the first field is acl_ugname (user
+          group name) and the second acl_access.  This block type will be
+          extended for other operating systems as needed.
+
+
+         -Windows NT Security Descriptor Extra Field (0x4453):
+          ===================================================
+
+          The following is the layout of the NT Security Descriptor (another
+          type of ACL) extra block.  (Last Revision 19960922)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (SD)    0x4453        Short       tag for this extra block type ("SD")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed SD data size
+          Version       Byte        version of uncompressed SD data format
+          CType         Short       compression type
+          EACRC         Long        CRC value for uncompressed SD data
+          (var.)        variable    compressed SD data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (SD)    0x4453        Short       tag for this extra block type ("SD")
+          TSize         Short       total data size for this block (4)
+          BSize         Long        size of uncompressed local SD data
+
+          The value of CType is interpreted according to the "compression
+          method" section above; i.e., 0 for stored, 8 for deflated, etc.
+          Version specifies how the compressed data are to be interpreted
+          and allows for future expansion of this extra field type.  Currently
+          only version 0 is defined.
+
+          For version 0, the compressed data are to be interpreted as a single
+          valid Windows NT SECURITY_DESCRIPTOR data structure, in self-relative
+          format.
+
+
+         -PKWARE Win95/WinNT Extra Field (0x000a):
+          =======================================
+
+          The following description covers PKWARE's "NTFS" attributes
+          "extra" block, introduced with the release of PKZIP 2.50 for
+          Windows. (Last Revision 20001118)
+
+          (Note: At this time the Mtime, Atime and Ctime values may
+          be used on any WIN32 system.)
+         [Info-ZIP note: In the current implementations, this field has
+          a fixed total data size of 32 bytes and is only stored as local
+          extra field.]
+
+          Value         Size        Description
+          -----         ----        -----------
+  (NTFS)  0x000a        Short       Tag for this "extra" block type
+          TSize         Short       Total Data Size for this block
+          Reserved      Long        for future use
+          Tag1          Short       NTFS attribute tag value #1
+          Size1         Short       Size of attribute #1, in bytes
+          (var.)        SubSize1    Attribute #1 data
+          .
+          .
+          .
+          TagN          Short       NTFS attribute tag value #N
+          SizeN         Short       Size of attribute #N, in bytes
+          (var.)        SubSizeN    Attribute #N data
+
+          For NTFS, values for Tag1 through TagN are as follows:
+          (currently only one set of attributes is defined for NTFS)
+
+          Tag        Size       Description
+          -----      ----       -----------
+          0x0001     2 bytes    Tag for attribute #1
+          Size1      2 bytes    Size of attribute #1, in bytes (24)
+          Mtime      8 bytes    64-bit NTFS file last modification time
+          Atime      8 bytes    64-bit NTFS file last access time
+          Ctime      8 bytes    64-bit NTFS file creation time
+
+          The total length for this block is 28 bytes, resulting in a
+          fixed size value of 32 for the TSize field of the NTFS block.
+
+          The NTFS filetimes are 64-bit unsigned integers, stored in Intel
+          (least significant byte first) byte order. They determine the
+          number of 1.0E-07 seconds (1/10th microseconds!) past WinNT "epoch",
+          which is "01-Jan-1601 00:00:00 UTC".
+
+
+         -PKWARE OpenVMS Extra Field (0x000c):
+          ===================================
+
+          The following is the layout of PKWARE's OpenVMS attributes
+          "extra" block.  (Last Revision 12/17/91)
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value         Size        Description
+          -----         ----        -----------
+  (VMS)   0x000c        Short       Tag for this "extra" block type
+          TSize         Short       Total Data Size for this block
+          CRC           Long        32-bit CRC for remainder of the block
+          Tag1          Short       OpenVMS attribute tag value #1
+          Size1         Short       Size of attribute #1, in bytes
+          (var.)        Size1       Attribute #1 data
+          .
+          .
+          .
+          TagN          Short       OpenVMS attribute tage value #N
+          SizeN         Short       Size of attribute #N, in bytes
+          (var.)        SizeN       Attribute #N data
+
+          Rules:
+
+          1. There will be one or more of attributes present, which
+             will each be preceded by the above TagX & SizeX values.
+             These values are identical to the ATR$C_XXXX and
+             ATR$S_XXXX constants which are defined in ATR.H under
+             OpenVMS C.  Neither of these values will ever be zero.
+
+          2. No word alignment or padding is performed.
+
+          3. A well-behaved PKZIP/OpenVMS program should never produce
+             more than one sub-block with the same TagX value.  Also,
+             there will never be more than one "extra" block of type
+             0x000c in a particular directory record.
+
+
+         -Info-ZIP VMS Extra Field:
+          ========================
+
+          The following is the layout of Info-ZIP's VMS attributes extra
+          block for VAX or Alpha AXP.  The local-header and central-header
+          versions are identical.  (Last Revision 19960922)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (VMS2)  0x4d49        Short       tag for this extra block type ("JM")
+          TSize         Short       total data size for this block
+          ID            Long        block ID
+          Flags         Short       info bytes
+          BSize         Short       uncompressed block size
+          Reserved      Long        (reserved)
+          (var.)        variable    compressed VMS file-attributes block
+
+          The block ID is one of the following unterminated strings:
+
+                "VFAB"          struct FAB
+                "VALL"          struct XABALL
+                "VFHC"          struct XABFHC
+                "VDAT"          struct XABDAT
+                "VRDT"          struct XABRDT
+                "VPRO"          struct XABPRO
+                "VKEY"          struct XABKEY
+                "VMSV"          version (e.g., "V6.1"; truncated at hyphen)
+                "VNAM"          reserved
+
+          The lower three bits of Flags indicate the compression method.  The
+          currently defined methods are:
+
+                0       stored (not compressed)
+                1       simple "RLE"
+                2       deflated
+
+          The "RLE" method simply replaces zero-valued bytes with zero-valued
+          bits and non-zero-valued bytes with a "1" bit followed by the byte
+          value.
+
+          The variable-length compressed data contains only the data corre-
+          sponding to the indicated structure or string.  Typically multiple
+          VMS2 extra fields are present (each with a unique block type).
+
+
+         -Info-ZIP Macintosh Extra Field:
+          ==============================
+
+          The following is the layout of the (old) Info-ZIP resource-fork extra
+          block for Macintosh.  The local-header and central-header versions
+          are identical.  (Last Revision 19960922)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac)   0x07c8        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          "JLEE"        beLong      extra-field signature
+          FInfo         16 bytes    Macintosh FInfo structure
+          CrDat         beLong      HParamBlockRec fileParam.ioFlCrDat
+          MdDat         beLong      HParamBlockRec fileParam.ioFlMdDat
+          Flags         beLong      info bits
+          DirID         beLong      HParamBlockRec fileParam.ioDirID
+          VolName       28 bytes    volume name (optional)
+
+          All fields but the first two are in native Macintosh format
+          (big-endian Motorola order, not little-endian Intel).  The least
+          significant bit of Flags is 1 if the file is a data fork, 0 other-
+          wise.  In addition, if this extra field is present, the filename
+          has an extra 'd' or 'r' appended to indicate data fork or resource
+          fork.  The 28-byte VolName field may be omitted.
+
+
+         -ZipIt Macintosh Extra Field (long):
+          ==================================
+
+          The following is the layout of the ZipIt extra block for Macintosh.
+          The local-header and central-header versions are identical.
+          (Last Revision 19970130)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac2)  0x2605        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          "ZPIT"        beLong      extra-field signature
+          FnLen         Byte        length of FileName
+          FileName      variable    full Macintosh filename
+          FileType      Byte[4]     four-byte Mac file type string
+          Creator       Byte[4]     four-byte Mac creator string
+
+
+         -ZipIt Macintosh Extra Field (short, for files):
+          ==============================================
+
+          The following is the layout of a shortened variant of the
+          ZipIt extra block for Macintosh (without "full name" entry).
+          This variant is used by ZipIt 1.3.5 and newer for entries of
+          files (not directories) that do not have a MacBinary encoded
+          file.  The local-header and central-header versions are identical.
+          (Last Revision 20030602)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac2b) 0x2705        Short       tag for this extra block type
+          TSize         Short       total data size for this block (min. 12)
+          "ZPIT"        beLong      extra-field signature
+          FileType      Byte[4]     four-byte Mac file type string
+          Creator       Byte[4]     four-byte Mac creator string
+          fdFlags       beShort     attributes from FInfo.frFlags,
+                                    may be omitted
+          0x0000        beShort     reserved, may be omitted
+
+
+         -ZipIt Macintosh Extra Field (short, for directories):
+          ====================================================
+
+          The following is the layout of a shortened variant of the
+          ZipIt extra block for Macintosh used only for directory
+          entries. This variant is used by ZipIt 1.3.5 and newer to
+          save some optional Mac-specific information about directories.
+          The local-header and central-header versions are identical.
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac2c) 0x2805        Short       tag for this extra block type
+          TSize         Short       total data size for this block (12)
+          "ZPIT"        beLong      extra-field signature
+          frFlags       beShort     attributes from DInfo.frFlags, may
+                                    be omitted
+          View          beShort     ZipIt view flag, may be omitted
+
+
+          The View field specifies ZipIt-internal settings as follows:
+
+          Bits of the Flags:
+              bit 0           if set, the folder is shown expanded (open)
+                              when the archive contents are viewed in ZipIt.
+              bits 1-15       reserved, zero;
+
+
+         -Info-ZIP Macintosh Extra Field (new):
+          ====================================
+
+          The following is the layout of the (new) Info-ZIP extra
+          block for Macintosh, designed by Dirk Haase.
+          All values are in little-endian.
+          (Last Revision 19981005)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac3)  0x334d        Short       tag for this extra block type ("M3")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed finder attribute data size
+          Flags         Short       info bits
+          fdType        Byte[4]     Type of the File (4-byte string)
+          fdCreator     Byte[4]     Creator of the File (4-byte string)
+          (CType)       Short       compression type
+          (CRC)         Long        CRC value for uncompressed MacOS data
+          Attribs       variable    finder attribute data (see below)
+
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Mac3)  0x334d        Short       tag for this extra block type ("M3")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed finder attribute data size
+          Flags         Short       info bits
+          fdType        Byte[4]     Type of the File (4-byte string)
+          fdCreator     Byte[4]     Creator of the File (4-byte string)
+
+          The third bit of Flags in both headers indicates whether
+          the LOCAL extra field is uncompressed (and therefore whether CType
+          and CRC are omitted):
+
+          Bits of the Flags:
+              bit 0           if set, file is a data fork; otherwise unset
+              bit 1           if set, filename will be not changed
+              bit 2           if set, Attribs is uncompressed (no CType, CRC)
+              bit 3           if set, date and times are in 64 bit
+                              if zero date and times are in 32 bit.
+              bit 4           if set, timezone offsets fields for the native
+                              Mac times are omitted (UTC support deactivated)
+              bits 5-15       reserved;
+
+
+          Attributes:
+
+          Attribs is a Mac-specific block of data in little-endian format with
+          the following structure (if compressed, uncompress it first):
+
+          Value         Size        Description
+          -----         ----        -----------
+          fdFlags       Short       Finder Flags
+          fdLocation.v  Short       Finder Icon Location
+          fdLocation.h  Short       Finder Icon Location
+          fdFldr        Short       Folder containing file
+
+          FXInfo        16 bytes    Macintosh FXInfo structure
+            FXInfo-Structure:
+                fdIconID        Short
+                fdUnused[3]     Short       unused but reserved 6 bytes
+                fdScript        Byte        Script flag and number
+                fdXFlags        Byte        More flag bits
+                fdComment       Short       Comment ID
+                fdPutAway       Long        Home Dir ID
+
+          FVersNum      Byte        file version number
+                                    may be not used by MacOS
+          ACUser        Byte        directory access rights
+
+          FlCrDat       ULong       date and time of creation
+          FlMdDat       ULong       date and time of last modification
+          FlBkDat       ULong       date and time of last backup
+            These time numbers are original Mac FileTime values (local time!).
+            Currently, date-time width is 32-bit, but future version may
+            support be 64-bit times (see flags)
+
+          CrGMTOffs     Long(signed!)   difference "local Creat. time - UTC"
+          MdGMTOffs     Long(signed!)   difference "local Modif. time - UTC"
+          BkGMTOffs     Long(signed!)   difference "local Backup time - UTC"
+            These "local time - UTC" differences (stored in seconds) may be
+            used to support timestamp adjustment after inter-timezone transfer.
+            These fields are optional; bit 4 of the flags word controls their
+            presence.
+
+          Charset       Short       TextEncodingBase (Charset)
+                                    valid for the following two fields
+
+          FullPath      variable    Path of the current file.
+                                    Zero terminated string (C-String)
+                                    Currently coded in the native Charset.
+
+          Comment       variable    Finder Comment of the current file.
+                                    Zero terminated string (C-String)
+                                    Currently coded in the native Charset.
+
+
+         -SmartZIP Macintosh Extra Field:
+          ====================================
+
+          The following is the layout of the SmartZIP extra
+          block for Macintosh, designed by Marco Bambini.
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+          0x4d63        Short       tag for this extra block type ("cM")
+          TSize         Short       total data size for this block (64)
+          "dZip"        beLong      extra-field signature
+          fdType        Byte[4]     Type of the File (4-byte string)
+          fdCreator     Byte[4]     Creator of the File (4-byte string)
+          fdFlags       beShort     Finder Flags
+          fdLocation.v  beShort     Finder Icon Location
+          fdLocation.h  beShort     Finder Icon Location
+          fdFldr        beShort     Folder containing file
+          CrDat         beLong      HParamBlockRec fileParam.ioFlCrDat
+          MdDat         beLong      HParamBlockRec fileParam.ioFlMdDat
+          frScroll.v    Byte        vertical pos. of folder's scroll bar
+          fdScript      Byte        Script flag and number
+          frScroll.h    Byte        horizontal pos. of folder's scroll bar
+          fdXFlags      Byte        More flag bits
+          FileName      Byte[32]    full Macintosh filename (pascal string)
+
+          All fields but the first two are in native Macintosh format
+          (big-endian Motorola order, not little-endian Intel).
+          The extra field size is fixed to 64 bytes.
+          The local-header and central-header versions are identical.
+
+
+         -Acorn SparkFS Extra Field:
+          =========================
+
+          The following is the layout of David Pilling's SparkFS extra block
+          for Acorn RISC OS.  The local-header and central-header versions are
+          identical.  (Last Revision 19960922)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Acorn) 0x4341        Short       tag for this extra block type ("AC")
+          TSize         Short       total data size for this block (20)
+          "ARC0"        Long        extra-field signature
+          LoadAddr      Long        load address or file type
+          ExecAddr      Long        exec address
+          Attr          Long        file permissions
+          Zero          Long        reserved; always zero
+
+          The following bits of Attr are associated with the given file
+          permissions:
+
+                bit 0           user-writable ('W')
+                bit 1           user-readable ('R')
+                bit 2           reserved
+                bit 3           locked ('L')
+                bit 4           publicly writable ('w')
+                bit 5           publicly readable ('r')
+                bit 6           reserved
+                bit 7           reserved
+
+
+         -VM/CMS Extra Field:
+          ==================
+
+          The following is the layout of the file-attributes extra block for
+          VM/CMS.  The local-header and central-header versions are
+          identical.  (Last Revision 19960922)
+
+          Value         Size        Description
+          -----         ----        -----------
+ (VM/CMS) 0x4704        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          flData        variable    file attributes data
+
+          flData is an uncompressed fldata_t struct.
+
+
+         -MVS Extra Field:
+          ===============
+
+          The following is the layout of the file-attributes extra block for
+          MVS.  The local-header and central-header versions are identical.
+          (Last Revision 19960922)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (MVS)   0x470f        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          flData        variable    file attributes data
+
+          flData is an uncompressed fldata_t struct.
+
+
+         -PKWARE Unix Extra Field (0x000d):
+          ================================
+
+          The following is the layout of PKWARE's Unix "extra" block.
+          It was introduced with the release of PKZIP for Unix 2.50.
+          Note: all fields are stored in Intel low-byte/high-byte order.
+          (Last Revision 19980901)
+
+          This field has a minimum data size of 12 bytes and is only stored
+          as local extra field.
+
+          Value         Size        Description
+          -----         ----        -----------
+ (Unix0)  0x000d        Short       Tag for this "extra" block type
+          TSize         Short       Total Data Size for this block
+          AcTime        Long        time of last access (UTC/GMT)
+          ModTime       Long        time of last modification (UTC/GMT)
+          UID           Short       Unix user ID
+          GID           Short       Unix group ID
+          (var)         variable    Variable length data field
+
+          The variable length data field will contain file type
+          specific data.  Currently the only values allowed are
+          the original "linked to" file names for hard or symbolic
+          links, and the major and minor device node numbers for
+          character and block device nodes.  Since device nodes
+          cannot be either symbolic or hard links, only one set of
+          variable length data is stored.  Link files will have the
+          name of the original file stored.  This name is NOT NULL
+          terminated.  Its size can be determined by checking TSize -
+          12.  Device entries will have eight bytes stored as two 4
+          byte entries (in little-endian format).  The first entry
+          will be the major device number, and the second the minor
+          device number.
+
+         [Info-ZIP note: The fixed part of this field has the same layout as
+          Info-ZIP's abandoned "Unix1 timestamps & owner ID info" extra field;
+          only the two tag bytes are different.]
+
+
+         -PATCH Descriptor Extra Field (0x000f):
+          =====================================
+
+          The following is the layout of the Patch Descriptor "extra"
+          block.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Patch) 0x000f        Short       Tag for this "extra" block type
+          TSize         Short       Size of the total "extra" block
+          Version       Short       Version of the descriptor
+          Flags         Long        Actions and reactions (see below)
+          OldSize       Long        Size of the file about to be patched
+          OldCRC        Long        32-bit CRC of the file about to be patched
+          NewSize       Long        Size of the resulting file
+          NewCRC        Long        32-bit CRC of the resulting file
+
+
+          Actions and reactions
+
+          Bits          Description
+          ----          ----------------
+          0             Use for auto detection
+          1             Treat as a self-patch
+          2-3           RESERVED
+          4-5           Action (see below)
+          6-7           RESERVED
+          8-9           Reaction (see below) to absent file
+          10-11         Reaction (see below) to newer file
+          12-13         Reaction (see below) to unknown file
+          14-15         RESERVED
+          16-31         RESERVED
+
+          Actions
+
+          Action       Value
+          ------       -----
+          none         0
+          add          1
+          delete       2
+          patch        3
+
+          Reactions
+
+          Reaction     Value
+          --------     -----
+          ask          0
+          skip         1
+          ignore       2
+          fail         3
+
+          Patch support is provided by PKPatchMaker(tm) technology and is
+          covered under U.S. Patents and Patents Pending.
+
+
+         -PKCS#7 Store for X.509 Certificates (0x0014):
+          ============================================
+
+          This field contains information about each of the certificates
+          files may be signed with.  When the Central Directory Encryption
+          feature is enabled for a ZIP file, this record will appear in
+          the Archive Extra Data Record, otherwise it will appear in the
+          first central directory record and will be ignored in any
+          other record.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value     Size     Description
+          -----     ----     -----------
+  (Store) 0x0014    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of the store data
+          SData     TSize    Data about the store
+
+          SData
+          Value     Size        Description
+          -----     ----        -----------
+          Version   2 bytes     Version number, 0x0001 for now
+          StoreD    (variable)  Actual store data
+
+          The StoreD member is suitable for passing as the pbData
+          member of a CRYPT_DATA_BLOB to the CertOpenStore() function
+          in Microsoft's CryptoAPI.  The SSize member above will be
+          cbData + 6, where cbData is the cbData member of the same
+          CRYPT_DATA_BLOB.  The encoding type to pass to
+          CertOpenStore() should be
+          PKCS_7_ANS_ENCODING | X509_ASN_ENCODING.
+
+
+         -X.509 Certificate ID and Signature for individual file (0x0015):
+          ===============================================================
+
+          This field contains the information about which certificate in
+          the PKCS#7 store was used to sign a particular file.  It also
+          contains the signature data.  This field can appear multiple
+          times, but can only appear once per certificate.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value         Size        Description
+          -----         ----        -----------
+  (CID)   0x0015        2 bytes     Tag for this "extra" block type
+          CSize         2 bytes     Size of Method
+          Method        (variable)
+
+          Method
+          Value         Size        Description
+          -----         ----        -----------
+          Version       2 bytes     Version number, for now 0x0001
+          AlgID         2 bytes     Algorithm ID used for signing
+          IDSize        2 bytes     Size of Certificate ID data
+          CertID        (variable)  Certificate ID data
+          SigSize       2 bytes     Size of Signature data
+          Sig           (variable)  Signature data
+
+          CertID
+          Value         Size        Description
+          -----         ----        -----------
+          Size1         4 bytes     Size of CertID, should be (IDSize - 4)
+          Size1         4 bytes     A bug in version one causes this value
+                                    to appear twice.
+          IssSize       4 bytes     Issuer data size
+          Issuer        (variable)  Issuer data
+          SerSize       4 bytes     Serial Number size
+          Serial        (variable)  Serial Number data
+
+          The Issuer and IssSize members are suitable for creating a
+          CRYPT_DATA_BLOB to be the Issuer member of a CERT_INFO
+          struct. The Serial and SerSize members would be the
+          SerialNumber member of the same CERT_INFO struct.  This
+          struct would be used to find the certificate in the store
+          the file was signed with.  Those structures are from the MS
+          CryptoAPI.
+
+          Sig and SigSize are the actual signature data and size
+          generated by signing the file with the MS CryptoAPI using a
+          hash created with the given AlgID.
+
+
+         -X.509 Certificate ID and Signature for central directory (0x0016):
+          =================================================================
+
+          This field contains the information about which certificate in
+          the PKCS#7 store was used to sign the central directory structure.
+          When the Central Directory Encryption feature is enabled for a
+          ZIP file, this record will appear in the Archive Extra Data Record,
+          otherwise it will appear in the first central directory record,
+          along with the store.  The data structure is the
+          same as the CID, except that SigSize will be 0, and there
+          will be no Sig member.
+
+          This field is also kept after the last central directory
+          record, as the signature data (ID 0x05054b50, it looks like
+          a central directory record of a different type).  This
+          second copy of the data is the Signature Data member of the
+          record, and will have a SigSize that is non-zero, and will
+          have Sig data.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value     Size     Description
+          -----     ----     -----------
+  (CDID)  0x0016    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of data that follows
+          TData     TSize    Data
+
+
+         -Strong Encryption Header (0x0017) (EFS):
+          ===============================
+
+          Value     Size     Description
+          -----     ----     -----------
+          0x0017    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of data that follows
+          Format    2 bytes  Format definition for this record
+          AlgID     2 bytes  Encryption algorithm identifier
+          Bitlen    2 bytes  Bit length of encryption key
+          Flags     2 bytes  Processing flags
+          CertData  TSize-8  Certificate decryption extra field data
+                             (refer to the explanation for CertData
+                              in the section describing the
+                              Certificate Processing Method under
+                              the Strong Encryption Specification)
+
+
+         -Record Management Controls (0x0018):
+          ===================================
+
+          Value     Size     Description
+          -----     ----     -----------
+(Rec-CTL) 0x0018    2 bytes  Tag for this "extra" block type
+          CSize     2 bytes  Size of total extra block data
+          Tag1      2 bytes  Record control attribute 1
+          Size1     2 bytes  Size of attribute 1, in bytes
+          Data1     Size1    Attribute 1 data
+            .
+            .
+            .
+          TagN      2 bytes  Record control attribute N
+          SizeN     2 bytes  Size of attribute N, in bytes
+          DataN     SizeN    Attribute N data
+
+
+         -PKCS#7 Encryption Recipient Certificate List (0x0019): (EFS)
+          =====================================================
+
+          This field contains the information about each of the certificates
+          that files may be encrypted with. This field should only appear
+          in the archive extra data record. This field is not required and
+          serves only to aide archive modifications by preserving public
+          encryption data. Individual security requirements may dictate
+          that this data be omitted to deter information exposure.
+
+          Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value     Size     Description
+          -----     ----     -----------
+ (CStore) 0x0019    2 bytes  Tag for this "extra" block type
+          TSize     2 bytes  Size of the store data
+          TData     TSize    Data about the store
+
+          TData:
+
+          Value     Size     Description
+          -----     ----     -----------
+          Version   2 bytes  Format version number - must 0x0001 at this time
+          CStore    (var)    PKCS#7 data blob
+
+
+         -MVS Extra Field (PKWARE, 0x0065):
+          ================================
+
+          The following is the layout of the MVS "extra" block.
+          Note: Some fields are stored in Big Endian format.
+          All text is in EBCDIC format unless otherwise specified.
+
+          Value       Size          Description
+          -----       ----          -----------
+  (MVS)   0x0065      2 bytes       Tag for this "extra" block type
+          TSize       2 bytes       Size for the following data block
+          ID          4 bytes       EBCDIC "Z390" 0xE9F3F9F0 or
+                                    "T4MV" for TargetFour
+          (var)       TSize-4       Attribute data
+
+
+         -OS/400 Extra Field (0x0065):
+          ===========================
+
+          The following is the layout of the OS/400 "extra" block.
+          Note: Some fields are stored in Big Endian format.
+          All text is in EBCDIC format unless otherwise specified.
+
+          Value       Size          Description
+          -----       ----          -----------
+  (OS400) 0x0065      2 bytes       Tag for this "extra" block type
+          TSize       2 bytes       Size for the following data block
+          ID          4 bytes       EBCDIC "I400" 0xC9F4F0F0 or
+                                    "T4MV" for TargetFour
+          (var)       TSize-4       Attribute data
+
+
+         -Extended Timestamp Extra Field:
+          ==============================
+
+          The following is the layout of the extended-timestamp extra block.
+          (Last Revision 19970118)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (time)  0x5455        Short       tag for this extra block type ("UT")
+          TSize         Short       total data size for this block
+          Flags         Byte        info bits
+          (ModTime)     Long        time of last modification (UTC/GMT)
+          (AcTime)      Long        time of last access (UTC/GMT)
+          (CrTime)      Long        time of original creation (UTC/GMT)
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (time)  0x5455        Short       tag for this extra block type ("UT")
+          TSize         Short       total data size for this block
+          Flags         Byte        info bits (refers to local header!)
+          (ModTime)     Long        time of last modification (UTC/GMT)
+
+          The central-header extra field contains the modification time only,
+          or no timestamp at all.  TSize is used to flag its presence or
+          absence.  But note:
+
+              If "Flags" indicates that Modtime is present in the local header
+              field, it MUST be present in the central header field, too!
+              This correspondence is required because the modification time
+              value may be used to support trans-timezone freshening and
+              updating operations with zip archives.
+
+          The time values are in standard Unix signed-long format, indicating
+          the number of seconds since 1 January 1970 00:00:00.  The times
+          are relative to Coordinated Universal Time (UTC), also sometimes
+          referred to as Greenwich Mean Time (GMT).  To convert to local time,
+          the software must know the local timezone offset from UTC/GMT.
+
+          The lower three bits of Flags in both headers indicate which time-
+          stamps are present in the LOCAL extra field:
+
+                bit 0           if set, modification time is present
+                bit 1           if set, access time is present
+                bit 2           if set, creation time is present
+                bits 3-7        reserved for additional timestamps; not set
+
+          Those times that are present will appear in the order indicated, but
+          any combination of times may be omitted.  (Creation time may be
+          present without access time, for example.)  TSize should equal
+          (1 + 4*(number of set bits in Flags)), as the block is currently
+          defined.  Other timestamps may be added in the future.
+
+
+         -Info-ZIP Unix Extra Field (type 1):
+          ==================================
+
+          The following is the layout of the old Info-ZIP extra block for
+          Unix.  It has been replaced by the extended-timestamp extra block
+          (0x5455) and the Unix type 2 extra block (0x7855).
+          (Last Revision 19970118)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Unix1) 0x5855        Short       tag for this extra block type ("UX")
+          TSize         Short       total data size for this block
+          AcTime        Long        time of last access (UTC/GMT)
+          ModTime       Long        time of last modification (UTC/GMT)
+          UID           Short       Unix user ID (optional)
+          GID           Short       Unix group ID (optional)
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Unix1) 0x5855        Short       tag for this extra block type ("UX")
+          TSize         Short       total data size for this block
+          AcTime        Long        time of last access (GMT/UTC)
+          ModTime       Long        time of last modification (GMT/UTC)
+
+          The file access and modification times are in standard Unix signed-
+          long format, indicating the number of seconds since 1 January 1970
+          00:00:00.  The times are relative to Coordinated Universal Time
+          (UTC), also sometimes referred to as Greenwich Mean Time (GMT).  To
+          convert to local time, the software must know the local timezone
+          offset from UTC/GMT.  The modification time may be used by non-Unix
+          systems to support inter-timezone freshening and updating of zip
+          archives.
+
+          The local-header extra block may optionally contain UID and GID
+          info for the file.  The local-header TSize value is the only
+          indication of this.  Note that Unix UIDs and GIDs are usually
+          specific to a particular machine, and they generally require root
+          access to restore.
+
+          This extra field type is obsolete, but it has been in use since
+          mid-1994.  Therefore future archiving software should continue to
+          support it.  Some guidelines:
+
+              An archive member should either contain the old "Unix1"
+              extra field block or the new extra field types "time" and/or
+              "Unix2".
+
+              If both the old "Unix1" block type and one or both of the new
+              block types "time" and "Unix2" are found, the "Unix1" block
+              should be considered invalid and ignored.
+
+              Unarchiving software should recognize both old and new extra
+              field block types, but the info from new types overrides the
+              old "Unix1" field.
+
+              Archiving software should recognize "Unix1" extra fields for
+              timestamp comparison but never create it for updated, freshened
+              or new archive members.  When copying existing members to a new
+              archive, any "Unix1" extra field blocks should be converted to
+              the new "time" and/or "Unix2" types.
+
+
+         -Info-ZIP Unix Extra Field (type 2):
+          ==================================
+
+          The following is the layout of the new Info-ZIP extra block for
+          Unix.  (Last Revision 19960922)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Unix2) 0x7855        Short       tag for this extra block type ("Ux")
+          TSize         Short       total data size for this block (4)
+          UID           Short       Unix user ID
+          GID           Short       Unix group ID
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Unix2) 0x7855        Short       tag for this extra block type ("Ux")
+          TSize         Short       total data size for this block (0)
+
+          The data size of the central-header version is zero; it is used
+          solely as a flag that UID/GID info is present in the local-header
+          extra field.  If additional fields are ever added to the local
+          version, the central version may be extended to indicate this.
+
+          Note that Unix UIDs and GIDs are usually specific to a particular
+          machine, and they generally require root access to restore.
+
+
+         -ASi Unix Extra Field:
+          ====================
+
+          The following is the layout of the ASi extra block for Unix.  The
+          local-header and central-header versions are identical.
+          (Last Revision 19960916)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Unix3) 0x756e        Short       tag for this extra block type ("nu")
+          TSize         Short       total data size for this block
+          CRC           Long        CRC-32 of the remaining data
+          Mode          Short       file permissions
+          SizDev        Long        symlink'd size OR major/minor dev num
+          UID           Short       user ID
+          GID           Short       group ID
+          (var.)        variable    symbolic link filename
+
+          Mode is the standard Unix st_mode field from struct stat, containing
+          user/group/other permissions, setuid/setgid and symlink info, etc.
+
+          If Mode indicates that this file is a symbolic link, SizDev is the
+          size of the file to which the link points.  Otherwise, if the file
+          is a device, SizDev contains the standard Unix st_rdev field from
+          struct stat (includes the major and minor numbers of the device).
+          SizDev is undefined in other cases.
+
+          If Mode indicates that the file is a symbolic link, the final field
+          will be the name of the file to which the link points.  The file-
+          name length can be inferred from TSize.
+
+          [Note that TSize may incorrectly refer to the data size not counting
+           the CRC; i.e., it may be four bytes too small.]
+
+
+         -BeOS Extra Field:
+          ================
+
+          The following is the layout of the file-attributes extra block for
+          BeOS.  (Last Revision 19970531)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (BeOS)  0x6542        Short       tag for this extra block type ("Be")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed file attribute data size
+          Flags         Byte        info bits
+          (CType)       Short       compression type
+          (CRC)         Long        CRC value for uncompressed file attribs
+          Attribs       variable    file attribute data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (BeOS)  0x6542        Short       tag for this extra block type ("Be")
+          TSize         Short       total data size for this block (5)
+          BSize         Long        size of uncompr. local EF block data
+          Flags         Byte        info bits
+
+          The least significant bit of Flags in both headers indicates whether
+          the LOCAL extra field is uncompressed (and therefore whether CType
+          and CRC are omitted):
+
+                bit 0           if set, Attribs is uncompressed (no CType, CRC)
+                bits 1-7        reserved; if set, assume error or unknown data
+
+          Currently the only supported compression types are deflated (type 8)
+          and stored (type 0); the latter is not used by Info-ZIP's Zip but is
+          supported by UnZip.
+
+          Attribs is a BeOS-specific block of data in big-endian format with
+          the following structure (if compressed, uncompress it first):
+
+              Value     Size        Description
+              -----     ----        -----------
+              Name      variable    attribute name (null-terminated string)
+              Type      Long        attribute type (32-bit unsigned integer)
+              Size      Long Long   data size for this sub-block (64 bits)
+              Data      variable    attribute data
+
+          The attribute structure is repeated for every attribute.  The Data
+          field may contain anything--text, flags, bitmaps, etc.
+
+
+         -AtheOS Extra Field:
+          ==================
+
+          The following is the layout of the file-attributes extra block for
+          AtheOS.  This field is a very close spin-off from the BeOS e.f.
+          The only differences are:
+           - a new extra field signature
+           - numeric field in the attributes data are stored in little-endian
+             format ("i386" was initial hardware for AtheOS)
+          (Last Revision 20040908)
+
+          Local-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+ (AtheOS) 0x7441        Short       tag for this extra block type ("At")
+          TSize         Short       total data size for this block
+          BSize         Long        uncompressed file attribute data size
+          Flags         Byte        info bits
+          (CType)       Short       compression type
+          (CRC)         Long        CRC value for uncompressed file attribs
+          Attribs       variable    file attribute data
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+ (AtheOS) 0x7441        Short       tag for this extra block type ("At")
+          TSize         Short       total data size for this block (5)
+          BSize         Long        size of uncompr. local EF block data
+          Flags         Byte        info bits
+
+          The least significant bit of Flags in both headers indicates whether
+          the LOCAL extra field is uncompressed (and therefore whether CType
+          and CRC are omitted):
+
+                bit 0           if set, Attribs is uncompressed (no CType, CRC)
+                bits 1-7        reserved; if set, assume error or unknown data
+
+          Currently the only supported compression types are deflated (type 8)
+          and stored (type 0); the latter is not used by Info-ZIP's Zip but is
+          supported by UnZip.
+
+          Attribs is a AtheOS-specific block of data in little-endian format
+          with the following structure (if compressed, uncompress it first):
+
+              Value     Size        Description
+              -----     ----        -----------
+              Name      variable    attribute name (null-terminated string)
+              Type      Long        attribute type (32-bit unsigned integer)
+              Size      Long Long   data size for this sub-block (64 bits)
+              Data      variable    attribute data
+
+          The attribute structure is repeated for every attribute.  The Data
+          field may contain anything--text, flags, bitmaps, etc.
+
+
+         -SMS/QDOS Extra Field:
+          ====================
+
+          The following is the layout of the file-attributes extra block for
+          SMS/QDOS.  The local-header and central-header versions are identical.
+          (Last Revision 19960929)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (QDOS)  0xfb4a        Short       tag for this extra block type
+          TSize         Short       total data size for this block
+          LongID        Long        extra-field signature
+          (ExtraID)     Long        additional signature/flag bytes
+          QDirect       64 bytes    qdirect structure
+
+          LongID may be "QZHD" or "QDOS".  In the latter case, ExtraID will
+          be present.  Its first three bytes are "02\0"; the last byte is
+          currently undefined.
+
+          QDirect contains the file's uncompressed directory info (qdirect
+          struct).  Its elements are in native (big-endian) format:
+
+          d_length      beLong          file length
+          d_access      byte            file access type
+          d_type        byte            file type
+          d_datalen     beLong          data length
+          d_reserved    beLong          unused
+          d_szname      beShort         size of filename
+          d_name        36 bytes        filename
+          d_update      beLong          time of last update
+          d_refdate     beLong          file version number
+          d_backup      beLong          time of last backup (archive date)
+
+
+         -AOS/VS Extra Field:
+          ==================
+
+          The following is the layout of the extra block for Data General
+          AOS/VS.  The local-header and central-header versions are identical.
+          (Last Revision 19961125)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (AOSVS) 0x5356        Short       tag for this extra block type ("VS")
+          TSize         Short       total data size for this block
+          "FCI\0"       Long        extra-field signature
+          Version       Byte        version of AOS/VS extra block (10 = 1.0)
+          Fstat         variable    fstat packet
+          AclBuf        variable    raw ACL data ($MXACL bytes)
+
+          Fstat contains the file's uncompressed fstat packet, which is one of
+          the following:
+
+                normal fstat packet             (P_FSTAT struct)
+                DIR/CPD fstat packet            (P_FSTAT_DIR struct)
+                unit (device) fstat packet      (P_FSTAT_UNIT struct)
+                IPC file fstat packet           (P_FSTAT_IPC struct)
+
+          AclBuf contains the raw ACL data; its length is $MXACL.
+
+
+         -Tandem NSK Extra Field:
+          ======================
+
+          The following is the layout of the file-attributes extra block for
+          Tandem NSK.  The local-header and central-header versions are
+          identical.  (Last Revision 19981221)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (TA)    0x4154        Short       tag for this extra block type ("TA")
+          TSize         Short       total data size for this block (20)
+          NSKattrs      20 Bytes    NSK attributes
+
+
+         -THEOS Extra Field:
+          =================
+
+          The following is the layout of the file-attributes extra block for
+          Theos.  The local-header and central-header versions are identical.
+          (Last Revision 19990206)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (Theos) 0x6854        Short       'Th' signature
+          size          Short       size of extra block
+          flags         Byte        reserved for future use
+          filesize      Long        file size
+          fileorg       Byte        type of file (see below)
+          keylen        Short       key length for indexed and keyed files,
+                                    data segment size for 16 bits programs
+          reclen        Short       record length for indexed,keyed and direct,
+                                    text segment size for 16 bits programs
+          filegrow      Byte        growing factor for indexed,keyed and direct
+          protect       Byte        protections (see below)
+          reserved      Short       reserved for future use
+
+            File types
+            ==========
+
+            0x80  library (keyed access list of files)
+            0x40  directory
+            0x10  stream file
+            0x08  direct file
+            0x04  keyed file
+            0x02  indexed file
+            0x0e  reserved
+            0x01  16 bits real mode program (obsolete)
+            0x21  16 bits protected mode program
+            0x41  32 bits protected mode program
+
+            Protection codes
+            ================
+
+            User protection
+            ---------------
+            0x01  non readable
+            0x02  non writable
+            0x04  non executable
+            0x08  non erasable
+
+            Other protection
+            ----------------
+            0x10  non readable
+            0x20  non writable
+            0x40  non executable Theos before 4.0
+            0x40  modified Theos 4.x
+            0x80  not hidden
+
+
+         -THEOS old inofficial Extra Field:
+          ================================
+
+          The following is the layout of an inoffical former version of a
+          Theos file-attributes extra blocks.  This layout was never published
+          and is no longer created. However, UnZip can optionally support it
+          when compiling with the option flag OLD_THEOS_EXTRA defined.
+          Both the local-header and central-header versions are identical.
+          (Last Revision 19990206)
+
+          Value         Size        Description
+          -----         ----        -----------
+  (THS0)  0x4854        Short       'TH' signature
+          size          Short       size of extra block
+          flags         Short       reserved for future use
+          filesize      Long        file size
+          reclen        Short       record length for indexed,keyed and direct,
+                                    text segment size for 16 bits programs
+          keylen        Short       key length for indexed and keyed files,
+                                    data segment size for 16 bits programs
+          filegrow      Byte        growing factor for indexed,keyed and direct
+          reserved      3 Bytes     reserved for future use
+
+
+         -FWKCS MD5 Extra Field (0x4b46):
+          ==============================
+
+          The FWKCS Contents_Signature System, used in automatically
+          identifying files independent of filename, optionally adds
+          and uses an extra field to support the rapid creation of
+          an enhanced contents_signature.
+          There is no local-header version; the following applies
+          only to the central header.  (Last Revision 19961207)
+
+          Central-header version:
+
+          Value         Size        Description
+          -----         ----        -----------
+  (MD5)   0x4b46        Short       tag for this extra block type ("FK")
+          TSize         Short       total data size for this block (19)
+          "MD5"         3 bytes     extra-field signature
+          MD5hash       16 bytes    128-bit MD5 hash of uncompressed data
+                                    (low byte first)
+
+          When FWKCS revises a .ZIP file central directory to add
+          this extra field for a file, it also replaces the
+          central directory entry for that file's uncompressed
+          file length with a measured value.
+
+          FWKCS provides an option to strip this extra field, if
+          present, from a .ZIP file central directory. In adding
+          this extra field, FWKCS preserves .ZIP file Authenticity
+          Verification; if stripping this extra field, FWKCS
+          preserves all versions of AV through PKZIP version 2.04g.
+
+          FWKCS, and FWKCS Contents_Signature System, are
+          trademarks of Frederick W. Kantor.
+
+          (1) R. Rivest, RFC1321.TXT, MIT Laboratory for Computer
+              Science and RSA Data Security, Inc., April 1992.
+              ll.76-77: "The MD5 algorithm is being placed in the
+              public domain for review and possible adoption as a
+              standard."
+
+
+      file comment: (Variable)
+
+          The comment for this file.
+
+      number of this disk: (2 bytes)
+
+          The number of this disk, which contains central
+          directory end record.  If an archive is in zip64 format
+          and the value in this field is 0xFFFF, the size will
+          be in the corresponding 4 byte zip64 end of central
+          directory field.
+
+      number of the disk with the start of the central directory: (2 bytes)
+
+          The number of the disk on which the central
+          directory starts.  If an archive is in zip64 format
+          and the value in this field is 0xFFFF, the size will
+          be in the corresponding 4 byte zip64 end of central
+          directory field.
+
+      total number of entries in the central dir on this disk: (2 bytes)
+
+          The number of central directory entries on this disk.
+          If an archive is in zip64 format and the value in
+          this field is 0xFFFF, the size will be in the
+          corresponding 8 byte zip64 end of central
+          directory field.
+
+      total number of entries in the central dir: (2 bytes)
+
+          The total number of files in the .ZIP file.  If an
+          archive is in zip64 format and the value in this field
+          is 0xFFFF, the size will be in the corresponding 8 byte
+          zip64 end of central directory field.
+
+      size of the central directory: (4 bytes)
+
+          The size (in bytes) of the entire central directory.
+          If an archive is in zip64 format and the value in
+          this field is 0xFFFFFFFF, the size will be in the
+          corresponding 8 byte zip64 end of central
+          directory field.
+
+      offset of start of central directory with respect to
+      the starting disk number:  (4 bytes)
+
+          Offset of the start of the central directory on the
+          disk on which the central directory starts.  If an
+          archive is in zip64 format and the value in this
+          field is 0xFFFFFFFF, the size will be in the
+          corresponding 8 byte zip64 end of central
+          directory field.
+
+      .ZIP file comment length: (2 bytes)
+
+          The length of the comment for this .ZIP file.
+
+      .ZIP file comment: (Variable)
+
+          The comment for this .ZIP file.  ZIP file comment data
+          is stored unsecured.  No encryption or data authentication
+          is applied to this area at this time.  Confidential information
+          should not be stored in this section.
+
+      zip64 extensible data sector    (variable size)
+
+          (currently reserved for use by PKWARE)
+
+
+  K.  General notes:
+
+      1)  All fields unless otherwise noted are unsigned and stored
+          in Intel low-byte:high-byte, low-word:high-word order.
+
+      2)  String fields are not null terminated, since the
+          length is given explicitly.
+
+      3)  Local headers should not span disk boundaries.  Also, even
+          though the central directory can span disk boundaries, no
+          single record in the central directory should be split
+          across disks.
+
+      4)  The entries in the central directory may not necessarily
+          be in the same order that files appear in the .ZIP file.
+
+      5)  Spanned/Split archives created using PKZIP for Windows
+          (V2.50 or greater), PKZIP Command Line (V2.50 or greater),
+          or PKZIP Explorer will include a special spanning
+          signature as the first 4 bytes of the first segment of
+          the archive.  This signature (0x08074b50) will be
+          followed immediately by the local header signature for
+          the first file in the archive.  A special spanning
+          marker may also appear in spanned/split archives if the
+          spanning or splitting process starts but only requires
+          one segment.  In this case the 0x08074b50 signature
+          will be replaced with the temporary spanning marker
+          signature of 0x30304b50.  Spanned/split archives
+          created with this special signature are compatible with
+          all versions of PKZIP from PKWARE.  Split archives can
+          only be uncompressed by other versions of PKZIP that
+          know how to create a split archive.
+
+      6)  If one of the fields in the end of central directory
+          record is too small to hold required data, the field
+          should be set to -1 (0xFFFF or 0xFFFFFFFF) and the
+          Zip64 format record should be created.
+
+      7)  The end of central directory record and the
+          Zip64 end of central directory locator record must
+          reside on the same disk when splitting or spanning
+          an archive.
+
+V. UnShrinking - Method 1
+-------------------------
+
+Shrinking is a Dynamic Ziv-Lempel-Welch compression algorithm
+with partial clearing.  The initial code size is 9 bits, and
+the maximum code size is 13 bits.  Shrinking differs from
+conventional Dynamic Ziv-Lempel-Welch implementations in several
+respects:
+
+1)  The code size is controlled by the compressor, and is not
+    automatically increased when codes larger than the current
+    code size are created (but not necessarily used).  When
+    the decompressor encounters the code sequence 256
+    (decimal) followed by 1, it should increase the code size
+    read from the input stream to the next bit size.  No
+    blocking of the codes is performed, so the next code at
+    the increased size should be read from the input stream
+    immediately after where the previous code at the smaller
+    bit size was read.  Again, the decompressor should not
+    increase the code size used until the sequence 256,1 is
+    encountered.
+
+2)  When the table becomes full, total clearing is not
+    performed.  Rather, when the compressor emits the code
+    sequence 256,2 (decimal), the decompressor should clear
+    all leaf nodes from the Ziv-Lempel tree, and continue to
+    use the current code size.  The nodes that are cleared
+    from the Ziv-Lempel tree are then re-used, with the lowest
+    code value re-used first, and the highest code value
+    re-used last.  The compressor can emit the sequence 256,2
+    at any time.
+
+
+VI. Expanding - Methods 2-5
+---------------------------
+
+The Reducing algorithm is actually a combination of two
+distinct algorithms.  The first algorithm compresses repeated
+byte sequences, and the second algorithm takes the compressed
+stream from the first algorithm and applies a probabilistic
+compression method.
+
+The probabilistic compression stores an array of 'follower
+sets' S(j), for j=0 to 255, corresponding to each possible
+ASCII character.  Each set contains between 0 and 32
+characters, to be denoted as S(j)[0],...,S(j)[m], where m<32.
+The sets are stored at the beginning of the data area for a
+Reduced file, in reverse order, with S(255) first, and S(0)
+last.
+
+The sets are encoded as { N(j), S(j)[0],...,S(j)[N(j)-1] },
+where N(j) is the size of set S(j).  N(j) can be 0, in which
+case the follower set for S(j) is empty.  Each N(j) value is
+encoded in 6 bits, followed by N(j) eight bit character values
+corresponding to S(j)[0] to S(j)[N(j)-1] respectively.  If
+N(j) is 0, then no values for S(j) are stored, and the value
+for N(j-1) immediately follows.
+
+Immediately after the follower sets, is the compressed data
+stream.  The compressed data stream can be interpreted for the
+probabilistic decompression as follows:
+
+
+let Last-Character <- 0.
+loop until done
+    if the follower set S(Last-Character) is empty then
+        read 8 bits from the input stream, and copy this
+        value to the output stream.
+    otherwise if the follower set S(Last-Character) is non-empty then
+        read 1 bit from the input stream.
+        if this bit is not zero then
+            read 8 bits from the input stream, and copy this
+            value to the output stream.
+        otherwise if this bit is zero then
+            read B(N(Last-Character)) bits from the input
+            stream, and assign this value to I.
+            Copy the value of S(Last-Character)[I] to the
+            output stream.
+
+    assign the last value placed on the output stream to
+    Last-Character.
+end loop
+
+
+B(N(j)) is defined as the minimal number of bits required to
+encode the value N(j)-1.
+
+
+The decompressed stream from above can then be expanded to
+re-create the original file as follows:
+
+
+let State <- 0.
+
+loop until done
+    read 8 bits from the input stream into C.
+    case State of
+        0:  if C is not equal to DLE (144 decimal) then
+                copy C to the output stream.
+            otherwise if C is equal to DLE then
+                let State <- 1.
+
+        1:  if C is non-zero then
+                let V <- C.
+                let Len <- L(V)
+                let State <- F(Len).
+            otherwise if C is zero then
+                copy the value 144 (decimal) to the output stream.
+                let State <- 0
+
+        2:  let Len <- Len + C
+            let State <- 3.
+
+        3:  move backwards D(V,C) bytes in the output stream
+            (if this position is before the start of the output
+            stream, then assume that all the data before the
+            start of the output stream is filled with zeros).
+            copy Len+3 bytes from this position to the output stream.
+            let State <- 0.
+    end case
+end loop
+
+
+The functions F,L, and D are dependent on the 'compression
+factor', 1 through 4, and are defined as follows:
+
+For compression factor 1:
+    L(X) equals the lower 7 bits of X.
+    F(X) equals 2 if X equals 127 otherwise F(X) equals 3.
+    D(X,Y) equals the (upper 1 bit of X) * 256 + Y + 1.
+For compression factor 2:
+    L(X) equals the lower 6 bits of X.
+    F(X) equals 2 if X equals 63 otherwise F(X) equals 3.
+    D(X,Y) equals the (upper 2 bits of X) * 256 + Y + 1.
+For compression factor 3:
+    L(X) equals the lower 5 bits of X.
+    F(X) equals 2 if X equals 31 otherwise F(X) equals 3.
+    D(X,Y) equals the (upper 3 bits of X) * 256 + Y + 1.
+For compression factor 4:
+    L(X) equals the lower 4 bits of X.
+    F(X) equals 2 if X equals 15 otherwise F(X) equals 3.
+    D(X,Y) equals the (upper 4 bits of X) * 256 + Y + 1.
+
+
+VII. Imploding - Method 6
+-------------------------
+
+The Imploding algorithm is actually a combination of two distinct
+algorithms.  The first algorithm compresses repeated byte
+sequences using a sliding dictionary.  The second algorithm is
+used to compress the encoding of the sliding dictionary output,
+using multiple Shannon-Fano trees.
+
+The Imploding algorithm can use a 4K or 8K sliding dictionary
+size. The dictionary size used can be determined by bit 1 in the
+general purpose flag word; a 0 bit indicates a 4K dictionary
+while a 1 bit indicates an 8K dictionary.
+
+The Shannon-Fano trees are stored at the start of the compressed
+file. The number of trees stored is defined by bit 2 in the
+general purpose flag word; a 0 bit indicates two trees stored, a
+1 bit indicates three trees are stored.  If 3 trees are stored,
+the first Shannon-Fano tree represents the encoding of the
+Literal characters, the second tree represents the encoding of
+the Length information, the third represents the encoding of the
+Distance information.  When 2 Shannon-Fano trees are stored, the
+Length tree is stored first, followed by the Distance tree.
+
+The Literal Shannon-Fano tree, if present is used to represent
+the entire ASCII character set, and contains 256 values.  This
+tree is used to compress any data not compressed by the sliding
+dictionary algorithm.  When this tree is present, the Minimum
+Match Length for the sliding dictionary is 3.  If this tree is
+not present, the Minimum Match Length is 2.
+
+The Length Shannon-Fano tree is used to compress the Length part
+of the (length,distance) pairs from the sliding dictionary
+output.  The Length tree contains 64 values, ranging from the
+Minimum Match Length, to 63 plus the Minimum Match Length.
+
+The Distance Shannon-Fano tree is used to compress the Distance
+part of the (length,distance) pairs from the sliding dictionary
+output. The Distance tree contains 64 values, ranging from 0 to
+63, representing the upper 6 bits of the distance value.  The
+distance values themselves will be between 0 and the sliding
+dictionary size, either 4K or 8K.
+
+The Shannon-Fano trees themselves are stored in a compressed
+format. The first byte of the tree data represents the number of
+bytes of data representing the (compressed) Shannon-Fano tree
+minus 1.  The remaining bytes represent the Shannon-Fano tree
+data encoded as:
+
+    High 4 bits: Number of values at this bit length + 1. (1 - 16)
+    Low  4 bits: Bit Length needed to represent value + 1. (1 - 16)
+
+The Shannon-Fano codes can be constructed from the bit lengths
+using the following algorithm:
+
+1)  Sort the Bit Lengths in ascending order, while retaining the
+    order of the original lengths stored in the file.
+
+2)  Generate the Shannon-Fano trees:
+
+    Code <- 0
+    CodeIncrement <- 0
+    LastBitLength <- 0
+    i <- number of Shannon-Fano codes - 1   (either 255 or 63)
+
+    loop while i >= 0
+        Code = Code + CodeIncrement
+        if BitLength(i) <> LastBitLength then
+            LastBitLength=BitLength(i)
+            CodeIncrement = 1 shifted left (16 - LastBitLength)
+        ShannonCode(i) = Code
+        i <- i - 1
+    end loop
+
+
+3)  Reverse the order of all the bits in the above ShannonCode()
+    vector, so that the most significant bit becomes the least
+    significant bit.  For example, the value 0x1234 (hex) would
+    become 0x2C48 (hex).
+
+4)  Restore the order of Shannon-Fano codes as originally stored
+    within the file.
+
+Example:
+
+    This example will show the encoding of a Shannon-Fano tree
+    of size 8.  Notice that the actual Shannon-Fano trees used
+    for Imploding are either 64 or 256 entries in size.
+
+Example:   0x02, 0x42, 0x01, 0x13
+
+    The first byte indicates 3 values in this table.  Decoding the
+    bytes:
+            0x42 = 5 codes of 3 bits long
+            0x01 = 1 code  of 2 bits long
+            0x13 = 2 codes of 4 bits long
+
+    This would generate the original bit length array of:
+    (3, 3, 3, 3, 3, 2, 4, 4)
+
+    There are 8 codes in this table for the values 0 thru 7.  Using
+    the algorithm to obtain the Shannon-Fano codes produces:
+
+                                  Reversed     Order     Original
+Val  Sorted   Constructed Code      Value     Restored    Length
+---  ------   -----------------   --------    --------    ------
+0:     2      1100000000000000        11       101          3
+1:     3      1010000000000000       101       001          3
+2:     3      1000000000000000       001       110          3
+3:     3      0110000000000000       110       010          3
+4:     3      0100000000000000       010       100          3
+5:     3      0010000000000000       100        11          2
+6:     4      0001000000000000      1000      1000          4
+7:     4      0000000000000000      0000      0000          4
+
+
+The values in the Val, Order Restored and Original Length columns
+now represent the Shannon-Fano encoding tree that can be used for
+decoding the Shannon-Fano encoded data.  How to parse the
+variable length Shannon-Fano values from the data stream is beyond
+the scope of this document.  (See the references listed at the end of
+this document for more information.)  However, traditional decoding
+schemes used for Huffman variable length decoding, such as the
+Greenlaw algorithm, can be successfully applied.
+
+The compressed data stream begins immediately after the
+compressed Shannon-Fano data.  The compressed data stream can be
+interpreted as follows:
+
+loop until done
+    read 1 bit from input stream.
+
+    if this bit is non-zero then       (encoded data is literal data)
+        if Literal Shannon-Fano tree is present
+            read and decode character using Literal Shannon-Fano tree.
+        otherwise
+            read 8 bits from input stream.
+        copy character to the output stream.
+    otherwise              (encoded data is sliding dictionary match)
+        if 8K dictionary size
+            read 7 bits for offset Distance (lower 7 bits of offset).
+        otherwise
+            read 6 bits for offset Distance (lower 6 bits of offset).
+
+        using the Distance Shannon-Fano tree, read and decode the
+          upper 6 bits of the Distance value.
+
+        using the Length Shannon-Fano tree, read and decode
+          the Length value.
+
+        Length <- Length + Minimum Match Length
+
+        if Length = 63 + Minimum Match Length
+            read 8 bits from the input stream,
+            add this value to Length.
+
+        move backwards Distance+1 bytes in the output stream, and
+        copy Length characters from this position to the output
+        stream.  (if this position is before the start of the output
+        stream, then assume that all the data before the start of
+        the output stream is filled with zeros).
+end loop
+
+VIII. Tokenizing - Method 7
+---------------------------
+
+This method is not used by PKZIP.
+
+IX. Deflating - Method 8
+------------------------
+
+The Deflate algorithm is similar to the Implode algorithm using
+a sliding dictionary of up to 32K with secondary compression
+from Huffman/Shannon-Fano codes.
+
+The compressed data is stored in blocks with a header describing
+the block and the Huffman codes used in the data block.  The header
+format is as follows:
+
+   Bit 0: Last Block bit     This bit is set to 1 if this is the last
+                             compressed block in the data.
+   Bits 1-2: Block type
+      00 (0) - Block is stored - All stored data is byte aligned.
+               Skip bits until next byte, then next word = block
+               length, followed by the ones compliment of the block
+               length word. Remaining data in block is the stored
+               data.
+
+      01 (1) - Use fixed Huffman codes for literal and distance codes.
+               Lit Code    Bits             Dist Code   Bits
+               ---------   ----             ---------   ----
+                 0 - 143    8                 0 - 31      5
+               144 - 255    9
+               256 - 279    7
+               280 - 287    8
+
+               Literal codes 286-287 and distance codes 30-31 are
+               never used but participate in the huffman construction.
+
+      10 (2) - Dynamic Huffman codes.  (See expanding Huffman codes)
+
+      11 (3) - Reserved - Flag a "Error in compressed data" if seen.
+
+Expanding Huffman Codes
+-----------------------
+If the data block is stored with dynamic Huffman codes, the Huffman
+codes are sent in the following compressed format:
+
+   5 Bits: # of Literal codes sent - 257 (257 - 286)
+           All other codes are never sent.
+   5 Bits: # of Dist codes - 1           (1 - 32)
+   4 Bits: # of Bit Length codes - 4     (4 - 19)
+
+The Huffman codes are sent as bit lengths and the codes are built as
+described in the implode algorithm.  The bit lengths themselves are
+compressed with Huffman codes.  There are 19 bit length codes:
+
+   0 - 15: Represent bit lengths of 0 - 15
+       16: Copy the previous bit length 3 - 6 times.
+           The next 2 bits indicate repeat length (0 = 3, ... ,3 = 6)
+              Example:  Codes 8, 16 (+2 bits 11), 16 (+2 bits 10) will
+                        expand to 12 bit lengths of 8 (1 + 6 + 5)
+       17: Repeat a bit length of 0 for 3 - 10 times. (3 bits of length)
+       18: Repeat a bit length of 0 for 11 - 138 times (7 bits of length)
+
+The lengths of the bit length codes are sent packed 3 bits per value
+(0 - 7) in the following order:
+
+   16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
+
+The Huffman codes should be built as described in the Implode algorithm
+except codes are assigned starting at the shortest bit length, i.e. the
+shortest code should be all 0's rather than all 1's.  Also, codes with
+a bit length of zero do not participate in the tree construction.  The
+codes are then used to decode the bit lengths for the literal and
+distance tables.
+
+The bit lengths for the literal tables are sent first with the number
+of entries sent described by the 5 bits sent earlier.  There are up
+to 286 literal characters; the first 256 represent the respective 8
+bit character, code 256 represents the End-Of-Block code, the remaining
+29 codes represent copy lengths of 3 thru 258.  There are up to 30
+distance codes representing distances from 1 thru 32k as described
+below.
+
+                             Length Codes
+                             ------------
+      Extra             Extra              Extra              Extra
+ Code Bits Length  Code Bits Lengths  Code Bits Lengths  Code Bits Length(s)
+ ---- ---- ------  ---- ---- -------  ---- ---- -------  ---- ---- ---------
+  257   0     3     265   1   11,12    273   3   35-42    281   5  131-162
+  258   0     4     266   1   13,14    274   3   43-50    282   5  163-194
+  259   0     5     267   1   15,16    275   3   51-58    283   5  195-226
+  260   0     6     268   1   17,18    276   3   59-66    284   5  227-258
+  261   0     7     269   2   19-22    277   4   67-82    285   0    258
+  262   0     8     270   2   23-26    278   4   83-98
+  263   0     9     271   2   27-30    279   4   99-114
+  264   0    10     272   2   31-34    280   4  115-130
+
+                            Distance Codes
+                            --------------
+      Extra           Extra             Extra               Extra
+ Code Bits Dist  Code Bits  Dist   Code Bits Distance  Code Bits Distance
+ ---- ---- ----  ---- ---- ------  ---- ---- --------  ---- ---- --------
+   0   0    1      8   3   17-24    16    7  257-384    24   11  4097-6144
+   1   0    2      9   3   25-32    17    7  385-512    25   11  6145-8192
+   2   0    3     10   4   33-48    18    8  513-768    26   12  8193-12288
+   3   0    4     11   4   49-64    19    8  769-1024   27   12 12289-16384
+   4   1   5,6    12   5   65-96    20    9 1025-1536   28   13 16385-24576
+   5   1   7,8    13   5   97-128   21    9 1537-2048   29   13 24577-32768
+   6   2   9-12   14   6  129-192   22   10 2049-3072
+   7   2  13-16   15   6  193-256   23   10 3073-4096
+
+The compressed data stream begins immediately after the
+compressed header data.  The compressed data stream can be
+interpreted as follows:
+
+do
+   read header from input stream.
+
+   if stored block
+      skip bits until byte aligned
+      read count and 1's compliment of count
+      copy count bytes data block
+   otherwise
+      loop until end of block code sent
+         decode literal character from input stream
+         if literal < 256
+            copy character to the output stream
+         otherwise
+            if literal = end of block
+               break from loop
+            otherwise
+               decode distance from input stream
+
+               move backwards distance bytes in the output stream, and
+               copy length characters from this position to the output
+               stream.
+      end loop
+while not last block
+
+if data descriptor exists
+   skip bits until byte aligned
+   check data descriptor signature
+   read crc and sizes
+endif
+
+X. Enhanced Deflating - Method 9
+--------------------------------
+
+The Enhanced Deflating algorithm is similar to Deflate but
+uses a sliding dictionary of up to 64K. Deflate64(tm) is supported
+by the Deflate extractor.
+
+[This description is inofficial.  It has been deduced by Info-ZIP from
+close inspection of PKZIP 4.x Deflate64(tm) compressed output.]
+
+The Deflate64 algorithm is almost identical to the normal Deflate algorithm.
+Differences are:
+
+- The sliding window size is 64k.
+
+- The previously unused distance codes 30 and 31 are now used to describe
+  match distances from 32k-48k and 48k-64k.
+         Extra
+    Code Bits Distance
+    ---- ---- -----------
+     ..   ..      ...
+     29   13  24577-32768
+     30   14  32769-49152
+     31   14  49153-65536
+
+- The semantics of the "maximum match length" code #258 has been changed to
+  allow the specification of arbitrary large match lengths (up to 64k).
+         Extra
+    Code Bits Lengths
+    ---- ---- ------
+     ...  ..    ...
+     284   5  227-258
+     285  16  3-65538
+
+Whereas the first two modifications fit into the framework of Deflate,
+this last change breaks compatibility with Deflate method 8. Thus, a
+Deflate64 decompressor cannot decode normal deflated data.
+
+XI. BZIP2 - Method 12
+---------------------
+
+BZIP2 is an open-source data compression algorithm developed by
+Julian Seward.  Information and source code for this algorithm
+can be found on the internet.
+
+
+XII. Traditional PKWARE Encryption
+----------------------------------
+
+The following information discusses the decryption steps
+required to support traditional PKWARE encryption.  This
+form of encryption is considered weak by today's standards
+and its use is recommended only for situations with
+low security needs or for compatibility with older .ZIP
+applications.
+
+XIII. Decryption
+----------------
+
+The encryption used in PKZIP was generously supplied by Roger
+Schlafly.  PKWARE is grateful to Mr. Schlafly for his expert
+help and advice in the field of data encryption.
+
+PKZIP encrypts the compressed data stream.  Encrypted files must
+be decrypted before they can be extracted.
+
+Each encrypted file has an extra 12 bytes stored at the start of
+the data area defining the encryption header for that file.  The
+encryption header is originally set to random values, and then
+itself encrypted, using three, 32-bit keys.  The key values are
+initialized using the supplied encryption password.  After each byte
+is encrypted, the keys are then updated using pseudo-random number
+generation techniques in combination with the same CRC-32 algorithm
+used in PKZIP and described elsewhere in this document.
+
+The following is the basic steps required to decrypt a file:
+
+1) Initialize the three 32-bit keys with the password.
+2) Read and decrypt the 12-byte encryption header, further
+   initializing the encryption keys.
+3) Read and decrypt the compressed data stream using the
+   encryption keys.
+
+
+Step 1 - Initializing the encryption keys
+-----------------------------------------
+
+Key(0) <- 305419896
+Key(1) <- 591751049
+Key(2) <- 878082192
+
+loop for i <- 0 to length(password)-1
+    update_keys(password(i))
+end loop
+
+
+Where update_keys() is defined as:
+
+
+update_keys(char):
+  Key(0) <- crc32(key(0),char)
+  Key(1) <- Key(1) + (Key(0) & 000000ffH)
+  Key(1) <- Key(1) * 134775813 + 1
+  Key(2) <- crc32(key(2),key(1) >> 24)
+end update_keys
+
+
+Where crc32(old_crc,char) is a routine that given a CRC value and a
+character, returns an updated CRC value after applying the CRC-32
+algorithm described elsewhere in this document.
+
+
+Step 2 - Decrypting the encryption header
+-----------------------------------------
+
+The purpose of this step is to further initialize the encryption
+keys, based on random data, to render a plaintext attack on the
+data ineffective.
+
+
+Read the 12-byte encryption header into Buffer, in locations
+Buffer(0) thru Buffer(11).
+
+loop for i <- 0 to 11
+    C <- buffer(i) ^ decrypt_byte()
+    update_keys(C)
+    buffer(i) <- C
+end loop
+
+
+Where decrypt_byte() is defined as:
+
+
+unsigned char decrypt_byte()
+    local unsigned short temp
+    temp <- Key(2) | 2
+    decrypt_byte <- (temp * (temp ^ 1)) >> 8
+end decrypt_byte
+
+
+After the header is decrypted,  the last 1 or 2 bytes in Buffer
+should be the high-order word/byte of the CRC for the file being
+decrypted, stored in Intel low-byte/high-byte order, or the high-order
+byte of the file time if bit 3 of the general purpose bit flag is set.
+Versions of PKZIP prior to 2.0 used a 2 byte CRC check; a 1 byte CRC check is
+used on versions after 2.0.  This can be used to test if the password
+supplied is correct or not.
+
+
+Step 3 - Decrypting the compressed data stream
+----------------------------------------------
+
+The compressed data stream can be decrypted as follows:
+
+
+loop until done
+    read a character into C
+    Temp <- C ^ decrypt_byte()
+    update_keys(temp)
+    output Temp
+end loop
+
+
+XIV. Strong Encryption Specification (EFS)
+------------------------------------------
+
+Version 5.x of this specification introduced support for strong
+encryption algorithms.  These algorithms can be used with either
+a password or an X.509v3 digital certificate to encrypt each file.
+This format specification supports either password or certificate
+based encryption to meet the security needs of today, to enable
+interoperability between users within both PKI and non-PKI
+environments, and to ensure interoperability between different
+computing platforms that are running a ZIP program.
+
+Password based encryption is the most common form of encryption
+people are familiar with.  However, inherent weaknesses with
+passwords (e.g. susceptibility to dictionary/brute force attack)
+as well as password management and support issues make certificate
+based encryption a more secure and scalable option.  Industry
+efforts and support are defining and moving towards more advanced
+security solutions built around X.509v3 digital certificates and
+Public Key Infrastructures(PKI) because of the greater scalability,
+administrative options, and more robust security over traditional
+password-based encryption.
+
+Most standard encryption algorithms are supported with this
+specification. Reference implementations for many of these
+algorithms are available from either commercial or open source
+distributors.  Readily available cryptographic toolkits make
+implementation of the encryption features straight-forward.
+This document is not intended to provide a treatise on data
+encryption principles or theory.  Its purpose is to document the
+data structures required for implementing interoperable data
+encryption within the .ZIP format.  It is strongly recommended that
+you have a good understanding of data encryption before reading
+further.
+
+The algorithms introduced in Version 5.0 of this specification
+include:
+
+    RC2 40 bit, 64 bit, and 128 bit
+    RC4 40 bit, 64 bit, and 128 bit
+    DES
+    3DES 112 bit and 168 bit
+
+Version 5.1 adds support for the following:
+
+    AES 128 bit, 192 bit, and 256 bit
+
+Version 6.1 introduces encryption data changes to support
+interoperability with SmartCard and USB Token certificate storage
+methods which do not support the OAEP strengthening standard.
+
+Version 6.2 introduces support for encrypting metadata by compressing
+and encrypting the central directory data structure to reduce information
+leakage.   Information leakage can occur in legacy ZIP applications
+through exposure of information about a file even though that file is
+stored encrypted.  The information exposed consists of file
+characteristics stored within the records and fields defined by this
+specification.  This includes data such as a files name, its original
+size, timestamp and CRC32 value.
+
+Central Directory Encryption provides greater protection against
+information leakage by encrypting the Central Directory structure and
+by masking key values that are replicated in the unencrypted Local
+Header.   ZIP compatible programs that cannot interpret an encrypted
+Central Directory structure cannot rely on the data in the corresponding
+Local Header for decompression information.
+
+Extra Field records that may contain information about a file that should
+not be exposed should not be stored in the Local Header and should only
+be written to the Central Directory where they can be encrypted.  This
+design currently does not support streaming.  Information in the End of
+Central Directory record, the ZIP64 End of Central Directory Locator,
+and the ZIP64 End of Central Directory record are not encrypted.  Access
+to view data on files within a ZIP file with an encrypted Central Directory
+requires the appropriate password or private key for decryption prior to
+viewing any files, or any information about the files, in the archive.
+
+Older ZIP compatible programs not familiar with the Central Directory
+Encryption feature will no longer be able to recognize the Central
+Directory and may assume the ZIP file is corrupt.  Programs that
+attempt streaming access using Local Headers will see invalid
+information for each file.  Central Directory Encryption need not be
+used for every ZIP file.  Its use is recommended for greater security.
+ZIP files not using Central Directory Encryption should operate as
+in the past.
+
+The details of the strong encryption specification for certificates
+remain under development as design and testing issues are worked out
+for the range of algorithms, encryption methods, certificate processing
+and cross-platform support necessary to meet the advanced security needs
+of .ZIP file users today and in the future.
+
+This feature specification is intended to support basic encryption needs
+of today, such as password support.  However this specification is also
+designed to lay the foundation for future advanced security needs.
+
+Encryption provides data confidentiality and privacy.  It is
+recommended that you combine X.509 digital signing with encryption
+to add authentication and non-repudiation.
+
+
+Single Password Symmetric Encryption Method:
+-------------------------------------------
+
+The Single Password Symmetric Encryption Method using strong
+encryption algorithms operates similarly to the traditional
+PKWARE encryption defined in this format.  Additional data
+structures are added to support the processing needs of the
+strong algorithms.
+
+The Strong Encryption data structures are:
+
+1. General Purpose Bits - Bits 0 and 6 of the General Purpose bit
+flag in both local and central header records.  Both bits set
+indicates strong encryption.  Bit 13, when set indicates the Central
+Directory is encrypted and that selected fields in the Local Header
+are masked to hide their actual value.
+
+
+2. Extra Field 0x0017 in central header only.
+
+     Fields to consider in this record are:
+
+     Format - the data format identifier for this record.  The only
+     value allowed at this time is the integer value 2.
+
+     AlgId - integer identifier of the encryption algorithm from the
+     following range
+
+         0x6601 - DES
+         0x6602 - RC2 (version needed to extract < 5.2)
+         0x6603 - 3DES 168
+         0x6609 - 3DES 112
+         0x660E - AES 128
+         0x660F - AES 192
+         0x6610 - AES 256
+         0x6702 - RC2 (version needed to extract >= 5.2)
+         0x6801 - RC4
+         0xFFFF - Unknown algorithm
+
+     Bitlen - Explicit bit length of key
+
+          40
+          56
+          64
+         112
+         128
+         168
+         192
+         256
+
+     Flags - Processing flags needed for decryption
+
+         0x0001 - Password is required to decrypt
+         0x0002 - Certificates only
+         0x0003 - Password or certificate required to decrypt
+
+         Values > 0x0003 reserved for certificate processing
+
+
+3. Decryption header record preceeding compressed file data.
+
+         -Decryption Header:
+
+          Value     Size     Description
+          -----     ----     -----------
+          IVSize    2 bytes  Size of initialization vector (IV)
+          IVData    IVSize   Initialization vector for this file
+          Size      4 bytes  Size of remaining decryption header data
+          Format    2 bytes  Format definition for this record
+          AlgID     2 bytes  Encryption algorithm identifier
+          Bitlen    2 bytes  Bit length of encryption key
+          Flags     2 bytes  Processing flags
+          ErdSize   2 bytes  Size of Encrypted Random Data
+          ErdData   ErdSize  Encrypted Random Data
+          Reserved1 4 bytes  Reserved certificate processing data
+          Reserved2 (var)    Reserved for certificate processing data
+          VSize     2 bytes  Size of password validation data
+          VData     VSize-4  Password validation data
+          VCRC32    4 bytes  Standard ZIP CRC32 of password validation data
+
+     IVData - The size of the IV should match the algorithm block size.
+              The IVData can be completely random data.  If the size of
+              the randomly generated data does not match the block size
+              it should be complemented with zero's or truncated as
+              necessary.  If IVSize is 0, then IV = CRC32 + Uncompressed
+              File Size (as a 64 bit little-endian, unsigned integer value).
+
+     Format - the data format identifier for this record.  The only
+     value allowed at this time is the integer value 3.
+
+     AlgId - integer identifier of the encryption algorithm from the
+     following range
+
+         0x6601 - DES
+         0x6602 - RC2 (version needed to extract < 5.2)
+         0x6603 - 3DES 168
+         0x6609 - 3DES 112
+         0x660E - AES 128
+         0x660F - AES 192
+         0x6610 - AES 256
+         0x6702 - RC2 (version needed to extract >= 5.2)
+         0x6801 - RC4
+         0xFFFF - Unknown algorithm
+
+     Bitlen - Explicit bit length of key
+
+          40
+          56
+          64
+         112
+         128
+         168
+         192
+         256
+
+     Flags - Processing flags needed for decryption
+
+         0x0001 - Password is required to decrypt
+         0x0002 - Certificates only
+         0x0003 - Password or certificate required to decrypt
+
+         Values > 0x0003 reserved for certificate processing
+
+     ErdData - Encrypted random data is used to generate a file
+               session key for encrypting each file.  SHA1 is
+               used to calculate hash data used to derive keys.
+               File session keys are derived from a master session
+               key generated from the user-supplied password.
+               If the Flags field in the decryption header contains
+               the value 0x4000, then the ErdData field must be
+               decrypted using 3DES.
+
+     Reserved1 - Reserved for certificate processing, if value is
+               zero, then Reserved2 data is absent.  See the explanation
+               under the Certificate Processing Method for details on
+               this data structure.
+
+     Reserved2 - If present, the size of the Reserved2 data structure
+               is located by skipping the first 4 bytes of this field
+               and using the next 2 bytes as the remaining size.  See
+               the explanation under the Certificate Processing Method
+               for details on this data structure.
+
+     VSize - This size value will always include the 4 bytes of the
+             VCRC32 data and will be greater than 4 bytes.
+
+     VData - Random data for password validation.  This data is VSize
+             in length and VSize must be a multiple of the encryption
+             block size.  VCRC32 is a checksum value of VData.
+             VData and VCRC32 are stored encrypted and start the
+             stream of encrypted data for a file.
+
+4. Single Password Central Directory Encryption
+
+Central Directory Encryption is achieved within the .ZIP format by
+encrypting the Central Directory structure.  This encapsulates the metadata
+most often used for processing .ZIP files.  Additional metadata is stored for
+redundancy in the Local Header for each file.  The process of concealing
+metadata by encrypting the Central Directory does not protect the data within
+the Local Header.  To avoid information leakage from the exposed metadata
+in the Local Header, the fields containing information about a file are masked.
+
+Local Header:
+
+Masking replaces the true content of the fields for a file in the Local
+Header with false information.  When masked, the Local Header is not
+suitable for streaming access and the options for data recovery of damaged
+archives is reduced.  Extra Data fields that may contain confidential
+data should not be stored within the Local Header.  The value set into
+the Version needed to extract field should be the correct value needed to
+extract the file without regard to Central Directory Encryption. The fields
+within the Local Header targeted for masking when the Central Directory is
+encrypted are:
+
+        Field Name                     Mask Value
+        ------------------             ---------------------------
+        compression method              0
+        last mod file time              0
+        last mod file date              0
+        crc-32                          0
+        compressed size                 0
+        uncompressed size               0
+        file name (variable size)       Base 16 value from the
+                                        range 1 - FFFFFFFFFFFFFFFF
+                                        represented as a string whose
+                                        size will be set into the
+                                        file name length field
+
+The Base 16 value assigned as a masked file name is simply a sequentially
+incremented value for each file starting with 1 for the first file.
+Modifications to a ZIP file may cause different values to be stored for
+each file.  For compatibility, the file name field in the Local Header
+should never be left blank.  As of Version 6.2 of this specification,
+the Compression Method and Compressed Size fields are not yet masked.
+
+Encrypting the Central Directory:
+
+Encryption of the Central Directory does not include encryption of the
+Central Directory Signature data, the ZIP64 End of Central Directory
+record, the ZIP64 End of Central Directory Locator, or the End
+of Central Directory record.  The ZIP file comment data is never
+encrypted.
+
+Before encrypting the Central Directory, it may optionally be compressed.
+Compression is not required, but for storage efficiency it is assumed
+this structure will be compressed before encrypting.  Similarly, this
+specification supports compressing the Central Directory without
+requiring that it also be encrypted.  Early implementations of this
+feature will assume the encryption method applied to files matches the
+encryption applied to the Central Directory.
+
+Encryption of the Central Directory is done in a manner similar to
+that of file encryption.  The encrypted data is preceded by a
+decryption header.  The decryption header is known as the Archive
+Decryption Header.  The fields of this record are identical to
+the decryption header preceding each encrypted file.  The location
+of the Archive Decryption Header is determined by the value in the
+Start of the Central Directory field in the ZIP64 End of Central
+Directory record.  When the Central Directory is encrypted, the
+ZIP64 End of Central Directory record will always be present.
+
+The layout of the ZIP64 End of Central Directory record for all
+versions starting with 6.2 of this specification will follow the
+Version 2 format.  The Version 2 format is as follows:
+
+The first 48 bytes will remain identical to that of Version 1.
+The record signature for both Version 1 and Version 2 will be
+0x06064b50.  Immediately following the 48th byte, which identifies
+the end of the field known as the Offset of Start of Central
+Directory With Respect to the Starting Disk Number will begin the
+new fields defining Version 2 of this record.
+
+New fields for Version 2:
+
+Note: all fields stored in Intel low-byte/high-byte order.
+
+          Value                 Size       Description
+          -----                 ----       -----------
+          Compression Method    2 bytes    Method used to compress the
+                                           Central Directory
+          Compressed Size       8 bytes    Size of the compressed data
+          Original   Size       8 bytes    Original uncompressed size
+          AlgId                 2 bytes    Encryption algorithm ID
+          BitLen                2 bytes    Encryption key length
+          Flags                 2 bytes    Encryption flags
+          HashID                2 bytes    Hash algorithm identifier
+          Hash Length           2 bytes    Length of hash data
+          Hash Data             (variable) Hash data
+
+The Compression Method accepts the same range of values as the
+corresponding field in the Central Header.
+
+The Compressed Size and Original Size values will not include the
+data of the Central Directory Signature which is compressed or
+encrypted.
+
+The AlgId, BitLen, and Flags fields accept the same range of values
+the corresponding fields within the 0x0017 record.
+
+Hash ID identifies the algorithm used to hash the Central Directory
+data.  This data does not have to be hashed, in which case the
+values for both the HashID and Hash Length will be 0.  Possible
+values for HashID are:
+
+      Value         Algorithm
+     ------         ---------
+     0x0000          none
+     0x0001          CRC32
+     0x8003          MD5
+     0x8004          SHA1
+
+When the Central Directory data is signed, the same hash algorithm
+used to hash the Central Directory for signing should be used.
+This is recommended for processing efficiency, however, it is
+permissible for any of the above algorithms to be used independent
+of the signing process.
+
+The Hash Data will contain the hash data for the Central Directory.
+The length of this data will vary depending on the algorithm used.
+
+The Version Needed to Extract should be set to 62.
+
+The value for the Total Number of Entries on the Current Disk will
+be 0.  These records will no longer support random access when
+encrypting the Central Directory.
+
+When the Central Directory is compressed and/or encrypted, the
+End of Central Directory record will store the value 0xFFFFFFFF
+as the value for the Total Number of Entries in the Central
+Directory.  The value stored in the Total Number of Entries in
+the Central Directory on this Disk field will be 0.  The actual
+values will be stored in the equivalent fields of the ZIP64
+End of Central Directory record.
+
+Decrypting and decompressing the Central Directory is accomplished
+in the same manner as decrypting and decompressing a file.
+
+
+5. Useful Tips
+
+Strong Encryption is always applied to a file after compression. The
+block oriented algorithms all operate in Cypher Block Chaining (CBC)
+mode.  The block size used for AES encryption is 16.  All other block
+algorithms use a block size of 8.  Two ID's are defined for RC2 to
+account for a discrepancy found in the implementation of the RC2
+algorithm in the cryptographic library on Windows XP SP1 and all
+earlier versions of Windows.
+
+A pseudo-code representation of the encryption process is as follows:
+
+Password = GetUserPassword()
+RD  = Random()
+ERD = Encrypt(RD,DeriveKey(SHA1(Password)))
+For Each File
+    IV = Random()
+    VData = Random()
+    FileSessionKey = DeriveKey(SHA1(IV + RD))
+    Encrypt(VData + VCRC32 + FileData,FileSessionKey)
+Done
+
+The function names and parameter requirements will depend on
+the choice of the cryptographic toolkit selected.  Almost any
+toolkit supporting the reference implementations for each
+algorithm can be used.  The RSA BSAFE(r), OpenSSL, and Microsoft
+CryptoAPI libraries are all known to work well.
+
+
+Certificate Processing Method:
+-----------------------------
+
+The Certificate Processing Method for ZIP file encryption remains
+under development.  The information provided here serves as a guide
+to those interested in certificate-based data decryption.  This
+information may be subject to change in future versions of this
+specification and is subject to change without notice.
+
+OAEP Processing with Certificate-based Encryption:
+
+Versions of PKZIP available during this development phase of the
+certificate processing method may set a value of 61 into the
+version needed to extract field for a file.  This indicates that
+non-OAEP key wrapping is used.  This affects certificate encryption
+only, and password encryption functions should not be affected by
+this value.  This means values of 61 may be found on files encrypted
+with certificates only, or on files encrypted with both password
+encryption and certificate encryption.  Files encrypted with both
+methods can safely be decrypted using the password methods documented.
+
+OAEP stands for Optimal Asymmetric Encryption Padding.  It is a
+strengthening technique used for small encoded items such as decryption
+keys.  This is commonly applied in cryptographic key-wrapping techniques
+and is supported by PKCS #1.  Versions 5.0 and 6.0 of this specification
+were designed to support OAEP key-wrapping for certificate-based
+decryption keys for additional security.
+
+Support for private keys stored on Smart Cards or Tokens introduced
+a conflict with this OAEP logic.  Most card and token products do
+not support the additional strengthening applied to OAEP key-wrapped
+data.  In order to resolve this conflict, versions 6.1 and above of this
+specification will no longer support OAEP when encrypting using
+digital certificates.
+
+Certificate Processing Data Fields:
+
+The Certificate Processing Method of this specification defines the
+following additional data fields:
+
+
+1. Certificate Flag Values
+
+Additional processing flags that can be present in the Flags field of both
+the 0x0017 field of the central directory Extra Field and the Decryption
+header record preceding compressed file data are:
+
+         0x0007 - reserved for future use
+         0x000F - reserved for future use
+         0x0100 - Indicates non-OAEP key wrapping was used.  If this
+                  this field is set, the version needed to extract must
+                  be at least 61.  This means OAEP key wrapping is not
+                  used when generating a Master Session Key using
+                  ErdData.
+         0x4000 - ErdData must be decrypted using 3DES-168, otherwise use the
+                  same algorithm used for encrypting the file contents.
+         0x8000 - reserved for future use
+
+
+2. CertData - Extra Field 0x0017 record certificate data structure
+
+The data structure used to store certificate data within the section
+of the Extra Field defined by the CertData field of the 0x0017
+record are as shown:
+
+          Value     Size     Description
+          -----     ----     -----------
+          RCount    4 bytes  Number of recipients.
+          HashAlg   2 bytes  Hash algorithm identifier
+          HSize     2 bytes  Hash size
+          SRList    (var)    Simple list of recipients hashed public keys
+
+
+     RCount    This defines the number intended recipients whose
+               public keys were used for encryption.  This identifies
+               the number of elements in the SRList.
+
+     HashAlg   This defines the hash algorithm used to calculate
+               the public key hash of each public key used
+               for encryption. This field currently supports
+               only the following value for SHA-1
+
+               0x8004 - SHA1
+
+     HSize     This defines the size of a hashed public key.
+
+     SRList    This is a variable length list of the hashed
+               public keys for each intended recipient.  Each
+               element in this list is HSize.  The total size of
+               SRList is determined using RCount * HSize.
+
+
+3. Reserved1 - Certificate Decryption Header Reserved1 Data:
+
+          Value     Size     Description
+          -----     ----     -----------
+          RCount    4 bytes  Number of recipients.
+
+     RCount    This defines the number intended recipients whose
+               public keys were used for encryption.  This defines
+               the number of elements in the REList field defined below.
+
+
+4. Reserved2 - Certificate Decryption Header Reserved2 Data Structures:
+
+
+          Value     Size     Description
+          -----     ----     -----------
+          HashAlg   2 bytes  Hash algorithm identifier
+          HSize     2 bytes  Hash size
+          REList    (var)    List of recipient data elements
+
+
+     HashAlg   This defines the hash algorithm used to calculate
+               the public key hash of each public key used
+               for encryption. This field currently supports
+               only the following value for SHA-1
+
+               0x8004 - SHA1
+
+     HSize     This defines the size of a hashed public key
+               defined in REHData.
+
+     REList    This is a variable length of list of recipient data.
+               Each element in this list consists of a Recipient
+               Element data structure as follows:
+
+
+    Recipient Element (REList) Data Structure:
+
+          Value     Size     Description
+          -----     ----     -----------
+          RESize    2 bytes  Size of REHData + REKData
+          REHData   HSize    Hash of recipients public key
+          REKData   (var)    Simple key blob
+
+
+     RESize    This defines the size of an individual REList
+               element.  This value is the combined size of the
+               REHData field + REKData field.  REHData is defined by
+               HSize.  REKData is variable and can be calculated
+               for each REList element using RESize and HSize.
+
+     REHData   Hashed public key for this recipient.
+
+     REKData   Simple Key Blob.  The format of this data structure
+               is identical to that defined in the Microsoft
+               CryptoAPI and generated using the CryptExportKey()
+               function.  The version of the Simple Key Blob
+               supported at this time is 0x02 as defined by
+               Microsoft.
+
+5. Certificate Processing - Central Directory Encryption:
+
+Central Directory Encryption using Digital Certificates will
+operate in a manner similar to that of Single Password Central
+Directory Encryption.  This record will only be present when there
+is data to place into it.  Currently, data is placed into this
+record when digital certificates are used for either encrypting
+or signing the files within a ZIP file.  When only password
+encryption is used with no certificate encryption or digital
+signing, this record is not currently needed. When present, this
+record will appear before the start of the actual Central Directory
+data structure and will be located immediately after the Archive
+Decryption Header if the Central Directory is encrypted.
+
+The Archive Extra Data record will be used to store the following
+information.  Additional data may be added in future versions.
+
+Extra Data Fields:
+
+0x0014 - PKCS#7 Store for X.509 Certificates
+0x0016 - X.509 Certificate ID and Signature for central directory
+0x0019 - PKCS#7 Encryption Recipient Certificate List
+
+The 0x0014 and 0x0016 Extra Data records that otherwise would be
+located in the first record of the Central Directory for digital
+certificate processing. When encrypting or compressing the Central
+Directory, the 0x0014 and 0x0016 records must be located in the
+Archive Extra Data record and they should not remain in the first
+Central Directory record.  The Archive Extra Data record will also
+be used to store the 0x0019 data.
+
+When present, the size of the Archive Extra Data record will be
+included in the size of the Central Directory.  The data of the
+Archive Extra Data record will also be compressed and encrypted
+along with the Central Directory data structure.
+
+6. Certificate Processing Differences:
+
+The Certificate Processing Method of encryption differs from the
+Single Password Symmetric Encryption Method as follows.  Instead
+of using a user-defined password to generate a master session key,
+cryptographically random data is used.  The key material is then
+wrapped using standard key-wrapping techniques.  This key material
+is wrapped using the public key of each recipient that will need
+to decrypt the file using their corresponding private key.
+
+This specification currently assumes digital certificates will follow
+the X.509 V3 format for 1024 bit and higher RSA format digital
+certificates.  Implementation of this Certificate Processing Method
+requires supporting logic for key access and management.  This logic
+is outside the scope of this specification.
+
+
+License Agreement:
+-----------------
+
+The features set forth in this Section XIV (the "Strong Encryption
+Specification") are covered by a pending patent application. Portions of
+this Strong Encryption technology are available for use at no charge
+under the following terms and conditions.
+
+1. License Grant.
+
+   a. NOTICE TO USER. PLEASE READ THIS ENTIRE SECTION XIV OF THE
+   APPNOTE (THE "AGREEMENT") CAREFULLY. BY USING ALL OR ANY PORTION OF THE
+   LICENSED TECHNOLOGY, YOU ACCEPT ALL THE TERMS AND CONDITIONS OF THIS
+   AGREEMENT AND YOU AGREE THAT THIS AGREEMENT IS ENFORCEABLE LIKE ANY
+   WRITTEN NEGOTIATED AGREEMENT SIGNED BY YOU. IF YOU DO NOT AGREE, DO NOT
+   USE THE LICENSED TECHNOLOGY.
+
+   b. Definitions.
+
+      i. "Licensed Technology" shall mean that proprietary technology now or
+      hereafter owned or controlled by PKWare, Inc. ("PKWARE") or any
+      subsidiary or affiliate  that covers or is necessary to be used to give
+      software the ability to a) extract and decrypt data from zip files
+      encrypted using any methods of data encryption and key processing which
+      are published in this APPNOTE or any prior APPNOTE, as supplemented by
+      any Additional Compatibility Information; and b) encrypt file contents
+      as part of .ZIP file processing using only the Single Password Symmetric
+      Encryption Method as published in this APPNOTE or any prior APPNOTE, as
+      supplemented by any Additional Compatibility Information.  For purposes
+      of this AGREEMENT, "Additional Compatibility Information" means, with
+      regard to any method of data encryption and key processing published in
+      this or any prior APPNOTE, any corrections, additions, or clarifications
+      to the information in such APPNOTE that are required in order to give
+      software the ability to successfully extract and decrypt zip files (or,
+      but solely in the case of the Single Password Symmetric Encryption Method,
+      to successfully encrypt zip files) in a manner interoperable with the
+      actual implementation of such method in any PKWARE product that is
+      documented or publicly described by PKWARE as being able to create, or
+      to extract and decrypt, zip files using that method.
+
+      ii. "Licensed Products" shall mean any products you produce that
+      incorporate the Licensed Technology.
+
+   c. License to Licensed Technology.
+
+   PKWARE hereby grants to you a non-exclusive license to use the Licensed
+   Technology for the purpose of manufacturing, offering, selling and using
+   Licensed Products, which license shall extend to permit the practice of all
+   claims in any patent or patent application (collectively, "Patents") now or
+   hereafter owned or controlled by PKWARE in any jurisdiction in the world
+   that are infringed by implementation of the Licensed Technology.  You have
+   the right to sublicense rights you receive under the terms of this AGREEMENT
+   for the purpose of allowing sublicensee to manufacture, offer, sell and use
+   products that incorporate all or a portion of any of your Licensed Products,
+   but if you do, you agree to i) impose the same restrictions on any such
+   sublicensee as these terms impose on you and ii) notify the sublicensee,
+   by means chosen by you in your unfettered discretion, including a notice on
+   your web site, of the terms of this AGREEMENT and make available to each
+   sublicensee the full text of this APPNOTE.   Further, PKWARE hereby grants to
+   you a non-exclusive right to reproduce and distribute, in any form, copies of
+   this APPNOTE, without modification.  Notwithstanding anything to the contrary
+   in this AGREEMENT, you have the right to sublicense the rights, without any of
+   the restrictions described above or elsewhere in this AGREEMENT, to use, offer
+   to sell and sell Licensed Technology as incorporated in executable object code
+   or byte code forms of your Licensed Products.  Any sublicense to use the
+   Licensed Technology incorporated in a Licensed Product granted by you shall
+   survive the termination of this AGREEMENT for any reason.  PKWARE warrants that
+   this license shall continue to encumber the Licensed Technology regardless of
+   changes in ownership of the Licensed Technology.
+
+   d. Proprietary Notices.
+
+      i. With respect to any Licensed Product that is distributed by you either
+      in source code form or in the form of an object code library of externally
+      callable functions that has been designed by you for incorporation into third
+      party products, you agree to include, in the source code, or in the case of
+      an object code library, in accompanying documentation, a notice using the
+      words "patent pending" until a patent is issued to PKWARE covering any
+      portion of the Licensed Technology or PKWARE provides notice, by means
+      chosen by PKWARE in its unfettered discretion, that it no longer has any
+      patent pending covering any portion of the Licensed Technology.  With respect
+      to any Licensed Product, upon your becoming aware that at least one patent has
+      been granted covering the Licensed Technology, you agree to include in any
+      revisions made by you to the documentation (or any source code distributed
+      by you) the words "Pat. No.", or "Patent Number" and the patent number or
+      numbers of the applicable patent or patents.  PKWARE shall, from time to time,
+      inform you of the patent number or numbers of the patents covering the
+      Licensed Technology, by means chosen by PKWARE in its unfettered discretion,
+      including a notice on its web site.  It shall be a violation of the terms of
+      this AGREEMENT for you to sell Licensed Products without complying with the
+      foregoing marking provisions.
+
+      ii. You acknowledge that the terms of this AGREEMENT do not grant you any
+      license or other right to use any PKWARE trademark in connection with the sale,
+      offering for sale, distribution and delivery of the Licensed Products, or in
+      connection with the advertising, promotion and offering of the Licensed Products.
+      You acknowledge PKWARE's ownership of the PKZIP trademark and all other marks
+      owned by PKWARE.
+
+   e. Covenant of Compliance and Remedies.
+
+   To the extent that you have elected to implement portions of the Licensed
+   Technology, you agree to use reasonable diligence to comply with those portions
+   of this Section XIV, as modified or supplemented by Additional Compatibility
+   Information available to you, describing the portions of the Licensed Technology
+   that you have elected to implement.  Upon reasonable request by PKWARE, you will
+   provide written notice to PKWARE identifying which version of this APPNOTE you
+   have relied upon for your implementation of any specified Licensed Product.
+
+   If any substantial non-compliance with the terms of this AGREEMENT is determined
+   to exist, you will make such changes as necessary to bring your Licensed Products
+   into substantial compliance with the terms of this AGREEMENT.  If, within sixty
+   days of receipt of notice that a Licensed Product fails to comply with the terms
+   of this AGREEMENT, you fail to make such changes as necessary to bring your
+   Licensed Products into compliance with the terms of this AGREEMENT, PKWARE may
+   terminate your rights under this AGREEMENT.  PKWARE does not waive and expressly
+   reserves the right to pursue any and all additional remedies that are or may
+   become available to PKWARE.
+
+   f. Warranty and Indemnification Regarding Exportation.
+
+   You realize and acknowledge that, as between yourself and PKWARE, you are fully
+   responsible for compliance with the import and export laws and regulations of
+   any country in or to which you import or export any Licensed Products, and you
+   agree to hold PKWARE harmless from any claim of violation of any such import
+   or export laws.
+
+   g. Patent Infringement.
+
+   You agree that you will not bring or threaten to bring any action against PKWARE
+   for infringement of the claims of any patent owned or controlled by you solely
+   as a result of PKWARE's own implementation of the Licensed Technology.  As its
+   exclusive remedy for your breach of the foregoing agreement, PKWARE reserves
+   the right to suspend or terminate all rights granted under the terms of this
+   AGREEMENT if you bring or threaten to bring any such action against PKWARE,
+   effective immediately upon delivery of written notice of suspension or
+   termination to you.
+
+   h. Governing Law.
+
+   The license granted in this AGREEMENT shall be governed by and construed under
+   the laws of the State of Wisconsin and the United States.
+
+   i. Revisions and Notice.
+
+   The license granted in this APPNOTE is irrevocable, except as expressly set
+   forth above.  You agree and understand that any changes which PKWARE determines
+   to make to this APPNOTE shall be posted at the same location as the current
+   APPNOTE or at a location which will be identified by means chosen by PKWARE,
+   including a notice on its web site, and shall be available for adoption by you
+   immediately upon such posting, or at such other time as PKWARE shall determine.
+   Any changes to the terms of the license published in a subsequent version of
+   this AGREEMENT shall be binding upon you only with respect to your products
+   that (i) incorporate any Licensed Technology (as defined in the subsequent
+   AGREEMENT) that is not otherwise included in the definition of Licensed
+   Technology under this AGREEMENT, or (ii) that you expressly identify are to
+   be licensed under the subsequent AGREEMENT, which identification shall be by
+   written notice with reference to the APPNOTE (version and release date or other
+   unique identifier) in which the subsequent AGREEMENT is published.  PKWARE
+   agrees to identify each change to this APPNOTE by using a unique version and
+   release date identifier or other unique identifier.
+
+   j. Warranty by PKWARE
+
+   PKWare, Inc. warrants that it has the right to grant the license hereunder.
+
+XV. Change Process
+------------------
+
+In order for the .ZIP file format to remain a viable definition, this
+specification should be considered as open for periodic review and
+revision.  Although this format was originally designed with a
+certain level of extensibility, not all changes in technology
+(present or future) were or will be necessarily considered in its
+design.  If your application requires new definitions to the
+extensible sections in this format, or if you would like to
+submit new data structures, please forward your request to
+zipformat@pkware.com.  All submissions will be reviewed by the
+ZIP File Specification Committee for possible inclusion into
+future versions of this specification.  Periodic revisions
+to this specification will be published to ensure interoperability.
+We encourage comments and feedback that may help improve clarity
+or content.
+
+
+XVI. Acknowledgements
+---------------------
+
+In addition to the above mentioned contributors to PKZIP and PKUNZIP,
+I would like to extend special thanks to Robert Mahoney for suggesting
+the extension .ZIP for this software.
+
+
+XVII. References
+----------------
+
+    Fiala, Edward R., and Greene, Daniel H., "Data compression with
+       finite windows",  Communications of the ACM, Volume 32, Number 4,
+       April 1989, pages 490-505.
+
+    Held, Gilbert, "Data Compression, Techniques and Applications,
+       Hardware and Software Considerations", John Wiley & Sons, 1987.
+
+    Huffman, D.A., "A method for the construction of minimum-redundancy
+       codes", Proceedings of the IRE, Volume 40, Number 9, September 1952,
+       pages 1098-1101.
+
+    Nelson, Mark, "LZW Data Compression", Dr. Dobbs Journal, Volume 14,
+       Number 10, October 1989, pages 29-37.
+
+    Nelson, Mark, "The Data Compression Book",  M&T Books, 1991.
+
+    Storer, James A., "Data Compression, Methods and Theory",
+       Computer Science Press, 1988
+
+    Welch, Terry, "A Technique for High-Performance Data Compression",
+       IEEE Computer, Volume 17, Number 6, June 1984, pages 8-19.
+
+    Ziv, J. and Lempel, A., "A universal algorithm for sequential data
+       compression", Communications of the ACM, Volume 30, Number 6,
+       June 1987, pages 520-540.
+
+    Ziv, J. and Lempel, A., "Compression of individual sequences via
+       variable-rate coding", IEEE Transactions on Information Theory,
+       Volume 24, Number 5, September 1978, pages 530-536.

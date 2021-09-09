@@ -39,14 +39,17 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Middleware_3/PaniniProjection/Panini.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
@@ -54,14 +57,14 @@
 /// Demo structures
 struct PlanetInfoStruct
 {
-	uint  mParentIndex;
-	vec4  mColor;
-	float mYOrbitSpeed;    // Rotation speed around parent
-	float mZOrbitSpeed;
-	float mRotationSpeed;    // Rotation speed around self
 	mat4  mTranslationMat;
 	mat4  mScaleMat;
 	mat4  mSharedMat;    // Matrix to pass down to children
+	vec4  mColor;
+	uint  mParentIndex;
+	float mYOrbitSpeed;    // Rotation speed around parent
+	float mZOrbitSpeed;
+	float mRotationSpeed;    // Rotation speed around self
 };
 
 struct UniformBlock
@@ -127,8 +130,7 @@ PlanetInfoStruct gPlanetInfoData[gNumPlanets];
 ICameraController* pCameraController = NULL;
 
 /// UI
-UIApp*        pAppUI = NULL;
-GuiComponent* pGui;
+UIComponent* pGui;
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
@@ -136,7 +138,8 @@ const char* pGpuProfilerNames[gViewCount] = { NULL };
 char gGpuProfilerNames[gViewCount][MAX_GPU_PROFILER_NAME_LENGTH]{};
 ProfileToken gGpuProfilerTokens[gViewCount];
 
-TextDrawDesc     gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc     gFrameTimeDraw;
+uint32_t         gFontID = 0; 
 ClearValue       gClearColor; // initialization in Init
 ClearValue       gClearDepth;
 Panini           gPanini = {};
@@ -148,11 +151,12 @@ float* pSpherePoints;
 const char* gTestScripts[] = { "Test0.lua", "Test1.lua" };
 uint32_t gScriptIndexes[] = { 0, 1 };
 uint32_t gCurrentScriptIndex = 0;
-static uint32_t gSelectedApiIndex = 0;
 
 void RunScript()
 {
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 class MultiGPU : public IApp
@@ -280,9 +284,10 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -317,46 +322,41 @@ public:
 			pGpuProfilerNames[i] = gGpuProfilerNames[i];
 		}
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		GuiDesc guiDesc = {};
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
+
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
-		pGui = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+		uiCreateComponent(GetName(), &guiDesc, &pGui);
 
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
-
-		initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
-
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.ppQueues = pGraphicsQueue; 
+		profiler.ppProfilerNames = pGpuProfilerNames; 
+		profiler.pProfileTokens = gGpuProfilerTokens;
+		profiler.mGpuProfilerCount = gViewCount; 
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -515,7 +515,7 @@ public:
 #if !defined(TARGET_IOS)
 		CheckboxWidget vSyncCheckbox;
 		vSyncCheckbox.pData = &gToggleVSync;
-		addWidgetLua(addGuiWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
 #endif
 		// Reset graphics with a button.
 
@@ -524,7 +524,7 @@ public:
 		{
 			CheckboxWidget multiGpuCheckbox;
 			multiGpuCheckbox.pData = &gMultiGPU;
-			addWidgetLua(addGuiWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX));
 		}
 
 		SliderFloatWidget camHorFovSlider;
@@ -532,28 +532,28 @@ public:
 		camHorFovSlider.mMin = 30.0f;
 		camHorFovSlider.mMax = 179.0f;
 		camHorFovSlider.mStep = 1.0f;
-		addWidgetLua(addGuiWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Camera Horizontal FoV", &camHorFovSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		SliderFloatWidget paniniSliderD;
 		paniniSliderD.pData = &gPaniniParams.D;
 		paniniSliderD.mMin = 0.0f;
 		paniniSliderD.mMax = 1.0f;
 		paniniSliderD.mStep = 0.001f;
-		addWidgetLua(addGuiWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini D Parameter", &paniniSliderD, WIDGET_TYPE_SLIDER_FLOAT));
 
 		SliderFloatWidget paniniSliderS;
 		paniniSliderS.pData = &gPaniniParams.S;
 		paniniSliderS.mMin = 0.0f;
 		paniniSliderS.mMax = 1.0f;
 		paniniSliderS.mStep = 0.001f;
-		addWidgetLua(addGuiWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Panini S Parameter", &paniniSliderS, WIDGET_TYPE_SLIDER_FLOAT));
 
 		SliderFloatWidget screenScaleSlider;
 		screenScaleSlider.pData = &gPaniniParams.scale;
 		screenScaleSlider.mMin = 1.0f;
 		screenScaleSlider.mMax = 10.0f;
 		screenScaleSlider.mStep = 0.01f;
-		addWidgetLua(addGuiWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Screen Scale", &screenScaleSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		DropdownWidget ddTestScripts;
 		ddTestScripts.pData = &gCurrentScriptIndex;
@@ -562,12 +562,12 @@ public:
 			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 		}
-		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
-		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		pRunScript->pOnEdited = RunScript;
-		addWidgetLua(pRunScript);
+		UIWidget* pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+		luaRegisterWidget(pRunScript);
 
 		if (!gPanini.Init(pRenderer))
 			return false;
@@ -613,7 +613,10 @@ public:
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -625,7 +628,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -634,7 +637,7 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			return true;
 		};
@@ -656,12 +659,13 @@ public:
 
 		exitCameraController(pCameraController);
 
-		exitProfilerUI();
-
 		exitProfiler();
 
 		gPanini.Exit();
-		exitAppUI(pAppUI);
+
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -712,6 +716,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 
 		if (!gMultiGPURestart)
 		{
@@ -731,7 +736,15 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffers[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		if (!gPanini.Load(pSwapChain->ppRenderTargets))
@@ -806,7 +819,9 @@ public:
 			waitQueueIdle(pGraphicsQueue[i]);
 
 		gPanini.Unload();
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pSpherePipeline);
@@ -896,11 +911,6 @@ public:
 		gUniformDataSky = gUniformData;
 		viewMat.setTranslation(vec3(0));
 		gUniformDataSky.mProjectView = projMat * viewMat;
-
-		/************************************************************************/
-		// Update GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
 
 		gPanini.SetParams(gPaniniParams);
 		gPanini.Update(deltaTime);
@@ -1001,21 +1011,24 @@ public:
 
 				cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 
-				appUIGui(pAppUI, pGui);
-
 				const float txtIndentY = 12.f;
 				float txtOrigY = txtIndentY;
-				float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, txtOrigY), &gFrameTimeDraw);
+				float2 screenCoords = float2(8.0f, txtOrigY);
+
+				gFrameTimeDraw.mFontColor = 0xff00ffff;
+				gFrameTimeDraw.mFontSize = 18.0f;
+				gFrameTimeDraw.mFontID = gFontID;
+				float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
+
 				txtOrigY += txtSize.y + txtIndentY;
 				for (uint32_t j = 0; j < gViewCount; ++j)
 				{
-					txtSize = cmdDrawGpuProfile(cmd, float2(8.f, txtOrigY), gGpuProfilerTokens[j]);
+					screenCoords = float2(8.f, txtOrigY);
+					txtSize = cmdDrawGpuProfile(cmd, screenCoords, gGpuProfilerTokens[j], &gFrameTimeDraw);
 					txtOrigY += txtSize.y + txtIndentY;
 				}
 
-				cmdDrawProfilerUI();
-
-				drawAppUI(pAppUI, cmd);
+				cmdDrawUserInterface(cmd);
 
 				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 

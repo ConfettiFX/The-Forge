@@ -7,9 +7,6 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{962fea6c-2cda-4bdd-b594-1717ffe9a1e3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\zip">
-      <UniqueIdentifier>{f0d50de9-2ac9-4a71-b9cf-7ec00c96f40d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\FSL">
       <UniqueIdentifier>{881b4b12-631d-40f5-862e-ddf6afcfd596}</UniqueIdentifier>
     </Filter>
@@ -17,12 +14,6 @@
   <ItemGroup>
     <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
-      <Filter>Source Files\zip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

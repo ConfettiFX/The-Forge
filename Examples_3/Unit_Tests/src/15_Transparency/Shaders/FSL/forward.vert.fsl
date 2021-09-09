@@ -37,7 +37,7 @@ STRUCT(VSOutput)
 	DATA(float4, WorldPosition, POSITION0);
 	DATA(float4, Normal, NORMAL0);
 	DATA(float4, UV, TEXCOORD0);
-	DATA(flat(uint), MatID, MAT_ID);
+	DATA(FLAT(uint), MatID, MAT_ID);
 #if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
 	DATA(float4, CSPosition, POSITION1);
 #endif

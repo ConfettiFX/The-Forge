@@ -2101,6 +2101,7 @@ public:
    	static inline const Matrix4 perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
+    static inline const Matrix4 perspectiveAsymmetricFov(const float leftDegrees, const float rightDegrees, const float upDegrees, const float downDegrees, const float zNear, const float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);

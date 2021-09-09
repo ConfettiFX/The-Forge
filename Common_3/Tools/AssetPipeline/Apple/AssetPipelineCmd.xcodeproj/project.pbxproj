@@ -7,6 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5557BBDB268CBEC500B7ACF4 /* aeskey.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBCD268CBEC500B7ACF4 /* aeskey.c */; };
+		5557BBDC268CBEC500B7ACF4 /* hmac.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBCE268CBEC500B7ACF4 /* hmac.c */; };
+		5557BBDD268CBEC500B7ACF4 /* sha2.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBCF268CBEC500B7ACF4 /* sha2.c */; };
+		5557BBDE268CBEC500B7ACF4 /* aescrypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBD1268CBEC500B7ACF4 /* aescrypt.c */; };
+		5557BBDF268CBEC500B7ACF4 /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBD3268CBEC500B7ACF4 /* sha1.c */; };
+		5557BBE0268CBEC500B7ACF4 /* aestab.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBD9268CBEC500B7ACF4 /* aestab.c */; };
+		5557BBF2268CBEF000B7ACF4 /* mz_strm_raw.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBE8268CBEF000B7ACF4 /* mz_strm_raw.c */; };
+		5557BBF3268CBEF000B7ACF4 /* mz_crypt_brg.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBEC268CBEF000B7ACF4 /* mz_crypt_brg.c */; };
+		5557BBF4268CBEF000B7ACF4 /* mz_zip.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBED268CBEF000B7ACF4 /* mz_zip.c */; };
+		5557BBF5268CBEF000B7ACF4 /* mz_strm_zlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBEE268CBEF000B7ACF4 /* mz_strm_zlib.c */; };
+		5557BBF6268CBEF000B7ACF4 /* mz_strm_wzaes.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBEF268CBEF000B7ACF4 /* mz_strm_wzaes.c */; };
+		5557BBF7268CBEF000B7ACF4 /* mz_crypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */; };
+		5557BBF8268CBEF000B7ACF4 /* mz_os.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */; };
+		5557BBFA268CBF0F00B7ACF4 /* ZipFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */; };
 		5C61B5B724D35F2100EF5D20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */; };
 		5C61B5C124D3722000EF5D20 /* CocoaToolsFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C61B5C024D3722000EF5D20 /* CocoaToolsFileSystem.mm */; };
 		B231A10A23F2DBA4006D7450 /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B231A10723F2DB7E006D7450 /* ozz_animation offline.a */; };
@@ -18,17 +32,13 @@
 		B231A13723F2DCA4006D7450 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A12F23F2DCA3006D7450 /* SystemRun.cpp */; };
 		B231A13923F2DCA4006D7450 /* UnixFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A13123F2DCA3006D7450 /* UnixFileSystem.cpp */; };
 		B231A14623F2DCC1006D7450 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A13F23F2DCC1006D7450 /* ThreadSystem.cpp */; };
-		B231A14723F2DCC1006D7450 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A14423F2DCC1006D7450 /* Timer.cpp */; };
-		B231A14F23F2DCF0006D7450 /* DarwinThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A14923F2DCF0006D7450 /* DarwinThread.cpp */; };
-		B231A15123F2DCF0006D7450 /* DarwinLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A14B23F2DCF0006D7450 /* DarwinLog.cpp */; };
+		B231A14F23F2DCF0006D7450 /* DarwinThread.c in Sources */ = {isa = PBXBuildFile; fileRef = B231A14923F2DCF0006D7450 /* DarwinThread.c */; };
+		B231A15123F2DCF0006D7450 /* DarwinLog.c in Sources */ = {isa = PBXBuildFile; fileRef = B231A14B23F2DCF0006D7450 /* DarwinLog.c */; };
 		B231A15223F2DCF0006D7450 /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = B231A14D23F2DCF0006D7450 /* CocoaFileSystem.mm */; };
-		B231A15723F2DD07006D7450 /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A15623F2DD07006D7450 /* MemoryTracking.cpp */; };
-		B231A15B23F2DF86006D7450 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A15A23F2DF86006D7450 /* Log.cpp */; };
-		B231A15E23F2E07A006D7450 /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A15D23F2E07A006D7450 /* zip.cpp */; };
+		B231A15723F2DD07006D7450 /* MemoryTracking.c in Sources */ = {isa = PBXBuildFile; fileRef = B231A15623F2DD07006D7450 /* MemoryTracking.c */; };
+		B231A15B23F2DF86006D7450 /* Log.c in Sources */ = {isa = PBXBuildFile; fileRef = B231A15A23F2DF86006D7450 /* Log.c */; };
 		B231A16323F2E0F9006D7450 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A16123F2E0F9006D7450 /* basisu_transcoder.cpp */; };
 		B231A16623F2E124006D7450 /* eastl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A16523F2E124006D7450 /* eastl.cpp */; };
-		B231A16A23F2E174006D7450 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = B231A16923F2E174006D7450 /* macOSBase.mm */; };
-		B231A19D23F2E217006D7450 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B231A19C23F2E217006D7450 /* macOSAppDelegate.m */; };
 		B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */; };
 		B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */; };
 		B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */; };
@@ -92,6 +102,37 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5557BBCD268CBEC500B7ACF4 /* aeskey.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aeskey.c; sourceTree = "<group>"; };
+		5557BBCE268CBEC500B7ACF4 /* hmac.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hmac.c; sourceTree = "<group>"; };
+		5557BBCF268CBEC500B7ACF4 /* sha2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha2.c; sourceTree = "<group>"; };
+		5557BBD0268CBEC500B7ACF4 /* aestab.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aestab.h; sourceTree = "<group>"; };
+		5557BBD1268CBEC500B7ACF4 /* aescrypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aescrypt.c; sourceTree = "<group>"; };
+		5557BBD2268CBEC500B7ACF4 /* aesopt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aesopt.h; sourceTree = "<group>"; };
+		5557BBD3268CBEC500B7ACF4 /* sha1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
+		5557BBD4268CBEC500B7ACF4 /* brg_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = brg_types.h; sourceTree = "<group>"; };
+		5557BBD5268CBEC500B7ACF4 /* sha2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sha2.h; sourceTree = "<group>"; };
+		5557BBD6268CBEC500B7ACF4 /* hmac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hmac.h; sourceTree = "<group>"; };
+		5557BBD7268CBEC500B7ACF4 /* brg_endian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = brg_endian.h; sourceTree = "<group>"; };
+		5557BBD8268CBEC500B7ACF4 /* aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
+		5557BBD9268CBEC500B7ACF4 /* aestab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aestab.c; sourceTree = "<group>"; };
+		5557BBDA268CBEC500B7ACF4 /* sha1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sha1.h; sourceTree = "<group>"; };
+		5557BBE2268CBEE300B7ACF4 /* miniz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = miniz.h; path = ../../../../ThirdParty/OpenSource/zip/miniz.h; sourceTree = "<group>"; };
+		5557BBE3268CBEEF00B7ACF4 /* mz_strm_wzaes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_wzaes.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_wzaes.h; sourceTree = "<group>"; };
+		5557BBE4268CBEEF00B7ACF4 /* mz_zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_zip.h; path = ../../../ThirdParty/OpenSource/minizip/mz_zip.h; sourceTree = "<group>"; };
+		5557BBE5268CBEF000B7ACF4 /* mz_strm_zlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_zlib.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_zlib.h; sourceTree = "<group>"; };
+		5557BBE6268CBEF000B7ACF4 /* mz_os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_os.h; path = ../../../ThirdParty/OpenSource/minizip/mz_os.h; sourceTree = "<group>"; };
+		5557BBE7268CBEF000B7ACF4 /* mz_strm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm.h; sourceTree = "<group>"; };
+		5557BBE8268CBEF000B7ACF4 /* mz_strm_raw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_raw.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_raw.c; sourceTree = "<group>"; };
+		5557BBE9268CBEF000B7ACF4 /* zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zip.h; path = ../../../ThirdParty/OpenSource/minizip/zip.h; sourceTree = "<group>"; };
+		5557BBEA268CBEF000B7ACF4 /* mz_crypt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_crypt.h; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt.h; sourceTree = "<group>"; };
+		5557BBEB268CBEF000B7ACF4 /* mz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz.h; path = ../../../ThirdParty/OpenSource/minizip/mz.h; sourceTree = "<group>"; };
+		5557BBEC268CBEF000B7ACF4 /* mz_crypt_brg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt_brg.c; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt_brg.c; sourceTree = "<group>"; };
+		5557BBED268CBEF000B7ACF4 /* mz_zip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_zip.c; path = ../../../ThirdParty/OpenSource/minizip/mz_zip.c; sourceTree = "<group>"; };
+		5557BBEE268CBEF000B7ACF4 /* mz_strm_zlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_zlib.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_zlib.c; sourceTree = "<group>"; };
+		5557BBEF268CBEF000B7ACF4 /* mz_strm_wzaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_wzaes.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_wzaes.c; sourceTree = "<group>"; };
+		5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt.c; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt.c; sourceTree = "<group>"; };
+		5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mz_os.cpp; path = ../../../ThirdParty/OpenSource/minizip/mz_os.cpp; sourceTree = "<group>"; };
+		5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ZipFileSystem.c; path = ../../../OS/FileSystem/ZipFileSystem.c; sourceTree = "<group>"; };
 		5C61B5AD24D35ED900EF5D20 /* IToolFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IToolFileSystem.h; path = ../../FileSystem/IToolFileSystem.h; sourceTree = "<group>"; };
 		5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = ../../../OS/FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
 		5C61B5C024D3722000EF5D20 /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../FileSystem/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
@@ -111,15 +152,14 @@
 		B231A14123F2DCC1006D7450 /* Compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Compiler.h; path = ../../../OS/Core/Compiler.h; sourceTree = "<group>"; };
 		B231A14223F2DCC1006D7450 /* DLL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DLL.h; path = ../../../OS/Core/DLL.h; sourceTree = "<group>"; };
 		B231A14323F2DCC1006D7450 /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../../../OS/Core/GPUConfig.h; sourceTree = "<group>"; };
-		B231A14423F2DCC1006D7450 /* Timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Timer.cpp; path = ../../../OS/Core/Timer.cpp; sourceTree = "<group>"; };
-		B231A14923F2DCF0006D7450 /* DarwinThread.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DarwinThread.cpp; path = ../../../OS/Darwin/DarwinThread.cpp; sourceTree = "<group>"; };
-		B231A14B23F2DCF0006D7450 /* DarwinLog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DarwinLog.cpp; path = ../../../OS/Darwin/DarwinLog.cpp; sourceTree = "<group>"; };
+		B231A14423F2DCC1006D7450 /* Timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Timer.c; path = ../../../OS/Core/Timer.c; sourceTree = "<group>"; };
+		B231A14923F2DCF0006D7450 /* DarwinThread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DarwinThread.c; path = ../../../OS/Darwin/DarwinThread.c; sourceTree = "<group>"; };
+		B231A14B23F2DCF0006D7450 /* DarwinLog.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DarwinLog.c; path = ../../../OS/Darwin/DarwinLog.c; sourceTree = "<group>"; };
 		B231A14D23F2DCF0006D7450 /* CocoaFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaFileSystem.mm; path = ../../../OS/Darwin/CocoaFileSystem.mm; sourceTree = "<group>"; };
 		B231A15523F2DD07006D7450 /* NoMemoryDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NoMemoryDefines.h; path = ../../../OS/MemoryTracking/NoMemoryDefines.h; sourceTree = "<group>"; };
-		B231A15623F2DD07006D7450 /* MemoryTracking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTracking.cpp; path = ../../../OS/MemoryTracking/MemoryTracking.cpp; sourceTree = "<group>"; };
+		B231A15623F2DD07006D7450 /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = ../../../OS/MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
 		B231A15923F2DF86006D7450 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../OS/Logging/Log.h; sourceTree = "<group>"; };
-		B231A15A23F2DF86006D7450 /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Log.cpp; path = ../../../OS/Logging/Log.cpp; sourceTree = "<group>"; };
-		B231A15D23F2E07A006D7450 /* zip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = zip.cpp; path = ../../../ThirdParty/OpenSource/zip/zip.cpp; sourceTree = "<group>"; };
+		B231A15A23F2DF86006D7450 /* Log.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Log.c; path = ../../../OS/Logging/Log.c; sourceTree = "<group>"; };
 		B231A16123F2E0F9006D7450 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = basisu_transcoder.cpp; path = ../../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		B231A16223F2E0F9006D7450 /* basisu_transcoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basisu_transcoder.h; path = ../../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h; sourceTree = "<group>"; };
 		B231A16523F2E124006D7450 /* eastl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eastl.cpp; path = ../../../ThirdParty/OpenSource/EASTL/eastl.cpp; sourceTree = "<group>"; };
@@ -147,6 +187,60 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5557BBCB268CBEAF00B7ACF4 /* minizip */ = {
+			isa = PBXGroup;
+			children = (
+				5557BBEC268CBEF000B7ACF4 /* mz_crypt_brg.c */,
+				5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */,
+				5557BBEA268CBEF000B7ACF4 /* mz_crypt.h */,
+				5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */,
+				5557BBE6268CBEF000B7ACF4 /* mz_os.h */,
+				5557BBE8268CBEF000B7ACF4 /* mz_strm_raw.c */,
+				5557BBEF268CBEF000B7ACF4 /* mz_strm_wzaes.c */,
+				5557BBE3268CBEEF00B7ACF4 /* mz_strm_wzaes.h */,
+				5557BBEE268CBEF000B7ACF4 /* mz_strm_zlib.c */,
+				5557BBE5268CBEF000B7ACF4 /* mz_strm_zlib.h */,
+				5557BBE7268CBEF000B7ACF4 /* mz_strm.h */,
+				5557BBED268CBEF000B7ACF4 /* mz_zip.c */,
+				5557BBE4268CBEEF00B7ACF4 /* mz_zip.h */,
+				5557BBEB268CBEF000B7ACF4 /* mz.h */,
+				5557BBE9268CBEF000B7ACF4 /* zip.h */,
+				5557BBE1268CBECC00B7ACF4 /* libzip(zip) */,
+				5557BBCC268CBEC500B7ACF4 /* brg */,
+			);
+			name = minizip;
+			sourceTree = "<group>";
+		};
+		5557BBCC268CBEC500B7ACF4 /* brg */ = {
+			isa = PBXGroup;
+			children = (
+				5557BBCD268CBEC500B7ACF4 /* aeskey.c */,
+				5557BBCE268CBEC500B7ACF4 /* hmac.c */,
+				5557BBCF268CBEC500B7ACF4 /* sha2.c */,
+				5557BBD0268CBEC500B7ACF4 /* aestab.h */,
+				5557BBD1268CBEC500B7ACF4 /* aescrypt.c */,
+				5557BBD2268CBEC500B7ACF4 /* aesopt.h */,
+				5557BBD3268CBEC500B7ACF4 /* sha1.c */,
+				5557BBD4268CBEC500B7ACF4 /* brg_types.h */,
+				5557BBD5268CBEC500B7ACF4 /* sha2.h */,
+				5557BBD6268CBEC500B7ACF4 /* hmac.h */,
+				5557BBD7268CBEC500B7ACF4 /* brg_endian.h */,
+				5557BBD8268CBEC500B7ACF4 /* aes.h */,
+				5557BBD9268CBEC500B7ACF4 /* aestab.c */,
+				5557BBDA268CBEC500B7ACF4 /* sha1.h */,
+			);
+			name = brg;
+			path = ../../../ThirdParty/OpenSource/minizip/lib/brg;
+			sourceTree = "<group>";
+		};
+		5557BBE1268CBECC00B7ACF4 /* libzip(zip) */ = {
+			isa = PBXGroup;
+			children = (
+				5557BBE2268CBEE300B7ACF4 /* miniz.h */,
+			);
+			path = "libzip(zip)";
+			sourceTree = "<group>";
+		};
 		B231A0E023F2DB2D006D7450 = {
 			isa = PBXGroup;
 			children = (
@@ -223,6 +317,7 @@
 				5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */,
 				B231A12F23F2DCA3006D7450 /* SystemRun.cpp */,
 				B231A13123F2DCA3006D7450 /* UnixFileSystem.cpp */,
+				5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */,
 			);
 			name = FileSystem;
 			sourceTree = "<group>";
@@ -236,7 +331,7 @@
 				B231A14323F2DCC1006D7450 /* GPUConfig.h */,
 				B231A13F23F2DCC1006D7450 /* ThreadSystem.cpp */,
 				B231A13E23F2DCC1006D7450 /* ThreadSystem.h */,
-				B231A14423F2DCC1006D7450 /* Timer.cpp */,
+				B231A14423F2DCC1006D7450 /* Timer.c */,
 			);
 			name = Core;
 			sourceTree = "<group>";
@@ -247,8 +342,8 @@
 				B231A19C23F2E217006D7450 /* macOSAppDelegate.m */,
 				B231A16923F2E174006D7450 /* macOSBase.mm */,
 				B231A14D23F2DCF0006D7450 /* CocoaFileSystem.mm */,
-				B231A14B23F2DCF0006D7450 /* DarwinLog.cpp */,
-				B231A14923F2DCF0006D7450 /* DarwinThread.cpp */,
+				B231A14B23F2DCF0006D7450 /* DarwinLog.c */,
+				B231A14923F2DCF0006D7450 /* DarwinThread.c */,
 			);
 			name = Darwin;
 			sourceTree = "<group>";
@@ -256,7 +351,7 @@
 		B231A15423F2DCF7006D7450 /* MemoryTracking */ = {
 			isa = PBXGroup;
 			children = (
-				B231A15623F2DD07006D7450 /* MemoryTracking.cpp */,
+				B231A15623F2DD07006D7450 /* MemoryTracking.c */,
 				B231A15523F2DD07006D7450 /* NoMemoryDefines.h */,
 			);
 			name = MemoryTracking;
@@ -265,7 +360,7 @@
 		B231A15823F2DF72006D7450 /* Log */ = {
 			isa = PBXGroup;
 			children = (
-				B231A15A23F2DF86006D7450 /* Log.cpp */,
+				B231A15A23F2DF86006D7450 /* Log.c */,
 				B231A15923F2DF86006D7450 /* Log.h */,
 			);
 			name = Log;
@@ -274,20 +369,12 @@
 		B231A15C23F2E056006D7450 /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				5557BBCB268CBEAF00B7ACF4 /* minizip */,
 				B2B2F1F12472F83D00B483FF /* rmem */,
 				B231A16423F2E10E006D7450 /* eastl */,
 				B231A16023F2E0CE006D7450 /* basis */,
-				B231A15F23F2E0BE006D7450 /* zip */,
 			);
 			name = Dependencies;
-			sourceTree = "<group>";
-		};
-		B231A15F23F2E0BE006D7450 /* zip */ = {
-			isa = PBXGroup;
-			children = (
-				B231A15D23F2E07A006D7450 /* zip.cpp */,
-			);
-			name = zip;
 			sourceTree = "<group>";
 		};
 		B231A16023F2E0CE006D7450 /* basis */ = {
@@ -425,28 +512,38 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5557BBDF268CBEC500B7ACF4 /* sha1.c in Sources */,
+				5557BBDC268CBEC500B7ACF4 /* hmac.c in Sources */,
+				5557BBF8268CBEF000B7ACF4 /* mz_os.cpp in Sources */,
 				B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */,
-				B231A19D23F2E217006D7450 /* macOSAppDelegate.m in Sources */,
-				B231A16A23F2E174006D7450 /* macOSBase.mm in Sources */,
+				5557BBE0268CBEC500B7ACF4 /* aestab.c in Sources */,
+				5557BBF3268CBEF000B7ACF4 /* mz_crypt_brg.c in Sources */,
 				5C61B5B724D35F2100EF5D20 /* FileSystem.cpp in Sources */,
+				5557BBDD268CBEC500B7ACF4 /* sha2.c in Sources */,
 				B231A13723F2DCA4006D7450 /* SystemRun.cpp in Sources */,
-				B231A14F23F2DCF0006D7450 /* DarwinThread.cpp in Sources */,
+				B231A14F23F2DCF0006D7450 /* DarwinThread.c in Sources */,
 				5C61B5C124D3722000EF5D20 /* CocoaToolsFileSystem.mm in Sources */,
 				B231A16623F2E124006D7450 /* eastl.cpp in Sources */,
 				B231A14623F2DCC1006D7450 /* ThreadSystem.cpp in Sources */,
+				5557BBF5268CBEF000B7ACF4 /* mz_strm_zlib.c in Sources */,
 				B231A11923F2DBD5006D7450 /* AssetPipeline.cpp in Sources */,
-				B231A14723F2DCC1006D7450 /* Timer.cpp in Sources */,
+				5557BBF4268CBEF000B7ACF4 /* mz_zip.c in Sources */,
 				B231A15223F2DCF0006D7450 /* CocoaFileSystem.mm in Sources */,
 				B231A16323F2E0F9006D7450 /* basisu_transcoder.cpp in Sources */,
-				B231A15E23F2E07A006D7450 /* zip.cpp in Sources */,
+				5557BBDB268CBEC500B7ACF4 /* aeskey.c in Sources */,
+				5557BBF6268CBEF000B7ACF4 /* mz_strm_wzaes.c in Sources */,
 				B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */,
-				B231A15723F2DD07006D7450 /* MemoryTracking.cpp in Sources */,
-				B231A15123F2DCF0006D7450 /* DarwinLog.cpp in Sources */,
+				B231A15723F2DD07006D7450 /* MemoryTracking.c in Sources */,
+				5557BBDE268CBEC500B7ACF4 /* aescrypt.c in Sources */,
+				5557BBF7268CBEF000B7ACF4 /* mz_crypt.c in Sources */,
+				B231A15123F2DCF0006D7450 /* DarwinLog.c in Sources */,
 				B231A13923F2DCA4006D7450 /* UnixFileSystem.cpp in Sources */,
+				5557BBF2268CBEF000B7ACF4 /* mz_strm_raw.c in Sources */,
 				B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */,
 				B231A11A23F2DBD5006D7450 /* AssetPipelineCmd.cpp in Sources */,
 				B231A11E23F2DBE9006D7450 /* TressFXAsset.cpp in Sources */,
-				B231A15B23F2DF86006D7450 /* Log.cpp in Sources */,
+				5557BBFA268CBF0F00B7ACF4 /* ZipFileSystem.c in Sources */,
+				B231A15B23F2DF86006D7450 /* Log.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -58,7 +58,7 @@ inline void utils_caps_builder(Renderer* pRenderer)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
 		// this call is supported on mac and ios
-		// technially I think you can write but not read some texture, this is telling
+		// technically I think you can write but not read some texture, this is telling
 		// you you can do both. TODO work out the semantics behind write vs read/write.
 		MTLReadWriteTextureTier rwTextureTier = [pRenderer->pDevice readWriteTextureSupport];
 		// intentional fall through on this switch

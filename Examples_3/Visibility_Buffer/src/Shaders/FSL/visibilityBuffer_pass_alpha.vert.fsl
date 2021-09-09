@@ -41,7 +41,7 @@ STRUCT(PsInAlphaTested)
 	DATA(float4, position, SV_Position);
 	DATA(float2, texCoord, TEXCOORD0);
 #if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
-    DATA(flat(uint), drawId, TEXCOORD3);
+    DATA(FLAT(uint), drawId, TEXCOORD3);
 #endif
 };
 

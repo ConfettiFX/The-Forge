@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------------------------------------------------------------
-//                                     _     
-//                                    | |    
-//  _ __ ___  _ __ ___   __ _ _ __    | |___  
+//                                     _
+//                                    | |
+//  _ __ ___  _ __ ___   __ _ _ __    | |___
 // | '_ ` _ \| '_ ` _ \ / _` | '__|   | '_  |
 // | | | | | | | | | | | (_| | |    _ | | | |
 // |_| |_| |_|_| |_| |_|\__, |_|   (_)|_| |_|
-//                       __/ |               
-//                      |___/                
+//                       __/ |
+//                      |___/
 //
 // Memory manager & tracking software
 //
@@ -31,51 +31,53 @@
 // Copyright 2000, Fluid Studios, Inc., all rights reserved.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-#ifndef	_H_MMGR
-#define	_H_MMGR
+#ifndef _H_MMGR
+#define _H_MMGR
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // For systems that don't have the __FUNCTION__ variable, we can just define it here
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 #if !defined _WIN32 && !defined XBOX
-#define	__FUNCTION__ __func__
+#define __FUNCTION__ __func__
 #endif
+
+#include "stdbool.h"
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-typedef	struct tag_au
+typedef struct tag_au
 {
-	size_t		actualSize;
-	size_t		reportedSize;
-	size_t		alignment;
-	size_t		offset;
-	void		*actualAddress;
-	void		*reportedAddress;
-	char		sourceFile[140];
-	char		sourceFunc[140];
-	unsigned int	sourceLine;
-	unsigned int	allocationType;
-	bool		breakOnDealloc;
-	bool		breakOnRealloc;
-	unsigned int	allocationNumber;
-	struct tag_au	*next;
-	struct tag_au	*prev;
+	size_t         actualSize;
+	size_t         reportedSize;
+	size_t         alignment;
+	size_t         offset;
+	void*          actualAddress;
+	void*          reportedAddress;
+	char           sourceFile[140];
+	char           sourceFunc[140];
+	unsigned int   sourceLine;
+	unsigned int   allocationType;
+	bool           breakOnDealloc;
+	bool           breakOnRealloc;
+	unsigned int   allocationNumber;
+	struct tag_au* next;
+	struct tag_au* prev;
 } sAllocUnit;
 
-typedef	struct
+typedef struct
 {
-	unsigned int	totalReportedMemory;
-	unsigned int	totalActualMemory;
-	unsigned int	peakReportedMemory;
-	unsigned int	peakActualMemory;
-	unsigned int	accumulatedReportedMemory;
-	unsigned int	accumulatedActualMemory;
-	unsigned int	accumulatedAllocUnitCount;
-	unsigned int	totalAllocUnitCount;
-	unsigned int	peakAllocUnitCount;
+	unsigned int totalReportedMemory;
+	unsigned int totalActualMemory;
+	unsigned int peakReportedMemory;
+	unsigned int peakActualMemory;
+	unsigned int accumulatedReportedMemory;
+	unsigned int accumulatedActualMemory;
+	unsigned int accumulatedAllocUnitCount;
+	unsigned int totalAllocUnitCount;
+	unsigned int peakAllocUnitCount;
 } sMStats;
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -95,56 +97,69 @@ enum
 	m_alloc_free,
 };
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// Used by the macros
-// ---------------------------------------------------------------------------------------------------------------------------------
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-void		mmgrSetOwner(const char *file, const unsigned int line, const char *func);
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// Used by the macros
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// Allocation breakpoints
-// ---------------------------------------------------------------------------------------------------------------------------------
+	void mmgrSetOwner(const char* file, const unsigned int line, const char* func);
 
-bool		&mmgrBreakOnRealloc(void *reportedAddress);
-bool		&mmgrBreakOnDealloc(void *reportedAddress);
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// Allocation breakpoints
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// The meat of the memory tracking software
-// ---------------------------------------------------------------------------------------------------------------------------------
+	bool* mmgrBreakOnRealloc(void* reportedAddress);
+	bool* mmgrBreakOnDealloc(void* reportedAddress);
 
-void		*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
-	const unsigned int allocationType, const size_t alignment, const size_t reportedSize);
-void		*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
-	const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress);
-void		mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
-	const unsigned int deallocationType, const void *reportedAddress);
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// The meat of the memory tracking software
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// Utilitarian functions
-// ---------------------------------------------------------------------------------------------------------------------------------
+	void* mmgrAllocator(
+		const char* sourceFile, const unsigned int sourceLine, const char* sourceFunc, const unsigned int allocationType, size_t alignment,
+		size_t reportedSize);
+	void* mmgrReallocator(
+		const char* sourceFile, const unsigned int sourceLine, const char* sourceFunc, const unsigned int reallocationType,
+		size_t reportedSize, void* reportedAddress);
+	void mmgrDeallocator(
+		const char* sourceFile, const unsigned int sourceLine, const char* sourceFunc, const unsigned int deallocationType,
+		const void* reportedAddress);
 
-bool		mmgrValidateAddress(const void *reportedAddress);
-bool		mmgrValidateAllocUnit(const sAllocUnit *allocUnit);
-bool		mmgrValidateAllAllocUnits();
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// Utilitarian functions
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// Unused RAM calculations
-// ---------------------------------------------------------------------------------------------------------------------------------
+	bool mmgrValidateAddress(const void* reportedAddress);
+	bool mmgrValidateAllocUnit(const sAllocUnit* allocUnit);
+	bool mmgrValidateAllAllocUnits(void);
 
-unsigned int	mmgrCalcUnused(const sAllocUnit *allocUnit);
-unsigned int	mmgrCalcAllUnused();
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// Unused RAM calculations
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------------------------------------------------------------
-// Logging and reporting
-// ---------------------------------------------------------------------------------------------------------------------------------
+	unsigned int mmgrCalcUnused(const sAllocUnit* allocUnit);
+	unsigned int mmgrCalcAllUnused(void);
 
-void 		mmgrSetExecutableName(const char* name, size_t length);
-void		mmgrSetLogFileDirectory(const char* directory);
-void		mmgrDumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix = "");
-void		mmgrDumpMemoryReport(const char *filename = "memreport.log", const bool overwrite = true);
-sMStats		mmgrGetMemoryStatistics();
+	// ---------------------------------------------------------------------------------------------------------------------------------
+	// Logging and reporting
+	// ---------------------------------------------------------------------------------------------------------------------------------
 
-#endif // _H_MMGR
+	void mmgrSetExecutableName(const char* name, size_t length);
+	void mmgrSetLogFileDirectory(const char* directory);
+	void mmgrDumpAllocUnit(const sAllocUnit* allocUnit, const char* prefix);
+	// the filename and override were defaulted to "memreport.log" and true
+	void    mmgrDumpMemoryReport(const char* filename, const bool overwrite);
+	sMStats mmgrGetMemoryStatistics(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif    // _H_MMGR
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // mmgr.h - End of file

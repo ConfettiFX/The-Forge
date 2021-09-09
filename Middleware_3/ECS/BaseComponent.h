@@ -57,8 +57,6 @@ class ComponentRegistrator
 {// singleton
 	friend class BaseComponent;
 public:
-	ComponentRegistrator() {}
-	~ComponentRegistrator() {}
 	inline const eastl::unordered_map<uint32_t, ComponentGeneratorFctPtr>& getComponentGeneratorMap() { return componentGeneratorMap; }
 
 	static ComponentRegistrator* getInstance();
@@ -73,7 +71,7 @@ private:
 class BaseComponent
 {
 public:
-	virtual ~BaseComponent() {}
+	virtual ~BaseComponent() = default;
 	virtual BaseComponent* clone() const = 0;
 	virtual uint32_t getType() const = 0;
 	virtual FCR::ComponentRepresentation* createRepresentation() = 0;

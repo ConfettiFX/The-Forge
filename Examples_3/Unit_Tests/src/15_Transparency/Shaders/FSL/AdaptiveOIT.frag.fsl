@@ -33,7 +33,7 @@ STRUCT(VSOutput)
 	DATA(float4, WorldPosition, POSITION);
 	DATA(float4, Normal, NORMAL);
 	DATA(float4, UV, TEXCOORD0);
-	DATA(flat(uint), MatID, MAT_ID);
+	DATA(FLAT(uint), MatID, MAT_ID);
 };
 #if !defined(ORBIS) && !defined(PROSPERO)
 EARLY_FRAGMENT_TESTS

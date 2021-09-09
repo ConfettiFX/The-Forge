@@ -29,6 +29,8 @@
 
 #include "../../OS/Interfaces/IMemory.h"
 
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+
 static DescriptorType sD3D11_TO_DESCRIPTOR[] = {
 	DESCRIPTOR_TYPE_UNIFORM_BUFFER,    //D3D_SIT_CBUFFER
 	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_TBUFFER
@@ -173,7 +175,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 
 			//Get the length of the semantic name
 			eastl::string inputNameWithIndex = paramDesc.SemanticName;
-			bool hasParamIndex = paramDesc.SemanticIndex > 0 || inputNameWithIndex == "TEXCOORD";
+			bool          hasParamIndex = paramDesc.SemanticIndex > 0 || inputNameWithIndex == "TEXCOORD";
 			inputNameWithIndex += hasParamIndex ? eastl::to_string(paramDesc.SemanticIndex) : "";
 			uint32_t len = (uint32_t)strlen(paramDesc.SemanticName) + (hasParamIndex ? 1 : 0);
 

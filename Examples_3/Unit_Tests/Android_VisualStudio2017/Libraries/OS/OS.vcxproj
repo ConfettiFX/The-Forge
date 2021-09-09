@@ -53,22 +53,27 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\UnixFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\FontSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
@@ -85,7 +90,52 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lapi.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lauxlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbaselib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbitlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcode.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcorolib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lctype.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldblib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldebug.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldo.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldump.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lfunc.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lgc.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\linit.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\liolib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\llex.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmathlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmem.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loadlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lobject.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lopcodes.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loslib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lparser.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstate.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstring.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstrlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltable.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltablib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltm.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lundump.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lutf8lib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lvm.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lzio.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\hmac.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha1.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha2.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt_brg.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_os.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_raw.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_zlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_zip.c" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
@@ -96,9 +146,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h" />
@@ -106,17 +153,21 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\resources.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFont.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IScripting.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUI.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h" />
@@ -126,6 +177,23 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\hmac.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha1.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha2.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_os.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_zlib.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_zip.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\zip.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\miniz.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h" />
@@ -136,22 +204,20 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis" />
   </ItemGroup>
   <ItemGroup>
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\fontstash.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\fontstash2D.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\fontstash3D.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\imgui.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\imgui.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\textured_mesh.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\textured_mesh.vert.fsl" />
     <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl" />
     <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash.frag.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash2D.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\Text\Shaders\FSL\fontstash3D.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.frag.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\imgui.vert.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.frag.fsl" />
-    <FSLShader Include="..\..\..\..\..\Middleware_3\UI\Shaders\FSL\textured_mesh.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</ProjectGuid>
@@ -312,7 +378,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
@@ -332,7 +398,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
@@ -352,7 +418,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PreprocessorDefinitions>ANDROID_ARM_NEON;API_EXPORT;ANDROID;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
@@ -374,7 +440,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PreprocessorDefinitions>API_EXPORT;ANDROID;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
@@ -393,7 +459,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;SCREENSHOT_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <ExceptionHandling>Enabled</ExceptionHandling>
@@ -416,7 +482,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;GLES;SCREENSHOT_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <ExceptionHandling>Enabled</ExceptionHandling>
@@ -440,7 +506,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <PreprocessorDefinitions>ANDROID_ARM_NEON;API_EXPORT;ANDROID;GLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <ExceptionHandling>Enabled</ExceptionHandling>
@@ -464,7 +530,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
-      <CompileAs>CompileAsCpp</CompileAs>
+      <CompileAs>Default</CompileAs>
       <PreprocessorDefinitions>API_EXPORT;ANDROID;GLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <ExceptionHandling>Enabled</ExceptionHandling>

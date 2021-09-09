@@ -116,6 +116,7 @@ def is_rw_texture(fsl_declaration):
     dtype = fsl_declaration[0]
     writeable_types = [
         'RasterizerOrderedTex2D',
+        'RasterizerOrderedTex2DArray',
         'RTex1D',
         'RTex2D',
         'RTex3D',
@@ -270,7 +271,7 @@ def vulkan(fsl, dst):
                 var = 'out_'+shader.returnType
                 elem_dtype, elem_name, sem = getMacro(line)
                 sem = sem.upper()
-                flat_modifier = 'flat(' in line
+                flat_modifier = 'FLAT(' in line
                 if flat_modifier:
                     elem_dtype = getMacro(elem_dtype)
                     line = get_whitespace(line) + getMacro(elem_dtype)+' '+elem_name+';\n'
@@ -344,7 +345,7 @@ def vulkan(fsl, dst):
                 var = get_input_struct_var(parsing_struct, shader)
                 elem_dtype, elem_name, sem = getMacro(line)
                 sem = sem.upper()
-                flat_modifier = 'flat(' in line
+                flat_modifier = 'FLAT(' in line
                 if flat_modifier:
                     elem_dtype = getMacro(elem_dtype)
                     line = get_whitespace(line) + getMacro(elem_dtype)+' '+elem_name+';\n'

@@ -1,0 +1,395 @@
+/**********************************************************************
+Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+********************************************************************/
+
+#ifndef FFX_SSSR_DEPTH_DOWNSAMPLE
+#define FFX_SSSR_DEPTH_DOWNSAMPLE
+
+ENABLE_WAVEOPS()
+
+RES(Tex2DArray(float), g_depth_buffer, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(RWTex2DArray(float), g_downsampled_depth_buffer[13], UPDATE_FREQ_NONE, u0, binding = 1);
+RES(RWBuffer(atomic_uint), g_global_atomic, UPDATE_FREQ_NONE, u13, binding = 2); // Single atomic counter that stores the number of remaining threadgroups to process.
+
+GroupShared(float, g_group_shared_depth_values[16][16]);
+GroupShared(uint, g_group_shared_counter);
+
+// Define fetch and store functions
+float4 SpdLoadSourceImage(int2 index, int ViewID)
+{
+    return LoadTex3D(Get(g_depth_buffer), NO_SAMPLER, int3(index, ViewID), 0).xxxx;
+}
+float4 SpdLoad(uint2 index, uint ViewID)
+{
+    // 5 -> 6 as we store a copy of the depth buffer at index 0
+    return LoadRWTex3D(Get(g_downsampled_depth_buffer)[6], uint3(index, ViewID)).xxxx;
+}
+void SpdStore(uint2 pix, float4 outValue, uint index, uint ViewID)
+{
+    // + 1 as we store a copy of the depth buffer at index 0
+    Write2DArray(Get(g_downsampled_depth_buffer)[index + 1], pix, ViewID, outValue.x);
+}
+void SpdIncreaseAtomicCounter()
+{
+    AtomicAdd(Get(g_global_atomic)[0], 1u, Get(g_group_shared_counter));
+}
+void SpdResetAtomicCounter()
+{
+    AtomicStore(Get(g_global_atomic)[0], 0);
+}
+uint SpdGetAtomicCounter()
+{
+    return Get(g_group_shared_counter);
+}
+float4 SpdLoadIntermediate(uint x, uint y)
+{
+	float f = Get(g_group_shared_depth_values)[x][y];
+    return f4(f);
+}
+void SpdStoreIntermediate(uint x, uint y, float4 value)
+{
+    Get(g_group_shared_depth_values)[x][y] = value.x;
+}
+float4 SpdReduce4(float4 v0, float4 v1, float4 v2, float4 v3)
+{
+    return min(min(v0, v1), min(v2,v3));
+}
+
+void SpdWorkgroupShuffleBarrier()
+{
+    GroupMemoryBarrier();
+}
+
+// Only last active workgroup should proceed
+bool SpdExitWorkgroup(uint numWorkGroups, uint localInvocationIndex)
+{
+    // global atomic counter
+    if (localInvocationIndex == 0)
+    {
+        SpdIncreaseAtomicCounter();
+    }
+    SpdWorkgroupShuffleBarrier();
+    return (SpdGetAtomicCounter() != (numWorkGroups - 1));
+}
+
+float4 SpdReduceQuad(float4 v)
+{
+    // requires SM6.0
+     uint quad = WaveGetLaneIndex() &  (~0x3);
+    float4 v0 = v;
+	float4 v1 = WaveReadLaneAt(v, quad | 1);
+	float4 v2 = WaveReadLaneAt(v, quad | 2);
+	float4 v3 = WaveReadLaneAt(v, quad | 3);
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+float4 SpdReduceIntermediate(uint2 i0, uint2 i1, uint2 i2, uint2 i3)
+{
+    float4 v0 = SpdLoadIntermediate(i0.x, i0.y);
+    float4 v1 = SpdLoadIntermediate(i1.x, i1.y);
+    float4 v2 = SpdLoadIntermediate(i2.x, i2.y);
+    float4 v3 = SpdLoadIntermediate(i3.x, i3.y);
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+float4 _SpdReduceLoad4(uint2 i0, uint2 i1, uint2 i2, uint2 i3, uint ViewID)
+{
+    float4 v0 = SpdLoad(i0, ViewID);
+    float4 v1 = SpdLoad(i1, ViewID);
+    float4 v2 = SpdLoad(i2, ViewID);
+    float4 v3 = SpdLoad(i3, ViewID);
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+float4 SpdReduceLoad4(uint2 base, uint ViewID)
+{
+    return _SpdReduceLoad4(
+        uint2(base + uint2(0, 0)),
+        uint2(base + uint2(0, 1)),
+        uint2(base + uint2(1, 0)),
+        uint2(base + uint2(1, 1)),
+		ViewID);
+}
+
+float4 _SpdReduceLoadSourceImage4(uint2 i0, uint2 i1, uint2 i2, uint2 i3, uint ViewID)
+{
+    float4 v0 = SpdLoadSourceImage(int2(i0), int(ViewID));
+    float4 v1 = SpdLoadSourceImage(int2(i1), int(ViewID));
+    float4 v2 = SpdLoadSourceImage(int2(i2), int(ViewID));
+    float4 v3 = SpdLoadSourceImage(int2(i3), int(ViewID));
+    return SpdReduce4(v0, v1, v2, v3);
+}
+
+float4 SpdReduceLoadSourceImage4(uint2 base, uint ViewID)
+{
+    return _SpdReduceLoadSourceImage4(
+        uint2(base + uint2(0, 0)),
+        uint2(base + uint2(0, 1)),
+        uint2(base + uint2(1, 0)),
+        uint2(base + uint2(1, 1)),
+		ViewID);
+}
+
+void SpdDownsampleMips_0_1(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint mip, uint ViewID)
+{
+    float4 v[4];
+
+    uint2 tex = (workGroupID.xy) * 64 + uint2(x * 2, y * 2);
+    uint2 pix = (workGroupID.xy) * 32 + uint2(x, y);
+    v[0] = SpdReduceLoadSourceImage4(tex, ViewID);
+    SpdStore(pix, v[0], 0, ViewID);
+
+    tex = (workGroupID.xy * 64) + uint2(x * 2 + 32, y * 2);
+    pix = (workGroupID.xy * 32) + uint2(x + 16, y);
+    v[1] = SpdReduceLoadSourceImage4(tex, ViewID);
+    SpdStore(pix, v[1], 0, ViewID);
+
+    tex = (workGroupID.xy * 64) + uint2(x * 2, y * 2 + 32);
+    pix = (workGroupID.xy * 32) + uint2(x, y + 16);
+    v[2] = SpdReduceLoadSourceImage4(tex, ViewID);
+    SpdStore(pix, v[2], 0, ViewID);
+
+    tex = (workGroupID.xy * 64) + uint2(x * 2 + 32, y * 2 + 32);
+    pix = (workGroupID.xy * 32) + uint2(x + 16, y + 16);
+    v[3] = SpdReduceLoadSourceImage4(tex, ViewID);
+    SpdStore(pix, v[3], 0, ViewID);
+
+    if (mip <= 1)
+        return;
+
+    v[0] = SpdReduceQuad(v[0]);
+    v[1] = SpdReduceQuad(v[1]);
+    v[2] = SpdReduceQuad(v[2]);
+    v[3] = SpdReduceQuad(v[3]);
+
+    if ((localInvocationIndex % 4) == 0)
+    {
+        SpdStore((workGroupID.xy * 16) +
+            uint2(x / 2, y / 2), v[0], 1, ViewID);
+        SpdStoreIntermediate(
+            x / 2, y / 2, v[0]);
+
+        SpdStore((workGroupID.xy * 16) +
+            uint2(x / 2 + 8, y / 2), v[1], 1, ViewID);
+        SpdStoreIntermediate(
+            x / 2 + 8, y / 2, v[1]);
+
+        SpdStore((workGroupID.xy * 16) +
+            uint2(x / 2, y / 2 + 8), v[2], 1, ViewID);
+        SpdStoreIntermediate(
+            x / 2, y / 2 + 8, v[2]);
+
+        SpdStore((workGroupID.xy * 16) +
+            uint2(x / 2 + 8, y / 2 + 8), v[3], 1, ViewID);
+        SpdStoreIntermediate(
+            x / 2 + 8, y / 2 + 8, v[3]);
+    }
+}
+
+void SpdDownsampleMip_2(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint mip, uint ViewID)
+{
+    float4 v = SpdLoadIntermediate(x, y);
+    v = SpdReduceQuad(v);
+    // quad index 0 stores result
+    if (localInvocationIndex % 4 == 0)
+    {
+        SpdStore((workGroupID.xy * 8) + uint2(x / 2, y / 2), v, mip, ViewID);
+        SpdStoreIntermediate(x + (y / 2) % 2, y, v);
+    }
+}
+
+void SpdDownsampleMip_3(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint mip, uint ViewID)
+{
+    if (localInvocationIndex < 64)
+    {
+        float4 v = SpdLoadIntermediate(x * 2 + y % 2, y * 2);
+        v = SpdReduceQuad(v);
+        // quad index 0 stores result
+        if (localInvocationIndex % 4 == 0)
+        {
+            SpdStore((workGroupID.xy * 4) + uint2(x / 2, y / 2), v, mip, ViewID);
+            SpdStoreIntermediate(x * 2 + y / 2, y * 2, v);
+        }
+    }
+}
+
+void SpdDownsampleMip_4(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint mip, uint ViewID)
+{
+    if (localInvocationIndex < 16)
+    {
+        float4 v = SpdLoadIntermediate(x * 4 + y, y * 4);
+        v = SpdReduceQuad(v);
+        // quad index 0 stores result
+        if (localInvocationIndex % 4 == 0)
+        {
+            SpdStore((workGroupID.xy * 2) + uint2(x / 2, y / 2), v, mip, ViewID);
+            SpdStoreIntermediate(x / 2 + y, 0, v);
+        }
+    }
+}
+
+void SpdDownsampleMip_5(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint mip, uint ViewID)
+{
+    if (localInvocationIndex < 4)
+    {
+        float4 v = SpdLoadIntermediate(localInvocationIndex, 0);
+        v = SpdReduceQuad(v);
+        // quad index 0 stores result
+        if (localInvocationIndex % 4 == 0)
+        {
+            SpdStore((workGroupID.xy), v, mip, ViewID);
+        }
+    }
+}
+
+void SpdDownsampleMips_6_7(uint x, uint y, uint mips, uint ViewID)
+{
+    uint2 tex = uint2(x * 4 + 0, y * 4 + 0);
+    uint2 pix = uint2(x * 2 + 0, y * 2 + 0);
+    float4 v0 = SpdReduceLoad4(tex, ViewID);
+    SpdStore(pix, v0, 6, ViewID);
+
+    tex = uint2(x * 4 + 2, y * 4 + 0);
+    pix = uint2(x * 2 + 1, y * 2 + 0);
+    float4 v1 = SpdReduceLoad4(tex, ViewID);
+    SpdStore(pix, v1, 6, ViewID);
+
+    tex = uint2(x * 4 + 0, y * 4 + 2);
+    pix = uint2(x * 2 + 0, y * 2 + 1);
+    float4 v2 = SpdReduceLoad4(tex, ViewID);
+    SpdStore(pix, v2, 6, ViewID);
+
+    tex = uint2(x * 4 + 2, y * 4 + 2);
+    pix = uint2(x * 2 + 1, y * 2 + 1);
+    float4 v3 = SpdReduceLoad4(tex, ViewID);
+    SpdStore(pix, v3, 6, ViewID);
+
+    if (mips <= 7) return;
+    // no barrier needed, working on values only from the same thread
+
+    float4 v = SpdReduce4(v0, v1, v2, v3);
+    SpdStore(uint2(x, y), v, 7, ViewID);
+    SpdStoreIntermediate(x, y, v);
+}
+
+void SpdDownsampleNextFour(uint x, uint y, uint2 workGroupID, uint localInvocationIndex, uint baseMip, uint mips, uint ViewID)
+{
+    if (mips <= baseMip) return;
+    SpdWorkgroupShuffleBarrier();
+    SpdDownsampleMip_2(x, y, workGroupID, localInvocationIndex, baseMip, ViewID);
+
+    if (mips <= baseMip + 1) return;
+    SpdWorkgroupShuffleBarrier();
+    SpdDownsampleMip_3(x, y, workGroupID, localInvocationIndex, baseMip + 1, ViewID);
+
+    if (mips <= baseMip + 2) return;
+    SpdWorkgroupShuffleBarrier();
+    SpdDownsampleMip_4(x, y, workGroupID, localInvocationIndex, baseMip + 2, ViewID);
+
+    if (mips <= baseMip + 3) return;
+    SpdWorkgroupShuffleBarrier();
+    SpdDownsampleMip_5(x, y, workGroupID, localInvocationIndex, baseMip + 3, ViewID);
+}
+
+uint ABfe(uint src,uint off,uint bits)
+{
+    uint mask=(1u<<bits)-1;return (src>>off)&mask;
+}
+uint ABfiM(uint src,uint ins,uint bits)
+{
+    uint mask=(1u<<bits)-1;return (ins&mask)|(src&(~mask));
+}
+uint2 ARmpRed8x8(uint a)
+{
+    return uint2(ABfiM(ABfe(a,2u,3u),a,1u),ABfiM(ABfe(a,3u,3u),ABfe(a,1u,2u),2u));
+}
+
+void SpdDownsample(
+    uint2 workGroupID,
+    uint localInvocationIndex,
+    uint mips,
+    uint numWorkGroups,
+	uint ViewID)
+{
+    uint2 sub_xy = ARmpRed8x8(localInvocationIndex % 64);
+    uint x = sub_xy.x + 8 * ((localInvocationIndex >> 6) % 2);
+    uint y = sub_xy.y + 8 * ((localInvocationIndex >> 7));
+    SpdDownsampleMips_0_1(x, y, workGroupID, localInvocationIndex, mips, ViewID);
+
+    SpdDownsampleNextFour(x, y, workGroupID, localInvocationIndex, 2, mips, ViewID);
+
+    if (mips <= 6) return;
+
+    if (SpdExitWorkgroup(numWorkGroups, localInvocationIndex)) return;
+
+    SpdResetAtomicCounter();
+
+    // After mip 6 there is only a single workgroup left that downsamples the remaining up to 64x64 texels.
+    SpdDownsampleMips_6_7(x, y, mips, ViewID);
+
+    SpdDownsampleNextFour(x, y, uint2(0, 0), localInvocationIndex, 8, mips, ViewID);
+}
+
+uint GetThreadgroupCount(int2 image_size)
+{
+	// Each threadgroup works on 64x64 texels
+	return ((image_size.x + 63) / 64) * ((image_size.y + 63) / 64);
+}
+
+// Returns mips count of a texture with specified size
+float GetMipsCount(int2 texture_size)
+{
+    float max_dim = float(max(texture_size.x, texture_size.y));
+    return 1.0 + floor(log2(max_dim));
+}
+
+NUM_THREADS(32,  8,  1)
+void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupID(uint3) gid, SV_GroupIndex(uint) gi )
+{
+	INIT_MAIN;
+	int2 depth_image_size =  GetDimensions(Get(g_depth_buffer), NO_SAMPLER).xy;
+
+    // Copy most detailed level into the hierarchy and transform it.
+	for (int i = 0; i < 2; ++i)
+	{
+		for (int j = 0; j < 8; ++j)
+		{
+			int2 idx = int2(2 * did.x + i, 8 * did.y + j);
+			if (idx.x < depth_image_size.x && idx.y < depth_image_size.y)
+			{
+                Write2DArray(Get(g_downsampled_depth_buffer)[0], idx, did.z, LoadTex3D(Get(g_depth_buffer), NO_SAMPLER, int3(idx, did.z), 0));
+			}
+		}
+	}
+
+    int2 image_size = GetDimensions(Get(g_downsampled_depth_buffer)[0], NO_SAMPLER).xy;
+    float mips_count = GetMipsCount(image_size);
+    uint threadgroup_count = GetThreadgroupCount(image_size);
+
+	SpdDownsample(
+		uint2(gid.xy),
+		uint(gi),
+		uint(mips_count),
+		uint(threadgroup_count),
+		did.z);
+	RETURN();
+}
+#endif // FFX_SSSR_DEPTH_DOWNSAMPLE

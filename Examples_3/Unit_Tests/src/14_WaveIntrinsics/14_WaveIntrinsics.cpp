@@ -31,9 +31,12 @@
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -45,7 +48,7 @@
 /// Demo structures
 struct SceneConstantBuffer
 {
-	mat4   orthProjMatrix;
+	mat4 orthProjMatrix;
 	float2 mousePosition;
 	float2 resolution;
 	float  time;
@@ -84,6 +87,8 @@ Buffer* pUniformBuffer[gImageCount] = { NULL };
 Buffer* pVertexBufferTriangle = NULL;
 Buffer* pVertexBufferQuad = NULL;
 
+char gCpuFrametimeText[64] = { 0 };
+
 uint32_t gFrameIndex = 0;
 
 SceneConstantBuffer gSceneData;
@@ -91,9 +96,7 @@ float2* pMovePosition = NULL;
 float2 gMoveDelta = {};
 
 /// UI
-UIApp*        pAppUI = NULL;
-GuiComponent* pGui = NULL;
-static uint32_t gSelectedApiIndex = 0;
+UIComponent* pGui = NULL;
 
 enum RenderMode
 {
@@ -110,9 +113,12 @@ enum RenderMode
 };
 int32_t gRenderModeToggles = 0;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
+uint32_t     gFontID = 0; 
 
 static bool gWaveOpsSupported = false;
+
+static HiresTimer gTimer;
 
 struct Vertex
 {
@@ -139,6 +145,8 @@ class WaveIntrinsics: public IApp
 
 	bool Init()
 	{
+		initHiresTimer(&gTimer);
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -147,9 +155,10 @@ class WaveIntrinsics: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		settings.mShaderTarget = shader_target_6_0;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -188,15 +197,15 @@ class WaveIntrinsics: public IApp
 		if (gWaveOpsSupported)
 		{
 			ShaderLoadDesc waveShader = {};
-			waveShader.mStages[0] = { "wave.vert", NULL, 0 };
-			waveShader.mStages[1] = { "wave.frag", NULL, 0 };
+			waveShader.mStages[0] = { "wave.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			waveShader.mStages[1] = { "wave.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			waveShader.mTarget = shader_target_6_0;
 			addShader(pRenderer, &waveShader, &pShaderWave);
 		}
 
 		ShaderLoadDesc magnifyShader = {};
-		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0 };
-		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0 };
+		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &magnifyShader, &pShaderMagnify);
 
 		SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
@@ -260,40 +269,24 @@ class WaveIntrinsics: public IApp
 
 		waitForAllResourceLoads();
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
-		GuiDesc guiDesc = {};
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f);
-		pGui = addAppUIGuiComponent(pAppUI, "Render Modes", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent("Render Modes", &guiDesc, &pGui);
 
 		if (gWaveOpsSupported)
 		{
@@ -322,20 +315,20 @@ class WaveIntrinsics: public IApp
 					RadioButtonWidget iosRenderMode;
 					iosRenderMode.pData = &gRenderModeToggles;
 					iosRenderMode.mRadioId = i;
-					addWidgetLua(addGuiWidget(pGui, m_labels[i], &iosRenderMode, WIDGET_TYPE_RADIO_BUTTON));
+                    luaRegisterWidget(uiCreateComponentWidget(pGui, m_labels[i], &iosRenderMode, WIDGET_TYPE_RADIO_BUTTON));
 				}
 #else
 				RadioButtonWidget modeToggle;
 				modeToggle.pData = &gRenderModeToggles;
 				modeToggle.mRadioId = i;
-				addWidgetLua(addGuiWidget(pGui, m_labels[i], &modeToggle, WIDGET_TYPE_RADIO_BUTTON));
+				luaRegisterWidget(uiCreateComponentWidget(pGui, m_labels[i], &modeToggle, WIDGET_TYPE_RADIO_BUTTON));
 #endif
 			}
 		}
 		else
 		{
 			LabelWidget notSupportedLabel;
-			addWidgetLua(addGuiWidget(pGui, "Some of wave ops are not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Some of wave ops are not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -346,7 +339,10 @@ class WaveIntrinsics: public IApp
 			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
 		}
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -358,7 +354,7 @@ class WaveIntrinsics: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				if (appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
+				if (uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
 					pMovePosition = ctx->pPosition;
 				else
 					pMovePosition = NULL;
@@ -378,7 +374,9 @@ class WaveIntrinsics: public IApp
 	{
 		exitInputSystem();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -414,6 +412,7 @@ class WaveIntrinsics: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -424,7 +423,14 @@ class WaveIntrinsics: public IApp
 		if (!addIntermediateRenderTarget())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -489,7 +495,9 @@ class WaveIntrinsics: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pPipelineMagnify);
 		if (gWaveOpsSupported)
@@ -505,7 +513,6 @@ class WaveIntrinsics: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		updateAppUI(pAppUI, deltaTime);
 		/************************************************************************/
 		// Uniforms
 		/************************************************************************/
@@ -607,18 +614,17 @@ class WaveIntrinsics: public IApp
 		cmdEndDebugMarker(cmd);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
+		getHiresTimerUSec(&gTimer, true);
 
-		char text[64];
-		sprintf(text, "CPU %f ms", gTimer.GetUSecAverage() / 1000.0f);
+		sprintf(gCpuFrametimeText, "CPU %f ms", getHiresTimerUSecAverage(&gTimer) / 1000.0f);
 
-		float2 screenCoords(8, 15);
-		drawAppUIText(pAppUI, 
-			cmd, &screenCoords, text, &gFrameTimeDraw);
+		gFrameTimeDraw.pText = gCpuFrametimeText; 
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
+		cmdDrawTextWithFont(cmd, float2(8, 15), &gFrameTimeDraw);
 
-		appUIGui(pAppUI, pGui);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
@@ -678,6 +684,7 @@ class WaveIntrinsics: public IApp
 		rtDesc.mSampleCount = SAMPLE_COUNT_1;
 		rtDesc.mSampleQuality = 0;
 		rtDesc.mWidth = mSettings.mWidth;
+        rtDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &rtDesc, &pRenderTargetIntermediate);
 
 		return pRenderTargetIntermediate != NULL;

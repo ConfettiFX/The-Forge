@@ -34,7 +34,8 @@
 #endif
 
 #ifndef PROFILE_WEBSERVER
-#define PROFILE_WEBSERVER 0	// Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
+#define PROFILE_WEBSERVER \
+	0    // Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
 #endif
 
 #endif
@@ -43,18 +44,34 @@
 #include "IApp.h"
 #include "IOperatingSystem.h"
 #include "IThread.h"
+#include "../Math/MathTypes.h"
 
 typedef uint64_t ProfileToken;
-#define PROFILE_INVALID_TOKEN (uint64_t)-1
+#define PROFILE_INVALID_TOKEN (uint64_t) - 1
 
 struct Cmd;
 struct Renderer;
 struct Queue;
-struct TextDrawDesc;
-struct UIApp;
+struct FontDrawDesc; 
+struct UserInterface;
+
+typedef struct ProfilerDesc
+{
+
+	Renderer*     pRenderer = NULL; 
+	Queue**       ppQueues = NULL;
+
+	const char**  ppProfilerNames = NULL; 
+	ProfileToken* pProfileTokens = NULL; 
+
+	uint32_t      mGpuProfilerCount = 0;
+	uint32_t      mWidthUI = 0; 
+	uint32_t      mHeightUI = 0; 
+
+} ProfilerDesc;
 
 // Must be called before adding any profiling
-void initProfiler(Renderer* pRenderer = NULL, Queue** ppQueue = NULL, const char** ppProfilerNames = NULL, ProfileToken* pProfileTokens = NULL, uint32_t nGpuProfilerCount = 0);
+void initProfiler(ProfilerDesc* pDesc);
 
 // Call on application exit
 void exitProfiler();
@@ -66,30 +83,20 @@ void flipProfiler();
 void setAggregateFrames(uint32_t nFrames);
 
 // Dump profile data to "profile-(date).html" of recorded frames, until a maximum amount of frames
-void dumpProfileData(Renderer* pRenderer, const char* appName = "" , uint32_t nMaxFrames = 64);
+void dumpProfileData(const char* appName = "" , uint32_t nMaxFrames = 64);
 
 // Dump benchmark data to "benchmark-(data).txt" of recorded frames
-void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName = "");
-
+void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename = "", const char * appName = "");
 
 //------ Profiler UI Widget --------//
 
-// Call on application load to generate the resources needed for UI drawing
-void initProfilerUI(UIApp* uiApp, int32_t width, int32_t height);
-
-// Call on application exit to release resources needed for UI drawing
-void exitProfilerUI();
-
-// Call once per frame to draw UI
-void cmdDrawProfilerUI();
-
 // Call once per frame before AppUI.Draw, draw requested Gpu profiler timers
 // Returns text dimensions so caller can align other UI elements
-float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc = NULL);
+float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc);
 
 // Call once per frame before AppUI.Draw, draw requested Cpu profile time
 // Returns text dimensions so caller can align other UI elements
-float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc = NULL);
+float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc);
 
 // Toggle profiler display on/off.
 void toggleProfilerUI();
@@ -133,23 +140,20 @@ ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t 
 
 struct CpuProfileScopeMarker
 {
-    ProfileToken nToken;
-    uint64_t nTick;
-    CpuProfileScopeMarker(const char* pGroup, const char* pName, uint32_t nColor)
-    {
-        nToken = getCpuProfileToken(pGroup, pName, nColor);
-        nTick = cpuProfileEnter(nToken);
-    }
-    ~CpuProfileScopeMarker()
-    {
-        cpuProfileLeave(nToken, nTick);
-    }
+	ProfileToken nToken;
+	uint64_t     nTick;
+	CpuProfileScopeMarker(const char* pGroup, const char* pName, uint32_t nColor)
+	{
+		nToken = getCpuProfileToken(pGroup, pName, nColor);
+		nTick = cpuProfileEnter(nToken);
+	}
+	~CpuProfileScopeMarker() { cpuProfileLeave(nToken, nTick); }
 };
 
-#define PROFILER_CONCAT0(a, b) a ## b 
-#define PROFILER_CONCAT(a, b) PROFILER_CONCAT0(a, b) 
-// Call at the start of a block to profile cpu time between '{' '}' 
-#define PROFILER_SET_CPU_SCOPE(group, name, color) CpuProfileScopeMarker PROFILER_CONCAT(marker,__LINE__)(group, name, color)
+#define PROFILER_CONCAT0(a, b) a##b
+#define PROFILER_CONCAT(a, b) PROFILER_CONCAT0(a, b)
+// Call at the start of a block to profile cpu time between '{' '}'
+#define PROFILER_SET_CPU_SCOPE(group, name, color) CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(group, name, color)
 
 // Cpu times in milliseconds
 float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID = NULL);

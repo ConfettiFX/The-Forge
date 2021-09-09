@@ -21,8 +21,6 @@
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanRaytracing.cpp"/>
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanShaderReflection.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -115,4 +113,6 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
 </CodeLite_Project>

@@ -1,0 +1,52 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Visual Studio
+**/.vs/
+**/x64/
+**.vcxproj.user
+**.user
+**.log
+
+#  Visual Studio User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# build dirs
+Examples_3/*/Quest_VisualStudio2017/**/ARM/
+Examples_3/*/Quest_VisualStudio2017/**/ARM64/
+
+#Memleak files
+*.memleaks
+
+#Python
+*.pyc

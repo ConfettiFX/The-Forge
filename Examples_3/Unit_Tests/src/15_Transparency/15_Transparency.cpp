@@ -28,7 +28,7 @@
 #define CUBES_EACH_COL 5
 #define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
 #define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(PROSPERO) && !defined(XBOX)
+#if (defined(DIRECT3D12) || defined(VULKAN) || defined(PROSPERO)) && !(defined(XBOX) || defined(QUEST_VR))
 #define AOIT_ENABLE 1
 #endif
 #define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
@@ -47,15 +47,18 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Core/ThreadSystem.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -160,7 +163,7 @@ typedef struct ObjectInfoUniformBlock
 
 typedef struct SkyboxUniformBlock
 {
-	mat4 mViewProject;
+	CameraMatrix mViewProject;
 } SkyboxUniformBlock;
 
 typedef struct LightUniformBlock
@@ -172,11 +175,19 @@ typedef struct LightUniformBlock
 
 typedef struct CameraUniform
 {
-	mat4 mViewProject;
+	CameraMatrix mViewProject;
 	mat4 mViewMat;
 	vec4 mClipInfo;
 	vec4 mPosition;
 } CameraUniform;
+
+typedef struct CameraLightUniform
+{
+    mat4 mViewProject;
+    mat4 mViewMat;
+    vec4 mClipInfo;
+    vec4 mPosition;
+} CameraLightUniform;
 
 typedef struct AlphaBlendSettings
 {
@@ -431,8 +442,6 @@ struct
 
 /************************************************************************/
 
-VirtualJoystickUI* pVirtualJoystick = NULL;
-
 // Constants
 uint32_t     gFrameIndex = 0;
 float        gCurrentTime = 0.0f;
@@ -445,7 +454,7 @@ ObjectInfoUniformBlock gTransparentObjectInfoUniformData;
 SkyboxUniformBlock     gSkyboxUniformData;
 LightUniformBlock      gLightUniformData;
 CameraUniform          gCameraUniformData;
-CameraUniform          gCameraLightUniformData;
+CameraLightUniform     gCameraLightUniformData;
 AlphaBlendSettings     gAlphaBlendSettings;
 WBOITSettings          gWBOITSettingsData;
 WBOITVolitionSettings  gWBOITVolitionSettingsData;
@@ -459,13 +468,12 @@ ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 
 /// UI
-UIApp*        pAppUI = NULL;
-GuiComponent* pGuiWindow = NULL;
-TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+UIComponent* pGuiWindow = NULL;
+FontDrawDesc  gFrameTimeDraw; 
+uint32_t      gFontID = 0; 
 ProfileToken  gCurrentGpuProfileTokens[TRANSPARENCY_TYPE_COUNT];
-ProfileToken gCurrentGpuProfileToken;
+ProfileToken  gCurrentGpuProfileToken;
 HiresTimer    gCpuTimer;
-static uint32_t gSelectedApiIndex = 0;
 
 Renderer* pRenderer = NULL;
 
@@ -481,20 +489,20 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 uint32_t gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
 
 void AddObject(
-	MeshResource mesh, vec3 position, vec4 color, vec3 translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f,
-	vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
+	MeshResource mesh, const vec3& position, const vec4& color, const vec3& translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f,
+	const vec3& scale = vec3(1.0f), const vec3& orientation = vec3(0.0f))
 {
 	gScene.mObjects.push_back(
 		{ position, scale, orientation, mesh, { v4ToF4(color), float4(v3ToF3(translucency), 0.0f), eta, collimation } });
 }
 
-void AddObject(MeshResource mesh, vec3 position, TextureResource texture, vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
+void AddObject(MeshResource mesh, const vec3& position, TextureResource texture, const vec3& scale = vec3(1.0f), const vec3& orientation = vec3(0.0f))
 {
 	gScene.mObjects.push_back(
 		{ position, scale, orientation, mesh, { float4(1.0f), float4(0.0f), 1.0f, 0.0f, float2(0.0f), 1, (uint)texture, 0, 0 } });
 }
 
-void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f), vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
+void AddParticleSystem(const vec3& position, const vec4& color, const vec3& translucency = vec3(0.0f), const vec3& scale = vec3(1.0f), const vec3& orientation = vec3(0.0f))
 {
 	Buffer*        pParticleBuffer = NULL;
 	BufferLoadDesc particleBufferDesc = {};
@@ -633,7 +641,9 @@ uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 class Transparency: public IApp
@@ -641,6 +651,8 @@ class Transparency: public IApp
 public:
 	bool Init() override
 	{
+		initHiresTimer(&gCpuTimer);
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -650,8 +662,10 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
-		RendererDesc settings = { NULL };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		QueueDesc queueDesc = {};
@@ -680,10 +694,6 @@ public:
 
 		LoadModels();
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-			return false;
-
 		CreateSamplers();
 		CreateShaders();
 		CreateRootSignatures();
@@ -693,53 +703,46 @@ public:
 
 		CreateScene();
 
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
+
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
+
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
 
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		for (uint32_t i = 0; i < TRANSPARENCY_TYPE_COUNT; ++i)
 			gCurrentGpuProfileTokens[i] = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		gCurrentGpuProfileToken = gCurrentGpuProfileTokens[gTransparencyType];
 
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
 
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
 		GuiController::AddGui();
 	
@@ -751,7 +754,10 @@ public:
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -763,7 +769,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -772,9 +778,8 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -785,6 +790,13 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+        actionDesc = { InputBindings::BUTTON_R3, [](InputActionContext* ctx) 
+        { 
+            if (ctx->mPhase == INPUT_ACTION_PHASE_STARTED)
+                gTransparencyType = (gTransparencyType + 1) % TRANSPARENCY_TYPE_COUNT;
+            return true; 
+        } };
+        addInputAction(&actionDesc);
 
 		gFrameIndex = 0; 
 
@@ -802,16 +814,14 @@ public:
 		for (uint32_t i = 0; i < TRANSPARENCY_TYPE_COUNT; ++i)
 			removeGpuProfiler(gCurrentGpuProfileTokens[i]);
 
-		exitProfilerUI();
-
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
-
-		exitVirtualJoystickUI(pVirtualJoystick);
 
 		DestroySamplers();
 		DestroyShaders();
@@ -836,6 +846,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 
 		gScene.mParticleSystems.set_capacity(0);
 		gScene.mObjects.set_capacity(0);
@@ -847,9 +858,16 @@ public:
 	{
 		if (!CreateRenderTargetsAndSwapChain())
 			return false;
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pRenderTargetDepth
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		CreatePipelines();
@@ -865,9 +883,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
 
-		removeAppGUIDriver(pAppUI);
+		removeFontSystemPipelines(); 
 
 		DestroyPipelines();
 
@@ -878,7 +896,7 @@ public:
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		gCpuTimer.Reset();
+		resetHiresTimer(&gCpuTimer);
 
 		gCurrentTime += deltaTime;
 
@@ -893,9 +911,9 @@ public:
 		mat4        viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, zNear, zFar);    //view matrix
+        CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, zNear, zFar);    //view matrix
 		vec3        camPos = pCameraController->getViewPosition();
-		mat4        vpMatrix = projMat * viewMat;
+        CameraMatrix vpMatrix = projMat * viewMat;
 		/************************************************************************/
 		// Light Update
 		/************************************************************************/
@@ -936,12 +954,9 @@ public:
 		gLightUniformData.mLightDirection = vec4(lightDir, 0);
 		gLightUniformData.mLightViewProj = lightVPMatrix;
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
-
-		////////////////////////////////////////////////////////////////
-		updateAppUI(pAppUI, deltaTime);
 	}
 
-	void UpdateParticleSystems(float deltaTime, mat4 viewMat, vec3 camPos)
+	void UpdateParticleSystems(float deltaTime, const mat4& viewMat, const vec3& camPos)
 	{
 		const float             particleSize = 0.2f;
 		const vec3              camRight = vec3((float)viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
@@ -1086,7 +1101,7 @@ public:
 			pDrawCalls->push_back({ 0, instanceCount, instanceOffset, prevMesh });
 	}
 
-	void UpdateScene(float deltaTime, mat4 viewMat, vec3 camPos)
+	void UpdateScene(float deltaTime, const mat4& viewMat, const vec3& camPos)
 	{
 		uint materialCount = 0;
 
@@ -1532,7 +1547,7 @@ public:
 					groupCountX = 1;
 				if (groupCountY == 0)
 					groupCountY = 1;
-				cmdDispatch(pCmd, groupCountX, groupCountY, 1);
+				cmdDispatch(pCmd, groupCountX, groupCountY, pRenderTargetScreen->mArraySize);
 			}
 
 			barrier = { rt, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
@@ -1845,7 +1860,7 @@ public:
 
 		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 
-		gCpuTimer.GetUSec(true);
+		getHiresTimerUSec(&gCpuTimer, true);
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/
@@ -1869,7 +1884,7 @@ public:
 
 		BufferUpdateDesc cameraLightBufferCbv = { pBufferCameraLightUniform[gFrameIndex] };
 		beginUpdateResource(&cameraLightBufferCbv);
-		*(CameraUniform*)cameraLightBufferCbv.pMappedData = gCameraLightUniformData;
+		*(CameraLightUniform*)cameraLightBufferCbv.pMappedData = gCameraLightUniformData;
 		endUpdateResource(&cameraLightBufferCbv, NULL);
 
 		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform[gFrameIndex] };
@@ -1943,17 +1958,13 @@ public:
 		cmdBeginDebugMarker(pCmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
 
-
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(pCmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken);
+		cmdDrawGpuProfile(pCmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, pCmd, &color);
-
-		cmdDrawProfilerUI();
-
-		appUIGui(pAppUI, pGuiWindow);
-		drawAppUI(pAppUI, pCmd);
+		cmdDrawUserInterface(pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdEndDebugMarker(pCmd);
@@ -2083,8 +2094,8 @@ public:
 
 		// Skybox shader
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 #if USE_SHADOWS != 0
@@ -2103,52 +2114,52 @@ public:
 #if PT_USE_CAUSTICS != 0
 		// Stochastic shadow mapping shader
 		ShaderLoadDesc stochasticShadowShaderDesc = {};
-		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
-		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros };
+		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &stochasticShadowShaderDesc, &pShaderPTShadow);
 
 		// Downsample shader
 		ShaderLoadDesc downsampleShaderDesc = {};
-		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros };
+		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &downsampleShaderDesc, &pShaderPTDownsample);
 
 		// Shadow map copy shader
 		ShaderLoadDesc copyShadowDepthShaderDesc = {};
-		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros };
+		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &copyShadowDepthShaderDesc, &pShaderPTCopyShadowDepth);
 #endif
 #endif
 
 		// Forward shading shader
 		ShaderLoadDesc forwardShaderDesc = {};
-		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
-		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros };
+		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &forwardShaderDesc, &pShaderForward);
 
 		// WBOIT shade shader
 		ShaderLoadDesc wboitShadeShaderDesc = {};
-		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
-		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros };
+		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitShadeShaderDesc, &pShaderWBOITShade);
 
 		// WBOIT composite shader
 		ShaderLoadDesc wboitCompositeShaderDesc = {};
-		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros };
+		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitCompositeShaderDesc, &pShaderWBOITComposite);
 
 		// WBOIT Volition shade shader
 		ShaderLoadDesc wboitVolitionShadeShaderDesc = {};
-		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
-		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros };
+		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitVolitionShadeShaderDesc, &pShaderWBOITVShade);
 
 		// WBOIT Volition composite shader
 		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
-		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros };
+		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
@@ -2157,26 +2168,26 @@ public:
 			ptShaderMacros[i] = shaderMacros[i];
 		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
-		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1 };
-		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros };
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
 
 		// PT composite shader
 		ShaderLoadDesc ptCompositeShaderDesc = {};
-		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros };
+		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptCompositeShaderDesc, &pShaderPTComposite);
 
 #if PT_USE_DIFFUSION != 0
 		// PT copy depth shader
 		ShaderLoadDesc ptCopyShaderDesc = {};
-		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros };
+		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptCopyShaderDesc, &pShaderPTCopyDepth);
 
 		// PT generate mips shader
 		ShaderLoadDesc ptGenMipsShaderDesc = {};
-		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros };
+		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptGenMipsShaderDesc, &pShaderPTGenMips);
 #endif
 
@@ -2185,20 +2196,20 @@ public:
 		{
 			// AOIT shade shader
 			ShaderLoadDesc aoitShadeShaderDesc = {};
-			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
-			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros };
+			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
 
 			// AOIT composite shader
 			ShaderLoadDesc aoitCompositeShaderDesc = {};
-			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros };
+			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
 
 			// AOIT clear shader
 			ShaderLoadDesc aoitClearShaderDesc = {};
-			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros };
+			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
 		}
 #endif
@@ -2974,7 +2985,7 @@ public:
 		BufferLoadDesc camLightUniDesc = {};
 		camLightUniDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		camLightUniDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		camLightUniDesc.mDesc.mSize = sizeof(CameraUniform);
+		camLightUniDesc.mDesc.mSize = sizeof(CameraLightUniform);
 		camLightUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		camLightUniDesc.pData = &gCameraLightUniformData;
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -3048,6 +3059,7 @@ public:
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
+        depthRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		depthRT.pName = "Depth RT";
 		addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
 #if PT_USE_DIFFUSION != 0
@@ -3096,6 +3108,7 @@ public:
 			renderTargetDesc.mHeight = height;
 			renderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 			renderTargetDesc.mSampleQuality = 0;
+            renderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 			renderTargetDesc.pName = wboitNames[i];
 			addRenderTarget(pRenderer, &renderTargetDesc, &pRenderTargetWBOIT[i]);
 		}
@@ -3124,6 +3137,7 @@ public:
 			renderTargetDesc.mHeight = height;
 			renderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 			renderTargetDesc.mSampleQuality = 0;
+            renderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 			renderTargetDesc.pName = ptNames[i];
 			addRenderTarget(pRenderer, &renderTargetDesc, &pRenderTargetPT[i]);
 		}
@@ -3142,7 +3156,7 @@ public:
 			renderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
 			renderTargetDesc.mMipLevels = (uint)log2(width);
 			renderTargetDesc.pName = "PT Background RT";
-			renderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+			renderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 			addRenderTarget(pRenderer, &renderTargetDesc, &pRenderTargetPTBackground);
 		}
 
@@ -3161,6 +3175,7 @@ public:
 			aoitClearMaskTextureDesc.mMipLevels = 1;
 			aoitClearMaskTextureDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 			aoitClearMaskTextureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
+            aoitClearMaskTextureDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 			aoitClearMaskTextureDesc.pName = "AOIT Clear Mask";
 
 			TextureLoadDesc aoitClearMaskTextureLoadDesc = {};
@@ -3172,7 +3187,7 @@ public:
 			BufferLoadDesc aoitDepthDataLoadDesc = {};
 			aoitDepthDataLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			aoitDepthDataLoadDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
-			aoitDepthDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
+			aoitDepthDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight * pSwapChain->ppRenderTargets[0]->mArraySize;
 			aoitDepthDataLoadDesc.mDesc.mStructStride = sizeof(uint32_t) * 4 * AOIT_RT_COUNT;
 			aoitDepthDataLoadDesc.mDesc.mSize = aoitDepthDataLoadDesc.mDesc.mElementCount * aoitDepthDataLoadDesc.mDesc.mStructStride;
 			aoitDepthDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
@@ -3185,7 +3200,7 @@ public:
 			BufferLoadDesc aoitColorDataLoadDesc = {};
 			aoitColorDataLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			aoitColorDataLoadDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
-			aoitColorDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
+			aoitColorDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight * pSwapChain->ppRenderTargets[0]->mArraySize;
 			aoitColorDataLoadDesc.mDesc.mStructStride = sizeof(uint32_t) * 4 * AOIT_RT_COUNT;
 			aoitColorDataLoadDesc.mDesc.mSize = aoitColorDataLoadDesc.mDesc.mElementCount * aoitColorDataLoadDesc.mDesc.mStructStride;
 			aoitColorDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
@@ -3738,18 +3753,18 @@ void GuiController::UpdateDynamicUI()
 	if (gTransparencyType != GuiController::currentTransparencyType)
 	{
 		if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			hideDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
+			uiHideDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			hideDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
+			uiHideDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 		else if (GuiController::currentTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			hideDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
+			uiHideDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 
 		if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
-			showDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
+			uiShowDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
-			showDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
+			uiShowDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
-			showDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
+			uiShowDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 
 		GuiController::currentTransparencyType = (TransparencyType)gTransparencyType;
 	}
@@ -3792,12 +3807,12 @@ void GuiController::AddGui()
 		ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 		ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 	}
-	addWidgetLua(addGuiWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 	ButtonWidget bRunScript;
-	IWidget* pRunScript = addGuiWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-	pRunScript->pOnEdited = RunScript;
-	addWidgetLua(pRunScript);
+	UIWidget* pRunScript = uiCreateComponentWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+	uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+	luaRegisterWidget(pRunScript);
 
 	DropdownWidget ddTransparency;
 	ddTransparency.pData = &gTransparencyType;
@@ -3806,112 +3821,114 @@ void GuiController::AddGui()
 		ddTransparency.mNames.push_back((char*)transparencyTypeNames[i]);
 		ddTransparency.mValues.push_back(transparencyTypeValues[i]);
 	}
-	addWidgetLua(addGuiWidget(pGuiWindow, "Transparency Type", &ddTransparency, WIDGET_TYPE_DROPDOWN));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Transparency Type", &ddTransparency, WIDGET_TYPE_DROPDOWN));
 
 	// TRANSPARENCY_TYPE_ALPHA_BLEND Widgets
 	{
 		LabelWidget blendLabel;
-		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
 		CheckboxWidget checkbox;
 		checkbox.pData = &gAlphaBlendSettings.mSortObjects;
-		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Sort Objects", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, "Sort Objects", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		checkbox.pData = &gAlphaBlendSettings.mSortParticles;
-		addWidgetLua(addDynamicUIWidget(&GuiController::alphaBlendDynamicWidgets, "Sort Particles", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, "Sort Particles", &checkbox, WIDGET_TYPE_CHECKBOX));
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT Widgets
 	{
 		LabelWidget blendLabel;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
 		SliderFloatWidget floatSlider;
 		floatSlider.pData = &gWBOITSettingsData.mColorResistance;
 		floatSlider.mMin = 1.0f;
 		floatSlider.mMax = 25.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Color Resistance", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Color Resistance", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITSettingsData.mRangeAdjustment;
 		floatSlider.mMin = 0.0f;
 		floatSlider.mMax = 1.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Range Adjustment", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Range Adjustment", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITSettingsData.mDepthRange;
 		floatSlider.mMin = 0.1f;
 		floatSlider.mMax = 500.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Depth Range", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Depth Range", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITSettingsData.mOrderingStrength;
 		floatSlider.mMin = 0.1f;
 		floatSlider.mMax = 25.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Ordering Strength", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Ordering Strength", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITSettingsData.mUnderflowLimit;
 		floatSlider.mMin = 1e-4f;
 		floatSlider.mMax = 1e-1f;
 		floatSlider.mStep = 1e-4f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Underflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Underflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITSettingsData.mOverflowLimit;
 		floatSlider.mMin = 3e1f;
 		floatSlider.mMax = 3e4f;
 		floatSlider.mStep = 0.01f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Overflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Overflow Limit", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		ButtonWidget resetButton;
-		IWidget* pResetButton = addDynamicUIWidget(&GuiController::weightedBlendedOitDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-		pResetButton->pOnDeactivatedAfterEdit = ([]() { gWBOITSettingsData = WBOITSettings(); });
-		addWidgetLua(pResetButton);
+		UIWidget* pResetButton = uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
+		WidgetCallback resetCallback = ([]() { gWBOITSettingsData = WBOITSettings(); });
+		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, resetCallback);
+		luaRegisterWidget(pResetButton);
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION Widgets
 	{
 		LabelWidget blendLabel;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Blend Settings", &blendLabel, WIDGET_TYPE_LABEL));
 
 		SliderFloatWidget floatSlider;
 		floatSlider.pData = &gWBOITVolitionSettingsData.mOpacitySensitivity;
 		floatSlider.mMin = 1.0f;
 		floatSlider.mMax = 25.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Opacity Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Opacity Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mWeightBias;
 		floatSlider.mMin = 0.0f;
 		floatSlider.mMax = 25.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Weight Bias", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Weight Bias", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mPrecisionScalar;
 		floatSlider.mMin = 100.0f;
 		floatSlider.mMax = 100000.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Precision Scalar", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Precision Scalar", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mMaximumWeight;
 		floatSlider.mMin = 0.1f;
 		floatSlider.mMax = 100.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Weight", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Weight", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mMaximumColorValue;
 		floatSlider.mMin = 100.0f;
 		floatSlider.mMax = 10000.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Color Value", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Maximum Color Value", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mAdditiveSensitivity;
 		floatSlider.mMin = 0.1f;
 		floatSlider.mMax = 25.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Additive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Additive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		floatSlider.pData = &gWBOITVolitionSettingsData.mEmissiveSensitivity;
 		floatSlider.mMin = 0.01f;
 		floatSlider.mMax = 1.0f;
-		addWidgetLua(addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Emissive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Emissive Sensitivity", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 		ButtonWidget resetButton;
-		IWidget* pResetButton = addDynamicUIWidget(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-		pResetButton->pOnDeactivatedAfterEdit = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
-		addWidgetLua(pResetButton);
+		UIWidget* pResetButton = uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
+		WidgetCallback resetCallback = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
+		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, resetCallback); 
+		luaRegisterWidget(pResetButton);
 	}
 
 	LabelWidget settingsLabel;
-	addWidgetLua(addGuiWidget(pGuiWindow, "Light Settings", &settingsLabel, WIDGET_TYPE_LABEL));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Settings", &settingsLabel, WIDGET_TYPE_LABEL));
 
 	const float3 lightPosBound(10.0f);
 	SliderFloat3Widget lightPosSlider;
@@ -3919,22 +3936,22 @@ void GuiController::AddGui()
 	lightPosSlider.mMin = -lightPosBound;
 	lightPosSlider.mMax = lightPosBound;
 	lightPosSlider.mStep = float3(0.1f);
-	addWidgetLua(addGuiWidget(pGuiWindow, "Light Position", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Position", &lightPosSlider, WIDGET_TYPE_SLIDER_FLOAT3));
 
 	if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_ALPHA_BLEND;
-		showDynamicUIWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
+		uiShowDynamicWidgets(&GuiController::alphaBlendDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT;
-		showDynamicUIWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
+		uiShowDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
 	{
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION;
-		showDynamicUIWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
+		uiShowDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, pGuiWindow);
 	}
 	else if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
 	{
@@ -3950,9 +3967,9 @@ void GuiController::AddGui()
 
 void GuiController::RemoveGui()
 {
-	removeDynamicUI(&alphaBlendDynamicWidgets);
-	removeDynamicUI(&weightedBlendedOitDynamicWidgets);
-	removeDynamicUI(&weightedBlendedOitVolitionDynamicWidgets);
+	uiDestroyDynamicWidgets(&alphaBlendDynamicWidgets);
+	uiDestroyDynamicWidgets(&weightedBlendedOitDynamicWidgets);
+	uiDestroyDynamicWidgets(&weightedBlendedOitVolitionDynamicWidgets);
 }
 
 DEFINE_APPLICATION_MAIN(Transparency)

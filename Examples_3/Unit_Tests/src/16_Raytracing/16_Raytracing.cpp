@@ -33,8 +33,11 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -57,11 +60,8 @@
 #endif
 
 ICameraController* pCameraController = NULL;
-VirtualJoystickUI* pVirtualJoystick = NULL;
 
 ProfileToken gGpuProfileToken;
-UIApp* pAppUI = NULL;
-static uint32_t gSelectedApiIndex = 0;
 
 struct ShadersConfigBlock
 {
@@ -247,6 +247,8 @@ PropData SponzaProp;
 Texture* pMaterialTextures[TOTAL_IMGS];
 
 eastl::vector<int> gSponzaTextureIndexForMaterial;
+
+uint32_t gFontID = 0; 
 
 struct PathTracingData {
 	mat4 mHistoryProjView;
@@ -601,31 +603,10 @@ public:
                 mSettings.mWidth = min(max(atoi(argv[i + 1]), 64), 10000);
             else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc)
                 mSettings.mHeight = min(max(atoi(argv[i + 1]), 64), 10000);
-            else if (strcmp(argv[i], "-b") == 0)
-            {
-                mBenchmark = true;
-                if (i + 1 < argc && isdigit(*argv[i + 1]))
-                    nBenchmarkFrames = min(max(atoi(argv[i + 1]), 32), 512);
-            }
             else if (strcmp(argv[i], "-f") == 0)
             {
                 mSettings.mFullScreen = true;
             }
-            else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
-            {
-				strcpy(mOutput, argv[i + 1]);
-            }
-			else if (strcmp(argv[i], "-api") == 0 && i + 1 < argc)
-			{
-				if (strcmp(argv[i + 1], "D3D12") == 0)
-				{
-					gSelectedApiIndex = 0;
-				}
-				else if (strcmp(argv[i + 1], "VULKAN") == 0)
-				{
-					gSelectedApiIndex = 1;
-				}
-			}
         }
     }
 	
@@ -642,11 +623,14 @@ public:
 
 		/************************************************************************/
 		// 01 Init Raytracing
-		/************************************************************************/
-		RendererDesc desc = {};
-		desc.mShaderTarget = shader_target_6_3;
-		desc.mApi = (RendererApi)gSelectedApiIndex;
-		initRenderer(GetName(), &desc, &pRenderer);
+		/************************************************************************/\
+
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
+		settings.mShaderTarget = shader_target_6_3;
+		initRenderer(GetName(), &settings, &pRenderer);
 		initResourceLoaderInterface(pRenderer);
 
 		QueueDesc queueDesc = {};
@@ -670,52 +654,40 @@ public:
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 		}
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-			return false;
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
 		const char* ppGpuProfilerName[1] = { "Graphics" };
-		initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
-		if (mBenchmark) setAggregateFrames(nBenchmarkFrames);
+
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.ppQueues = &pQueue; 
+		profiler.ppProfilerNames = ppGpuProfilerName; 
+		profiler.pProfileTokens = &gGpuProfileToken; 
+		profiler.mGpuProfilerCount = 1;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
 		/************************************************************************/
 		// Blit texture
@@ -757,7 +729,7 @@ public:
 			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
 
 			LabelWidget notSupportedLabel;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Raytracing is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Raytracing is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
 		else
 		{
@@ -766,21 +738,21 @@ public:
 			lightDirXSlider.mMin = -2.0f;
 			lightDirXSlider.mMax = 2.0f;
 			lightDirXSlider.mStep = 0.001f;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction X", &lightDirXSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Direction X", &lightDirXSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			SliderFloatWidget lightDirYSlider;
 			lightDirYSlider.pData = &mLightDirection.y;
 			lightDirYSlider.mMin = -2.0f;
 			lightDirYSlider.mMax = 2.0f;
 			lightDirYSlider.mStep = 0.001f;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction Y", &lightDirYSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Direction Y", &lightDirYSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			SliderFloatWidget lightDirZSlider;
 			lightDirZSlider.pData = &mLightDirection.z;
 			lightDirZSlider.mMin = -2.0f;
 			lightDirZSlider.mMax = 2.0f;
 			lightDirZSlider.mStep = 0.001f;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Light Direction Z", &lightDirZSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Light Direction Z", &lightDirZSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			/************************************************************************/
 			/************************************************************************/
@@ -958,7 +930,10 @@ public:
 			}
 		}
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 		
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
@@ -970,7 +945,7 @@ public:
 		pCameraController->setMotionParameters(cmp);
 		
 		// App Actions
-        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
         addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
@@ -980,7 +955,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -989,9 +964,8 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -1011,18 +985,13 @@ public:
 	void Exit()
 	{
 		exitInputSystem();
-
-        if (mBenchmark)
-        {
-            dumpProfileData(pRenderer, mOutput, nBenchmarkFrames);
-            dumpBenchmarkData(pRenderer, &mSettings, mOutput);
-        }
-
 		exitCameraController(pCameraController);
-
 		exitProfiler();
-		exitAppUI(pAppUI);
-		exitVirtualJoystickUI(pVirtualJoystick);
+
+		exitUserInterface();
+
+		exitFontSystem(); 
+
 		UnloadSponza();
 
 		if (pRaytracing != NULL)
@@ -1065,6 +1034,7 @@ public:
 		removeQueue(pRenderer, pQueue);
 		exitResourceLoaderInterface(pRenderer);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -1233,13 +1203,15 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 		
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
-
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 		
@@ -1296,12 +1268,14 @@ public:
 	{
         waitQueueIdle(pQueue);
 
-		exitProfilerUI();
-		removeAppGUIDriver(pAppUI);
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 		
 		removePipeline(pRenderer, pDisplayTexturePipeline);
+
 		removeSwapChain(pRenderer, pSwapChain);
+
 		removeResource(pComputeOutput);
 		
 #if USE_DENOISER
@@ -1329,16 +1303,9 @@ public:
 	{
         PROFILER_SET_CPU_SCOPE("Cpu Profile", "update", 0x222222);
 
-        if (mBenchmark && nFrameCount > nBenchmarkFrames*2)
-        {
-            requestShutdown();
-        }
-
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
-
-		updateAppUI(pAppUI, deltaTime);
 
 		++nFrameCount;
 	}
@@ -1559,20 +1526,14 @@ public:
 
 		cmdBeginDebugMarker(pCmd, 0, 1, 0, "Draw UI");
 		
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, pCmd, &color);
-		
-        TextDrawDesc frameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
+		FontDrawDesc frameTimeDraw;
+		frameTimeDraw.mFontColor = 0xff0080ff;
+		frameTimeDraw.mFontSize = 18.0f;
+		frameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &frameTimeDraw);
-
-#if !defined(__ANDROID__)
-        cmdDrawGpuProfile(pCmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken);
-#endif
+        cmdDrawGpuProfile(pCmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &frameTimeDraw);
 		
-		cmdDrawProfilerUI();
-		
-		appUIGui(pAppUI, pGuiWindow);
-		drawAppUI(pAppUI, pCmd);
+		cmdDrawUserInterface(pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
@@ -1617,11 +1578,7 @@ public:
 private:
 	static const uint32_t   gImageCount = 3;
 
-    uint32_t                nFrameCount = 0;
-    uint32_t                nBenchmarkFrames = 64;
-	bool                    mBenchmark  = false;
-	char                    mOutput[1024] = "\0";
-	
+    uint32_t                nFrameCount = 0;	
 	Renderer*               pRenderer = NULL;
 	Raytracing*	            pRaytracing = NULL;
 	Queue*                  pQueue = NULL;
@@ -1651,7 +1608,7 @@ private:
 	Semaphore*              pImageAcquiredSemaphore = NULL;
 	uint32_t                mFrameIdx = 0;
 	PathTracingData         mPathTracingData = {};
-	GuiComponent*           pGuiWindow = NULL;
+	UIComponent*           pGuiWindow = NULL;
 	float3                  mLightDirection = float3(0.2f, 0.8f, 0.1f);
 
 #if USE_DENOISER

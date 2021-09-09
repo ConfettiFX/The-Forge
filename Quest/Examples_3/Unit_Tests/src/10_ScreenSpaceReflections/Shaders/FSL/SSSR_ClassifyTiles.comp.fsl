@@ -1,0 +1,139 @@
+/**********************************************************************
+Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+********************************************************************/
+
+#ifndef FFX_SSSR_CLASSIFY_TILES
+#define FFX_SSSR_CLASSIFY_TILES
+
+RES(Tex2DArray(float4), g_roughness, UPDATE_FREQ_NONE, t0, binding = 1);
+
+RES(RWBuffer(uint), g_tile_list,    UPDATE_FREQ_NONE, u0, binding = 3);
+RES(RWBuffer(uint), g_ray_list,     UPDATE_FREQ_NONE, u1, binding = 4);
+RES(RWCoherentBuffer(uint), g_tile_counter, UPDATE_FREQ_NONE, u2, binding = 5);
+RES(RWCoherentBuffer(uint), g_ray_counter,  UPDATE_FREQ_NONE, u3, binding = 6);
+
+RES(RWTex2DArray(float4), g_temporally_denoised_reflections, UPDATE_FREQ_NONE, u4, binding = 7);
+RES(RWTex2DArray(float4), g_temporally_denoised_reflections_history, UPDATE_FREQ_NONE, u5, binding = 9);
+RES(RWTex2DArray(float), g_ray_lengths, UPDATE_FREQ_NONE, u6, binding = 8);
+RES(RWTex2DArray(float), g_temporal_variance, UPDATE_FREQ_NONE, u7, binding = 2);
+RES(RWTex2DArray(float4), g_denoised_reflections, UPDATE_FREQ_NONE, u8, binding = 10);
+
+#include "SSSR_Common.h"
+
+GroupShared(uint, g_ray_count);
+GroupShared(uint, g_ray_base_index);
+GroupShared(uint, g_denoise_count);
+
+NUM_THREADS(8,  8,  1)
+void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
+{
+	INIT_MAIN;
+    bool is_first_lane_of_wave = WaveIsFirstLane();
+    bool is_first_lane_of_threadgroup = group_index == 0;
+
+    // First we figure out on a per thread basis if we need to shoot a reflection ray.
+    uint2 screen_size = uint2(GetDimensions(Get(g_roughness), NO_SAMPLER)).xy;
+
+    // Disable offscreen pixels
+    bool needs_ray = !(did.x >= screen_size.x || did.y >= screen_size.y);
+    
+    // Dont shoot a ray on very rough surfaces.
+    float roughness = FfxSssrUnpackRoughness(LoadTex3D(Get(g_roughness), NO_SAMPLER, did.xyz, 0));
+    needs_ray = needs_ray && IsGlossy(roughness);
+
+    // Also we dont need to run the denoiser on mirror reflections.
+    bool needs_denoiser = needs_ray && !IsMirrorReflection(roughness);
+
+    // Decide which ray to keep
+    bool is_base_ray = IsBaseRay(did.xy, Get(g_samples_per_quad));
+    needs_ray = needs_ray && (!needs_denoiser || is_base_ray); // Make sure to not deactivate mirror reflection rays.
+
+    if (Get(g_temporal_variance_guided_tracing_enabled) != 0u && needs_denoiser && !needs_ray)
+    {
+        float temporal_variance = LoadRWTex3D(Get(g_temporal_variance), int3(did.xyz)).x;
+        bool has_temporal_variance = temporal_variance != 0.0;
+
+        // If temporal variance is too high, we enforce a ray anyway.
+        needs_ray = needs_ray || has_temporal_variance;
+    }
+
+    // Now we know for each thread if it needs to shoot a ray and wether or not a denoiser pass has to run on this pixel.
+    // Thus, we need to compact the rays and append them all at once to the ray list.
+    // Also, if there is at least one pixel in that tile that needs a denoiser, we have to append that tile to the tile list.
+
+    if (is_first_lane_of_threadgroup)
+    {
+        g_ray_count = 0;
+        g_denoise_count = 0;
+    }
+    GroupMemoryBarrier(); // Wait for reset to finish
+
+    uint local_ray_index_in_wave = WavePrefixCountBits(needs_ray);
+    uint wave_ray_count = WaveActiveCountBits(needs_ray);
+    bool wave_needs_denoiser = WaveActiveAnyTrue(needs_denoiser);
+    uint wave_count = wave_needs_denoiser ? 1 : 0;
+
+    uint local_ray_index_of_wave = 0;
+    if (is_first_lane_of_wave)
+    {
+        AtomicAdd(g_ray_count, wave_ray_count, local_ray_index_of_wave);
+        uint _;
+        AtomicAdd(g_denoise_count, wave_count, _);
+    }
+    local_ray_index_of_wave = WaveReadLaneFirst(local_ray_index_of_wave);
+
+    GroupMemoryBarrier(); // Wait for ray compaction to finish
+
+    if (is_first_lane_of_threadgroup)
+    {
+        bool must_denoise = g_denoise_count > 0;
+        uint denoise_count = must_denoise ? 1 : 0;
+        uint ray_count = g_ray_count;
+
+        uint tile_index;
+        uint ray_base_index = 0;
+
+        AtomicAdd(Get(g_tile_counter)[0], denoise_count, tile_index); 
+        AtomicAdd(Get(g_ray_counter)[0], ray_count, ray_base_index);
+
+        int cleaned_index = must_denoise ? int(tile_index) : -1;
+	if(must_denoise)
+	{
+        	Get(g_tile_list)[cleaned_index] = Pack(did); // Write out pixel coords of upper left pixel
+	}
+        g_ray_base_index = ray_base_index;
+    }
+    GroupMemoryBarrier(); // Wait for ray base index to become available
+
+    if(needs_ray)
+    {
+        int ray_index = int(g_ray_base_index + local_ray_index_of_wave + local_ray_index_in_wave);
+        Get(g_ray_list)[ray_index] = Pack(did); // Write out pixel to trace
+        // Clear intersection targets as there wont be any ray that overwrites them
+        Write2DArray(Get(g_temporally_denoised_reflections), did.xy, did.z, f4(0));
+        Write2DArray(Get(g_ray_lengths), did.xy, did.z, 0.0f);
+    }
+    Write2DArray(Get(g_denoised_reflections), did.xy, did.z, f4(0));
+    // Re-purpose g_temporal_variance to hold the information for the spatial pass if a ray has been shot. Always write 0 if no denoiser is running.
+    Write2DArray(Get(g_temporal_variance), did.xy, did.z, needs_ray ? (1.0f - Get(g_skip_denoiser)) : 0.0f);
+	RETURN();
+}
+#endif // FFX_SSSR_CLASSIFY_TILES

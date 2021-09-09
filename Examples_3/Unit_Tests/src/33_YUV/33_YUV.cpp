@@ -33,7 +33,11 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
+//Renderer
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -45,9 +49,8 @@
 
 ///Demo structures
 //General
-VirtualJoystickUI*		pVirtualJoystick						= NULL;
 ProfileToken			gGpuProfileToken						= PROFILE_INVALID_TOKEN;
-GuiComponent*			pGuiWindow;
+UIComponent*			pGuiWindow;
 
 const uint32_t			gImageCount								= 3;
 uint32_t				gFrameIndex								= 0;
@@ -67,9 +70,8 @@ Semaphore*				pRenderCompleteSemaphores[gImageCount]	= {NULL};
 
 
 //UI
-UIApp*					pAppUI										= NULL;
-TextDrawDesc			gFrameTimeDraw								= TextDrawDesc(0, 0xff00ffff, 18);
-static uint32_t			gSelectedApiIndex							= 0;
+FontDrawDesc			gFrameTimeDraw;
+uint32_t				gFontID										= 0; 
 
 //Main parts
 Pipeline*				pSimplePipeline								= NULL; // To demonstrate the YUV image wihtout any conversion
@@ -111,9 +113,10 @@ public:
 
 		// Renderer initialization
 		{
-			// Window and renderer setup
-			RendererDesc settings = { 0 };
-			settings.mApi = (RendererApi)gSelectedApiIndex;
+			RendererDesc settings;
+			memset(&settings, 0, sizeof(settings));
+			settings.mD3D11Unsupported = true;
+			settings.mGLESUnsupported = true;
 			initRenderer(GetName(), &settings, &pRenderer);
 
 			// Check for init success
@@ -142,13 +145,6 @@ public:
 			addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 			initResourceLoaderInterface(pRenderer);
-
-			pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-			if (!pVirtualJoystick)
-			{
-				LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-				return false;
-			}
 		}
 
 		// Setting up the resources
@@ -239,8 +235,8 @@ public:
 			// YCbCr
 			{
 				ShaderLoadDesc shader = {};
-				shader.mStages[0] = { "basic.vert", NULL, 0 };
-				shader.mStages[1] = { "basic.frag", NULL, 0 };
+				shader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+				shader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 				addShader(pRenderer, &shader, &pYCbCrShader);
 				Shader* shaders[] = { pYCbCrShader };
 
@@ -257,78 +253,65 @@ public:
 			}
 		}
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// GUI - coppied from the first unit test
 		{
-			GuiDesc guiDesc = {};
+			UIComponentDesc guiDesc = {};
 			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-			pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-			static const char* pApiNames[] =
-			{
-			#if defined(DIRECT3D12)
-				"D3D12",
-			#endif
-			#if defined(VULKAN)
-				"Vulkan",
-			#endif
-			#if defined(DIRECT3D11)
-				"D3D11",
-			#endif
-			};
-			// Select Api 
-			DropdownWidget selectApiWidget;
-			selectApiWidget.pData = &gSelectedApiIndex;
-			for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-			{
-				selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-				selectApiWidget.mValues.push_back(i);
-			}
-			IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-			pSelectApiWidget->pOnEdited = onAPISwitch;
-			addWidgetLua(pSelectApiWidget);
-			const char* apiTestScript = "Test_API_Switching.lua";
-			addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+			uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
 #if !defined(TARGET_IOS)
 			CheckboxWidget vSyncToggle;
 			vSyncToggle.pData = &bToggleVSync;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vSyncToggle, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vSyncToggle, WIDGET_TYPE_CHECKBOX));
 #endif
 			if (bYCbCrSupported)
 			{
 				CheckboxWidget yCbCrToggle;
 				yCbCrToggle.pData = &bToggleYCbCr;
-				addWidgetLua(addGuiWidget(pGuiWindow, "Toggle YCbCr conversion\t\t\t\t\t", &yCbCrToggle, WIDGET_TYPE_CHECKBOX));
+				luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle YCbCr conversion\t\t\t\t\t", &yCbCrToggle, WIDGET_TYPE_CHECKBOX));
 			}
 			else
 			{
 				LabelWidget notSupportedLabel;
-				addWidgetLua(addGuiWidget(pGuiWindow, "The selected API is not support by YCbCr conversion.", &notSupportedLabel, WIDGET_TYPE_LABEL));
+				luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "The selected API is not support by YCbCr conversion.", &notSupportedLabel, WIDGET_TYPE_LABEL));
 			}
 
 		}
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
 		{
-			InputActionDesc actionDesc = {InputBindings::BUTTON_DUMP, [](InputActionContext *ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
+			InputActionDesc actionDesc = {InputBindings::BUTTON_DUMP, [](InputActionContext *ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 			addInputAction(&actionDesc);
 			actionDesc = {InputBindings::BUTTON_FULLSCREEN, [](InputActionContext *ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
 			addInputAction(&actionDesc);
@@ -336,7 +319,7 @@ public:
 			addInputAction(&actionDesc);
 			actionDesc = {
 				InputBindings::BUTTON_ANY, [](InputActionContext *ctx) {
-					bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+					bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 					setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 					return true;
 				}, this
@@ -353,8 +336,10 @@ public:
 	{
 		exitInputSystem();
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem();
+
 		exitProfiler();
 
 		if (bYCbCrSupported)
@@ -390,6 +375,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -445,10 +431,14 @@ public:
 			}
 		}
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets, 1))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		return true;
@@ -457,8 +447,10 @@ public:
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-		removeAppGUIDriver(pAppUI);
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		// Unload
 		{
@@ -482,9 +474,6 @@ public:
 		}
 #endif
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
-		
-		// Update GUI
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -562,15 +551,17 @@ public:
 				loadActions.mLoadActionsColor[0] = bYCbCrSupported ? LOAD_ACTION_LOAD : LOAD_ACTION_CLEAR;
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
-				
-				float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-				drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
+
 				const float txtIndent = 8.f;
+
+				gFrameTimeDraw.mFontColor = 0xff00ffff;
+				gFrameTimeDraw.mFontSize = 18.0f;
+				gFrameTimeDraw.mFontID = gFontID;
 				float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 				cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
-				cmdDrawProfilerUI();
-				appUIGui(pAppUI, pGuiWindow);
-				drawAppUI(pAppUI, cmd);
+
+				cmdDrawUserInterface(cmd);
+
 				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			
