@@ -86,6 +86,11 @@ enum SPIRV_Resource_Dim
 
 struct SPIRV_Resource
 {
+   // The declared name (OpName) of the resource.
+   // For Buffer blocks, the name actually reflects the externally
+   // visible Block name.
+   const char* name;
+
    // Spirv data type
    SPIRV_Type SPIRV_code;
 
@@ -94,9 +99,6 @@ struct SPIRV_Resource
 
    // Texture dimension. Undefined if not a texture.
    SPIRV_Resource_Dim dim;
-
-   // If the resouce was used in the shader
-   bool is_used;
 
    // The resouce set if it has one
    uint32_t set;
@@ -107,13 +109,11 @@ struct SPIRV_Resource
    // The size of the resouce. This will be the descriptor array size for textures
    uint32_t size;
 
-   // The declared name (OpName) of the resource.
-   // For Buffer blocks, the name actually reflects the externally
-   // visible Block name.
-   const char* name;
-
    // name size
    uint32_t name_size;
+
+   // If the resouce was used in the shader
+   bool is_used;
 };
 
 struct SPIRV_Variable
@@ -147,16 +147,13 @@ struct CrossCompiler
 {
    // this points to the internal compiler class
    void* pCompiler;
-
-   // resources
    SPIRV_Resource* pShaderResouces;
-   uint32_t ShaderResourceCount;
-
-   // uniforms
    SPIRV_Variable* pUniformVariables;
+   char* pEntryPoint;
+
+   uint32_t ShaderResourceCount;
    uint32_t UniformVariablesCount;
 
-   char* pEntryPoint;
    uint32_t EntryPointSize;
 };
 

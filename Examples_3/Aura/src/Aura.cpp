@@ -21,6 +21,7 @@
 
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../Common_3/OS/Core/RingBuffer.h"
 #include "../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
@@ -29,10 +30,10 @@
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../Common_3/OS/Interfaces/IFont.h"
 
 #include "../../../Common_3/OS/Core/ThreadSystem.h"
-
-#include "../../../Middleware_3/UI/AppUI.h"
 
 #include "Geometry.h"
 #include "Shadows.hpp"
@@ -400,17 +401,9 @@ Sampler* pSamplerLinearBorder = nullptr;
 /************************************************************************/
 // Bindless texture array
 /************************************************************************/
-Texture* gDiffuseMapsStorage = NULL;
-Texture* gNormalMapsStorage = NULL;
-Texture* gSpecularMapsStorage = NULL;
-
-eastl::vector<Texture*> gDiffuseMaps;
-eastl::vector<Texture*> gNormalMaps;
-eastl::vector<Texture*> gSpecularMaps;
-
-eastl::vector<Texture*> gDiffuseMapsPacked;
-eastl::vector<Texture*> gNormalMapsPacked;
-eastl::vector<Texture*> gSpecularMapsPacked;
+Texture** gDiffuseMapsStorage = NULL;
+Texture** gNormalMapsStorage = NULL;
+Texture** gSpecularMapsStorage = NULL;
 /************************************************************************/
 // Geometry for the scene
 /************************************************************************/
@@ -449,17 +442,17 @@ uint64_t      gFrameCount = 0;
 ClusterContainer* pMeshes = NULL;
 uint32_t      gMeshCount = 0;
 uint32_t      gMaterialCount = 0;
-UIApp*        pAppUI = NULL;
-TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc  gFrameTimeDraw;
+uint32_t      gFontID = 0; 
 
-GuiComponent* pGuiWindow = NULL;
-GuiComponent* pDebugTexturesWindow = NULL;
-GuiComponent* pAuraDebugTexturesWindow = nullptr;
-GuiComponent* pAuraDebugVisualizationGuiWindow = nullptr;
-GuiComponent* pShadowTexturesWindow = nullptr;
-GuiComponent* pAuraGuiWindow = nullptr;
+UIComponent* pGuiWindow = NULL;
+UIComponent* pDebugTexturesWindow = NULL;
+UIComponent* pAuraDebugTexturesWindow = nullptr;
+UIComponent* pAuraDebugVisualizationGuiWindow = nullptr;
+UIComponent* pShadowTexturesWindow = nullptr;
+UIComponent* pAuraGuiWindow = nullptr;
 #if TEST_RSM
-GuiComponent* pAuraRSMTexturesWindow = nullptr;
+UIComponent* pAuraRSMTexturesWindow = nullptr;
 #endif
 
 /************************************************************************/
@@ -504,7 +497,7 @@ RenderTarget* pScreenRenderTarget = NULL;
 // Screen resolution UI data
 /************************************************************************/
 #if defined(_WINDOWS)
-IWidget*                    gResolutionProperty = NULL;
+UIWidget*                    gResolutionProperty = NULL;
 eastl::vector<Resolution>   gResolutions;
 uint32_t                    gResolutionIndex = 0;
 bool                        gResolutionChange = false;
@@ -537,8 +530,8 @@ const uint32_t pdep_lut[8] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15 };
 /************************************************************************/
 // App implementation
 /************************************************************************/
-IWidget* addResolutionProperty(
-	GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, WidgetCallback onResolutionChanged)
+UIWidget* addResolutionProperty(
+	UIComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, WidgetCallback onResolutionChanged)
 {
 #if defined(_WINDOWS)
 	if (pUIManager)
@@ -569,7 +562,7 @@ IWidget* addResolutionProperty(
 			control.mNames.push_back((char*)data.resNamePointers[i]);
 			control.mValues.push_back(data.resValues[i]);
 		}
-		IWidget* pControl = addGuiWidget(pUIManager, "Screen Resolution", &control, WIDGET_TYPE_DROPDOWN);
+		UIWidget* pControl = uiCreateComponentWidget(pUIManager, "Screen Resolution", &control, WIDGET_TYPE_DROPDOWN);
 		pControl->pOnEdited = onResolutionChanged;
 		return pControl;
 	}
@@ -577,13 +570,14 @@ IWidget* addResolutionProperty(
 #endif
 	return NULL;
 }
-static uint32_t gSelectedApiIndex = 0;
 
 class AuraApp : public IApp
 {
 public:
 	bool Init()
 	{
+		initTimer(&gAccumTimer);
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -602,13 +596,15 @@ public:
 		/************************************************************************/
 		// Initialize the Forge renderer with the appropriate parameters.
 		/************************************************************************/
+		
 		RendererDesc settings = {};
 #ifdef VULKAN
 		const char* rtIndexVSExtension = VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME;
 		settings.mVulkan.mDeviceExtensionCount = 1;
 		settings.mVulkan.ppDeviceExtensions = &rtIndexVSExtension;
 #endif
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true; 
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -660,30 +656,51 @@ public:
 		PipelineCacheLoadDesc cacheDesc = {};
 		cacheDesc.pFileName = pPipelineCacheName;
 		loadPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
+
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
+
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
 		/************************************************************************/
 		// Setup the UI components for text rendering, UI controls...
 		/************************************************************************/
-		UIAppDesc appUIDesc = {};
-		appUIDesc.pCache = pPipelineCache;
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
 		Queue* ppQueues[2] = { pGraphicsQueue, pComputeQueue };
 		const char* pnGpuProfileTokens[2]{ "GraphicsGpuProfiler", "ComputeGpuProfiler" };
-		initProfiler(pRenderer, ppQueues, pnGpuProfileTokens, gGpuProfileTokens, 2);
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		// Initialize profiler
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.ppQueues = ppQueues;
+		profiler.ppProfilerNames = pnGpuProfileTokens;
+		profiler.pProfileTokens = gGpuProfileTokens;
+		profiler.mGpuProfilerCount = 2;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		/************************************************************************/
 		// Start timing the scene load
 		/************************************************************************/
-		HiresTimer timer;
+		HiresTimer totalTimer;
+		initHiresTimer(&totalTimer);
+
+		HiresTimer shaderTimer;
+		initHiresTimer(&shaderTimer);
 		// Load shaders
 		addShaders();
-		HiresTimer shaderTimer;
-		LOGF(LogLevel::eINFO, "Load shaders : %f ms", shaderTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load shaders : %f ms", getHiresTimerUSec(&shaderTimer, true) / 1000.0f);
 		/************************************************************************/
 		// Init Aura settings
 		/************************************************************************/
@@ -753,11 +770,12 @@ public:
 		// Load the scene using the SceneLoader class, which uses Assimp
 		/************************************************************************/
 		HiresTimer      sceneLoadTimer;
+		initHiresTimer(&sceneLoadTimer);
 
 		Scene* pScene = loadScene(gSceneName, 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
-		LOGF(LogLevel::eINFO, "Load scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load scene : %f ms", getHiresTimerUSec(&sceneLoadTimer, true) / 1000.0f);
 
 		gMeshCount = pScene->geom->mDrawArgCount;
 		gMaterialCount = pScene->geom->mDrawArgCount;
@@ -766,27 +784,29 @@ public:
 		/************************************************************************/
 		// Texture loading
 		/************************************************************************/
-		gDiffuseMaps.resize(gMaterialCount);
-		gNormalMaps.resize(gMaterialCount);
-		gSpecularMaps.resize(gMaterialCount);
+		gDiffuseMapsStorage = (Texture**)tf_malloc(sizeof(Texture*) * gMaterialCount);
+		gNormalMapsStorage = (Texture**)tf_malloc(sizeof(Texture*) * gMaterialCount);
+		gSpecularMapsStorage = (Texture**)tf_malloc(sizeof(Texture*) * gMaterialCount);
 
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
+		for (uint32_t i = 0; i < gMaterialCount; ++i)
 		{
 			TextureLoadDesc desc = {};
 			desc.pFileName = pScene->textures[i];
-			desc.ppTexture = &gDiffuseMaps[i];
+			desc.ppTexture = &gDiffuseMapsStorage[i];
 			addResource(&desc, NULL);
 			desc.pFileName = pScene->normalMaps[i];
-			desc.ppTexture = &gNormalMaps[i];
+			desc.ppTexture = &gNormalMapsStorage[i];
 			addResource(&desc, NULL);
 			desc.pFileName = pScene->specularMaps[i];
-			desc.ppTexture = &gSpecularMaps[i];
+			desc.ppTexture = &gSpecularMapsStorage[i];
 			addResource(&desc, NULL);
 		}
 		/************************************************************************/
 		// Cluster creation
 		/************************************************************************/
 		HiresTimer clusterTimer;
+		initHiresTimer(&clusterTimer);
+
 		// Calculate clusters
 		for (uint32_t i = 0; i < gMeshCount; ++i)
 		{
@@ -795,7 +815,7 @@ public:
 			createClusters(material->twoSided, pScene, pScene->geom->pDrawArgs + i, mesh);
 		}
 		tf_free(pScene->geom->pShadow);
-		LOGF(LogLevel::eINFO, "Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Load clusters : %f ms", getHiresTimerUSec(&clusterTimer, true) / 1000.0f);
 		/************************************************************************/
 		// Setup root signatures
 		/************************************************************************/
@@ -863,7 +883,7 @@ public:
 #else
 		indirectArgs[0].mType = INDIRECT_DRAW_INDEX;
 #endif
-		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 1, indirectArgs };
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 1 };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 #else
 		IndirectArgumentDescriptor indirectArgs[2] = {};
@@ -871,13 +891,13 @@ public:
 		indirectArgs[0].pName = "indirectRootConstant";
 		indirectArgs[0].mByteSize = sizeof(uint32_t);
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
-		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 2, indirectArgs };
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 2 };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);	
 #endif
 
 #if defined(METAL)
 		indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER_OPTIMIZE;
-		CommandSignatureDesc icbOptimizationPassDesc = { NULL, 1, indirectArgs };
+		CommandSignatureDesc icbOptimizationPassDesc = { NULL, indirectArgs, 1 };
 		addIndirectCommandSignature(pRenderer, &icbOptimizationPassDesc, &pCmdSignatureICBOptimize);
 #endif
 
@@ -958,33 +978,33 @@ public:
 		pipelineSettings.pRootSignature = pRootSignatureLightClusters;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
 
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-		pGuiWindow->mFlags = GUI_COMPONENT_FLAGS_NO_RESIZE;
+		UIComponentDesc UIComponentDesc = {};
+		UIComponentDesc.mStartPosition = vec2(225.0f, 100.0f);
+		uiCreateComponent(GetName(), &UIComponentDesc, &pGuiWindow);
+		uiSetComponentFlags(pGuiWindow, GUI_COMPONENT_FLAGS_NO_RESIZE);
 		/************************************************************************/
 		// Most important options
 		/************************************************************************/
 		CheckboxWidget holdProp;
 		holdProp.pData = &gAppSettings.mHoldFilteredResults;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Hold filtered results", &holdProp, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Hold filtered results", &holdProp, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget filtering;
 		filtering.pData = &gAppSettings.mFilterTriangles;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Triangle Filtering", &filtering, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Triangle Filtering", &filtering, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget cluster;
 		cluster.pData = &gAppSettings.mClusterCulling;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Cluster Culling", &cluster, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cluster Culling", &cluster, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget asyncCompute;
 		asyncCompute.pData = &gAppSettings.mAsyncCompute;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Async Compute", &asyncCompute, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Async Compute", &asyncCompute, WIDGET_TYPE_CHECKBOX));
 
 #if !defined(TARGET_IOS)
 		CheckboxWidget vsyncProp;
 		vsyncProp.pData = &gAppSettings.mToggleVSync;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Toggle VSync", &vsyncProp, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync", &vsyncProp, WIDGET_TYPE_CHECKBOX));
 #endif
 
 		// Light Settings
@@ -994,7 +1014,7 @@ public:
 
 		CheckboxWidget localLight;
 		localLight.pData = &gAppSettings.mRenderLocalLights;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Enable Random Point Lights", &localLight, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Enable Random Point Lights", &localLight, WIDGET_TYPE_CHECKBOX));
 
 #if defined(_WINDOWS)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
@@ -1021,7 +1041,7 @@ public:
 
 #if defined(_WINDOWS)
 		if (!pWindow->fullScreen)
-			removeGuiWidget(pGuiWindow, gResolutionProperty);
+			uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
 #endif
 
 		/************************************************************************/
@@ -1030,27 +1050,8 @@ public:
 		waitThreadSystemIdle(pThreadSystem);
 		waitForAllResourceLoads();
 
-		gDiffuseMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gDiffuseMaps.size());
-		gNormalMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gNormalMaps.size());
-		gSpecularMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gSpecularMaps.size());
-
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gDiffuseMapsStorage[i], gDiffuseMaps[i], sizeof(Texture));
-			gDiffuseMapsPacked.push_back(&gDiffuseMapsStorage[i]);
-		}
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gNormalMapsStorage[i], gNormalMaps[i], sizeof(Texture));
-			gNormalMapsPacked.push_back(&gNormalMapsStorage[i]);
-		}
-		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
-		{
-			memcpy(&gSpecularMapsStorage[i], gSpecularMaps[i], sizeof(Texture));
-			gSpecularMapsPacked.push_back(&gSpecularMapsStorage[i]);
-		}
-
 		HiresTimer setupBuffersTimer;
+		initHiresTimer(&setupBuffersTimer);
 		addTriangleFilteringBuffers(pScene);
 
 #if defined(METAL)
@@ -1101,7 +1102,7 @@ public:
 		addResource(&drawIDBufferDesc, NULL);
 #endif
 
-		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", getHiresTimerUSec(&setupBuffersTimer, true) / 1000.0f);
 
 		BufferLoadDesc auraUbDesc = {};
 		auraUbDesc.mDesc.mDescriptors = (::DescriptorType)(DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -1114,13 +1115,13 @@ public:
 			addResource(&auraUbDesc, NULL);
 		}
 
-		LOGF(LogLevel::eINFO, "Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Total Load Time : %f ms", getHiresTimerUSec(&totalTimer, true) / 1000.0f);
 
 		removeScene(pScene);
 		
 		// Camera Walking
 		FileStream fh = {};
-		if (fsOpenStreamFromPath(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY, &fh))
+		if (fsOpenStreamFromPath(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY, NULL, &fh))
 		{
 			fsReadFromStream(&fh, gCameraPathData, sizeof(float3) * 29084);
 			fsCloseStream(&fh);
@@ -1159,7 +1160,10 @@ public:
 		gDebugCamera.mProjection = projection;
 		gDebugCamera.pCameraController = pDebugCameraController;
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// Microprofiler Actions
@@ -1171,7 +1175,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -1180,7 +1184,7 @@ public:
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 				index ? gActiveCamera->pCameraController->onRotate(ctx->mFloat2) : gActiveCamera->pCameraController->onMove(ctx->mFloat2);
 			return true;
 		};
@@ -1205,14 +1209,15 @@ public:
 
 		removeTriangleFilteringBuffers();
 
-		removeDynamicUI(&gAppSettings.mDynamicUIWidgetsGR);
-		removeDynamicUI(&gAppSettings.mLinearScale);
-		removeDynamicUI(&gAppSettings.mDisplaySetting);
+		uiDestroyDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR);
+		uiDestroyDynamicWidgets(&gAppSettings.mLinearScale);
+		uiDestroyDynamicWidgets(&gAppSettings.mDisplaySetting);
 
-		exitProfilerUI();
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		pDebugTexturesWindow = NULL;
 		pAuraDebugTexturesWindow = nullptr;
@@ -1286,23 +1291,15 @@ public:
 		// Remove Textures
 		for (uint32_t i = 0; i < gMaterialCount; ++i)
 		{
-			removeResource(gDiffuseMaps[i]);
-			removeResource(gNormalMaps[i]);
-			removeResource(gSpecularMaps[i]);
+			removeResource(gDiffuseMapsStorage[i]);
+			removeResource(gNormalMapsStorage[i]);
+			removeResource(gSpecularMapsStorage[i]);
 		}
 
 		tf_free(gDiffuseMapsStorage);
 		tf_free(gNormalMapsStorage);
 		tf_free(gSpecularMapsStorage);
 		tf_free(pMeshes);
-
-		gDiffuseMaps.set_capacity(0);
-		gNormalMaps.set_capacity(0);
-		gSpecularMaps.set_capacity(0);
-
-		gDiffuseMapsPacked.set_capacity(0);
-		gNormalMapsPacked.set_capacity(0);
-		gSpecularMapsPacked.set_capacity(0);
 
 		gPositionsDirections.set_capacity(0);
 #if defined(_WINDOWS)
@@ -1347,6 +1344,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 
 		exitInputSystem();
 		exitThreadSystem(pThreadSystem);
@@ -1376,13 +1374,22 @@ public:
 		if (!addRenderTargets())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		/************************************************************************/
 		// Initialize Aura
 		/************************************************************************/
 		HiresTimer auraTimer;
+		initHiresTimer(&auraTimer);
 
 		aura::LightPropagationCascadeDesc cascades[gRSMCascadeCount] =
 		{
@@ -1410,7 +1417,7 @@ public:
 		initTaskManager(&pTaskManager);
 #endif
 
-		LOGF(LogLevel::eINFO, "Init Aura : %f ms", auraTimer.GetUSec(true) / 1000.0f);
+		LOGF(LogLevel::eINFO, "Init Aura : %f ms", getHiresTimerUSec(&auraTimer, true) / 1000.0f);
 
 		float2 screenSize = { (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight };
 		SetupGuiWindows(screenSize);
@@ -1668,7 +1675,8 @@ public:
 			pRenderTargetRSMNormal->mFormat,
 		};
 #endif
-		PipelineDesc fillRSMPipelineSettings = { PIPELINE_TYPE_GRAPHICS };
+		PipelineDesc fillRSMPipelineSettings = {};
+		fillRSMPipelineSettings.mType = PIPELINE_TYPE_GRAPHICS;
 		fillRSMPipelineSettings.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		fillRSMPipelineSettings.mGraphicsDesc.mRenderTargetCount = 2;
 		fillRSMPipelineSettings.mGraphicsDesc.pDepthState = &depthStateDesc;
@@ -1713,7 +1721,9 @@ public:
 			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
 		}
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removeAura(pRenderer, pTaskManager, pAura);
 #if defined(ENABLE_CPU_PROPAGATION)
@@ -1738,7 +1748,7 @@ public:
 
 		if (pDebugTexturesWindow)
 		{
-			removeAppUIGuiComponent(pAppUI, pDebugTexturesWindow);
+			uiDestroyComponent(pDebugTexturesWindow);
 			pDebugTexturesWindow = NULL;
 		}
 	}
@@ -1790,8 +1800,6 @@ public:
 				lerp(f3Tov3(gCameraPathData[2 * currentCameraFrame + 1]), f3Tov3(gCameraPathData[2 * (currentCameraFrame + 1) + 1]), remind));
 			gActiveCamera->pCameraController->lookAt(f3Tov3(newLookat));
 		}
-
-		updateAppUI(pAppUI, deltaTime);
 
 		updateDynamicUIElements();
 		updateLPVParams();
@@ -1908,14 +1916,16 @@ public:
 		/************************************************************************/
 		if (gAppSettings.useLPV || gDebugVisualizationSettings.isEnabled)
 		{
+			const float4& baseCamPos = gPerFrame[gFrameCount % gImageCount].gPerFrameUniformData.camPos;
 			const aura::vec3 camPos(
-				gPerFrame[gFrameCount % gImageCount].gPerFrameUniformData.camPos.getX(),
-				gPerFrame[gFrameCount % gImageCount].gPerFrameUniformData.camPos.getY(),
-				gPerFrame[gFrameCount % gImageCount].gPerFrameUniformData.camPos.getZ());
+				baseCamPos.getX(),
+				baseCamPos.getY(),
+				baseCamPos.getZ());
+			const vec4& baseCamDir = gPerFrame[gFrameCount % gImageCount].gCameraModelView.getRow(2);
 			const aura::vec3 camDir(
-				gPerFrame[gFrameCount % gImageCount].gCameraModelView.getRow(2).getX(),
-				gPerFrame[gFrameCount % gImageCount].gCameraModelView.getRow(2).getY(),
-				gPerFrame[gFrameCount % gImageCount].gCameraModelView.getRow(2).getZ());
+				baseCamDir.getX(),
+				baseCamDir.getY(),
+				baseCamDir.getZ());
 			aura::beginFrame(pRenderer, pAura, camPos, camDir);
 		}
 		/************************************************************************/
@@ -2276,8 +2286,8 @@ public:
 		{
 			DescriptorData params[2] = {};
 			params[0].pName = "diffuseMaps";
-			params[0].mCount = (uint32_t)gDiffuseMaps.size();
-			params[0].ppTextures = gDiffuseMaps.data();
+			params[0].mCount = gMaterialCount;
+			params[0].ppTextures = gDiffuseMapsStorage;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 1, params);
 			
 #ifndef METAL
@@ -2312,14 +2322,14 @@ public:
 			vbShadeParams[0].pName = "vbTex";
 			vbShadeParams[0].ppTextures = &pRenderTargetVBPass->pTexture;
 			vbShadeParams[1].pName = "diffuseMaps";
-			vbShadeParams[1].mCount = (uint32_t)gDiffuseMapsPacked.size();
-			vbShadeParams[1].ppTextures = gDiffuseMapsPacked.data();
+			vbShadeParams[1].mCount = gMaterialCount;
+			vbShadeParams[1].ppTextures = gDiffuseMapsStorage;
 			vbShadeParams[2].pName = "normalMaps";
-			vbShadeParams[2].mCount = (uint32_t)gNormalMapsPacked.size();
-			vbShadeParams[2].ppTextures = gNormalMapsPacked.data();
+			vbShadeParams[2].mCount = gMaterialCount;
+			vbShadeParams[2].ppTextures = gNormalMapsStorage;
 			vbShadeParams[3].pName = "specularMaps";
-			vbShadeParams[3].mCount = (uint32_t)gSpecularMapsPacked.size();
-			vbShadeParams[3].ppTextures = gSpecularMapsPacked.data();
+			vbShadeParams[3].mCount = gMaterialCount;
+			vbShadeParams[3].ppTextures = gSpecularMapsStorage;
 			vbShadeParams[4].pName = "vertexPos";
 			vbShadeParams[4].ppBuffers = &pGeom->pVertexBuffers[0];
 			vbShadeParams[5].pName = "vertexTexCoord";
@@ -2568,7 +2578,7 @@ public:
 
 #if defined(METAL)
 		ShaderLoadDesc icbGeneratorShaderDesc = {};
-		icbGeneratorShaderDesc.mStages[0] = { "icb.comp", NULL, 0 };
+		icbGeneratorShaderDesc.mStages[0] = { "icb.comp", NULL, NULL, 0 };
 		addShader(pRenderer, &icbGeneratorShaderDesc, &pShaderICBGenerator);
 #endif
 
@@ -2601,15 +2611,15 @@ public:
 			}
 		}
 		// Triangle culling compute shader
-		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL };
+		triangleCulling.mStages[0] = { "triangle_filtering.comp", NULL, 0 };
 		// Batch compaction compute shader
-		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL };
+		batchCompaction.mStages[0] = { "batch_compaction.comp", NULL, 0 };
 		// Clear buffers compute shader
-		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL };
+		clearBuffer.mStages[0] = { "clear_buffers.comp", NULL, 0 };
 		// Clear light clusters compute shader
-		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL };
+		clearLights.mStages[0] = { "clear_light_clusters.comp", NULL, 0 };
 		// Cluster lights compute shader
-		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL };
+		clusterLights.mStages[0] = { "cluster_lights.comp", NULL, 0 };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
 		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0 };
@@ -3195,7 +3205,7 @@ public:
 		currentFrame->gPerFrameUniformData.windData.gFabricAnchorHeight = gFlagAnchorHeight;
 		currentFrame->gPerFrameUniformData.windData.gFabricFreeHeight = 0.0f;
 		currentFrame->gPerFrameUniformData.windData.gFabricAmplitude = float3(50.0f, 50.f, 0.0f) / SCENE_SCALE;
-		currentFrame->gPerFrameUniformData.windData.g_Time = gAccumTimer.GetMSec(false) / 1000.0f;
+		currentFrame->gPerFrameUniformData.windData.g_Time = getTimerMSec(&gAccumTimer, false) / 1000.0f;
 	}
 
 	void updateLPVParams()
@@ -3245,15 +3255,14 @@ public:
 			}
 			else
 			{
-				removeGuiWidget(pGuiWindow, gResolutionProperty);
+				uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
 			}
 		}
 #endif
-
-		pAuraDebugTexturesWindow->mActive = gAppSettings.mDrawDebugTargets;
-		pShadowTexturesWindow->mActive = gAppSettings.mDrawShadowTargets;
+		uiSetComponentActive(pAuraDebugTexturesWindow, gAppSettings.mDrawDebugTargets);
+		uiSetComponentActive(pShadowTexturesWindow, gAppSettings.mDrawShadowTargets);
 #if TEST_RSM
-		pAuraRSMTexturesWindow->mActive = gAppSettings.mDrawRSMTargets;
+		uiSetComponentActive(pAuraRSMTexturesWindow, gAppSettings.mDrawRSMTargets);
 #endif
 
 		// Async compute
@@ -4303,39 +4312,28 @@ public:
 
         cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
-        cmdDrawProfilerUI();
-
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
         cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+
         // NOTE: Realtime GPU Profiling is not supported on Metal.
         if (gAppSettings.mAsyncCompute)
         {
             if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[1]);
-                cmdDrawGpuProfile(cmd, float2(8.0f, 275.0f), gGpuProfileTokens[0]);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[1], &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 275.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
             }
             else
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0]);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
             }
         }
         else
         {
-            cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0]);
+            cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
         }
-
-		appUIGui(pAppUI, pGuiWindow);
-		appUIGui(pAppUI, pAuraDebugVisualizationGuiWindow);
-		appUIGui(pAppUI, pAuraGuiWindow);
-
-		if (pDebugTexturesWindow)
-			appUIGui(pAppUI, pDebugTexturesWindow);
-
-		if (pAuraDebugTexturesWindow)
-			appUIGui(pAppUI, pAuraDebugTexturesWindow);
-
-		if (pShadowTexturesWindow)
-			appUIGui(pAppUI, pShadowTexturesWindow);
 
 #if TEST_RSM
         if (pAuraRSMTexturesWindow)
@@ -4344,7 +4342,7 @@ public:
         }
 #endif
 
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 
         cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     }
@@ -4364,46 +4362,21 @@ public:
 
 	void SetupAppSettingsWindow(float2 screenSize)
 	{
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition.setY(screenSize.getY() / 20.0f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, "App Settings", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		UIComponentDesc UIComponentDesc = {};
+		UIComponentDesc.mStartPosition.setY(screenSize.getY() / 20.0f);
+		uiCreateComponent("App Settings", &UIComponentDesc, &pGuiWindow);
 
 		CheckboxWidget filterTriangles;
 		filterTriangles.pData = &gAppSettings.mFilterTriangles;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Enable Triangle Filtering", &filterTriangles, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Enable Triangle Filtering", &filterTriangles, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget holdFilteredResults;
 		holdFilteredResults.pData = &gAppSettings.mHoldFilteredResults;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Hold Filtered Results", &holdFilteredResults, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Hold Filtered Results", &holdFilteredResults, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget asyncCompute;
 		asyncCompute.pData = &gAppSettings.mAsyncCompute;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Async compute", &asyncCompute, WIDGET_TYPE_CHECKBOX));
 
 		// Light Settings
 		//---------------------------------------------------------------------------------
@@ -4415,11 +4388,11 @@ public:
 		sun.mMin = float2(-PI);
 		sun.mMax = float2(PI);
 		sun.mStep = float2(0.001f);
-		addWidgetLua(addGuiWidget(pGuiWindow, "Directional Light Control", &sun, WIDGET_TYPE_SLIDER_FLOAT2));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Directional Light Control", &sun, WIDGET_TYPE_SLIDER_FLOAT2));
 
 		CheckboxWidget localLight;
 		localLight.pData = &gAppSettings.mRenderLocalLights;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Enable Random Point Lights", &localLight, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Enable Random Point Lights", &localLight, WIDGET_TYPE_CHECKBOX));
 
 		/************************************************************************/
 		// Rendering Settings
@@ -4428,26 +4401,26 @@ public:
 #if TEST_RSM
 		CheckboxWidget debugRSMTargets;
 		debugRSMTargets.pData = &gAppSettings.mDrawRSMTargets;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Draw RSM Targets", &debugRSMTargets, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Draw RSM Targets", &debugRSMTargets, WIDGET_TYPE_CHECKBOX));
 #endif
 	
 		CheckboxWidget debugTargets;
 		debugTargets.pData = &gAppSettings.mDrawDebugTargets;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Draw Debug Targets", &debugTargets, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Draw Debug Targets", &debugTargets, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget debugShadowTargets;
 		debugShadowTargets.pData = &gAppSettings.mDrawShadowTargets;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Draw Shadow Targets", &debugShadowTargets, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Draw Shadow Targets", &debugShadowTargets, WIDGET_TYPE_CHECKBOX));
 
 		CheckboxWidget cameraProp;
 		cameraProp.pData = &gAppSettings.cameraWalking;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Cinematic Camera walking", &cameraProp, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cinematic Camera walking", &cameraProp, WIDGET_TYPE_CHECKBOX));
 
 		SliderFloatWidget cameraSpeedProp;
 		cameraSpeedProp.pData = &gAppSettings.cameraWalkingSpeed;
 		cameraSpeedProp.mMin = 0.0f;
 		cameraSpeedProp.mMax = 3.0f;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraSpeedProp, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cinematic Camera walking: Speed", &cameraSpeedProp, WIDGET_TYPE_SLIDER_FLOAT));
 
 		// Enable this to customize flag movement if the flags dont move as expected in a newer San Miguel model
 #ifdef TEST_FLAG_SETTINGS
@@ -4471,7 +4444,7 @@ public:
 		randF.mMax = 5000.0f;
 		addCollapsingHeaderSubWidget(&CollapsingFlagSettings, "Rand F", &randF, WIDGET_TYPE_SLIDER_FLOAT);
 
-		addWidgetLua(addGuiWidget(pGuiWindow, "Flag Settings", &CollapsingFlagSettings, WIDGET_TYPE_COLLAPSING_HEADER));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Flag Settings", &CollapsingFlagSettings, WIDGET_TYPE_COLLAPSING_HEADER));
 #endif
 
 #if defined(_WINDOWS)
@@ -4497,15 +4470,15 @@ public:
 			pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
 
 		if (!pWindow->fullScreen)
-			removeGuiWidget(pGuiWindow, gResolutionProperty);
+			uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
 #endif
 	}
 
 	void SetupAuraSettingsWindow(float2 screenSize)
 	{
-		GuiDesc auraGuiDesc = {};
-		auraGuiDesc.mStartPosition = vec2(screenSize.getX() / 2.0f, screenSize.getY() / 5.0f);
-		pAuraGuiWindow = addAppUIGuiComponent(pAppUI, "Aura Settings", &auraGuiDesc);
+		UIComponentDesc auraUIComponentDesc = {};
+		auraUIComponentDesc.mStartPosition = vec2(screenSize.getX() / 2.0f, screenSize.getY() / 5.0f);
+		uiCreateComponent("Aura Settings", &auraUIComponentDesc, &pAuraGuiWindow);
 
 		/************************************************************************/
 		// Aura Gui Settings
@@ -4515,24 +4488,24 @@ public:
 
 #ifdef ENABLE_CPU_PROPAGATION
 		checkbox.pData = &gAppSettings.useCPUPropagation;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "CPU Propagation", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "CPU Propagation", &checkbox, WIDGET_TYPE_CHECKBOX));
 #endif
 		//pAuraGuiWindow->AddWidget(UIProperty("CPU Asynchronous Mapping", gAppSettings.useCPUAsyncMapping));
 		checkbox.pData = &gAppSettings.alternateGPUUpdates;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Alternate GPU Updates", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Alternate GPU Updates", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		//pAuraGuiWindow->AddWidget(UIProperty("Multiple Bounces", useMultipleReflections)); // NOTE: broken! It's also broken in the original LightPropagationVolumes in the "middleware" repo.
 		sliderFloat.pData = &gAppSettings.propagationScale;
 		sliderFloat.mMin = 1.0f;
 		sliderFloat.mMax = 2.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Propagation Scale (GPU)", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Propagation Scale (GPU)", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.giStrength;
 		sliderFloat.mMin = 0.5f;
 		sliderFloat.mMax = 20.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "GI Strength", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "GI Strength", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		DropdownWidget propagationSteps;
 		propagationSteps.pData = &gAppSettings.propagationValueIndex;
@@ -4541,7 +4514,7 @@ public:
 			propagationSteps.mNames.push_back((char*)NSTEPS_STRINGS[i]);
 			propagationSteps.mValues.push_back(NSTEPS_VALS[i]);
 		}
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Propagation Steps", &propagationSteps, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Propagation Steps", &propagationSteps, WIDGET_TYPE_DROPDOWN));
 
 		DropdownWidget specularQuality;
 		specularQuality.pData = &gAppSettings.specularQuality;
@@ -4550,55 +4523,55 @@ public:
 			specularQuality.mNames.push_back((char*)aura::SPECULAR_QUALITY_STRINGS[i]);
 			specularQuality.mValues.push_back(aura::SPECULAR_QUALITY_VALS[i]);
 		}
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Specular Quality", &specularQuality, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Specular Quality", &specularQuality, WIDGET_TYPE_DROPDOWN));
 
 		checkbox.pData = &gAppSettings.enableSun;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Sun Radiance", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Sun Radiance", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		checkbox.pData = &gAppSettings.useLPV;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Use GI", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Use GI", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		checkbox.pData = &gAppSettings.useSpecular;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Use Specular", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Use Specular", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		checkbox.pData = &gAppSettings.useColorMaps;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Use Diffuse Mapping", &checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Use Diffuse Mapping", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 		sliderFloat.pData = &gAppSettings.lightScale0;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 1.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Light Scale 0", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Light Scale 0", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.lightScale1;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 5.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Light Scale 1", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Light Scale 1", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.lightScale2;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 10.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Light Scale 2", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Light Scale 2", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.specPow;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 100.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Specular Power", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Specular Power", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.specScale;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 50.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Specular Scale", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Specular Scale", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 		sliderFloat.pData = &gAppSettings.specFresnel;
 		sliderFloat.mMin = 0.0f;
 		sliderFloat.mMax = 5.0f;
 		sliderFloat.mStep = 0.05f;
-		addWidgetLua(addGuiWidget(pAuraGuiWindow, "Specular Fresnel", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Specular Fresnel", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 	}
 
 	void SetupDebugTexturesWindow(float2 screenSize)
@@ -4608,69 +4581,71 @@ public:
 
 		if (!pAuraDebugTexturesWindow)
 		{
-			GuiDesc guiDesc = {};
-			guiDesc.mStartSize = vec2(guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
-			guiDesc.mStartPosition.setY(screenSize.getY() - texSize.getY() - 100.0f);
-			pAuraDebugTexturesWindow = addAppUIGuiComponent(pAppUI, "DEBUG RTs", &guiDesc);
-			ASSERT(pAuraDebugTexturesWindow);
+			UIComponentDesc UIComponentDesc = {};
+			UIComponentDesc.mStartSize = vec2(UIComponentDesc.mStartSize.getX(), UIComponentDesc.mStartSize.getY());
+			UIComponentDesc.mStartPosition.setY(screenSize.getY() - texSize.getY() - 100.0f);
+			uiCreateComponent("DEBUG RTs", &UIComponentDesc, &pAuraDebugTexturesWindow);
 
 			DebugTexturesWidget widget;
-			addWidgetLua(addGuiWidget(pAuraDebugTexturesWindow, "Debug RTs", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
+			luaRegisterWidget(uiCreateComponentWidget(pAuraDebugTexturesWindow, "Debug RTs", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
 		}
-		eastl::vector<Texture*> pVBRTs;
+		eastl::vector<void*> pVBRTs;
 		pVBRTs.push_back(pRenderTargetVBPass->pTexture);
 		pVBRTs.push_back(pDepthBuffer->pTexture);
 
-		((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextures = pVBRTs;
-		((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = texSize;
+		if (pAuraDebugTexturesWindow)
+		{
+			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextures = eastl::move(pVBRTs);
+			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = texSize;
+		}
 	}
 
 	void SetupDebugVisualizationWindow(float2 screenSize)
 	{
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(screenSize.getX() / 2.0f, screenSize.getY() / (20.0f));
-		pAuraDebugVisualizationGuiWindow = addAppUIGuiComponent(pAppUI, "Debug Visualization Settings", &guiDesc);
+		UIComponentDesc UIComponentDesc = {};
+		UIComponentDesc.mStartPosition = vec2(screenSize.getX() / 2.0f, screenSize.getY() / (20.0f));
+		uiCreateComponent("Debug Visualization Settings", &UIComponentDesc, &pAuraDebugVisualizationGuiWindow);
 
 		CheckboxWidget enabled;
 		enabled.pData = &gDebugVisualizationSettings.isEnabled;
-		addWidgetLua(addGuiWidget(pAuraDebugVisualizationGuiWindow, "Enabled", &enabled, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraDebugVisualizationGuiWindow, "Enabled", &enabled, WIDGET_TYPE_CHECKBOX));
 
 		SliderIntWidget cascadeNum;
 		cascadeNum.pData = &gDebugVisualizationSettings.cascadeIndex;
 		cascadeNum.mMin = 0;
 		cascadeNum.mMax = pAura->mCascadeCount - 1;
-		addWidgetLua(addGuiWidget(pAuraDebugVisualizationGuiWindow, "Cascade #", &cascadeNum, WIDGET_TYPE_SLIDER_INT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraDebugVisualizationGuiWindow, "Cascade #", &cascadeNum, WIDGET_TYPE_SLIDER_INT));
 
 		SliderFloatWidget probeSize;
 		probeSize.pData = &gDebugVisualizationSettings.probeRadius;
 		probeSize.mMin = 0.5f;
 		probeSize.mMax = 6.0f;
 		probeSize.mStep = 0.5f;
-		addWidgetLua(addGuiWidget(pAuraDebugVisualizationGuiWindow, "Probe Size", &probeSize, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pAuraDebugVisualizationGuiWindow, "Probe Size", &probeSize, WIDGET_TYPE_SLIDER_FLOAT));
 	}
 
 	void SetupDebugShadowTexturesWindow(float2 screenSize)
 	{
-		float scale = 0.15f;
-		float2 texSize = screenSize * scale;
-
 		if (!pShadowTexturesWindow)
 		{
-			GuiDesc guiDesc = {};
-			guiDesc.mStartSize = vec2(guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
-			guiDesc.mStartPosition = vec2(screenSize.getX() * 0.15f, screenSize.getY() * 0.4f);
-			pShadowTexturesWindow = addAppUIGuiComponent(pAppUI, "Shadow Textures", &guiDesc);
-			ASSERT(pShadowTexturesWindow);
+			UIComponentDesc UIComponentDesc = {};
+			UIComponentDesc.mStartSize = vec2(UIComponentDesc.mStartSize.getX(), UIComponentDesc.mStartSize.getY());
+			UIComponentDesc.mStartPosition = vec2(screenSize.getX() * 0.15f, screenSize.getY() * 0.4f);
+			uiCreateComponent("Shadow Textures", &UIComponentDesc, &pShadowTexturesWindow);
 
 			DebugTexturesWidget widget;
-			addWidgetLua(addGuiWidget(pShadowTexturesWindow, "Shadow Textures", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
+			luaRegisterWidget(uiCreateComponentWidget(pShadowTexturesWindow, "Shadow Textures", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
 		}
 
-		eastl::vector<Texture*> pShadowTextures;
+		eastl::vector<void*> pShadowTextures;
 		pShadowTextures.push_back(pRenderTargetShadow->pTexture);
 
-		((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextures = pShadowTextures;
-		((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = texSize;
+		if (pShadowTexturesWindow)
+		{
+			const float scale = 0.15f;
+			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextures = eastl::move(pShadowTextures);
+			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = screenSize * scale;
+		}
 	}
 
 #if TEST_RSM
@@ -4681,14 +4656,14 @@ public:
 
 		if (!pAuraRSMTexturesWindow)
 		{
-			GuiDesc guiDesc = {};
-			guiDesc.mStartSize = vec2(guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
-			guiDesc.mStartPosition = vec2(screenSize.getX() * 0.15f, screenSize.getY() * 0.4f);
-			pAuraRSMTexturesWindow = addAppUIGuiComponent(pAppUI, "RSM Textures", &guiDesc);
+			UIComponentDesc UIComponentDesc = {};
+			UIComponentDesc.mStartSize = vec2(UIComponentDesc.mStartSize.getX(), UIComponentDesc.mStartSize.getY());
+			UIComponentDesc.mStartPosition = vec2(screenSize.getX() * 0.15f, screenSize.getY() * 0.4f);
+			pAuraRSMTexturesWindow = uiCreateComponent(pAppUI, "RSM Textures", &UIComponentDesc);
 			ASSERT(pAuraRSMTexturesWindow);
 
 			DebugTexturesWidget widget;
-			addWidgetLua(addGuiWidget(pAuraRSMTexturesWindow, "RSM Textures", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
+			luaRegisterWidget(uiCreateComponentWidget(pAuraRSMTexturesWindow, "RSM Textures", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
 		}
 
 		eastl::vector<Texture*> pRSMTextures;

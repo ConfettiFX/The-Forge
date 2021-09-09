@@ -149,6 +149,12 @@ inline bool parseConfigLine(
 	return false;
 }
 
+#if !defined(__ANDROID__)
+
+#if !defined(NX64)
+
+#if !defined(__APPLE__)
+
 static GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId)
 {
 	char vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
@@ -167,6 +173,8 @@ static GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendo
 
 	return presetLevel;
 }
+
+#endif
 
 //TODO: Add name matching as well.
 static void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
@@ -204,6 +212,8 @@ static void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t 
 	}
 }
 
+#if !defined(__APPLE__)
+
 static bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
 {
 	if (!parseConfigLine(
@@ -223,11 +233,13 @@ static bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
 	return true;
 }
 
+#endif
+
 //Reads the gpu config and sets the preset level of all available gpu's
 static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, NULL, &fh))
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return;
@@ -244,19 +256,29 @@ static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSetting
 	fsCloseStream(&fh);
 }
 
+#endif
+#endif
+
+#if !defined(__APPLE__)
+
+#if defined(VULKAN)
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+static GPUPresetLevel getGPUPresetLevel(const eastl::string& vendorId, const eastl::string& modelId, const eastl::string& revId)
 {
 	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 	return foundLevel;
 }
+#endif
+
+#if !defined(NX64)
+#if !defined(__ANDROID__)
 
 //Reads the gpu config and sets the preset level of all available gpu's
 static GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, const char* revId)
 {
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, NULL, &fh))
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return GPU_PRESET_LOW;
@@ -284,7 +306,7 @@ static GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelI
 static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ, &fh))
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ, NULL, &fh))
 	{
 		LOGF(LogLevel::eINFO, "activeTestingGpu.cfg could not be found, Using default GPU.");
 		return false;
@@ -326,10 +348,12 @@ static void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint
 	}
 }
 
+#endif
+
 static bool isGPUWhitelisted(const char* vendorId, const char* modelId, const char* gpuName)
 {
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpuWhitelist.cfg", FM_READ, &fh))
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpuWhitelist.cfg", FM_READ, NULL, &fh))
 	{
 		LOGF(LogLevel::eINFO, "gpuWhitelist.cfg could not be found, Using default API.");
 		return false;
@@ -350,3 +374,6 @@ static bool isGPUWhitelisted(const char* vendorId, const char* modelId, const ch
 	fsCloseStream(&fh);
 	return successFinal;
 }
+
+#endif
+#endif

@@ -16,7 +16,11 @@
 #define GAINPUT_LIBEXPORT
 #include "../../../../../../../Xbox/Common_3/OS/pch.h"
 #elif defined(__ANDROID__) || defined(ANDROID)
-	#define GAINPUT_PLATFORM_ANDROID
+    #if defined(QUEST_VR)
+        #define GAINPUT_PLATFORM_QUEST
+    #else
+	    #define GAINPUT_PLATFORM_ANDROID
+    #endif
 	#define GAINPUT_LIBEXPORT
 #elif defined(__linux) || defined(__linux__) || defined(linux) || defined(LINUX)
 	#define GAINPUT_PLATFORM_LINUX
@@ -109,6 +113,11 @@ namespace gainput
 #include <stdint.h>
 #include <stdlib.h>
 struct AInputEvent;
+
+#elif defined(GAINPUT_PLATFORM_QUEST)
+
+#include <stdint.h>
+#include <stdlib.h>
 
 #elif defined(GAINPUT_PLATFORM_NX64)
 

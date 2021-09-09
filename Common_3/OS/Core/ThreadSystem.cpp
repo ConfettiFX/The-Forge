@@ -25,6 +25,8 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/ILog.h"
 
+#include "../Math/MathTypes.h"
+
 #include "ThreadSystem.h"
 #include "../Interfaces/IMemory.h"
 
@@ -38,34 +40,35 @@ struct ThreadedTask
 
 struct ThreadSystem
 {
-	ThreadDesc                 mThreadDescs[MAX_LOAD_THREADS];
-	ThreadHandle               mThread[MAX_LOAD_THREADS];
-	ThreadedTask			   mLoadTask[MAX_SYSTEM_TASKS];
-	uint32_t				   mBegin, mEnd;
-	ConditionVariable          mQueueCond;
-	Mutex                      mQueueMutex;
-	ConditionVariable          mIdleCond;
-	uint32_t                   mNumLoaders;
-	uint32_t                   mNumIdleLoaders;
-	volatile bool              mRun;
+	ThreadDesc        mThreadDescs[MAX_LOAD_THREADS];
+	ThreadHandle      mThread[MAX_LOAD_THREADS];
+	ThreadedTask      mLoadTask[MAX_SYSTEM_TASKS];
+	uint32_t          mBegin, mEnd;
+	ConditionVariable mQueueCond;
+	Mutex             mQueueMutex;
+	ConditionVariable mIdleCond;
+	uint32_t          mNumLoaders;
+	uint32_t          mNumIdleLoaders;
+	volatile bool     mRun;
 
 #if defined(NX64)
-	ThreadTypeNX			   mThreadType[MAX_LOAD_THREADS];
+	ThreadTypeNX mThreadType[MAX_LOAD_THREADS];
 #endif
 };
 
 bool assistThreadSystemTasks(ThreadSystem* pThreadSystem, uint32_t* pIds, size_t count)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	if (pThreadSystem->mBegin == pThreadSystem->mEnd)
 	{
-		pThreadSystem->mQueueMutex.Release();
+		releaseMutex(&pThreadSystem->mQueueMutex);
 		return false;
 	}
 
-	uint32_t taskSize = pThreadSystem->mBegin >= pThreadSystem->mEnd ? pThreadSystem->mBegin - pThreadSystem->mEnd : MAX_SYSTEM_TASKS - (pThreadSystem->mEnd - pThreadSystem->mBegin);
+	uint32_t taskSize = pThreadSystem->mBegin >= pThreadSystem->mEnd ? pThreadSystem->mBegin - pThreadSystem->mEnd
+																	 : MAX_SYSTEM_TASKS - (pThreadSystem->mEnd - pThreadSystem->mBegin);
 	ThreadedTask resourceTask;
-	bool found = false;
+	bool         found = false;
 
 	for (uint32_t i = 0; i < taskSize; ++i)
 	{
@@ -97,7 +100,7 @@ bool assistThreadSystemTasks(ThreadSystem* pThreadSystem, uint32_t* pIds, size_t
 		}
 	}
 
-	pThreadSystem->mQueueMutex.Release();
+	releaseMutex(&pThreadSystem->mQueueMutex);
 
 	if (!found)
 	{
@@ -110,7 +113,7 @@ bool assistThreadSystemTasks(ThreadSystem* pThreadSystem, uint32_t* pIds, size_t
 
 bool assistThreadSystem(ThreadSystem* pThreadSystem)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	if (pThreadSystem->mBegin != pThreadSystem->mEnd)
 	{
 		ThreadedTask resourceTask = pThreadSystem->mLoadTask[pThreadSystem->mEnd];
@@ -123,14 +126,14 @@ bool assistThreadSystem(ThreadSystem* pThreadSystem)
 		{
 			++pThreadSystem->mLoadTask[pThreadSystem->mEnd].mStart;
 		}
-		pThreadSystem->mQueueMutex.Release();
+		releaseMutex(&pThreadSystem->mQueueMutex);
 		resourceTask.mTask(resourceTask.mUser, resourceTask.mStart);
 
 		return true;
 	}
 	else
 	{
-		pThreadSystem->mQueueMutex.Release();
+		releaseMutex(&pThreadSystem->mQueueMutex);
 		return false;
 	}
 }
@@ -140,17 +143,17 @@ static void taskThreadFunc(void* pThreadData)
 	ThreadSystem* pThreadSystem = (ThreadSystem*)pThreadData;
 	while (pThreadSystem->mRun)
 	{
-		pThreadSystem->mQueueMutex.Acquire();
+		acquireMutex(&pThreadSystem->mQueueMutex);
 		++pThreadSystem->mNumIdleLoaders;
 		while (pThreadSystem->mRun && pThreadSystem->mBegin == pThreadSystem->mEnd)
 		{
-			pThreadSystem->mIdleCond.WakeAll();
-			pThreadSystem->mQueueCond.Wait(pThreadSystem->mQueueMutex);
+			wakeAllConditionVariable(&pThreadSystem->mIdleCond);
+			waitConditionVariable(&pThreadSystem->mQueueCond, &pThreadSystem->mQueueMutex, TIMEOUT_INFINITE);
 		}
 		--pThreadSystem->mNumIdleLoaders;
 		if (pThreadSystem->mBegin != pThreadSystem->mEnd)
 		{
-			ThreadedTask resourceTask = pThreadSystem->mLoadTask[pThreadSystem->mEnd];// pThreadSystem->mLoadQueue.front();
+			ThreadedTask resourceTask = pThreadSystem->mLoadTask[pThreadSystem->mEnd];    // pThreadSystem->mLoadQueue.front();
 			if (resourceTask.mStart + 1 == resourceTask.mEnd)
 			{
 				++pThreadSystem->mEnd;
@@ -160,31 +163,32 @@ static void taskThreadFunc(void* pThreadData)
 			{
 				++pThreadSystem->mLoadTask[pThreadSystem->mEnd].mStart;
 			}
-			pThreadSystem->mQueueMutex.Release();
+			releaseMutex(&pThreadSystem->mQueueMutex);
 			resourceTask.mTask(resourceTask.mUser, resourceTask.mStart);
 		}
 		else
 		{
-			pThreadSystem->mQueueMutex.Release();
+			releaseMutex(&pThreadSystem->mQueueMutex);
 		}
 	}
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	++pThreadSystem->mNumIdleLoaders;
-	pThreadSystem->mIdleCond.WakeAll();
-	pThreadSystem->mQueueMutex.Release();
+	wakeAllConditionVariable(&pThreadSystem->mIdleCond);
+	releaseMutex(&pThreadSystem->mQueueMutex);
 }
 
-void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, int preferredCore, bool migrateEnabled, const char* threadName)
+void initThreadSystem(
+	ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, int preferredCore, bool migrateEnabled, const char* threadName)
 {
 	ThreadSystem* pThreadSystem = tf_new(ThreadSystem);
 
-	uint32_t numThreads = max<uint32_t>(Thread::GetNumCPUCores() - 1, 1);
+	uint32_t numThreads = max<uint32_t>(getNumCPUCores() - 1, 1);
 	uint32_t numLoaders = min<uint32_t>(numThreads, min<uint32_t>(numRequestedThreads, MAX_LOAD_THREADS));
 
-	pThreadSystem->mQueueMutex.Init();
-	pThreadSystem->mQueueCond.Init();
-	pThreadSystem->mIdleCond.Init();
-	
+	initMutex(&pThreadSystem->mQueueMutex);
+	initConditionVariable(&pThreadSystem->mQueueCond);
+	initConditionVariable(&pThreadSystem->mIdleCond);
+
 	pThreadSystem->mRun = true;
 	pThreadSystem->mNumIdleLoaders = 0;
 	pThreadSystem->mBegin = 0;
@@ -203,7 +207,7 @@ void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThread
 		pThreadSystem->mThreadDescs[i].migrateEnabled = migrateEnabled;
 #endif
 
-		pThreadSystem->mThread[i] = create_thread(&pThreadSystem->mThreadDescs[i]);
+		initThread(&pThreadSystem->mThreadDescs[i], &pThreadSystem->mThread[i]);
 	}
 	pThreadSystem->mNumLoaders = numLoaders;
 
@@ -212,75 +216,83 @@ void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThread
 
 void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t index)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	pThreadSystem->mLoadTask[pThreadSystem->mBegin++] = ThreadedTask{ task, user, index, index + 1 };
 	pThreadSystem->mBegin = pThreadSystem->mBegin % MAX_SYSTEM_TASKS;
-	LOGF_IF(LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd, "Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd, MAX_SYSTEM_TASKS);
+	LOGF_IF(
+		LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd,
+		"Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd,
+		MAX_SYSTEM_TASKS);
 	ASSERT(pThreadSystem->mBegin != pThreadSystem->mEnd);
-	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.WakeAll();
+	releaseMutex(&pThreadSystem->mQueueMutex);
+	wakeAllConditionVariable(&pThreadSystem->mQueueCond);
 }
 
-uint32_t getThreadSystemThreadCount(ThreadSystem* pThreadSystem)
-{
-	return pThreadSystem->mNumLoaders;
-}
+uint32_t getThreadSystemThreadCount(ThreadSystem* pThreadSystem) { return pThreadSystem->mNumLoaders; }
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t count)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	pThreadSystem->mLoadTask[pThreadSystem->mBegin++] = ThreadedTask{ task, user, 0, count };
 	pThreadSystem->mBegin = pThreadSystem->mBegin % MAX_SYSTEM_TASKS;
-	LOGF_IF(LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd, "Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd, MAX_SYSTEM_TASKS);
+	LOGF_IF(
+		LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd,
+		"Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd,
+		MAX_SYSTEM_TASKS);
 	ASSERT(pThreadSystem->mBegin != pThreadSystem->mEnd);
-	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.WakeAll();
+	releaseMutex(&pThreadSystem->mQueueMutex);
+	wakeAllConditionVariable(&pThreadSystem->mQueueCond);
 }
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	pThreadSystem->mLoadTask[pThreadSystem->mBegin++] = ThreadedTask{ task, user, start, end };
 	pThreadSystem->mBegin = pThreadSystem->mBegin % MAX_SYSTEM_TASKS;
-	LOGF_IF(LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd, "Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd, MAX_SYSTEM_TASKS);
+	LOGF_IF(
+		LogLevel::eERROR, pThreadSystem->mBegin == pThreadSystem->mEnd,
+		"Maximum amount of thread task reached: mBegin (%d), mEnd(%d), Max(%d)", pThreadSystem->mBegin, pThreadSystem->mEnd,
+		MAX_SYSTEM_TASKS);
 	ASSERT(pThreadSystem->mBegin != pThreadSystem->mEnd);
-	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.WakeAll();
+	releaseMutex(&pThreadSystem->mQueueMutex);
+	wakeAllConditionVariable(&pThreadSystem->mQueueCond);
 }
 
 void exitThreadSystem(ThreadSystem* pThreadSystem)
 {
-	pThreadSystem->mQueueMutex.Acquire();
+	acquireMutex(&pThreadSystem->mQueueMutex);
 	pThreadSystem->mRun = false;
-	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.WakeAll();
+	releaseMutex(&pThreadSystem->mQueueMutex);
+	wakeAllConditionVariable(&pThreadSystem->mQueueCond);
 	pThreadSystem->mBegin = 0;
 	pThreadSystem->mEnd = 0;
 
 	uint32_t numLoaders = pThreadSystem->mNumLoaders;
 	for (uint32_t i = 0; i < numLoaders; ++i)
 	{
-		destroy_thread(pThreadSystem->mThread[i]);
+		destroyThread(pThreadSystem->mThread[i]);
 	}
 
-	pThreadSystem->mQueueCond.Destroy();
-	pThreadSystem->mIdleCond.Destroy();
-	pThreadSystem->mQueueMutex.Destroy();
+	destroyConditionVariable(&pThreadSystem->mQueueCond);
+	destroyConditionVariable(&pThreadSystem->mIdleCond);
+	destroyMutex(&pThreadSystem->mQueueMutex);
 	tf_delete(pThreadSystem);
 }
 
 bool isThreadSystemIdle(ThreadSystem* pThreadSystem)
 {
-	pThreadSystem->mQueueMutex.Acquire();
-	bool idle = (pThreadSystem->mBegin == pThreadSystem->mEnd && pThreadSystem->mNumIdleLoaders == pThreadSystem->mNumLoaders) || !pThreadSystem->mRun;
-	pThreadSystem->mQueueMutex.Release();
+	acquireMutex(&pThreadSystem->mQueueMutex);
+	bool idle = (pThreadSystem->mBegin == pThreadSystem->mEnd && pThreadSystem->mNumIdleLoaders == pThreadSystem->mNumLoaders) ||
+				!pThreadSystem->mRun;
+	releaseMutex(&pThreadSystem->mQueueMutex);
 	return idle;
 }
 
 void waitThreadSystemIdle(ThreadSystem* pThreadSystem)
 {
-	pThreadSystem->mQueueMutex.Acquire();
-	while ((pThreadSystem->mBegin != pThreadSystem->mEnd || pThreadSystem->mNumIdleLoaders < pThreadSystem->mNumLoaders) && pThreadSystem->mRun)
-		pThreadSystem->mIdleCond.Wait(pThreadSystem->mQueueMutex);
-	pThreadSystem->mQueueMutex.Release();
+	acquireMutex(&pThreadSystem->mQueueMutex);
+	while ((pThreadSystem->mBegin != pThreadSystem->mEnd || pThreadSystem->mNumIdleLoaders < pThreadSystem->mNumLoaders) &&
+		   pThreadSystem->mRun)
+		waitConditionVariable(&pThreadSystem->mIdleCond, &pThreadSystem->mQueueMutex, TIMEOUT_INFINITE);
+	releaseMutex(&pThreadSystem->mQueueMutex);
 }

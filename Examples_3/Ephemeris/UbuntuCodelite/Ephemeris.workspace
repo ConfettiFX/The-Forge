@@ -3,12 +3,11 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
   <Project Name="Ephemeris" Path="Ephemeris/Ephemeris.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
@@ -17,20 +16,18 @@
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
-      <Project Name="LuaManager" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="Ephemeris" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="Ephemeris" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="SpirVTools" ConfigName="Release"/>
-      <Project Name="LuaManager" ConfigName="Release"/>
       <Project Name="ozz_base" ConfigName="Release"/>
       <Project Name="ozz_animation" ConfigName="Release"/>
       <Project Name="ozz_animation_offline" ConfigName="Release"/>

@@ -6,14 +6,12 @@
   <Project Name="Aura" Path="Aura/Aura.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
-  <Project Name="LuaManager" Path="../../Unit_Tests/UbuntuCodelite/LuaManager/LuaManager.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
-      <Project Name="LuaManager" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="Aura" ConfigName="Debug"/>
@@ -23,7 +21,6 @@
       <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
-      <Project Name="LuaManager" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="Aura" ConfigName="Release"/>

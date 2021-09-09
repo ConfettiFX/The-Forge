@@ -25,7 +25,12 @@
 // Unit Test for testing transformations using a solar system.
 // Tests the basic mat4 transformations, such as scaling, rotation, and translation.
 
+#include <stdio.h>
+
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/utility.h"
+
+#include "../../../../Common_3/ThirdParty/OpenSource/minizip/mz.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm.h"
 
 
 //Interfaces
@@ -35,7 +40,10 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -45,12 +53,13 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
+#define SIZEOF_ARR(x) sizeof(x)/sizeof(x[0])
 
 /// Demo structures
 
 struct UniformBlock
 {
-	mat4 mProjectView;
+	CameraMatrix mProjectView;
 	mat4 mModelMatCapsule;
 	mat4 mModelMatCube;
 };
@@ -62,44 +71,34 @@ struct Vertex
 	float2 mUV;
 };
 
-struct MeshData
-{
-	Buffer* pVertexBuffer = NULL;
-	uint    mVertexCount = 0;
-	Buffer* pIndexBuffer = NULL;
-	uint    mIndexCount = 0;
-};
-
 const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
-Renderer* pRenderer = NULL;
+Renderer*      pRenderer = NULL;
 
-Queue* pGraphicsQueue = NULL;
+Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPools[gImageCount];
-Cmd* pCmds[gImageCount];
+Cmd*     pCmds[gImageCount];
 
-SwapChain* pSwapChain = NULL;
+SwapChain*    pSwapChain = NULL;
 RenderTarget* pDepthBuffer = NULL;
-Fence* pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore* pImageAcquiredSemaphore = NULL;
-Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence*        pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore*    pImageAcquiredSemaphore = NULL;
+Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader* pBasicShader = NULL;
+Shader*   pBasicShader = NULL;
 Pipeline* pBasicPipeline = NULL;
 
-Shader* pSkyboxShader = NULL;
-Buffer* pSkyboxVertexBuffer = NULL;
-Pipeline* pPipelineSkybox = NULL;
+Shader*        pSkyboxShader = NULL;
+Buffer*        pSkyboxVertexBuffer = NULL;
+Pipeline*      pPipelineSkybox = NULL;
 RootSignature* pRootSignature = NULL;
-Sampler* pSamplerSkybox = NULL;
-Texture* pSkyboxTextures[6];
-
-VirtualJoystickUI* pVirtualJoystick = NULL;
+Sampler*       pSamplerSkybox = NULL;
+Texture*       pSkyboxTextures[6];
 
 //Zip File Test Texture
-Texture* pZipTexture[1];
-Shader* pZipTextureShader = NULL;
-Buffer* pZipTextureVertexBuffer = NULL;
+Texture*  pZipTexture[1];
+Shader*   pZipTextureShader = NULL;
+Buffer*   pZipTextureVertexBuffer = NULL;
 Pipeline* pZipTexturePipeline = NULL;
 
 Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
@@ -109,15 +108,11 @@ DescriptorSet* pDescriptorSetTextures = NULL;
 
 uint32_t gFrameIndex = 0;
 
-int					gNumberOfBasicPoints;
-int					gNumberOfCubiodPoints;
-UniformBlock		gUniformData;
+int          gNumberOfBasicPoints;
+int          gNumberOfCubiodPoints;
+UniformBlock gUniformData;
 
 ICameraController* pCameraController = NULL;
-
-/// UI
-UIApp* pAppUI = NULL;
-static uint32_t		  gSelectedApiIndex = 0;
 
 const char* pSkyboxImageFileNames[] = { "Skybox/Skybox_right1",  "Skybox/Skybox_left2",  "Skybox/Skybox_top3",
 										"Skybox/Skybox_bottom4", "Skybox/Skybox_front5", "Skybox/Skybox_back6" };
@@ -126,53 +121,750 @@ const char* pCubeTextureName[] = { "Test_2" };
 
 const char* pTextFileName[] = { "TestDoc.txt" };
 
+const ResourceDirectory RD_ZIP_TEXT_ENCRYPTED = RD_MIDDLEWARE_0;
+
+const ResourceDirectory RD_ZIP_TEXT_UNENCRYPTED = RD_MIDDLEWARE_1;
+
+// RM_CONTENT can be a read only directory on some platforms,
+// so we use RM_SAVE_0 for saving instead
+const ResourceDirectory RD_ZIP_WRITE_DIRECTORY = RD_MIDDLEWARE_2;
+
+const ResourceDirectory RD_ZIP_TEXT_WRITE = RD_MIDDLEWARE_3;
+const ResourceDirectory RD_ZIP_TEXT_WRITE_COMPLEX_PATH = RD_MIDDLEWARE_4;
+
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ENCRYPTED = RD_MIDDLEWARE_5;
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ENCRYPTED_COMPLEX_PATH = RD_MIDDLEWARE_6;
+
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ONLY = RD_MIDDLEWARE_7;
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ONLY_COMPLEX_PATH = RD_MIDDLEWARE_8;
+
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED = RD_MIDDLEWARE_9;
+const ResourceDirectory RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED_COMPLEX_PATH = RD_MIDDLEWARE_10;
+
+
 const char* pModelFileName[] = { "capsule.gltf" };
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
+uint32_t     gFontID = 0; 
 
-GuiComponent* pGui_TextData = NULL;
+UIComponent* pGui_TextData = NULL;
 
-GuiComponent* pGui_ZipData = NULL;
+UIComponent* pGui_ZipData = NULL;
 
 //Zip file for testing
-const char* pZipFiles = "28-ZipFileSystem.zip";
+const char* pZipReadFile = "28-ZipFileSystem.zip";
+const char* pZipReadEncryptedFile = "28-ZipFileSystemEncrypted.zip";
+const char* pZipWriteFile = "28-ZipFileSystemWrite.zip";
+const char* pZipWriteEncryptedFile = "28-ZipFileSystemWriteEncrypted.zip";
+const char* pZipWriteOnlyFile = "28-ZipFileSystemWriteOnly.zip";
+const char* pZipWriteOnlyEncryptedFile = "28-ZipFileSystemWriteOnlyEncrypted.zip";
+
+const char* pZipPassword = "12345";
 
 eastl::vector<char*> gTextDataVector;
 
-//structures for loaded model 
-Geometry* pMesh;
+//structures for loaded model
+Geometry*    pMesh;
 VertexLayout gVertexLayoutDefault = {};
 
 const char* pMTunerOut = "testout.txt";
-IFileSystem gZipFileSystem = {};
-bool fsOpenZipFile(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, IFileSystem* pOut);
-bool fsCloseZipFile(IFileSystem* pZip);
+IFileSystem gZipReadFileSystem = { 0 };
+IFileSystem gZipReadEncryptedFileSystem = { 0 };
+
+IFileSystem gZipWriteFileSystem = { 0 };
+IFileSystem gZipWriteEncryptedFileSystem = { 0 };
+IFileSystem gZipWriteOnlyFileSystem = { 0 };
+IFileSystem gZipWriteOnlyEncryptedFileSystem = { 0 };
+
+typedef bool(*findStreamCb)(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t *pPosition);
+
+static bool testFindStream(const char* name, findStreamCb findCb) {
+	
+	char txt[] = "THIS IS A TEST TEXT";
+	const char pattern[] = "TEST";
+	FileStream stream;
+	fsOpenStreamFromMemory(txt, sizeof(txt), FM_READ, false, &stream);
+	if (findCb == fsFindReverseStream)
+		fsSeekStream(&stream, SBO_END_OF_FILE, 0);
+	ssize_t pos = INT_MAX;
+	findCb(&stream, pattern, sizeof(pattern) - 1, INT_MAX, &pos);
+	fsCloseStream(&stream);
+	if (pos != 10) {
+		LOGF(eERROR, "Test condition 'pos == 10' failed for %s.", name);
+		return false;
+	}
+	
+	return true;
+}
+
+typedef enum ReadError
+{
+	READ_NO_ERROR,
+	READ_OPEN_ERROR = 1u << 0u,
+	READ_CONTENT_ERROR = 1u << 1u,
+	READ_ANY_ERROR = READ_OPEN_ERROR | READ_CONTENT_ERROR,
+}ReadError;
+
+static const size_t gReadTestMaxDisplayLength = 128;
+
+const char* pTestReadFiles[] = {
+	"TestDoc.txt",
+	"TestDoc.txt", // different content check
+	"TestDoc.txt", // different size check
+	"NonExisting.txt",
+	// Encrypted
+	"TestDoc.txt",
+	"TestDoc.txt", // different content check
+	"TestDoc.txt", // different size check
+	"NonExisting.txt",
+};
+
+uint64_t gTestReadFilesIds[] = { 
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+	UINT64_MAX,
+};
+
+const char* pReadPasswords[] = {
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	// Encrypted
+	pZipPassword,
+	pZipPassword,
+	pZipPassword,
+	pZipPassword,
+};
+
+const ReadError	        pReadErrors[] = {
+	READ_NO_ERROR,
+	READ_CONTENT_ERROR,
+	READ_CONTENT_ERROR,
+	READ_OPEN_ERROR,
+	READ_NO_ERROR,
+	READ_CONTENT_ERROR,
+	READ_CONTENT_ERROR,
+	READ_OPEN_ERROR,
+};
+const ResourceDirectory pTestReadDirs[] = {
+	RD_ZIP_TEXT_UNENCRYPTED,
+	RD_ZIP_TEXT_UNENCRYPTED,
+	RD_ZIP_TEXT_UNENCRYPTED,
+	RD_ZIP_TEXT_UNENCRYPTED,
+	RD_ZIP_TEXT_ENCRYPTED,
+	RD_ZIP_TEXT_ENCRYPTED,
+	RD_ZIP_TEXT_ENCRYPTED,
+	RD_ZIP_TEXT_ENCRYPTED,
+};
+
+const char* pTestReadContent[] = {
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem!",
+	"Hello World! This is an example for the The Forge's Zip.",
+	"",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem!",
+	"Hello World! This is an example for the The Forge's Zip.",
+	""
+};
+const size_t pTestReadContentSize[] = {
+	strlen(pTestReadContent[0]),
+	strlen(pTestReadContent[1]),
+	strlen(pTestReadContent[2]),
+	strlen(pTestReadContent[3]),
+	strlen(pTestReadContent[4]),
+	strlen(pTestReadContent[5]),
+	strlen(pTestReadContent[6]),
+	strlen(pTestReadContent[7]),
+};
+
+static bool testReadFile(const char* testName, ReadError expectedError, 
+	ResourceDirectory rd, const char * pFileName, const char* pFilePassword,
+	const char* expectedContent, size_t expectedContentSize)
+{
+
+	ASSERT(testName && pFileName);
+	FileStream fStream = {};
+	FileMode mode = FM_READ;
+	bool noerr = true;
+
+	if (!fsOpenStreamFromPath(rd, pFileName, mode, pFilePassword, &fStream))
+	{
+		if (!(expectedError & READ_OPEN_ERROR))
+		{
+			LOGF(eERROR, "\"%s\": Couldn't open file '%s' for read.", testName, pFileName);
+			return false;
+		}
+		return true;
+	}
+	else if (expectedError & READ_OPEN_ERROR)
+	{
+		LOGF(eERROR, "\"%s\": Expected open error for '%s' file.", testName, pFileName);
+		fsCloseStream(&fStream);
+		return false;
+	}
+
+	if (!expectedContent)
+	{
+		noerr = fsCloseStream(&fStream);
+		if (!noerr)
+			LOGF(eERROR, "\"%s\": Failed to close read stream of '%s' file.", testName, pFileName);
+		return noerr;
+	}
+
+	size_t fileSize = fsGetStreamFileSize(&fStream);
+	
+	char* content = (char*)tf_malloc(fileSize + 1);
+	size_t readBytes = fsReadFromStream(&fStream, content, fileSize);
+	if (readBytes != fileSize)
+	{
+		LOGF(eERROR, "\"%s\": Couldn't read %ul bytes from file '%s'. Read %ul bytes instead.",
+			testName, (unsigned long)fileSize, pFileName, (unsigned long)readBytes);
+		noerr = false;
+	}
+	content[readBytes] = '\0';
+
+	int diff = 0;
+	if (readBytes < expectedContentSize)
+		diff = -(int)(expectedContentSize - readBytes);
+	else if (readBytes > expectedContentSize)
+		diff = (int)(expectedContentSize - readBytes);
+
+	if (diff == 0 && readBytes != 0)
+	{
+		diff = memcmp(content, expectedContent, readBytes);
+	}
+
+	if (diff != 0)
+	{
+		if (!(expectedError & READ_CONTENT_ERROR))
+		{
+
+			LOGF(eERROR, "\"%s\": Content of file '%s' differs from expected. Diff result: %d.",
+				testName, pFileName, diff);
+			if (readBytes < gReadTestMaxDisplayLength && expectedContentSize < gReadTestMaxDisplayLength)
+			{
+				LOGF(eINFO, "\"%s\": File content:\n%s", testName, content);
+				LOGF(eINFO, "\"%s\": Expected content:\n%s", testName, expectedContent);
+			}
+			noerr = false;
+		}
+	}
+	else if (expectedError & READ_CONTENT_ERROR)
+	{
+		LOGF(eERROR, "\"%s\": Expected content difference for '%s' file.", testName, pFileName);
+		noerr = false;
+	}
+
+	tf_free(content);
+	if (!fsCloseStream(&fStream))
+	{
+		LOGF(eERROR, "\"%s\": Failed to close read stream for file '%s'.", testName, pFileName);
+
+		noerr = false;
+	}
+	return noerr;
+}
+
+static bool testReadFileByIndex(const char* testName, ReadError expectedError,
+	IFileSystem* pIO, uint64_t fileIndex, const char* pFilePassword,
+	const char* expectedContent, size_t expectedContentSize)
+{
+
+	ASSERT(testName);
+	FileStream fStream = {};
+	FileMode mode = FM_READ;
+	bool noerr = true;
+
+	if (!fsOpenZipEntryByIndex(pIO, fileIndex, mode, pFilePassword, &fStream))
+	{
+		if (!(expectedError & READ_OPEN_ERROR))
+		{
+			LOGF(eERROR, "\"%s\": Couldn't open file '%llu' for read.", testName, (unsigned long long)fileIndex);
+			return false;
+		}
+		return true;
+	}
+	else if (expectedError & READ_OPEN_ERROR)
+	{
+		LOGF(eERROR, "\"%s\": Expected open error for '%llu' file.", testName, (unsigned long long)fileIndex);
+		fsCloseStream(&fStream);
+		return false;
+	}
+
+	if (!expectedContent)
+	{
+		noerr = fsCloseStream(&fStream);
+		if (!noerr)
+			LOGF(eERROR, "\"%s\": Failed to close read stream of '%llu' file.", testName, (unsigned long long)fileIndex);
+		return noerr;
+	}
+
+	size_t fileSize = fsGetStreamFileSize(&fStream);
+
+	char* content = (char*)tf_malloc(fileSize + 1);
+	size_t readBytes = fsReadFromStream(&fStream, content, fileSize);
+	if (readBytes != fileSize)
+	{
+		LOGF(eERROR, "\"%s\": Couldn't read %ul bytes from file '%llu'. Read %ul bytes instead.",
+			testName, (unsigned long)fileSize, (unsigned long long)fileIndex, (unsigned long)readBytes);
+		noerr = false;
+	}
+	content[readBytes] = '\0';
+
+	int diff = 0;
+	if (readBytes < expectedContentSize)
+		diff = -(int)(expectedContentSize - readBytes);
+	else if (readBytes > expectedContentSize)
+		diff = (int)(expectedContentSize - readBytes);
+
+	if (diff == 0 && readBytes != 0)
+	{
+		diff = memcmp(content, expectedContent, readBytes);
+	}
+
+	if (diff != 0)
+	{
+		if (!(expectedError & READ_CONTENT_ERROR))
+		{
+
+			LOGF(eERROR, "\"%s\": Content of file '%llu' differs from expected. Diff result: %d.",
+				testName, (unsigned long long)fileIndex, diff);
+			if (readBytes < gReadTestMaxDisplayLength && expectedContentSize < gReadTestMaxDisplayLength)
+			{
+				LOGF(eINFO, "\"%s\": File content:\n%s", testName, content);
+				LOGF(eINFO, "\"%s\": Expected content:\n%s", testName, expectedContent);
+			}
+			noerr = false;
+		}
+	}
+	else if (expectedError & READ_CONTENT_ERROR)
+	{
+		LOGF(eERROR, "\"%s\": Expected content difference for '%llu' file.", testName, (unsigned long long)fileIndex);
+		noerr = false;
+	}
+
+	tf_free(content);
+	if (!fsCloseStream(&fStream))
+	{
+		LOGF(eERROR, "\"%s\": Failed to close read stream for file '%llu'.", testName, (unsigned long long)fileIndex);
+
+		noerr = false;
+	}
+	return noerr;
+}
+
+const char* pTestWriteFiles[] = {
+	"TestDoc.txt",
+	"Foo/Bar/TestDoc.txt",
+	"TestDoc.txt",
+	// Encrypted
+	"TestDoc.txt",
+	"Foo/Bar/TestDoc.txt",
+	"TestDoc.txt",
+	// Write only
+	"TestDoc.txt",
+	"Foo/Bar/TestDoc.txt",
+	"TestDoc.txt",
+	// Encrypted
+	"TestDoc.txt",
+	"Foo/Bar/TestDoc.txt",
+	"TestDoc.txt",
+};
+const char* pWritePasswords[] = {
+	NULL,
+	NULL,
+	NULL,
+	// Encrypted
+	pZipPassword,
+	pZipPassword,
+	pZipPassword,
+	// write only
+	NULL,
+	NULL,
+	NULL,
+	// Encrypted
+	pZipPassword,
+	pZipPassword,
+	pZipPassword,
+};
+const ResourceDirectory pTestWriteDirs[] = {
+	RD_ZIP_TEXT_WRITE,
+	RD_ZIP_TEXT_WRITE,
+	RD_ZIP_TEXT_WRITE_COMPLEX_PATH,
+	RD_ZIP_TEXT_WRITE_ENCRYPTED,
+	RD_ZIP_TEXT_WRITE_ENCRYPTED,
+	RD_ZIP_TEXT_WRITE_ENCRYPTED_COMPLEX_PATH,
+	RD_ZIP_TEXT_WRITE_ONLY,
+	RD_ZIP_TEXT_WRITE_ONLY,
+	RD_ZIP_TEXT_WRITE_ONLY_COMPLEX_PATH,
+	RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED,
+	RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED,
+	RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED_COMPLEX_PATH,
+};
+const char* pTestWriteContent[] = {
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+	"Hello World! This is an example for the The Forge's Zip FileSystem.",
+};
+const size_t pTestWriteContentSize[] = {
+	strlen(pTestWriteContent[0]),
+	strlen(pTestWriteContent[1]),
+	strlen(pTestWriteContent[2]),
+	strlen(pTestWriteContent[3]),
+	strlen(pTestWriteContent[4]),
+	strlen(pTestWriteContent[5]),
+	strlen(pTestWriteContent[6]),
+	strlen(pTestWriteContent[7]),
+	strlen(pTestWriteContent[8]),
+	strlen(pTestWriteContent[9]),
+	strlen(pTestWriteContent[10]),
+	strlen(pTestWriteContent[11]),
+};
+
+const bool gIsWriteTestWriteOnly[] = {
+	false,
+	false,
+	false,
+	false,
+	false,
+	false,
+	true,
+	true,
+	true,
+	true,
+	true,
+	true,
+};
+
+
+static bool testWriteFile(const char* testName, ResourceDirectory rd, 
+	const char * pFileName, const char* pFilePassword, const char* content, size_t contentSize, bool isWriteOnly)
+{
+	FileStream fStream = {};
+	FileMode mode = FM_WRITE;
+	bool noerr = true;
+
+	if (!fsOpenStreamFromPath(rd, pFileName, mode, pFilePassword, &fStream))
+	{
+		LOGF(eERROR, "\"%s\": Coudln't open file '%s' for write.", testName, pFileName);
+		return false;
+	}
+
+	size_t writtenBytes = fsWriteToStream(&fStream, content, contentSize);
+
+	if (writtenBytes != contentSize) {
+		LOGF(eERROR, "\"%s\": Couldn't write %ul bytes into file '%s'. Wrote %ul bytes instead.", 
+			testName, (unsigned long)contentSize, pFileName, (unsigned long)writtenBytes);
+		noerr = false;
+	}
+
+	if (!fsCloseStream(&fStream))
+	{
+		LOGF(eERROR, "\"%s\": Failed to close write stream for file '%s'.", testName, pFileName);
+		noerr = false;
+	}
+
+	if (noerr && !isWriteOnly)
+	{
+		char modifiedName[4096] = { 0 };
+		sprintf(modifiedName, "%s(check content)", testName);
+		noerr = testReadFile(modifiedName, READ_NO_ERROR, rd, pFileName, pFilePassword, content, contentSize);
+	}
+	
+	return noerr;
+}
+
+static bool runReadZipTests()
+{
+	ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pTestReadDirs));
+	ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pReadPasswords));
+	ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pReadErrors));
+	ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pTestReadContent));
+	ASSERT(SIZEOF_ARR(pTestReadFiles) == SIZEOF_ARR(pTestReadContentSize));
+
+	for (size_t i = 0; i < SIZEOF_ARR(pTestReadFiles); ++i)
+	{
+		static char testNameFormat[] = "Read test #%lu";
+		char testName[256] = {0};
+		sprintf(testName, testNameFormat, (unsigned long)i);
+
+		ReadError         expectedError = pReadErrors[i];
+		const char*       pFileName = pTestReadFiles[i];
+		const char*       pFilePassword = pReadPasswords[i];
+		ResourceDirectory rd = pTestReadDirs[i];
+		const char*       pContent = pTestReadContent[i];
+		size_t            contentSize = pTestReadContentSize[i];
+		
+		if (!testReadFile(testName, expectedError, rd, pFileName, pFilePassword, pContent, contentSize))
+			return false;
+	}
+
+	// Fill in array
+	for (size_t i = 0; i < SIZEOF_ARR(pTestReadFiles)/2; ++i)
+	{
+		ReadError         expectedError = pReadErrors[i];
+		const char*       pFileName = pTestReadFiles[i];
+		ResourceDirectory rd = pTestReadDirs[i];
+
+		bool noerr = fsFetchZipEntryIndex(&gZipReadFileSystem, rd, pFileName, &gTestReadFilesIds[i]);
+		if (!noerr && expectedError != READ_OPEN_ERROR)
+		{
+			LOGF(eERROR, "Failed to find entry '%s'", pFileName);
+			return false;
+		}
+		else if (noerr && expectedError == READ_OPEN_ERROR)
+		{
+			LOGF(eERROR, "Found entry '%s', but it shouldn't exist.", pFileName);
+			return false;
+		}
+	}
+
+	// Test
+	for (size_t i = 0; i < SIZEOF_ARR(pTestReadFiles) / 2; ++i)
+	{
+		static char testNameFormat[] = "Read test by index #%lu";
+		char testName[256] = { 0 };
+		sprintf(testName, testNameFormat, (unsigned long)i);
+
+		ReadError         expectedError = pReadErrors[i];
+		uint64_t          fileIndex = gTestReadFilesIds[i];
+		const char*       pFilePassword = pReadPasswords[i];
+		const char*       pContent = pTestReadContent[i];
+		size_t            contentSize = pTestReadContentSize[i];
+
+		if (!testReadFileByIndex(testName, expectedError, &gZipReadFileSystem, fileIndex, pFilePassword, pContent, contentSize))
+			return false;
+	}
+
+	// Fill in array
+	for (size_t i = SIZEOF_ARR(pTestReadFiles) / 2; i < SIZEOF_ARR(pTestReadFiles); ++i)
+	{
+		ReadError         expectedError = pReadErrors[i];
+		const char*       pFileName = pTestReadFiles[i];
+		ResourceDirectory rd = pTestReadDirs[i];
+
+		bool noerr = fsFetchZipEntryIndex(&gZipReadEncryptedFileSystem, rd, pFileName, &gTestReadFilesIds[i]);
+		if (!noerr && expectedError != READ_OPEN_ERROR)
+		{
+			LOGF(eERROR, "Failed to find entry '%s'", pFileName);
+			return false;
+		}
+		else if (noerr && expectedError == READ_OPEN_ERROR)
+		{
+			LOGF(eERROR, "Found entry '%s', but it shouldn't exist.", pFileName);
+			return false;
+		}
+	}
+
+	// Test
+	for (size_t i = SIZEOF_ARR(pTestReadFiles) / 2; i < SIZEOF_ARR(pTestReadFiles); ++i)
+	{
+		static char testNameFormat[] = "Read test by index #%lu";
+		char testName[256] = { 0 };
+		sprintf(testName, testNameFormat, (unsigned long)i);
+
+		ReadError         expectedError = pReadErrors[i];
+		uint64_t          fileIndex = gTestReadFilesIds[i];
+		const char*       pFilePassword = pReadPasswords[i];
+		const char*       pContent = pTestReadContent[i];
+		size_t            contentSize = pTestReadContentSize[i];
+
+		if (!testReadFileByIndex(testName, expectedError, &gZipReadEncryptedFileSystem, fileIndex, pFilePassword, pContent, contentSize))
+			return false;
+	}
+
+	return true;
+}
+
+static bool runWriteZipTests()
+{
+	ASSERT(SIZEOF_ARR(pTestWriteFiles) == SIZEOF_ARR(pWritePasswords));
+	ASSERT(SIZEOF_ARR(pTestWriteFiles) == SIZEOF_ARR(pTestWriteDirs));
+	ASSERT(SIZEOF_ARR(pTestWriteFiles) == SIZEOF_ARR(pTestWriteContent));
+	ASSERT(SIZEOF_ARR(pTestWriteFiles) == SIZEOF_ARR(pTestWriteContentSize));
+	// Test read and write files
+	for (size_t i = 0; i < SIZEOF_ARR(pTestWriteFiles); ++i)
+	{
+		static char testNameFormat[] = "Write test #%lu";
+		char testName[256] = { 0 };
+		sprintf(testName, testNameFormat, (unsigned long)i);
+
+		const char*       pFileName = pTestWriteFiles[i];
+		const char*       pFilePassword = pWritePasswords[i];
+		ResourceDirectory rd = pTestWriteDirs[i];
+		const char*       pContent = pTestWriteContent[i];
+		size_t            contentSize = pTestWriteContentSize[i];
+		bool              isWriteOnly = gIsWriteTestWriteOnly[i];
+
+		if (!testWriteFile(testName, rd, pFileName, pFilePassword, pContent, contentSize, isWriteOnly))
+			return false;
+	}
+	return true;
+}
+
+static bool runTests()
+{
+	if (!testFindStream("forward", fsFindStream))
+		return false;
+	LOGF(eINFO, "Forward find succeded.");
+	if (!testFindStream("backward", fsFindReverseStream))
+		return false;
+	LOGF(eINFO, "Backward find succeded.");
+
+	if (!runReadZipTests())
+		return false;
+	// Test reads, but keep file handles always open
+	fsOpenZipFile(&gZipReadFileSystem);
+	fsOpenZipFile(&gZipReadEncryptedFileSystem);
+	if (!runReadZipTests())
+	{
+		fsCloseZipFile(&gZipReadFileSystem);
+		fsCloseZipFile(&gZipReadEncryptedFileSystem);
+		return false;
+	}
+	fsCloseZipFile(&gZipReadFileSystem);
+	fsCloseZipFile(&gZipReadEncryptedFileSystem);
+	LOGF(eINFO, "Read zip tests succeded.");
+
+	if (!runWriteZipTests())
+		return false;
+	uint64_t writtenFiles;
+	if (!fsEntryCountZipFile(&gZipWriteFileSystem, &writtenFiles))
+	{
+		LOGF(eERROR, "Failed to count number of written files.");
+		return false;
+	}
+	if (writtenFiles != 3)
+	{
+		LOGF(eERROR, "Number of written files is incorrect.");
+		return false;
+	}
+	if (!fsEntryCountZipFile(&gZipWriteEncryptedFileSystem, &writtenFiles))
+	{
+		LOGF(eERROR, "Failed to count number of written files to encrypted zip.");
+		return false;
+	}
+	if (writtenFiles != 3)
+	{
+		LOGF(eERROR, "Number of written files is incorrect for encrypted zip.");
+		return false;
+	}
+	//FileStream stream;
+	//fsOpenZipEntryByIndex(&gZipWriteFileSystem, 1, FM_WRITE, NULL, &stream);
+	LOGF(eINFO, "Write zip tests succeded.");
+
+
+
+	return true;
+}
 
 class FileSystemUnitTest : public IApp
 {
-public:
-
+	public:
 	bool Init()
 	{
-		ResourceDirectory RD_ZIP_TEXT = RD_MIDDLEWARE_3;
+		//testFindReverseStream();
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "ZipFiles");
 
-		if (!fsOpenZipFile(RD_OTHER_FILES, pZipFiles, FM_READ, &gZipFileSystem))
+		if (!initZipFileSystem(RD_OTHER_FILES, pZipReadFile, FM_READ, NULL, &gZipReadFileSystem))
 		{
-			ASSERT("Failed to Open zip file");
+			LOGF(eERROR, "Failed to open zip file for read.");
+			return false;
+		}
+
+		if (!initZipFileSystem(RD_OTHER_FILES, pZipReadEncryptedFile, FM_READ, NULL, &gZipReadEncryptedFileSystem))
+		{
+			LOGF(eERROR, "Failed to open encrypted zip file for read.");
+			return false;
+		}
+
+
+		// Set write directory
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_ZIP_WRITE_DIRECTORY, "ZipWriteFiles");
+
+
+		// Delete zip file before opening
+		char fPath[FS_MAX_PATH];
+		fsAppendPathComponent(fsGetResourceDirectory(RD_ZIP_WRITE_DIRECTORY), pZipWriteFile, fPath);
+		remove(fPath);
+		if (!initZipFileSystem(RD_ZIP_WRITE_DIRECTORY, pZipWriteFile, FM_READ_WRITE, NULL, &gZipWriteFileSystem))
+		{
+			LOGF(eERROR, "Failed to open zip file for write.");
+			return false;
+		}
+
+		// Delete file before opening
+		fsAppendPathComponent(fsGetResourceDirectory(RD_ZIP_WRITE_DIRECTORY), pZipWriteEncryptedFile, fPath);
+		remove(fPath);
+
+		if (!initZipFileSystem(RD_ZIP_WRITE_DIRECTORY, pZipWriteEncryptedFile, FM_READ_WRITE, NULL, &gZipWriteEncryptedFileSystem))
+		{
+			LOGF(eERROR, "Failed to open encrypted zip file for write.");
+			return false;
+		}
+
+		// Delete file before opening
+		fsAppendPathComponent(fsGetResourceDirectory(RD_ZIP_WRITE_DIRECTORY), pZipWriteOnlyFile, fPath);
+		remove(fPath);
+
+		if (!initZipFileSystem(RD_ZIP_WRITE_DIRECTORY, pZipWriteOnlyFile, FM_WRITE, NULL, &gZipWriteOnlyFileSystem))
+		{
+			LOGF(eERROR, "Failed to open encrypted zip file for write.");
+			return false;
+		}
+
+		// Delete file before opening
+		fsAppendPathComponent(fsGetResourceDirectory(RD_ZIP_WRITE_DIRECTORY), pZipWriteOnlyEncryptedFile, fPath);
+		remove(fPath);
+
+		if (!initZipFileSystem(RD_ZIP_WRITE_DIRECTORY, pZipWriteOnlyEncryptedFile, FM_WRITE, NULL, &gZipWriteOnlyEncryptedFileSystem))
+		{
+			LOGF(eERROR, "Failed to open encrypted zip file for write.");
 			return false;
 		}
 
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,"CompiledShaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,     "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
-		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_ZIP_TEXT,       "");
-		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_TEXTURES,       "Textures");
-		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_MESHES,         "Meshes");
-		fsSetPathForResourceDir(&gZipFileSystem,      RM_CONTENT, RD_FONTS,          "Fonts");
+
+		fsSetPathForResourceDir(&gZipReadEncryptedFileSystem, RM_CONTENT, RD_ZIP_TEXT_ENCRYPTED, "");
+		fsSetPathForResourceDir(&gZipReadEncryptedFileSystem, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(&gZipReadEncryptedFileSystem, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(&gZipReadEncryptedFileSystem, RM_CONTENT, RD_FONTS, "Fonts");
+
+		fsSetPathForResourceDir(&gZipReadFileSystem, RM_CONTENT, RD_ZIP_TEXT_UNENCRYPTED, "");
+
+		fsSetPathForResourceDir(&gZipWriteFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE, "");
+		fsSetPathForResourceDir(&gZipWriteFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_COMPLEX_PATH, "Very/Complex/Path");
+
+		fsSetPathForResourceDir(&gZipWriteEncryptedFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ENCRYPTED, "");
+		fsSetPathForResourceDir(&gZipWriteEncryptedFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ENCRYPTED_COMPLEX_PATH, "Very/Complex/Path");
+
+		fsSetPathForResourceDir(&gZipWriteOnlyFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ONLY, "");
+		fsSetPathForResourceDir(&gZipWriteOnlyFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ONLY_COMPLEX_PATH, "Very/Complex/Path");
+
+		fsSetPathForResourceDir(&gZipWriteOnlyEncryptedFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED, "");
+		fsSetPathForResourceDir(&gZipWriteOnlyEncryptedFileSystem, RM_CONTENT, RD_ZIP_TEXT_WRITE_ONLY_ENCRYPTED_COMPLEX_PATH, "Very/Complex/Path");
+
 
 		gVertexLayoutDefault.mAttribCount = 3;
 		gVertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -191,34 +883,39 @@ public:
 		gVertexLayoutDefault.mAttribs[2].mLocation = 2;
 		gVertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
 
-		FileStream textFile0Handle = {};
-		if (!fsOpenStreamFromPath(RD_ZIP_TEXT, pTextFileName[0], FM_READ, &textFile0Handle))
+		if (!runTests())
+			return false;
+
+		FileStream textFileHandle = {};
+		if (!fsOpenStreamFromPath(RD_ZIP_TEXT_ENCRYPTED, pTextFileName[0], FM_READ, pZipPassword, &textFileHandle))
 		{
 			LOGF(LogLevel::eERROR, "\"%s\": ERROR in searching for file.", pTextFileName[0]);
 			return false;
 		}
 
-		ssize_t textFile0Size = fsGetStreamFileSize(&textFile0Handle);
-		char* pDataOfFile = (char*)tf_malloc((textFile0Size + 1) * sizeof(char));
-		ssize_t bytesRead = fsReadFromStream(&textFile0Handle, pDataOfFile, textFile0Size);
-		fsCloseStream(&textFile0Handle);
+		ssize_t textFileSize = fsGetStreamFileSize(&textFileHandle);
+		char*   pDataOfFile = (char*)tf_malloc((textFileSize + 1) * sizeof(char));
+		ssize_t bytesRead = fsReadFromStream(&textFileHandle, pDataOfFile, textFileSize);
+		fsCloseStream(&textFileHandle);
 
-		if (bytesRead != textFile0Size)
+		if (bytesRead != textFileSize)
 		{
 			LOGF(LogLevel::eERROR, "\"%s\": Error in reading file.", pTextFileName[0]);
 			return false;
 		}
-		pDataOfFile[textFile0Size] = 0;
+		pDataOfFile[textFileSize] = 0;
+
+		// Actual diffs and tests
+
+		
 
 		for (char* text : gTextDataVector)
 			tf_free(text);
 		gTextDataVector.clear();
 		gTextDataVector.push_back(pDataOfFile);
 
-		// window and renderer setup
-		pRenderer = NULL;
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		//check for init success
@@ -248,16 +945,28 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		font.pFontPassword = pZipPassword; 
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		// Initialize microprofiler and its UI.
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
@@ -265,6 +974,7 @@ public:
 		//Load Zip file texture
 		TextureLoadDesc textureDescZip = {};
 		textureDescZip.pFileName = pCubeTextureName[0];
+		textureDescZip.pFilePassword = pZipPassword;
 		textureDescZip.ppTexture = &pZipTexture[0];
 		addResource(&textureDescZip, NULL);
 
@@ -273,6 +983,7 @@ public:
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = pSkyboxImageFileNames[i];
+			textureDesc.pFilePassword = pZipPassword;
 			textureDesc.ppTexture = &pSkyboxTextures[i];
 			addResource(&textureDesc, NULL);
 		}
@@ -281,24 +992,18 @@ public:
 		loadDesc.pFileName = pModelFileName[0];
 		loadDesc.ppGeometry = &pMesh;
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
+		loadDesc.pFilePassword = pZipPassword;
 		addResource(&loadDesc, NULL);
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		ShaderLoadDesc zipTextureShader = {};
-		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0 };
-		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0 };
+		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &skyShader, &pSkyboxShader);
 		addShader(pRenderer, &basicShader, &pBasicShader);
@@ -314,7 +1019,7 @@ public:
 
 		Shader* shaders[] = { pSkyboxShader, pBasicShader, pZipTextureShader };
 
-		const char* pStaticSamplers[] = { "uSampler0" };
+		const char*       pStaticSamplers[] = { "uSampler0" };
 		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
 		skyboxRootDesc.mStaticSamplerCount = 1;
 		skyboxRootDesc.ppStaticSamplerNames = pStaticSamplers;
@@ -329,50 +1034,43 @@ public:
 		float heightCube = 1.0f;
 		float depthCube = 1.0f;
 
-		float CubePoints[] =
-		{
+		float CubePoints[] = {
 			//Position				        //Normals				//TexCoords
-			-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
-			 widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 0.0f,
-			 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
-			 widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    1.0f, 1.0f,
-			-widthCube,  heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 1.0f,
-			-widthCube, -heightCube, -depthCube  ,	 0.0f,  0.0f, -1.0f,    0.0f, 0.0f,
+			-widthCube, -heightCube, -depthCube, 0.0f,        0.0f,       -1.0f,       0.0f,       0.0f,        widthCube,  -heightCube,
+			-depthCube, 0.0f,        0.0f,       -1.0f,       1.0f,       0.0f,        widthCube,  heightCube,  -depthCube, 0.0f,
+			0.0f,       -1.0f,       1.0f,       1.0f,        widthCube,  heightCube,  -depthCube, 0.0f,        0.0f,       -1.0f,
+			1.0f,       1.0f,        -widthCube, heightCube,  -depthCube, 0.0f,        0.0f,       -1.0f,       0.0f,       1.0f,
+			-widthCube, -heightCube, -depthCube, 0.0f,        0.0f,       -1.0f,       0.0f,       0.0f,
 
-			-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
-			 widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 0.0f,
-			 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
-			 widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	1.0f, 1.0f,
-			-widthCube,  heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 1.0f,
-			-widthCube, -heightCube,  depthCube  ,	 0.0f,  0.0f,  1.0f,	0.0f, 0.0f,
+			-widthCube, -heightCube, depthCube,  0.0f,        0.0f,       1.0f,        0.0f,       0.0f,        widthCube,  -heightCube,
+			depthCube,  0.0f,        0.0f,       1.0f,        1.0f,       0.0f,        widthCube,  heightCube,  depthCube,  0.0f,
+			0.0f,       1.0f,        1.0f,       1.0f,        widthCube,  heightCube,  depthCube,  0.0f,        0.0f,       1.0f,
+			1.0f,       1.0f,        -widthCube, heightCube,  depthCube,  0.0f,        0.0f,       1.0f,        0.0f,       1.0f,
+			-widthCube, -heightCube, depthCube,  0.0f,        0.0f,       1.0f,        0.0f,       0.0f,
 
-			-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
-			-widthCube,  heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 1.0f,
-			-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-			-widthCube, -heightCube, -depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 1.0f,
-			-widthCube, -heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	0.0f, 0.0f,
-			-widthCube,  heightCube,  depthCube  ,	-1.0f,  0.0f,  0.0f,	1.0f, 0.0f,
+			-widthCube, heightCube,  depthCube,  -1.0f,       0.0f,       0.0f,        1.0f,       0.0f,        -widthCube, heightCube,
+			-depthCube, -1.0f,       0.0f,       0.0f,        1.0f,       1.0f,        -widthCube, -heightCube, -depthCube, -1.0f,
+			0.0f,       0.0f,        0.0f,       1.0f,        -widthCube, -heightCube, -depthCube, -1.0f,       0.0f,       0.0f,
+			0.0f,       1.0f,        -widthCube, -heightCube, depthCube,  -1.0f,       0.0f,       0.0f,        0.0f,       0.0f,
+			-widthCube, heightCube,  depthCube,  -1.0f,       0.0f,       0.0f,        1.0f,       0.0f,
 
-			 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
-			 widthCube,  heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 1.0f,
-			 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
-			 widthCube, -heightCube, -depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 1.0f,
-			 widthCube, -heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		0.0f, 0.0f,
-			 widthCube,  heightCube,  depthCube  ,  	1.0f,  0.0f,  0.0f,		1.0f, 0.0f,
+			widthCube,  heightCube,  depthCube,  1.0f,        0.0f,       0.0f,        1.0f,       0.0f,        widthCube,  heightCube,
+			-depthCube, 1.0f,        0.0f,       0.0f,        1.0f,       1.0f,        widthCube,  -heightCube, -depthCube, 1.0f,
+			0.0f,       0.0f,        0.0f,       1.0f,        widthCube,  -heightCube, -depthCube, 1.0f,        0.0f,       0.0f,
+			0.0f,       1.0f,        widthCube,  -heightCube, depthCube,  1.0f,        0.0f,       0.0f,        0.0f,       0.0f,
+			widthCube,  heightCube,  depthCube,  1.0f,        0.0f,       0.0f,        1.0f,       0.0f,
 
-			-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
-			 widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 1.0f,
-			 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
-			 widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	1.0f, 0.0f,
-			-widthCube, -heightCube,  depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 0.0f,
-			-widthCube, -heightCube, -depthCube  ,	 0.0f,  -1.0f,  0.0f,	0.0f, 1.0f,
+			-widthCube, -heightCube, -depthCube, 0.0f,        -1.0f,      0.0f,        0.0f,       1.0f,        widthCube,  -heightCube,
+			-depthCube, 0.0f,        -1.0f,      0.0f,        1.0f,       1.0f,        widthCube,  -heightCube, depthCube,  0.0f,
+			-1.0f,      0.0f,        1.0f,       0.0f,        widthCube,  -heightCube, depthCube,  0.0f,        -1.0f,      0.0f,
+			1.0f,       0.0f,        -widthCube, -heightCube, depthCube,  0.0f,        -1.0f,      0.0f,        0.0f,       0.0f,
+			-widthCube, -heightCube, -depthCube, 0.0f,        -1.0f,      0.0f,        0.0f,       1.0f,
 
-			-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f,
-			 widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 1.0f,
-			 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
-			 widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	1.0f, 0.0f,
-			-widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,
-			-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f
+			-widthCube, heightCube,  -depthCube, 0.0f,        1.0f,       0.0f,        0.0f,       1.0f,        widthCube,  heightCube,
+			-depthCube, 0.0f,        1.0f,       0.0f,        1.0f,       1.0f,        widthCube,  heightCube,  depthCube,  0.0f,
+			1.0f,       0.0f,        1.0f,       0.0f,        widthCube,  heightCube,  depthCube,  0.0f,        1.0f,       0.0f,
+			1.0f,       0.0f,        -widthCube, heightCube,  depthCube,  0.0f,        1.0f,       0.0f,        0.0f,       0.0f,
+			-widthCube, heightCube,  -depthCube, 0.0f,        1.0f,       0.0f,        0.0f,       1.0f
 		};
 
 		uint64_t       cubiodDataSize = 288 * sizeof(float);
@@ -434,93 +1132,76 @@ public:
 		}
 		waitForAllResourceLoads();
 
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
+		UIComponentDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 
 		//--------------------------------
 
 		//Gui for Showing the Text of the File
-		pGui_TextData = addAppUIGuiComponent(pAppUI, "Opened Document", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(GLES)
-			"GLES",
-		#endif
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui_TextData, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent("Opened Document", &guiDesc, &pGui_TextData);
 
 		LabelWidget textWidget;
-		addWidgetLua(addGuiWidget(pGui_TextData, gTextDataVector[0], &textWidget, WIDGET_TYPE_LABEL));
+		luaRegisterWidget(uiCreateComponentWidget(pGui_TextData, gTextDataVector[0], &textWidget, WIDGET_TYPE_LABEL));
 
 		//--------------------------------
 
 		//CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
-		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
-		vec3                   lookAt{ 0 };
+		vec3 camPos{ 48.0f, 48.0f, 20.0f };
+		vec3 lookAt{ 0 };
 
 		pCameraController = initFpsCameraController(camPos, lookAt);
-		//requestMouseCapture(true);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		inputDesc.mDisableVirtualJoystick = true; 
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+									   [](InputActionContext* ctx) {
+										   toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
+										   return true;
+									   },
+									   this };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+						  requestShutdown();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
-		actionDesc =
-		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+		actionDesc = { InputBindings::BUTTON_ANY,
+					   [](InputActionContext* ctx) {
+						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+						   return true;
+					   },
+					   this };
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
-		};
-		addInputAction(&actionDesc);
-		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
-			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		actionDesc = {
+			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f
+		};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {
+			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
+		};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
+						  pCameraController->resetView();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
 
-		gFrameIndex = 0; 
+		gFrameIndex = 0;
 
 		return true;
 	}
@@ -528,7 +1209,15 @@ public:
 	void Exit()
 	{
 		// Close the Zip file
-		fsCloseZipFile(&gZipFileSystem);
+		exitZipFileSystem(&gZipWriteOnlyEncryptedFileSystem);
+		exitZipFileSystem(&gZipWriteOnlyFileSystem);
+
+		exitZipFileSystem(&gZipWriteEncryptedFileSystem);
+		exitZipFileSystem(&gZipWriteFileSystem);
+
+		exitZipFileSystem(&gZipReadEncryptedFileSystem);
+		exitZipFileSystem(&gZipReadFileSystem);
+
 
 		for (char* text : gTextDataVector)
 			tf_free(text);
@@ -539,13 +1228,11 @@ public:
 
 		exitCameraController(pCameraController);
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-
-		exitProfilerUI();
-
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -586,8 +1273,8 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
-
 
 	void CreateDescriptorSets()
 	{
@@ -636,7 +1323,6 @@ public:
 		}
 	}
 
-
 	bool Load()
 	{
 		if (!addSwapChain())
@@ -645,10 +1331,15 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for zip model draw
@@ -697,7 +1388,6 @@ public:
 		pipelineSettings.pShaderProgram = pSkyboxShader;
 		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 
-
 		//layout and pipeline for the zip test texture
 
 		vertexLayout = {};
@@ -734,9 +1424,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick); 
+		removeFontSystemPipelines(); 
 
 		DestroyDescriptorSets();
 
@@ -765,7 +1455,7 @@ public:
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 
 		// Projection and View Matrix
 		gUniformData.mProjectView = projMat * viewMat;
@@ -775,25 +1465,18 @@ public:
 		mat4 scale = mat4::scale(vec3(5.0f));
 		gUniformData.mModelMatCapsule = trans * scale;
 
-
 		//********************************
 		//Uniform buffer data of the cube with zip texture
 		//********************************
 
-		mat4  mTranslationMat_Zip;
-		mat4  mScaleMat_Zip;
+		mat4 mTranslationMat_Zip;
+		mat4 mScaleMat_Zip;
 
 		mTranslationMat_Zip = mat4::translation(vec3(10.5f, 1.0f, 3.0f));
 		mScaleMat_Zip = mat4::scale(vec3(10.5f));
 		gUniformData.mModelMatCube = mTranslationMat_Zip * mScaleMat_Zip;
 
 		viewMat.setTranslation(vec3(0));
-
-		/************************************************************************/
-		// Update GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
-
 	}
 
 	void Draw()
@@ -802,8 +1485,8 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
@@ -867,7 +1550,6 @@ public:
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 
-
 		////draw Cube with Zip texture
 #pragma region Cube_Zip_Texture_Draw
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip File Texture");
@@ -886,21 +1568,13 @@ public:
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-			float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-			drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
-
-#if !defined(__ANDROID__)
+			gFrameTimeDraw.mFontColor = 0xff00ffff;
+			gFrameTimeDraw.mFontSize = 18.0f;
+			gFrameTimeDraw.mFontID = gFontID;
 			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken);
-#else
-			cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-#endif
+			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
-			appUIGui(pAppUI, pGui_TextData);
-
-			cmdDrawProfilerUI();
-
-			drawAppUI(pAppUI, cmd);
+			cmdDrawUserInterface(cmd);
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		}
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -930,6 +1604,11 @@ public:
 		flipProfiler();
 
 		gFrameIndex = (gFrameIndex + 1) % gImageCount;
+
+		/// Exit if quick exit is enabled
+		#if ZIP_TESTS_QUICK_EXIT
+		mSettings.mQuit = true;
+		#endif
 	}
 
 	const char* GetName() { return "12_ZipFileSystem"; }
@@ -964,7 +1643,7 @@ public:
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

@@ -86,7 +86,7 @@ cgltf_result cgltf_parse_and_load(const char* skeletonAsset, cgltf_data** ppData
 {
 	// Import the glTF with the animation
 	FileStream file = {};
-	if (!fsOpenStreamFromPath(RD_INPUT, skeletonAsset, FM_READ_BINARY, &file))
+	if (!fsOpenStreamFromPath(RD_INPUT, skeletonAsset, FM_READ_BINARY, NULL, &file))
 	{
 		LOGF(eERROR, "Failed to open gltf file %s", skeletonAsset);
 		ASSERT(false);
@@ -137,7 +137,7 @@ cgltf_result cgltf_parse_and_load(const char* skeletonAsset, cgltf_data** ppData
 			char path[FS_MAX_PATH] = { 0 };
 			fsAppendPathComponent(parent, uri, path);
 			FileStream fs = {};
-			if (fsOpenStreamFromPath(RD_INPUT, path, FM_READ_BINARY, &fs))
+			if (fsOpenStreamFromPath(RD_INPUT, path, FM_READ_BINARY, NULL, &fs))
 			{
 				ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
 				data->buffers[i].data = tf_malloc(data->buffers[i].size);
@@ -177,7 +177,7 @@ cgltf_result cgltf_write(const char* skeletonAsset, cgltf_data* data)
 	}
 
 	FileStream file = {};
-	fsOpenStreamFromPath(RD_INPUT, skeletonAsset, FM_WRITE, &file);
+	fsOpenStreamFromPath(RD_INPUT, skeletonAsset, FM_WRITE, NULL, &file);
 	fsWriteToStream(&file, writeBuffer, actual - 1);
 	fsCloseStream(&file);
 	tf_free(writeBuffer);
@@ -190,47 +190,74 @@ bool AssetPipeline::ProcessAnimations(ProcessAssetsSettings* settings)
 	// Check for assets containing animations in animationDirectory
 	AnimationAssetMap                animationAssets;
 
-	eastl::vector<eastl::string> subDirectories;
-	fsGetSubDirectories(RD_INPUT, "", subDirectories);
-	for (const eastl::string& subDir : subDirectories)
+	char ** subDirectories = NULL;
+    int subDirectoryCount = 0;
+	fsGetSubDirectories(RD_INPUT, "", &subDirectories, &subDirectoryCount);
+	for (int i = 0; i < subDirectoryCount; ++i)
 	{
-		// Get all glTF files
-		eastl::vector<eastl::string> filesInDirectory;
-		fsGetFilesWithExtension(RD_INPUT, subDir.c_str(), ".gltf", filesInDirectory);
+        const char * subDir = subDirectories[i];
 
-		for (const eastl::string& file : filesInDirectory)
+		// Get all glTF files
+		char ** filesInDirectory = NULL;
+		int filesFoundInDirectory = 0;
+		fsGetFilesWithExtension(RD_INPUT, subDir, ".gltf", &filesInDirectory, &filesFoundInDirectory);
+
+		for (int j = 0; j < filesFoundInDirectory; ++j)
 		{
+			const char * file = filesInDirectory[j];
+
 			char fileName[FS_MAX_PATH] = {};
-			fsGetPathFileName(file.c_str(), fileName);
+			fsGetPathFileName(file, fileName);
 			if (!stricmp(fileName, "riggedmesh"))
 			{
 				// Add new animation asset named after the folder it is in
 				char assetName[FS_MAX_PATH] = {};
-				fsGetPathFileName(subDir.c_str(), assetName);
+				fsGetPathFileName(subDir, assetName);
 				animationAssets[eastl::string(assetName)].push_back(file);
 
 				// Find sub directory called animations
-				eastl::vector<eastl::string> assetSubDirectories;
-				fsGetSubDirectories(RD_INPUT, subDir.c_str(), assetSubDirectories);
-				for (const eastl::string& assetSubDir : assetSubDirectories)
-				{
-					char subDir[FS_MAX_PATH] = {};
-					fsGetPathFileName(assetSubDir.c_str(), subDir);
-					if (!stricmp(subDir, "animations"))
-					{
-						// Add all files in animations to the animation asset
-						filesInDirectory.clear();
-						fsGetFilesWithExtension(RD_INPUT, assetSubDir.c_str(), ".gltf", filesInDirectory);
-						animationAssets[assetName].insert(
-							animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
-						break;
-					}
-				}
+				char ** assetSubDirectories = NULL;
+                int assetSubDirectoryCount = 0;
+				fsGetSubDirectories(RD_INPUT, subDir, &assetSubDirectories, &assetSubDirectoryCount);
+                if (assetSubDirectories)
+                {
+                    for (int k = 0; k < assetSubDirectoryCount; ++k)
+                    {
+                        const char * assetSubDir = assetSubDirectories[k];
 
+                        char subDir[FS_MAX_PATH] = {};
+                        fsGetPathFileName(assetSubDir, subDir);
+                        if (!stricmp(subDir, "animations"))
+                        {
+                            // Add all files in animations to the animation asset
+                            char ** animationFiles = NULL;
+                            int animationFileCount = 0;
+                            fsGetFilesWithExtension(RD_INPUT, assetSubDir, ".gltf", &animationFiles, &animationFileCount);
+                            if (animationFiles)
+                            {
+                                for (int curAnim = 0; curAnim < animationFileCount; ++curAnim)
+                                {
+                                    animationAssets[assetName].insert(
+                                        animationAssets[assetName].end(), animationFiles[curAnim]);
+                                }
+                                tf_free(animationFiles);
+                            }
+                            break;
+                        }
+                    }
+
+                    tf_free(assetSubDirectories);
+                }
 				break;
 			}
 		}
+
+        if (filesInDirectory)
+            tf_free(filesInDirectory);
 	}
+
+    if (subDirectories)
+        tf_free(subDirectories);
 
 	// Do some checks
 	if (!settings->quiet)
@@ -291,7 +318,7 @@ bool AssetPipeline::ProcessAnimations(ProcessAssetsSettings* settings)
 			FileStream file = {};
 
 
-			if (!fsOpenStreamFromPath(RD_OUTPUT, skeletonOutput, FM_READ_BINARY, &file))
+			if (!fsOpenStreamFromPath(RD_OUTPUT, skeletonOutput, FM_READ_BINARY, NULL, &file))
 				return false;
 			ozz::io::IArchive archive(&file);
 			archive >> skeleton;
@@ -345,7 +372,7 @@ static bool SaveSVT(const char* fileName, FileStream* pSrc, SVT_HEADER* pHeader)
 {
 	FileStream fh = {};
 
-	if (!fsOpenStreamFromPath(RD_OUTPUT, fileName, FM_WRITE_BINARY, &fh))
+	if (!fsOpenStreamFromPath(RD_OUTPUT, fileName, FM_WRITE_BINARY, NULL, &fh))
 		return false;
 
 	//TODO: SVT should support any components somepoint
@@ -498,10 +525,11 @@ static bool SaveSVT(const char* fileName, FileStream* pSrc, SVT_HEADER* pHeader)
 bool AssetPipeline::ProcessVirtualTextures(ProcessAssetsSettings* settings)
 {
 	// Get all image files
-	eastl::vector<eastl::string> ddsFilesInDirectory;
-	fsGetFilesWithExtension(RD_INPUT, "", ".dds", ddsFilesInDirectory);
+	char ** ddsFilesInDirectory = NULL;
+    int ddsFileCount = 0;
+	fsGetFilesWithExtension(RD_INPUT, "", ".dds", &ddsFilesInDirectory, &ddsFileCount);
 
-	for (size_t i = 0; i < ddsFilesInDirectory.size(); ++i)
+	for (int i = 0; i < ddsFileCount; ++i)
 	{
 		eastl::string outputFile = ddsFilesInDirectory[i];
 
@@ -509,9 +537,9 @@ bool AssetPipeline::ProcessVirtualTextures(ProcessAssetsSettings* settings)
 		{
 			TextureDesc textureDesc = {};
 			FileStream ddsFile = {};
-			fsOpenStreamFromPath(RD_INPUT, ddsFilesInDirectory[i].c_str(), FM_READ_BINARY, &ddsFile);
+			fsOpenStreamFromPath(RD_INPUT, ddsFilesInDirectory[i], FM_READ_BINARY, nullptr, &ddsFile);
 			bool success = false;
-			if (!fsOpenStreamFromPath(RD_INPUT, ddsFilesInDirectory[i].c_str(), FM_READ_BINARY, &ddsFile))
+			if (!fsOpenStreamFromPath(RD_INPUT, ddsFilesInDirectory[i], FM_READ_BINARY, nullptr, &ddsFile))
 			{
 				continue;
 			}
@@ -547,6 +575,9 @@ bool AssetPipeline::ProcessVirtualTextures(ProcessAssetsSettings* settings)
 		}
 	}
 
+    if (ddsFilesInDirectory)
+        tf_free(ddsFilesInDirectory);
+
 	return true;
 }
 
@@ -555,14 +586,15 @@ bool AssetPipeline::ProcessTFX(ProcessAssetsSettings* settings)
 	cgltf_result result = cgltf_result_success;
 
 	// Get all tfx files
-	eastl::vector<eastl::string> tfxFilesInDirectory;
-	fsGetFilesWithExtension(RD_INPUT, "", ".tfx", tfxFilesInDirectory);
+	char ** tfxFilesInDirectory = NULL;
+    int tfxFileCount = 0;
+	fsGetFilesWithExtension(RD_INPUT, "", ".tfx", &tfxFilesInDirectory, &tfxFileCount);
 
 #define RETURN_IF_TFX_ERROR(expression) if (!(expression)) { LOGF(eERROR, "Failed to load tfx"); return false; }
 
-	for (size_t i = 0; i < tfxFilesInDirectory.size(); ++i)
+	for (int i = 0; i < tfxFileCount; ++i)
 	{
-		const char* input = tfxFilesInDirectory[i].c_str();
+		const char* input = tfxFilesInDirectory[i];
 		char outputTemp[FS_MAX_PATH] = {};
 		fsGetPathFileName(input, outputTemp);
 		char output[FS_MAX_PATH] = {};
@@ -572,7 +604,7 @@ bool AssetPipeline::ProcessTFX(ProcessAssetsSettings* settings)
 		fsAppendPathExtension(outputTemp, "bin", binFilePath);
 
 		FileStream tfxFile = {};
-		fsOpenStreamFromPath(RD_INPUT, input, FM_READ_BINARY, &tfxFile);
+		fsOpenStreamFromPath(RD_INPUT, input, FM_READ_BINARY, NULL, &tfxFile);
 		AMD::TressFXAsset tressFXAsset = {};
 		RETURN_IF_TFX_ERROR(tressFXAsset.LoadHairData(&tfxFile))
 			fsCloseStream(&tfxFile);
@@ -665,7 +697,7 @@ bool AssetPipeline::ProcessTFX(ProcessAssetsSettings* settings)
 		cgltf_primitive prim = {};
 		cgltf_size offset = 0;
 		FileStream binFile = {};
-		fsOpenStreamFromPath(RD_OUTPUT, binFilePath, FM_WRITE_BINARY, &binFile);
+		fsOpenStreamFromPath(RD_OUTPUT, binFilePath, FM_WRITE_BINARY, NULL, &binFile);
 		size_t fileSize = 0;
 
 		for (uint32_t i = 0; i < count; ++i)
@@ -724,6 +756,9 @@ bool AssetPipeline::ProcessTFX(ProcessAssetsSettings* settings)
 		result = cgltf_write(output, &data);
 	}
 
+    if (tfxFilesInDirectory)
+        tf_free(tfxFilesInDirectory);
+
 	return result == cgltf_result_success;
 }
 
@@ -737,7 +772,7 @@ static uint32_t FindJoint(ozz::animation::Skeleton* skeleton, const char* name)
 	return UINT_MAX;
 }
 
-static bool isTrsDecomposable(Matrix4 matrix) {
+static bool isTrsDecomposable(const Matrix4& matrix) {
 	if (matrix.getCol0().getW() != 0.0 ||
 		matrix.getCol1().getW() != 0.0 ||
 		matrix.getCol2().getW() != 0.0 ||
@@ -949,7 +984,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 
 	// Write skeleton to disk
 	FileStream file = {};
-	if (!fsOpenStreamFromPath(RD_OUTPUT, skeletonOutput, FM_WRITE_BINARY, &file))
+	if (!fsOpenStreamFromPath(RD_OUTPUT, skeletonOutput, FM_WRITE_BINARY, NULL, &file))
 		return false;
 
 	ozz::io::OArchive archive(&file);
@@ -997,7 +1032,8 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 				size += (uint32_t)strlen(jointRemaps) + 1;
 				skin->extras.end_offset = size - 1;
 
-				for (uint32_t i = 0; i < strlen(jointRemaps) + 1; ++i)
+				const size_t iterCount = strlen(jointRemaps) + 1;
+				for (uint32_t i = 0; i < iterCount; ++i)
 					buffer.push_back(jointRemaps[i]);
 			}
 		}
@@ -1011,7 +1047,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 				char bufferOut[FS_MAX_PATH] = {};
 				fsAppendPathComponent(parentPath, data->buffers[i].uri, bufferOut);
 				FileStream fs = {};
-				fsOpenStreamFromPath(RD_OUTPUT, bufferOut, FM_WRITE_BINARY, &fs);
+				fsOpenStreamFromPath(RD_OUTPUT, bufferOut, FM_WRITE_BINARY, NULL, &fs);
 				fsWriteToStream(&fs, data->buffers[i].data, data->buffers[i].size);
 				fsCloseStream(&fs);
 			}
@@ -1148,7 +1184,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	// Write animation to disk
 	FileStream file = {};
 
-	if (!fsOpenStreamFromPath(RD_OUTPUT, animationOutput, FM_WRITE_BINARY, &file))
+	if (!fsOpenStreamFromPath(RD_OUTPUT, animationOutput, FM_WRITE_BINARY, NULL, &file))
 		return false;
 
 	ozz::io::OArchive archive(&file);

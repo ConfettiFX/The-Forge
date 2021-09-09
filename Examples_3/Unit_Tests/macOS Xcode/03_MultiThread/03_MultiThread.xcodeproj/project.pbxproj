@@ -35,8 +35,6 @@
 		B21F76C421420E8600DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C121420E8600DF2297 /* UIKit.framework */; };
 		B21F76C521420E8600DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C221420E8600DF2297 /* MetalKit.framework */; };
 		B21F76C621420E8600DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C321420E8600DF2297 /* Metal.framework */; };
-		B28DC89A2522AFB2009B5FEF /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC7B12522AE4F009B5FEF /* libLuaManager.a */; };
-		B28DC89D2522AFC2009B5FEF /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28DC7B32522AE4F009B5FEF /* libLuaManager_iOS.a */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
@@ -92,34 +90,6 @@
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		B28DC7B02522AE4F009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
-			remoteInfo = LuaManager;
-		};
-		B28DC7B22522AE4F009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
-			remoteInfo = LuaManager_iOS;
-		};
-		B28DC8982522AFAC009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = LuaManager;
-		};
-		B28DC89B2522AFBC009B5FEF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C172FC721414C490074EE71;
-			remoteInfo = LuaManager_iOS;
-		};
 		E95891EE234159D500B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C172F58214148D40074EE71 /* The-Forge.xcodeproj */;
@@ -154,7 +124,6 @@
 		B21F76C121420E8600DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76C221420E8600DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76C321420E8600DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 03_MultiThread/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2D3C5E61F34797700574C6E /* 03_MultiThread.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 03_MultiThread.cpp; path = ../../src/03_MultiThread/03_MultiThread.cpp; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -175,7 +144,6 @@
 				B21F76C621420E8600DF2297 /* Metal.framework in Frameworks */,
 				5CABF3702141542500EFD76A /* GameController.framework in Frameworks */,
 				5C17301E21414DC60074EE71 /* libThe-Forge_iOS.a in Frameworks */,
-				B28DC89D2522AFC2009B5FEF /* libLuaManager_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -187,7 +155,6 @@
 				B2087DDB21421A26006F372D /* MetalKit.framework in Frameworks */,
 				B2087DDC21421A26006F372D /* Metal.framework in Frameworks */,
 				5C172F61214148F30074EE71 /* libThe-Forge.a in Frameworks */,
-				B28DC89A2522AFB2009B5FEF /* libLuaManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,19 +214,9 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B28DC7AC2522AE4F009B5FEF /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B28DC7B12522AE4F009B5FEF /* libLuaManager.a */,
-				B28DC7B32522AE4F009B5FEF /* libLuaManager_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */,
 				5C172F58214148D40074EE71 /* The-Forge.xcodeproj */,
 				28A5AC1D201F58E3000E571F /* Shaders */,
 				D2D3C5E61F34797700574C6E /* 03_MultiThread.cpp */,
@@ -308,7 +265,6 @@
 			);
 			dependencies = (
 				5C17301A21414DBE0074EE71 /* PBXTargetDependency */,
-				B28DC89C2522AFBC009B5FEF /* PBXTargetDependency */,
 			);
 			name = 03_MultiThread_iOS;
 			productName = 03_MultiThread_iOS;
@@ -329,7 +285,6 @@
 			);
 			dependencies = (
 				E95891EF234159D500B68D6A /* PBXTargetDependency */,
-				B28DC8992522AFAC009B5FEF /* PBXTargetDependency */,
 			);
 			name = 03_MultiThread;
 			productName = 02_Texture;
@@ -370,10 +325,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B28DC7AC2522AE4F009B5FEF /* Products */;
-					ProjectRef = B28DC7AB2522AE4F009B5FEF /* LuaManager.xcodeproj */;
-				},
-				{
 					ProductGroup = 5C172F59214148D40074EE71 /* Products */;
 					ProjectRef = 5C172F58214148D40074EE71 /* The-Forge.xcodeproj */;
 				},
@@ -399,20 +350,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C17301C21414DBE0074EE71 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28DC7B12522AE4F009B5FEF /* libLuaManager.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager.a;
-			remoteRef = B28DC7B02522AE4F009B5FEF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28DC7B32522AE4F009B5FEF /* libLuaManager_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager_iOS.a;
-			remoteRef = B28DC7B22522AE4F009B5FEF /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -514,16 +451,6 @@
 			name = "The-Forge_iOS";
 			targetProxy = 5C17301921414DBE0074EE71 /* PBXContainerItemProxy */;
 		};
-		B28DC8992522AFAC009B5FEF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager;
-			targetProxy = B28DC8982522AFAC009B5FEF /* PBXContainerItemProxy */;
-		};
-		B28DC89C2522AFBC009B5FEF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = LuaManager_iOS;
-			targetProxy = B28DC89B2522AFBC009B5FEF /* PBXContainerItemProxy */;
-		};
 		E95891EF234159D500B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge";
@@ -571,6 +498,13 @@
 					TARGET_IOS,
 					USE_MEMORY_TRACKING,
 				);
+				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS_SIMULATOR,
+					TARGET_IOS,
+					USE_MEMORY_TRACKING,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -607,6 +541,11 @@
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
+					TARGET_IOS,
+				);
+				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
+					METAL,
+					TARGET_IOS_SIMULATOR,
 					TARGET_IOS,
 				);
 				HEADER_SEARCH_PATHS = (
@@ -765,6 +704,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.03-MultiThread";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

@@ -24,27 +24,34 @@
 
 #pragma once
 
-#include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../OS/Logging/Log.h"
-#include "ITime.h"
 
-void _FailedAssert(const char* file, int line, const char* statement);
-void _OutputDebugString(const char* str, ...);
-void _OutputDebugStringV(const char* str, va_list args);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-void _PrintUnicode(const char* str, bool error = false);
+	void _FailedAssert(const char* file, int line, const char* statement);
+	void _OutputDebugString(const char* str, ...);
+	void _OutputDebugStringV(const char* str, va_list args);
+
+	void _PrintUnicode(const char* str, bool error);
+
+#ifdef __cplusplus
+}    // extern "C"
+#endif
 
 #if defined(_WINDOWS) || defined(XBOX)
 #define CHECK_HRESULT(exp)                                                     \
-do                                                                             \
-{                                                                              \
-	HRESULT hres = (exp);                                                      \
-	if (!SUCCEEDED(hres))                                                      \
+	do                                                                         \
 	{                                                                          \
-		LOGF(eERROR, "%s: FAILED with HRESULT: %u", #exp, (uint32_t)hres);     \
-		ASSERT(false);                                                         \
-	}                                                                          \
-} while(0)
+		HRESULT hres = (exp);                                                  \
+		if (!SUCCEEDED(hres))                                                  \
+		{                                                                      \
+			LOGF(eERROR, "%s: FAILED with HRESULT: %u", #exp, (uint32_t)hres); \
+			ASSERT(false);                                                     \
+		}                                                                      \
+	} while (0)
 #endif
 
 #if _MSC_VER >= 1400
@@ -63,7 +70,8 @@ do                                                                             \
 #if defined(_XBOX)
 #else
 #define ASSERT(b) \
-	if (!(b)) _FailedAssert(__FILE__, __LINE__, #b)
+	if (!(b))     \
+	_FailedAssert(__FILE__, __LINE__, #b)
 #endif
 #else
 
@@ -77,16 +85,16 @@ do                                                                             \
 #endif
 
 // Usage: LOGF(LogLevel::eINFO | LogLevel::eDEBUG, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define LOGF(log_level, ...) Log::Write((log_level), __FILE__, __LINE__, __VA_ARGS__)
+#define LOGF(log_level, ...) writeLog((log_level), __FILE__, __LINE__, __VA_ARGS__)
 // Usage: LOGF_IF(LogLevel::eINFO | LogLevel::eDEBUG, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define LOGF_IF(log_level, condition, ...) ((condition) ? Log::Write((log_level), __FILE__, __LINE__, __VA_ARGS__) : (void)0)
+#define LOGF_IF(log_level, condition, ...) ((condition) ? writeLog((log_level), __FILE__, __LINE__, __VA_ARGS__) : (void)0)
 //
-#define LOGF_SCOPE(log_level, ...) Log::LogScope ANONIMOUS_VARIABLE_LOG(scope_log_){ (log_level), __FILE__, __LINE__, __VA_ARGS__ }
+//#define LOGF_SCOPE(log_level, ...) LogLogScope ANONIMOUS_VARIABLE_LOG(scope_log_){ (log_level), __FILE__, __LINE__, __VA_ARGS__ }
 
 // Usage: RAW_LOGF(LogLevel::eINFO | LogLevel::eDEBUG, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define RAW_LOGF(log_level, ...) Log::WriteRaw((log_level), false, __VA_ARGS__)
+#define RAW_LOGF(log_level, ...) writeRawLog((log_level), false, __VA_ARGS__)
 // Usage: RAW_LOGF_IF(LogLevel::eINFO | LogLevel::eDEBUG, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define RAW_LOGF_IF(log_level, condition, ...) ((condition) ? Log::WriteRaw((log_level), false, __VA_ARGS__))
+#define RAW_LOGF_IF(log_level, condition, ...) ((condition) ? writeRawLog((log_level), false, __VA_ARGS__))
 
 #if defined(FORGE_DEBUG)
 

@@ -97,7 +97,7 @@ namespace SoLoud
 
        
 
-		if(!fsOpenStreamFromPath(RD_AUDIO, aFilename, FM_READ_BINARY, &mForgeFile))
+		if(!fsOpenStreamFromPath(RD_AUDIO, aFilename, FM_READ_BINARY, NULL, &mForgeFile))
 			return FILE_NOT_FOUND;
 		return SO_NO_ERROR;
 	}

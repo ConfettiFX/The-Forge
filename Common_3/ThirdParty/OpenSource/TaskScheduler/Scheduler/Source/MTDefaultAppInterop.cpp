@@ -88,7 +88,7 @@ namespace MT
   //      {
   //          p = nullptr;
   //      }
-		p = conf_memalign(align, size);
+		p = tf_memalign(align, size);
 #endif
 		MT_ASSERT(p, "Can't allocate memory");
 		return p;
@@ -99,7 +99,7 @@ namespace MT
 #if MT_SSE_INTRINSICS_SUPPORTED
 		_mm_free(p);
 #else
-		conf_free(p);
+		tf_free(p);
 #endif
 	}
 

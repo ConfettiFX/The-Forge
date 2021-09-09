@@ -35,7 +35,6 @@ class SpinLock
 {
 	public:
 	SpinLock(): muLock(Atomic32<uint32_t>(0)) {}
-	~SpinLock() {}
 
 	void Lock()
 	{
@@ -73,12 +72,12 @@ class TaskSet
 {
 	public:
 	TaskSet(TaskManager* taskManager):
-		mpFunc(NULL),
-		mpvArg(0),
-		muSize(0),
+		pTaskManager(taskManager),
 		mhTaskset(TASKSETHANDLE_INVALID),
 		mbHasBeenWaitedOn(false),
-		pTaskManager(taskManager)
+		mpFunc(NULL),
+		mpvArg(0),
+		muSize(0)
 	{
 		mTaskGroup = TaskGroup::Default();
 		mszSetName[0] = 0;

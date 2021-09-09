@@ -87,6 +87,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
 	CoTaskMemFree(userDocuments);
 	gResourceMounts[RM_DOCUMENTS] = gDocumentsPath;
+	gResourceMounts[RM_SAVE_0] = gApplicationPath;
 
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)
@@ -181,6 +182,7 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 
 	// Mode string utf-16 conversion
 	const char* modeStr = fsFileModeToString(mode);
+
 	wchar_t modeWStr[4] = {};
 	mbstowcs(modeWStr, modeStr, 4);
 
@@ -192,6 +194,26 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 	else
 	{
 		_wfopen_s(&fp, pathStr, modeWStr);
+	}
+
+	// We need to change mode for read | write mode to 'w+' or 'wb+'
+	// if file doesn't exist so that it can be created
+	if (!fp)
+	{
+		// Try changing mode to 'w+' or 'wb+'
+		if ((mode & FM_READ_WRITE) == FM_READ_WRITE)
+		{
+			modeStr = fsOverwriteFileModeToString(mode);
+			mbstowcs(modeWStr, modeStr, 4);
+			if (mode & FM_ALLOW_READ)
+			{
+				fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
+			}
+			else
+			{
+				_wfopen_s(&fp, pathStr, modeWStr);
+			}
+		}
 	}
 
 	if (fp)

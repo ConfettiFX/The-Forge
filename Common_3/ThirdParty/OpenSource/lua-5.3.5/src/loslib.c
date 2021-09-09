@@ -114,7 +114,7 @@ static time_t l_checktime (lua_State *L, int arg) {
 */
 #if !defined(lua_tmpnam)	/* { */
 
-#if defined(LUA_USE_POSIX)	/* { */
+#if defined(LUA_USE_POSIX) || defined(__linux__)	/* { */
 
 #include <unistd.h>
 
@@ -130,7 +130,7 @@ static time_t l_checktime (lua_State *L, int arg) {
         if (e != -1) close(e); \
         e = (e == -1); }
 
-#elif defined(ORBIS) || defined(PROSPERO)
+#elif defined(ORBIS) || defined(PROSPERO) || defined(__APPLE__) || defined(__ANDROID__)
 
 /* ISO C definitions */
 #define LUA_TMPNAMBUFSIZE	256

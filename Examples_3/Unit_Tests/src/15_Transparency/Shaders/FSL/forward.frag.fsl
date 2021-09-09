@@ -31,7 +31,7 @@ STRUCT(VSOutput)
 	DATA(float4, WorldPosition, POSITION);
 	DATA(float4, Normal, NORMAL);
 	DATA(float4, UV, TEXCOORD0);
-	DATA(flat(uint), MatID, MAT_ID);
+	DATA(FLAT(uint), MatID, MAT_ID);
 };
 
 float4 PS_MAIN( VSOutput In )

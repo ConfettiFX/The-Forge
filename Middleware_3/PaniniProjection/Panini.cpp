@@ -24,17 +24,20 @@
 
 #include "Panini.h"
 
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
-namespace eastl
+namespace eastl {
+template <>
+struct has_equality<vec4>: eastl::false_type
 {
-	template <>
-	struct has_equality<vec4> : eastl::false_type {};
-}
+};
+}    // namespace eastl
 
 ResourceDirectory RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
 /************************************************************************/
@@ -56,8 +59,8 @@ void createTessellatedQuadBuffers(
 	const int numVertices = (tessellationX + 1) * (tessellationY + 1);
 
 	eastl::vector<vec4> vertices(numVertices);
-	const unsigned        m = tessellationX + 1;
-	const unsigned        n = tessellationY + 1;
+	const unsigned      m = tessellationX + 1;
+	const unsigned      n = tessellationY + 1;
 	for (unsigned i = 0; i < n; ++i)
 	{
 		const float y = i * dy - 1.0f;    // offset w/ -1.0f :  [0,2]->[-1,1]
@@ -70,10 +73,8 @@ void createTessellatedQuadBuffers(
 
 	BufferLoadDesc vbDesc = {};
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-	vbDesc.mDesc.mMemoryUsage =
-		pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	vbDesc.mDesc.mFlags =
-		pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	vbDesc.mDesc.mMemoryUsage = pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	vbDesc.mDesc.mFlags = pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mDesc.mSize = vertices.size() * sizeof(vec4);
 	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.pData = vertices.data();
@@ -114,10 +115,8 @@ void createTessellatedQuadBuffers(
 
 	BufferLoadDesc ibDesc = {};
 	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-	ibDesc.mDesc.mMemoryUsage =
-		pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	ibDesc.mDesc.mFlags =
-		pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	ibDesc.mDesc.mMemoryUsage = pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	ibDesc.mDesc.mFlags = pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ibDesc.mDesc.mSize = indices.size() * sizeof(uint16_t);
 	ibDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	ibDesc.pData = indices.data();
@@ -154,7 +153,7 @@ bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
 	paninniRootDesc.ppStaticSamplers = &pSamplerPointWrap;
 	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignature);
 
-	SetMaxDraws(1); // Create descriptor binder space that allows for 1 texture per frame by default
+	SetMaxDraws(1);    // Create descriptor binder space that allows for 1 texture per frame by default
 
 	createTessellatedQuadBuffers(
 		pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, mPaniniDistortionTessellation[0],
@@ -174,7 +173,7 @@ void Panini::Exit()
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
-	
+
 	pRenderer = 0;
 	pDescriptorSet = NULL;
 }
@@ -248,7 +247,7 @@ void Panini::Draw(Cmd* cmd)
 	cmdDrawIndexed(cmd, numIndices, 0, 0);
 }
 
-void Panini::SetMaxDraws(uint32_t maxDraws) 
+void Panini::SetMaxDraws(uint32_t maxDraws)
 {
 	if (pDescriptorSet)
 	{

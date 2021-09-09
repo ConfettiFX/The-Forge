@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../OS/Math/MathTypes.h"
 #include "../OS/Core/Atomics.h"
 #include "IRenderer.h"
 
@@ -63,18 +64,20 @@ typedef struct BufferLoadDesc
 	const void* pData;
 	BufferDesc  mDesc;
 	/// Force Reset buffer to NULL
-	bool        mForceReset;
+	bool mForceReset;
 } BufferLoadDesc;
 
 typedef struct TextureLoadDesc
 {
-	Texture**            ppTexture;
+	Texture** ppTexture;
 	/// Load empty texture
-	TextureDesc*         pDesc;
+	TextureDesc* pDesc;
 	/// Filename without extension. Extension will be determined based on mContainer
-	const char*          pFileName;
+	const char* pFileName;
+	/// Password for loading texture from encrypted files
+	const char* pFilePassword;
 	/// The index of the GPU in SLI/Cross-Fire that owns this texture
-	uint32_t             mNodeIndex;
+	uint32_t mNodeIndex;
 	/// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag;
 	/// The texture file format (dds/ktx/...)
@@ -85,48 +88,48 @@ typedef struct Geometry
 {
 	struct Hair
 	{
-		uint32_t                mVertexCountPerStrand;
-		uint32_t                mGuideCountPerStrand;
+		uint32_t mVertexCountPerStrand;
+		uint32_t mGuideCountPerStrand;
 	};
 
 	struct ShadowData
 	{
-		void*                   pIndices;
-		void*                   pAttributes[MAX_VERTEX_ATTRIBS];
+		void* pIndices;
+		void* pAttributes[MAX_VERTEX_ATTRIBS];
 	};
 
 	/// Index buffer to bind when drawing this geometry
-	Buffer*                     pIndexBuffer;
+	Buffer* pIndexBuffer;
 	/// The array of vertex buffers to bind when drawing this geometry
-	Buffer*                     pVertexBuffers[MAX_VERTEX_BINDINGS];
+	Buffer* pVertexBuffers[MAX_VERTEX_BINDINGS];
 	/// The array of traditional draw arguments to draw each subset in this geometry
 	IndirectDrawIndexArguments* pDrawArgs;
 	/// Shadow copy of the geometry vertex and index data if requested through the load flags
-	ShadowData*                 pShadow;
+	ShadowData* pShadow;
 
 	/// The array of joint inverse bind-pose matrices ( object-space )
-	mat4*                       pInverseBindPoses;
+	mat4* pInverseBindPoses;
 	/// The array of data to remap skin batch local joint ids to global joint ids
-	uint32_t*                   pJointRemaps;
+	uint32_t* pJointRemaps;
 	/// The array of vertex buffer strides to bind when drawing this geometry
-	uint32_t                    mVertexStrides[MAX_VERTEX_BINDINGS];
+	uint32_t mVertexStrides[MAX_VERTEX_BINDINGS];
 	/// Hair data
-	Hair                        mHair;
+	Hair mHair;
 
 	/// Number of vertex buffers in this geometry
-	uint32_t                    mVertexBufferCount : 8;
+	uint32_t mVertexBufferCount : 8;
 	/// Index type (32 or 16 bit)
-	uint32_t                    mIndexType : 2;
+	uint32_t mIndexType : 2;
 	/// Number of joints in the skinned geometry
-	uint32_t                    mJointCount : 16;
+	uint32_t mJointCount : 16;
 	/// Number of draw args in the geometry
-	uint32_t                    mDrawArgCount;
+	uint32_t mDrawArgCount;
 	/// Number of indices in the geometry
-	uint32_t                    mIndexCount;
+	uint32_t mIndexCount;
 	/// Number of vertices in the geometry
-	uint32_t                    mVertexCount;
+	uint32_t mVertexCount;
 
-	uint32_t                     mPad[3];
+	uint32_t mPad[3];
 } Geometry;
 static_assert(sizeof(Geometry) % 16 == 0, "GLTFContainer size must be a multiple of 16");
 
@@ -142,15 +145,17 @@ MAKE_ENUM_FLAG(uint32_t, GeometryLoadFlags)
 typedef struct GeometryLoadDesc
 {
 	/// Output geometry
-	Geometry**        ppGeometry;
+	Geometry** ppGeometry;
 	/// Filename of geometry container
-	const char*       pFileName;
+	const char* pFileName;
+	/// Password for file
+	const char* pFilePassword;
 	/// Loading flags
 	GeometryLoadFlags mFlags;
 	/// Linked gpu node
-	uint32_t          mNodeIndex;
+	uint32_t mNodeIndex;
 	/// Specifies how to arrange the vertex data loaded from the file into GPU memory
-	VertexLayout*     pVertexLayout;
+	VertexLayout* pVertexLayout;
 } GeometryLoadDesc;
 
 typedef struct VirtualTexturePageInfo
@@ -163,9 +168,9 @@ typedef struct VirtualTexturePageInfo
 
 typedef struct BufferUpdateDesc
 {
-	Buffer*                  pBuffer;
-	uint64_t                 mDstOffset;
-	uint64_t                 mSize;
+	Buffer*  pBuffer;
+	uint64_t mDstOffset;
+	uint64_t mSize;
 
 	/// To be filled by the caller
 	/// Example:
@@ -175,21 +180,21 @@ typedef struct BufferUpdateDesc
 	///   for (uint32_t i = 0; i < particleCount; ++i)
 	///	    vertices[i] = { rand() };
 	/// endUpdateResource(&update, &token);
-	void*                    pMappedData;
+	void* pMappedData;
 
 	/// Internal
 	struct
 	{
-		MappedMemoryRange    mMappedRange;
+		MappedMemoryRange mMappedRange;
 	} mInternal;
 } BufferUpdateDesc;
 
 /// #NOTE: Only use for procedural textures which are created on CPU (noise textures, font texture, ...)
 typedef struct TextureUpdateDesc
 {
-	Texture*              pTexture;
-	uint32_t              mMipLevel;
-	uint32_t              mArrayLayer;
+	Texture* pTexture;
+	uint32_t mMipLevel;
+	uint32_t mArrayLayer;
 
 	/// To be filled by the caller
 	/// Example:
@@ -208,17 +213,17 @@ typedef struct TextureUpdateDesc
 	///         memcpy(dstData + r * update.mDstRowStride, srcData + r * update.mSrcRowStride, update.mSrcRowStride);
 	/// }
 	/// endUpdateResource(&update, &token);
-	uint8_t*              pMappedData;
+	uint8_t* pMappedData;
 	/// Size of each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride is not the same as src row stride
-	uint32_t              mDstRowStride;
+	uint32_t mDstRowStride;
 	/// Number of rows in this slice of the texture
-	uint32_t              mRowCount;
+	uint32_t mRowCount;
 	/// Src row stride for convenience (mRowCount * width * texture format size)
-	uint32_t              mSrcRowStride;
+	uint32_t mSrcRowStride;
 	/// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
-	uint32_t              mDstSliceStride;
+	uint32_t mDstSliceStride;
 	/// Size of each slice in src - Use for offsetting src data when updating 3D textures
-	uint32_t              mSrcSliceStride;
+	uint32_t mSrcSliceStride;
 
 	/// Internal
 	struct
@@ -232,11 +237,13 @@ typedef enum ShaderStageLoadFlags
 	SHADER_STAGE_LOAD_FLAG_NONE = 0x0,
 	/// D3D12 only - Enable passing primitive id to pixel shader
 	SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID = 0x1,
+    /// Creates VR multisample variant of the shader
+    SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW = 0x2,
 } ShaderStageLoadFlags;
 MAKE_ENUM_FLAG(uint32_t, ShaderStageLoadFlags);
 
 typedef struct ShaderStageLoadDesc
-{
+{    //-V802 : Very user-facing struct, and order is highly important to convenience
 	const char*          pFileName;
 	ShaderMacro*         pMacros;
 	uint32_t             mMacroCount;
@@ -252,13 +259,15 @@ typedef struct ShaderLoadDesc
 
 typedef struct PipelineCacheLoadDesc
 {
-	const char*         pFileName;
-	PipelineCacheFlags  mFlags;
+	const char*        pFileName;
+	const char*        pFilePassword;
+	PipelineCacheFlags mFlags;
 } PipelineCacheLoadDesc;
 
 typedef struct PipelineCacheSaveDesc
 {
-	const char*         pFileName;
+	const char* pFileName;
+	const char* pFilePassword;
 } PipelineCacheSaveDesc;
 
 typedef uint64_t SyncToken;
@@ -319,8 +328,8 @@ bool isResourceLoaderSingleThreaded();
 /// getLastTokenCompleted() returns the last value for which
 /// isTokenCompleted(token) is guaranteed to return true.
 SyncToken getLastTokenCompleted();
-bool isTokenCompleted(const SyncToken* token);
-void waitForToken(const SyncToken* token);
+bool      isTokenCompleted(const SyncToken* token);
+void      waitForToken(const SyncToken* token);
 
 /// Return the semaphore for the last copy operation of a specific GPU.
 /// Could be NULL if no operations have been executed.

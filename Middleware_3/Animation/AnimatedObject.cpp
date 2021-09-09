@@ -79,7 +79,7 @@ bool AnimatedObject::Update(float dt)
 	return true;
 }
 
-bool AnimatedObject::AimIK(AimIKDesc* params, Point3 target)
+bool AnimatedObject::AimIK(AimIKDesc* params, const Point3& target)
 {
 	ozz::Range<Matrix4> models = mRig->GetJointModelMats();
 
@@ -136,7 +136,7 @@ bool AnimatedObject::AimIK(AimIKDesc* params, Point3 target)
 	return true;
 }
 
-bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, Point3 target)
+bool AnimatedObject::TwoBonesIK(TwoBonesIKDesc* params, const Point3& target)
 {
 	ozz::animation::IKTwoBoneJob ik_job;
 

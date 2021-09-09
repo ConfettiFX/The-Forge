@@ -24,6 +24,8 @@
 
 #define _USE_MATH_DEFINES
 #include "../Interfaces/ICameraController.h"
+#include "../Interfaces/ILog.h"
+
 // Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/IMemory.h"
 
@@ -77,7 +79,7 @@ public:
 	float zoom = 0.0f;
 };
 
-ICameraController* initFpsCameraController(vec3 startPosition, vec3 startLookAt)
+ICameraController* initFpsCameraController(const vec3& startPosition, const vec3& startLookAt)
 {
 	FpsCameraController* cc = tf_placement_new<FpsCameraController>(tf_calloc(1, sizeof(FpsCameraController)));
 	cc->moveTo(startPosition);
@@ -153,7 +155,12 @@ void FpsCameraController::update(float deltaTime)
 	}
 
 	//create rotation matrix
-	mat4 rot = mat4::rotationYX(viewRotation.getY(), viewRotation.getX());
+    mat4 vrRotation = mat4::identity();
+#if defined(QUEST_VR)
+        vrRotation.setUpper3x3(inverse(getHeadsetViewMatrix().getUpper3x3()));
+        viewRotation.setX(0.0f); // No rotation around the x axis when using vr
+#endif
+	mat4 rot = mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) * vrRotation;
 
 	moveVec = (rot * ((currentVelocity + newVelocity) * .5f) * deltaTime).getXYZ();
 	viewPosition += moveVec;
@@ -170,6 +177,11 @@ void FpsCameraController::update(float deltaTime)
 mat4 FpsCameraController::getViewMatrix() const
 {
 	mat4 r = mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY());
+#if defined(QUEST_VR)
+    mat4 vrViewMat = getHeadsetViewMatrix();
+    vrViewMat.setTranslation(vec3(0.0f));
+    r = vrViewMat * r;
+#endif
 	vec4 t = r * vec4(-viewPosition, 1.0f);
 	r.setTranslation(t.getXYZ());
 	return r;
@@ -205,7 +217,7 @@ void FpsCameraController::lookAt(const vec3& lookAt)
 class GuiCameraController : public ICameraController
 {
 public:
-	GuiCameraController() : viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f }, pVirtualJoystickUI{ NULL } {}
+	GuiCameraController() : viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f } {}
 	void setMotionParameters(const CameraMotionParameters& cmp) override { maxSpeed = cmp.maxSpeed; }
 
 	void update(float deltaTime) override
@@ -261,10 +273,9 @@ public:
 	float              maxSpeed;
 	vec3               startPosition;
 	vec3               startLookAt;
-	VirtualJoystickUI* pVirtualJoystickUI;
 };
 
-ICameraController* initGuiCameraController(vec3 startPosition, vec3 startLookAt)
+ICameraController* initGuiCameraController(const vec3& startPosition, const vec3& startLookAt)
 {
 	GuiCameraController* cc = tf_placement_new<GuiCameraController>(tf_calloc(1, sizeof(GuiCameraController)));
 	cc->moveTo(startPosition);
@@ -278,4 +289,20 @@ void destroyGuiCameraController(ICameraController* pCamera)
 {
 	pCamera->~ICameraController();
 	tf_free(pCamera);
+}
+
+CameraMatrix::CameraMatrix()
+{}
+
+CameraMatrix::CameraMatrix(const CameraMatrix& mat)
+{
+    mLeftEye = mat.mLeftEye;
+#if defined(QUEST_VR)
+    mRightEye = mat.mRightEye;
+#endif
+}
+
+mat4 CameraMatrix::getPrimaryMatrix() const
+{
+    return mCamera;
 }

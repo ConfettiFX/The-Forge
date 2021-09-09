@@ -127,6 +127,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	gResourceMounts[RM_CONTENT] = "\0";
 	gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
 	gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
+	gResourceMounts[RM_SAVE_0] = pNativeActivity->externalDataPath;
 	
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)

@@ -24,10 +24,10 @@
 
 #include "Rig.h"
 
-void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName)
+void Rig::Initialize(const ResourceDirectory resourceDir, const char* fileName, const char* filePassword)
 {
 	// Reading skeleton.
-	if (!LoadSkeleton(resourceDir, fileName))
+	if (!LoadSkeleton(resourceDir, fileName, filePassword))
 		return;    //need error catching
 
 	mNumSoaJoints = mSkeleton.num_soa_joints();
@@ -134,10 +134,10 @@ void Rig::Pose(const Matrix4& rootTransform)
 	}
 }
 
-bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName)
+bool Rig::LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName, const char* filePassword)
 {
 	FileStream file = {};
-	if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ_BINARY, &file))
+	if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ_BINARY, filePassword, &file))
 	{
 		LOGF(eERROR, "Cannot open skeleton file");
 		return false;

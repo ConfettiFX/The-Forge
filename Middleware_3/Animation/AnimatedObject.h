@@ -41,17 +41,17 @@ struct AimIKDesc
 	// Pole vector, in model-space. The pole vector defines the direction
 	// the up should point to.
 	Vector3        mPoleVector;
+	// Array of joint indexes.
+	const int*     mJointChain;
+	// Array of joint up axises, in joint local-space, used to keep the joint oriented in the
+	// same direction as the pole vector.
+	const Vector3* mJointUpVectors;
 	// Twist_angle rotates joint around the target vector.
 	float          mTwistAngle;
 	// Weight given to the IK correction clamped in range [0,1]. Applied to each joint in chain.
 	float          mJointWeight;
 	// Chain Length
 	int            mJointChainLength;
-	// Array of joint indexes.
-	const int*     mJointChain;
-	// Array of joint up axises, in joint local-space, used to keep the joint oriented in the
-	// same direction as the pole vector.
-	const Vector3* mJointUpVectors;
 	// Optional boolean output value, set to true if target can be reached with IK
 	// computations.
 	bool mReached;
@@ -95,10 +95,10 @@ class AnimatedObject
 	// To be called every frame of the main application, handles sampling and updating the current animation
 	bool Update(float dt);
 
-	bool AimIK(AimIKDesc* params, Point3 target);
+	bool AimIK(AimIKDesc* params, const Point3& target);
 
 	// Apply two bone inverse kinematic
-	bool TwoBonesIK(TwoBonesIKDesc* params, Point3 target);
+	bool TwoBonesIK(TwoBonesIKDesc* params, const Point3& target);
 
 	// Update mRigs world matricies
 	inline void PoseRig() { mRig->Pose(mRootTransform); };

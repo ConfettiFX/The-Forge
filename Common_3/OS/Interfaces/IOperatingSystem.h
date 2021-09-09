@@ -36,7 +36,12 @@
 #endif
 
 #if defined(__APPLE__)
+#if defined(__aarch64__)
+#define TARGET_APPLE_ARM64
+#endif
 #if !defined(TARGET_IOS)
+// Exclude threads header, because we use POSIX threads
+#define __THREADS__
 #import <Carbon/Carbon.h>
 #else
 #include <stdint.h>
@@ -62,21 +67,21 @@ typedef uint64_t uint64;
 
 // For time related functions such as getting localtime
 #include <time.h>
-#include <ctime>
 
 #include <float.h>
 #include <limits.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "../Core/Compiler.h"
-#include "../Math/MathTypes.h"
+#define IMEMORY_FROM_HEADER
+#include "../Interfaces/IMemory.h"
 
 #if !defined(_WINDOWS) && !defined(XBOX)
 #include <unistd.h>
 #define stricmp(a, b) strcasecmp(a, b)
 #if !defined(ORBIS) && !defined(PROSPERO)
 #define vsprintf_s vsnprintf
-#define strncpy_s strncpy
 #endif
 #endif
 
@@ -103,10 +108,10 @@ typedef uint64_t uint64;
 typedef struct WindowHandle
 {
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Display*                 display;
-	Window                   window;
-	Atom                     xlib_wm_delete_window;
-    Colormap                 colormap;
+	Display* display;
+	Window   window;
+	Atom     xlib_wm_delete_window;
+	Colormap colormap;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_connection_t*        connection;
 	xcb_window_t             window;
@@ -115,8 +120,9 @@ typedef struct WindowHandle
 #elif defined(__ANDROID__)
 	ANativeWindow*           window;
 	ANativeActivity*         activity;
+	AConfiguration*			 configuration;
 #else
-	void*                    window;    //hWnd
+	void* window;    //hWnd
 #endif
 } WindowHandle;
 
@@ -128,28 +134,28 @@ typedef struct RectDesc
 	int32_t bottom;
 } RectDesc;
 
-inline int getRectWidth(const RectDesc& rect) { return rect.right - rect.left; }
+inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
 
-inline int getRectHeight(const RectDesc& rect) { return rect.bottom - rect.top; }
+inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
 
 typedef struct
 {
 	WindowHandle handle;
-	RectDesc windowedRect;
-	RectDesc fullscreenRect;
-	RectDesc clientRect;
-	uint32_t windowsFlags;
-	bool fullScreen;
-	bool cursorTracked;
-	bool iconified;
-	bool maximized;
-	bool minimized;
-	bool hide;
-	bool noresizeFrame;
-	bool borderlessWindow;
-	bool overrideDefaultPosition;
-	bool centered;
-	bool forceLowDPI;
+	RectDesc     windowedRect;
+	RectDesc     fullscreenRect;
+	RectDesc     clientRect;
+	uint32_t     windowsFlags;
+	bool         fullScreen;
+	bool         cursorTracked;
+	bool         iconified;
+	bool         maximized;
+	bool         minimized;
+	bool         hide;
+	bool         noresizeFrame;
+	bool         borderlessWindow;
+	bool         overrideDefaultPosition;
+	bool         centered;
+	bool         forceLowDPI;
 } WindowsDesc;
 
 typedef struct Resolution
@@ -162,16 +168,16 @@ typedef struct Resolution
 //
 typedef struct
 {
-	RectDesc          monitorRect;
-	RectDesc          workRect;
-    uint2             dpi;
-    uint2             physicalSize;
+	RectDesc     monitorRect;
+	RectDesc     workRect;
+	unsigned int dpi[2];
+	unsigned int physicalSize[2];
 	// This size matches the static size of DISPLAY_DEVICE.DeviceName
 #if defined(_WINDOWS) || defined(XBOX)
-	WCHAR             adapterName[32];
-	WCHAR             displayName[32];
-	WCHAR             publicAdapterName[128];
-	WCHAR             publicDisplayName[128];
+	WCHAR adapterName[32];
+	WCHAR displayName[32];
+	WCHAR publicAdapterName[128];
+	WCHAR publicDisplayName[128];
 #elif defined(__APPLE__)
 #if defined(TARGET_IOS)
 #else
@@ -180,22 +186,22 @@ typedef struct
 	char              publicDisplayName[64];
 #endif
 #elif defined(__linux__) && !defined(__ANDROID__)
-	Screen*           screen;
-	char              adapterName[32];
-	char              displayName[32];
-	char              publicAdapterName[64];
-	char              publicDisplayName[64];
+	Screen*          screen;
+	char             adapterName[32];
+	char             displayName[32];
+	char             publicAdapterName[64];
+	char             publicDisplayName[64];
 #else
-	char              adapterName[32];
-	char              displayName[32];
-	char              publicAdapterName[64];
-	char              publicDisplayName[64];
+	char  adapterName[32];
+	char  displayName[32];
+	char  publicAdapterName[64];
+	char  publicDisplayName[64];
 #endif
-	Resolution*       resolutions;
-	Resolution        defaultResolution;
-	uint32_t          resolutionCount;
-	bool              modesPruned;
-	bool              modeChanged;
+	Resolution* resolutions;
+	Resolution  defaultResolution;
+	uint32_t    resolutionCount;
+	bool        modesPruned;
+	bool        modeChanged;
 } MonitorDesc;
 
 #if defined(_WINDOWS)
@@ -211,7 +217,6 @@ typedef enum ResetScenario
 
 void onRequestReload();
 void onDeviceLost();
-void onAPISwitch();
 #elif defined(__ANDROID__)
 typedef enum ResetScenario
 {
@@ -234,23 +239,23 @@ typedef enum ResetScenario
 
 } ResetScenario;
 
-void onRequestReload();
-void onDeviceLost();
-void onAPISwitch();
+void onRequestReload(void);
+void onDeviceLost(void);
+void onAPISwitch(void);
 #endif
 
 // API functions
-void requestShutdown();
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle = 0);
+void requestShutdown(void);
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle);
 
 // Custom processing of OS pipe messages
-typedef int32_t(*CustomMessageProcessor)(WindowsDesc* pWindow, void* msg);
+typedef int32_t (*CustomMessageProcessor)(WindowsDesc* pWindow, void* msg);
 void setCustomMessageProcessor(CustomMessageProcessor proc);
 
 // Window handling
 void openWindow(const char* app_name, WindowsDesc* winDesc);
 void closeWindow(const WindowsDesc* winDesc);
-void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect);
+void setWindowRect(WindowsDesc* winDesc, const RectDesc* rect);
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height);
 void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height);
 void toggleFullscreen(WindowsDesc* winDesc);
@@ -262,28 +267,28 @@ void centerWindow(WindowsDesc* winDesc);
 
 // Mouse and cursor handling
 void* createCursor(const char* path);
-void setCursor(void* cursor);
-void showCursor();
-void hideCursor();
-bool isCursorInsideTrackingArea();
-void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
-void setMousePositionAbsolute(int32_t x, int32_t y);
+void  setCursor(void* cursor);
+void  showCursor(void);
+void  hideCursor(void);
+bool  isCursorInsideTrackingArea(void);
+void  setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
+void  setMousePositionAbsolute(int32_t x, int32_t y);
 
 void getRecommendedResolution(RectDesc* rect);
 // Sets video mode for specified display
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 MonitorDesc* getMonitor(uint32_t index);
-uint32_t     getMonitorCount();
-float2       getDpiScale();
+uint32_t     getMonitorCount(void);
+// pArray pointer to array with at least 2 elements(x,y)
+void getDpiScale(float array[2]);
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Shell commands
 
 /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-int systemRun(const char *command, const char **arguments, size_t argumentCount, const char* stdOutFile);
-
+int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
 
 //
 // failure research ...

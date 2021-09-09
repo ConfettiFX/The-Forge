@@ -22,6 +22,8 @@
 #include "pad/GainputInputDevicePadAndroid.h"
 #include "touch/GainputInputDeviceTouchAndroid.h"
 static gainput::InputManager* gGainputInputManager;
+#elif defined(GAINPUT_PLATFORM_QUEST)
+#include <time.h>
 #elif defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_TVOS)
 #include <mach/mach.h>
 #include <mach/clock.h>
@@ -211,7 +213,7 @@ InputManager::GetTime() const
 {
 	if (useSystemTime_)
 	{
-#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_GGP) || defined(GAINPUT_PLATFORM_ORBIS) || defined(GAINPUT_PLATFORM_PROSPERO)
+#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_QUEST) || defined(GAINPUT_PLATFORM_GGP) || defined(GAINPUT_PLATFORM_ORBIS) || defined(GAINPUT_PLATFORM_PROSPERO)
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
 	{

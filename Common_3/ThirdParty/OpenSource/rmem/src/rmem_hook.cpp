@@ -688,7 +688,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 
 		//_bstr_t b(m_fileName);
 
-		m_fileValid = fsOpenStreamFromPath(RD_LOG, m_fileName, FM_WRITE_BINARY_ALLOW_READ, &m_file);
+		m_fileValid = fsOpenStreamFromPath(RD_LOG, m_fileName, FM_WRITE_BINARY_ALLOW_READ, NULL, &m_file);
 
 		// ISSUE FIX: Do not track creation of MTuner file itself. 
 		m_ignoreAllocs = false;

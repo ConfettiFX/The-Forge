@@ -51,6 +51,9 @@
     <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputMemoryStream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceGestureDetectorAndroid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputHelpersEvdev.h">
@@ -150,6 +153,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputMemoryStream.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceGestureDetectorAndroid.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

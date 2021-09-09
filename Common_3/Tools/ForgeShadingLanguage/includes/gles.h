@@ -41,6 +41,16 @@
 #define double3x3 mat3
 #define double4x4 mat4
 
+#define short4 int4
+#define short3 int3
+#define short2 int2
+#define short  int
+
+#define ushort4 uint4
+#define ushort3 uint3
+#define ushort2 uint2
+#define ushort  uint
+
 #define make_f4x4_row_elems(E00, E01, E02, E03, E10, E11, E12, E13, E20, E21, E22, E23, E30, E31, E32, E33) f4x4(E00, E10, E20, E30, E01, E11, E21, E31, E02, E12, E22, E32, E03, E13, E23, E33)
 #define Identity() f4x4(1.0)
 
@@ -124,3 +134,10 @@ vec4 saturate(vec4 VALUE) { return clamp(VALUE, 0.0, 1.0); }
 
 // matching hlsl semantics, glsl mod preserves sign(Y)
 #define fmod(X, Y)           (abs(mod(X, Y))*sign(X))
+
+#ifndef STAGE_VERT
+    #define VR_VIEW_ID(VID) (0)
+#else
+    #define VR_VIEW_ID 0
+#endif
+#define VR_MULTIVIEW_COUNT 1

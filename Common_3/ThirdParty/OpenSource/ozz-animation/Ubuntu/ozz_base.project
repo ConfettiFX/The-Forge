@@ -34,12 +34,6 @@
     <File Name="../include/ozz/base/memory/allocator.h"/>
     <File Name="../include/ozz/base/platform.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-  </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -136,4 +130,10 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+  </Dependencies>
 </CodeLite_Project>

@@ -100,11 +100,11 @@ struct ComponentVarRepresentation
 	}
 
 	ComponentVarRepresentation(
-		eastl::string const& name, 
+		eastl::string const& name_, 
 		ComponentVarType const type, 
-		ComponentVarAccess const access)
+		ComponentVarAccess const access) :
+		name(name_)
 	{
-		this->name = name;
 		this->type = type;
 		this->access = access;
 		this->min = 0.f;
@@ -114,15 +114,15 @@ struct ComponentVarRepresentation
 	}
 
 	ComponentVarRepresentation(
-		eastl::string const& name, 
+		eastl::string const& name_, 
 		ComponentVarType const type, 
 		ComponentVarAccess const access,
-		eastl::unordered_map<int32_t, eastl::string> const& valueRepresentations)
+		eastl::unordered_map<int32_t, eastl::string> const& valueRepresentations_) :
+		name(name_),
+		valueRepresentations(valueRepresentations_)
 	{
-		this->name = name;
 		this->type = type;
 		this->access = access;
-		this->valueRepresentations = valueRepresentations;
 		this->min = 0.f;
 		this->max = 0.f;
 		this->step = 0.f;

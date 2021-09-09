@@ -12,11 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Graph.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
@@ -40,5 +35,10 @@
     <ClInclude Include="..\src\03_MultiThread\Shaders\FSL\resources.h">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

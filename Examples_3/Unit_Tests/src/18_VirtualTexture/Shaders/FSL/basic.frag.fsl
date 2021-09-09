@@ -22,6 +22,7 @@
  * under the License.
 */
 
+#include "resources.h"
 
 RES(Tex2D(float4), SparseTexture, UPDATE_FREQ_NONE, t0, binding = 8);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 7);
@@ -40,8 +41,6 @@ CBUFFER(SparseTextureInfo, UPDATE_FREQ_NONE, b0, binding = 9)
 	
 	DATA(float4, CameraPos, None);
 };
-
-RES(RWBuffer(uint), VisibilityBuffer, UPDATE_FREQ_PER_FRAME, u1, binding = 1);
 
 STRUCT(PsIn)
 {    
@@ -126,7 +125,10 @@ float4 PS_MAIN( PsIn In )
     outColor = float4(color.rgb * NoL, color.a);
   }
 
-  VisibilityBuffer[pageOffset] = 1; 
+  if (pageOffset < VT_TOTAL_PAGE_COUNT())
+  {
+    VT_VISIBLE_PAGES(pageOffset) = 1;
+  }
   Out = outColor;
 	RETURN(Out);
 }

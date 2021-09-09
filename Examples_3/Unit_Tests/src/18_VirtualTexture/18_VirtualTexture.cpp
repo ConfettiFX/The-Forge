@@ -36,7 +36,10 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -48,14 +51,14 @@
 /// Demo structures
 struct PlanetInfoStruct
 {
-	uint  mParentIndex;
-	vec4  mColor;
-	float mYOrbitSpeed;    // Rotation speed around parent
-	float mZOrbitSpeed;
-	float mRotationSpeed;    // Rotation speed around self
 	mat4  mTranslationMat;
 	mat4  mScaleMat;
 	mat4  mSharedMat;    // Matrix to pass down to children
+	vec4  mColor;
+	uint  mParentIndex;
+	float mYOrbitSpeed;    // Rotation speed around parent
+	float mZOrbitSpeed;
+	float mRotationSpeed;    // Rotation speed around self
 };
 
 struct UniformBlock
@@ -84,6 +87,12 @@ struct UniformVirtualTextureInfo
 	vec4 CameraPos;
 };
 
+struct UniformVirtualTextureBufferInfo
+{
+	uint TotalPageCount;
+	uint CurrentFrameOffset;
+};
+
 const uint32_t			    gImageCount = 3;
 ProfileToken                gGpuProfileToken;
 const int					gSphereResolution = 30;    // Increase for higher resolution spheres
@@ -95,7 +104,6 @@ const float					gRotOrbitYScale = 0.001f;
 const float					gRotOrbitZScale = 0.00001f;
 
 uint								gFrequency = 1;
-bool								gUpdatedVirtualTextures =  true;
 bool								gDebugMode = false;
 bool								gShowUI = true;
 float								gTimeScale = 1.0f;
@@ -109,17 +117,17 @@ Cmd*							pCmds[gImageCount];
 
 Queue*							pComputeQueue = NULL;
 CmdPool*						pComputeCmdPools[gImageCount];
+Cmd*							pClearPageCountCmds[gImageCount];
 Cmd*							pComputeCmds[gImageCount];
-
-CmdPool*						pVirtualTextureCmdPools[gImageCount];
-Cmd*							pVirtualTextureCmds[gImageCount];
 
 SwapChain*					pSwapChain = NULL;
 RenderTarget*				pDepthBuffer = NULL;
 Fence*							pRenderCompleteFences[gImageCount] = { NULL };
+Fence*							pComputeCompleteFences[gImageCount] = { NULL };
 
 Semaphore*					pImageAcquiredSemaphore = NULL;
-Semaphore*					pRenderCompleteSemaphores[gImageCount] = { NULL };
+Semaphore*					pRenderCompleteSemaphores[gImageCount][2] = { NULL };
+Semaphore*					pClearPageCountSemaphores[gImageCount] = { NULL };
 Semaphore*					pComputeCompleteSemaphores[gImageCount] = { NULL };
 
 Shader*							pSunShader = NULL;
@@ -145,24 +153,24 @@ Sampler*						pSamplerSkyBox = NULL;
 Texture*						pSkyBoxTextures[6];
 
 Texture*						pVirtualTexture[gNumPlanets];
+Buffer*							pVirtualTexturePageVisBuffer[gNumPlanets][gImageCount] = { NULL };
 Buffer*							pVirtualTextureInfo[gNumPlanets] = { NULL };
-Buffer*							pPageCountInfo[gNumPlanets] = { NULL };
+Buffer*							pVirtualTextureBufferInfo[gNumPlanets][gImageCount] = { NULL };
 
 Buffer*							pDebugInfo = NULL;
 
 DescriptorSet*			pDescriptorSetTexture = { NULL };
 DescriptorSet*			pDescriptorSetUniforms = { NULL };
-VirtualJoystickUI*		pVirtualJoystick = NULL;
 
 Buffer*							pProjViewUniformBuffer[gImageCount] = { NULL };
 Buffer*							pSkyboxUniformBuffer[gImageCount] = { NULL };
 
 DescriptorSet*			pDescriptorSetComputePerFrame = { NULL };
-DescriptorSet*			pDescriptorSetComputeFix = { NULL };
 RootSignature*			pRootSignatureCompute = NULL;
 
 static uint32_t		  gAccuFrameIndex = 0;
 uint32_t						gFrameIndex = 0;
+uint32_t						gVirtualTextureUpdateIndex = 0;
 
 int									gNumberOfSpherePoints;
 UniformBlock				gUniformData;
@@ -178,20 +186,25 @@ ICameraController*	pCameraController = NULL;
 
 VertexLayout		gVertexLayoutDefault = {};
 
-/// UI
-UIApp*								pAppUI = NULL;
-static uint32_t						gSelectedApiIndex = 0;
-//const char*					pSkyBoxImageFileNames[] = { "Skybox_right1", "Skybox_left2", "Skybox_top3", "Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
+FontDrawDesc gFrameTimeDraw;
+uint32_t     gFontID = 0;
 
-TextDrawDesc				gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+UIComponent*				pGui = NULL;
 
-GuiComponent*				pGui = NULL;
+static HiresTimer gTimer;
+
+#if !defined(__ANDROID__)
+char gUpdateVirtualTextureText[64] = { 0 };
+char gActivePageText[256] = { 0 };
+#endif
 
 class VirtualTextureTest : public IApp
 {
 public:
 	bool Init()
 	{
+		initHiresTimer(&gTimer);
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -201,9 +214,10 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,		   "Scripts");
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -234,22 +248,16 @@ public:
 			CmdDesc cmdDesc = {};
 			cmdDesc.pPool = pComputeCmdPools[i];
 			addCmd(pRenderer, &cmdDesc, &pComputeCmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pVirtualTextureCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pVirtualTextureCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pVirtualTextureCmds[i]);
+			addCmd(pRenderer, &cmdDesc, &pClearPageCountCmds[i]);
 		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			addFence(pRenderer, &pComputeCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][0]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][1]);
+			addSemaphore(pRenderer, &pClearPageCountSemaphores[i]);
 			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
@@ -275,14 +283,9 @@ public:
 			textureLoadDesc.ppTexture = &pVirtualTexture[i];
 			addResource(&textureLoadDesc, NULL);
 		}
-		gUpdatedVirtualTextures = true;
-
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
+		gAccuFrameIndex = 0;
+		gFrameIndex = 0;
+		gVirtualTextureUpdateIndex = 0;
 
 		//ShaderLoadDesc skyShader = {};
 		//skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
@@ -342,8 +345,6 @@ public:
 		rootDesc.ppShaders = computeShaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompute);
 
-		desc = { pRootSignatureCompute, DESCRIPTOR_UPDATE_FREQ_NONE, gNumPlanets };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputeFix);
 		desc = { pRootSignatureCompute, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumPlanets };
 		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputePerFrame);
 
@@ -424,15 +425,6 @@ public:
 			vtInfoDesc.pData = NULL;
 			vtInfoDesc.ppBuffer = &pVirtualTextureInfo[i];
 			addResource(&vtInfoDesc, NULL);
-
-			BufferLoadDesc ptInfoDesc = {};
-			ptInfoDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ptInfoDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			ptInfoDesc.mDesc.mSize = sizeof(uint) * 4;
-			//ptInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-			ptInfoDesc.pData = NULL;
-			ptInfoDesc.ppBuffer = &pPageCountInfo[i];
-			addResource(&ptInfoDesc, NULL);
 		}
 
 		BufferLoadDesc debugInfoDesc = {};
@@ -444,71 +436,106 @@ public:
 		debugInfoDesc.ppBuffer = &pDebugInfo;
 		addResource(&debugInfoDesc, NULL);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
-		pGui = addAppUIGuiComponent(pAppUI, "Micro profiler", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		UIComponentDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.3f);
+		uiCreateComponent("Micro profiler", &guiDesc, &pGui);
 
 		CheckboxWidget DeMode;
 		DeMode.pData = &gDebugMode;
-		addWidgetLua(addGuiWidget(pGui, "Show Pages' Border", &DeMode, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Show Pages' Border\n(Green = Min LOD, Red = Max LOD)", &DeMode, WIDGET_TYPE_CHECKBOX));
 
 		SliderUintWidget DSampling;
 		DSampling.pData = &gFrequency;
 		DSampling.mMin = 1;
 		DSampling.mMax = 40;
 		DSampling.mStep = 1;
-		addWidgetLua(addGuiWidget(pGui, "Virtual Texture Update Frequency", &DSampling, WIDGET_TYPE_SLIDER_UINT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Virtual Texture Update Frequency", &DSampling, WIDGET_TYPE_SLIDER_UINT));
 
 		CheckboxWidget Play;
 		Play.pData = &gPlay;
-		addWidgetLua(addGuiWidget(pGui, "Play Planet's movement", &Play, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Play Planet's movement", &Play, WIDGET_TYPE_CHECKBOX));
 
 		SliderFloatWidget TimeScale;
 		TimeScale.pData = &gTimeScale;
 		TimeScale.mMin = 1.0f;
 		TimeScale.mMax = 10.0f;
 		TimeScale.mStep = 0.0001f;
-		addWidgetLua(addGuiWidget(pGui, "Time Scale", &TimeScale, WIDGET_TYPE_SLIDER_FLOAT));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Time Scale", &TimeScale, WIDGET_TYPE_SLIDER_FLOAT));
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+
+		waitForAllResourceLoads();
+
+		for (uint32_t i = 1; i < gNumPlanets; ++i)
+		{
+			BufferLoadDesc vtBufDesc = {};
+			vtBufDesc.ppBuffer = &pVirtualTexture[i]->pSvt->pReadbackBuffer;
+			vtBufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			vtBufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_TO_CPU;
+			vtBufDesc.mDesc.mStructStride = sizeof(uint);
+			vtBufDesc.mDesc.mElementCount = pVirtualTexture[i]->pSvt->mReadbackBufferSize / sizeof(uint) * gImageCount;
+			vtBufDesc.mDesc.mSize = vtBufDesc.mDesc.mStructStride * vtBufDesc.mDesc.mElementCount;
+			vtBufDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+			vtBufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+
+			char debugNameBuf[MAX_DEBUG_NAME_LENGTH]{};
+			snprintf(debugNameBuf, MAX_DEBUG_NAME_LENGTH, "%s - VT readback buffer", gPlanetName[i]);
+			vtBufDesc.mDesc.pName = debugNameBuf;
+			addResource(&vtBufDesc, NULL);
+
+			for (uint32_t j = 0; j < gImageCount; j++)
+			{
+				UniformVirtualTextureBufferInfo data = {};
+				data.CurrentFrameOffset = j * (pVirtualTexture[i]->pSvt->mReadbackBufferSize / sizeof(uint));
+				data.TotalPageCount = pVirtualTexture[i]->pSvt->mVirtualPageTotalCount;
+
+				BufferLoadDesc ptInfoDesc = {};
+				ptInfoDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				ptInfoDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				ptInfoDesc.mDesc.mSize = sizeof(data);
+				ptInfoDesc.pData = &data;
+				ptInfoDesc.ppBuffer = &pVirtualTextureBufferInfo[i][j];
+				addResource(&ptInfoDesc, NULL);
+
+				BufferLoadDesc visDesc = {};
+				visDesc.ppBuffer = &pVirtualTexturePageVisBuffer[i][j];
+				visDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+				visDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+				visDesc.mDesc.mStructStride = sizeof(uint);
+				visDesc.mDesc.mElementCount = pVirtualTexture[i]->pSvt->mPageVisibilityBufferSize / sizeof(uint);
+				visDesc.mDesc.mSize = visDesc.mDesc.mStructStride * visDesc.mDesc.mElementCount;
+				visDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+
+				char debugNameBuffer[MAX_DEBUG_NAME_LENGTH];
+				snprintf(debugNameBuffer, MAX_DEBUG_NAME_LENGTH, "%s - Vis Buffer for Sparse Texture #%u/%u", gPlanetName[i], j, gImageCount);
+				visDesc.mDesc.pName = debugNameBuffer;
+
+				addResource(&visDesc, NULL);
+			}
+		}
 
 		waitForAllResourceLoads();
 
@@ -549,7 +576,7 @@ public:
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			DescriptorData params[2] = {};
+			DescriptorData params[4] = {};
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
 			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
@@ -564,44 +591,21 @@ public:
 				}
 				else
 				{
-					params[1].pName = "VisibilityBuffer";
-					params[1].ppBuffers = &pVirtualTexture[j]->pSvt->mVisibility;
-					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 2, params);
+					params[1].pName = "VTVisBuffer";
+					params[1].ppBuffers = &pVirtualTexturePageVisBuffer[j][i];
+
+					params[2].pName = "VTBufferInfo";
+					params[2].ppBuffers = &pVirtualTextureBufferInfo[j][i];
+
+					params[3].pName = "VTReadbackBuffer";
+					params[3].ppBuffers = &pVirtualTexture[j]->pSvt->pReadbackBuffer;
+
+					// Pixel shader
+					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 3, params);
+
+					// Compute shader
+					updateDescriptorSet(pRenderer, gNumPlanets * i + j, pDescriptorSetComputePerFrame, 3, &params[1]);
 				}
-			}
-		}
-
-
-		for (uint32_t i = 0; i < gNumPlanets; ++i)
-		{
-			DescriptorData computeParams[1] = {};
-			computeParams[0].pName = "PageCountInfo";
-			computeParams[0].ppBuffers = &pPageCountInfo[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetComputeFix, 1, computeParams);
-		}
-
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			for (uint32_t j = 1; j < gNumPlanets; ++j)
-			{
-				DescriptorData computeParams[6] = {};
-				computeParams[0].pName = "PrevPageTableBuffer";
-				computeParams[0].ppBuffers = &pVirtualTexture[j]->pSvt->mPrevVisibility;
-
-				computeParams[1].pName = "PageTableBuffer";
-				computeParams[1].ppBuffers = &pVirtualTexture[j]->pSvt->mVisibility;
-
-				computeParams[2].pName = "RemovePageTableBuffer";
-				computeParams[2].ppBuffers = &pVirtualTexture[j]->pSvt->mRemovePage;
-
-				computeParams[3].pName = "AlivePageTableBuffer";
-				computeParams[3].ppBuffers = &pVirtualTexture[j]->pSvt->mAlivePage;
-
-				computeParams[4].pName = "PageCountsBuffer";
-				computeParams[4].ppBuffers = &pVirtualTexture[j]->pSvt->mPageCounts;
-
-				updateDescriptorSet(pRenderer, i * gNumPlanets + j, pDescriptorSetComputePerFrame, 5, computeParams);
 			}
 		}
 
@@ -738,7 +742,10 @@ public:
 
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -750,7 +757,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -759,9 +766,8 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -786,24 +792,29 @@ public:
 		exitCameraController(pCameraController);
 		gPlanetInfoData.set_capacity(0);
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-
-		exitProfilerUI();
-
 		exitProfiler();
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
 
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			removeResource(pProjViewUniformBuffer[i]);
-			removeResource(pSkyboxUniformBuffer[i]);
-		}
+		exitFontSystem(); 
 
-		for (uint32_t i = 0; i < gNumPlanets; ++i)
+		for (uint32_t i = 0; i < gNumPlanets; i++)
 		{
 			removeResource(pVirtualTextureInfo[i]);
-			removeResource(pPageCountInfo[i]);
+		}
+
+		for (uint32_t i = 1; i < gNumPlanets; ++i)
+		{
+			removeResource(pVirtualTexture[i]->pSvt->pReadbackBuffer);
+			removeResource(pVirtualTexture[i]);
+
+			for (uint32_t j = 0; j < gImageCount; j++)
+			{
+				if (pVirtualTextureBufferInfo[i][j])
+					removeResource(pVirtualTextureBufferInfo[i][j]);
+
+				removeResource(pVirtualTexturePageVisBuffer[i][j]);
+			}
 		}
 		removeResource(pDebugInfo);
 
@@ -811,12 +822,6 @@ public:
 		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetComputePerFrame);
-		removeDescriptorSet(pRenderer, pDescriptorSetComputeFix);
-
-		for (uint32_t i = 1; i < gNumPlanets; ++i)
-		{
-			removeResource(pVirtualTexture[i]);
-		}
 
 		removeResource(pSphere);
 		removeResource(pSaturn);
@@ -841,23 +846,24 @@ public:
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
-		}
-		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+			removeResource(pProjViewUniformBuffer[i]);
+			removeResource(pSkyboxUniformBuffer[i]);
 
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeFence(pRenderer, pComputeCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][0]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][1]);
+			removeSemaphore(pRenderer, pClearPageCountSemaphores[i]);
+			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
+
 			removeCmd(pRenderer, pCmds[i]);
 			removeCmdPool(pRenderer, pCmdPools[i]);
 
+			removeCmd(pRenderer, pClearPageCountCmds[i]);
 			removeCmd(pRenderer, pComputeCmds[i]);
 			removeCmdPool(pRenderer, pComputeCmdPools[i]);
-
-			removeCmd(pRenderer, pVirtualTextureCmds[i]);
-			removeCmdPool(pRenderer, pVirtualTextureCmdPools[i]);
 		}
+		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
 		exitResourceLoaderInterface(pRenderer);
 
@@ -865,6 +871,7 @@ public:
 		removeQueue(pRenderer, pComputeQueue);
 
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -875,10 +882,15 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		BlendStateDesc blendStateDesc = {};
@@ -968,10 +980,11 @@ public:
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
+		waitQueueIdle(pComputeQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeFontSystemPipelines(); 
 
 		//removePipeline(pRenderer, pSkyBoxDrawPipeline);		
 		removePipeline(pRenderer, pSpherePipeline);
@@ -998,7 +1011,7 @@ public:
 
 		if(!gPlay)
 			deltaTime =	0.0f;
-		
+
 		currentTime += deltaTime * gTimeScale * 130.0f;
 		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
@@ -1066,12 +1079,6 @@ public:
 			*(UniformVirtualTextureInfo*)virtualTextureInfoCbv.pMappedData = gUniformVirtualTextureInfo[i];
 			endUpdateResource(&virtualTextureInfoCbv, NULL);
 		}
-
-		
-    /************************************************************************/
-    // Update GUI
-    /************************************************************************/
-    updateAppUI(pAppUI, deltaTime);  
 	}
 
 	void Draw()
@@ -1080,8 +1087,9 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];	
+		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Fence*        pComputeCompleteFence = pComputeCompleteFences[gFrameIndex];
+		Semaphore*    pClearPageCountSemaphore = pClearPageCountSemaphores[gFrameIndex];
 		Semaphore*    pComputeCompleteSemaphore = pComputeCompleteSemaphores[gFrameIndex];	
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
@@ -1089,10 +1097,12 @@ public:
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+		getFenceStatus(pRenderer, pComputeCompleteFence, &fenceStatus);
+		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
+			waitForFences(pRenderer, 1, &pComputeCompleteFence);
 
 		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 		resetCmdPool(pRenderer, pComputeCmdPools[gFrameIndex]);
-		resetCmdPool(pRenderer, pVirtualTextureCmdPools[gFrameIndex]);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
@@ -1120,29 +1130,48 @@ public:
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Update Virtual Texture");
+
+		const bool isUpdatingVirtualTextures = (gAccuFrameIndex % gFrequency == 0);
+		if (isUpdatingVirtualTextures)
+		{
+			if (gAccuFrameIndex != 0)
+			{
+				TextureBarrier preUpdateBarriers[] = {
+					{ pVirtualTexture[1], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[2], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[3], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[4], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[5], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[6], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+					{ pVirtualTexture[7], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST }
+				};
+				cmdResourceBarrier(cmd, 0, NULL, 7, preUpdateBarriers, 0, NULL);
+			}
+
+			for (uint32_t i = 1; i < gNumPlanets; ++i)
+			{
+				cmdUpdateVirtualTexture(cmd, pVirtualTexture[i], gVirtualTextureUpdateIndex);
+			}
+
+			TextureBarrier postUpdateBarriers[] = {
+				{ pVirtualTexture[1], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[2], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[3], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[4], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[5], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[6], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pVirtualTexture[7], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE }
+			};
+			cmdResourceBarrier(cmd, 0, NULL, 7, postUpdateBarriers, 0, NULL);
+		}
+
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
 			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
-
-		TextureBarrier barriers2[] = {
-			{ pVirtualTexture[1], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[2], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[3], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[4], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[5], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[6], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pVirtualTexture[7], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE }
-		};
-		if (gUpdatedVirtualTextures)
-		{
-			cmdResourceBarrier(cmd, 0, NULL, 7, barriers2, 1, barriers);
-			gUpdatedVirtualTextures = false;
-		}
-		else
-		{
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-		}
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1190,31 +1219,41 @@ public:
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
-			static HiresTimer gTimer;
-			gTimer.GetUSec(true);
+			getHiresTimerUSec(&gTimer, true);
 
-			float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-			drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
+			float2 screenCoords = float2(8.0f, 15.0f); 
 
-			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+			gFrameTimeDraw.mFontColor = 0xff00ffff;
+			gFrameTimeDraw.mFontSize = 18.0f;
+			gFrameTimeDraw.mFontID = gFontID;
+			float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
 
 #if !defined(__ANDROID__)
-			char text[64];
-			sprintf(text, "Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken));
+			sprintf(gUpdateVirtualTextureText, "Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken));
 
-			float2 screenCoords(8.f, txtSize.y + 30.f);
-			drawAppUIText(pAppUI, 
-				cmd, &screenCoords, text,
-				&gFrameTimeDraw);
+			screenCoords = float2(8.f, txtSize.y + 30.f);
 
-			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 45.f), gGpuProfileToken, &gFrameTimeDraw);
+			gFrameTimeDraw.pText = gUpdateVirtualTextureText;
+			cmdDrawTextWithFont(cmd, screenCoords, &gFrameTimeDraw);
+
+			for (uint i = 1; i < gNumPlanets; i++)
+			{
+				const uint totalPages = pVirtualTexture[i]->pSvt->mVirtualPageTotalCount;
+				const uint activePages = pVirtualTexture[i]->pSvt->mVirtualPageAliveCount;
+
+				snprintf(gActivePageText, sizeof(gActivePageText), "        %s: %u/%u pages active (%0.1f %%)",
+					gPlanetName[i], activePages, totalPages, ((float)activePages / totalPages * 100));
+
+				screenCoords.y += txtSize.y * 1.2f;
+				gFrameTimeDraw.pText = gActivePageText;
+				cmdDrawTextWithFont(cmd, screenCoords, &gFrameTimeDraw);
+			}
 #endif
 
-			cmdDrawProfilerUI();
+			screenCoords.y += txtSize.y * 2;
+			cmdDrawGpuProfile(cmd, screenCoords, gGpuProfileToken, &gFrameTimeDraw);
 
-			appUIGui(pAppUI, pGui);
-
-			drawAppUI(pAppUI, cmd);
+			cmdDrawUserInterface(cmd);
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
@@ -1227,109 +1266,81 @@ public:
 
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
-		submitDesc.mSignalSemaphoreCount = 1;
-		submitDesc.mWaitSemaphoreCount = 2;
+		submitDesc.mSignalSemaphoreCount = 2;
+		submitDesc.mWaitSemaphoreCount = 1;
 		submitDesc.ppCmds = &cmd;
-		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
-		Semaphore* waitSemaphores[2] = { pImageAcquiredSemaphore, pComputeCompleteSemaphore };
-		submitDesc.ppWaitSemaphores = waitSemaphores;
+		submitDesc.ppSignalSemaphores = pRenderCompleteSemaphores[gFrameIndex];
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
 		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
-		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphores[gFrameIndex][0];
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 
 		// Get visibility info
-		if (gAccuFrameIndex % gFrequency == 0)
+		if (isUpdatingVirtualTextures)
 		{
-			// Extract only alive page
-			Cmd* pCmdCompute = NULL;
+			// Clear page counts in readback buffers
+			{
+				Cmd* pClearPageCountCmd = pClearPageCountCmds[gFrameIndex];
+				beginCmd(pClearPageCountCmd);
 
-			pCmdCompute = pComputeCmds[gFrameIndex];
+				if (gAccuFrameIndex == 0)
+				{
+					BufferBarrier barrier[] = {
+						{ pVirtualTexture[1]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[2]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[3]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[4]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[5]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[6]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+						{ pVirtualTexture[7]->pSvt->pReadbackBuffer, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_UNORDERED_ACCESS },
+					};
+					cmdResourceBarrier(pClearPageCountCmd, 7, barrier, 0, NULL, 0, NULL);
+				}
+
+				cmdBindPipeline(pClearPageCountCmd, pClearPageCountsPipeline);
+
+				for (uint32_t i = 1; i < gNumPlanets; ++i)
+				{
+					cmdBindDescriptorSet(pClearPageCountCmd, gVirtualTextureUpdateIndex * gNumPlanets + i, pDescriptorSetComputePerFrame);
+					cmdDispatch(pClearPageCountCmd, 1, 1, 1);
+				}
+
+				endCmd(pClearPageCountCmd);
+
+				QueueSubmitDesc submitDesc = {};
+				submitDesc.mCmdCount = 1;
+				submitDesc.ppCmds = &pClearPageCountCmd;
+				submitDesc.mWaitSemaphoreCount = 1;
+				submitDesc.ppWaitSemaphores = &pRenderCompleteSemaphores[gFrameIndex][1];
+				submitDesc.mSignalSemaphoreCount = 1;
+				submitDesc.ppSignalSemaphores = &pClearPageCountSemaphore;
+				queueSubmit(pComputeQueue, &submitDesc);
+			}
+
+			// Determine changed pages
+			Cmd* pCmdCompute = pComputeCmds[gFrameIndex];
 			beginCmd(pCmdCompute);
+
+			cmdBindPipeline(pCmdCompute, pFillPagePipeline);
 
 			for (uint32_t i = 1; i < gNumPlanets; ++i)
 			{
-				struct PageCountSt
-				{
-					uint maxPageCount;
-					uint pageOffset;
-					uint pad1;
-					uint pad2;
-				}pageCountSt;
+				cmdBindDescriptorSet(pCmdCompute, gVirtualTextureUpdateIndex * gNumPlanets + i, pDescriptorSetComputePerFrame);
 
-	#if defined(GARUANTEE_PAGE_SYNC)
-				eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pVirtualTexture[i]->pSvt->pPages;
 				const uint32_t* pThreadGroupSize = pFillPageShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
-				const uint32_t Dispatch[3] = { pThreadGroupSize[0],
-																			 pThreadGroupSize[1],
-																			 pThreadGroupSize[2] };
+				const uint32_t Dispatch[3] = { (uint32_t)ceil((float)pVirtualTexture[i]->pSvt->mVirtualPageTotalCount / (float)pThreadGroupSize[0]),
+				                               pThreadGroupSize[1],
+				                               pThreadGroupSize[2] };
 
-				pageCountSt.maxPageCount = pThreadGroupSize[0];
-				pageCountSt.pageOffset = 0;
-
-				int PageCount = (uint)pPageTable->size();
-
-				while (PageCount > 0)
-				{				
-					BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo, &pageCountSt };
-					beginUpdateResource(&pageCountInfoCbv);
-					endUpdateResource(&pageCountInfoCbv, NULL);
-
-					pCmdCompute = ppComputeCmds[gFrameIndex];
-					beginCmd(pCmdCompute);
-
-					cmdBindPipeline(pCmdCompute, pClearPageCountsPipeline);
-					cmdBindDescriptorSet(pCmdCompute, 0, pDescriptorSetComputeFix);
-					cmdBindDescriptorSet(pCmdCompute, gFrameIndex, pDescriptorSetComputePerFrame);
-
-					cmdDispatch(pCmdCompute, 1, 1, 1);
-
-					cmdBindPipeline(pCmdCompute, pFillPagePipeline);
-					cmdDispatch(pCmdCompute, 1, 1, 1);
-
-					endCmd(pCmdCompute);
-					QueueSubmitDesc submitDesc = {};
-					submitDesc.mCmdCount = 1;
-					submitDesc.ppCmds = &pCmdCompute;
-					queueSubmit(pComputeQueue, &submitDesc);
-					waitQueueIdle(pComputeQueue);
-
-					PageCount -= pageCountSt.maxPageCount;
-					pageCountSt.pageOffset += pageCountSt.maxPageCount;
-					pageCountSt.maxPageCount = min((uint)PageCount, pageCountSt.maxPageCount);
-				}
-	#else
-				pageCountSt.maxPageCount = pVirtualTexture[i]->pSvt->mVirtualPageTotalCount;
-				pageCountSt.pageOffset = 0;
-
-				BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo[i] };
-				beginUpdateResource(&pageCountInfoCbv);
-				*(PageCountSt*)pageCountInfoCbv.pMappedData = pageCountSt;
-				endUpdateResource(&pageCountInfoCbv, NULL);
-
-				cmdBindPipeline(pCmdCompute, pClearPageCountsPipeline);
-
-				cmdBindDescriptorSet(pCmdCompute, i, pDescriptorSetComputeFix);
-				cmdBindDescriptorSet(pCmdCompute, gFrameIndex * gNumPlanets + i, pDescriptorSetComputePerFrame);
-
-				cmdDispatch(pCmdCompute, 1, 1, 1);
-
-				cmdBindPipeline(pCmdCompute, pFillPagePipeline);
-				const uint32_t* pThreadGroupSize = pFillPageShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
-
-				const uint32_t Dispatch[3] = { (uint32_t)ceil((float)pageCountSt.maxPageCount / (float)pThreadGroupSize[0]),
-																			 pThreadGroupSize[1],
-																			 pThreadGroupSize[2] };
-
-				cmdDispatch(pCmdCompute, Dispatch[0], Dispatch[1], Dispatch[2]);				
-	#endif				
+				cmdDispatch(pCmdCompute, Dispatch[0], Dispatch[1], Dispatch[2]);
 			}
 
 			endCmd(pCmdCompute);
@@ -1338,40 +1349,13 @@ public:
 			submitDesc.mCmdCount = 1;
 			submitDesc.ppCmds = &pCmdCompute;
 			submitDesc.mWaitSemaphoreCount = 1;
-			submitDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+			submitDesc.ppWaitSemaphores = &pClearPageCountSemaphore;
 			submitDesc.mSignalSemaphoreCount = 1;
 			submitDesc.ppSignalSemaphores = &pComputeCompleteSemaphore;
+			submitDesc.pSignalFence = pComputeCompleteFence;
 			queueSubmit(pComputeQueue, &submitDesc);
 
-			Cmd* pCmdVirtualTexture = pVirtualTextureCmds[gFrameIndex];
-			beginCmd(pCmdVirtualTexture);
-			
-			TextureBarrier barriers2[] = {
-				{ pVirtualTexture[1], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[2], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[3], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[4], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[5], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[6], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
-				{ pVirtualTexture[7], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST }
-			};
-			cmdResourceBarrier(pCmdVirtualTexture, 0, NULL, 7, barriers2, 0, NULL);
-			
-			for (uint32_t i = 1; i < gNumPlanets; ++i)
-			{
-				cmdUpdateVirtualTexture(pCmdVirtualTexture, pVirtualTexture[i]);
-			}
-			
-			endCmd(pCmdVirtualTexture);
-			gUpdatedVirtualTextures = true;
-
-			QueueSubmitDesc resSubmitDesc = {};
-			resSubmitDesc.mCmdCount = 1;
-			resSubmitDesc.ppCmds = &pCmdVirtualTexture;
-			resSubmitDesc.mWaitSemaphoreCount = 1;
-			resSubmitDesc.ppWaitSemaphores = &pComputeCompleteSemaphore;
-			queueSubmit(pGraphicsQueue, &resSubmitDesc);
-			waitQueueIdle(pGraphicsQueue);
+			gVirtualTextureUpdateIndex = (gVirtualTextureUpdateIndex + 1) % gImageCount;
 		}
 
 		gAccuFrameIndex++;

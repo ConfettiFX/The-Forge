@@ -38,7 +38,10 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
@@ -52,7 +55,6 @@
 #include "../../../../Middleware_3/Animation/ClipController.h"
 #include "../../../../Middleware_3/Animation/Rig.h"
 
-#include "../../../../Middleware_3/UI/AppUI.h"
 // tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
@@ -81,8 +83,6 @@ Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-VirtualJoystickUI* pVirtualJoystick = NULL;
-
 Shader*   pSkeletonShader = NULL;
 Buffer*   pJointVertexBuffer = NULL;
 Buffer*   pBoneVertexBuffer = NULL;
@@ -98,7 +98,7 @@ DescriptorSet* pDescriptorSet = NULL;
 
 struct UniformBlockPlane
 {
-	mat4 mProjectView;
+	CameraMatrix mProjectView;
 	mat4 mToWorldMat;
 };
 UniformBlockPlane gUniformDataPlane;
@@ -110,11 +110,10 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 //--------------------------------------------------------------------------------------------
 
 ICameraController* pCameraController = NULL;
-UIApp*        pAppUI = NULL;
-GuiComponent* pStandaloneControlsGUIWindow = NULL;
-static uint32_t	gSelectedApiIndex = 0;
+UIComponent* pStandaloneControlsGUIWindow = NULL;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
+uint32_t     gFontID = 0; 
 
 //--------------------------------------------------------------------------------------------
 // ANIMATION DATA
@@ -158,6 +157,7 @@ float* pBonePoints;
 
 // Timer to get animationsystem update time
 static HiresTimer gAnimationUpdateTimer;
+char gAnimationUpdateText[64] = { 0 };
 
 //--------------------------------------------------------------------------------------------
 // UI DATA
@@ -173,27 +173,27 @@ struct UIData
 {
 	struct BlendParamsData
 	{
-		float  mUpperBodyWeight = kDefaultUpperBodyWeight;
 		bool*  mAutoSetBlendParams = NULL;
 		float* mStandClipWeight = NULL;
-		float  mStandJointsWeight = kDefaultStandJointsWeight;
 		float* mWalkClipWeight = NULL;
-		float  mWalkJointsWeight = kDefaultWalkJointsWeight;
 		float* mThreshold = NULL;
+		float  mUpperBodyWeight = kDefaultUpperBodyWeight;
+		float  mStandJointsWeight = kDefaultStandJointsWeight;
+		float  mWalkJointsWeight = kDefaultWalkJointsWeight;
 	};
 	BlendParamsData mBlendParams;
-
-	unsigned int mUpperBodyJointIndex = kSpineJointIndex;
 
 	struct ClipData
 	{
 		bool*  mPlay = NULL;
 		bool*  mLoop = NULL;
-		float  mAnimationTime = 0.0f;
 		float* mPlaybackSpeed = NULL;
+		float  mAnimationTime = 0.0f;
 	};
 	ClipData mStandClip;
 	ClipData mWalkClip;
+
+	unsigned int mUpperBodyJointIndex = kSpineJointIndex;
 
 	struct GeneralSettingsData
 	{
@@ -283,7 +283,9 @@ uint32_t gScriptIndexes[] = { 0 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 //--------------------------------------------------------------------------------------------
@@ -294,6 +296,7 @@ class Blending: public IApp
 	public:
 	bool Init()
 	{
+		initHiresTimer(&gAnimationUpdateTimer);
         // FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -317,13 +320,13 @@ class Blending: public IApp
         // RIGS
         //
 		// Initialize the rig with the path to its ozz file
-		gStickFigureRig.Initialize(RD_ANIMATIONS, gStickFigureName);
+		gStickFigureRig.Initialize(RD_ANIMATIONS, gStickFigureName, NULL);
 
 		// CLIPS
 		//
-		gStandClip.Initialize(RD_ANIMATIONS, gStandClipName, &gStickFigureRig);
+		gStandClip.Initialize(RD_ANIMATIONS, gStandClipName, NULL, &gStickFigureRig);
 
-		gWalkClip.Initialize(RD_ANIMATIONS, gWalkClipName, &gStickFigureRig);
+		gWalkClip.Initialize(RD_ANIMATIONS, gWalkClipName, NULL, &gStickFigureRig);
 
 		// CLIP CONTROLLERS
 		//
@@ -371,8 +374,9 @@ class Blending: public IApp
 
 		// WINDOW AND RENDERER SETUP
 		//
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)    //check for init success
 			return false;
@@ -404,33 +408,44 @@ class Blending: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		// INITIALIZE THE USER INTERFACE
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
 
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// INITIALIZE PIPILINE STATES
 		//
 		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0 };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0 };
+		planeShader.mStages[0] = { "plane.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		planeShader.mStages[1] = { "plane.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
@@ -515,43 +530,15 @@ class Blending: public IApp
 		gSkeletonBatcher.AddRig(&gStickFigureRig);
 
 		// Add the GUI Panels/Windows
-		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 14 };
 
 		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f };
 		vec2    UIPanelSize = { 650, 1000 };
-		GuiDesc guiDesc;
+		UIComponentDesc guiDesc;
 		guiDesc.mStartPosition = UIPosition;
 		guiDesc.mStartSize = UIPanelSize;
-		guiDesc.mDefaultTextDrawDesc = UIPanelWindowTitleTextDesc;
-		pStandaloneControlsGUIWindow = addAppUIGuiComponent(pAppUI, "Partially Blended Animation", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pStandaloneControlsGUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		guiDesc.mFontID = 0; 
+		guiDesc.mFontSize = 16.0f; 
+		uiCreateComponent("Partially Blended Animation", &guiDesc, &pStandaloneControlsGUIWindow);
 
 		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
 		//
@@ -590,87 +577,87 @@ class Blending: public IApp
 			float             fValMax = 1.0f;
 			float             sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = &gUIData.mBlendParams.mUpperBodyWeight;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Upper Body Weight", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT)->pOnEdited = UpperBodyWeightCallback;
+			uiSetWidgetOnEditedCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Upper Body Weight", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT), UpperBodyWeightCallback);
 
 			// AutoSetBlendParams - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = gUIData.mBlendParams.mAutoSetBlendParams;
-			IWidget* pAutoBlend = addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Auto Set Blend Params", &checkbox, WIDGET_TYPE_CHECKBOX);
-			pAutoBlend->pOnEdited = AutoSetBlendParamsCallback;
+			UIWidget* pAutoBlend = uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Auto Set Blend Params", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiSetWidgetOnEditedCallback(pAutoBlend, AutoSetBlendParamsCallback);
 
 			// Stand Clip Weight - Slider
 			fValMin = 0.0f;
 			fValMax = 1.0f;
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = gUIData.mBlendParams.mStandClipWeight; //-V519
 			sliderFloat.mMin = fValMin; //-V519
 			sliderFloat.mMax = fValMax; //-V519
 			sliderFloat.mStep = sliderStepSize; //-V519
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Clip Weight [Stand]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Clip Weight [Stand]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
 			// Stand Joints Weight - Slider
 			fValMin = 0.0f;
 			fValMax = 1.0f;
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = &gUIData.mBlendParams.mStandJointsWeight;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Joints Weight [Stand]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT)->pOnEdited = StandClipJointsWeightCallback;
+			uiSetWidgetOnEditedCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Joints Weight [Stand]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT), StandClipJointsWeightCallback);
 
 			// Walk Clip Weight - Slider
 			fValMin = 0.0f;
 			fValMax = 1.0f;
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = gUIData.mBlendParams.mWalkClipWeight;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Clip Weight [Walk]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Clip Weight [Walk]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
 			// Walk Joints Weight - Slider
 			fValMin = 0.0f;
 			fValMax = 1.0f;
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = &gUIData.mBlendParams.mWalkJointsWeight;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Joints Weight [Walk]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT)->pOnEdited = WalkClipJointsWeightCallback;
+			uiSetWidgetOnEditedCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Joints Weight [Walk]", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT), WalkClipJointsWeightCallback);
 
 			// Threshold - Slider
 			fValMin = 0.01f;
 			fValMax = 1.0f;
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = gUIData.mBlendParams.mThreshold;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Threshold", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "Threshold", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			addCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingBlendParamsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			// UPPER BODY ROOT
 			//
@@ -681,128 +668,128 @@ class Blending: public IApp
 			unsigned         uintValMax = gStickFigureRig.GetNumJoints() - 1;
 			unsigned         sliderStepSizeUint = 1;
 
-			addCollapsingHeaderSubWidget(&CollapsingUpperBodyRootWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingUpperBodyRootWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderUint.pData = &gUIData.mUpperBodyJointIndex;
 			sliderUint.mMin = uintValMin;
 			sliderUint.mMax = uintValMax;
 			sliderUint.mStep = sliderStepSizeUint;
-			addCollapsingHeaderSubWidget(&CollapsingUpperBodyRootWidgets, "Joint Index", &sliderUint, WIDGET_TYPE_SLIDER_UINT)->pOnEdited = UpperBodyJointIndexCallback;
+			uiSetWidgetOnEditedCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingUpperBodyRootWidgets, "Joint Index", &sliderUint, WIDGET_TYPE_SLIDER_UINT), UpperBodyJointIndexCallback);
 
 			// STAND CLIP
 			//
 			CollapsingHeaderWidget CollapsingStandClipWidgets;
 
 			// Play/Pause - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = gUIData.mStandClip.mPlay;
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Play", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Play", &checkbox, WIDGET_TYPE_CHECKBOX);
 
 			// Loop - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = gUIData.mStandClip.mLoop;
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Loop", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Loop", &checkbox, WIDGET_TYPE_CHECKBOX);
 
 			// Animation Time - Slider
 			fValMin = 0.0f;
 			fValMax = gStandClipController.GetDuration();
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = &gUIData.mStandClip.mAnimationTime;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			IWidget* pAnimTime = addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Animation Time", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
-			pAnimTime->pOnActive = StandClipTimeChangeCallback;
+			UIWidget* pAnimTime = uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Animation Time", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiSetWidgetOnActiveCallback(pAnimTime, StandClipTimeChangeCallback);
 
 			// Playback Speed - Slider
 			fValMin = -5.0f;
 			fValMax = 5.0f;
 			sliderStepSize = 0.1f;
 
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = gUIData.mStandClip.mPlaybackSpeed;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Playback Speed", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "Playback Speed", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			addCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingStandClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			// WALK CLIP
 			//
 			CollapsingHeaderWidget CollapsingWalkClipWidgets;
 
 			// Play/Pause - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = gUIData.mWalkClip.mPlay;
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Play", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Play", &checkbox, WIDGET_TYPE_CHECKBOX);
 
 			// Loop - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = gUIData.mWalkClip.mLoop;
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Loop", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Loop", &checkbox, WIDGET_TYPE_CHECKBOX);
 
 			// Animation Time - Slider
 			fValMin = 0.0f;
 			fValMax = gWalkClipController.GetDuration();
 			sliderStepSize = 0.01f;
 
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = &gUIData.mWalkClip.mAnimationTime;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Animation Time", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT)->pOnActive = WalkClipTimeChangeCallback;
+			uiSetWidgetOnActiveCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Animation Time", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT), WalkClipTimeChangeCallback);
 
 			// Playback Speed - Slider
 			fValMin = -5.0f;
 			fValMax = 5.0f;
 			sliderStepSize = 0.1f;
 
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			sliderFloat.pData = gUIData.mWalkClip.mPlaybackSpeed;
 			sliderFloat.mMin = fValMin;
 			sliderFloat.mMax = fValMax;
 			sliderFloat.mStep = sliderStepSize;
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Playback Speed", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "Playback Speed", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-			addCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingWalkClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			// GENERAL SETTINGS
 			//
 			CollapsingHeaderWidget CollapsingGeneralSettingsWidgets;
 
 			// ShowBindPose - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = &gUIData.mGeneralSettings.mShowBindPose;
-			addCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Show Bind Pose", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Show Bind Pose", &checkbox, WIDGET_TYPE_CHECKBOX);
 
 			// DrawPlane - Checkbox
-			addCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			checkbox.pData = &gUIData.mGeneralSettings.mDrawPlane;
-			addCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Draw Plane", &checkbox, WIDGET_TYPE_CHECKBOX);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Draw Plane", &checkbox, WIDGET_TYPE_CHECKBOX);
 
-			addCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
 
 			// Add all widgets to the window
 
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Blend Parameters", &CollapsingBlendParamsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Upper Body Root", &CollapsingUpperBodyRootWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Stand Clip (Upper Body)", &CollapsingStandClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Walk Clip (Lower Body)", &CollapsingWalkClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "General settings", &CollapsingGeneralSettingsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Blend Parameters", &CollapsingBlendParamsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Upper Body Root", &CollapsingUpperBodyRootWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Stand Clip (Upper Body)", &CollapsingStandClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Walk Clip (Lower Body)", &CollapsingWalkClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "General settings", &CollapsingGeneralSettingsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
 			DropdownWidget ddTestScripts;
 			ddTestScripts.pData = &gCurrentScriptIndex;
@@ -811,12 +798,12 @@ class Blending: public IApp
 				ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 				ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 			}
-			addWidgetLua(addGuiWidget(pStandaloneControlsGUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 			ButtonWidget bRunScript;
-			IWidget* pRunScript = addGuiWidget(pStandaloneControlsGUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-			pRunScript->pOnEdited = RunScript;
-			addWidgetLua(pRunScript);
+			UIWidget* pRunScript = uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+			uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+			luaRegisterWidget(pRunScript);
 		}
 
 		waitForAllResourceLoads();
@@ -840,7 +827,10 @@ class Blending: public IApp
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -852,7 +842,7 @@ class Blending: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -861,9 +851,8 @@ class Blending: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -898,16 +887,14 @@ class Blending: public IApp
 		tf_free(pJointPoints);
 		tf_free(pBonePoints);
 
-		exitProfilerUI();
-
 		exitProfiler();
 
 		// Animation data
 		gSkeletonBatcher.Exit();
 
-		exitVirtualJoystickUI(pVirtualJoystick);
+		exitUserInterface();
 
-		exitAppUI(pAppUI);
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -939,6 +926,7 @@ class Blending: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -952,10 +940,15 @@ class Blending: public IApp
 
 		// LOAD USER INTERFACE
 		//
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for skeleton draw
@@ -1028,9 +1021,9 @@ class Blending: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 		
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pPlaneDrawPipeline);
 		removePipeline(pRenderer, pSkeletonPipeline);
@@ -1054,8 +1047,8 @@ class Blending: public IApp
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		mat4        projViewMat = projMat * viewMat;
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		CameraMatrix projViewMat = projMat * viewMat;
 
 		vec3 lightPos = vec3(0.0f, 10.0f, 2.0f);
 		vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
@@ -1063,7 +1056,7 @@ class Blending: public IApp
 		/************************************************************************/
 		// Animation
 		/************************************************************************/
-		gAnimationUpdateTimer.Reset();
+		resetHiresTimer(&gAnimationUpdateTimer);
 
 		// Update the animated object for this frame
 		if (!gStickFigureAnimObject.Update(deltaTime))
@@ -1081,7 +1074,7 @@ class Blending: public IApp
 		}
 
 		// Record animation update time
-		gAnimationUpdateTimer.GetUSec(true);
+		getHiresTimerUSec(&gAnimationUpdateTimer, true);
 
 		// Update uniforms that will be shared between all skeletons
 		gSkeletonBatcher.SetSharedUniforms(projViewMat, lightPos, lightColor);
@@ -1091,11 +1084,6 @@ class Blending: public IApp
 		/************************************************************************/
 		gUniformDataPlane.mProjectView = projViewMat;
 		gUniformDataPlane.mToWorldMat = mat4::identity();
-
-		/************************************************************************/
-		// GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -1175,26 +1163,18 @@ class Blending: public IApp
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
+		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
-		appUIGui(pAppUI, pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+		sprintf(gAnimationUpdateText, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
+		gFrameTimeDraw.pText = gAnimationUpdateText;
+		cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 30.f), &gFrameTimeDraw);
 
-		char text[64];
-		sprintf(text, "Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 45.f), gGpuProfileToken, &gFrameTimeDraw);
 
-		float2 screenCoords(8.f, txtSize.y + 30.f);
-		drawAppUIText(pAppUI, 
-			cmd, &screenCoords, text,
-			&gFrameTimeDraw);
-
-#if !defined(__ANDROID__)
-        cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 45.f), gGpuProfileToken, &gFrameTimeDraw);
-#endif
-
-		cmdDrawProfilerUI();
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
@@ -1260,7 +1240,7 @@ class Blending: public IApp
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

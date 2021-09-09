@@ -18,7 +18,6 @@
     <Project Name="SpirVTools"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
-    <Project Name="LuaManager"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>
@@ -26,7 +25,6 @@
     <Project Name="SpirVTools"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
-    <Project Name="LuaManager"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -39,7 +37,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <Preprocessor Value="VULKAN"/>
@@ -52,11 +50,9 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
         <LibraryPath Value="/lib/x86_64-linux-gnu/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
-        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -101,14 +97,13 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-                <CustomPreBuild>shaders
+        <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
-</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -118,7 +113,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <Preprocessor Value="VULKAN"/>
@@ -130,11 +125,9 @@ shaders:&#xD;
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
         <LibraryPath Value="/lib/x86_64-linux-gnu/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
-        <Library Value="libLuaManager.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -179,7 +172,7 @@ shaders:&#xD;
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-                <CustomPreBuild>shaders
+        <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
 fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;

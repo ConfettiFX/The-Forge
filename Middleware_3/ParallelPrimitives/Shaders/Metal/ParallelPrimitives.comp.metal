@@ -22,6 +22,7 @@
 
 #include <metal_stdlib>
 using namespace metal;
+#define restrict 
 
 #ifndef UPDATE_FREQ_PER_DRAW
 #define UPDATE_FREQ_PER_DRAW 0

@@ -88,11 +88,10 @@ enum
 #endif
 
 // Forward declare memory allocator classes
-namespace D3D12MA
-{
-	class Allocator;
-	class Allocation;
-};
+namespace D3D12MA {
+class Allocator;
+class Allocation;
+};    // namespace D3D12MA
 #endif
 #if defined(VULKAN)
 #if defined(_WINDOWS) || defined(XBOX)
@@ -126,16 +125,6 @@ namespace D3D12MA
 #endif
 #endif
 
-#define CHECK_VKRESULT(exp)                                                    \
-{                                                                              \
-	VkResult vkres = (exp);                                                    \
-	if (VK_SUCCESS != vkres)                                                   \
-	{                                                                          \
-		LOGF(eERROR, "%s: FAILED with VkResult: %u", #exp, (uint32_t)vkres);   \
-		ASSERT(false);                                                         \
-	}                                                                          \
-}
-
 #endif
 #if defined(METAL)
 #import <MetalKit/MetalKit.h>
@@ -155,6 +144,7 @@ typedef void* GLConfig;
 typedef void* GLSurface;
 #endif
 
+#include "../OS/Interfaces/ILog.h"
 #include "../OS/Interfaces/IOperatingSystem.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
@@ -203,17 +193,10 @@ typedef enum RendererApi
 	RENDERER_API_COUNT
 } RendererApi;
 
-#if (defined(DIRECT3D11) && defined(VULKAN)) || (defined(GLES) && defined(VULKAN)) || (defined(DIRECT3D12) && defined(VULKAN)) || (defined(DIRECT3D12) && defined(DIRECT3D11))
+#if (defined(DIRECT3D11) && defined(VULKAN)) || (defined(GLES) && defined(VULKAN)) || (defined(DIRECT3D12) && defined(VULKAN)) || \
+	(defined(DIRECT3D12) && defined(DIRECT3D11))
 #define USE_MULTIPLE_RENDER_APIS
 #endif
-
-typedef enum LogType
-{
-	LOG_TYPE_INFO = 0,
-	LOG_TYPE_WARN,
-	LOG_TYPE_DEBUG,
-	LOG_TYPE_ERROR
-} LogType;
 
 typedef enum QueueType
 {
@@ -248,7 +231,7 @@ typedef enum LoadActionType
 	MAX_LOAD_ACTION
 } LoadActionType;
 
-typedef void(*LogFn)(LogType, const char*, const char*);
+typedef void (*LogFn)(LogLevel, const char*, const char*);
 
 typedef enum ResourceState
 {
@@ -292,23 +275,23 @@ typedef enum ResourceMemoryUsage
 } ResourceMemoryUsage;
 
 // Forward declarations
-typedef struct Renderer              Renderer;
-typedef struct Queue                 Queue;
-typedef struct Pipeline              Pipeline;
-typedef struct Buffer                Buffer;
-typedef struct Texture               Texture;
-typedef struct RenderTarget          RenderTarget;
-typedef struct Shader                Shader;
-typedef struct DescriptorSet         DescriptorSet;
-typedef struct DescriptorIndexMap    DescriptorIndexMap;
-typedef struct PipelineCache         PipelineCache;
+typedef struct Renderer           Renderer;
+typedef struct Queue              Queue;
+typedef struct Pipeline           Pipeline;
+typedef struct Buffer             Buffer;
+typedef struct Texture            Texture;
+typedef struct RenderTarget       RenderTarget;
+typedef struct Shader             Shader;
+typedef struct DescriptorSet      DescriptorSet;
+typedef struct DescriptorIndexMap DescriptorIndexMap;
+typedef struct PipelineCache      PipelineCache;
 
 // Raytracing
 typedef struct Raytracing            Raytracing;
 typedef struct RaytracingHitGroup    RaytracingHitGroup;
 typedef struct AccelerationStructure AccelerationStructure;
 
-typedef struct EsramManager          EsramManager;
+typedef struct EsramManager EsramManager;
 
 typedef struct IndirectDrawArguments
 {
@@ -342,15 +325,15 @@ typedef enum IndirectArgumentType
 	INDIRECT_VERTEX_BUFFER,
 	INDIRECT_INDEX_BUFFER,
 	INDIRECT_CONSTANT,
-	INDIRECT_DESCRIPTOR_TABLE,        // only for vulkan
-	INDIRECT_PIPELINE,                // only for vulkan now, probally will add to dx when it comes to xbox
-	INDIRECT_CONSTANT_BUFFER_VIEW,    // only for dx
-	INDIRECT_SHADER_RESOURCE_VIEW,    // only for dx
-	INDIRECT_UNORDERED_ACCESS_VIEW,   // only for dx
+	INDIRECT_DESCRIPTOR_TABLE,         // only for vulkan
+	INDIRECT_PIPELINE,                 // only for vulkan now, probably will add to dx when it comes to xbox
+	INDIRECT_CONSTANT_BUFFER_VIEW,     // only for dx
+	INDIRECT_SHADER_RESOURCE_VIEW,     // only for dx
+	INDIRECT_UNORDERED_ACCESS_VIEW,    // only for dx
 #if defined(METAL)
-	INDIRECT_COMMAND_BUFFER,          // metal ICB
-	INDIRECT_COMMAND_BUFFER_RESET,    // metal ICB reset
-	INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal ICB optimization
+	INDIRECT_COMMAND_BUFFER,            // metal ICB
+	INDIRECT_COMMAND_BUFFER_RESET,      // metal ICB reset
+	INDIRECT_COMMAND_BUFFER_OPTIMIZE    // metal ICB optimization
 #endif
 } IndirectArgumentType;
 /************************************************/
@@ -394,9 +377,9 @@ typedef enum DescriptorType
 	DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = (DESCRIPTOR_TYPE_RW_TEXEL_BUFFER << 1),
 #endif
 #if defined(METAL)
-    DESCRIPTOR_TYPE_ARGUMENT_BUFFER = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
-    DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER = (DESCRIPTOR_TYPE_ARGUMENT_BUFFER << 1),
-    DESCRIPTOR_TYPE_RENDER_PIPELINE_STATE = (DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER << 1),
+	DESCRIPTOR_TYPE_ARGUMENT_BUFFER = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
+	DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER = (DESCRIPTOR_TYPE_ARGUMENT_BUFFER << 1),
+	DESCRIPTOR_TYPE_RENDER_PIPELINE_STATE = (DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER << 1),
 #endif
 } DescriptorType;
 MAKE_ENUM_FLAG(uint32_t, DescriptorType)
@@ -430,8 +413,10 @@ typedef enum ShaderStage
 	SHADER_STAGE_GEOM = 0X00000008,
 	SHADER_STAGE_FRAG = 0X00000010,
 	SHADER_STAGE_COMP = 0X00000020,
-	SHADER_STAGE_RAYTRACING  = 0X00000040,
-	SHADER_STAGE_ALL_GRAPHICS = ((uint32_t)SHADER_STAGE_VERT | (uint32_t)SHADER_STAGE_TESC | (uint32_t)SHADER_STAGE_TESE | (uint32_t)SHADER_STAGE_GEOM | (uint32_t)SHADER_STAGE_FRAG),
+	SHADER_STAGE_RAYTRACING = 0X00000040,
+	SHADER_STAGE_ALL_GRAPHICS =
+		((uint32_t)SHADER_STAGE_VERT | (uint32_t)SHADER_STAGE_TESC | (uint32_t)SHADER_STAGE_TESE | (uint32_t)SHADER_STAGE_GEOM |
+		 (uint32_t)SHADER_STAGE_FRAG),
 	SHADER_STAGE_HULL = SHADER_STAGE_TESC,
 	SHADER_STAGE_DOMN = SHADER_STAGE_TESE,
 	SHADER_STAGE_COUNT = 7,
@@ -627,7 +612,7 @@ typedef union ClearValue
 	};
 	struct
 	{
-		float  depth;
+		float    depth;
 		uint32_t stencil;
 	};
 } ClearValue;
@@ -659,7 +644,7 @@ typedef enum ShadingRateCaps
 {
 	SHADING_RATE_CAPS_NOT_SUPPORTED = 0x0,
 	SHADING_RATE_CAPS_PER_DRAW = 0x1,
-	SHADING_RATE_CAPS_PER_TILE = SHADING_RATE_CAPS_PER_DRAW  << 1,
+	SHADING_RATE_CAPS_PER_TILE = SHADING_RATE_CAPS_PER_DRAW << 1,
 } ShadingRateCaps;
 MAKE_ENUM_FLAG(uint32_t, ShadingRateCaps)
 
@@ -675,14 +660,14 @@ typedef enum BufferCreationFlags
 	BUFFER_CREATION_FLAG_ESRAM = 0x08,
 	/// Flag to specify not to allocate descriptors for the resource
 	BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION = 0x10,
-    
+
 #ifdef METAL
-    /* ICB Flags */
-    /// Ihnerit pipeline in ICB
-    BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE = 0x100,
-    /// Ihnerit pipeline in ICB
-    BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS = 0x200,
-    
+	/* ICB Flags */
+	/// Inherit pipeline in ICB
+	BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE = 0x100,
+	/// Inherit pipeline in ICB
+	BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS = 0x200,
+
 #endif
 } BufferCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, BufferCreationFlags)
@@ -717,6 +702,10 @@ typedef enum TextureCreationFlags
 	TEXTURE_CREATION_FLAG_FAST_CLEAR = 0x800,
 	/// Fragment mask
 	TEXTURE_CREATION_FLAG_FRAG_MASK = 0x1000,
+    /// Doubles the amount of array layers of the texture when rendering VR. Also forces the texture to be a 2D Array texture.
+    TEXTURE_CREATION_FLAG_VR_MULTIVIEW = 0x2000,
+    /// Binds the FFR fragment density if this texture is used as a render target.
+    TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING = 0x4000,
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
@@ -733,48 +722,48 @@ typedef enum GPUPresetLevel
 
 typedef struct BufferBarrier
 {
-	Buffer*        pBuffer;
-	ResourceState  mCurrentState;
-	ResourceState  mNewState;
-	uint8_t        mBeginOnly : 1;
-	uint8_t        mEndOnly : 1;
-	uint8_t        mAcquire : 1;
-	uint8_t        mRelease : 1;
-	uint8_t        mQueueType : 5;
+	Buffer*       pBuffer;
+	ResourceState mCurrentState;
+	ResourceState mNewState;
+	uint8_t       mBeginOnly : 1;
+	uint8_t       mEndOnly : 1;
+	uint8_t       mAcquire : 1;
+	uint8_t       mRelease : 1;
+	uint8_t       mQueueType : 5;
 } BufferBarrier;
 
 typedef struct TextureBarrier
 {
-	Texture*       pTexture;
-	ResourceState  mCurrentState;
-	ResourceState  mNewState;
-	uint8_t        mBeginOnly : 1;
-	uint8_t        mEndOnly : 1;
-	uint8_t        mAcquire : 1;
-	uint8_t        mRelease : 1;
-	uint8_t        mQueueType : 5;
+	Texture*      pTexture;
+	ResourceState mCurrentState;
+	ResourceState mNewState;
+	uint8_t       mBeginOnly : 1;
+	uint8_t       mEndOnly : 1;
+	uint8_t       mAcquire : 1;
+	uint8_t       mRelease : 1;
+	uint8_t       mQueueType : 5;
 	/// Specifiy whether following barrier targets particular subresource
-	uint8_t        mSubresourceBarrier : 1;
+	uint8_t mSubresourceBarrier : 1;
 	/// Following values are ignored if mSubresourceBarrier is false
-	uint8_t        mMipLevel : 7;
-	uint16_t       mArrayLayer;
+	uint8_t  mMipLevel : 7;
+	uint16_t mArrayLayer;
 } TextureBarrier;
 
 typedef struct RenderTargetBarrier
 {
-	RenderTarget*  pRenderTarget;
-	ResourceState  mCurrentState;
-	ResourceState  mNewState;
-	uint8_t        mBeginOnly : 1;
-	uint8_t        mEndOnly : 1;
-	uint8_t        mAcquire : 1;
-	uint8_t        mRelease : 1;
-	uint8_t        mQueueType : 5;
+	RenderTarget* pRenderTarget;
+	ResourceState mCurrentState;
+	ResourceState mNewState;
+	uint8_t       mBeginOnly : 1;
+	uint8_t       mEndOnly : 1;
+	uint8_t       mAcquire : 1;
+	uint8_t       mRelease : 1;
+	uint8_t       mQueueType : 5;
 	/// Specifiy whether following barrier targets particular subresource
-	uint8_t        mSubresourceBarrier : 1;
+	uint8_t mSubresourceBarrier : 1;
 	/// Following values are ignored if mSubresourceBarrier is false
-	uint8_t        mMipLevel : 7;
-	uint16_t       mArrayLayer;
+	uint8_t  mMipLevel : 7;
+	uint16_t mArrayLayer;
 } RenderTargetBarrier;
 
 typedef struct ReadRange
@@ -810,44 +799,44 @@ typedef struct QueryPool
 #if defined(DIRECT3D12)
 		struct
 		{
-			ID3D12QueryHeap*  pDxQueryHeap;
-			D3D12_QUERY_TYPE  mType;
+			ID3D12QueryHeap* pDxQueryHeap;
+			D3D12_QUERY_TYPE mType;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
 		struct
 		{
-			VkQueryPool       pVkQueryPool;
-			VkQueryType       mType;
+			VkQueryPool pVkQueryPool;
+			VkQueryType mType;
 		} mVulkan;
 #endif
 #if defined(METAL)
 		struct
 		{
-			double            mGpuTimestampStart;
-			double            mGpuTimestampEnd;
+			double mGpuTimestampStart;
+			double mGpuTimestampEnd;
 		};
 #endif
 #if defined(DIRECT3D11)
 		struct
 		{
-			ID3D11Query**     ppDxQueries;
-			D3D11_QUERY       mType;
+			ID3D11Query** ppDxQueries;
+			D3D11_QUERY   mType;
 		} mD3D11;
 #endif
 #if defined(GLES)
 		struct
 		{
-			uint32_t*         pQueries;
-			uint32_t          mType;
-			int32_t           mDisjointOccurred;
+			uint32_t* pQueries;
+			uint32_t  mType;
+			int32_t   mDisjointOccurred;
 		} mGLES;
 #endif
 #if defined(ORBIS)
 		struct
 		{
-			OrbisQueryPool    mStruct;
-			uint32_t          mType;
+			OrbisQueryPool mStruct;
+			uint32_t       mType;
 		};
 #endif
 #if defined(PROSPERO)
@@ -858,7 +847,7 @@ typedef struct QueryPool
 		};
 #endif
 	};
-	uint32_t          mCount;
+	uint32_t mCount;
 } QueryPool;
 
 #if defined(VULKAN)
@@ -889,6 +878,17 @@ typedef struct BufferDesc
 {
 	/// Size of the buffer (in bytes)
 	uint64_t mSize;
+	/// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	struct Buffer* pCounterBuffer;
+	/// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	uint64_t mFirstElement;
+	/// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	uint64_t mElementCount;
+	/// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+	uint64_t mStructStride;
+	/// Debug name used in gpu profile
+	const char* pName;
+	uint32_t*   pSharedNodeIndices;
 	/// Alignment
 	uint32_t mAlignment;
 	/// Decides which memory heap buffer will use (default, upload, readback)
@@ -899,106 +899,95 @@ typedef struct BufferDesc
 	QueueType mQueueType;
 	/// What state will the buffer get created in
 	ResourceState mStartState;
-	/// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-	uint64_t mFirstElement;
-	/// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-	uint64_t mElementCount;
-	/// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-	uint64_t mStructStride;
-    /// ICB draw type
-    IndirectArgumentType mICBDrawType;
-    /// ICB max vertex buffers slots count
-    uint32_t mICBMaxVertexBufferBind;
-    /// ICB max vertex buffers slots count
-    uint32_t mICBMaxFragmentBufferBind;
-	/// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
-	struct Buffer* pCounterBuffer;
+	/// ICB draw type
+	IndirectArgumentType mICBDrawType;
+	/// ICB max vertex buffers slots count
+	uint32_t mICBMaxVertexBufferBind;
+	/// ICB max vertex buffers slots count
+	uint32_t mICBMaxFragmentBufferBind;
 	/// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
 	TinyImageFormat mFormat;
 	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
 	DescriptorType mDescriptors;
-	/// Debug name used in gpu profile
-	const char*    pName;
-	uint32_t*      pSharedNodeIndices;
 	uint32_t       mNodeIndex;
 	uint32_t       mSharedNodeIndexCount;
 } BufferDesc;
 
 typedef struct DEFINE_ALIGNED(Buffer, 64)
 {
-	/// CPU address of the mapped buffer (appliacable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
-	void*                            pCpuMappedAddress;
-	union 
+	/// CPU address of the mapped buffer (applicable to buffers created in CPU accessible heaps (CPU, CPU_TO_GPU, GPU_TO_CPU)
+	void* pCpuMappedAddress;
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			/// GPU Address - Cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress
-			D3D12_GPU_VIRTUAL_ADDRESS        mDxGpuAddress;
+			D3D12_GPU_VIRTUAL_ADDRESS mDxGpuAddress;
 			/// Descriptor handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
-			D3D12_CPU_DESCRIPTOR_HANDLE      mDxDescriptorHandles;
+			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptorHandles;
 			/// Offset from mDxDescriptors for srv descriptor handle
-			uint64_t                         mDxSrvOffset : 8;
+			uint64_t mDxSrvOffset : 8;
 			/// Offset from mDxDescriptors for uav descriptor handle
-			uint64_t                         mDxUavOffset : 8;
+			uint64_t mDxUavOffset : 8;
 			/// Native handle of the underlying resource
-			ID3D12Resource*                  pDxResource;
+			ID3D12Resource* pDxResource;
 			/// Contains resource allocation info such as parent heap, offset in heap
-			D3D12MA::Allocation*             pDxAllocation;
+			D3D12MA::Allocation* pDxAllocation;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
 			/// Native handle of the underlying resource
-			VkBuffer                         pVkBuffer;
+			VkBuffer pVkBuffer;
 			/// Buffer view
-			VkBufferView                     pVkStorageTexelView;
-			VkBufferView                     pVkUniformTexelView;
+			VkBufferView pVkStorageTexelView;
+			VkBufferView pVkUniformTexelView;
 			/// Contains resource allocation info such as parent heap, offset in heap
-			struct VmaAllocation_T*          pVkAllocation;
-			uint64_t                         mOffset;
+			struct VmaAllocation_T* pVkAllocation;
+			uint64_t                mOffset;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			struct VmaAllocation_T*          pAllocation;
-			id<MTLBuffer>                    mtlBuffer;
-			id<MTLIndirectCommandBuffer>     mtlIndirectCommandBuffer API_AVAILABLE(macos(10.14), ios(12.0));
-			uint64_t                         mOffset;
-			uint64_t                         mPadB;
+			struct VmaAllocation_T*      pAllocation;
+			id<MTLBuffer>                mtlBuffer;
+			id<MTLIndirectCommandBuffer> mtlIndirectCommandBuffer API_AVAILABLE(macos(10.14), ios(12.0));
+			uint64_t                                              mOffset;
+			uint64_t                                              mPadB;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11Buffer*                    pDxResource;
-			ID3D11ShaderResourceView*        pDxSrvHandle;
-			ID3D11UnorderedAccessView*       pDxUavHandle;
-			uint64_t                         mFlags;
-			uint64_t                         mPadA;
+			ID3D11Buffer*              pDxResource;
+			ID3D11ShaderResourceView*  pDxSrvHandle;
+			ID3D11UnorderedAccessView* pDxUavHandle;
+			uint64_t                   mFlags;
+			uint64_t                   mPadA;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLuint							 mBuffer;
-			GLenum							 mTarget;
-			void*                            pGLCpuMappedAddress;
+			GLuint mBuffer;
+			GLenum mTarget;
+			void*  pGLCpuMappedAddress;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisBuffer                      mStruct;
+		OrbisBuffer mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoBuffer                   mStruct;
+		ProsperoBuffer mStruct;
 #endif
 	};
-	uint64_t                         mSize : 32;
-	uint64_t                         mDescriptors : 20;
-	uint64_t                         mMemoryUsage : 3;
-	uint64_t                         mNodeIndex : 4;
+	uint64_t mSize : 32;
+	uint64_t mDescriptors : 20;
+	uint64_t mMemoryUsage : 3;
+	uint64_t mNodeIndex : 4;
 } Buffer;
 // One cache line
 COMPILE_ASSERT(sizeof(Buffer) == 8 * sizeof(uint64_t));
@@ -1006,6 +995,17 @@ COMPILE_ASSERT(sizeof(Buffer) == 8 * sizeof(uint64_t));
 /// Data structure holding necessary info to create a Texture
 typedef struct TextureDesc
 {
+	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
+	ClearValue mClearValue;
+	/// Pointer to native texture handle if the texture does not own underlying resource
+	const void* pNativeHandle;
+	/// Debug name used in gpu profile
+	const char* pName;
+	/// GPU indices to share this texture
+	uint32_t* pSharedNodeIndices;
+#if defined(VULKAN)
+	VkSamplerYcbcrConversionInfo* pVkSamplerYcbcrConversionInfo;
+#endif
 	/// Texture creation flags (decides memory allocation strategy, sharing access,...)
 	TextureCreationFlags mFlags;
 	/// Width
@@ -1024,33 +1024,20 @@ typedef struct TextureDesc
 	uint32_t mSampleQuality;
 	///  image format
 	TinyImageFormat mFormat;
-	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
-	ClearValue mClearValue;
 	/// What state will the texture get created in
 	ResourceState mStartState;
 	/// Descriptor creation
 	DescriptorType mDescriptors;
-	/// Pointer to native texture handle if the texture does not own underlying resource
-	const void* pNativeHandle;
-	/// Debug name used in gpu profile
-	const char* pName;
-	/// GPU indices to share this texture
-	uint32_t* pSharedNodeIndices;
 	/// Number of GPUs to share this texture
 	uint32_t mSharedNodeIndexCount;
 	/// GPU which will own this texture
 	uint32_t mNodeIndex;
-#if defined(VULKAN)
-	VkSamplerYcbcrConversionInfo* pVkSamplerYcbcrConversionInfo;
-#endif
 } TextureDesc;
 
 // Virtual texture page as a part of the partially resident texture
 // Contains memory bindings, offsets and status information
 struct VirtualTexturePage
 {
-	/// Buffer which contains the image data and be used for copying it to Virtual texture
-	Buffer*  pIntermediateBuffer;
 	/// Miplevel for this page
 	uint32_t mipLevel;
 	/// Array layer for this page
@@ -1058,12 +1045,14 @@ struct VirtualTexturePage
 	/// Index for this page
 	uint32_t index;
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union	
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
+			/// Allocation and resource for this tile
+			D3D12MA::Allocation* pAllocation;
 			/// Offset for this page
 			D3D12_TILED_RESOURCE_COORDINATE offset;
 			/// Size for this page
@@ -1073,12 +1062,10 @@ struct VirtualTexturePage
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			/// Offset for this page
-			VkOffset3D offset;
-			/// Size for this page
-			VkExtent3D extent;
+			/// Allocation and resource for this tile
+			void* pAllocation;
 			/// Sparse image memory bind for this page
 			VkSparseImageMemoryBind imageMemoryBind;
 			/// Byte size for this page
@@ -1093,161 +1080,163 @@ struct VirtualTexturePage
 typedef struct VirtualTexture
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union	
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			ID3D12Heap* pSparseImageMemory;
-			/// Array for Sparse texture's pages
-			void* pSparseCoordinates;
-			/// Array for heap memory offsets
-			void* pHeapRangeStartOffsets;
+			/// Cached allocated array that is required to interact with d3d12
+			uint32_t* pCachedTileCounts;
+			/// Pending allocation deletions
+			D3D12MA::Allocation** pPendingDeletedAllocations;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			/// Sparse queue binding information
-			VkBindSparseInfo mBindSparseInfo;
+			/// GPU memory pool for tiles
+			void* pPool;
 			/// Sparse image memory bindings of all memory-backed virtual tables
-			void* pSparseImageMemoryBinds;
-			/// Sparse ?aque memory bindings for the mip tail (if present)	
-			void* pOpaqueMemoryBinds;
-			/// First mip level in mip tail
-			uint32_t mMipTailStart;
-			/// Lstly filled mip level in mip tail
-			uint32_t mLastFilledMip;
-			/// Memory type for Sparse texture's memory
-			uint32_t mSparseMemoryTypeIndex;
-			/// Sparse image memory bind info 
-			VkSparseImageMemoryBindInfo mImageMemoryBindInfo;
-			/// Sparse image opaque memory bind info (mip tail)
-			VkSparseImageOpaqueMemoryBindInfo mOpaqueMemoryBindInfo;
-			/// First mip level in mip tail
-			uint32_t mipTailStart;
+			VkSparseImageMemoryBind* pSparseImageMemoryBinds;
+			/// Sparse opaque memory bindings for the mip tail (if present)
+			VkSparseMemoryBind* pOpaqueMemoryBinds;
+			/// GPU allocations for opaque memory binds (mip tail)
+			void** pOpaqueMemoryBindAllocations;
+			/// Pending allocation deletions
+			void** pPendingDeletedAllocations;
+			/// Memory type bits for Sparse texture's memory
+			uint32_t mSparseMemoryTypeBits;
+			/// Number of opaque memory binds
+			uint32_t mOpaqueMemoryBindsCount;
 		} mVulkan;
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
 	/// Virtual Texture members
-	/// Contains all virtual pages of the texture
-	void*    pPages;
-	/// Visibility data
-	Buffer*  mVisibility;
-	/// PrevVisibility data
-	Buffer*  mPrevVisibility;
-	/// Alive Page's Index
-	Buffer*  mAlivePage;
-	/// Page's Index which should be removed
-	Buffer*  mRemovePage;
-	/// a { uint alive; uint remove; } count of pages which are alive or should be removed
-	Buffer*  mPageCounts;
+	VirtualTexturePage* pPages;
+	/// Pending intermediate buffer deletions
+	Buffer** pPendingDeletedBuffers;
+	/// Pending intermediate buffer deletions count
+	uint32_t* pPendingDeletedBuffersCount;
+	/// Pending allocation deletions count
+	uint32_t* pPendingDeletedAllocationsCount;
+	/// Readback buffer, must be filled by app. Size = mReadbackBufferSize * imagecount
+	Buffer*  pReadbackBuffer;
 	/// Original Pixel image data
-	void*    mVirtualImageData;
+	void*    pVirtualImageData;
 	///  Total pages count
 	uint32_t mVirtualPageTotalCount;
+	///  Alive pages count
+	uint32_t mVirtualPageAliveCount;
+	/// Size of the readback buffer per image
+	uint32_t mReadbackBufferSize;
+	/// Size of the readback buffer per image
+	uint32_t mPageVisibilityBufferSize;
 	/// Sparse Virtual Texture Width
-	uint64_t mSparseVirtualTexturePageWidth;
+	uint16_t mSparseVirtualTexturePageWidth;
 	/// Sparse Virtual Texture Height
-	uint64_t mSparseVirtualTexturePageHeight;
+	uint16_t mSparseVirtualTexturePageHeight;
+	/// Number of mip levels that are tiled
+	uint8_t mTiledMipLevelCount;
+	/// Size of the pending deletion arrays in image count (highest currentImage + 1)
+	uint8_t mPendingDeletionCount;
 } VirtualTexture;
 
 typedef struct DEFINE_ALIGNED(Texture, 64)
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-			D3D12_CPU_DESCRIPTOR_HANDLE  mDxDescriptorHandles;
+			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptorHandles;
 			/// Native handle of the underlying resource
-			ID3D12Resource*              pDxResource;
+			ID3D12Resource* pDxResource;
 			/// Contains resource allocation info such as parent heap, offset in heap
-			D3D12MA::Allocation*         pDxAllocation;
-			uint64_t                     mHandleCount : 24;
-			uint64_t                     mUavStartIndex : 1;
-			uint32_t                     mDescriptorSize;
+			D3D12MA::Allocation* pDxAllocation;
+			uint64_t             mHandleCount : 24;
+			uint64_t             mUavStartIndex : 1;
+			uint32_t             mDescriptorSize;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
 			/// Opaque handle used by shaders for doing read/write operations on the texture
-			VkImageView                  pVkSRVDescriptor;
+			VkImageView pVkSRVDescriptor;
 			/// Opaque handle used by shaders for doing read/write operations on the texture
-			VkImageView*                 pVkUAVDescriptors;
+			VkImageView* pVkUAVDescriptors;
 			/// Opaque handle used by shaders for doing read/write operations on the texture
-			VkImageView                  pVkSRVStencilDescriptor;
+			VkImageView pVkSRVStencilDescriptor;
 			/// Native handle of the underlying resource
-			VkImage                      pVkImage;
+			VkImage pVkImage;
 			union
 			{
 				/// Contains resource allocation info such as parent heap, offset in heap
-				struct VmaAllocation_T*  pVkAllocation;
-				VkDeviceMemory           pVkDeviceMemory;
+				struct VmaAllocation_T* pVkAllocation;
+				VkDeviceMemory          pVkDeviceMemory;
 			};
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			struct VmaAllocation_T*      pAllocation;
+			struct VmaAllocation_T* pAllocation;
 			/// Native handle of the underlying resource
-			id<MTLTexture>               mtlTexture;
-			id<MTLTexture> __strong*     pMtlUAVDescriptors;
-			id                           mpsTextureAllocator;
-			uint32_t                     mtlPixelFormat;
-			uint32_t                     mFlags : 31;
-			uint32_t                     mIsColorAttachment : 1;
+			id<MTLTexture> mtlTexture;
+			id<MTLTexture> __strong* pMtlUAVDescriptors;
+			id                       mpsTextureAllocator;
+			uint32_t                 mtlPixelFormat;
+			uint32_t                 mFlags : 31;
+			uint32_t                 mIsColorAttachment : 1;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11Resource*              pDxResource;
-			ID3D11ShaderResourceView*    pDxSRVDescriptor;
-			ID3D11UnorderedAccessView**  pDxUAVDescriptors;
-			uint64_t                     mPadA;
-			uint64_t                     mPadB;
+			ID3D11Resource*             pDxResource;
+			ID3D11ShaderResourceView*   pDxSRVDescriptor;
+			ID3D11UnorderedAccessView** pDxUAVDescriptors;
+			uint64_t                    mPadA;
+			uint64_t                    mPadB;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLuint						 mTexture;
-			GLenum						 mTarget;
-			GLenum						 mGlFormat;
-			GLenum						 mInternalFormat;
-			GLenum						 mType;
-			bool						 mStateModified;
+			GLuint mTexture;
+			GLenum mTarget;
+			GLenum mGlFormat;
+			GLenum mInternalFormat;
+			GLenum mType;
+			bool   mStateModified;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisTexture                 mStruct;
+		OrbisTexture mStruct;
 		/// Contains resource allocation info such as parent heap, offset in heap
 #endif
 #if defined(PROSPERO)
-		ProsperoTexture              mStruct;
+		ProsperoTexture mStruct;
 #endif
 	};
-	VirtualTexture*              pSvt;
+	VirtualTexture* pSvt;
 	/// Current state of the buffer
-	uint32_t                     mWidth : 16;
-	uint32_t                     mHeight : 16;
-	uint32_t                     mDepth : 16;
-	uint32_t                     mMipLevels : 5;
-	uint32_t                     mArraySizeMinusOne : 11;
-	uint32_t                     mFormat : 8;
+	uint32_t mWidth : 16;
+	uint32_t mHeight : 16;
+	uint32_t mDepth : 16;
+	uint32_t mMipLevels : 5;
+	uint32_t mArraySizeMinusOne : 11;
+	uint32_t mFormat : 8;
 	/// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pVkImageView
-	uint32_t                     mAspectMask : 4;
-	uint32_t                     mNodeIndex : 4;
-	uint32_t                     mUav : 1;
+	uint32_t mAspectMask : 4;
+	uint32_t mNodeIndex : 4;
+	uint32_t mUav : 1;
 	/// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
-	uint32_t                     mOwnsImage : 1;
+	uint32_t mOwnsImage : 1;
 } Texture;
 // One cache line
 COMPILE_ASSERT(sizeof(Texture) == 8 * sizeof(uint64_t));
@@ -1291,41 +1280,41 @@ typedef struct RenderTargetDesc
 
 typedef struct DEFINE_ALIGNED(RenderTarget, 64)
 {
-	Texture*                      pTexture;
-	union 
+	Texture* pTexture;
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE   mDxDescriptors;
-			uint32_t                      mDxDescriptorSize;
-			uint32_t                      mPadA;
-			uint64_t                      mPadB;
-			uint64_t                      mPadC;
+			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptors;
+			uint32_t                    mDxDescriptorSize;
+			uint32_t                    mPadA;
+			uint64_t                    mPadB;
+			uint64_t                    mPadC;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkImageView                   pVkDescriptor;
-			VkImageView*                  pVkSliceDescriptors;
-			uint32_t                      mId;
+			VkImageView  pVkDescriptor;
+			VkImageView* pVkSliceDescriptors;
+			uint32_t     mId;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			uint64_t                      mPadA[3];
+			uint64_t mPadA[3];
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
 			union
 			{
 				/// Resources
-				ID3D11RenderTargetView*  pDxRtvDescriptor;
-				ID3D11DepthStencilView*  pDxDsvDescriptor;
+				ID3D11RenderTargetView* pDxRtvDescriptor;
+				ID3D11DepthStencilView* pDxDsvDescriptor;
 			};
 			union
 			{
@@ -1333,43 +1322,45 @@ typedef struct DEFINE_ALIGNED(RenderTarget, 64)
 				ID3D11RenderTargetView** pDxRtvSliceDescriptors;
 				ID3D11DepthStencilView** pDxDsvSliceDescriptors;
 			};
-			uint64_t                      mPadA;
+			uint64_t mPadA;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLuint						  mType;
-			GLuint						  mFramebuffer;
-			GLuint						  mDepthTarget;
-			GLuint						  mStencilTarget;
+			GLuint mType;
+			GLuint mFramebuffer;
+			GLuint mDepthTarget;
+			GLuint mStencilTarget;
 		} mGLES;
 #endif
 #if defined(ORBIS)
 		struct
 		{
-			OrbisRenderTarget             mStruct;
-			Texture*                      pFragMask;
+			OrbisRenderTarget mStruct;
+			Texture*          pFragMask;
 		};
 #endif
 #if defined(PROSPERO)
 		struct
 		{
-			ProsperoRenderTarget          mStruct;
-			Texture*                      pFragMask;
+			ProsperoRenderTarget mStruct;
+			Texture*             pFragMask;
 		};
 #endif
 	};
-	ClearValue                    mClearValue;
-	uint32_t                      mArraySize : 16;
-	uint32_t                      mDepth : 16;
-	uint32_t                      mWidth : 16;
-	uint32_t                      mHeight : 16;
-	uint32_t                      mDescriptors : 20;
-	uint32_t                      mMipLevels : 10;
-	uint32_t                      mSampleQuality : 5;
-	TinyImageFormat               mFormat;
-	SampleCount                   mSampleCount;
+	ClearValue      mClearValue;
+	uint32_t        mArraySize : 16;
+	uint32_t        mDepth : 16;
+	uint32_t        mWidth : 16;
+	uint32_t        mHeight : 16;
+	uint32_t        mDescriptors : 20;
+	uint32_t        mMipLevels : 10;
+	uint32_t        mSampleQuality : 5;
+	TinyImageFormat mFormat;
+	SampleCount     mSampleCount;
+    bool            mVRMultiview;
+    bool            mVRFoveatedRendering;
 } RenderTarget;
 COMPILE_ASSERT(sizeof(RenderTarget) <= 32 * sizeof(uint64_t));
 
@@ -1395,71 +1386,71 @@ typedef struct SamplerDesc
 	CompareMode mCompareFunc;
 
 #if defined(VULKAN)
-   struct
-   {
-      TinyImageFormat         mFormat;
-      SamplerModelConversion  mModel;
-      SamplerRange            mRange;
-      SampleLocation          mChromaOffsetX;
-      SampleLocation          mChromaOffsetY;
-      FilterType              mChromaFilter;
-      bool                    mForceExplicitReconstruction;
-   } mSamplerConversionDesc;
+	struct
+	{
+		TinyImageFormat        mFormat;
+		SamplerModelConversion mModel;
+		SamplerRange           mRange;
+		SampleLocation         mChromaOffsetX;
+		SampleLocation         mChromaOffsetY;
+		FilterType             mChromaFilter;
+		bool                   mForceExplicitReconstruction;
+	} mSamplerConversionDesc;
 #endif
 } SamplerDesc;
 
 typedef struct DEFINE_ALIGNED(Sampler, 16)
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			/// Description for creating the Sampler descriptor for this sampler
-			D3D12_SAMPLER_DESC          mDxDesc;
+			D3D12_SAMPLER_DESC mDxDesc;
 			/// Descriptor handle of the Sampler in a CPU visible descriptor heap
 			D3D12_CPU_DESCRIPTOR_HANDLE mDxHandle;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
 			/// Native handle of the underlying resource
-			VkSampler                       pVkSampler;
-			VkSamplerYcbcrConversion        pVkSamplerYcbcrConversion;
-			VkSamplerYcbcrConversionInfo    mVkSamplerYcbcrConversionInfo;
+			VkSampler                    pVkSampler;
+			VkSamplerYcbcrConversion     pVkSamplerYcbcrConversion;
+			VkSamplerYcbcrConversionInfo mVkSamplerYcbcrConversionInfo;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
 			/// Native handle of the underlying resource
-			id<MTLSamplerState>         mtlSamplerState;
+			id<MTLSamplerState> mtlSamplerState;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
 			/// Native handle of the underlying resource
-			ID3D11SamplerState*         pSamplerState;
+			ID3D11SamplerState* pSamplerState;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLenum						mMinFilter;
-			GLenum						mMagFilter;
-			GLenum						mMipMapMode;
-			GLenum						mAddressS;
-			GLenum						mAddressT;
-			GLenum						mCompareFunc;
+			GLenum mMinFilter;
+			GLenum mMagFilter;
+			GLenum mMipMapMode;
+			GLenum mAddressS;
+			GLenum mAddressT;
+			GLenum mCompareFunc;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisSampler                mStruct;
+		OrbisSampler mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoSampler             mStruct;
+		ProsperoSampler mStruct;
 #endif
 	};
 } Sampler;
@@ -1473,10 +1464,9 @@ COMPILE_ASSERT(sizeof(Sampler) == 4 * sizeof(uint64_t));
 COMPILE_ASSERT(sizeof(Sampler) == 2 * sizeof(uint64_t));
 #endif
 
-
 typedef enum DescriptorUpdateFrequency
 {
-    DESCRIPTOR_UPDATE_FREQ_NONE = 0,
+	DESCRIPTOR_UPDATE_FREQ_NONE = 0,
 	DESCRIPTOR_UPDATE_FREQ_PER_FRAME,
 	DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
 	DESCRIPTOR_UPDATE_FREQ_PER_DRAW,
@@ -1487,62 +1477,62 @@ typedef enum DescriptorUpdateFrequency
 typedef struct DEFINE_ALIGNED(DescriptorInfo, 16)
 {
 #if defined(ORBIS)
-	OrbisDescriptorInfo       mStruct;
+	OrbisDescriptorInfo mStruct;
 #elif defined(PROSPERO)
-	ProsperoDescriptorInfo    mStruct;
+	ProsperoDescriptorInfo mStruct;
 #else
-	const char*               pName;
-	uint32_t                  mType : 21;
-	uint32_t                  mDim : 4;
-	uint32_t                  mRootDescriptor : 1;
-	uint32_t                  mUpdateFrequency : 3;
-	uint32_t                  mSize;
+	const char* pName;
+	uint32_t    mType : 21;
+	uint32_t    mDim : 4;
+	uint32_t    mRootDescriptor : 1;
+	uint32_t    mUpdateFrequency : 3;
+	uint32_t    mSize;
 	/// Index in the descriptor set
-	uint32_t                  mIndexInParent;
-	uint32_t                  mHandleIndex;
-	union 
+	uint32_t mIndexInParent;
+	uint32_t mHandleIndex;
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			uint64_t                  mPadA;
+			uint64_t mPadA;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			uint32_t                  mVkType;
-			uint32_t                  mReg : 20;
-			uint32_t                  mRootDescriptorIndex : 3;
-			uint32_t                  mVkStages : 8;
+			uint32_t mVkType;
+			uint32_t mReg : 20;
+			uint32_t mRootDescriptorIndex : 3;
+			uint32_t mVkStages : 8;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			id<MTLSamplerState>       mtlStaticSampler;
-			uint32_t                  mUsedStages : 6;
-			uint32_t                  mReg : 10;
-			uint32_t                  mIsArgumentBufferField : 1;
-			MTLResourceUsage          mUsage;
-			uint64_t                  mPadB[2];
+			id<MTLSamplerState> mtlStaticSampler;
+			uint32_t            mUsedStages : 6;
+			uint32_t            mReg : 10;
+			uint32_t            mIsArgumentBufferField : 1;
+			MTLResourceUsage    mUsage;
+			uint64_t            mPadB[2];
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			uint32_t                  mUsedStages : 6;
-			uint32_t                  mReg : 20;
-			uint32_t                  mPadA;
+			uint32_t mUsedStages : 6;
+			uint32_t mReg : 20;
+			uint32_t mPadA;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
 			union
 			{
-				uint32_t			  mGlType;
-				uint32_t			  mUBOSize;
+				uint32_t mGlType;
+				uint32_t mUBOSize;
 			};
 		} mGLES;
 #endif
@@ -1568,47 +1558,47 @@ MAKE_ENUM_FLAG(uint32_t, RootSignatureFlags)
 
 typedef struct RootSignatureDesc
 {
-	Shader**               ppShaders;
-	uint32_t               mShaderCount;
-	uint32_t               mMaxBindlessTextures;
-	const char**           ppStaticSamplerNames;
-	Sampler**              ppStaticSamplers;
-	uint32_t               mStaticSamplerCount;
-	RootSignatureFlags     mFlags;
+	Shader**           ppShaders;
+	uint32_t           mShaderCount;
+	uint32_t           mMaxBindlessTextures;
+	const char**       ppStaticSamplerNames;
+	Sampler**          ppStaticSamplers;
+	uint32_t           mStaticSamplerCount;
+	RootSignatureFlags mFlags;
 } RootSignatureDesc;
 
 typedef struct DEFINE_ALIGNED(RootSignature, 64)
 {
 	/// Number of descriptors declared in the root signature layout
-	uint32_t                   mDescriptorCount;
+	uint32_t mDescriptorCount;
 	/// Graphics or Compute
-	PipelineType               mPipelineType;
+	PipelineType mPipelineType;
 	/// Array of all descriptors declared in the root signature layout
-	DescriptorInfo*            pDescriptors;
+	DescriptorInfo* pDescriptors;
 	/// Translates hash of descriptor name to descriptor index in pDescriptors array
-	DescriptorIndexMap*        pDescriptorNameToIndexMap;
-	union 
+	DescriptorIndexMap* pDescriptorNameToIndexMap;
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			ID3D12RootSignature*       pDxRootSignature;
-			uint8_t                    mDxRootConstantRootIndices[MAX_ROOT_CONSTANTS_PER_ROOTSIGNATURE];
-			uint8_t                    mDxViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint8_t                    mDxSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint8_t                    mDxRootDescriptorRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint32_t                   mDxCumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint32_t                   mDxCumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint16_t                   mDxViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint16_t                   mDxSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint8_t                    mDxRootDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint32_t                   mDxRootConstantCount;
-			uint64_t                   mPadA;
-			uint64_t                   mPadB;
+			ID3D12RootSignature* pDxRootSignature;
+			uint8_t              mDxRootConstantRootIndices[MAX_ROOT_CONSTANTS_PER_ROOTSIGNATURE];
+			uint8_t              mDxViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint8_t              mDxSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint8_t              mDxRootDescriptorRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint32_t             mDxCumulativeViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint32_t             mDxCumulativeSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint16_t             mDxViewDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint16_t             mDxSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint8_t              mDxRootDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint32_t             mDxRootConstantCount;
+			uint64_t             mPadA;
+			uint64_t             mPadB;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
 			VkDescriptorSetLayout      mVkDescriptorSetLayouts[DESCRIPTOR_UPDATE_FREQ_COUNT];
 			uint32_t                   mVkCumulativeDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -1625,45 +1615,46 @@ typedef struct DEFINE_ALIGNED(RootSignature, 64)
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			NSMutableArray<MTLArgumentDescriptor*>* mArgumentDescriptors[DESCRIPTOR_UPDATE_FREQ_COUNT] API_AVAILABLE(macos(10.13), ios(11.0));
-			uint32_t                   mRootTextureCount : 10;
-			uint32_t                   mRootBufferCount : 10;
-			uint32_t                   mRootSamplerCount : 10;
+			NSMutableArray<MTLArgumentDescriptor*>*
+					 mArgumentDescriptors[DESCRIPTOR_UPDATE_FREQ_COUNT] API_AVAILABLE(macos(10.13), ios(11.0));
+			uint32_t mRootTextureCount : 10;
+			uint32_t mRootBufferCount : 10;
+			uint32_t mRootSamplerCount : 10;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11SamplerState**       ppStaticSamplers;
-			uint32_t*                  pStaticSamplerSlots;
-			ShaderStage*               pStaticSamplerStages;
-			uint32_t                   mStaticSamplerCount;
-			uint32_t                   mSrvCount : 10;
-			uint32_t                   mUavCount : 10;
-			uint32_t                   mCbvCount : 10;
-			uint32_t                   mSamplerCount : 10;
-			uint32_t                   mDynamicCbvCount : 10;
-			uint32_t                   mPadA;
+			ID3D11SamplerState** ppStaticSamplers;
+			uint32_t*            pStaticSamplerSlots;
+			ShaderStage*         pStaticSamplerStages;
+			uint32_t             mStaticSamplerCount;
+			uint32_t             mSrvCount : 10;
+			uint32_t             mUavCount : 10;
+			uint32_t             mCbvCount : 10;
+			uint32_t             mSamplerCount : 10;
+			uint32_t             mDynamicCbvCount : 10;
+			uint32_t             mPadA;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			uint32_t				   mProgramCount : 6;
-			uint32_t				   mVariableCount : 10;
-			uint32_t*				   pProgramTargets;
-			int32_t*				   pDescriptorGlLocations;
-			struct GlVariable*		   pVariables;
-			Sampler*				   pSampler;
+			uint32_t           mProgramCount : 6;
+			uint32_t           mVariableCount : 10;
+			uint32_t*          pProgramTargets;
+			int32_t*           pDescriptorGlLocations;
+			struct GlVariable* pVariables;
+			Sampler*           pSampler;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisRootSignature         mStruct;
+		OrbisRootSignature mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoRootSignature      mStruct;
+		ProsperoRootSignature mStruct;
 #endif
 	};
 } RootSignature;
@@ -1692,18 +1683,18 @@ typedef struct DescriptorData
 			const uint64_t* pSizes;
 		};
 
-        // Descriptor set buffer extraction options
-        struct
-        {
-            uint32_t    mDescriptorSetBufferIndex;
-            Shader*     mDescriptorSetShader;
-            ShaderStage mDescriptorSetShaderStage;
-        };
+		// Descriptor set buffer extraction options
+		struct
+		{
+			Shader*     mDescriptorSetShader;
+			uint32_t    mDescriptorSetBufferIndex;
+			ShaderStage mDescriptorSetShaderStage;
+		};
 
 		struct
 		{
 			uint32_t mUAVMipSlice;
-			bool mBindMipChain;
+			bool     mBindMipChain;
 		};
 		bool mBindStencilResource;
 	};
@@ -1716,7 +1707,7 @@ typedef struct DescriptorData
 		Sampler** ppSamplers;
 		/// Array of buffer descriptors (srv, uav and cbv buffers)
 		Buffer** ppBuffers;
-		/// Array of pipline descriptors
+		/// Array of pipeline descriptors
 		Pipeline** ppPipelines;
 		/// DescriptorSet buffer extraction
 		DescriptorSet** ppDescriptorSet;
@@ -1726,124 +1717,124 @@ typedef struct DescriptorData
 	/// Number of resources in the descriptor(applies to array of textures, buffers,...)
 	uint32_t mCount = 0;
 	uint32_t mIndex = (uint32_t)-1;
-    bool     mExtractBuffer = false;
+	bool     mExtractBuffer = false;
 } DescriptorData;
 
 typedef struct DEFINE_ALIGNED(DescriptorSet, 64)
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			/// Start handle to cbv srv uav descriptor table
-			uint64_t                      mCbvSrvUavHandle;
+			uint64_t mCbvSrvUavHandle;
 			/// Start handle to sampler descriptor table
-			uint64_t                      mSamplerHandle;
+			uint64_t mSamplerHandle;
 			/// Stride of the cbv srv uav descriptor table (number of descriptors * descriptor size)
-			uint32_t                      mCbvSrvUavStride;
+			uint32_t mCbvSrvUavStride;
 			/// Stride of the sampler descriptor table (number of descriptors * descriptor size)
-			uint32_t                      mSamplerStride;
-			const RootSignature*          pRootSignature;
-			D3D12_GPU_VIRTUAL_ADDRESS*    pRootAddresses;
-			ID3D12RootSignature*          pRootSignatureHandle;
-			uint64_t                      mMaxSets : 16;
-			uint64_t                      mUpdateFrequency : 3;
-			uint64_t                      mNodeIndex : 4;
-			uint64_t                      mRootAddressCount : 1;
-			uint64_t                      mCbvSrvUavRootIndex : 4;
-			uint64_t                      mSamplerRootIndex : 4;
-			uint64_t                      mRootDescriptorRootIndex : 4;
-			uint64_t                      mPipelineType : 3;
+			uint32_t                   mSamplerStride;
+			const RootSignature*       pRootSignature;
+			D3D12_GPU_VIRTUAL_ADDRESS* pRootAddresses;
+			ID3D12RootSignature*       pRootSignatureHandle;
+			uint64_t                   mMaxSets : 16;
+			uint64_t                   mUpdateFrequency : 3;
+			uint64_t                   mNodeIndex : 4;
+			uint64_t                   mRootAddressCount : 1;
+			uint64_t                   mCbvSrvUavRootIndex : 4;
+			uint64_t                   mSamplerRootIndex : 4;
+			uint64_t                   mRootDescriptorRootIndex : 4;
+			uint64_t                   mPipelineType : 3;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkDescriptorSet*              pHandles;
-			const RootSignature*          pRootSignature;
+			VkDescriptorSet*     pHandles;
+			const RootSignature* pRootSignature;
 			/// Values passed to vkUpdateDescriptorSetWithTemplate. Initialized to default descriptor values.
-			union DescriptorUpdateData**  ppUpdateData;
-			struct SizeOffset*            pDynamicSizeOffsets;
-			uint32_t                      mMaxSets;
-			uint8_t                       mDynamicOffsetCount;
-			uint8_t                       mUpdateFrequency;
-			uint8_t                       mNodeIndex;
-			uint8_t                       mPadA;
+			union DescriptorUpdateData** ppUpdateData;
+			struct SizeOffset*           pDynamicSizeOffsets;
+			uint32_t                     mMaxSets;
+			uint8_t                      mDynamicOffsetCount;
+			uint8_t                      mUpdateFrequency;
+			uint8_t                      mNodeIndex;
+			uint8_t                      mPadA;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			id<MTLArgumentEncoder>        mArgumentEncoder API_AVAILABLE(macos(10.13), ios(11.0));
-			Buffer*                       mArgumentBuffer API_AVAILABLE(macos(10.13), ios(11.0));
-			const RootSignature*          pRootSignature;
+			id<MTLArgumentEncoder> mArgumentEncoder API_AVAILABLE(macos(10.13), ios(11.0));
+			Buffer* mArgumentBuffer API_AVAILABLE(macos(10.13), ios(11.0));
+			const RootSignature*    pRootSignature;
 			/// Descriptors that are bound without argument buffers
 			/// This is necessary since there are argument buffers bugs in some iOS Metal drivers which causes shader compiler crashes or incorrect shader generation. This makes it necessary to keep fallback descriptor binding path alive
-			struct RootDescriptorData*    pRootDescriptorData;
-			uint32_t                      mChunkSize;
-			uint32_t                      mMaxSets;
-			uint8_t                       mUpdateFrequency;
-			uint8_t                       mNodeIndex;
-			uint8_t                       mStages;
+			struct RootDescriptorData* pRootDescriptorData;
+			uint32_t                   mChunkSize;
+			uint32_t                   mMaxSets;
+			uint8_t                    mUpdateFrequency;
+			uint8_t                    mNodeIndex;
+			uint8_t                    mStages;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			struct DescriptorDataArray*   pHandles;
-			struct CBV**                  pDynamicCBVs;
-			uint32_t*                     pDynamicCBVsCapacity;
-			uint32_t*                     pDynamicCBVsCount;
-			uint32_t*                     pDynamicCBVsPrevCount;
-			const RootSignature*          pRootSignature;
-			uint16_t                      mMaxSets;
+			struct DescriptorDataArray* pHandles;
+			struct CBV**                pDynamicCBVs;
+			uint32_t*                   pDynamicCBVsCapacity;
+			uint32_t*                   pDynamicCBVsCount;
+			uint32_t*                   pDynamicCBVsPrevCount;
+			const RootSignature*        pRootSignature;
+			uint16_t                    mMaxSets;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			struct DescriptorDataArray*   pHandles;
-			uint8_t                       mUpdateFrequency;
-			const RootSignature*          pRootSignature;
-			uint16_t                      mMaxSets;
+			struct DescriptorDataArray* pHandles;
+			uint8_t                     mUpdateFrequency;
+			const RootSignature*        pRootSignature;
+			uint16_t                    mMaxSets;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisDescriptorSet            mStruct;
+		OrbisDescriptorSet mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoDescriptorSet         mStruct;
+		ProsperoDescriptorSet mStruct;
 #endif
 	};
 } DescriptorSet;
 
 typedef struct CmdPoolDesc
 {
-	Queue*      pQueue;
-	bool        mTransient;
+	Queue* pQueue;
+	bool   mTransient;
 } CmdPoolDesc;
 
 typedef struct CmdPool
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union	
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
 		ID3D12CommandAllocator* pDxCmdAlloc;
 #endif
 #if defined(VULKAN)
-		VkCommandPool           pVkCmdPool;
+		VkCommandPool pVkCmdPool;
 #endif
 #if defined(GLES)
-		struct CmdCache*		pCmdCache;
+		struct CmdCache* pCmdCache;
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
-	
-	Queue*                  pQueue;
+
+	Queue* pQueue;
 } CmdPool;
 
 typedef struct CmdDesc
@@ -1852,61 +1843,61 @@ typedef struct CmdDesc
 #if defined(ORBIS) || defined(PROSPERO)
 	uint32_t mMaxSize;
 #endif
-	bool     mSecondary;
+	bool mSecondary;
 } CmdDesc;
 
 typedef enum MarkerType
 {
 	MARKER_TYPE_DEFAULT = 0x0,
 	MARKER_TYPE_IN = 0x1,
-	MARKER_TYPE_OUT = 0x2, 
+	MARKER_TYPE_OUT = 0x2,
 	MARKER_TYPE_IN_OUT = 0x3,
 } MarkerType;
 
 typedef struct DEFINE_ALIGNED(Cmd, 64)
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 #if defined(XBOX)
-			DmaCmd                       mDma;
+			DmaCmd mDma;
 #endif
-			ID3D12GraphicsCommandList*   pDxCmdList;
+			ID3D12GraphicsCommandList* pDxCmdList;
 
 			// Cached in beginCmd to avoid fetching them during rendering
-			struct DescriptorHeap*       pBoundHeaps[2];
-			D3D12_GPU_DESCRIPTOR_HANDLE  mBoundHeapStartHandles[2];
+			struct DescriptorHeap*      pBoundHeaps[2];
+			D3D12_GPU_DESCRIPTOR_HANDLE mBoundHeapStartHandles[2];
 
 			// Command buffer state
-			const ID3D12RootSignature*   pBoundRootSignature;
-			DescriptorSet*               pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint16_t                     mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
-			uint32_t                     mNodeIndex : 4;
-			uint32_t                     mType : 3;
-			CmdPool*                     pCmdPool;
-			uint32_t                     mPadA;
+			const ID3D12RootSignature* pBoundRootSignature;
+			DescriptorSet*             pBoundDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint16_t                   mBoundDescriptorSetIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
+			uint32_t                   mNodeIndex : 4;
+			uint32_t                   mType : 3;
+			CmdPool*                   pCmdPool;
+			uint32_t                   mPadA;
 #if !defined(XBOX)
-			uint64_t                     mPadB;
+			uint64_t mPadB;
 #endif
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkCommandBuffer              pVkCmdBuf;
-			VkRenderPass                 pVkActiveRenderPass;
-			VkPipelineLayout             pBoundPipelineLayout;
-			uint32_t                     mNodeIndex : 4;
-			uint32_t                     mType : 3;
-			uint32_t                     mPadA;
-			CmdPool*                     pCmdPool;
-			uint64_t                     mPadB[9];
+			VkCommandBuffer  pVkCmdBuf;
+			VkRenderPass     pVkActiveRenderPass;
+			VkPipelineLayout pBoundPipelineLayout;
+			uint32_t         mNodeIndex : 4;
+			uint32_t         mType : 3;
+			uint32_t         mPadA;
+			CmdPool*         pCmdPool;
+			uint64_t         mPadB[9];
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
 			id<MTLCommandBuffer>         mtlCommandBuffer;
 			id<MTLRenderCommandEncoder>  mtlRenderEncoder;
@@ -1914,48 +1905,54 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
 			id<MTLBlitCommandEncoder>    mtlBlitEncoder;
 			MTLRenderPassDescriptor*     pRenderPassDesc;
 			Shader*                      pShader;
-			NOREFS id<MTLBuffer>         mSelectedIndexBuffer;
-			uint64_t                     mSelectedIndexBufferOffset;
+			NOREFS id<MTLBuffer> mSelectedIndexBuffer;
+			uint64_t             mSelectedIndexBufferOffset;
 			// We have to track color attachments which will be read by shader
 			// Metal documentation says to call useResource on these as late as possible
 			// This will avoid possible decompression of all color attachments inside the heap
-			NOREFS id<MTLResource>*      pColorAttachments;
-			QueryPool*                   pLastFrameQuery;
-			uint32_t                     mIndexType : 1;
-			uint32_t                     mIndexStride : 3;
-			uint32_t                     mSelectedPrimitiveType : 4;
-			uint32_t                     mPipelineType : 3;
-			uint32_t                     mColorAttachmentCount : 10;
-			uint32_t                     mColorAttachmentCapacity : 10;
-			uint64_t                     mPadA[4];
+			NOREFS id<MTLResource>* pColorAttachments;
+			QueryPool*              pLastFrameQuery;
+			uint32_t                mIndexType : 1;
+			uint32_t                mIndexStride : 3;
+			uint32_t                mSelectedPrimitiveType : 4;
+			uint32_t                mPipelineType : 3;
+			uint32_t                mColorAttachmentCount : 10;
+			uint32_t                mColorAttachmentCapacity : 10;
+#ifdef ENABLE_DRAW_INDEX_BASE_VERTEX_FALLBACK
+			uint64_t				mOffsets[MAX_VERTEX_BINDINGS];
+			uint32_t				mStrides[MAX_VERTEX_BINDINGS];
+			uint32_t        		mFirstVertex;
+#else
+			uint64_t                mPadA[4];
+#endif
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11Buffer*                pRootConstantBuffer;
-			ID3D11Buffer*                pTransientConstantBuffers[8];
-			uint8_t*                     pDescriptorCache;
-			uint32_t                     mDescriptorCacheOffset;
-			uint32_t                     mTransientConstantBufferIndex;
-			uint64_t                     mPadB[10];
+			ID3D11Buffer* pRootConstantBuffer;
+			ID3D11Buffer* pTransientConstantBuffers[8];
+			uint8_t*      pDescriptorCache;
+			uint32_t      mDescriptorCacheOffset;
+			uint32_t      mTransientConstantBufferIndex;
+			uint64_t      mPadB[10];
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			CmdPool*                     pCmdPool;
+			CmdPool* pCmdPool;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisCmd                     mStruct;
+		OrbisCmd mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoCmd                  mStruct;
+		ProsperoCmd mStruct;
 #endif
 	};
-	Renderer*                    pRenderer;
-	Queue*                       pQueue;
+	Renderer* pRenderer;
+	Queue*    pQueue;
 } Cmd;
 COMPILE_ASSERT(sizeof(Cmd) <= 64 * sizeof(uint64_t));
 
@@ -1968,29 +1965,29 @@ typedef enum FenceStatus
 
 typedef struct Fence
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			ID3D12Fence*         pDxFence;
-			HANDLE               pDxWaitIdleFenceEvent;
-			uint64_t             mFenceValue;
-			uint64_t             mPadA;
+			ID3D12Fence* pDxFence;
+			HANDLE       pDxWaitIdleFenceEvent;
+			uint64_t     mFenceValue;
+			uint64_t     mPadA;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkFence              pVkFence;
-			uint32_t             mSubmitted : 1;
-			uint32_t             mPadA;
-			uint64_t             mPadB;
-			uint64_t             mPadC;
+			VkFence  pVkFence;
+			uint32_t mSubmitted : 1;
+			uint32_t mPadA;
+			uint64_t mPadB;
+			uint64_t mPadC;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
 			dispatch_semaphore_t pMtlSemaphore;
 			uint32_t             mSubmitted : 1;
@@ -2000,33 +1997,33 @@ typedef struct Fence
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11Query*         pDX11Query;
-			uint32_t             mSubmitted : 1;
-			uint32_t             mPadA;
-			uint64_t             mPadB;
-			uint64_t             mPadC;
+			ID3D11Query* pDX11Query;
+			uint32_t     mSubmitted : 1;
+			uint32_t     mPadA;
+			uint64_t     mPadB;
+			uint64_t     mPadC;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			uint32_t             mSubmitted : 1;
+			uint32_t mSubmitted : 1;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisFence           mStruct;
+		OrbisFence mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoFence        mStruct;
+		ProsperoFence mStruct;
 #endif
 	};
 } Fence;
 
 typedef struct Semaphore
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
 		// DirectX12 does not have a concept of semaphores
@@ -2044,45 +2041,45 @@ typedef struct Semaphore
 
 		// queuePresent does not use the wait semaphore since the swapchain Present function
 		// already does the synchronization in this case
-		struct 
+		struct
 		{
-			ID3D12Fence*         pDxFence;
-			HANDLE               pDxWaitIdleFenceEvent;
-			uint64_t             mFenceValue;
-			uint64_t             mPadA;
+			ID3D12Fence* pDxFence;
+			HANDLE       pDxWaitIdleFenceEvent;
+			uint64_t     mFenceValue;
+			uint64_t     mPadA;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkSemaphore          pVkSemaphore;
-			uint32_t             mCurrentNodeIndex : 5;
-			uint32_t             mSignaled : 1;
-			uint32_t             mPadA;
-			uint64_t             mPadB;
-			uint64_t             mPadC;
+			VkSemaphore pVkSemaphore;
+			uint32_t    mCurrentNodeIndex : 5;
+			uint32_t    mSignaled : 1;
+			uint32_t    mPadA;
+			uint64_t    mPadB;
+			uint64_t    mPadC;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			id<MTLEvent>         pMtlSemaphore API_AVAILABLE(macos(10.14), ios(12.0));
-			uint32_t             mSignaled;
-			uint32_t             mPadA;
-			uint64_t             mPadB;
+			id<MTLEvent> pMtlSemaphore API_AVAILABLE(macos(10.14), ios(12.0));
+			uint32_t                   mSignaled;
+			uint32_t                   mPadA;
+			uint64_t                   mPadB;
 		};
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			uint32_t             mSignaled : 1;
+			uint32_t mSignaled : 1;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisFence           mStruct;
+		OrbisFence mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoSemaphore    mStruct;
+		ProsperoSemaphore mStruct;
 #endif
 	};
 } Semaphore;
@@ -2102,35 +2099,35 @@ typedef struct Queue
 #if defined(DIRECT3D12)
 		struct
 		{
-			ID3D12CommandQueue*  pDxQueue;
-			Fence*               pFence;
+			ID3D12CommandQueue* pDxQueue;
+			Fence*              pFence;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
 		struct
 		{
-			VkQueue              pVkQueue;
-			Mutex*               pSubmitMutex;
-			uint32_t             mFlags;
-			float                mTimestampPeriod;
-			uint32_t             mVkQueueFamilyIndex : 5;
-			uint32_t             mVkQueueIndex : 5;
-			uint32_t             mGpuMode : 3;
+			VkQueue  pVkQueue;
+			Mutex*   pSubmitMutex;
+			uint32_t mFlags;
+			float    mTimestampPeriod;
+			uint32_t mVkQueueFamilyIndex : 5;
+			uint32_t mVkQueueIndex : 5;
+			uint32_t mGpuMode : 3;
 		} mVulkan;
 #endif
 #if defined(GLES)
 		struct
 		{
-			struct CmdCache*	pCmdCache;
+			struct CmdCache* pCmdCache;
 		} mGLES;
 #endif
 #if defined(METAL)
 		struct
 		{
-			id<MTLCommandQueue>  mtlCommandQueue;
-			id<MTLFence>         mtlQueueFence API_AVAILABLE(macos(10.13), ios(10.0));
-			uint32_t             mBarrierFlags;
-			uint32_t             mPadB;
+			id<MTLCommandQueue> mtlCommandQueue;
+			id<MTLFence> mtlQueueFence API_AVAILABLE(macos(10.13), ios(10.0));
+			uint32_t                   mBarrierFlags;
+			uint32_t                   mPadB;
 		};
 #endif
 #if defined(DIRECT3D11)
@@ -2142,14 +2139,14 @@ typedef struct Queue
 		} mD3D11;
 #endif
 #if defined(ORBIS)
-		OrbisQueue           mStruct;
+		OrbisQueue mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoQueue        mStruct;
+		ProsperoQueue mStruct;
 #endif
 	};
-	uint32_t             mType : 3;
-	uint32_t             mNodeIndex : 4;
+	uint32_t mType : 3;
+	uint32_t mNodeIndex : 4;
 } Queue;
 
 typedef struct ShaderMacro
@@ -2186,23 +2183,23 @@ typedef struct BinaryShaderStageDesc
 	ProsperoBinaryShaderStageDesc mStruct;
 #else
 	/// Byte code array
-	void*                         pByteCode;
-	uint32_t                      mByteCodeSize;
-	const char*                   pEntryPoint;
+	void*       pByteCode;
+	uint32_t    mByteCodeSize;
+	const char* pEntryPoint;
 #if defined(METAL)
 	// Shader source is needed for reflection
-	char*                         pSource;
-	uint32_t                      mSourceSize;
+	char*    pSource;
+	uint32_t mSourceSize;
 #endif
 #if defined(GLES)
-	GLuint						 mShader;
+	GLuint   mShader;
 #endif
 #endif
 } BinaryShaderStageDesc;
 
 typedef struct BinaryShaderDesc
 {
-	ShaderStage           mStages;
+	ShaderStage mStages;
 	/// Specify whether shader will own byte code memory
 	uint32_t              mOwnByteCode : 1;
 	BinaryShaderStageDesc mVert;
@@ -2215,37 +2212,38 @@ typedef struct BinaryShaderDesc
 
 typedef struct Shader
 {
-	ShaderStage                   mStages;
-	uint32_t                      mNumThreadsPerGroup[3];
-	union 
+	ShaderStage mStages : 31;
+    bool mIsMultiviewVR : 1;
+	uint32_t    mNumThreadsPerGroup[3];
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			IDxcBlobEncoding**            pShaderBlobs;
-			LPCWSTR*                      pEntryNames;
+			IDxcBlobEncoding** pShaderBlobs;
+			LPCWSTR*           pEntryNames;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkShaderModule*               pShaderModules;
-			char**                        pEntryNames;
+			VkShaderModule* pShaderModules;
+			char**          pEntryNames;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			id<MTLFunction>               mtlVertexShader;
-			id<MTLFunction>               mtlFragmentShader;
-			id<MTLFunction>               mtlComputeShader;
-			id<MTLLibrary>		          mtlLibrary;
-			char**                        pEntryNames;
-			uint32_t                      mTessellation : 1;
+			id<MTLFunction> mtlVertexShader;
+			id<MTLFunction> mtlFragmentShader;
+			id<MTLFunction> mtlComputeShader;
+			id<MTLLibrary>  mtlLibrary;
+			char**          pEntryNames;
+			uint32_t        mTessellation : 1;
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
 			union
 			{
@@ -2257,25 +2255,25 @@ typedef struct Shader
 					ID3D11DomainShader*   pDxDomainShader;
 					ID3D11HullShader*     pDxHullShader;
 				};
-				ID3D11ComputeShader*      pDxComputeShader;
+				ID3D11ComputeShader* pDxComputeShader;
 			};
-			ID3DBlob*                     pDxInputSignature;
+			ID3DBlob* pDxInputSignature;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLuint						  mProgram;
+			GLuint mProgram;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisShader                   mStruct;
+		OrbisShader mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoShader                mStruct;
+		ProsperoShader mStruct;
 #endif
 	};
-	PipelineReflection*           pReflection;
+	PipelineReflection* pReflection;
 } Shader;
 
 typedef struct BlendStateDesc
@@ -2326,9 +2324,9 @@ typedef struct RasterizerStateDesc
 	int32_t   mDepthBias;
 	float     mSlopeScaledDepthBias;
 	FillMode  mFillMode;
+	FrontFace mFrontFace;
 	bool      mMultiSample;
 	bool      mScissor;
-	FrontFace mFrontFace;
 	bool      mDepthClampEnable;
 } RasterizerStateDesc;
 
@@ -2341,14 +2339,14 @@ typedef enum VertexAttribRate
 
 typedef struct VertexAttrib
 {
-	ShaderSemantic    mSemantic;
-	uint32_t          mSemanticNameLength;
-	char              mSemanticName[MAX_SEMANTIC_NAME_LENGTH];
-	TinyImageFormat	  mFormat;
-	uint32_t          mBinding;
-	uint32_t          mLocation;
-	uint32_t          mOffset;
-	VertexAttribRate  mRate;
+	ShaderSemantic   mSemantic;
+	uint32_t         mSemanticNameLength;
+	char             mSemanticName[MAX_SEMANTIC_NAME_LENGTH];
+	TinyImageFormat  mFormat;
+	uint32_t         mBinding;
+	uint32_t         mLocation;
+	uint32_t         mOffset;
+	VertexAttribRate mRate;
 
 } VertexAttrib;
 
@@ -2371,40 +2369,40 @@ typedef struct VertexLayout
 /************************************************************************/
 typedef struct RaytracingPipelineDesc
 {
-	Raytracing*			pRaytracing;
-	RootSignature*		pGlobalRootSignature;
+	Raytracing*         pRaytracing;
+	RootSignature*      pGlobalRootSignature;
 	Shader*             pRayGenShader;
-	RootSignature*		pRayGenRootSignature;
+	RootSignature*      pRayGenRootSignature;
 	Shader**            ppMissShaders;
-	RootSignature**		ppMissRootSignatures;
+	RootSignature**     ppMissRootSignatures;
 	RaytracingHitGroup* pHitGroups;
-	RootSignature*		pEmptyRootSignature;
-	unsigned			mMissShaderCount;
-	unsigned			mHitGroupCount;
+	RootSignature*      pEmptyRootSignature;
+	unsigned            mMissShaderCount;
+	unsigned            mHitGroupCount;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mPayloadSize;
+	unsigned mPayloadSize;
 	// #TODO : Remove this after adding shader reflection for raytracing shaders
-	unsigned			mAttributeSize;
-	unsigned			mMaxTraceRecursionDepth;
-	unsigned            mMaxRaysCount;
+	unsigned mAttributeSize;
+	unsigned mMaxTraceRecursionDepth;
+	unsigned mMaxRaysCount;
 } RaytracingPipelineDesc;
-
 
 typedef struct GraphicsPipelineDesc
 {
-	Shader*                pShaderProgram;
-	RootSignature*         pRootSignature;
-	VertexLayout*          pVertexLayout;
-	BlendStateDesc*        pBlendState;
-	DepthStateDesc*        pDepthState;
-	RasterizerStateDesc*   pRasterizerState;
-	TinyImageFormat*       pColorFormats;
-	uint32_t               mRenderTargetCount;
-	SampleCount            mSampleCount;
-	uint32_t               mSampleQuality;
-	TinyImageFormat        mDepthStencilFormat;
-	PrimitiveTopology      mPrimitiveTopo;
-	bool                   mSupportIndirectCommandBuffer;
+	Shader*              pShaderProgram;
+	RootSignature*       pRootSignature;
+	VertexLayout*        pVertexLayout;
+	BlendStateDesc*      pBlendState;
+	DepthStateDesc*      pDepthState;
+	RasterizerStateDesc* pRasterizerState;
+	TinyImageFormat*     pColorFormats;
+	uint32_t             mRenderTargetCount;
+	SampleCount          mSampleCount;
+	uint32_t             mSampleQuality;
+	TinyImageFormat      mDepthStencilFormat;
+	PrimitiveTopology    mPrimitiveTopo;
+	bool                 mSupportIndirectCommandBuffer;
+    bool                 mVRFoveatedRendering;
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc
@@ -2415,17 +2413,17 @@ typedef struct ComputePipelineDesc
 
 typedef struct PipelineDesc
 {
-	PipelineType                mType;
 	union
 	{
-		ComputePipelineDesc     mComputeDesc;
-		GraphicsPipelineDesc    mGraphicsDesc;
-		RaytracingPipelineDesc  mRaytracingDesc;
+		ComputePipelineDesc    mComputeDesc;
+		GraphicsPipelineDesc   mGraphicsDesc;
+		RaytracingPipelineDesc mRaytracingDesc;
 	};
-	PipelineCache*              pCache;
-	void*                       pPipelineExtensions;
-	uint32_t                    mExtensionCount;
-	const char*                 pName;
+	PipelineCache* pCache;
+	void*          pPipelineExtensions;
+	const char*    pName;
+	PipelineType   mType;
+	uint32_t       mExtensionCount;
 } PipelineDesc;
 
 #ifdef METAL
@@ -2434,35 +2432,35 @@ typedef struct RaytracingPipeline RaytracingPipeline;
 
 typedef struct DEFINE_ALIGNED(Pipeline, 64)
 {
-	union 
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
-			ID3D12PipelineState*        pDxPipelineState;
+			ID3D12PipelineState* pDxPipelineState;
 #ifdef ENABLE_RAYTRACING
-			ID3D12StateObject*	        pDxrPipeline;
+			ID3D12StateObject* pDxrPipeline;
 #endif
-			ID3D12RootSignature*        pRootSignature;
-			PipelineType                mType;
-			D3D_PRIMITIVE_TOPOLOGY      mDxPrimitiveTopology;
-			uint64_t                    mPadB[3];
+			ID3D12RootSignature*   pRootSignature;
+			PipelineType           mType;
+			D3D_PRIMITIVE_TOPOLOGY mDxPrimitiveTopology;
+			uint64_t               mPadB[3];
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkPipeline                  pVkPipeline;
-			PipelineType                mType;
-			uint32_t                    mShaderStageCount;
+			VkPipeline   pVkPipeline;
+			PipelineType mType;
+			uint32_t     mShaderStageCount;
 			//In DX12 this information is stored in ID3D12StateObject.
 			//But for Vulkan we need to store it manually
-			const char**                ppShaderStageNames;
-			uint64_t                    mPadB[4];
+			const char** ppShaderStageNames;
+			uint64_t     mPadB[4];
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
 			Shader*                     pShader;
 			id<MTLRenderPipelineState>  mtlRenderPipelineState;
@@ -2481,46 +2479,46 @@ typedef struct DEFINE_ALIGNED(Pipeline, 64)
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			ID3D11VertexShader*         pDxVertexShader;
-			ID3D11PixelShader*          pDxPixelShader;
-			ID3D11GeometryShader*       pDxGeometryShader;
-			ID3D11DomainShader*         pDxDomainShader;
-			ID3D11HullShader*           pDxHullShader;
-			ID3D11ComputeShader*        pDxComputeShader;
-			ID3D11InputLayout*          pDxInputLayout;
-			ID3D11BlendState*           pBlendState;
-			ID3D11DepthStencilState*    pDepthState;
-			ID3D11RasterizerState*      pRasterizerState;
-			PipelineType                mType;
-			D3D_PRIMITIVE_TOPOLOGY      mDxPrimitiveTopology;
-			uint32_t                    mPadA;
-			uint64_t                    mPadB[4];
+			ID3D11VertexShader*      pDxVertexShader;
+			ID3D11PixelShader*       pDxPixelShader;
+			ID3D11GeometryShader*    pDxGeometryShader;
+			ID3D11DomainShader*      pDxDomainShader;
+			ID3D11HullShader*        pDxHullShader;
+			ID3D11ComputeShader*     pDxComputeShader;
+			ID3D11InputLayout*       pDxInputLayout;
+			ID3D11BlendState*        pBlendState;
+			ID3D11DepthStencilState* pDepthState;
+			ID3D11RasterizerState*   pRasterizerState;
+			PipelineType             mType;
+			D3D_PRIMITIVE_TOPOLOGY   mDxPrimitiveTopology;
+			uint32_t                 mPadA;
+			uint64_t                 mPadB[4];
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			uint16_t				    mVertexLayoutSize;
-			uint16_t					mRootSignatureIndex;
-			uint16_t					mVAOStateCount;
-			uint16_t					mVAOStateLoop;
-			struct GLVAOState*			pVAOState;
-			struct GlVertexAttrib*		pVertexLayout;
-			struct GLRasterizerState*	pRasterizerState;
-			struct GLDepthStencilState*	pDepthStencilState;
-			struct GLBlendState*		pBlendState;
-			RootSignature*				pRootSignature;
-			uint32_t    				mType;
-			GLenum					    mGlPrimitiveTopology;
+			uint16_t                    mVertexLayoutSize;
+			uint16_t                    mRootSignatureIndex;
+			uint16_t                    mVAOStateCount;
+			uint16_t                    mVAOStateLoop;
+			struct GLVAOState*          pVAOState;
+			struct GlVertexAttrib*      pVertexLayout;
+			struct GLRasterizerState*   pRasterizerState;
+			struct GLDepthStencilState* pDepthStencilState;
+			struct GLBlendState*        pBlendState;
+			RootSignature*              pRootSignature;
+			uint32_t                    mType;
+			GLenum                      mGlPrimitiveTopology;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisPipeline               mStruct;
+		OrbisPipeline mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoPipeline            mStruct;
+		ProsperoPipeline mStruct;
 #endif
 	};
 } Pipeline;
@@ -2544,7 +2542,7 @@ MAKE_ENUM_FLAG(uint32_t, PipelineCacheFlags);
 typedef struct PipelineCacheDesc
 {
 	/// Initial pipeline cache data (can be NULL which means empty pipeline cache)
-	void*              pData;
+	void* pData;
 	/// Initial pipeline cache size
 	size_t             mSize;
 	PipelineCacheFlags mFlags;
@@ -2553,26 +2551,33 @@ typedef struct PipelineCacheDesc
 typedef struct PipelineCache
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union 
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			ID3D12PipelineLibrary* pLibrary;
 			void*                  pData;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkPipelineCache        pCache;
+			VkPipelineCache pCache;
 		} mVulkan;
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
 } PipelineCache;
+
+typedef enum SwapChainCreationFlags
+{
+    SWAP_CHAIN_CREATION_FLAG_NONE = 0x0,
+    SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR = 0x1,
+} SwapChainCreationFlags;
+MAKE_ENUM_FLAG(uint32_t, SwapChainCreationFlags);
 
 typedef struct SwapChainDesc
 {
@@ -2592,6 +2597,8 @@ typedef struct SwapChainDesc
 	TinyImageFormat mColorFormat;
 	/// Clear value
 	ClearValue mColorClearValue;
+    /// Swapchain creation flags
+    SwapChainCreationFlags mFlags;
 	/// Set whether swap chain will be presented using vsync
 	bool mEnableVsync;
 	/// We can toggle to using FLIP model if app desires.
@@ -2601,104 +2608,112 @@ typedef struct SwapChainDesc
 typedef struct SwapChain
 {
 	/// Render targets created from the swapchain back buffers
-	RenderTarget**           ppRenderTargets;
-	union 
+	RenderTarget** ppRenderTargets;
+	union
 	{
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 #if defined(XBOX)
-			uint64_t                 mFramePipelineToken;
+			uint64_t mFramePipelineToken;
 			/// Sync interval to specify how interval for vsync
-			uint32_t                 mDxSyncInterval : 3;
-			uint32_t                 mFlags : 10;
-			uint32_t                 mIndex;
-			void*                    pWindow;
-			Queue*                   pPresentQueue;
-			uint64_t                 mPadB[5];
+			uint32_t mDxSyncInterval : 3;
+			uint32_t mFlags : 10;
+			uint32_t mIndex;
+			void*    pWindow;
+			Queue*   pPresentQueue;
+			uint64_t mPadB[5];
 #else
 			/// Use IDXGISwapChain3 for now since IDXGISwapChain4
 			/// isn't supported by older devices.
-			IDXGISwapChain3*         pDxSwapChain;
+			IDXGISwapChain3* pDxSwapChain;
 			/// Sync interval to specify how interval for vsync
-			uint32_t                 mDxSyncInterval : 3;
-			uint32_t                 mFlags : 10;
-			uint32_t                 mPadA;
-			uint64_t                 mPadB[5];
+			uint32_t                                 mDxSyncInterval : 3;
+			uint32_t                                 mFlags : 10;
+			uint32_t                                 mPadA;
+			uint64_t                                 mPadB[5];
 #endif
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
 			/// Present queue if one exists (queuePresent will use this queue if the hardware has a dedicated present queue)
-			VkQueue                  pPresentQueue;
-			VkSwapchainKHR           pSwapChain;
-			VkSurfaceKHR             pVkSurface;
-			SwapChainDesc*           pDesc;
-			uint32_t                 mPresentQueueFamilyIndex : 5;
-			uint32_t                 mPadA;
+			VkQueue        pPresentQueue;
+			VkSwapchainKHR pSwapChain;
+			VkSurfaceKHR   pVkSurface;
+			SwapChainDesc* pDesc;
+			uint32_t       mPresentQueueFamilyIndex : 5;
+			uint32_t       mPadA;
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
 #if defined(TARGET_IOS)
-			UIView*                  pForgeView;
+			UIView* pForgeView;
 #else
-			NSView*                  pForgeView;
+			NSView*                                  pForgeView;
 #endif
-			id<CAMetalDrawable>      mMTKDrawable;
-			id<MTLCommandBuffer>     presentCommandBuffer;
-			uint32_t                 mIndex;
-			uint64_t                 mPadB[4];
+			id<CAMetalDrawable>  mMTKDrawable;
+			id<MTLCommandBuffer> presentCommandBuffer;
+			uint32_t             mIndex;
+			uint64_t             mPadB[4];
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
 			/// Use IDXGISwapChain3 for now since IDXGISwapChain4
 			/// isn't supported by older devices.
-			IDXGISwapChain*          pDxSwapChain;
+			IDXGISwapChain* pDxSwapChain;
 			/// Sync interval to specify how interval for vsync
-			uint32_t                 mDxSyncInterval : 3;
-			uint32_t                 mFlags : 10;
-			uint32_t                 mImageIndex : 3;
-			DXGI_SWAP_EFFECT         mSwapEffect;
-			uint32_t                 mPadA;
-			uint64_t                 mPadB[5];
+			uint32_t         mDxSyncInterval : 3;
+			uint32_t         mFlags : 10;
+			uint32_t         mImageIndex : 3;
+			DXGI_SWAP_EFFECT mSwapEffect;
+			uint32_t         mPadA;
+			uint64_t         mPadB[5];
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLSurface				 pSurface;
+			GLSurface pSurface;
 		} mGLES;
 #endif
 #if defined(ORBIS)
-		OrbisSwapChain           mStruct;
+		OrbisSwapChain mStruct;
 #endif
 #if defined(PROSPERO)
-		ProsperoSwapChain        mStruct;
+		ProsperoSwapChain mStruct;
 #endif
 	};
-	uint32_t                 mImageCount : 3;
-	uint32_t                 mEnableVsync : 1;
+#if defined(QUEST_VR)
+    struct
+    {
+        struct ovrTextureSwapChain* pSwapChain;
+        VkExtent2D* pFragmentDensityTextureSizes;
+        RenderTarget** ppFragmentDensityMasks;
+    } mVR;
+#endif
+	uint32_t mImageCount : 3;
+	uint32_t mEnableVsync : 1;
 } SwapChain;
 
 typedef enum ShaderTarget
 {
-	// We only need SM 5.0 for supporting D3D11 fallback
+// We only need SM 5.0 for supporting D3D11 fallback
 #if defined(DIRECT3D11)
 	shader_target_5_0,
 #endif
-    // 5.1 is supported on all DX12 hardware
-    shader_target_5_1,
-    shader_target_6_0,
+	// 5.1 is supported on all DX12 hardware
+	shader_target_5_1,
+	shader_target_6_0,
 	shader_target_6_1,
 	shader_target_6_2,
-	shader_target_6_3, //required for Raytracing
-	shader_target_6_4, //required for VRS
+	shader_target_6_3,    //required for Raytracing
+	shader_target_6_4,    //required for VRS
 } ShaderTarget;
 
 typedef enum GpuMode
@@ -2710,60 +2725,64 @@ typedef enum GpuMode
 
 typedef struct RendererDesc
 {
-	LogFn                        pLogFn;
-	RendererApi                  mApi;
-	ShaderTarget                 mShaderTarget;
-	GpuMode                      mGpuMode;
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union 
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
-		D3D_FEATURE_LEVEL            mDxFeatureLevel;
+		D3D_FEATURE_LEVEL mDxFeatureLevel;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			const char**                 ppInstanceLayers;
-			const char**                 ppInstanceExtensions;
-			const char**                 ppDeviceExtensions;
-			uint32_t                     mInstanceLayerCount;
-			uint32_t                     mInstanceExtensionCount;
-			uint32_t                     mDeviceExtensionCount;
+			const char** ppInstanceLayers;
+			const char** ppInstanceExtensions;
+			const char** ppDeviceExtensions;
+			uint32_t     mInstanceLayerCount;
+			uint32_t     mInstanceExtensionCount;
+			uint32_t     mDeviceExtensionCount;
 			/// Flag to specify whether to request all queues from the gpu or just one of each type
 			/// This will affect memory usage - Around 200 MB more used if all queues are requested
-			bool                         mRequestAllAvailableQueues;
+			bool mRequestAllAvailableQueues;
 		} mVulkan;
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
 			/// Set whether to force feature level 10 for compatibility
-			bool                         mUseDx10;
+			bool mUseDx10;
 			/// Set whether to pick the first valid GPU or use our GpuConfig
-			bool                         mUseDefaultGpu;
+			bool mUseDefaultGpu;
 		} mD3D11;
-#endif 
+#endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			const char**                 ppDeviceExtensions;
-			uint32_t                     mDeviceExtensionCount;
+			const char** ppDeviceExtensions;
+			uint32_t     mDeviceExtensionCount;
 		} mGLES;
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
+
+	LogFn        pLogFn;
+	ShaderTarget mShaderTarget;
+	GpuMode      mGpuMode;
+
 	/// This results in new validation not possible during API calls on the CPU, by creating patched shaders that have validation added directly to the shader.
 	/// However, it can slow things down a lot, especially for applications with numerous PSOs. Time to see the first render frame may take several minutes
-	bool                         mEnableGPUBasedValidation;
+	bool mEnableGPUBasedValidation;
+
+	bool mD3D11Unsupported; 
+	bool mGLESUnsupported; 
 } RendererDesc;
 
 typedef struct GPUVendorPreset
 {
 	char           mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 	char           mModelId[MAX_GPU_VENDOR_STRING_LENGTH];
-	char           mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];    // OPtional as not all gpu's have that. Default is : 0x00
+	char           mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];    // Optional as not all gpu's have that. Default is : 0x00
 	GPUPresetLevel mPresetLevel;
 	char           mGpuName[MAX_GPU_VENDOR_STRING_LENGTH];    //If GPU Name is missing then value will be empty string
 	char           mGpuDriverVersion[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -2809,175 +2828,176 @@ typedef struct GPUSettings
 	WaveOpsSupportFlags mWaveOpsSupportFlags;
 	GPUVendorPreset     mGpuVendorPreset;
 	// Variable Rate Shading
-	ShadingRate         mShadingRates;
-	ShadingRateCaps     mShadingRateCaps;
-	uint32_t            mShadingRateTexelWidth;
-	uint32_t            mShadingRateTexelHeight;
+	ShadingRate     mShadingRates;
+	ShadingRateCaps mShadingRateCaps;
+	uint32_t        mShadingRateTexelWidth;
+	uint32_t        mShadingRateTexelHeight;
 #ifdef METAL
-    uint32_t            mArgumentBufferMaxTextures;
+	uint32_t mArgumentBufferMaxTextures;
 #endif
-	uint32_t            mMultiDrawIndirect       : 1;
-	uint32_t            mROVsSupported           : 1;
-	uint32_t            mTessellationSupported   : 1;
-	uint32_t            mGeometryShaderSupported : 1;
-	uint32_t            mGpuBreadcrumbs          : 1;
-	uint32_t            mHDRSupported	         : 1;
+	uint32_t mMultiDrawIndirect : 1;
+	uint32_t mROVsSupported : 1;
+	uint32_t mTessellationSupported : 1;
+	uint32_t mGeometryShaderSupported : 1;
+	uint32_t mGpuBreadcrumbs : 1;
+	uint32_t mHDRSupported : 1;
 #ifdef METAL
-	uint32_t            mHeaps : 1;
-	uint32_t            mPlacementHeaps : 1;
+	uint32_t mHeaps : 1;
+	uint32_t mPlacementHeaps : 1;
 #ifdef TARGET_IOS
 	/// Whether or not this iOS device can handle vertex-offset drawIndexed calls.
-	uint32_t            mDrawIndexVertexOffsetSupported;
+	uint32_t mDrawIndexVertexOffsetSupported;
 #endif
 #endif
 #if defined(GLES)
-   	uint32_t					mMaxTextureImageUnits;
+	uint32_t mMaxTextureImageUnits;
 #endif
 } GPUSettings;
 
 typedef struct DEFINE_ALIGNED(Renderer, 64)
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union 
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
-		struct 
+		struct
 		{
 			// API specific descriptor heap and memory allocator
-			struct DescriptorHeap**         pCPUDescriptorHeaps;
-			struct DescriptorHeap**         pCbvSrvUavHeaps;
-			struct DescriptorHeap**         pSamplerHeaps;
-			class  D3D12MA::Allocator*      pResourceAllocator;
+			struct DescriptorHeap**   pCPUDescriptorHeaps;
+			struct DescriptorHeap**   pCbvSrvUavHeaps;
+			struct DescriptorHeap**   pSamplerHeaps;
+			class D3D12MA::Allocator* pResourceAllocator;
 #if defined(XBOX)
-			IDXGIFactory2*                  pDXGIFactory;
-			IDXGIAdapter*                   pDxActiveGPU;
-			ID3D12Device*                   pDxDevice;
-			EsramManager*                   pESRAMManager;
+			IDXGIFactory2* pDXGIFactory;
+			IDXGIAdapter*  pDxActiveGPU;
+			ID3D12Device*  pDxDevice;
+			EsramManager*  pESRAMManager;
 #elif defined(DIRECT3D12)
-			IDXGIFactory6*                  pDXGIFactory;
-			IDXGIAdapter4*                  pDxActiveGPU;
-			ID3D12Device*                   pDxDevice;
+			IDXGIFactory6*                           pDXGIFactory;
+			IDXGIAdapter4*                           pDxActiveGPU;
+			ID3D12Device*                            pDxDevice;
 #if defined(_WINDOWS) && defined(DRED)
 			ID3D12DeviceRemovedExtendedDataSettings* pDredSettings;
 #else
-			uint64_t                        mPadA;
+			uint64_t mPadA;
 #endif
 #endif
-			ID3D12Debug*                    pDXDebug;
+			ID3D12Debug* pDXDebug;
 #if defined(_WINDOWS)
-			ID3D12InfoQueue*                pDxDebugValidation;
+			ID3D12InfoQueue* pDxDebugValidation;
 #endif
 		} mD3D12;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			VkInstance                      pVkInstance;
-			VkPhysicalDevice                pVkActiveGPU;
-			VkPhysicalDeviceProperties2*    pVkActiveGPUProperties;
-			VkDevice                        pVkDevice;
+			VkInstance                   pVkInstance;
+			VkPhysicalDevice             pVkActiveGPU;
+			VkPhysicalDeviceProperties2* pVkActiveGPUProperties;
+			VkDevice                     pVkDevice;
 #ifdef USE_DEBUG_UTILS_EXTENSION
-			VkDebugUtilsMessengerEXT        pVkDebugUtilsMessenger;
+			VkDebugUtilsMessengerEXT pVkDebugUtilsMessenger;
 #else
-			VkDebugReportCallbackEXT        pVkDebugReport;
+			VkDebugReportCallbackEXT                 pVkDebugReport;
 #endif
-			uint32_t**                      pAvailableQueueCount;
-			uint32_t**                      pUsedQueueCount;
-			struct DescriptorPool*          pDescriptorPool;
-			struct VmaAllocator_T*          pVmaAllocator;
-			uint32_t                        mRaytracingExtension : 1;
+			uint32_t**             pAvailableQueueCount;
+			uint32_t**             pUsedQueueCount;
+			struct DescriptorPool* pDescriptorPool;
+			struct VmaAllocator_T* pVmaAllocator;
+			uint32_t               mRaytracingExtension : 1;
 			union
 			{
 				struct
 				{
-					uint8_t                 mGraphicsQueueFamilyIndex;
-					uint8_t                 mTransferQueueFamilyIndex;
-					uint8_t                 mComputeQueueFamilyIndex;
+					uint8_t mGraphicsQueueFamilyIndex;
+					uint8_t mTransferQueueFamilyIndex;
+					uint8_t mComputeQueueFamilyIndex;
 				};
-				uint8_t                     mQueueFamilyIndices[3];
+				uint8_t mQueueFamilyIndices[3];
 			};
 		} mVulkan;
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			id<MTLDevice>                   pDevice;
-			struct VmaAllocator_T*          pVmaAllocator;
-			NOREFS id<MTLHeap>*             pHeaps API_AVAILABLE(macos(10.13), ios(10.0));
-			uint32_t                        mHeapCount;
-			uint32_t                        mHeapCapacity;
+			id<MTLDevice>          pDevice;
+			struct VmaAllocator_T* pVmaAllocator;
+			NOREFS id<MTLHeap>* pHeaps API_AVAILABLE(macos(10.13), ios(10.0));
+			uint32_t                   mHeapCount;
+			uint32_t                   mHeapCapacity;
 			// #TODO: Store this in GpuSettings struct
-			uint64_t                        mVRAM;
+			uint64_t mVRAM;
 			// To synchronize resource allocation done through automatic heaps
-			Mutex*                          pHeapMutex;
-			uint64_t                        mPadA[3];
+			Mutex*   pHeapMutex;
+			uint64_t mPadA[3];
 		};
 #endif
 #if defined(DIRECT3D11)
-		struct 
+		struct
 		{
-			IDXGIFactory1*                  pDXGIFactory;
-			IDXGIAdapter1*                  pDxActiveGPU;
-			ID3D11Device*                   pDxDevice;
-			ID3D11DeviceContext*            pDxContext;
-			ID3D11BlendState*               pDefaultBlendState;
-			ID3D11DepthStencilState*        pDefaultDepthState;
-			ID3D11RasterizerState*          pDefaultRasterizerState;
-			uint32_t                        mPartialUpdateConstantBufferSupported : 1;
-			D3D_FEATURE_LEVEL               mFeatureLevel;
+			IDXGIFactory1*           pDXGIFactory;
+			IDXGIAdapter1*           pDxActiveGPU;
+			ID3D11Device*            pDxDevice;
+			ID3D11DeviceContext*     pDxContext;
+			ID3D11BlendState*        pDefaultBlendState;
+			ID3D11DepthStencilState* pDefaultDepthState;
+			ID3D11RasterizerState*   pDefaultRasterizerState;
+			uint32_t                 mPartialUpdateConstantBufferSupported : 1;
+			D3D_FEATURE_LEVEL        mFeatureLevel;
 #if defined(ENABLE_PERFORMANCE_MARKER)
-			ID3DUserDefinedAnnotation*		pUserDefinedAnnotation;
+			ID3DUserDefinedAnnotation* pUserDefinedAnnotation;
 #else
-			uint64_t                        mPadB;
+			uint64_t                                 mPadB;
 #endif
-			uint32_t                        mPadA;
+			uint32_t mPadA;
 		} mD3D11;
 #endif
 #if defined(GLES)
-		struct 
+		struct
 		{
-			GLContext						pContext;
-			GLConfig						pConfig;
+			GLContext pContext;
+			GLConfig  pConfig;
 		} mGLES;
 #endif
 #if defined(ORBIS)
 		struct
 		{
-			uint64_t                        mPadA;
-			uint64_t                        mPadB;
+			uint64_t mPadA;
+			uint64_t mPadB;
 		};
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
+
 #if defined(USE_NSIGHT_AFTERMATH)
 	// GPU crash dump tracker using Nsight Aftermath instrumentation
-	AftermathTracker                mAftermathTracker;
-	bool                            mAftermathSupport;
-	bool                            mDiagnosticsConfigSupport;
-	bool                            mDiagnosticCheckPointsSupport;
+	AftermathTracker mAftermathTracker;
+	bool             mAftermathSupport;
+	bool             mDiagnosticsConfigSupport;
+	bool             mDiagnosticCheckPointsSupport;
 #endif
-	struct NullDescriptors*         pNullDescriptors;
-	char*                           pName;
-	GPUSettings*                    pActiveGpuSettings;
-	ShaderMacro*                    pBuiltinShaderDefines;
-	GPUCapBits*                     pCapBits;
-	uint32_t                        mLinkedNodeCount : 4;
-	uint32_t                        mGpuMode : 3;
-	uint32_t                        mShaderTarget : 4;
-	uint32_t                        mEnableGpuBasedValidation : 1;
-	char*							pApiName;
-	uint32_t                        mBuiltinShaderDefinesCount;
+	struct NullDescriptors* pNullDescriptors;
+	char*                   pName;
+	GPUSettings*            pActiveGpuSettings;
+	ShaderMacro*            pBuiltinShaderDefines;
+	GPUCapBits*             pCapBits;
+	uint32_t                mLinkedNodeCount : 4;
+	uint32_t                mGpuMode : 3;
+	uint32_t                mShaderTarget : 4;
+	uint32_t                mEnableGpuBasedValidation : 1;
+	char*                   pApiName;
+	uint32_t                mBuiltinShaderDefinesCount;
 } Renderer;
 // 3 cache lines
 COMPILE_ASSERT(sizeof(Renderer) <= 24 * sizeof(uint64_t));
 
-// Indirect command sturcture define
+// Indirect command structure define
 typedef struct IndirectArgument
 {
 	IndirectArgumentType mType;
-	uint32_t			 mOffset;
+	uint32_t             mOffset;
 } IndirectArgument;
 
 typedef struct IndirectArgumentDescriptor
@@ -2985,55 +3005,55 @@ typedef struct IndirectArgumentDescriptor
 	IndirectArgumentType mType;
 	const char*          pName;
 	uint32_t             mIndex;
-	uint32_t			 mByteSize;
+	uint32_t             mByteSize;
 } IndirectArgumentDescriptor;
 
 typedef struct CommandSignatureDesc
 {
 	RootSignature*              pRootSignature;
-	uint32_t                    mIndirectArgCount;
 	IndirectArgumentDescriptor* pArgDescs;
+	uint32_t                    mIndirectArgCount;
 	/// Set to true if indirect argument struct should not be aligned to 16 bytes
-	bool                        mPacked;
+	bool mPacked;
 } CommandSignatureDesc;
 
 typedef struct CommandSignature
 {
 #if defined(USE_MULTIPLE_RENDER_APIS)
-	union 
+	union
 	{
 #endif
 #if defined(DIRECT3D12)
 		ID3D12CommandSignature* pDxHandle;
 #endif
 #if defined(VULKAN)
-		struct 
+		struct
 		{
-			struct IndirectArgument*  pIndirectArguments;
-			uint32_t				  mIndirectArgumentCount;
-			uint32_t				  mStride;
+			struct IndirectArgument* pIndirectArguments;
+			uint32_t                 mIndirectArgumentCount;
+			uint32_t                 mStride;
 		};
 #endif
 #if defined(METAL)
-		struct 
+		struct
 		{
-			struct IndirectArgument*  pIndirectArguments;
-			uint32_t				  mIndirectArgumentCount;
-			uint32_t				  mStride;
+			struct IndirectArgument* pIndirectArguments;
+			uint32_t                 mIndirectArgumentCount;
+			uint32_t                 mStride;
 		};
 #endif
 #if defined(ORBIS)
 		struct
 		{
-			IndirectArgumentType    mDrawType;
-			uint32_t                mStride;
+			IndirectArgumentType mDrawType;
+			uint32_t             mStride;
 		};
 #endif
 #if defined(PROSPERO)
 		struct
 		{
-			IndirectArgumentType    mDrawType;
-			uint32_t                mStride;
+			IndirectArgumentType mDrawType;
+			uint32_t             mStride;
 		};
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
@@ -3043,45 +3063,45 @@ typedef struct CommandSignature
 
 typedef struct DescriptorSetDesc
 {
-	RootSignature*             pRootSignature;
-	DescriptorUpdateFrequency  mUpdateFrequency;
-	uint32_t                   mMaxSets;
-	uint32_t                   mNodeIndex;
+	RootSignature*            pRootSignature;
+	DescriptorUpdateFrequency mUpdateFrequency;
+	uint32_t                  mMaxSets;
+	uint32_t                  mNodeIndex;
 } DescriptorSetDesc;
 
 typedef struct QueueSubmitDesc
 {
-	uint32_t    mCmdCount;
 	Cmd**       ppCmds;
 	Fence*      pSignalFence;
-	uint32_t    mWaitSemaphoreCount;
 	Semaphore** ppWaitSemaphores;
-	uint32_t    mSignalSemaphoreCount;
 	Semaphore** ppSignalSemaphores;
+	uint32_t    mCmdCount;
+	uint32_t    mWaitSemaphoreCount;
+	uint32_t    mSignalSemaphoreCount;
 	bool        mSubmitDone;
 } QueueSubmitDesc;
 
 typedef struct QueuePresentDesc
 {
 	SwapChain*  pSwapChain;
-	uint32_t    mWaitSemaphoreCount;
 	Semaphore** ppWaitSemaphores;
+	uint32_t    mWaitSemaphoreCount;
 	uint8_t     mIndex;
 	bool        mSubmitDone;
 } QueuePresentDesc;
 
 #define API_INTERFACE
 
-#define DECLARE_RENDERER_FUNCTION(ret,name,...) \
-typedef API_INTERFACE ret(FORGE_CALLCONV *name##Fn)(__VA_ARGS__); \
-extern name##Fn name; \
+#define DECLARE_RENDERER_FUNCTION(ret, name, ...)                     \
+	typedef API_INTERFACE ret(FORGE_CALLCONV* name##Fn)(__VA_ARGS__); \
+	extern name##Fn       name;
 
 // clang-format off
 // API functions
 // allocates memory and initializes the renderer -> returns pRenderer
 //
 API_INTERFACE void FORGE_CALLCONV initRenderer(const char* app_name, const RendererDesc* p_settings, Renderer** pRenderer);
-DECLARE_RENDERER_FUNCTION(void, exitRenderer, Renderer* pRenderer)
+API_INTERFACE void FORGE_CALLCONV exitRenderer(Renderer* pRenderer);
 
 DECLARE_RENDERER_FUNCTION(void, addFence, Renderer* pRenderer, Fence** p_fence)
 DECLARE_RENDERER_FUNCTION(void, removeFence, Renderer* pRenderer, Fence* p_fence)
@@ -3159,7 +3179,7 @@ DECLARE_RENDERER_FUNCTION(void, cmdDispatch, Cmd* p_cmd, uint32_t group_count_x,
 DECLARE_RENDERER_FUNCTION(void, cmdResourceBarrier, Cmd* p_cmd, uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers, uint32_t texture_barrier_count, TextureBarrier* p_texture_barriers, uint32_t rt_barrier_count, RenderTargetBarrier* p_rt_barriers)
 
 // Virtual Textures
-DECLARE_RENDERER_FUNCTION(void, cmdUpdateVirtualTexture, Cmd* pCmd, Texture* pTexture)
+DECLARE_RENDERER_FUNCTION(void, cmdUpdateVirtualTexture, Cmd* pCmd, Texture* pTexture, uint32_t currentImage)
 
 // queue/fence/swapchain functions
 DECLARE_RENDERER_FUNCTION(void, acquireNextImage, Renderer* pRenderer, SwapChain* p_swap_chain, Semaphore* p_signal_semaphore, Fence* p_fence, uint32_t* p_image_index)
@@ -3178,7 +3198,7 @@ DECLARE_RENDERER_FUNCTION(TinyImageFormat, getRecommendedSwapchainFormat, bool h
 //indirect Draw functions
 DECLARE_RENDERER_FUNCTION(void, addIndirectCommandSignature, Renderer* pRenderer, const CommandSignatureDesc* p_desc, CommandSignature** ppCommandSignature)
 DECLARE_RENDERER_FUNCTION(void, removeIndirectCommandSignature, Renderer* pRenderer, CommandSignature* pCommandSignature)
-DECLARE_RENDERER_FUNCTION(void, cmdExecuteIndirect, Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
+DECLARE_RENDERER_FUNCTION(void, cmdExecuteIndirect, Cmd* pCmd, CommandSignature* pCommandSignature, unsigned int maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset, Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 
 /************************************************************************/
 // GPU Query Interface

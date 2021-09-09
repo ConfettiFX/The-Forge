@@ -14,13 +14,13 @@
 */
 
 #include "../../../../../Custom-Middleware/Aura/Interfaces/IAuraRenderer.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string_hash_map.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
-
 
 DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
@@ -32,9 +32,8 @@ DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTe
 extern RendererApi gSelectedRendererApi;
 
 #ifdef ORBIS
-namespace aura
-{
-	extern void cmdCopyResourceOrbis(Cmd* p_cmd, const aura::TextureDesc* pDesc, Texture* pSrc, Buffer* pDst);
+namespace aura {
+extern void cmdCopyResourceOrbis(Cmd* p_cmd, const aura::TextureDesc* pDesc, Texture* pSrc, Buffer* pDst);
 }
 #endif
 
@@ -66,18 +65,12 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pp_text
 {
 	::addTexture(pRenderer, (::TextureDesc*)pDesc, pp_texture);
 }
-void removeTexture(Renderer* pRenderer, Texture* p_texture)
-{
-	::removeTexture(pRenderer, p_texture);
-}
+void removeTexture(Renderer* pRenderer, Texture* p_texture) { ::removeTexture(pRenderer, p_texture); }
 void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** pp_render_target)
 {
 	::addRenderTarget(pRenderer, (::RenderTargetDesc*)p_desc, pp_render_target);
 }
-void removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target)
-{
-	::removeRenderTarget(pRenderer, p_render_target);
-}
+void removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target) { ::removeRenderTarget(pRenderer, p_render_target); }
 void addUniformBuffer(Renderer* pRenderer, uint32_t size, Buffer** ppUniformBuffer)
 {
 	::BufferDesc ubDesc = {};
@@ -108,10 +101,7 @@ void addUploadBuffer(Renderer* pRenderer, uint32_t size, Buffer** ppUploadBuffer
 	uploadDesc.pName = "Upload Buffer";
 	addBuffer(pRenderer, &uploadDesc, ppUploadBuffer);
 }
-void removeBuffer(Renderer* pRenderer, Buffer* pUniformBuffer)
-{
-	::removeBuffer(pRenderer, pUniformBuffer);
-}
+void removeBuffer(Renderer* pRenderer, Buffer* pUniformBuffer) { ::removeBuffer(pRenderer, pUniformBuffer); }
 void updateUniformBuffer(Renderer* pRenderer, Buffer* pBuffer, uint32_t dstOffset, const void* pData, uint32_t srcOffset, uint32_t size)
 {
 	BufferUpdateDesc updateDesc = { pBuffer, (uint64_t)dstOffset, (uint64_t)size };
@@ -123,19 +113,10 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_samp
 {
 	::addSampler(pRenderer, (::SamplerDesc*)pDesc, pp_sampler);
 }
-void removeSampler(Renderer* pRenderer, Sampler* p_sampler)
-{
-	::removeSampler(pRenderer, p_sampler);
-}
-void getTextureFromRenderTarget(RenderTarget* pRenderTarget, Texture** ppTexture)
-{
-	*ppTexture = pRenderTarget->pTexture;
-}
+void removeSampler(Renderer* pRenderer, Sampler* p_sampler) { ::removeSampler(pRenderer, p_sampler); }
+void getTextureFromRenderTarget(RenderTarget* pRenderTarget, Texture** ppTexture) { *ppTexture = pRenderTarget->pTexture; }
 
-void getCpuMappedAddress(Buffer* pBuffer, void** pData)
-{
-	*pData = pBuffer->pCpuMappedAddress;
-}
+void getCpuMappedAddress(Buffer* pBuffer, void** pData) { *pData = pBuffer->pCpuMappedAddress; }
 
 bool hasShaderResource(RootSignature* pRootSignature, const char* pResName)
 {
@@ -152,26 +133,17 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootDesc, R
 {
 	::addRootSignature(pRenderer, (::RootSignatureDesc*)pRootDesc, pp_root_signature);
 }
-void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
-{
-	::removeRootSignature(pRenderer, pRootSignature);
-}
+void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature) { ::removeRootSignature(pRenderer, pRootSignature); }
 void addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline)
 {
 	::addPipeline(pRenderer, (::PipelineDesc*)p_pipeline_settings, pp_pipeline);
 }
-void removePipeline(Renderer* pRenderer, Pipeline* p_pipeline)
-{
-	::removePipeline(pRenderer, p_pipeline);
-}
+void removePipeline(Renderer* pRenderer, Pipeline* p_pipeline) { ::removePipeline(pRenderer, p_pipeline); }
 void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
 	::addDescriptorSet(pRenderer, (::DescriptorSetDesc*)pDesc, ppDescriptorSet);
 }
-void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
-{
-	::removeDescriptorSet(pRenderer, pDescriptorSet);
-}
+void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet) { ::removeDescriptorSet(pRenderer, pDescriptorSet); }
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
 	::updateDescriptorSet(pRenderer, index, pDescriptorSet, count, (::DescriptorData*)pParams);
@@ -189,34 +161,19 @@ void cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, flo
 {
 	::cmdSetViewport(p_cmd, x, y, width, height, min_depth, max_depth);
 }
-void cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height)
-{
-	::cmdSetScissor(p_cmd, x, y, width, height);
-}
-void cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline)
-{
-	::cmdBindPipeline(p_cmd, p_pipeline);
-}
-void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
-{
-	::cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
-}
+void cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height) { ::cmdSetScissor(p_cmd, x, y, width, height); }
+void cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline) { ::cmdBindPipeline(p_cmd, p_pipeline); }
+void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet) { ::cmdBindDescriptorSet(pCmd, index, pDescriptorSet); }
 void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
 {
 	::cmdBindPushConstants(pCmd, pRootSignature, pName, pConstants);
 }
-void cmdBindIndexBuffer(Cmd* p_cmd, uint32_t indexType, Buffer* p_buffer)
-{
-	::cmdBindIndexBuffer(p_cmd, p_buffer, indexType, 0);
-}
+void cmdBindIndexBuffer(Cmd* p_cmd, uint32_t indexType, Buffer* p_buffer) { ::cmdBindIndexBuffer(p_cmd, p_buffer, indexType, 0); }
 void cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, uint32_t* strides, Buffer** pp_buffers)
 {
 	::cmdBindVertexBuffer(p_cmd, buffer_count, pp_buffers, strides, NULL);
 }
-void cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex)
-{
-	::cmdDraw(p_cmd, vertex_count, first_vertex);
-}
+void cmdDraw(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex) { ::cmdDraw(p_cmd, vertex_count, first_vertex); }
 void cmdDrawInstanced(Cmd* p_cmd, uint32_t vertex_count, uint32_t first_vertex, uint32_t instance_count, uint32_t first_instance)
 {
 	::cmdDrawInstanced(p_cmd, vertex_count, first_vertex, instance_count, first_instance);
@@ -225,10 +182,7 @@ void cmdDispatch(Cmd* p_cmd, uint32_t group_count_x, uint32_t group_count_y, uin
 {
 	::cmdDispatch(p_cmd, group_count_x, group_count_y, group_count_z);
 }
-void cmdCopyTexture(Cmd* p_cmd, Texture* pSrc, Texture* pDst)
-{
-	::cmdCopyTexture(p_cmd, pSrc, pDst);
-}
+void cmdCopyTexture(Cmd* p_cmd, Texture* pSrc, Texture* pDst) { ::cmdCopyTexture(p_cmd, pSrc, pDst); }
 void cmdCopyResource(Cmd* p_cmd, const TextureDesc* pDesc, Texture* pSrc, Buffer* pDst)
 {
 	ASSERT(p_cmd);
@@ -238,8 +192,8 @@ void cmdCopyResource(Cmd* p_cmd, const TextureDesc* pDesc, Texture* pSrc, Buffer
 #if defined(DIRECT3D12)
 	if (gSelectedRendererApi == RENDERER_API_D3D12)
 	{
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT  layout = {};
-		D3D12_RESOURCE_DESC Desc = pSrc->mD3D12.pDxResource->GetDesc();
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+		D3D12_RESOURCE_DESC                Desc = pSrc->mD3D12.pDxResource->GetDesc();
 		p_cmd->pRenderer->mD3D12.pDxDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &layout, NULL, NULL, NULL);
 
 		D3D12_TEXTURE_COPY_LOCATION Src = {};
@@ -272,7 +226,8 @@ void cmdCopyResource(Cmd* p_cmd, const TextureDesc* pDesc, Texture* pSrc, Buffer
 		pCopy.imageExtent.width = pDesc->mWidth;
 		pCopy.imageExtent.height = pDesc->mHeight;
 		pCopy.imageExtent.depth = pDesc->mDepth;
-		vkCmdCopyImageToBuffer(p_cmd->mVulkan.pVkCmdBuf, pSrc->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, pDst->mVulkan.pVkBuffer, 1, &pCopy);
+		vkCmdCopyImageToBuffer(
+			p_cmd->mVulkan.pVkCmdBuf, pSrc->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, pDst->mVulkan.pVkBuffer, 1, &pCopy);
 	}
 #endif
 #if defined(ORBIS)
@@ -287,8 +242,8 @@ void cmdCopyResource(Cmd* p_cmd, Buffer* pSrc, Texture* pDst)
 #if defined(DIRECT3D12)
 	if (gSelectedRendererApi == RENDERER_API_D3D12)
 	{
-		D3D12_PLACED_SUBRESOURCE_FOOTPRINT  layout = {};
-		D3D12_RESOURCE_DESC Desc = pDst->mD3D12.pDxResource->GetDesc();
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+		D3D12_RESOURCE_DESC                Desc = pDst->mD3D12.pDxResource->GetDesc();
 		p_cmd->pRenderer->mD3D12.pDxDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &layout, NULL, NULL, NULL);
 
 		D3D12_TEXTURE_COPY_LOCATION Src = {};
@@ -306,10 +261,7 @@ void cmdCopyResource(Cmd* p_cmd, Buffer* pSrc, Texture* pDst)
 #endif
 }
 
-void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
-{
-	::unmapBuffer(pRenderer, pBuffer);
-}
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer) { ::unmapBuffer(pRenderer, pBuffer); }
 
 void mapAsynchronousResources(Renderer* pRenderer)
 {
@@ -325,10 +277,7 @@ void mapAsynchronousResources(Renderer* pRenderer)
 	gAsyncBufferPointers.clear();
 }
 
-void removeAsynchronousResources()
-{
-	gAsyncBufferPointers.set_capacity(0);
-}
+void removeAsynchronousResources() { gAsyncBufferPointers.set_capacity(0); }
 
 //
 ////Debug markers
@@ -337,14 +286,12 @@ void removeAsynchronousResources()
 //void cmdPopDebugMarker(Cmd* pCmd);
 
 // Transition Commands
-void cmdResourceBarrier(Cmd* p_cmd,
-	uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers,
-	uint32_t texture_barrier_count, TextureBarrier* p_texture_barriers,
-	uint32_t rt_barrier_count, RenderTargetBarrier* p_rt_barriers)
+void cmdResourceBarrier(
+	Cmd* p_cmd, uint32_t buffer_barrier_count, BufferBarrier* p_buffer_barriers, uint32_t texture_barrier_count,
+	TextureBarrier* p_texture_barriers, uint32_t rt_barrier_count, RenderTargetBarrier* p_rt_barriers)
 {
-	::cmdResourceBarrier(p_cmd,
-		buffer_barrier_count, (::BufferBarrier*)p_buffer_barriers,
-		texture_barrier_count, (::TextureBarrier*)p_texture_barriers,
+	::cmdResourceBarrier(
+		p_cmd, buffer_barrier_count, (::BufferBarrier*)p_buffer_barriers, texture_barrier_count, (::TextureBarrier*)p_texture_barriers,
 		rt_barrier_count, (::RenderTargetBarrier*)p_rt_barriers);
 }
 ////Queue debug markers

@@ -34,9 +34,9 @@
 
 // static
 template <typename T>
-static inline T withUTF16Path(const char* path, T(*function)(const wchar_t*))
+static inline T withUTF16Path(const char* path, T (*function)(const wchar_t*))
 {
-	size_t len = strlen(path);
+	size_t   len = strlen(path);
 	wchar_t* buffer = (wchar_t*)alloca((len + 1) * sizeof(wchar_t));
 
 	size_t resultLength = MultiByteToWideChar(CP_UTF8, 0, path, (int)len, buffer, (int)len);
@@ -45,7 +45,8 @@ static inline T withUTF16Path(const char* path, T(*function)(const wchar_t*))
 	return function(buffer);
 }
 
-static void FormatFileExtensionsFilter(const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount, eastl::string& extFiltersOut)
+static void
+	FormatFileExtensionsFilter(const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount, eastl::string& extFiltersOut)
 {
 	extFiltersOut = fileDesc;
 	extFiltersOut.push_back('\0');
@@ -77,11 +78,10 @@ typedef struct FileWatcher
 
 void fswThreadFunc(void* data)
 {
-	Thread::SetCurrentThreadName("FileWatcher");
+	setCurrentThreadName("FileWatcher");
 	FileWatcher* fs = (FileWatcher*)data;
 
-	HANDLE hDir = withUTF16Path<HANDLE>(fs->mPath, [](const wchar_t* pathStr)
-	{
+	HANDLE hDir = withUTF16Path<HANDLE>(fs->mPath, [](const wchar_t* pathStr) {
 		return CreateFileW(
 			pathStr, FILE_LIST_DIRECTORY, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
 			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
@@ -120,21 +120,22 @@ void fswThreadFunc(void* data)
 			uint32_t                 action = 0;
 			switch (fni->Action)
 			{
-			case FILE_ACTION_ADDED:
-			case FILE_ACTION_RENAMED_NEW_NAME: action = FWE_CREATED; break;
-			case FILE_ACTION_MODIFIED:
-				if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
-					action = FWE_MODIFIED;
-				if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
-					action = FWE_ACCESSED;
-				break;
-			case FILE_ACTION_REMOVED:
-			case FILE_ACTION_RENAMED_OLD_NAME: action = FWE_DELETED; break;
-			default: break;
+				case FILE_ACTION_ADDED:
+				case FILE_ACTION_RENAMED_NEW_NAME: action = FWE_CREATED; break;
+				case FILE_ACTION_MODIFIED:
+					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
+						action = FWE_MODIFIED;
+					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
+						action = FWE_ACCESSED;
+					break;
+				case FILE_ACTION_REMOVED:
+				case FILE_ACTION_RENAMED_OLD_NAME: action = FWE_DELETED; break;
+				default: break;
 			}
 
 			memset(utf8Name, 0, sizeof(utf8Name));
-			int outputLength = WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), utf8Name, sizeof(utf8Name) - 1, NULL, NULL);
+			int outputLength = WideCharToMultiByte(
+				CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), utf8Name, sizeof(utf8Name) - 1, NULL, NULL);
 			if (outputLength == 0)
 			{
 				continue;
@@ -187,7 +188,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 	watcher->mThreadDesc.pFunc = fswThreadFunc;
 	watcher->mThreadDesc.pData = watcher;
 
-	watcher->mThread = create_thread(&watcher->mThreadDesc);
+	initThread(&watcher->mThreadDesc, &watcher->mThread);
 
 	return watcher;
 }
@@ -196,13 +197,14 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
 	fileWatcher->mRun = FALSE;
 	SetEvent(fileWatcher->hExitEvt);
-	destroy_thread(fileWatcher->mThread);
+	destroyThread(fileWatcher->mThread);
 	CloseHandle(fileWatcher->hExitEvt);
 	tf_free(fileWatcher);
 }
 #endif
 
-void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out)
+void fsGetFilesWithExtension(
+	ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char *** out, int * count)
 {
 	char directory[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directory);
@@ -228,9 +230,9 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 	}
 
 	uint32_t extensionOffset = (hasPattern) ? 1 : 3;
-	size_t filePathLen = strlen(directory);
+	size_t   filePathLen = strlen(directory);
 	wchar_t* buffer = (wchar_t*)alloca((FS_MAX_PATH) * sizeof(wchar_t));
-	size_t utf16Len = MultiByteToWideChar(CP_UTF8, 0, directory, (int)filePathLen, buffer, (int)filePathLen);
+	size_t   utf16Len = MultiByteToWideChar(CP_UTF8, 0, directory, (int)filePathLen, buffer, (int)filePathLen);
 
 	buffer[utf16Len + 0] = '\\';
 	buffer[utf16Len + 1] = '*';
@@ -242,10 +244,30 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 	}
 	buffer[utf16Len + extensionOffset + extensionLen] = 0;
 
+	*count = 0;
+
 	WIN32_FIND_DATAW fd;
 	HANDLE           hFind = ::FindFirstFileW(buffer, &fd);
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
+		int filesFound = 0;
+		do
+		{
+			filesFound += 1;
+		} while (::FindNextFileW(hFind, &fd));
+		::FindClose(hFind);
+
+		char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+		char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+		for (int i = 0; i < filesFound; ++i)
+		{
+			stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+		}
+		*out = stringList;
+		*count = filesFound;
+
+		hFind = ::FindFirstFileW(buffer, &fd);
+		int strIndex = 0;
 		do
 		{
 			char utf8Name[FS_MAX_PATH] = {};
@@ -253,19 +275,21 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 
 			char result[FS_MAX_PATH] = {};
 			fsAppendPathComponent(subDirectory, utf8Name, result);
-			out.push_back(result);
+
+			char * dest = (*out)[strIndex++];
+			strcpy(dest, result);
 		} while (::FindNextFileW(hFind, &fd));
 		::FindClose(hFind);
 	}
 }
 
-void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, eastl::vector<eastl::string>& out)
+void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char *** out, int * count)
 {
 	char directory[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directory);
 
 	wchar_t buffer[FS_MAX_PATH] = {};
-	size_t utf16Len = mbstowcs(buffer, directory, FS_MAX_PATH);
+	size_t  utf16Len = mbstowcs(buffer, directory, FS_MAX_PATH);
 
 	buffer[utf16Len + 0] = '\\';
 	buffer[utf16Len + 1] = '*';
@@ -275,33 +299,59 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 	HANDLE           hFind = ::FindFirstFileW(buffer, &fd);
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
+		int filesFound = 0;
 		do
 		{
 			// skip files, ./ and ../
 			if (!wcschr(fd.cFileName, '.'))
 			{
-				char utf8Name[FS_MAX_PATH] = {};
-				WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, MAX_PATH, NULL, NULL);
-				char result[FS_MAX_PATH] = {};
-				fsAppendPathComponent(subDirectory, utf8Name, result);
-				out.push_back(result);
+                filesFound += 1;
 			}
 		} while (::FindNextFileW(hFind, &fd));
 		::FindClose(hFind);
+
+        if (filesFound > 0)
+        {
+            char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+            char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+            for (int i = 0; i < filesFound; ++i)
+            {
+                stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+            }
+            *out = stringList;
+            *count = filesFound;
+
+            hFind = ::FindFirstFileW(buffer, &fd);
+            int strIndex = 0;
+            do
+            {
+                // skip files, ./ and ../
+                if (!wcschr(fd.cFileName, '.'))
+                {
+                    char utf8Name[FS_MAX_PATH] = {};
+                    WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, MAX_PATH, NULL, NULL);
+                    char result[FS_MAX_PATH] = {};
+                    fsAppendPathComponent(subDirectory, utf8Name, result);
+
+                    char * dest = (*out)[strIndex++];
+                    strcpy(dest, result);
+                }
+            } while (::FindNextFileW(hFind, &fd));
+            ::FindClose(hFind);
+        }
 	}
 }
 
 bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
 {
 	const char* resourcePath = fsGetResourceDirectory(resourceDir);
-	char filePath[FS_MAX_PATH] = {};
+	char        filePath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(resourcePath, fileName, filePath);
 
 	// Path utf-16 conversion
-	size_t filePathLen = strlen(filePath);
+	size_t   filePathLen = strlen(filePath);
 	wchar_t* pathStr = (wchar_t*)alloca((filePathLen + 1) * sizeof(wchar_t));
-	size_t pathStrLength =
-		MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
+	size_t   pathStrLength = MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 	pathStr[pathStrLength] = 0;
 
 	return !_wremove(pathStr);
@@ -310,8 +360,8 @@ bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)
 bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, const char* newFileName)
 {
 	const char* resourcePath = fsGetResourceDirectory(resourceDir);
-	wchar_t* pathStr = NULL;
-	wchar_t* newpathStr = NULL;
+	wchar_t*    pathStr = NULL;
+	wchar_t*    newpathStr = NULL;
 
 	{
 		char filePath[FS_MAX_PATH] = {};
@@ -320,8 +370,7 @@ bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, con
 		// Path utf-16 conversion
 		size_t filePathLen = strlen(filePath);
 		pathStr = (wchar_t*)alloca((filePathLen + 1) * sizeof(wchar_t));
-		size_t pathStrLength =
-			MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
+		size_t pathStrLength = MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 		pathStr[pathStrLength] = 0;
 	}
 
@@ -332,15 +381,16 @@ bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, con
 		// New path utf-16 conversion
 		size_t newfilePathLen = strlen(newfilePath);
 		newpathStr = (wchar_t*)alloca((newfilePathLen + 1) * sizeof(wchar_t));
-		size_t newpathStrLength =
-			MultiByteToWideChar(CP_UTF8, 0, newfilePath, (int)newfilePathLen, newpathStr, (int)newfilePathLen);
+		size_t newpathStrLength = MultiByteToWideChar(CP_UTF8, 0, newfilePath, (int)newfilePathLen, newpathStr, (int)newfilePathLen);
 		newpathStr[newpathStrLength] = 0;
 	}
 
 	return !_wrename(pathStr, newpathStr);
 }
 
-bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir, const char* destFileName)
+bool fsCopyFile(
+	const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
+	const char* destFileName)
 {
 	const char* sourceResourcePath = fsGetResourceDirectory(sourceResourceDir);
 	const char* destResourcePath = fsGetResourceDirectory(destResourceDir);
@@ -348,19 +398,18 @@ bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFil
 	char sourceFilePath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(sourceResourcePath, sourceFileName, sourceFilePath);
 	// Path utf-16 conversion
-	size_t sourcefilePathLen = strlen(sourceFilePath);
+	size_t   sourcefilePathLen = strlen(sourceFilePath);
 	wchar_t* sourcePathStr = (wchar_t*)alloca((sourcefilePathLen + 1) * sizeof(wchar_t));
-	size_t sourcepathStrLength =
+	size_t   sourcepathStrLength =
 		MultiByteToWideChar(CP_UTF8, 0, sourceFilePath, (int)sourcefilePathLen, sourcePathStr, (int)sourcefilePathLen);
 	sourcePathStr[sourcepathStrLength] = 0;
 
 	char destFilePath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(destResourcePath, destFileName, destFilePath);
 	// Path utf-16 conversion
-	size_t destfilePathLen = strlen(destFilePath);
+	size_t   destfilePathLen = strlen(destFilePath);
 	wchar_t* destPathStr = (wchar_t*)alloca((destfilePathLen + 1) * sizeof(wchar_t));
-	size_t destpathStrLength =
-		MultiByteToWideChar(CP_UTF8, 0, destFilePath, (int)destfilePathLen, destPathStr, (int)destfilePathLen);
+	size_t   destpathStrLength = MultiByteToWideChar(CP_UTF8, 0, destFilePath, (int)destfilePathLen, destPathStr, (int)destfilePathLen);
 	destPathStr[destpathStrLength] = 0;
 
 	return CopyFileW(sourcePathStr, destPathStr, FALSE);
@@ -369,18 +418,17 @@ bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFil
 bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
 {
 	const char* resourcePath = fsGetResourceDirectory(resourceDir);
-	char filePath[FS_MAX_PATH] = {};
+	char        filePath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(resourcePath, fileName, filePath);
 
 	// Path utf-16 conversion
-	size_t filePathLen = strlen(filePath);
+	size_t   filePathLen = strlen(filePath);
 	wchar_t* pathStr = (wchar_t*)alloca((filePathLen + 1) * sizeof(wchar_t));
-	size_t pathStrLength =
-		MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
+	size_t   pathStrLength = MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 	pathStr[pathStrLength] = 0;
 
 	struct _stat s = {};
-	int res = _wstat(pathStr, &s);
+	int          res = _wstat(pathStr, &s);
 	if (res != 0)
 		return false;
 	return true;

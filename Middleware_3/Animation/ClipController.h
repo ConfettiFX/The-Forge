@@ -105,12 +105,12 @@ class ClipController
 	inline float* GetWeightPtr() { return &mWeight; };
 
 	private:
+	// Gets updated each time we set the time, will get used externally (UI)
+	float* gExternallyUsedTime = NULL;
+
 	// Blending weight [0-1] for the clip this is managing.
 	// Initialize to max of 1.0f so clip will have full influence
 	float mWeight = 1.0f;
-
-	// Indicates if the clip is additive or not.
-	bool mAdditive = false;
 
 	// Current animation time ratio, in the unit interval [0,1], where 0 is the
 	// beginning of the animation, 1 is the end.
@@ -125,12 +125,12 @@ class ClipController
 	// Playback speed, can be negative in order to play the animation backward.
 	float mPlaybackSpeed = 0.0f;
 
+	// Indicates if the clip is additive or not.
+	bool mAdditive = false;
+
 	// Animation play mode state: play/pause.
 	bool mPlay = false;
 
 	// Animation loop mode.
 	bool mLoop = false;
-
-	// Gets updated each time we set the time, will get used externally (UI)
-	float* gExternallyUsedTime = NULL;
 };

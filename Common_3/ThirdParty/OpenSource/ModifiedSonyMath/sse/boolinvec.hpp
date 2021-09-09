@@ -162,7 +162,11 @@ inline bool BoolInVec::getAsBool() const
 inline BoolInVec::operator bool() const
 #endif
 {
-    return *(bool *)&mData;
+	// cast to unsigned char* instead of bool*
+	// mData of type __m128 stores either 0xffffffff or 0x0 to reflect a boolean value
+	// 0xffffffff as seen as a float is NaN, which would cause the cast to bool* to trigger an
+	// undefined behavior error because it assumes NaN to be uninitialized.
+    return *(unsigned char*)&mData;
 }
 
 inline __m128 BoolInVec::get128() const

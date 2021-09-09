@@ -24,11 +24,9 @@
 
 #pragma once
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/EASTL/string.h"
-
-#include "../../OS/Interfaces/IThread.h"
 #include "../../OS/Interfaces/IFileSystem.h"
+
+#include "stdbool.h"
 
 #ifndef FILENAME_NAME_LENGTH_LOG
 #define FILENAME_NAME_LENGTH_LOG 23
@@ -42,7 +40,7 @@
 #define LEVELS_LOG 6
 #endif
 
-#define CONCAT_STR_LOG_IMPL(a, b) a ## b
+#define CONCAT_STR_LOG_IMPL(a, b) a##b
 #define CONCAT_STR_LOG(a, b) CONCAT_STR_LOG_IMPL(a, b)
 
 #ifndef ANONIMOUS_VARIABLE_LOG
@@ -50,7 +48,7 @@
 #endif
 
 // If you add more levels don't forget to change LOG_LEVELS macro to the actual number of levels
-enum LogLevel
+typedef enum LogLevel
 {
 	eNONE = 0,
 	eRAW = 1,
@@ -59,97 +57,25 @@ enum LogLevel
 	eWARNING = 8,
 	eERROR = 16,
 	eALL = ~0
-};
+} LogLevel;
 
+typedef void (*LogCallbackFn)(void* user_data, const char* message);
+typedef void (*LogCloseFn)(void* user_data);
+typedef void (*LogFlushFn)(void* user_data);
 
-typedef void(*log_callback_t)(void * user_data, const char* message);
-typedef void(*log_close_t)(void * user_data);
-typedef void(*log_flush_t)(void * user_data);
-
-/// Logging subsystem.
-class Log
+#ifdef __cplusplus
+extern "C"
 {
-public:
-	struct LogScope
-	{
-		LogScope(uint32_t log_level, const char * file, int line, const char * format, ...);
-		~LogScope();
+#endif
+	// Initialization/Exit functions are thread unsafe
+	void initLog(const char* appName, LogLevel level);
+	void exitLog(void);
 
-		eastl::string mMessage;
-		const char * mFile;
-		int mLine;
-		uint32_t mLevel;
-	};
+	void addLogFile(const char* filename, FileMode file_mode, LogLevel log_level);
+	void addLogCallback(const char* id, uint32_t log_level, void* user_data, LogCallbackFn callback, LogCloseFn close, LogFlushFn flush);
 
-	Log(const char* appName, LogLevel level = LogLevel::eALL);
-	~Log();
-
-	static void Init(const char* appName, LogLevel level = LogLevel::eALL);
-	static void Exit();
-
-	static void SetLevel(LogLevel level);
-	static void SetQuiet(bool bQuiet);
-	static void SetTimeStamp(bool bEnable);
-	static void SetRecordingFile(bool bEnable);
-	static void SetRecordingThreadName(bool bEnable);
-	static void SetConsoleLogging(bool bEnable);
-
-	static uint32_t        GetLevel();
-	static eastl::string   GetLastMessage();
-	static bool            IsQuiet();
-	static bool            IsRecordingTimeStamp();
-	static bool            IsRecordingFile();
-	static bool            IsRecordingThreadName();
-
-	static void AddFile(const char * filename, FileMode file_mode, LogLevel log_level);
-	static void AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close = nullptr, log_flush_t flush = nullptr);
-
-	static void Write(uint32_t level, const char * filename, int line_number, const char* message, ...);
-	static void WriteRaw(uint32_t level, bool error, const char* message, ...);
-private:
-	static void AddInitialLogFile(const char* appName);
-	static uint32_t WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line);
-	static bool CallbackExists(const char * id);
-
-	// Singleton
-	Log(const Log &) = delete;
-	Log(Log &&) = delete;
-	Log & operator=(const Log &) = delete;
-	Log & operator=(Log &&) = delete;
-
-	struct LogCallback
-	{
-		LogCallback(const eastl::string & id, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush, uint32_t level)
-			: mID(id)
-			, mUserData(user_data)
-			, mCallback(callback)
-			, mClose(close)
-			, mFlush(flush)
-			, mLevel(level)
-		 { }
-		
-		eastl::string mID;
-		void * mUserData;
-		log_callback_t mCallback;
-		log_close_t mClose = nullptr;
-		log_flush_t mFlush = nullptr;
-		uint32_t mLevel;
-	};
-
-	eastl::vector<LogCallback> mCallbacks;
-	/// Mutex for threaded operation.
-	Mutex           mLogMutex;
-	uint32_t        mLogLevel;
-	uint32_t        mIndentation;
-	bool            mQuietMode;
-	bool            mRecordTimestamp;
-	bool            mRecordFile;
-	bool            mRecordThreadName;
-
-	enum{MAX_BUFFER=1024};
-
-	static thread_local char Buffer[MAX_BUFFER+2];
-	static bool sConsoleLogging;
-};
-
-eastl::string ToString(const char* formatString, ...);
+	void writeLog(uint32_t level, const char* filename, int line_number, const char* message, ...);
+	void writeRawLog(uint32_t level, bool error, const char* message, ...);
+#ifdef __cplusplus
+}    // extern "C"
+#endif

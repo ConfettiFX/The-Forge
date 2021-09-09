@@ -8531,7 +8531,7 @@ ImGuiWindowSettings* ImGui::FindWindowSettings(ImGuiID id)
 void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 {
 	FileStream fh = {};
-	if (fsOpenStreamFromPath(RD_LOG, ini_filename, FM_READ_APPEND, &fh))
+	if (fsOpenStreamFromPath(RD_LOG, ini_filename, FM_READ_APPEND, NULL, &fh))
 	{
 		ssize_t fileSize = fsGetStreamFileSize(&fh);
 		char* fileContents = (char*)ImGui::MemAlloc(fileSize);
@@ -8621,7 +8621,7 @@ void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
     
    // PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_LOG, ini_filename, FM_WRITE, &fh))
+	if (!fsOpenStreamFromPath(RD_LOG, ini_filename, FM_WRITE, NULL, &fh))
 		return;
     fsWriteToStream(&fh, ini_data, ini_data_size);
     fsCloseStream(&fh);
@@ -9035,7 +9035,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
 // Include imgui_user.inl at the end of imgui.cpp to access private data/functions that aren't exposed.
 // Prefer just including imgui_internal.h from your code rather than using this define. If a declaration is missing from imgui_internal.h add it or request it on the github.
 #ifdef IMGUI_INCLUDE_IMGUI_USER_INL
-#include "../../../../Middleware_3/UI/imgui_user.cpp"
+#include "../../../../Common_3/OS/UI/imgui_user.cpp"
 #endif
 
 //-----------------------------------------------------------------------------

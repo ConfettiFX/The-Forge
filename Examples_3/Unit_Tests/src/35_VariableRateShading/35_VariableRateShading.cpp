@@ -34,8 +34,12 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
+//Renderer
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -98,7 +102,6 @@ RootSignature*      pRootSignature                            = NULL;
 RenderTarget*       pColorRenderTarget                        = NULL;
 DescriptorSet*      pDescriptorSet_NonFreq                    = {NULL};
 DescriptorSet*      pDescriptorSet_PerFrame                   = {NULL};
-VirtualJoystickUI*  pVirtualJoystick						  = NULL;     
 Buffer*             pUniformBuffer[gImageCount]               = {NULL};
 Texture*            pPaletteTexture                           = NULL;
 Texture*            pShadingRateTexture                       = NULL;
@@ -114,7 +117,7 @@ ProfileToken        gGpuProfileToken                          = PROFILE_INVALID_
                                                              
 ICameraController*  pCameraController                         = NULL;
 
-GuiComponent*       pGuiWindow;
+UIComponent*       pGuiWindow;
 bool                bToggleVRS;
 bool                bToggleDebugView;
 bool                bToggleVSync;
@@ -123,9 +126,8 @@ uint32_t            gCubesShadingRateIndex                    = 0;
 ShadingRate*        pShadingRates                             = NULL;
 
 /// UI
-UIApp* pAppUI = NULL;
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-static uint32_t	gSelectedApiIndex = 0;
+FontDrawDesc gFrameTimeDraw; 
+uint32_t gFontID = 0; 
 
 bool gTakeScreenshot = false;
 void takeScreenshot()
@@ -154,9 +156,10 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,		   "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,		   "Scripts");
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		settings.mShaderTarget = shader_target_6_4;
 		initRenderer(GetName(), &settings, &pRenderer);
 		// check for init success
@@ -183,13 +186,6 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
-
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
 
 		// Load textures
 		TextureLoadDesc loadDesc = {};
@@ -298,16 +294,27 @@ public:
 			addCube(0.4f, 0.4f, 0.4f);
 		}
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
@@ -315,61 +322,36 @@ public:
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
 #if !defined(TARGET_IOS)
 		CheckboxWidget vsyncCheckbox;
 		vsyncCheckbox.pData = &bToggleVSync;
-		addWidgetLua(addGuiWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vsyncCheckbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vsyncCheckbox, WIDGET_TYPE_CHECKBOX));
 #endif
 
 		ButtonWidget screenshot;
-		IWidget* pScreenshot = addGuiWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-		pScreenshot->pOnEdited = takeScreenshot;
-		addWidgetLua(pScreenshot);
+		UIWidget* pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pScreenshot, takeScreenshot);
+		luaRegisterWidget(pScreenshot);
 
 		if (pRenderer->pActiveGpuSettings->mShadingRateCaps)
 		{
 			CheckboxWidget toggleVRSCheckbox;
 			toggleVRSCheckbox.pData = &bToggleVRS;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Toggle VRS\t\t\t\t\t", &toggleVRSCheckbox, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VRS\t\t\t\t\t", &toggleVRSCheckbox, WIDGET_TYPE_CHECKBOX));
 
 			CheckboxWidget toggleDebugCheckbox;
 			toggleDebugCheckbox.pData = &bToggleDebugView;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Toggle Debug View\t\t\t\t\t", &toggleDebugCheckbox, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle Debug View\t\t\t\t\t", &toggleDebugCheckbox, WIDGET_TYPE_CHECKBOX));
 
 			SliderFloat2Widget focusCenterSlider;
 			focusCenterSlider.pData = &gShadingRateCB.mFocusCenter;
 			focusCenterSlider.mMin = { 0.0f, 0.0f };
 			focusCenterSlider.mMax = { mSettings.mWidth, mSettings.mHeight };
-			addWidgetLua(addGuiWidget(pGuiWindow, "Focus center", &focusCenterSlider, WIDGET_TYPE_SLIDER_FLOAT2));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Focus center", &focusCenterSlider, WIDGET_TYPE_SLIDER_FLOAT2));
 
 			// Shading Rates dropdown
 			{
@@ -401,7 +383,7 @@ public:
 						ddCubeSR.mNames.push_back((char*)names[i]);
 						ddCubeSR.mValues.push_back(indicies[i]);
 					}
-					addWidgetLua(addGuiWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
+					luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
 				}
 				else // tier-1 support
 				{
@@ -424,7 +406,7 @@ public:
 						ddCubeSR.mNames.push_back((char*)names[i]);
 						ddCubeSR.mValues.push_back(indicies[i]);
 					}
-					addWidgetLua(addGuiWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
+					luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
 				}
 #endif
 			}
@@ -432,7 +414,7 @@ public:
 		else
 		{
 			LabelWidget notSupportedLabel;
-			addWidgetLua(addGuiWidget(pGuiWindow, "Variable Rate Shading is not supported by this GPU.", &notSupportedLabel, WIDGET_TYPE_LABEL));
+			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Variable Rate Shading is not supported by this GPU.", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
 
 		waitForAllResourceLoads();
@@ -462,11 +444,14 @@ public:
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
@@ -476,7 +461,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -486,9 +471,8 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -508,14 +492,16 @@ public:
 	void Exit()
 	{
 		exitInputSystem();
+
 		exitCameraController(pCameraController);
 
-		tf_free(pShadingRates);
+		exitUserInterface();
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-		exitProfilerUI();
-		exitAppUI(pAppUI);
+		exitFontSystem(); 
+
 		exitProfiler();
+
+		tf_free(pShadingRates);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -557,6 +543,7 @@ public:
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -576,10 +563,15 @@ public:
 				return false;
 		}
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets, 1))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
@@ -672,8 +664,9 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
 		{
@@ -722,9 +715,6 @@ public:
 			gCubesInfo[1].mLocalMat = mat4::translation(vec3(10.0f, 0, -30)) * mat4::rotationZ(rot) * mat4::scale(vec3(25.0f)) * mat4::identity();
 			gUniformData.mToWorldMat[1] = gCubesInfo[1].mLocalMat;		
 		}
-		
-		// Update GUI
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -889,15 +879,16 @@ public:
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
-			float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-			drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
-
 			const float txtIndent = 8.f;
+
+			gFrameTimeDraw.mFontColor = 0xff00ffff;
+			gFrameTimeDraw.mFontSize = 18.0f;
+			gFrameTimeDraw.mFontID = gFontID;
 			float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
 			cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
-			cmdDrawProfilerUI();
-			appUIGui(pAppUI, pGuiWindow);
-			drawAppUI(pAppUI, cmd);
+
+			cmdDrawUserInterface(cmd);
+
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };

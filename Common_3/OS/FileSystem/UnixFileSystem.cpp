@@ -40,7 +40,7 @@ static bool fsDirectoryExists(const char* path)
 	return (s.st_mode & S_IFDIR) != 0;
 }
 
-static bool fsCreateDirectory(const char* path)
+bool fsUnixCreateDirectory(const char* path)
 {
 	if (fsDirectoryExists(path)) // Check if directory already exists
 	{
@@ -53,7 +53,7 @@ static bool fsCreateDirectory(const char* path)
 	// Recursively create all parent directories.
 	if (parentPath[0] != 0)
 	{
-		fsCreateDirectory(parentPath);
+		fsUnixCreateDirectory(parentPath);
 	}
 
 	if (mkdir(path, 0777) != 0)
@@ -65,10 +65,12 @@ static bool fsCreateDirectory(const char* path)
 	return true;
 }
 
+#if !defined(ORBIS)
 bool fsCreateDirectory(ResourceDirectory resourceDir)
 {
-	return fsCreateDirectory(fsGetResourceDirectory(resourceDir));
+	return fsUnixCreateDirectory(fsGetResourceDirectory(resourceDir));
 }
+#endif
 
 time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName)
 {
@@ -89,7 +91,16 @@ bool UnixOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode 
 	const char* modeStr = fsFileModeToString(mode);
 
 	FILE* file = fopen(filePath, modeStr);
+	// Might fail to open the file for read+write if file doesn't exist
 	if (!file)
+	{
+		if ((mode & FM_READ_WRITE) == FM_READ_WRITE)
+		{
+			modeStr = fsOverwriteFileModeToString(mode);
+			file = fopen(filePath, modeStr);
+		}
+	}
+	if(!file)
 	{
 		LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
 		return false;
@@ -110,7 +121,7 @@ bool UnixOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode 
 	return true;
 }
 
-#if !defined(__ANDROID__)
+#if !defined(__ANDROID__) && !defined(ORBIS)
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
 	return UnixOpenFile(resourceDir, fileName, mode, pOut);

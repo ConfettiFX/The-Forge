@@ -41,13 +41,15 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -62,9 +64,6 @@
 #include "../../../../Middleware_3/Animation/Clip.h"
 #include "../../../../Middleware_3/Animation/ClipController.h"
 #include "../../../../Middleware_3/Animation/Rig.h"
-
-//LUA
-#include "../../../../Middleware_3/LUA/LuaManager.h"
 
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
@@ -160,25 +159,33 @@ static const uint32_t MATERIAL_INSTANCE_COUNT = sizeof(metalEnumNames) / sizeof(
 
 const uint32_t gImageCount = 3;
 ProfileToken   gHairGpuProfileToken;
-ProfileToken gMetalWoodGpuProfileToken;
-ProfileToken gCurrentGpuProfileToken;
+ProfileToken   gMetalWoodGpuProfileToken;
+ProfileToken   gCurrentGpuProfileToken;
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
 //--------------------------------------------------------------------------------------------
 struct UniformCamData
 {
-	mat4 mProjectView;
-	mat4 mInvProjectView;
+	CameraMatrix mProjectView;
+    CameraMatrix mInvProjectView;
 
 	vec3 mCamPos;
 
 	float fAmbientLightIntensity = 0.0f;
 
-	int bUseEnvMap = 0;
+	int   bUseEnvMap = 0;
 	float fEnvironmentLightIntensity = 0.5f;
 	float fAOIntensity = 0.01f;
-	int iRenderMode = 0;
+	int   iRenderMode = 0;
 	float fNormalMapIntensity = 1.0f;
+};
+
+struct UniformCamDataShadow
+{
+    mat4 mProjectView;
+    mat4 mInvProjectView;
+
+    vec3 mCamPos;
 };
 
 struct UniformObjData
@@ -195,13 +202,13 @@ struct UniformObjData
 enum ETextureConfigFlags
 {
 	// specifies which textures are used for the material
-	DIFFUSE   = (1 << 0),
-	NORMAL    = (1 << 1),
-	METALLIC  = (1 << 2),
+	DIFFUSE = (1 << 0),
+	NORMAL = (1 << 1),
+	METALLIC = (1 << 2),
 	ROUGHNESS = (1 << 3),
-	AO        = (1 << 4),
+	AO = (1 << 4),
 
-	TEXTURE_CONFIG_FLAGS_ALL  = DIFFUSE | NORMAL | METALLIC | ROUGHNESS | AO,
+	TEXTURE_CONFIG_FLAGS_ALL = DIFFUSE | NORMAL | METALLIC | ROUGHNESS | AO,
 	TEXTURE_CONFIG_FLAGS_NONE = 0,
 
 	// specifies which diffuse reflection model to use
@@ -218,7 +225,6 @@ enum EDiffuseReflectionModels
 	DIFFUSE_REFLECTION_MODEL_COUNT
 };
 
-
 struct PointLight
 {
 	float3 mPosition;
@@ -232,11 +238,11 @@ struct DirectionalLight
 	float3 mDirection;
 	int    mShadowMap;
 	float3 mColor;
-	float mIntensity;
-	float mShadowRange;
+	float  mIntensity;
+	float  mShadowRange;
 	float2 _pad;
-	int mShadowMapDimensions;
-	mat4 mViewProj;
+	int    mShadowMapDimensions;
+	mat4   mViewProj;
 };
 
 struct UniformDataPointLights
@@ -261,9 +267,9 @@ struct Capsule
 
 struct NamedCapsule
 {
-	const char*     mName = NULL;
-	Capsule         mCapsule = {};
-	int             mAttachedBone = -1;
+	const char* mName = NULL;
+	Capsule     mCapsule = {};
+	int         mAttachedBone = -1;
 };
 
 struct Transform
@@ -275,9 +281,9 @@ struct Transform
 
 struct NamedTransform
 {
-	const char*     mName = NULL;
-	Transform       mTransform = {};
-	int             mAttachedBone = -1;
+	Transform   mTransform = {};
+	const char* mName = NULL;
+	int         mAttachedBone = -1;
 };
 
 struct UniformDataHairGlobal
@@ -348,7 +354,7 @@ struct HairBuffer
 	uint                      mNumGuideStrands = 0;
 	float                     mStrandRadius = 0.0f;
 	float                     mStrandSpacing = 0.0f;
-	uint                      mTransform = 0;       // Index into gTransforms
+	uint                      mTransform = 0;    // Index into gTransforms
 	bool                      mDisableRootColor = false;
 #if HAIR_MAX_CAPSULE_COUNT > 0
 	uint mCapsules[HAIR_MAX_CAPSULE_COUNT] = {};    // World space capsules
@@ -422,18 +428,15 @@ VertexLayout gVertexLayoutDefault = {};
 //--------------------------------------------------------------------------------------------
 // THE FORGE OBJECTS
 //--------------------------------------------------------------------------------------------
-UIApp*             pAppUI = NULL;
 ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
-TextDrawDesc       gFrameTimeDraw = TextDrawDesc(0, 0xff00ff00, 18);
-TextDrawDesc       gErrMsgDrawDesc = TextDrawDesc(0, 0xff0000ee, 18);
-GuiComponent*      pGuiWindowMain = NULL;
-GuiComponent*      pGuiWindowHairSimulation = NULL;
-GuiComponent*      pGuiWindowMaterial = NULL;
+FontDrawDesc       gFrameTimeDraw; // = TextDrawDesc(0, 0xff00ff00, 18);
+FontDrawDesc       gErrMsgDrawDesc; // = TextDrawDesc(0, 0xff0000ee, 18);
+UIComponent*      pGuiWindowMain = NULL;
+UIComponent*      pGuiWindowHairSimulation = NULL;
+UIComponent*      pGuiWindowMaterial = NULL;
 LuaManager         gLuaManager;
 ThreadSystem*      pIOThreads = NULL;
-
-VirtualJoystickUI* pVirtualJoystick = NULL;
 
 //--------------------------------------------------------------------------------------------
 // SAMPLERS
@@ -464,7 +467,6 @@ Shader* pShaderShowCapsules = NULL;
 Shader* pShaderSkeleton = NULL;
 Shader* pShaderHairShadow = NULL;
 
-
 //--------------------------------------------------------------------------------------------
 // ROOT SIGNATURES
 //--------------------------------------------------------------------------------------------
@@ -486,7 +488,6 @@ RootSignature* pRootSignatureHairPreWarm = NULL;
 RootSignature* pRootSignatureShowCapsules = NULL;
 RootSignature* pRootSignatureSkeleton = NULL;
 RootSignature* pRootSignatureHairShadow = NULL;
-
 
 //--------------------------------------------------------------------------------------------
 // DESCRIPTOR SET
@@ -532,7 +533,6 @@ Pipeline* pPipelineShowCapsules = NULL;
 Pipeline* pPipelineSkeleton = NULL;
 Pipeline* pPipelineHairShadow = NULL;
 
-
 //--------------------------------------------------------------------------------------------
 // RENDER TARGETS
 //--------------------------------------------------------------------------------------------
@@ -540,7 +540,7 @@ RenderTarget* pRenderTargetShadowMap = NULL;
 RenderTarget* pRenderTargetDepth = NULL;
 RenderTarget* pRenderTargetDepthPeeling = NULL;
 RenderTarget* pRenderTargetFillColors = NULL;
-RenderTarget* pRenderTargetHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS] = {{ NULL }};
+RenderTarget* pRenderTargetHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS] = { { NULL } };
 #ifndef METAL
 Texture* pTextureHairDepth = NULL;
 #else
@@ -551,12 +551,12 @@ Buffer* pBufferHairDepth = NULL;
 //--------------------------------------------------------------------------------------------
 // VERTEX BUFFERS
 //--------------------------------------------------------------------------------------------
-Buffer*                     pVertexBufferSkybox = NULL;
-eastl::vector<HairBuffer>   gHair;
-Buffer*                     pVertexBufferSkeletonJoint = NULL;
-int                         gVertexCountSkeletonJoint = 0;
-Buffer*                     pVertexBufferSkeletonBone = NULL;
-int                         gVertexCountSkeletonBone = 0;
+Buffer*                   pVertexBufferSkybox = NULL;
+eastl::vector<HairBuffer> gHair;
+Buffer*                   pVertexBufferSkeletonJoint = NULL;
+int                       gVertexCountSkeletonJoint = 0;
+Buffer*                   pVertexBufferSkeletonBone = NULL;
+int                       gVertexCountSkeletonBone = 0;
 
 //--------------------------------------------------------------------------------------------
 // INDEX BUFFERS
@@ -586,10 +586,10 @@ Buffer* pUniformBufferHairGlobal = NULL;
 //--------------------------------------------------------------------------------------------
 const int gMaterialTextureCount = MATERIAL_INSTANCE_COUNT * MATERIAL_TEXTURE_COUNT * MATERIAL_COUNT;
 
-Texture*                  pTextureSkybox = NULL;
-Texture*                  pTextureBRDFIntegrationMap = NULL;
-eastl::vector<Texture*>   gTextureMaterialMaps;          // objects
-eastl::vector<Texture*>   gTextureMaterialMapsGround;    // ground
+Texture*                pTextureSkybox = NULL;
+Texture*                pTextureBRDFIntegrationMap = NULL;
+eastl::vector<Texture*> gTextureMaterialMaps;          // objects
+eastl::vector<Texture*> gTextureMaterialMapsGround;    // ground
 
 Texture* pTextureIrradianceMap = NULL;
 Texture* pTextureSpecularMap = NULL;
@@ -599,7 +599,7 @@ Texture* pTextureSpecularMap = NULL;
 //--------------------------------------------------------------------------------------------
 UniformCamData               gUniformDataCamera;
 UniformCamData               gUniformDataCameraSkybox;
-UniformCamData               gUniformDataCameraHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS];
+UniformCamDataShadow         gUniformDataCameraHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS];
 UniformDataPointLights       gUniformDataPointLights;
 UniformObjData               gUniformDataMatBall[MATERIAL_INSTANCE_COUNT];
 UniformDataDirectionalLights gUniformDataDirectionalLights;
@@ -625,47 +625,45 @@ eastl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores the 
 //--------------------------------------------------------------------------------------------
 // UI & OTHER
 //--------------------------------------------------------------------------------------------
-bool                  gVSyncEnabled = false;
-bool                  gShowCapsules = false;
-uint                  gHairType = 0;
+bool                gVSyncEnabled = false;
+bool                gShowCapsules = false;
+uint                gHairType = 0;
 eastl::vector<uint> gHairTypeIndices[HAIR_TYPE_COUNT];
-HairTypeInfo		gHairTypeInfo[HAIR_TYPE_COUNT];
-bool				gEnvironmentLighting = true;
-bool				gDrawSkybox = true;
-uint32_t			gMaterialType = MATERIAL_METAL;
-uint32_t			gDiffuseReflectionModel = LAMBERT_REFLECTION;
-bool				gbLuaScriptingSystemLoadedSuccessfully = false;
-bool				gbAnimateCamera = false;
-static uint32_t		gSelectedApiIndex = 0;
+HairTypeInfo        gHairTypeInfo[HAIR_TYPE_COUNT];
+bool                gEnvironmentLighting = true;
+bool                gDrawSkybox = true;
+uint32_t            gMaterialType = MATERIAL_METAL;
+uint32_t            gDiffuseReflectionModel = LAMBERT_REFLECTION;
+bool                gbLuaScriptingSystemLoadedSuccessfully = false;
+bool                gbAnimateCamera = false;
 
-eastl::unordered_map< EMaterialTypes, EDiffuseReflectionModels > gMaterialLightingModelMap;
+eastl::unordered_map<EMaterialTypes, EDiffuseReflectionModels> gMaterialLightingModelMap;
 
-TextDrawDesc		gMaterialPropDraw = TextDrawDesc(0, 0xffaaaaaa, 32);
+FontDrawDesc gMaterialPropDraw; // = TextDrawDesc(0, 0xffaaaaaa, 32);
 
 // light
-const int			gShadowMapDimensions = 2048;
-uint				gDirectionalLightColor = 0xffb475ff;
-float				gDirectionalLightIntensity = 10.0f;
-float3				gDirectionalLightPosition = float3(-33.030f, 9.09f, 100.0f);
-float				gAmbientLightIntensity = 0.01f;
-float				gEnvironmentLightingIntensity = 0.35f;
+const int gShadowMapDimensions = 2048;
+uint      gDirectionalLightColor = 0xffb475ff;
+float     gDirectionalLightIntensity = 10.0f;
+float3    gDirectionalLightPosition = float3(-33.030f, 9.09f, 100.0f);
+float     gAmbientLightIntensity = 0.01f;
+float     gEnvironmentLightingIntensity = 0.35f;
 
 // material
-uint32_t			gRenderMode = 0;
-bool				gOverrideRoughnessTextures = false;
-float				gRoughnessOverride = 0.04f;
-bool				gDisableNormalMaps = false;
-float				gNormalMapIntensity = 0.56f;
-bool				gDisableAOMaps = false;
-float				gAOIntensity = 1.00f;
+uint32_t gRenderMode = 0;
+bool     gOverrideRoughnessTextures = false;
+float    gRoughnessOverride = 0.04f;
+bool     gDisableNormalMaps = false;
+float    gNormalMapIntensity = 0.56f;
+bool     gDisableAOMaps = false;
+float    gAOIntensity = 1.00f;
 
-
-uint32_t gHairColor = HAIR_COLOR_BROWN;
-uint32_t gLastHairColor = gHairColor;
-bool gFirstHairSimulationFrame = true;
+uint32_t       gHairColor = HAIR_COLOR_BROWN;
+uint32_t       gLastHairColor = gHairColor;
+bool           gFirstHairSimulationFrame = true;
 GPUPresetLevel gGPUPresetLevel;
 
-mat4                  gTextProjView;
+CameraMatrix                gTextProjView;
 eastl::vector<mat4> gTextWorldMats;
 
 void ReloadScriptButtonCallback() { gLuaManager.ReloadUpdatableScript(); }
@@ -679,7 +677,7 @@ void takeScreenshot()
 }
 
 // Finds the vertex in the direction of the normal
-vec3 AABBGetVertex(AABB b, vec3 normal)
+vec3 AABBGetVertex(const AABB& b, const vec3& normal)
 {
 	vec3 p = b.minBounds;
 	for (int i = 0; i < 3; ++i)
@@ -690,7 +688,7 @@ vec3 AABBGetVertex(AABB b, vec3 normal)
 	return p;
 }
 
-bool AABBInFrustum(AABB b, vec4 frustumPlanes[6])
+bool AABBInFrustum(const AABB& b, vec4 frustumPlanes[6])
 {
 	for (int i = 0; i < 6; i++)
 	{
@@ -709,8 +707,8 @@ struct GuiController
 
 	struct HairDynamicWidgets
 	{
-		DynamicUIWidgets         hairShading;
-		DynamicUIWidgets         hairSimulation;
+		DynamicUIWidgets hairShading;
+		DynamicUIWidgets hairSimulation;
 	};
 	static eastl::vector<HairDynamicWidgets> hairDynamicWidgets;
 
@@ -723,29 +721,34 @@ struct GuiController
 	static uint         currentHairType;
 };
 eastl::vector<GuiController::HairDynamicWidgets> GuiController::hairDynamicWidgets;
-DynamicUIWidgets                                  GuiController::hairShadingDynamicWidgets;
-DynamicUIWidgets                                  GuiController::hairSimulationDynamicWidgets;
-DynamicUIWidgets                                  GuiController::materialDynamicWidgets;
-MaterialType                                       GuiController::currentMaterialType;
-uint                                               GuiController::currentHairType = 0;
+DynamicUIWidgets                                 GuiController::hairShadingDynamicWidgets;
+DynamicUIWidgets                                 GuiController::hairSimulationDynamicWidgets;
+DynamicUIWidgets                                 GuiController::materialDynamicWidgets;
+MaterialType                                     GuiController::currentMaterialType;
+uint                                             GuiController::currentHairType = 0;
 
 const char* gTestScripts[] = { "Test_Metal.lua", "Test_Wood.lua",
 #if !defined(METAL)
-"Test_Hair.lua"
+							   "Test_Hair.lua"
 #endif
 };
 
-uint32_t gScriptIndexes[] = { 0, 1, 2};
+uint32_t gScriptIndexes[] = { 0, 1, 2 };
 uint32_t gCurrentScriptIndex = 0;
-void RunScript()
-{
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+
+uint32_t gFontID = 0; 
+
+void RunScript() 
+{ 
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 class MaterialPlayground: public IApp
 {
 	public:
-	MaterialPlayground()
+	MaterialPlayground() //-V832
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
@@ -754,11 +757,11 @@ class MaterialPlayground: public IApp
 
 	struct StagingData
 	{
-		eastl::vector<char*> mModelList;
+		eastl::vector<char*>       mModelList;
 		eastl::vector<const char*> mMaterialNamesStorage;
 		eastl::vector<const char*> mGroundNamesStorage;
-		float* pJointPoints;
-		float* pBonePoints;
+		float*                     pJointPoints;
+		float*                     pBonePoints;
 		~StagingData()
 		{
 			for (char* model : mModelList)
@@ -772,7 +775,7 @@ class MaterialPlayground: public IApp
 
 	bool Init()
 	{
-        // FILE PATHS
+		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
@@ -783,50 +786,48 @@ class MaterialPlayground: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
 
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mGLESUnsupported = true;
+		initRenderer(GetName(), &settings, &pRenderer);
+		if (!pRenderer)
+			return false; 
+		
+		gGPUPresetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
+
+		QueueDesc queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+		}
+		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
+
 		initThreadSystem(&pIOThreads);
-
-		if (!initInputSystem(pWindow))
-			return false;
-
-		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
-		addInputAction(&actionDesc);
-		actionDesc =
-		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
-		};
-		addInputAction(&actionDesc);
-		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
-			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
-			}
-			return true;
-		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
-		addInputAction(&actionDesc);
 
 		// INITIALIZE CAMERA & INPUT
 		//
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
-		vec3 camPos{ -0.21f, 12.2564745f, 59.3652649f };
-		vec3 lookAt{ 0, 0, 0 };
+		vec3                   camPos{ -0.21f, 12.2564745f, 59.3652649f };
+		vec3                   lookAt{ 0, 0, 0 };
 
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pLightView = initGuiCameraController(f3Tov3(gDirectionalLightPosition), vec3(0, 0, 0));
@@ -834,6 +835,8 @@ class MaterialPlayground: public IApp
 
 		// INITIALIZE SCRIPTING
 		//
+		luaDestroyCurrentManager(); 
+
 		gLuaManager.Init();
 		ICameraController* cameraLocalPtr = pCameraController;
 		gLuaManager.SetFunction("GetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
@@ -858,7 +861,7 @@ class MaterialPlayground: public IApp
 			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
 			return 1;    // return amount of arguments
 		});
-		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
+		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", NULL, "Update", "Exit");
 
 		// SET MATERIAL LIGHTING MODELS
 		//
@@ -871,51 +874,11 @@ class MaterialPlayground: public IApp
 
 		LoadAnimations();
 
-		Timer t;
-		// INITIALIZE RENDERER, COMMAND BUFFERS
-		//
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
-		initRenderer(GetName(), &settings, &pRenderer);
-		if (!pRenderer)
-			return false;
-
-		gGPUPresetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
-
-		QueueDesc queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
-		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
-
-			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
-			cmdDesc.pPool = pUICmdPools[i];
-			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-		}
-		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-
 		// INITIALIZE RESOURCE SYSTEMS
 		//
 
 		initResourceLoaderInterface(pRenderer);
 		initScreenshotInterface(pRenderer, pGraphicsQueue);
-
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-			return false;
 
 		pStagingData = tf_new(StagingData);
 		// CREATE RENDERING RESOURCES
@@ -964,74 +927,121 @@ class MaterialPlayground: public IApp
 
 		InitializeUniformBuffers();
 
+		luaAssignCustomManager(&gLuaManager);
+
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
+
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
 		// INITIALIZE UI
 		//
-		addAppUILuaManager(pAppUI, &gLuaManager);
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
-		UIAppDesc appUIDesc = {};
-		appUIDesc.fontAtlasSize = 256;
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
 
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
-
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gMetalWoodGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		gHairGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		gCurrentGpuProfileToken = gMetalWoodGpuProfileToken;
 
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(5, 220.0f);
 		guiDesc.mStartSize = vec2(450, 600);
-		pGuiWindowMain = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindowMain, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent(GetName(), &guiDesc, &pGuiWindowMain);
 
 		ButtonWidget screenshot;
-		IWidget* pScreenshot = addGuiWidget(pGuiWindowMain, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-		pScreenshot->pOnEdited = takeScreenshot;
-		addWidgetLua(pScreenshot);
+		UIWidget*     pScreenshot = uiCreateComponentWidget(pGuiWindowMain, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pScreenshot, takeScreenshot);
+		luaRegisterWidget(pScreenshot);
 
 		//guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
 		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
-		pGuiWindowMaterial = addAppUIGuiComponent(pAppUI, "Material Properties", &guiDesc);
+		uiCreateComponent("Material Properties", &guiDesc, &pGuiWindowMaterial);
 
 		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 200.0f);
 		guiDesc.mStartSize = vec2(450, 600);
-		pGuiWindowHairSimulation = addAppUIGuiComponent(pAppUI, "Hair simulation", &guiDesc);
+		uiCreateComponent("Hair simulation", &guiDesc, &pGuiWindowHairSimulation);
 		GuiController::AddGui();
 
-		gFrameIndex = 0; 
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+					   [](InputActionContext* ctx) {
+						   toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
+						   return true;
+					   },
+					   this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+						  requestShutdown();
+						  return true;
+					  } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_ANY,
+					   [](InputActionContext* ctx) {
+						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+						   return true;
+					   },
+					   this };
+		addInputAction(&actionDesc);
+		typedef bool(*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
+			if (!uiIsFocused() && *ctx->pCaptured)
+			{
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = {
+			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f
+		};
+		addInputAction(&actionDesc);
+		actionDesc = {
+			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
+						  pCameraController->resetView();
+						  return true;
+					  } };
+		addInputAction(&actionDesc);
+        actionDesc = { InputBindings::BUTTON_R3, [](InputActionContext* ctx) {
+                            if (ctx->mPhase == InputActionPhase::INPUT_ACTION_PHASE_STARTED)
+                            {
+                              gMaterialType = (gMaterialType + 1) % MATERIAL_COUNT;
+                              return true;
+                            }
+                            return false;
+                      } };
+        addInputAction(&actionDesc);
+
+		gFrameIndex = 0;
 
 		return true;
 	}
@@ -1041,7 +1051,9 @@ class MaterialPlayground: public IApp
 		DestroyAnimations();
 
 		exitInputSystem();
+
 		gLuaManager.Exit();
+
 		exitThreadSystem(pIOThreads);
 		exitCameraController(pCameraController);
 		exitCameraController(pLightView);
@@ -1056,8 +1068,8 @@ class MaterialPlayground: public IApp
 			gHairTypeIndices[i].set_capacity(0);
 		}
 
-		gMaterialLightingModelMap.clear(true); 
-		
+		gMaterialLightingModelMap.clear(true);
+
 		gFirstHairSimulationFrame = true;
 		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
 			gHairTypeInfo[i] = {};
@@ -1065,8 +1077,6 @@ class MaterialPlayground: public IApp
 
 		removeGpuProfiler(gHairGpuProfileToken);
 		removeGpuProfiler(gMetalWoodGpuProfileToken);
-
-		exitProfilerUI();
 
 		exitProfiler();
 
@@ -1091,13 +1101,12 @@ class MaterialPlayground: public IApp
 		DestroyRootSignatures();
 		DestroyShaders();
 
-
 		DestroySamplers();
 
-		exitVirtualJoystickUI(pVirtualJoystick);
-
 		GuiController::Exit();
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		// Remove commands and command pool&
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1116,18 +1125,23 @@ class MaterialPlayground: public IApp
 		exitScreenshotInterface();
 
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
 	{
 		CreateRenderTargets();
-		CreatePipelines();
+		CreatePipelines(); 
+		
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pRenderTargetDepth
+		};
 
-		RenderTarget* pRenderTargets[] = { pSwapChain->ppRenderTargets[0], pRenderTargetDepth };
-		if (!addAppGUIDriver(pAppUI, pRenderTargets, 2))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
 		waitForAllResourceLoads();
@@ -1141,9 +1155,9 @@ class MaterialPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeFontSystemPipelines(); 
 
 		DestroyPipelines();
 		DestroyRenderTargets();
@@ -1155,28 +1169,27 @@ class MaterialPlayground: public IApp
 
 		// UPDATE UI & CAMERA
 		//
-		updateAppUI(pAppUI, deltaTime);
 		GuiController::UpdateDynamicUI();
 
-		pCameraController->update(deltaTime);
 		if (gbLuaScriptingSystemLoadedSuccessfully)
 		{
 			gLuaManager.Update(deltaTime);
 		}
 
+		pCameraController->update(deltaTime);
+
 		// calculate matrices
-		mat4 viewMat = pCameraController->getViewMatrix();
+		mat4        viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 3.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		gTextProjView = projMat * viewMat;
-
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
 
 		// UPDATE UNIFORM BUFFERS
 		//
 		// cameras
-		gUniformDataCamera.mProjectView = gTextProjView;
-		gUniformDataCamera.mInvProjectView = inverse(gUniformDataCamera.mProjectView);
+        gTextProjView = projMat * viewMat;
+		gUniformDataCamera.mProjectView = projMat * viewMat;
+		gUniformDataCamera.mInvProjectView = CameraMatrix::inverse(gUniformDataCamera.mProjectView);
 		gUniformDataCamera.mCamPos = pCameraController->getViewPosition();
 		gUniformDataCamera.fAmbientLightIntensity = gAmbientLightIntensity;
 		gUniformDataCamera.bUseEnvMap = gEnvironmentLighting;
@@ -1186,30 +1199,28 @@ class MaterialPlayground: public IApp
 		gUniformDataCamera.fEnvironmentLightIntensity = gEnvironmentLightingIntensity;
 
 		vec4 frustumPlanes[6];
-		mat4::extractFrustumClipPlanes(gUniformDataCamera.mProjectView
-			, frustumPlanes[0], frustumPlanes[1], frustumPlanes[2]
-			, frustumPlanes[3], frustumPlanes[4], frustumPlanes[5], true);
+        CameraMatrix::extractFrustumClipPlanes(
+			gUniformDataCamera.mProjectView, frustumPlanes[0], frustumPlanes[1], frustumPlanes[2], frustumPlanes[3], frustumPlanes[4],
+			frustumPlanes[5], true);
 
 		viewMat.setTranslation(vec3(0));
 		gUniformDataCameraSkybox = gUniformDataCamera;
 		gUniformDataCameraSkybox.mProjectView = projMat * viewMat;
 
 		viewMat = pLightView->getViewMatrix();
-		
+
 		// lights
 		gUniformDataDirectionalLights.mDirectionalLights[0].mDirection = v3ToF3(normalize(f3Tov3(gDirectionalLightPosition)));
 		gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMap = 0;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = gDirectionalLightIntensity;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mColor = v3ToF3(unpackColorU32(gDirectionalLightColor).getXYZ());
-		gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat * viewMat;
+		gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.getPrimaryMatrix() * viewMat;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMapDimensions = gShadowMapDimensions;
 		gUniformDataDirectionalLights.mNumDirectionalLights = 1;
 
 		gUniformDataPointLights.mNumPointLights = 0;    // short out point lights for now
 
-		
-
-		// update the texture config (position and all other variables are 
+		// update the texture config (position and all other variables are
 		// set during initialization and they dont change during Update()).
 		//
 		for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
@@ -1220,7 +1231,7 @@ class MaterialPlayground: public IApp
 			objUniform.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
 			if (gDiffuseReflectionModel == OREN_NAYAR_REFLECTION)
 				objUniform.textureConfig |= ETextureConfigFlags::OREN_NAYAR;
-			
+
 			// Update material properties
 			if (gOverrideRoughnessTextures)
 			{
@@ -1311,6 +1322,7 @@ class MaterialPlayground: public IApp
 				for (size_t i = 0; i < gHairTypeIndices[hairType].size(); ++i)
 				{
 					uint           k = gHairTypeIndices[hairType][i];
+					HairBuffer&    hair = gHair[k];
 					NamedTransform namedTransform = gTransforms[gHair[k].mTransform];
 					Transform      transform = namedTransform.mTransform;
 
@@ -1320,19 +1332,18 @@ class MaterialPlayground: public IApp
 					if (namedTransform.mAttachedBone != -1)
 						GetCorrectedBoneTranformation(hairType, namedTransform.mAttachedBone, &boneMatrix, &boneRotation);
 
-					gHair[k].mUniformDataHairShading.mTransform = mat4::identity();
-					gHair[k].mUniformDataHairShading.mStrandRadius = gHair[k].mStrandRadius * transform.mScale;
-					gHair[k].mUniformDataHairShading.mStrandSpacing = gHair[k].mStrandSpacing * transform.mScale;
+					hair.mUniformDataHairShading.mTransform = mat4::identity();
+					hair.mUniformDataHairShading.mStrandRadius = hair.mStrandRadius * transform.mScale;
+					hair.mUniformDataHairShading.mStrandSpacing = hair.mStrandSpacing * transform.mScale;
 
 					// Transform the hair to be centered around the origin in hair local space. Then transform it to follow the head.
-					gHair[k].mUniformDataHairSimulation.mTransform = boneMatrix * mat4::rotationZYX(transform.mOrientation) *
-																	 mat4::translation(transform.mPosition) *
-																	 mat4::scale(vec3(transform.mScale));
-					gHair[k].mUniformDataHairSimulation.mQuatRotation =
-						Quat(boneRotation) * Quat(mat3::rotationZYX(transform.mOrientation));
-					gHair[k].mUniformDataHairSimulation.mScale = transform.mScale;
-					for (uint j = 0; j < gHair[k].mUniformDataHairSimulation.mCapsuleCount; ++j)
-						gHair[k].mUniformDataHairSimulation.mCapsules[j] = gFinalCapsules[hairType][gHair[k].mCapsules[j]];
+					hair.mUniformDataHairSimulation.mTransform = boneMatrix * mat4::rotationZYX(transform.mOrientation) *
+																 mat4::translation(transform.mPosition) *
+																 mat4::scale(vec3(transform.mScale));
+					hair.mUniformDataHairSimulation.mQuatRotation = Quat(boneRotation) * Quat(mat3::rotationZYX(transform.mOrientation));
+					hair.mUniformDataHairSimulation.mScale = transform.mScale;
+					for (uint j = 0; j < hair.mUniformDataHairSimulation.mCapsuleCount; ++j)
+						hair.mUniformDataHairSimulation.mCapsules[j] = gFinalCapsules[hairType][hair.mCapsules[j]];
 				}
 
 				// Find head transform
@@ -1364,7 +1375,6 @@ class MaterialPlayground: public IApp
 				}
 			}
 		}
-
 	}
 
 	void Draw()
@@ -1424,7 +1434,7 @@ class MaterialPlayground: public IApp
 			{
 				BufferUpdateDesc hairShadowBuffUpdateDesc = { pUniformBufferCameraHairShadows[gFrameIndex][hairType][i] };
 				beginUpdateResource(&hairShadowBuffUpdateDesc);
-				*(UniformCamData*)hairShadowBuffUpdateDesc.pMappedData = gUniformDataCameraHairShadows[hairType][i];
+				*(UniformCamDataShadow*)hairShadowBuffUpdateDesc.pMappedData = gUniformDataCameraHairShadows[hairType][i];
 				endUpdateResource(&hairShadowBuffUpdateDesc, NULL);
 			}
 		}
@@ -1438,7 +1448,6 @@ class MaterialPlayground: public IApp
 		beginUpdateResource(&hairGlobalBufferUpdateDesc);
 		*(UniformDataHairGlobal*)hairGlobalBufferUpdateDesc.pMappedData = gUniformDataHairGlobal;
 		endUpdateResource(&hairGlobalBufferUpdateDesc, NULL);
-
 
 		for (size_t i = 0; i < gHair.size(); ++i)
 		{
@@ -1456,7 +1465,6 @@ class MaterialPlayground: public IApp
 		if (gMaterialType == MATERIAL_HAIR)
 			gSkeletonBatcher.SetPerInstanceUniforms(gFrameIndex);
 
-
 		// Draw
 		eastl::vector<Cmd*> allCmds;
 		Cmd*                cmd = pCmds[gFrameIndex];
@@ -1466,13 +1474,9 @@ class MaterialPlayground: public IApp
 
 		cmdBeginGpuFrameProfile(cmd, gCurrentGpuProfileToken);
 
-		RenderTargetBarrier barriers[] =
-		{
-			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
-			{ pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
-		};
+		RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+										   { pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE } };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
-
 
 		// DRAW DIRECTIONAL SHADOW MAP
 		//
@@ -1515,14 +1519,13 @@ class MaterialPlayground: public IApp
 			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, gMeshes[MESH_MAT_BALL]->mIndexType, 0);
 			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
-				cmdBindDescriptorSet(cmd, 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT + i), pDescriptorSetShadow[1]);
+				cmdBindDescriptorSet(
+					cmd, 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT + i), pDescriptorSetShadow[1]);
 				cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Shadow Pass
-
-
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);    // Shadow Pass
 
 		// DRAW SKYBOX
 		//
@@ -1545,8 +1548,7 @@ class MaterialPlayground: public IApp
 			cmdDraw(cmd, 36, 0);
 		}
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
-		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Skybox Pass
-
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);    // Skybox Pass
 
 		// DRAW THE OBJECTS W/ MATERIALS
 		//
@@ -1595,17 +1597,18 @@ class MaterialPlayground: public IApp
 #if 1    // toggle for rendering objects
 			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
-				const uint32_t index = 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) + (GuiController::currentMaterialType * MATERIAL_INSTANCE_COUNT) + i;
+				const uint32_t index = 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) +
+									   (GuiController::currentMaterialType * MATERIAL_INSTANCE_COUNT) + i;
 				cmdBindDescriptorSet(cmd, index, pDescriptorSetBRDF[2]);
 				cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 			}
 #endif
 
-			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// Lighting Pass
+			cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);    // Lighting Pass
 		}
 
 		// Draw hair
-		else // gMaterialType == MATERIAL_HAIR
+		else    // gMaterialType == MATERIAL_HAIR
 		{
 			//// draw the skeleton of the rig
 			gSkeletonBatcher.Draw(cmd, gFrameIndex);
@@ -1626,16 +1629,17 @@ class MaterialPlayground: public IApp
 
 				for (size_t i = 0; i < gHairTypeIndices[hairType].size(); ++i)
 				{
-					uint k = gHairTypeIndices[hairType][i];
+					uint        k = gHairTypeIndices[hairType][i];
+					HairBuffer& hair = gHair[k];
 
 					uint dispatchGroupCountPerVertex =
-						gHair[k].mTotalVertexCount / 64 / (gHair[k].mUniformDataHairSimulation.mNumFollowHairsPerGuideHair + 1);
-					uint dispatchGroupCountPerStrand = gHair[k].mNumGuideStrands / 64;
+						hair.mTotalVertexCount / 64 / (hair.mUniformDataHairSimulation.mNumFollowHairsPerGuideHair + 1);
+					uint dispatchGroupCountPerStrand = hair.mNumGuideStrands / 64;
 
 					BufferBarrier bufferBarriers[3] = {};
 					for (int j = 0; j < 3; ++j)
 					{
-						bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
+						bufferBarriers[j].pBuffer = hair.pBufferHairSimulationVertexPositions[j];
 						bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					}
 					cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
@@ -1649,7 +1653,7 @@ class MaterialPlayground: public IApp
 
 						for (int j = 0; j < 3; ++j)
 						{
-							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
+							bufferBarriers[j].pBuffer = hair.pBufferHairSimulationVertexPositions[j];
 							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
@@ -1661,12 +1665,12 @@ class MaterialPlayground: public IApp
 
 					for (int j = 0; j < 3; ++j)
 					{
-						bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
+						bufferBarriers[j].pBuffer = hair.pBufferHairSimulationVertexPositions[j];
 						bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					}
 					cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 
-					if (gHair[k].mUniformDataHairSimulation.mShockPropagationStrength > 0.0f)
+					if (hair.mUniformDataHairSimulation.mShockPropagationStrength > 0.0f)
 					{
 						cmdBindPipeline(cmd, pPipelineHairShockPropagation);
 						cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairShockPropagate);
@@ -1674,25 +1678,25 @@ class MaterialPlayground: public IApp
 
 						for (int j = 0; j < 3; ++j)
 						{
-							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
+							bufferBarriers[j].pBuffer = hair.pBufferHairSimulationVertexPositions[j];
 							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 					}
 
-					if (gHair[k].mUniformDataHairSimulation.mLocalConstraintIterations > 0 &&
-						gHair[k].mUniformDataHairSimulation.mLocalStiffness > 0.0f)
+					if (hair.mUniformDataHairSimulation.mLocalConstraintIterations > 0 &&
+						hair.mUniformDataHairSimulation.mLocalStiffness > 0.0f)
 					{
 						cmdBindPipeline(cmd, pPipelineHairLocalConstraints);
 						cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairLocalConstraints);
 
 						for (int j = 0; j < 3; ++j)
 						{
-							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
+							bufferBarriers[j].pBuffer = hair.pBufferHairSimulationVertexPositions[j];
 							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 
-						for (int j = 0; j < (int)gHair[k].mUniformDataHairSimulation.mLocalConstraintIterations; ++j)
+						for (int j = 0; j < (int)hair.mUniformDataHairSimulation.mLocalConstraintIterations; ++j)
 						{
 							cmdDispatch(cmd, dispatchGroupCountPerStrand, 1, 1);
 							cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
@@ -1701,7 +1705,7 @@ class MaterialPlayground: public IApp
 
 					cmdBindPipeline(cmd, pPipelineHairLengthConstraints);
 
-					bufferBarriers[0].pBuffer = gHair[k].pBufferHairVertexTangents;
+					bufferBarriers[0].pBuffer = hair.pBufferHairVertexTangents;
 					bufferBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 					bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					cmdResourceBarrier(cmd, 1, bufferBarriers, 0, NULL, 0, NULL);
@@ -1709,20 +1713,20 @@ class MaterialPlayground: public IApp
 					cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairLengthConstraints);
 					cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
-					bufferBarriers[0].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[0];
+					bufferBarriers[0].pBuffer = hair.pBufferHairSimulationVertexPositions[0];
 					bufferBarriers[0].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 					bufferBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-					bufferBarriers[1].pBuffer = gHair[k].pBufferHairVertexTangents;
+					bufferBarriers[1].pBuffer = hair.pBufferHairVertexTangents;
 					bufferBarriers[1].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 					bufferBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 					cmdResourceBarrier(cmd, 2, bufferBarriers, 0, NULL, 0, NULL);
 
 					// Update follow hairs
-					if (gHair[k].mUniformDataHairSimulation.mNumFollowHairsPerGuideHair > 0)
+					if (hair.mUniformDataHairSimulation.mNumFollowHairsPerGuideHair > 0)
 					{
 						cmdBindPipeline(cmd, pPipelineHairUpdateFollowHairs);
 
-						bufferBarriers[0].pBuffer = gHair[k].pBufferHairVertexTangents;
+						bufferBarriers[0].pBuffer = hair.pBufferHairVertexTangents;
 						bufferBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 						bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						cmdResourceBarrier(cmd, 1, bufferBarriers, 0, NULL, 0, NULL);
@@ -1749,15 +1753,12 @@ class MaterialPlayground: public IApp
 			// Draw hair - shadow map
 			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair rendering");
 
-			uint32_t shadowDescriptorSetIndex[2] =
-			{
-				gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
-				gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS
-			};
+			uint32_t            shadowDescriptorSetIndex[2] = { gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
+                                                     gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS };
 			RenderTargetBarrier rtBarriers[2] = {};
-			TextureBarrier textureBarriers[2] = {};
+			TextureBarrier      textureBarriers[2] = {};
 #if defined(METAL)
-			BufferBarrier  bufferBarrier[1] = {};
+			BufferBarrier bufferBarrier[1] = {};
 #endif
 
 			cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Hair shadow");
@@ -1787,9 +1788,7 @@ class MaterialPlayground: public IApp
 					cmdSetViewport(
 						cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mWidth,
 						(float)pRenderTargetHairShadows[hairType][i]->mHeight, 0.0f, 1.0f);
-					cmdSetScissor(
-						cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth,
-						pRenderTargetHairShadows[hairType][i]->mHeight);
+					cmdSetScissor(cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth, pRenderTargetHairShadows[hairType][i]->mHeight);
 
 					cmdBindPipeline(cmd, pPipelineHairShadow);
 					cmdBindDescriptorSet(cmd, shadowDescriptorSetIndex[0], pDescriptorSetHairShadow[0]);
@@ -1851,12 +1850,11 @@ class MaterialPlayground: public IApp
 
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 			loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mClearValue;
-			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD; //-V1048
+			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;    //-V1048
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTargetDepthPeeling, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pRenderTargetDepthPeeling->mWidth, (float)pRenderTargetDepthPeeling->mHeight, 0.0f,
-				1.0f);
+				cmd, 0.0f, 0.0f, (float)pRenderTargetDepthPeeling->mWidth, (float)pRenderTargetDepthPeeling->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTargetDepthPeeling->mWidth, pRenderTargetDepthPeeling->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairDepthPeeling);
@@ -1937,8 +1935,7 @@ class MaterialPlayground: public IApp
 			loadActions.mClearColorValues[0] = pRenderTargetFillColors->mClearValue;
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTargetFillColors, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pRenderTargetFillColors->mWidth, (float)pRenderTargetFillColors->mHeight, 0.0f, 1.0f);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetFillColors->mWidth, (float)pRenderTargetFillColors->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTargetFillColors->mWidth, pRenderTargetFillColors->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairFillColors);
@@ -2025,7 +2022,6 @@ class MaterialPlayground: public IApp
 			gFirstHairSimulationFrame = false;
 		}
 
-
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -2034,7 +2030,7 @@ class MaterialPlayground: public IApp
 		cmd = pUICmds[gFrameIndex];
 		beginCmd(cmd);
 
-		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD; //-V1048
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;    //-V1048
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
@@ -2060,47 +2056,45 @@ class MaterialPlayground: public IApp
 			default: ppMaterialNames = metalEnumNames; break;
 		}
 
-
 		if (GuiController::currentMaterialType != MATERIAL_HAIR)
 		{
 			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
-				drawAppUITextInWorldSpace(pAppUI, cmd, ppMaterialNames[i], &gTextWorldMats[i], &gTextProjView, &gMaterialPropDraw);
+				gMaterialPropDraw.pText = ppMaterialNames[i];
+				gMaterialPropDraw.mFontColor = 0xffaaaaaa;
+				gMaterialPropDraw.mFontSize = 32.0f; 
+				cmdDrawWorldSpaceTextWithFont(cmd, &gTextWorldMats[i], &gTextProjView, &gMaterialPropDraw);
 			}
 		}
-
 
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
-
 		// draw HUD text
-        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
+		float2 screenCoords = float2(8, 15);
+
+		gFrameTimeDraw.mFontColor = 0xff00ff00;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
+
+		screenCoords = float2(8.0f, txtSize.y + 30.f);
+		cmdDrawGpuProfile(cmd, screenCoords, gCurrentGpuProfileToken, &gFrameTimeDraw);
 
 		if (!gbLuaScriptingSystemLoadedSuccessfully)
 		{
-			float2 screenCoords(8, 75);
-			drawAppUIText(pAppUI, cmd, &screenCoords, "Error loading LUA scripts!", &gErrMsgDrawDesc);
+			gErrMsgDrawDesc.pText = "Error loading LUA scripts!";
+			gErrMsgDrawDesc.mFontColor = 0xff0000ee;
+			gErrMsgDrawDesc.mFontSize = 18.0f;
+			cmdDrawTextWithFont(cmd, screenCoords, &gErrMsgDrawDesc);
 		}
-		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// HUD Text
-
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);    // HUD Text
 
 		cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "UI");
-		appUIGui(pAppUI, pGuiWindowMain);
-		if (GuiController::currentMaterialType == MATERIAL_HAIR)
-			appUIGui(pAppUI, pGuiWindowHairSimulation);
-		else
-			appUIGui(pAppUI, pGuiWindowMaterial);
 
-		cmdDrawProfilerUI();
-
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);	// UI
+		cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);    // UI
 
 		// PRESENT THE GFX QUEUE
 		//
@@ -2119,6 +2113,7 @@ class MaterialPlayground: public IApp
 		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
 		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
 		submitDesc.pSignalFence = pRenderCompleteFence;
+        getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
 		presentDesc.mIndex = swapchainImageIndex;
@@ -2131,7 +2126,7 @@ class MaterialPlayground: public IApp
 		if (gTakeScreenshot)
 		{
 			// Metal platforms need one renderpass to prepare the swapchain textures for copy.
-			if(prepareScreenshot(pSwapChain))
+			if (prepareScreenshot(pSwapChain))
 			{
 				captureScreenshot(pSwapChain, swapchainImageIndex, RESOURCE_STATE_PRESENT, "06_Material_Screenshot.png");
 				gTakeScreenshot = false;
@@ -2145,7 +2140,6 @@ class MaterialPlayground: public IApp
 	}
 
 	const char* GetName() { return "06_MaterialPlayground"; }
-
 
 	void GetCorrectedBoneTranformation(uint rigIndex, uint boneIndex, mat4* boneMatrix, mat3* boneRotation)
 	{
@@ -2213,31 +2207,32 @@ class MaterialPlayground: public IApp
 
 	void CreateShaders()
 	{
-		char pointLightsShaderMacroBuffer[4] = {}; sprintf(pointLightsShaderMacroBuffer, "%i", MAX_NUM_POINT_LIGHTS);
-		char directionalLightsShaderMacroBuffer[4] = {}; sprintf(directionalLightsShaderMacroBuffer, "%i", MAX_NUM_DIRECTIONAL_LIGHTS);
+		char pointLightsShaderMacroBuffer[4] = {};
+		sprintf(pointLightsShaderMacroBuffer, "%i", MAX_NUM_POINT_LIGHTS);
+		char directionalLightsShaderMacroBuffer[4] = {};
+		sprintf(directionalLightsShaderMacroBuffer, "%i", MAX_NUM_DIRECTIONAL_LIGHTS);
 
 		ShaderMacro pointLightsShaderMacro = { "MAX_NUM_POINT_LIGHTS", pointLightsShaderMacroBuffer };
 		ShaderMacro directionalLightsShaderMacro = { "MAX_NUM_DIRECTIONAL_LIGHTS", directionalLightsShaderMacroBuffer };
 		ShaderMacro lightMacros[] = { pointLightsShaderMacro, directionalLightsShaderMacro };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0};
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0};
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", lightMacros, 2};
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", lightMacros, 2};
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", lightMacros, 2, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", lightMacros, 2, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 
 		ShaderLoadDesc shadowPassShaderDesc = {};
-		shadowPassShaderDesc.mStages[0] = { "renderSceneShadows.vert", NULL, 0};
-		shadowPassShaderDesc.mStages[1] = { "renderSceneShadows.frag", NULL, 0};
+		shadowPassShaderDesc.mStages[0] = { "renderSceneShadows.vert", 0 };
+		shadowPassShaderDesc.mStages[1] = { "renderSceneShadows.frag", 0 };
 		addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
 
-
-
-		char maxCapsuleCountMacroBuffer[4] = {}; sprintf(maxCapsuleCountMacroBuffer, "%i", HAIR_MAX_CAPSULE_COUNT);
+		char maxCapsuleCountMacroBuffer[4] = {};
+		sprintf(maxCapsuleCountMacroBuffer, "%i", HAIR_MAX_CAPSULE_COUNT);
 
 		const uint  macroCount = 4;
 		ShaderMacro shaderMacros[macroCount] = { { "HAIR_MAX_CAPSULE_COUNT", maxCapsuleCountMacroBuffer } };
@@ -2245,80 +2240,79 @@ class MaterialPlayground: public IApp
 		shaderMacros[2] = directionalLightsShaderMacro;
 		shaderMacros[3] = { "SHORT_CUT_CLEAR", "" };
 		ShaderLoadDesc hairClearShaderDesc = {};
-		hairClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairClearShaderDesc.mStages[1] = { "hair_short_cut_clear.frag", shaderMacros, macroCount};
+		hairClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		hairClearShaderDesc.mStages[1] = { "hair_short_cut_clear.frag", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &hairClearShaderDesc, &pShaderHairClear);
 
 		shaderMacros[3] = { "SHORT_CUT_DEPTH_PEELING", "" };
 		ShaderLoadDesc hairDepthPeelingShaderDesc = {};
-		hairDepthPeelingShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
-		hairDepthPeelingShaderDesc.mStages[1] = { "hair_short_cut_depth_peeling.frag", shaderMacros, macroCount};
+		hairDepthPeelingShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		hairDepthPeelingShaderDesc.mStages[1] = { "hair_short_cut_depth_peeling.frag", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &hairDepthPeelingShaderDesc, &pShaderHairDepthPeeling);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_DEPTH", "" };
 		ShaderLoadDesc hairDepthResolveShaderDesc = {};
-		hairDepthResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairDepthResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_depth.frag", shaderMacros, macroCount};
+		hairDepthResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		hairDepthResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_depth.frag", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &hairDepthResolveShaderDesc, &pShaderHairDepthResolve);
 
 		shaderMacros[3] = { "SHORT_CUT_FILL_COLOR", "" };
 		ShaderLoadDesc hairFillColorShaderDesc = {};
-		hairFillColorShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
-		hairFillColorShaderDesc.mStages[1] = { "hair_short_cut_fill_color.frag", shaderMacros, macroCount};
+		hairFillColorShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		hairFillColorShaderDesc.mStages[1] = { "hair_short_cut_fill_color.frag", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &hairFillColorShaderDesc, &pShaderHairFillColors);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_COLOR", "" };
 		ShaderLoadDesc hairColorResolveShaderDesc = {};
-		hairColorResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
-		hairColorResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_color.frag", shaderMacros, macroCount};
+		hairColorResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		hairColorResolveShaderDesc.mStages[1] = { "hair_short_cut_resolve_color.frag", shaderMacros, macroCount, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &hairColorResolveShaderDesc, &pShaderHairResolveColor);
 
 		shaderMacros[3] = { "HAIR_SHADOW", "" };
 		ShaderLoadDesc hairShadowShaderDesc = {};
-		hairShadowShaderDesc.mStages[0] = { "hair_shadow.vert", shaderMacros, macroCount};
-		hairShadowShaderDesc.mStages[1] = { "hair_shadow.frag", shaderMacros, macroCount};
+		hairShadowShaderDesc.mStages[0] = { "hair_shadow.vert", shaderMacros, macroCount };
+		hairShadowShaderDesc.mStages[1] = { "hair_shadow.frag", shaderMacros, macroCount };
 		addShader(pRenderer, &hairShadowShaderDesc, &pShaderHairShadow);
 
 		shaderMacros[3] = { "HAIR_INTEGRATE", "" };
 		ShaderLoadDesc hairIntegrateShaderDesc = {};
-		hairIntegrateShaderDesc.mStages[0] = { "hair_integrate.comp", shaderMacros, macroCount};
+		hairIntegrateShaderDesc.mStages[0] = { "hair_integrate.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairIntegrateShaderDesc, &pShaderHairIntegrate);
 
 		shaderMacros[3] = { "HAIR_SHOCK_PROPAGATION", "" };
 		ShaderLoadDesc hairShockPropagationShaderDesc = {};
-		hairShockPropagationShaderDesc.mStages[0] = { "hair_shock_propagation.comp", shaderMacros, macroCount};
+		hairShockPropagationShaderDesc.mStages[0] = { "hair_shock_propagation.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairShockPropagationShaderDesc, &pShaderHairShockPropagation);
 
 		shaderMacros[3] = { "HAIR_LOCAL_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLocalConstraintsShaderDesc = {};
-		hairLocalConstraintsShaderDesc.mStages[0] = { "hair_local_constraints.comp", shaderMacros, macroCount};
+		hairLocalConstraintsShaderDesc.mStages[0] = { "hair_local_constraints.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairLocalConstraintsShaderDesc, &pShaderHairLocalConstraints);
 
 		shaderMacros[3] = { "HAIR_LENGTH_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLengthConstraintsShaderDesc = {};
-		hairLengthConstraintsShaderDesc.mStages[0] = { "hair_length_constraints.comp", shaderMacros, macroCount};
+		hairLengthConstraintsShaderDesc.mStages[0] = { "hair_length_constraints.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairLengthConstraintsShaderDesc, &pShaderHairLengthConstraints);
 
 		shaderMacros[3] = { "HAIR_UPDATE_FOLLOW_HAIRS", "" };
 		ShaderLoadDesc hairUpdateFollowHairsShaderDesc = {};
-		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair_update_follow_hairs.comp", shaderMacros, macroCount};
+		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair_update_follow_hairs.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairUpdateFollowHairsShaderDesc, &pShaderHairUpdateFollowHairs);
 
 		shaderMacros[3] = { "HAIR_PRE_WARM", "" };
 		ShaderLoadDesc hairPreWarmShaderDesc = {};
-		hairPreWarmShaderDesc.mStages[0] = { "hair_pre_warm.comp", shaderMacros, macroCount};
+		hairPreWarmShaderDesc.mStages[0] = { "hair_pre_warm.comp", shaderMacros, macroCount };
 		addShader(pRenderer, &hairPreWarmShaderDesc, &pShaderHairPreWarm);
 
 		ShaderLoadDesc showCapsulesShaderDesc = {};
-		showCapsulesShaderDesc.mStages[0] = { "showCapsules.vert", NULL, 0};
-		showCapsulesShaderDesc.mStages[1] = { "showCapsules.frag", NULL, 0};
+		showCapsulesShaderDesc.mStages[0] = { "showCapsules.vert", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		showCapsulesShaderDesc.mStages[1] = { "showCapsules.frag", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &showCapsulesShaderDesc, &pShaderShowCapsules);
 
 		ShaderLoadDesc skeletonShaderDesc = {};
-		skeletonShaderDesc.mStages[0] = { "skeleton.vert", NULL, 0};
-		skeletonShaderDesc.mStages[1] = { "skeleton.frag", NULL, 0};
+		skeletonShaderDesc.mStages[0] = { "skeleton.vert", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skeletonShaderDesc.mStages[1] = { "skeleton.frag", 0, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &skeletonShaderDesc, &pShaderSkeleton);
-
 	}
 
 	void DestroyShaders()
@@ -2341,7 +2335,6 @@ class MaterialPlayground: public IApp
 		removeShader(pRenderer, pShaderShowCapsules);
 		removeShader(pRenderer, pShaderSkeleton);
 		removeShader(pRenderer, pShaderHairShadow);
-
 	}
 
 	void CreateRootSignatures()
@@ -2450,7 +2443,8 @@ class MaterialPlayground: public IApp
 
 		DescriptorSetDesc setDesc = { pRootSignatureShadowPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetShadow[0]);
-		setDesc = { pRootSignatureShadowPass, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (1 + MATERIAL_INSTANCE_COUNT) + (gImageCount * MATERIAL_INSTANCE_COUNT) };
+		setDesc = { pRootSignatureShadowPass, DESCRIPTOR_UPDATE_FREQ_PER_DRAW,
+					(1 + MATERIAL_INSTANCE_COUNT) + (gImageCount * MATERIAL_INSTANCE_COUNT) };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetShadow[1]);
 		setDesc = { pRootSignatureSkybox, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
@@ -2460,7 +2454,8 @@ class MaterialPlayground: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[0]);
 		setDesc = { pRootSignatureBRDF, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[1]);
-		setDesc = { pRootSignatureBRDF, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (1 + MATERIAL_INSTANCE_COUNT) + (gImageCount * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) };
+		setDesc = { pRootSignatureBRDF, DESCRIPTOR_UPDATE_FREQ_PER_DRAW,
+					(1 + MATERIAL_INSTANCE_COUNT) + (gImageCount * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[2]);
 
 		// Hair Simulation
@@ -2479,9 +2474,11 @@ class MaterialPlayground: public IApp
 		setDesc = { pRootSignatureHairUpdateFollowHairs, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gHairDynamicDescriptorSetCount * gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetHairFollowHairs);
 		// Hair Shadow
-		setDesc = { pRootSignatureHairShadow, DESCRIPTOR_UPDATE_FREQ_PER_BATCH, HAIR_TYPE_COUNT * MAX_NUM_DIRECTIONAL_LIGHTS * gImageCount };
+		setDesc = { pRootSignatureHairShadow, DESCRIPTOR_UPDATE_FREQ_PER_BATCH,
+					HAIR_TYPE_COUNT * MAX_NUM_DIRECTIONAL_LIGHTS * gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetHairShadow[0]);
-		setDesc = { pRootSignatureHairShadow, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS * gImageCount };
+		setDesc = { pRootSignatureHairShadow, DESCRIPTOR_UPDATE_FREQ_PER_DRAW,
+					gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS * gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetHairShadow[1]);
 		// Depth Peeling
 		setDesc = { pRootSignatureHairDepthPeeling, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
@@ -2506,7 +2503,6 @@ class MaterialPlayground: public IApp
 		// Debug
 		setDesc = { pRootSignatureShowCapsules, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetShowCapsule);
-
 	}
 
 	void DestroyDescriptorSets()
@@ -2538,7 +2534,6 @@ class MaterialPlayground: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetHairFillColors[3]);
 		removeDescriptorSet(pRenderer, pDescriptorSetHairColorResolve);
 		removeDescriptorSet(pRenderer, pDescriptorSetShowCapsule);
-
 	}
 
 	// Bake as many descriptor sets upfront as possible to avoid updates during runtime
@@ -2564,7 +2559,9 @@ class MaterialPlayground: public IApp
 				for (uint32_t i = 0; i < gImageCount; ++i)
 				{
 					shadowParams[0].ppBuffers = &pUniformBufferMatBall[i][j];
-					updateDescriptorSet(pRenderer, 1 + MATERIAL_INSTANCE_COUNT + (i * MATERIAL_INSTANCE_COUNT + j), pDescriptorSetShadow[1], 1, shadowParams);
+					updateDescriptorSet(
+						pRenderer, 1 + MATERIAL_INSTANCE_COUNT + (i * MATERIAL_INSTANCE_COUNT + j), pDescriptorSetShadow[1], 1,
+						shadowParams);
 				}
 			}
 		}
@@ -2584,14 +2581,7 @@ class MaterialPlayground: public IApp
 		}
 		// Materials
 		{
-			const char* pTextureName[5] =
-			{
-				"albedoMap",
-				"normalMap",
-				"metallicMap",
-				"roughnessMap",
-				"aoMap"
-			};
+			const char* pTextureName[5] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
 			DescriptorData params[6] = {};
 			params[0].pName = "cbPointLights";
@@ -2637,7 +2627,8 @@ class MaterialPlayground: public IApp
 
 						params[MATERIAL_TEXTURE_COUNT].pName = "cbObject";
 						params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferMatBall[f][i];
-						const uint32_t index = 1 + MATERIAL_INSTANCE_COUNT + (f * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) + (m * MATERIAL_INSTANCE_COUNT) + i;
+						const uint32_t index = 1 + MATERIAL_INSTANCE_COUNT + (f * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) +
+											   (m * MATERIAL_INSTANCE_COUNT) + i;
 						updateDescriptorSet(pRenderer, index, pDescriptorSetBRDF[2], MATERIAL_TEXTURE_COUNT + 1, params);
 					}
 				}
@@ -2818,7 +2809,7 @@ class MaterialPlayground: public IApp
 						ppShadowMaps[i] = pRenderTargetHairShadows[hairType][i]->pTexture;
 
 					hairParams[0].pName = "DirectionalLightShadowMaps";
-					hairParams[0].ppTextures = ppShadowMaps; //-V507
+					hairParams[0].ppTextures = ppShadowMaps;    //-V507
 					hairParams[0].mCount = MAX_NUM_DIRECTIONAL_LIGHTS;
 					hairParams[1].pName = "cbDirectionalLightShadowCameras";
 					hairParams[1].ppBuffers = pUniformBufferCameraHairShadows[f][hairType];
@@ -2874,7 +2865,6 @@ class MaterialPlayground: public IApp
 				updateDescriptorSet(pRenderer, i, pDescriptorSetShowCapsule, 1, params);
 			}
 		}
-
 	}
 
 	void DestroyRootSignatures()
@@ -2897,7 +2887,6 @@ class MaterialPlayground: public IApp
 		removeRootSignature(pRenderer, pRootSignatureShowCapsules);
 		removeRootSignature(pRenderer, pRootSignatureSkeleton);
 		removeRootSignature(pRenderer, pRootSignatureHairShadow);
-
 	}
 
 	void DestroyPBRMaps()
@@ -2935,11 +2924,11 @@ class MaterialPlayground: public IApp
 			//this->LoadModel(filename);
 			return 0;    //return amount of arguments that we want to send back to script
 		});
-        
-		gLuaManager.AddAsyncScript("loadModels.lua", [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
-		while (!modelsAreLoaded) //-V776 //-V712
-			Thread::Sleep(0);
+		gLuaManager.AddAsyncScript("loadModels.lua", NULL, [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
+
+		while (!modelsAreLoaded)    //-V776 //-V712
+			threadSleep(0);
 
 		uintptr_t meshCount = pStagingData->mModelList.size();
 		gMeshes.resize(meshCount);
@@ -2975,11 +2964,11 @@ class MaterialPlayground: public IApp
 
 			return 0;
 		});
-       
-		gLuaManager.AddAsyncScript("loadTextures.lua", [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
-        
-		while (!texturesAreLoaded) //-V776 //-V712
-			Thread::Sleep(0);
+
+		gLuaManager.AddAsyncScript("loadTextures.lua", NULL, [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
+
+		while (!texturesAreLoaded)    //-V776 //-V712
+			threadSleep(0);
 
 		uintptr_t materialTextureCount = pStagingData->mMaterialNamesStorage.size();
 		gTextureMaterialMaps.resize(materialTextureCount);
@@ -3008,12 +2997,12 @@ class MaterialPlayground: public IApp
 
 			return 0;
 		});
-        
-		gLuaManager.AddAsyncScript(
-			"loadGroundTextures.lua", [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
 
-		while (!groundTexturesAreLoaded) //-V776 //-V712
-			Thread::Sleep(0);
+		gLuaManager.AddAsyncScript(
+			"loadGroundTextures.lua", NULL, [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
+
+		while (!groundTexturesAreLoaded)    //-V776 //-V712
+			threadSleep(0);
 
 		uintptr_t groundTextureCount = pStagingData->mGroundNamesStorage.size();
 		gTextureMaterialMapsGround.resize(groundTextureCount);
@@ -3033,47 +3022,46 @@ class MaterialPlayground: public IApp
 
 	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
 	{
-        StagingData*    pTaskData = (StagingData*)data;
+		StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-        desc.pFileName = pTaskData->mMaterialNamesStorage[i];
+		desc.pFileName = pTaskData->mMaterialNamesStorage[i];
 		desc.ppTexture = &gTextureMaterialMaps[i];
 		addResource(&desc, NULL);
 	}
 
 	static void LoadGroundTexturesTask(void* data, uintptr_t i)
 	{
-        StagingData*    pTaskData = (StagingData*)data;
+		StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-        desc.pFileName = pTaskData->mGroundNamesStorage[i];
+		desc.pFileName = pTaskData->mGroundNamesStorage[i];
 		desc.ppTexture = &gTextureMaterialMapsGround[i];
 		addResource(&desc, NULL);
 	}
 
 	void ComputePBRMaps()
 	{
-		Texture*          pPanoSkybox = NULL;
-		Shader*           pPanoToCubeShader = NULL;
-		RootSignature*    pPanoToCubeRootSignature = NULL;
-		Pipeline*         pPanoToCubePipeline = NULL;
-		Shader*           pBRDFIntegrationShader = NULL;
-		RootSignature*    pBRDFIntegrationRootSignature = NULL;
-		Pipeline*         pBRDFIntegrationPipeline = NULL;
-		Shader*           pIrradianceShader = NULL;
-		RootSignature*    pIrradianceRootSignature = NULL;
-		Pipeline*         pIrradiancePipeline = NULL;
-		Shader*           pSpecularShader = NULL;
-		RootSignature*    pSpecularRootSignature = NULL;
-		Pipeline*         pSpecularPipeline = NULL;
-		Sampler*          pSkyboxSampler = NULL;
-		DescriptorSet*    pDescriptorSetBRDF = { NULL };
-		DescriptorSet*    pDescriptorSetPanoToCube[2] = { NULL };
-		DescriptorSet*    pDescriptorSetIrradiance = { NULL };
-		DescriptorSet*    pDescriptorSetSpecular[2] = { NULL };
+		Texture*       pPanoSkybox = NULL;
+		Shader*        pPanoToCubeShader = NULL;
+		RootSignature* pPanoToCubeRootSignature = NULL;
+		Pipeline*      pPanoToCubePipeline = NULL;
+		Shader*        pBRDFIntegrationShader = NULL;
+		RootSignature* pBRDFIntegrationRootSignature = NULL;
+		Pipeline*      pBRDFIntegrationPipeline = NULL;
+		Shader*        pIrradianceShader = NULL;
+		RootSignature* pIrradianceRootSignature = NULL;
+		Pipeline*      pIrradiancePipeline = NULL;
+		Shader*        pSpecularShader = NULL;
+		RootSignature* pSpecularRootSignature = NULL;
+		Pipeline*      pSpecularPipeline = NULL;
+		Sampler*       pSkyboxSampler = NULL;
+		DescriptorSet* pDescriptorSetBRDF = { NULL };
+		DescriptorSet* pDescriptorSetPanoToCube[2] = { NULL };
+		DescriptorSet* pDescriptorSetIrradiance = { NULL };
+		DescriptorSet* pDescriptorSetSpecular[2] = { NULL };
 
 		static const int skyboxIndex = 0;
-		const char*      skyboxNames[] =
-		{
-			"LA_Helipad",
+		const char*      skyboxNames[] = {
+            "LA_Helipad",
 		};
 		// PBR Texture values (these values are mirrored on the shaders).
 		static const uint32_t gBRDFIntegrationSize = 512;
@@ -3164,29 +3152,29 @@ class MaterialPlayground: public IApp
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0};
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", 0 };
 
 		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
 		char           importanceSampleCountBuffer[5] = {};
 		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
-		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
+		ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
-		float          irradianceSampleDeltas[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 0.25f, 0.025f, 0.025f, 0.025f };
-		float          irradianceSampleDelta = irradianceSampleDeltas[presetLevel];
-		char           irradianceSampleDeltaBuffer[10] = {};
+		float irradianceSampleDeltas[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 0.25f, 0.025f, 0.025f, 0.025f };
+		float irradianceSampleDelta = irradianceSampleDeltas[presetLevel];
+		char  irradianceSampleDeltaBuffer[10] = {};
 		sprintf(irradianceSampleDeltaBuffer, "%f", irradianceSampleDelta);
-		ShaderMacro    irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
+		ShaderMacro irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
 
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1};
+		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1 };
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1};
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1 };
 
 		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1};
+		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1 };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
@@ -3211,8 +3199,8 @@ class MaterialPlayground: public IApp
 		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
-        addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-        addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
+		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
+		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 
 		DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
@@ -3231,15 +3219,15 @@ class MaterialPlayground: public IApp
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
-        pipelineSettings.pShaderProgram = pPanoToCubeShader;
+		pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
 		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
-        pipelineSettings.pShaderProgram = pIrradianceShader;
-        pipelineSettings.pRootSignature = pIrradianceRootSignature;
-        addPipeline(pRenderer, &desc, &pIrradiancePipeline);
-        pipelineSettings.pShaderProgram = pSpecularShader;
-        pipelineSettings.pRootSignature = pSpecularRootSignature;
-        addPipeline(pRenderer, &desc, &pSpecularPipeline);
+		pipelineSettings.pShaderProgram = pIrradianceShader;
+		pipelineSettings.pRootSignature = pIrradianceRootSignature;
+		addPipeline(pRenderer, &desc, &pIrradiancePipeline);
+		pipelineSettings.pShaderProgram = pSpecularShader;
+		pipelineSettings.pRootSignature = pSpecularRootSignature;
+		addPipeline(pRenderer, &desc, &pSpecularPipeline);
 		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
 		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
@@ -3258,9 +3246,7 @@ class MaterialPlayground: public IApp
 		updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF, 1, params);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetBRDF);
 		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
-		cmdDispatch(
-			pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1],
-			pThreadGroupSize[2]);
+		cmdDispatch(pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1], pThreadGroupSize[2]);
 
 		TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 
@@ -3338,20 +3324,16 @@ class MaterialPlayground: public IApp
 			updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
 			cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
 			pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
-			cmdDispatch(
-				pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]),
-				max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
+			cmdDispatch(pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]), max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
 		}
 		/************************************************************************/
 		/************************************************************************/
-		TextureBarrier srvBarriers2[2] = {
-			{ pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE }
-		};
+		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+										   { pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2, 0, NULL);
 
 		endCmd(pCmd);
-        
+
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
 		submitDesc.ppCmds = &pCmd;
@@ -3362,7 +3344,7 @@ class MaterialPlayground: public IApp
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
 
-        removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
 		removeDescriptorSet(pRenderer, pDescriptorSetSpecular[0]);
@@ -3373,9 +3355,9 @@ class MaterialPlayground: public IApp
 		removePipeline(pRenderer, pIrradiancePipeline);
 		removeRootSignature(pRenderer, pIrradianceRootSignature);
 		removeShader(pRenderer, pIrradianceShader);
-        removePipeline(pRenderer, pPanoToCubePipeline);
-        removeRootSignature(pRenderer, pPanoToCubeRootSignature);
-        removeShader(pRenderer, pPanoToCubeShader);
+		removePipeline(pRenderer, pPanoToCubePipeline);
+		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
+		removeShader(pRenderer, pPanoToCubeShader);
 
 		removePipeline(pRenderer, pBRDFIntegrationPipeline);
 		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
@@ -3414,7 +3396,6 @@ class MaterialPlayground: public IApp
 
 	void CreateResources()
 	{
-		Timer t;
 		//Generate skybox vertex buffer
 		float skyBoxPoints[] = {
 			0.5f,  -0.5f, -0.5f, 1.0f,    // -z
@@ -3452,12 +3433,11 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
 		addResource(&skyboxVbDesc, NULL);
 
-
 		// Load hair models
 		gUniformDataHairGlobal.mGravity = float4(0.0f, -9.81f, 0.0f, 0.0f);
 		gUniformDataHairGlobal.mWind = float4(0.0f);
 
-    gCapsules.clear();
+		gCapsules.clear();
 
 		NamedCapsule headCapsule = {};
 		headCapsule.mName = "Head";
@@ -3488,7 +3468,7 @@ class MaterialPlayground: public IApp
 		gCapsules.push_back(rightShoulderCapsule);
 #endif
 
-    gTransforms.clear();
+		gTransforms.clear();
 
 		NamedTransform headTransform = {};
 		headTransform.mName = "Head";
@@ -3557,37 +3537,36 @@ class MaterialPlayground: public IApp
 		staticHairSimulationParameters.mGlobalConstraintRange = 1.0f;
 		staticHairSimulationParameters.mGlobalConstraintStiffness = 1.0f;
 
-    for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
-      gHairTypeIndices[i].clear();
+		for (uint32_t i = 0; i < HAIR_TYPE_COUNT; ++i)
+			gHairTypeIndices[i].clear();
 
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "ponytail", "Hair/tail.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&ponytailHairShadingParameters, &ponytailHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, "ponytail", "Hair/tail.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &ponytailHairShadingParameters,
+			&ponytailHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "top", "Hair/front_top.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&hairShadingParameters, &stiffHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, "top", "Hair/front_top.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&stiffHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "side", "Hair/side.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&hairShadingParameters, &stiffHairSimulationParameters);
+			HAIR_TYPE_PONYTAIL, "side", "Hair/side.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&stiffHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_PONYTAIL, "back", "Hair/back.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			HAIR_TYPE_PONYTAIL, "back", "Hair/back.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&staticHairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_1, "Female hair 1", "Hair/female_hair_1.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&hairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_2, "Female hair 2", "Hair/female_hair_2.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&hairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_3, "Female hair 3", "Hair/female_hair_3.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0, &hairShadingParameters,
+			&stiffHairSimulationParameters);
+		AddHairMesh(
+			HAIR_TYPE_FEMALE_6, "female hair 6 top", "Hair/female_hair_6_top.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
 			&hairShadingParameters, &staticHairSimulationParameters);
 		AddHairMesh(
-			HAIR_TYPE_FEMALE_1, "Female hair 1", "Hair/female_hair_1.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&hairShadingParameters, &hairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_2, "Female hair 2", "Hair/female_hair_2.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&hairShadingParameters, &hairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_3, "Female hair 3", "Hair/female_hair_3.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
-			&hairShadingParameters, &stiffHairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_6, "female hair 6 top", "Hair/female_hair_6_top.gltf", (uint)(5 * gpuPresetScore),
-			0.5f, 0, &hairShadingParameters, &staticHairSimulationParameters);
-		AddHairMesh(
-			HAIR_TYPE_FEMALE_6, "female hair 6 tail", "Hair/female_hair_6_tail.gltf", (uint)(5 * gpuPresetScore),
-			0.5f, 0, &ponytailHairShadingParameters, &ponytailHairSimulationParameters);
-
+			HAIR_TYPE_FEMALE_6, "female hair 6 tail", "Hair/female_hair_6_tail.gltf", (uint)(5 * gpuPresetScore), 0.5f, 0,
+			&ponytailHairShadingParameters, &ponytailHairSimulationParameters);
 
 		// Create skeleton buffers
 		const int   sphereResolution = 30;                  // Increase for higher resolution joint spheres
@@ -3695,7 +3674,6 @@ class MaterialPlayground: public IApp
 				}
 			}
 		}
-
 
 		// Uniform buffer for light data
 		BufferLoadDesc lightsUBDesc = {};
@@ -3810,8 +3788,8 @@ class MaterialPlayground: public IApp
 
 		// ground plane
 		UniformObjData groundUniform = {};
-		vec3 groundScale = vec3(30.0f, 0.2f, 20.0f);
-		mat4 modelmat = mat4::translation(vec3(0.0f, -6.0f, 5.0f)) * mat4::scale(groundScale);
+		vec3           groundScale = vec3(30.0f, 0.2f, 20.0f);
+		mat4           modelmat = mat4::translation(vec3(0.0f, -6.0f, 5.0f)) * mat4::scale(groundScale);
 		groundUniform.mWorldMat = modelmat;
 		groundUniform.mMetallic = 0;
 		groundUniform.mRoughness = 0.74f;
@@ -3827,7 +3805,7 @@ class MaterialPlayground: public IApp
 		// Directional light
 		gUniformDataDirectionalLights.mDirectionalLights[0].mDirection = v3ToF3(normalize(f3Tov3(gDirectionalLightPosition)));
 		gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMap = 0;
-		
+
 		gUniformDataDirectionalLights.mDirectionalLights[0].mColor = float3(255.0f, 180.0f, 117.0f) / 255.0f;
 		//gUniformDataDirectionalLights.mDirectionalLights[0].mColor = float3(236.222f, 178.504f, 119.650f) / 255.0f;
 		//gUniformDataDirectionalLights.mDirectionalLights[0].mColor = float3(255.0f, 0.5f, 0.5f) / 255.0f;
@@ -3869,7 +3847,7 @@ class MaterialPlayground: public IApp
 		layout.mAttribs[6].mSemantic = SEMANTIC_TEXCOORD7;
 		layout.mAttribs[6].mBinding = 9;
 
-		SyncToken token = {};
+		SyncToken        token = {};
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.pFileName = tfxFile;
 		loadDesc.pVertexLayout = &layout;
@@ -3995,11 +3973,11 @@ class MaterialPlayground: public IApp
 		// Fill these variables for each hair color
 		float4 rootColor = float4(0.06f, 0.02f, 0.0f, 1.0f);
 		float4 strandColor = float4(0.41f, 0.3f, 0.26f, 1.0f);
-		float kDiffuse = 0.14f;
-		float kSpecular1 = 0.03f;
-		float kExponent1 = 12.0f;
-		float kSpecular2 = 0.02f;
-		float kExponent2 = 20.0f;
+		float  kDiffuse = 0.14f;
+		float  kSpecular1 = 0.03f;
+		float  kExponent1 = 12.0f;
+		float  kSpecular2 = 0.02f;
+		float  kExponent2 = 20.0f;
 
 		// Fill variables
 		if (hairColor == HAIR_COLOR_BROWN)
@@ -4068,17 +4046,16 @@ class MaterialPlayground: public IApp
 
 	void LoadAnimations()
 	{
-
 		// Load rigs
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
-			gAnimationRig[hairType].Initialize(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
+			gAnimationRig[hairType].Initialize(RD_ANIMATIONS, "stickFigure/skeleton.ozz", NULL);
 		}
 
 		// Load clips
-		gAnimationClipNeckCrack.Initialize(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz", &gAnimationRig[0]);
-        
-		gAnimationClipStand.Initialize(RD_ANIMATIONS, "stickFigure/animations/stand.ozz", &gAnimationRig[0]);
+		gAnimationClipNeckCrack.Initialize(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz", NULL, &gAnimationRig[0]);
+
+		gAnimationClipStand.Initialize(RD_ANIMATIONS, "stickFigure/animations/stand.ozz", NULL, &gAnimationRig[0]);
 
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
@@ -4105,12 +4082,10 @@ class MaterialPlayground: public IApp
 			// Create animated object
 			gAnimatedObject[hairType].Initialize(&gAnimationRig[hairType], &gAnimation[hairType]);
 		}
-
 	}
 
 	void DestroyAnimations()
 	{
-
 		// Destroy clips
 		gAnimationClipNeckCrack.Exit();
 		gAnimationClipStand.Exit();
@@ -4124,7 +4099,6 @@ class MaterialPlayground: public IApp
 			gAnimationClipControllerNeckCrack[hairType].Reset();
 			gAnimationClipControllerStand[hairType].Reset();
 		}
-
 	}
 
 	//--------------------------------------------------------------------------------------------
@@ -4245,17 +4219,17 @@ class MaterialPlayground: public IApp
 
 		// shadow pass
 		pipelineSettings = {};
-		pipelineSettings.mPrimitiveTopo      = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount  = 0;
-		pipelineSettings.pDepthState         = &depthStateDesc;
-		pipelineSettings.pColorFormats       = NULL;
-		pipelineSettings.mSampleCount        = SAMPLE_COUNT_1;
-		pipelineSettings.mSampleQuality      = 0;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 0;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = NULL;
+		pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
+		pipelineSettings.mSampleQuality = 0;
 		pipelineSettings.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
-		pipelineSettings.pRootSignature      = pRootSignatureShadowPass;
-		pipelineSettings.pShaderProgram      = pShaderShadowPass;
-		pipelineSettings.pVertexLayout       = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState    = &rasterizerStateCullNoneDesc;
+		pipelineSettings.pRootSignature = pRootSignatureShadowPass;
+		pipelineSettings.pShaderProgram = pShaderShadowPass;
+		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShadowPass);
 
 		// brdf
@@ -4272,7 +4246,6 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
 		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineBRDF);
-
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -4423,7 +4396,6 @@ class MaterialPlayground: public IApp
 		gSkeletonBatcher.LoadPipeline(pPipelineSkeleton);
 
 		gUniformDataHairGlobal.mViewport = float4(0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight);
-
 	}
 
 	void DestroyPipelines()
@@ -4446,7 +4418,6 @@ class MaterialPlayground: public IApp
 		removePipeline(pRenderer, pPipelineShowCapsules);
 		removePipeline(pRenderer, pPipelineSkeleton);
 		removePipeline(pRenderer, pPipelineHairShadow);
-
 	}
 
 	void CreateRenderTargets()
@@ -4460,13 +4431,13 @@ class MaterialPlayground: public IApp
 		depthPeelingRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthPeelingRenderTargetDesc.mFormat = TinyImageFormat_R16_SFLOAT;
 		depthPeelingRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
-        depthPeelingRenderTargetDesc.mClearValue.a = 1.0f;
-        depthPeelingRenderTargetDesc.mSampleQuality = 0;
+		depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
+		depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
+		depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
+		depthPeelingRenderTargetDesc.mClearValue.a = 1.0f;
+		depthPeelingRenderTargetDesc.mSampleQuality = 0;
 		depthPeelingRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+		depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		depthPeelingRenderTargetDesc.pName = "Depth peeling RT";
 		addRenderTarget(pRenderer, &depthPeelingRenderTargetDesc, &pRenderTargetDepthPeeling);
 
@@ -4480,11 +4451,12 @@ class MaterialPlayground: public IApp
 		hairDepthsTextureDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairDepthsTextureDesc.mFormat = TinyImageFormat_R32_UINT;
 		hairDepthsTextureDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        hairDepthsTextureDesc.mClearValue.r = 1.0f;
-        hairDepthsTextureDesc.mClearValue.g = 1.0f;
-        hairDepthsTextureDesc.mClearValue.b = 1.0f;
-        hairDepthsTextureDesc.mClearValue.a = 1.0f;
+		hairDepthsTextureDesc.mClearValue.r = 1.0f;
+		hairDepthsTextureDesc.mClearValue.g = 1.0f;
+		hairDepthsTextureDesc.mClearValue.b = 1.0f;
+		hairDepthsTextureDesc.mClearValue.a = 1.0f;
 		hairDepthsTextureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
+        hairDepthsTextureDesc.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		hairDepthsTextureDesc.pName = "Hair depths texture";
 
 		TextureLoadDesc hairDepthsTextureLoadDesc = {};
@@ -4513,13 +4485,13 @@ class MaterialPlayground: public IApp
 		fillColorsRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		fillColorsRenderTargetDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
 		fillColorsRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        fillColorsRenderTargetDesc.mClearValue.r = 0.0f;
-        fillColorsRenderTargetDesc.mClearValue.g = 0.0f;
-        fillColorsRenderTargetDesc.mClearValue.b = 0.0f;
-        fillColorsRenderTargetDesc.mClearValue.a = 0.0f;
+		fillColorsRenderTargetDesc.mClearValue.r = 0.0f;
+		fillColorsRenderTargetDesc.mClearValue.g = 0.0f;
+		fillColorsRenderTargetDesc.mClearValue.b = 0.0f;
+		fillColorsRenderTargetDesc.mClearValue.a = 0.0f;
 		fillColorsRenderTargetDesc.mSampleQuality = 0;
 		fillColorsRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		fillColorsRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+		fillColorsRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		fillColorsRenderTargetDesc.pName = "Fill colors RT";
 		addRenderTarget(pRenderer, &fillColorsRenderTargetDesc, &pRenderTargetFillColors);
 
@@ -4532,8 +4504,8 @@ class MaterialPlayground: public IApp
 		hairShadowRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairShadowRenderTargetDesc.mFormat = TinyImageFormat_D16_UNORM;
 		hairShadowRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-        hairShadowRenderTargetDesc.mClearValue.depth = 1.0f;
-        hairShadowRenderTargetDesc.mClearValue.stencil = 0;
+		hairShadowRenderTargetDesc.mClearValue.depth = 1.0f;
+		hairShadowRenderTargetDesc.mClearValue.stencil = 0;
 		hairShadowRenderTargetDesc.mSampleQuality = 0;
 		hairShadowRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		hairShadowRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -4548,8 +4520,8 @@ class MaterialPlayground: public IApp
 
 		RenderTargetDesc depthRenderTargetDesc = {};
 		depthRenderTargetDesc.mArraySize = 1;
-        depthRenderTargetDesc.mClearValue.depth = 1.0f;
-        depthRenderTargetDesc.mClearValue.stencil = 0;
+		depthRenderTargetDesc.mClearValue.depth = 1.0f;
+		depthRenderTargetDesc.mClearValue.stencil = 0;
 		depthRenderTargetDesc.mDepth = 1;
 		depthRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRenderTargetDesc.mStartState = RESOURCE_STATE_DEPTH_WRITE;
@@ -4557,20 +4529,20 @@ class MaterialPlayground: public IApp
 		depthRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthRenderTargetDesc.mSampleQuality = 0;
 		depthRenderTargetDesc.mWidth = mSettings.mWidth;
-		depthRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+		depthRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		depthRenderTargetDesc.pName = "Depth buffer";
 		addRenderTarget(pRenderer, &depthRenderTargetDesc, &pRenderTargetDepth);
 
 		RenderTargetDesc shadowPassRenderTargetDesc = {};
 		shadowPassRenderTargetDesc.mArraySize = 1;
-        shadowPassRenderTargetDesc.mClearValue.depth = 1.0f;
-        shadowPassRenderTargetDesc.mClearValue.stencil = 0;
+		shadowPassRenderTargetDesc.mClearValue.depth = 1.0f;
+		shadowPassRenderTargetDesc.mClearValue.stencil = 0;
 		shadowPassRenderTargetDesc.mDepth = 1;
 		shadowPassRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowPassRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		shadowPassRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
-		shadowPassRenderTargetDesc.mWidth  = gShadowMapDimensions;
+		shadowPassRenderTargetDesc.mWidth = gShadowMapDimensions;
 		shadowPassRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowPassRenderTargetDesc.mSampleQuality = 0;
 		shadowPassRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -4585,10 +4557,10 @@ class MaterialPlayground: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-        swapChainDesc.mColorClearValue.r = 0.0f;
-        swapChainDesc.mColorClearValue.g = 0.0f;
-        swapChainDesc.mColorClearValue.b = 0.0f;
-        swapChainDesc.mColorClearValue.a = 0.0f;
+		swapChainDesc.mColorClearValue.r = 0.0f;
+		swapChainDesc.mColorClearValue.g = 0.0f;
+		swapChainDesc.mColorClearValue.b = 0.0f;
+		swapChainDesc.mColorClearValue.a = 0.0f;
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 	}
@@ -4628,39 +4600,39 @@ void GuiController::UpdateDynamicUI()
 
 		if (gMaterialType != MATERIAL_HAIR)
 		{
-			hideDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
-			hideDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
+			uiHideDynamicWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+			uiHideDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
-			hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
-			hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
+			uiHideDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+			uiHideDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 		}
 
 		if (gMaterialType == MATERIAL_HAIR)
 		{
-			showDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
-			showDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
+			uiShowDynamicWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+			uiShowDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
 
-			showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
-			showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
+			uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+			uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 			gFirstHairSimulationFrame = true;
 		}
 
 		if (gMaterialType == MATERIAL_WOOD)
-			showDynamicUIWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
+			uiShowDynamicWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
 		else
-			hideDynamicUIWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
+			uiHideDynamicWidgets(&GuiController::materialDynamicWidgets, pGuiWindowMaterial);
 
 		GuiController::currentMaterialType = (MaterialType)gMaterialType;
 	}
 
 	if (gHairType != GuiController::currentHairType)
 	{
-		hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
-		hideDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
+		uiHideDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		uiHideDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 
 		gHairType = GuiController::currentHairType;
-		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
-		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
+		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 	}
 
 #if !defined(TARGET_IOS) && !defined(__ANDROID__)
@@ -4687,40 +4659,30 @@ void GuiController::AddGui()
 	};
 	uint32_t dropDownCount = (sizeof(materialTypeNames) / sizeof(materialTypeNames[0]));
 
-	static const char* diffuseReflectionNames[] = 
-	{
-		"Lambert",
-		"Oren-Nayar",
-		NULL
-	};
-	static const uint32_t diffuseReflectionValues[] =
-	{
-		LAMBERT_REFLECTION,
-		OREN_NAYAR_REFLECTION,
-		MATERIAL_HAIR,
-		0 //needed for unix
+	static const char*    diffuseReflectionNames[] = { "Lambert", "Oren-Nayar", NULL };
+	static const uint32_t diffuseReflectionValues[] = {
+		LAMBERT_REFLECTION, OREN_NAYAR_REFLECTION, MATERIAL_HAIR,
+		0    //needed for unix
 	};
 	const uint32_t dropDownCount2 = (sizeof(diffuseReflectionNames) / sizeof(diffuseReflectionNames[0])) - 1;
 
-
 	static const char*    renderModeNames[] = { "Shaded", "Albedo", "Normals", "Roughness", "Metallic", "AO", NULL };
-	static const uint32_t renderModeVals[] = {
-		RENDER_MODE_SHADED, RENDER_MODE_ALBEDO, RENDER_MODE_NORMALS, RENDER_MODE_ROUGHNESS, RENDER_MODE_METALLIC, RENDER_MODE_AO, (uint32_t)NULL
-	};
-	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
+	static const uint32_t renderModeVals[] = { RENDER_MODE_SHADED,   RENDER_MODE_ALBEDO, RENDER_MODE_NORMALS, RENDER_MODE_ROUGHNESS,
+											   RENDER_MODE_METALLIC, RENDER_MODE_AO,     (uint32_t)NULL };
+	const uint32_t        dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
 	// SCENE GUI
-	CheckboxWidget checkbox;
-	SliderFloatWidget sliderFloat;
+	CheckboxWidget     checkbox;
+	SliderFloatWidget  sliderFloat;
 	SliderFloat3Widget sliderFloat3;
 #if HAIR_DEV_UI
 	SliderUintWidget sliderUint;
-	SliderIntWidget sliderInt;
+	SliderIntWidget  sliderInt;
 #endif
 
 #if !defined(TARGET_IOS) && !defined(__ANDROID__)
 	checkbox.pData = &gVSyncEnabled;
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "V-Sync", &checkbox, WIDGET_TYPE_CHECKBOX));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "V-Sync", &checkbox, WIDGET_TYPE_CHECKBOX));
 #endif
 	DropdownWidget ddMatType;
 	ddMatType.pData = &gMaterialType;
@@ -4729,53 +4691,52 @@ void GuiController::AddGui()
 		ddMatType.mNames.push_back((char*)materialTypeNames[i]);
 		ddMatType.mValues.push_back(materialTypeValues[i]);
 	}
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "Material Type", &ddMatType, WIDGET_TYPE_DROPDOWN));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Material Type", &ddMatType, WIDGET_TYPE_DROPDOWN));
 
 	checkbox.pData = &gbAnimateCamera;
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "Animate Camera", &checkbox, WIDGET_TYPE_CHECKBOX));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Animate Camera", &checkbox, WIDGET_TYPE_CHECKBOX));
+
 	ButtonWidget ReloadScriptButton;
-	IWidget* pReloadScript = addGuiWidget(pGuiWindowMain, "Reload script", &ReloadScriptButton, WIDGET_TYPE_BUTTON);
-	pReloadScript->pOnDeactivatedAfterEdit = ReloadScriptButtonCallback;
-	addWidgetLua(pReloadScript);
+	UIWidget*     pReloadScript = uiCreateComponentWidget(pGuiWindowMain, "Reload script", &ReloadScriptButton, WIDGET_TYPE_BUTTON);
+	uiSetWidgetOnDeactivatedAfterEditCallback(pReloadScript, ReloadScriptButtonCallback);
+	luaRegisterWidget(pReloadScript);
 
 	checkbox.pData = &gDrawSkybox;
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "Skybox", &checkbox, WIDGET_TYPE_CHECKBOX));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Skybox", &checkbox, WIDGET_TYPE_CHECKBOX));
+
 	CollapsingHeaderWidget SunLightWidgets;
 
 	checkbox.pData = &gEnvironmentLighting;
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Lighting", &checkbox, WIDGET_TYPE_CHECKBOX);
-	
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Lighting", &checkbox, WIDGET_TYPE_CHECKBOX);
+
 	sliderFloat.pData = &gEnvironmentLightingIntensity;
 	sliderFloat.mMin = 0.0f;
 	sliderFloat.mMax = 1.0f;
 	sliderFloat.mStep = 0.005f;
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
-	
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Environment Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+
 	sliderFloat.pData = &gAmbientLightIntensity;
 	sliderFloat.mMin = 0.0f;
 	sliderFloat.mMax = 1.0f;
 	sliderFloat.mStep = 0.005f;
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Ambient Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Ambient Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
 	sliderFloat.pData = &gDirectionalLightIntensity;
 	sliderFloat.mMin = 0.0f;
 	sliderFloat.mMax = 150.0f;
 	sliderFloat.mStep = 0.1f;
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Directional Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Directional Light Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
 	sliderFloat3.pData = &gDirectionalLightPosition;
 	sliderFloat3.mMin = float3(-100.0f);
 	sliderFloat3.mMax = float3(100.0f);
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Light Position", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Light Position", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
 	ColorPickerWidget colorPicker;
 	colorPicker.pData = &gDirectionalLightColor;
-	addCollapsingHeaderSubWidget(&SunLightWidgets, "Light Color", &colorPicker, WIDGET_TYPE_COLOR_PICKER);
+	uiCreateCollapsingHeaderSubWidget(&SunLightWidgets, "Light Color", &colorPicker, WIDGET_TYPE_COLOR_PICKER);
 
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "Lighting Options", &SunLightWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Lighting Options", &SunLightWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
 	// MATERIAL PROPERTIES GUI
 	DropdownWidget ddReflModel;
@@ -4785,7 +4746,7 @@ void GuiController::AddGui()
 		ddReflModel.mNames.push_back((char*)diffuseReflectionNames[i]);
 		ddReflModel.mValues.push_back(diffuseReflectionValues[i]);
 	}
-	addDynamicUIWidget(&GuiController::materialDynamicWidgets, "Diffuse Reflection Model", &ddReflModel, WIDGET_TYPE_DROPDOWN);
+	uiCreateDynamicWidgets(&GuiController::materialDynamicWidgets, "Diffuse Reflection Model", &ddReflModel, WIDGET_TYPE_DROPDOWN);
 
 	DropdownWidget ddRenderMode;
 	ddRenderMode.pData = &gRenderMode;
@@ -4794,36 +4755,36 @@ void GuiController::AddGui()
 		ddRenderMode.mNames.push_back((char*)renderModeNames[i]);
 		ddRenderMode.mValues.push_back(renderModeVals[i]);
 	}
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
+
 	//pGuiWindowMaterial->AddWidget(sDiffuseReflModelDropdownWgt);
 
 	checkbox.pData = &gOverrideRoughnessTextures;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Override Roughness", &checkbox, WIDGET_TYPE_CHECKBOX));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Override Roughness", &checkbox, WIDGET_TYPE_CHECKBOX));
+
 	sliderFloat.pData = &gRoughnessOverride;
 	sliderFloat.mMin = 0.04f;
 	sliderFloat.mMax = 1.0f;
 	sliderFloat.mStep = 0.01f;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Roughness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Roughness", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 	checkbox.pData = &gDisableNormalMaps;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Disable Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Disable Normal Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+
 	sliderFloat.pData = &gNormalMapIntensity;
 	sliderFloat.mMin = 0.0f;
 	sliderFloat.mMax = 1.0f;
 	sliderFloat.mStep = 0.01f;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Normal Map Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Normal Map Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+
 	checkbox.pData = &gDisableAOMaps;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "Disable AO Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
-	
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "Disable AO Maps", &checkbox, WIDGET_TYPE_CHECKBOX));
+
 	sliderFloat.pData = &gAOIntensity;
 	sliderFloat.mMin = 0.0f;
 	sliderFloat.mMax = 1.0f;
 	sliderFloat.mStep = 0.001f;
-	addWidgetLua(addGuiWidget(pGuiWindowMaterial, "AO Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMaterial, "AO Intensity", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 
 	// HAIR GUI
 	{
@@ -4835,7 +4796,7 @@ void GuiController::AddGui()
 
 		// Hair shading widgets
 		LabelWidget hairLabel;
-		addDynamicUIWidget(&GuiController::hairShadingDynamicWidgets, "Hair Shading", &hairLabel, WIDGET_TYPE_LABEL);
+		uiCreateDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Shading", &hairLabel, WIDGET_TYPE_LABEL);
 
 		DropdownWidget ddHairColor;
 		ddHairColor.pData = &gHairColor;
@@ -4844,7 +4805,7 @@ void GuiController::AddGui()
 			ddHairColor.mNames.push_back((char*)hairColorNames[i]);
 			ddHairColor.mValues.push_back(hairColorValues[i]);
 		}
-		addDynamicUIWidget(&GuiController::hairShadingDynamicWidgets, "Hair Color", &ddHairColor, WIDGET_TYPE_DROPDOWN);
+		uiCreateDynamicWidgets(&GuiController::hairShadingDynamicWidgets, "Hair Color", &ddHairColor, WIDGET_TYPE_DROPDOWN);
 
 #if HAIR_DEV_UI
 		static const char* hairNames[HAIR_TYPE_COUNT] = { "Ponytail", "Female hair 1", "Female hair 2", "Female hair 3", "Female hair 6" };
@@ -4923,28 +4884,29 @@ void GuiController::AddGui()
 				sliderFloat.mMax = 1.0f;
 				addCollapsingHeaderSubWidget(&header, "Strand Spacing", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
 
-				addDynamicUIWidget(&GuiController::hairDynamicWidgets[i].hairShading, ""/*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
+				addDynamicUIWidget(
+					&GuiController::hairDynamicWidgets[i].hairShading, "" /*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 			}
 		}
 #endif
 
 		// Hair simulation widgets
 		LabelWidget hairSim;
-		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Hair Simulation", &hairSim, WIDGET_TYPE_LABEL);
+		uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Hair Simulation", &hairSim, WIDGET_TYPE_LABEL);
 
-		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mGravity; //-V641 //-V1027
+		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mGravity;    //-V641 //-V1027
 		sliderFloat3.mMin = float3(-10.0f);
 		sliderFloat3.mMax = float3(10.0f);
-		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Gravity", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+		uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Gravity", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
-		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mWind; //-V641 //-V1027
+		sliderFloat3.pData = (float3*)&gUniformDataHairGlobal.mWind;    //-V641 //-V1027
 		sliderFloat3.mMin = float3(-1024.0f);
 		sliderFloat3.mMax = float3(1024.0f);
-		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Wind", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
+		uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Wind", &sliderFloat3, WIDGET_TYPE_SLIDER_FLOAT3);
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 		checkbox.pData = &gShowCapsules;
-		addDynamicUIWidget(&GuiController::hairSimulationDynamicWidgets, "Show Collision Capsules", &checkbox, WIDGET_TYPE_CHECKBOX);
+		uiCreateDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, "Show Collision Capsules", &checkbox, WIDGET_TYPE_CHECKBOX);
 #endif
 
 #if HAIR_DEV_UI
@@ -4983,7 +4945,7 @@ void GuiController::AddGui()
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 
-		 CollapsingHeaderWidget capsuleHeader;
+		CollapsingHeaderWidget capsuleHeader;
 
 		for (size_t i = 0; i < gCapsules.size(); ++i)
 		{
@@ -5027,7 +4989,7 @@ void GuiController::AddGui()
 		{
 			for (size_t j = 0; j < gHairTypeIndices[i].size(); ++j)
 			{
-				uint                    k = gHairTypeIndices[i][j];
+				uint                       k = gHairTypeIndices[i][j];
 				UniformDataHairSimulation* hair = &gHair[k].mUniformDataHairSimulation;
 
 				CollapsingHeaderWidget header;
@@ -5079,7 +5041,8 @@ void GuiController::AddGui()
 				sliderUint.mMax = 32;
 				addCollapsingHeaderSubWidget(&header, "Length Constraint Iterations", &sliderUint, WIDGET_TYPE_SLIDER_UINT);
 
-				addDynamicUIWidget(&GuiController::hairDynamicWidgets[i].hairSimulation, ""/*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
+				addDynamicUIWidget(
+					&GuiController::hairDynamicWidgets[i].hairSimulation, "" /*gHair[k].mName*/, &header, WIDGET_TYPE_COLLAPSING_HEADER);
 			}
 		}
 #endif
@@ -5088,10 +5051,10 @@ void GuiController::AddGui()
 	if (gMaterialType == MaterialType::MATERIAL_HAIR)
 	{
 		GuiController::currentMaterialType = MaterialType::MATERIAL_HAIR;
-		showDynamicUIWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
-		showDynamicUIWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
-		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
-		showDynamicUIWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
+		uiShowDynamicWidgets(&GuiController::hairShadingDynamicWidgets, pGuiWindowMain);
+		uiShowDynamicWidgets(&GuiController::hairSimulationDynamicWidgets, pGuiWindowHairSimulation);
+		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
+		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 	}
 
 	DropdownWidget ddTestScripts;
@@ -5101,23 +5064,23 @@ void GuiController::AddGui()
 		ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 		ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 	}
-	addWidgetLua(addGuiWidget(pGuiWindowMain, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 	ButtonWidget bRunScript;
-	IWidget* pRunScript = addGuiWidget(pGuiWindowMain, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-	pRunScript->pOnEdited = RunScript;
-	addWidgetLua(pRunScript);
+	UIWidget*     pRunScript = uiCreateComponentWidget(pGuiWindowMain, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+	uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+	luaRegisterWidget(pRunScript);
 }
 
 void GuiController::Exit()
 {
-	removeDynamicUI(&hairShadingDynamicWidgets);
-	removeDynamicUI(&hairSimulationDynamicWidgets);
-	removeDynamicUI(&materialDynamicWidgets);
+	uiDestroyDynamicWidgets(&hairShadingDynamicWidgets);
+	uiDestroyDynamicWidgets(&hairSimulationDynamicWidgets);
+	uiDestroyDynamicWidgets(&materialDynamicWidgets);
 	for (HairDynamicWidgets& w : hairDynamicWidgets)
 	{
-		removeDynamicUI(&w.hairShading);
-		removeDynamicUI(&w.hairSimulation);
+		uiDestroyDynamicWidgets(&w.hairShading);
+		uiDestroyDynamicWidgets(&w.hairSimulation);
 	}
 	hairDynamicWidgets.set_capacity(0);
 }

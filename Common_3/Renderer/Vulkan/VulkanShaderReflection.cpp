@@ -51,11 +51,11 @@ static TextureDimension sSPIRV_TO_RESOURCE_DIM[SPIRV_DIM_COUNT] = {
 	TEXTURE_DIM_CUBE_ARRAY,
 };
 
-bool filterResouce(SPIRV_Resource* resource, ShaderStage currentStage)
+bool filterResource(SPIRV_Resource* resource, ShaderStage currentStage)
 {
 	bool filter = false;
 
-	// remove used resouces
+	// remove used resources
 	// TODO: log warning
 	filter = filter || (resource->is_used == false);
 
@@ -98,7 +98,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	// also get number of resources while we are at it
 	uint32_t namePoolSize = 0;
 	uint32_t vertexInputCount = 0;
-	uint32_t resouceCount = 0;
+	uint32_t resourceCount = 0;
 	uint32_t variablesCount = 0;
 
 	namePoolSize += cc.EntryPointSize + 1;
@@ -108,7 +108,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 		SPIRV_Resource* resource = cc.pShaderResouces + i;
 
 		// filter out what we don't use
-		if (!filterResouce(resource, shaderStage))
+		if (!filterResource(resource, shaderStage))
 		{
 			namePoolSize += resource->name_size + 1;
 
@@ -118,7 +118,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 			}
 			else
 			{
-				++resouceCount;
+				++resourceCount;
 			}
 		}
 	}
@@ -128,7 +128,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 		SPIRV_Variable* variable = cc.pUniformVariables + i;
 
 		// check if parent buffer was filtered out
-		bool parentFiltered = filterResouce(cc.pShaderResouces + variable->parent_index, shaderStage);
+		bool parentFiltered = filterResource(cc.pShaderResouces + variable->parent_index, shaderStage);
 
 		// filter out what we don't use
 		// TODO: log warning
@@ -162,7 +162,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 			SPIRV_Resource* resource = cc.pShaderResouces + i;
 
 			// filter out what we don't use
-			if (!filterResouce(resource, shaderStage) && resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS)
+			if (!filterResource(resource, shaderStage) && resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS)
 			{
 				pVertexInputs[j].size = resource->size;
 				pVertexInputs[j].name = pCurrentName;
@@ -178,10 +178,10 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	uint32_t*       indexRemap = NULL;
 	ShaderResource* pResources = NULL;
 	// continue with resources
-	if (resouceCount)
+	if (resourceCount)
 	{
 		indexRemap = (uint32_t*)tf_malloc(sizeof(uint32_t) * cc.ShaderResourceCount);
-		pResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * resouceCount);
+		pResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * resourceCount);
 
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < cc.ShaderResourceCount; ++i)
@@ -192,7 +192,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 			SPIRV_Resource* resource = cc.pShaderResouces + i;
 
 			// filter out what we don't use
-			if (!filterResouce(resource, shaderStage) && resource->type != SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS)
+			if (!filterResource(resource, shaderStage) && resource->type != SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS)
 			{
 				// set new index
 				indexRemap[i] = j;
@@ -226,7 +226,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 			SPIRV_Variable* variable = cc.pUniformVariables + i;
 
 			// check if parent buffer was filtered out
-			bool parentFiltered = filterResouce(cc.pShaderResouces + variable->parent_index, shaderStage);
+			bool parentFiltered = filterResource(cc.pShaderResouces + variable->parent_index, shaderStage);
 
 			// filter out what we don't use
 			if (variable->is_used && !parentFiltered)
@@ -259,7 +259,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	pOutReflection->mVertexInputsCount = vertexInputCount;
 
 	pOutReflection->pShaderResources = pResources;
-	pOutReflection->mShaderResourceCount = resouceCount;
+	pOutReflection->mShaderResourceCount = resourceCount;
 
 	pOutReflection->pVariables = pVariables;
 	pOutReflection->mVariableCount = variablesCount;

@@ -292,11 +292,11 @@ typedef enum GLTFFlags
 	GLTF_FLAG_CALCULATE_BOUNDS = 0x2,
 } GLTFFlags;
 
-static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFContainer** ppGLTF)
+static uint32_t gltfLoadContainer(const char* pFileName, const char* filePassword, GLTFFlags flags, GLTFContainer** ppGLTF)
 {
 	FileStream file = {};
 
-	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ_BINARY, &file))
+	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ_BINARY, filePassword, &file))
 	{
 		LOGF(eERROR, "Failed to open gltf file %s", pFileName);
 		ASSERT(false);
@@ -349,7 +349,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFCo
 			fsGetParentPath(pFileName, parentPath);
 			fsAppendPathComponent(parentPath, uri, binFile);
 			FileStream fs = {};	
-			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ_BINARY, &fs))
+			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ_BINARY, filePassword, &fs))
 			{
 				ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
 				data->buffers[i].data = tf_malloc(data->buffers[i].size);

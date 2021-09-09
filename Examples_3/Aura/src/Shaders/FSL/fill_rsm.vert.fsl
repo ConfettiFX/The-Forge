@@ -32,7 +32,7 @@ STRUCT(VsOut)
 	DATA(float4,      position,   SV_Position);
 	DATA(float2,      texCoord,   TEXCOORD0);
 	DATA(float3,      normal,     TEXCOORD1);
-	DATA(flat(float), materialID, TEXCOORD2);
+	DATA(FLAT(float), materialID, TEXCOORD2);
 };
 
 VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)

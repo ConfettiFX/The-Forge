@@ -43,11 +43,11 @@ typedef enum TextureDimension
 
 struct VertexInput
 {
-	// The size of the attribute
-	uint32_t size;
-
 	// resource name
 	const char* name;
+
+	// The size of the attribute
+	uint32_t size;
 
 	// name size
 	uint32_t name_size;
@@ -104,6 +104,9 @@ struct ShaderResource
 
 struct ShaderVariable
 {
+	// Variable name
+	const char* name;
+
 	// parents resource index
 	uint32_t parent_index;
 
@@ -112,9 +115,6 @@ struct ShaderVariable
 
 	// The size of the Variable.
 	uint32_t size;
-
-	// Variable name
-	const char* name;
 
 	// name size
 	uint32_t name_size;
@@ -126,30 +126,28 @@ struct ShaderVariable
 
 struct ShaderReflection
 {
+	// single large allocation for names to reduce number of allocations
+	char* pNamePool;
+	VertexInput* pVertexInputs;
+	ShaderResource* pShaderResources;
+	ShaderVariable* pVariables;
+
+#if defined(VULKAN)
+	char* pEntryPoint;
+#endif
+
 	ShaderStage mShaderStage;
 
-	// single large allocation for names to reduce number of allocations
-	char*    pNamePool;
 	uint32_t mNamePoolSize;
-
-	VertexInput* pVertexInputs;
-	uint32_t     mVertexInputsCount;
-
-	ShaderResource* pShaderResources;
-	uint32_t        mShaderResourceCount;
-
-	ShaderVariable* pVariables;
-	uint32_t        mVariableCount;
+	uint32_t mVertexInputsCount;
+	uint32_t mShaderResourceCount;
+	uint32_t mVariableCount;
 
 	// Thread group size for compute shader
 	uint32_t mNumThreadsPerGroup[3];
 
 	//number of tessellation control point
 	uint32_t mNumControlPoint;
-
-#if defined(VULKAN)
-	char* pEntryPoint;
-#endif
 };
 
 struct PipelineReflection

@@ -164,19 +164,19 @@ struct DispatchCmd
 
 struct ResourceBarrierCmd
 {
-	uint32_t        numBufferBarriers;
 	BufferBarrier*  pBufferBarriers;
-	uint32_t        numTextureBarriers;
 	TextureBarrier* pTextureBarriers;
+	uint32_t        numBufferBarriers;
+	uint32_t        numTextureBarriers;
 	bool            batch;
 };
 
 struct SynchronizeResourcesCmd
 {
-	uint32_t  numBuffers;
 	Buffer**  ppBuffers;
-	uint32_t  numTextures;
 	Texture** ppTextures;
+	uint32_t  numBuffers;
+	uint32_t  numTextures;
 	bool      batch;
 };
 

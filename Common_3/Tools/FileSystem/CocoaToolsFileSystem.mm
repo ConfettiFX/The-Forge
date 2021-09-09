@@ -104,7 +104,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 	tf_free(fileWatcher);
 }
 
-void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out)
+void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* count)
 {
 	char directory[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directory);
@@ -192,16 +192,40 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 
 	NSEnumerator* sortedEnumerator = [sortedArray objectEnumerator];
 
+    int filesFound = 0;
+    for (NSURL* url in sortedEnumerator)
+    {
+        filesFound += 1;
+    }
+    
+    *out = NULL;
+    *count = 0;
+    if (filesFound > 0)
+    {
+        char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+        char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+        for (int i = 0; i < filesFound; ++i)
+        {
+            stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+        }
+        *out = stringList;
+        *count = filesFound;
+    }
+    
+    int strIndex = 0;
+    sortedEnumerator = [sortedArray objectEnumerator];
 	for (NSURL* url in sortedEnumerator)
 	{
 		char result[FS_MAX_PATH] = {};
 		eastl::string filename = [[url lastPathComponent] UTF8String];
 		fsAppendPathComponent(subDirectory, filename.c_str(), result);
-		out.push_back(result);
+        
+		char * dest = (*out)[strIndex++];
+        strcpy(dest, result);
 	}
 }
 
-void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, eastl::vector<eastl::string>& out)
+void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count)
 {
 	char directory[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directory);
@@ -212,7 +236,8 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
         LOGF(eWARNING, "Error enumerating directory at url %s: %s", [[url path] UTF8String], [[error description] UTF8String]);
         return YES;
     }];
-
+    
+    int filesFound = 0;
     for (NSURL* url in enumerator)
 	{
         NSNumber *isDirectory = nil;
@@ -223,11 +248,45 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
             continue;
         }
 
-		
-		char result[FS_MAX_PATH] = {};
-		eastl::string filename = [[url lastPathComponent] UTF8String];
-		fsAppendPathComponent(subDirectory, filename.c_str(), result);
-		out.push_back(result);
+        filesFound += 1;
+    }
+
+    *out = NULL;
+    *count = 0;
+    if (filesFound > 0)
+    {
+        char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+        char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+        for (int i = 0; i < filesFound; ++i)
+        {
+            stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+        }
+        *out = stringList;
+        *count = filesFound;
+    }
+
+    enumerator = [[NSFileManager defaultManager] enumeratorAtURL:pathURL includingPropertiesForKeys:@[NSURLPathKey, NSURLIsDirectoryKey] options:NSDirectoryEnumerationSkipsSubdirectoryDescendants | NSDirectoryEnumerationProducesRelativePathURLs errorHandler:^BOOL(NSURL * _Nonnull url, NSError * _Nonnull error)
+    {
+        LOGF(eWARNING, "Error enumerating directory at url %s: %s", [[url path] UTF8String], [[error description] UTF8String]);
+        return YES;
+    }];
+
+    int strIndex = 0;
+    for (NSURL* url in enumerator)
+    {
+        NSNumber *isDirectory = nil;
+        [url getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil];
+
+        if (![isDirectory boolValue])
+        {
+            continue;
+        }
+
+        char result[FS_MAX_PATH] = {};
+        eastl::string filename = [[url lastPathComponent] UTF8String];
+        fsAppendPathComponent(subDirectory, filename.c_str(), result);
+        char * dest = (*out)[strIndex++];
+        strcpy(dest, result);
     }
 }
 

@@ -16,6 +16,7 @@
 #include "Geometry.h"
 
 #include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../Common_3/OS/Interfaces/ILog.h"
@@ -387,8 +388,7 @@ static void SetMaterials(Scene* pScene)
 	setTextures(pScene, index++, "rust_a1", "rust_a1_SPEC", "rust_a1_NRM", false, false);
 
 	//64	arc_floor00
-	setTextures(
-		pScene, index++, "arcos_lisos_3_color_1", "arcos_lisos_3_color_1_SPEC", "arcos_lisos_3_color_1_NRM", false, false);
+	setTextures(pScene, index++, "arcos_lisos_3_color_1", "arcos_lisos_3_color_1_SPEC", "arcos_lisos_3_color_1_NRM", false, false);
 
 	//65	hugeWallLeft
 	setTextures(pScene, index++, "muros_n", DEFAULT_SPEC, DEFAULT_NORMAL, false, false);
@@ -796,8 +796,7 @@ static void SetMaterials(Scene* pScene)
 	setTextures(pScene, index++, "HP11stm", "HP11stm", "HP11stm_NRM", false, false);
 
 	//195	ceilEdgeMid
-	setTextures(
-		pScene, index++, "postes_barandal_color", "postes_barandal_color_SPEC", "postes_barandal_color_NRM", false, false);
+	setTextures(pScene, index++, "postes_barandal_color", "postes_barandal_color_SPEC", "postes_barandal_color_NRM", false, false);
 
 	//196	flower0340
 	setTextures(pScene, index++, "FL13pet1", DEFAULT_SPEC, DEFAULT_NORMAL, true, true);
@@ -837,8 +836,8 @@ static void SetMaterials(Scene* pScene)
 
 	//90	seat00
 	setTextures(
-		pScene, index++, "Finishes.Flooring.Carpet.Loop.5", "Finishes.Flooring.Carpet.Loop.5_SPEC",
-		"Finishes.Flooring.Carpet.Loop.5_NRM", false, false);
+		pScene, index++, "Finishes.Flooring.Carpet.Loop.5", "Finishes.Flooring.Carpet.Loop.5_SPEC", "Finishes.Flooring.Carpet.Loop.5_NRM",
+		false, false);
 
 	//206	fountainFloor
 	setTextures(pScene, index++, "piso_rustico", "piso_rustico_SPEC", "piso_rustico_NRM", false, false);
@@ -861,6 +860,9 @@ static void SetMaterials(Scene* pScene)
 	//101	wall04
 	setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", false, false);
 
+	const size_t defaultAlbedoSize = strlen(DEFAULT_ALBEDO) + 1;
+	const size_t defaultNormalSize = strlen(DEFAULT_NORMAL) + 1;
+	const size_t defaultSpecSize = strlen(DEFAULT_SPEC) + 1;
 	for (uint32_t i = index; i < pScene->geom->mDrawArgCount; i++)
 	{
 		Material& m = pScene->materials[i];
@@ -868,13 +870,13 @@ static void SetMaterials(Scene* pScene)
 		m.alphaTested = true;
 
 		// default textures
-		pScene->textures[i] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+		pScene->textures[i] = (char*)tf_calloc(defaultAlbedoSize, sizeof(char));
 		strcpy(pScene->textures[i], DEFAULT_ALBEDO);
 
-		pScene->normalMaps[i] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+		pScene->normalMaps[i] = (char*)tf_calloc(defaultNormalSize, sizeof(char));
 		strcpy(pScene->normalMaps[i], DEFAULT_NORMAL);
 
-		pScene->specularMaps[i] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+		pScene->specularMaps[i] = (char*)tf_calloc(defaultSpecSize, sizeof(char));
 		strcpy(pScene->specularMaps[i], DEFAULT_SPEC);
 	}
 }
@@ -981,7 +983,7 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 
 	Triangle triangleCache[CLUSTER_SIZE * 3];
 
-	uint32_t* indices = (uint32_t*)pScene->geom->pShadow->pIndices;
+	uint32_t*       indices = (uint32_t*)pScene->geom->pShadow->pIndices;
 	SceneVertexPos* positions = (SceneVertexPos*)pScene->geom->pShadow->pAttributes[SEMANTIC_POSITION];
 
 	const int triangleCount = draw->mIndexCount / 3;
@@ -1001,12 +1003,9 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 		// Load all triangles into our local cache
 		for (int triangleIndex = clusterStart; triangleIndex < clusterEnd; ++triangleIndex)
 		{
-			triangleCache[triangleIndex - clusterStart].vtx[0] =
-				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3]]);
-			triangleCache[triangleIndex - clusterStart].vtx[1] =
-				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 1]]);
-			triangleCache[triangleIndex - clusterStart].vtx[2] =
-				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 2]]);
+			triangleCache[triangleIndex - clusterStart].vtx[0] = makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3]]);
+			triangleCache[triangleIndex - clusterStart].vtx[1] = makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 1]]);
+			triangleCache[triangleIndex - clusterStart].vtx[2] = makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 2]]);
 		}
 
 		vec3 aabbMin = vec3(INFINITY, INFINITY, INFINITY);

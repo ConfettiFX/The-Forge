@@ -33,16 +33,19 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // Must be last include in cpp file
 
 struct UniformBlock
 {
 	vec4 res;
-	mat4 invView;
+	CameraMatrix invView;
 };
 
 const uint32_t gImageCount = 3;
@@ -63,7 +66,6 @@ Shader*           pRTDemoShader = NULL;
 Pipeline*         pRTDemoPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
 DescriptorSet*    pDescriptorSetUniforms = NULL;
-VirtualJoystickUI* pVirtualJoystick = NULL;
 
 Buffer* pUniformBuffer[gImageCount] = { NULL };
 
@@ -73,18 +75,13 @@ UniformBlock gUniformData;
 
 ICameraController* pCameraController = NULL;
 
-/// UI
-UIApp* pAppUI = NULL;
-static uint32_t gSelectedApiIndex = 0;
-
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
-
-GuiComponent* pGuiWindow = 0;
+FontDrawDesc gFrameTimeDraw;
+uint32_t     gFontID = 0; 
 
 class SphereTracing: public IApp
 {
 	public:
-	SphereTracing()
+	SphereTracing() //-V832
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
@@ -101,9 +98,9 @@ class SphereTracing: public IApp
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
-		// window and renderer setup
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -132,60 +129,33 @@ class SphereTracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		pGuiWindow = addAppUIGuiComponent(pAppUI, GetName(), &guiDesc);
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
 
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		#if defined(DIRECT3D11)
-			"D3D11",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGuiWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
-
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		ShaderLoadDesc rtDemoShader = {};
-		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0 };
-		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0 };
+		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &rtDemoShader, &pRTDemoShader);
 
@@ -232,7 +202,10 @@ class SphereTracing: public IApp
 		pCameraController = initFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -244,7 +217,7 @@ class SphereTracing: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -253,9 +226,8 @@ class SphereTracing: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -277,11 +249,11 @@ class SphereTracing: public IApp
 		exitInputSystem();
 		exitCameraController(pCameraController);
 
-		exitProfilerUI();
 		exitProfiler();
-		exitVirtualJoystickUI(pVirtualJoystick);
 
-		exitAppUI(pAppUI);
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -309,6 +281,7 @@ class SphereTracing: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -316,10 +289,14 @@ class SphereTracing: public IApp
 		if (!addSwapChain())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		RasterizerStateDesc rasterizerStateDesc = {};
@@ -347,9 +324,9 @@ class SphereTracing: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pRTDemoPipeline);
 
@@ -361,17 +338,14 @@ class SphereTracing: public IApp
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
+
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
 		gUniformData.res = vec4(float(mSettings.mWidth), float(mSettings.mHeight), 0.0f, 0.0f);
 		mat4 viewMat = pCameraController->getViewMatrix();
-		gUniformData.invView = inverse(viewMat);
-
-		/************************************************************************/
-		/************************************************************************/
-
-    updateAppUI(pAppUI, deltaTime);
+        CameraMatrix cameraMat = CameraMatrix::orthographic(-1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f) * viewMat;
+		gUniformData.invView = CameraMatrix::inverse(cameraMat);
 	}
 
 	void Draw()
@@ -433,17 +407,14 @@ class SphereTracing: public IApp
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
+		gFrameTimeDraw.mFontColor = 0xff0080ff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
 
-#if !defined(__ANDROID__)    // Metal doesn't support GPU profilers
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
-#endif
 
-		cmdDrawProfilerUI();
-		appUIGui(pAppUI, pGuiWindow);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 

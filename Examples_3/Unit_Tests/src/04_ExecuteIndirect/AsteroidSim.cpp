@@ -48,9 +48,10 @@
 //
 //--------------------------------------------------------------------------------------------
 
+#include "../../../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "AsteroidSim.h"
 #include "Random.h"
-#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(NX64)
+#if !defined(TARGET_APPLE_ARM64) && !defined(__ANDROID__) && !defined(NX64)
 #include <immintrin.h>
 #endif
 

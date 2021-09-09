@@ -37,12 +37,22 @@
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
 
+#include "../Math/MathTypes.h"
+
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IFileSystem.h"
+#include "../Interfaces/IProfiler.h"
 #include "../Interfaces/IApp.h"
+
+#include "../Interfaces/IScripting.h"
+#include "../Interfaces/IFont.h"
+#include "../Interfaces/IUI.h"
+
+#include "../../Renderer/IRenderer.h"
+
 #include "../Interfaces/IMemory.h"
 
 #define FORGE_WINDOW_CLASS L"The Forge"
@@ -51,24 +61,24 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-float2*      gDPIScales = nullptr;
-MonitorDesc* gMonitors = nullptr;
-uint32_t gMonitorCount = 0;
-bool gCursorVisible = true;
-bool gCursorInsideTrackingArea = true;
+float2*            gDPIScales = nullptr;
+MonitorDesc*       gMonitors = nullptr;
+uint32_t           gMonitorCount = 0;
+bool               gCursorVisible = true;
+bool               gCursorInsideTrackingArea = true;
 static WindowsDesc gCurrentWindow;
 
 static uint8_t gResetScenario = RESET_SCENARIO_NONE;
 
-@interface ForgeApplication : NSApplication
+@interface ForgeApplication: NSApplication
 @end
 
 @implementation ForgeApplication
-- (void) sendEvent:(NSEvent *)event
+- (void)sendEvent:(NSEvent*)event
 {
 	if ([event type] == NSEventTypeKeyUp)
 	{
-		[[[self mainWindow] firstResponder] tryToPerform:@selector(keyUp:) with:event ];
+		[[[self mainWindow] firstResponder] tryToPerform:@selector(keyUp:) with:event];
 		// returning as it will get discarded.
 		return;
 	}
@@ -89,11 +99,11 @@ void AutoHideMenuBar()
 	app.presentationOptions = NSApplicationPresentationDefault | NSApplicationPresentationAutoHideMenuBar;
 }
 
-@interface ForgeNSWindow : NSWindow
+@interface ForgeNSWindow: NSWindow
 {
 }
 
-- (CGFloat) titleBarHeight;
+- (CGFloat)titleBarHeight;
 
 @end
 
@@ -101,110 +111,107 @@ void AutoHideMenuBar()
 {
 }
 
-- (BOOL) canBecomeKeyWindow;
+- (BOOL)canBecomeKeyWindow;
 {
 	return YES;
 }
 
-- (BOOL) canBecomeMainWindow;
+- (BOOL)canBecomeMainWindow;
 {
 	return YES;
 }
 
-- (BOOL) acceptsFirstResponder
+- (BOOL)acceptsFirstResponder
 {
 	return YES;
 }
 
-- (BOOL) acceptsFirstMouse:(NSEvent *)event
+- (BOOL)acceptsFirstMouse:(NSEvent*)event
 {
 	return YES;
 }
 
-- (CGFloat) titleBarHeight
+- (CGFloat)titleBarHeight
 {
-	CGFloat contentHeight = [self contentRectForFrameRect: self.frame].size.height;
+	CGFloat contentHeight = [self contentRectForFrameRect:self.frame].size.height;
 	return self.frame.size.height - contentHeight;
 }
 
-- (CGPoint) convetToBottomLeft:(CGPoint)coord
+- (CGPoint)convetToBottomLeft:(CGPoint)coord
 {
 	NSScreen* screen = [self screen];
 	if (screen == nil)
 	{
 		return CGPointZero;
 	}
-	
+
 	NSView* view = self.contentView;
-	BOOL isFlipped = [view isFlipped];
+	BOOL    isFlipped = [view isFlipped];
 	if (isFlipped)
 	{
 		return coord;
 	}
-	
+
 	NSRect screenFrame = [screen visibleFrame];
 	NSRect windowFrame = [self frame];
-	
+
 	CGPoint flipped;
 	flipped.x = coord.x;
 	flipped.y = screenFrame.origin.y + screenFrame.size.height - coord.y - windowFrame.size.height;
-	
+
 	return flipped;
 }
 
-- (CGPoint) convetToTopLeft:(CGPoint)coord
+- (CGPoint)convetToTopLeft:(CGPoint)coord
 {
 	NSScreen* screen = [self screen];
 	if (screen == nil)
 	{
 		return CGPointZero;
 	}
-	
+
 	NSView* view = self.contentView;
-	BOOL isFlipped = [view isFlipped];
+	BOOL    isFlipped = [view isFlipped];
 	if (isFlipped)
 	{
 		return coord;
 	}
-	
+
 	NSRect screenFrame = [screen frame];
 	NSRect windowFrame = [self frame];
-	
+
 	CGPoint flipped;
 	flipped.x = coord.x;
 	flipped.y = screenFrame.size.height - coord.y - windowFrame.size.height;
-	
+
 	return flipped;
 }
 
-- (RectDesc) setRectFromNSRect:(NSRect) nsrect
+- (RectDesc)setRectFromNSRect:(NSRect)nsrect
 {
-	float2 dpiScale = getDpiScale();
-	return
-	{
-		(int32_t)(nsrect.origin.x * dpiScale.x),
-		(int32_t)(nsrect.origin.y * dpiScale.y),
-		(int32_t)((nsrect.origin.x + nsrect.size.width) * dpiScale.x),
-		(int32_t)((nsrect.origin.y + nsrect.size.height) * dpiScale.y)
-	};
+	float dpiScale[2];
+	getDpiScale(dpiScale);
+	return { (int32_t)(nsrect.origin.x * dpiScale[0]), (int32_t)(nsrect.origin.y * dpiScale[1]),
+			 (int32_t)((nsrect.origin.x + nsrect.size.width) * dpiScale[0]),
+			 (int32_t)((nsrect.origin.y + nsrect.size.height) * dpiScale[1]) };
 }
 
-- (void)updateClientRect:(WindowsDesc *) winDesc
+- (void)updateClientRect:(WindowsDesc*)winDesc
 {
 	NSRect viewSize = [self.contentView frame];
 	winDesc->clientRect = [self setRectFromNSRect:viewSize];
 }
 
-- (void)updateWindowRect:(WindowsDesc *) winDesc
+- (void)updateWindowRect:(WindowsDesc*)winDesc
 {
 	NSRect windowSize = [self frame];
-	
+
 	CGPoint origin = [self convetToTopLeft:windowSize.origin];
 	windowSize.origin = origin;
 	winDesc->windowedRect = [self setRectFromNSRect:windowSize];
 }
 
-- (void) hideFullScreenButton
+- (void)hideFullScreenButton
 {
 	// Removing fullscreen button from styles to avoid a potential state
 	// mismatch between the macOS api and the project. Fullscreen mode
@@ -214,20 +221,20 @@ void AutoHideMenuBar()
 	{
 		return;
 	}
-	
+
 	[button setHidden:YES];
 	[button setEnabled:NO];
 }
 
-- (void) setStyleMask:(NSWindowStyleMask) style
+- (void)setStyleMask:(NSWindowStyleMask)style
 {
-	NSResponder *responder = [self firstResponder];
+	NSResponder*      responder = [self firstResponder];
 	NSWindowStyleMask previousStyle = [super styleMask];
 	[super setStyleMask:style];
 	[self makeFirstResponder:responder];
-	
+
 	[self hideFullScreenButton];
-	
+
 	// Borderless flag causes a lot of issues on macOS as far as
 	// macos 10.15. Firt, it changes first responder under the hood
 	// silently, skipping regular routines (hence setStyleMask override).
@@ -236,37 +243,29 @@ void AutoHideMenuBar()
 	// To correctly and consistently pipe all events, we spin here,
 	// waiting for the "up" event to occur if we got here via the
 	// input "down" message.
-	if(style == NSWindowStyleMaskBorderless ||
-	   previousStyle == NSWindowStyleMaskBorderless ||
-	   style & NSWindowStyleMaskFullScreen ||
-	   previousStyle & NSWindowStyleMaskFullScreen)
+	if (style == NSWindowStyleMaskBorderless || previousStyle == NSWindowStyleMaskBorderless || style & NSWindowStyleMaskFullScreen ||
+		previousStyle & NSWindowStyleMaskFullScreen)
 	{
 		[self waitOnUpSpinning];
 	}
 }
 
-- (void) waitOnUpSpinning
+- (void)waitOnUpSpinning
 {
 	// See "Cocoa Event Handling Guide" for reference.
-	NSView* firstResponderView = (NSView* __nullable)[self firstResponder];
-	NSEvent* current = [self currentEvent];
+	NSView*     firstResponderView = (NSView * __nullable)[self firstResponder];
+	NSEvent*    current = [self currentEvent];
 	NSEventType currentEventType = [current type];
-	
-	if(currentEventType == NSEventTypeLeftMouseDown ||
-	   currentEventType == NSEventTypeRightMouseDown ||
-	   currentEventType == NSEventTypeOtherMouseDown ||
-	   currentEventType == NSEventTypeKeyDown ||
-	   currentEventType == NSEventTypePressure)
+
+	if (currentEventType == NSEventTypeLeftMouseDown || currentEventType == NSEventTypeRightMouseDown ||
+		currentEventType == NSEventTypeOtherMouseDown || currentEventType == NSEventTypeKeyDown || currentEventType == NSEventTypePressure)
 	{
 		BOOL waitingForUp = YES;
 		while (waitingForUp)
 		{
-			NSEvent* event = [self nextEventMatchingMask:
-							  NSEventMaskLeftMouseUp |
-							  NSEventMaskRightMouseUp |
-							  NSEventMaskOtherMouseUp |
-							  NSEventMaskKeyUp];
-			
+			NSEvent* event =
+				[self nextEventMatchingMask:NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp | NSEventMaskOtherMouseUp | NSEventMaskKeyUp];
+
 			switch ([event type])
 			{
 				case NSEventTypeLeftMouseUp:
@@ -277,16 +276,15 @@ void AutoHideMenuBar()
 					waitingForUp = NO;
 					break;
 				}
-					
+
 				case NSEventTypeKeyUp:
 				{
 					[firstResponderView keyUp:event];
 					waitingForUp = NO;
 					break;
 				}
-					
-				default:
-					break;
+
+				default: break;
 			}
 		}
 	}
@@ -296,36 +294,37 @@ void AutoHideMenuBar()
 
 // Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
 @protocol RenderDestinationProvider
--(void)draw;
--(void)didResize:(CGSize)size;
+- (void)draw;
+- (void)didResize:(CGSize)size;
+- (void)didMiniaturize;
+- (void)didDeminiaturize;
 @end
 
-@interface ForgeMTLView : NSView <NSWindowDelegate>
+@interface ForgeMTLView: NSView<NSWindowDelegate>
 {
-@private
-	CVDisplayLinkRef    displayLink;
-	CAMetalLayer        *metalLayer;
-	
+	@private
+	CVDisplayLinkRef displayLink;
+	CAMetalLayer*    metalLayer;
 }
-@property (weak) id<RenderDestinationProvider> delegate;
+@property(weak) id<RenderDestinationProvider> delegate;
 
--(id) initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
+- (id)initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
 
 @end
 
 @implementation ForgeMTLView
 
--(id)initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)in_displayID hdr:(bool)hdr vsync:(bool)vsync
+- (id)initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)in_displayID hdr:(bool)hdr vsync:(bool)vsync
 {
 	self = [super initWithFrame:FrameRect];
 	self.wantsLayer = YES;
-	
+
 	metalLayer = [CAMetalLayer layer];
-	metalLayer.device =  device;
-	metalLayer.framebufferOnly = YES; //todo: optimized way
+	metalLayer.device = device;
+	metalLayer.framebufferOnly = YES;    //todo: optimized way
 	metalLayer.pixelFormat = hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
-	metalLayer.wantsExtendedDynamicRangeContent = hdr? true : false;
+	metalLayer.wantsExtendedDynamicRangeContent = hdr ? true : false;
 	metalLayer.drawableSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
 #if defined(ENABLE_DISPLAY_SYNC_TOGGLE)
 	if (@available(macOS 10.13, *))
@@ -334,9 +333,9 @@ void AutoHideMenuBar()
 	}
 #endif
 	self.layer = metalLayer;
-	
-	[self setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
-	
+
+	[self setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
 	return self;
 }
 
@@ -344,14 +343,22 @@ void AutoHideMenuBar()
 {
 	// Called whenever the view needs to render
 	// Need to dispatch to main thread as CVDisplayLink uses it's own thread.
-	dispatch_sync(dispatch_get_main_queue(), ^{
-		[self.delegate draw];
-	});
-	
+	dispatch_sync(dispatch_get_main_queue(), ^{ [self.delegate draw]; });
+
 	return kCVReturnSuccess;
 }
 
-- (void)windowDidResize:(NSNotification *)notification
+- (void)windowDidMiniaturize:(NSNotification *)notification
+{
+    [self.delegate didMiniaturize];
+}
+
+- (void)windowDidDeminiaturize:(NSNotification *)notification
+{
+    [self.delegate didDeminiaturize];
+}
+
+- (void)windowDidResize:(NSNotification*)notification
 {
 	ForgeNSWindow* window = [notification object];
 	if ([window inLiveResize])
@@ -360,37 +367,39 @@ void AutoHideMenuBar()
 	}
 
 	NSRect viewSize = [window.contentView frame];
-	
-	[self.delegate didResize: viewSize.size];
-	
-	float2 dpiScale = getDpiScale();
-	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale.x, self.frame.size.height * dpiScale.y);
-	
-	if(!gCurrentWindow.fullScreen)
+
+	[self.delegate didResize:viewSize.size];
+
+	float dpiScale[2];
+	getDpiScale(dpiScale);
+	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale[0], self.frame.size.height * dpiScale[1]);
+
+	if (!gCurrentWindow.fullScreen)
 	{
 		[window updateClientRect:&gCurrentWindow];
 		[window updateWindowRect:&gCurrentWindow];
 	}
 }
 
-- (void) windowDidEndLiveResize:(NSNotification *)notification
+- (void)windowDidEndLiveResize:(NSNotification*)notification
 {
 	if (gCurrentWindow.fullScreen)
 		return;
-		
+
 	ForgeNSWindow* window = [notification object];
-	NSRect viewSize = [window.contentView frame];
-	
-	[self.delegate didResize: viewSize.size];
-	
-	float2 dpiScale = getDpiScale();
-	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale.x, self.frame.size.height * dpiScale.y);
-	
+	NSRect         viewSize = [window.contentView frame];
+
+	[self.delegate didResize:viewSize.size];
+
+	float dpiScale[2];
+	getDpiScale(dpiScale);
+	metalLayer.drawableSize = CGSizeMake(self.frame.size.width * dpiScale[0], self.frame.size.height * dpiScale[1]);
+
 	[window updateClientRect:&gCurrentWindow];
 	[window updateWindowRect:&gCurrentWindow];
 }
 
-- (void)windowDidMove:(NSNotification *)notification
+- (void)windowDidMove:(NSNotification*)notification
 {
 	if (gCurrentWindow.fullScreen)
 	{
@@ -398,92 +407,89 @@ void AutoHideMenuBar()
 	}
 
 	ForgeNSWindow* window = [notification object];
-	
+
 	[window updateClientRect:&gCurrentWindow];
 	[window updateWindowRect:&gCurrentWindow];
 }
 
-- (void)windowDidChangeScreen:(NSNotification *)notification
+- (void)windowDidChangeScreen:(NSNotification*)notification
 {
 	ForgeNSWindow* window = [notification object];
-	NSScreen* screen = [window screen];
-	
+	NSScreen*      screen = [window screen];
+
 	NSRect frame = [screen frame];
 	gCurrentWindow.fullscreenRect = [window setRectFromNSRect:frame];
 }
 
-- (void) onActivation:(NSNotification*) notification
+- (void)onActivation:(NSNotification*)notification
 {
 	NSRunningApplication* runningApplication = [notification.userInfo objectForKey:@"NSWorkspaceApplicationKey"];
-	
+
 	if ([[NSRunningApplication currentApplication] isEqual:runningApplication])
 	{
 		if (gCurrentWindow.fullScreen)
 		{
-			[self.window setLevel: NSNormalWindowLevel];
+			[self.window setLevel:NSNormalWindowLevel];
 			HideMenuBar();
 		}
 		else
 		{
-			[self.window setLevel: NSPopUpMenuWindowLevel];
+			[self.window setLevel:NSPopUpMenuWindowLevel];
 			AutoHideMenuBar();
 		}
 	}
 }
 
-- (void) onDeactivation:(NSNotification*) notification
+- (void)onDeactivation:(NSNotification*)notification
 {
 	NSRunningApplication* runningApplication = [notification.userInfo objectForKey:@"NSWorkspaceApplicationKey"];
-	
+
 	if ([[NSRunningApplication currentApplication] isEqual:runningApplication])
 	{
-		[self.window setLevel: NSNormalWindowLevel];
+		[self.window setLevel:NSNormalWindowLevel];
 		AutoHideMenuBar();
 	}
 }
 
-- (void)windowDidEnterFullScreen:(NSNotification *)notification
+- (void)windowDidEnterFullScreen:(NSNotification*)notification
 {
 	HideMenuBar();
 }
 
-- (void)windowDidExitFullScreen:(NSNotification *)notification
+- (void)windowDidExitFullScreen:(NSNotification*)notification
 {
 	AutoHideMenuBar();
 }
 
-- (CAMetalLayer *) metalLayer
+- (CAMetalLayer*)metalLayer
 {
 	return metalLayer;
 }
 
-- (void) updateTrackingAreas
+- (void)updateTrackingAreas
 {
-	NSArray<NSTrackingArea *> *trackingAreas = [self trackingAreas];
+	NSArray<NSTrackingArea*>* trackingAreas = [self trackingAreas];
 	if ([trackingAreas count] != 0)
 	{
-		[self removeTrackingArea: trackingAreas[0]];
+		[self removeTrackingArea:trackingAreas[0]];
 	}
-	
-	NSRect bounds = [self bounds];
+
+	NSRect                bounds = [self bounds];
 	NSTrackingAreaOptions options =
-	(NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow);
-	NSTrackingArea* trackingArea =
-		[[NSTrackingArea alloc] initWithRect: bounds
-									 options: options
-									   owner: self
-									userInfo: nil];
-	
-	[self addTrackingArea: trackingArea];
+		(NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved |
+		 NSTrackingActiveInKeyWindow);
+	NSTrackingArea* trackingArea = [[NSTrackingArea alloc] initWithRect:bounds options:options owner:self userInfo:nil];
+
+	[self addTrackingArea:trackingArea];
 	[super updateTrackingAreas];
 }
 
-- (void) mouseEntered: (NSEvent*) nsEvent
+- (void)mouseEntered:(NSEvent*)nsEvent
 {
 	gCursorInsideTrackingArea = true;
 }
 
-- (void) mouseExited: (NSEvent*) nsEvent
+- (void)mouseExited:(NSEvent*)nsEvent
 {
 	gCursorInsideTrackingArea = false;
 }
@@ -494,26 +500,35 @@ namespace {
 bool isCaptured = false;
 }
 
+static NSString* screenNameForDisplay(CGDirectDisplayID displayID, NSScreen* screen)
+{
+  if (@available(macOS 10.15, *)) {
+    NSString* screenName = screen.localizedName;
+    return screenName;
+  }
+  else {
+    NSString *screenName = nil;
+    NSDictionary *deviceInfo = (__bridge NSDictionary *)IODisplayCreateInfoDictionary(CGDisplayIOServicePort(displayID), kIODisplayOnlyPreferredName);
+    NSDictionary *localizedNames = [deviceInfo objectForKey:[NSString stringWithUTF8String:kDisplayProductName]];
+    if ([localizedNames count] > 0) {
+      screenName = [localizedNames objectForKey:[[localizedNames allKeys] objectAtIndex:0]];
+    }
+    return screenName;
+  }
+}
+
 NSWindowStyleMask PrepareStyleMask(WindowsDesc* winDesc)
 {
-	uint32_t fullScreenHeight = getRectHeight(winDesc->fullscreenRect);
-	
+	uint32_t fullScreenHeight = getRectHeight(&winDesc->fullscreenRect);
+
 	NSWindowStyleMask styleMask = NSWindowStyleMaskBorderless;
-	if (!winDesc->fullScreen &&
-		!winDesc->borderlessWindow &&
-		getRectHeight(winDesc->clientRect) != fullScreenHeight)
+	if (!winDesc->fullScreen && !winDesc->borderlessWindow && getRectHeight(&winDesc->clientRect) != fullScreenHeight)
 	{
-		NSWindowStyleMask noResizeWindow =
-		!winDesc->noresizeFrame ?
-		NSWindowStyleMaskResizable :
-		0;
-		
-		styleMask = NSWindowStyleMaskTitled |
-		NSWindowStyleMaskClosable |
-		NSWindowStyleMaskMiniaturizable |
-		noResizeWindow;
+		NSWindowStyleMask noResizeWindow = !winDesc->noresizeFrame ? NSWindowStyleMaskResizable : 0;
+
+		styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | noResizeWindow;
 	}
-	
+
 	return styleMask;
 }
 
@@ -523,134 +538,86 @@ void collectMonitorInfo()
 	{
 		return;
 	}
-	
+
 	uint32_t displayCount = 0;
-	CGError error = CGGetOnlineDisplayList(0, nil, &displayCount);
-	if(error != kCGErrorSuccess)
+	CGError  error = CGGetOnlineDisplayList(0, nil, &displayCount);
+	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
 	}
-	
+
 	eastl::vector<CGDirectDisplayID> onlineDisplayIDs(displayCount);
-	
+
 	error = CGGetOnlineDisplayList(displayCount, onlineDisplayIDs.data(), &displayCount);
-	if(error != kCGErrorSuccess)
+	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
 	}
-	
+
 	ASSERT(displayCount != 0);
-	
+
 	gMonitorCount = displayCount;
 	gMonitors = (MonitorDesc*)tf_calloc(displayCount, sizeof(MonitorDesc));
 	gDPIScales = (float2*)tf_calloc(displayCount, sizeof(float2));
-	
-	CFMutableDictionaryRef matchingService = IOServiceMatching("IODisplayConnect");
-	
-	io_iterator_t serviceIterator = 0;
-	kern_return_t serviceError = IOServiceGetMatchingServices(kIOMasterPortDefault, matchingService, &serviceIterator);
-	if(serviceError != 0)
-	{
-		ASSERT(0);
-	}
-	
+		
 	NSArray<NSScreen*>* screens = [NSScreen screens];
-	
-	io_service_t service = 0;
-	uint32_t index = 0;
 	CGDirectDisplayID mainDisplayID = CGMainDisplayID();
-	while ((service = IOIteratorNext(serviceIterator)) != 0)
-	{
-		CFDictionaryRef infoDictionary =
-		(CFDictionaryRef)IODisplayCreateInfoDictionary(service,
-													   kIODisplayOnlyPreferredName);
-		
-		CFIndex vendorID, productID;
-		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayVendorID)),
-						 kCFNumberCFIndexType,
-						 &vendorID);
-		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayProductID)),
-						 kCFNumberCFIndexType,
-						 &productID);
-		
-		CGDirectDisplayID displayID = 0;
-		for(CGDirectDisplayID currentDisplayID : onlineDisplayIDs)
-		{
-			CFIndex currentVendorID = CGDisplayVendorNumber(currentDisplayID);
-			CFIndex currentProductID = CGDisplayModelNumber(currentDisplayID);
-			
-			if(currentVendorID == vendorID &&
-			   currentProductID == productID)
-			{
-				displayID = currentDisplayID;
-				break;
-			}
-		}
-		
-		if(displayID == 0) continue;
-		
+    
+    for (uint32_t displayIndex = 0; displayIndex < displayCount; ++displayIndex)
+    {
+        CGDirectDisplayID displayID = onlineDisplayIDs[displayIndex];
+
 		NSScreen* displayScreen = nil;
-		for(NSScreen* screen : screens)
+		for (NSScreen* screen : screens)
 		{
-			NSDictionary* screenDictionary = [screen deviceDescription];
-			NSNumber* idAsNumber = [screenDictionary objectForKey:@"NSScreenNumber"];
+			NSDictionary*     screenDictionary = [screen deviceDescription];
+			NSNumber*         idAsNumber = [screenDictionary objectForKey:@"NSScreenNumber"];
 			CGDirectDisplayID screenID = [idAsNumber unsignedIntValue];
-			
+
 			if(displayID == screenID)
 			{
 				displayScreen = screen;
 				break;
 			}
 		}
-		
+
 		ASSERT(displayScreen != nil);
-		
+
 		float dpiScale = (float)[displayScreen backingScaleFactor];
-		gDPIScales[index] = { (float)dpiScale, (float)dpiScale };
-		
-		MonitorDesc& display = gMonitors[index];
-		
+        gDPIScales[displayIndex] = { (float)dpiScale, (float)dpiScale };
+
+		MonitorDesc& display = gMonitors[displayIndex];
+
 		display.displayID = displayID;
-		
+
 		NSRect frameRect = [displayScreen frame];
 		display.defaultResolution.mWidth = frameRect.size.width;
 		display.defaultResolution.mHeight = frameRect.size.height;
-		
-		CFDictionaryRef localizedNames =
-		(CFDictionaryRef)CFDictionaryGetValue(infoDictionary,
-											  CFSTR(kDisplayProductName));
-		void* key = nil;
-		CFDictionaryGetKeysAndValues(localizedNames, (const void **)&key, nil);
-		
-		NSString* displayName = (NSString*)CFDictionaryGetValue(localizedNames, key);
+
+        NSString* displayName = screenNameForDisplay(displayID, displayScreen);
 		strcpy(display.publicDisplayName, displayName.UTF8String);
-		
+
 		id<MTLDevice> metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
 		strcpy(display.publicAdapterName, metalDevice.name.UTF8String);
-		
+
 		CGRect displayBounds = CGDisplayBounds(displayID);
-		display.workRect =
-		{
-			(int32_t)displayBounds.origin.x,
-			(int32_t)displayBounds.origin.y,
-			(int32_t)displayBounds.size.width,
-			(int32_t)displayBounds.size.height
-		};
+		display.workRect = { (int32_t)displayBounds.origin.x, (int32_t)displayBounds.origin.y, (int32_t)displayBounds.size.width,
+							 (int32_t)displayBounds.size.height };
 		display.monitorRect = display.workRect;
-		
+
 		eastl::vector<Resolution> displayResolutions;
-		CFArrayRef displayModes = CGDisplayCopyAllDisplayModes(displayID, nil);
-		for(CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
+		CFArrayRef                displayModes = CGDisplayCopyAllDisplayModes(displayID, nil);
+		for (CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
 		{
 			CGDisplayModeRef currentDisplayMode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, i);
-			
+
 			Resolution displayResolution;
 			displayResolution.mWidth = (uint32_t)CGDisplayModeGetWidth(currentDisplayMode);
 			displayResolution.mHeight = (uint32_t)CGDisplayModeGetHeight(currentDisplayMode);
-			
+
 			displayResolutions.emplace_back(displayResolution);
 		}
-		
+
 		qsort(displayResolutions.data(),
 			  displayResolutions.size(),
 			  sizeof(Resolution),
@@ -662,21 +629,17 @@ void collectMonitorInfo()
 				return (int)(pLhs->mWidth - pRhs->mWidth);
 			return (int)(pLhs->mHeight - pRhs->mHeight);
 		});
-		
+
 		display.resolutionCount = (uint32_t)displayResolutions.size();
 		display.resolutions = (Resolution*)tf_calloc(display.resolutionCount, sizeof(Resolution));
 		memcpy(display.resolutions, displayResolutions.data(), display.resolutionCount * sizeof(Resolution));
-		
+
 		CFRelease(displayModes);
-		
-		if(displayID == mainDisplayID && index != 0)
+
+		if(displayID == mainDisplayID && displayIndex != 0)
 		{
-			std::swap(gMonitors[0], gMonitors[index]);
+			std::swap(gMonitors[0], gMonitors[displayIndex]);
 		}
-		
-		CFRelease(infoDictionary);
-		
-		++index;
 	}
 }
 
@@ -684,35 +647,35 @@ CGDisplayModeRef FindClosestResolution(CGDirectDisplayID display, const Resoluti
 {
 	CFArrayRef displayModes = CGDisplayCopyAllDisplayModes(display, nil);
 	ASSERT(displayModes != nil);
-	
+
 	int64_t smallestDiff = std::numeric_limits<int64_t>::max();
-	
+
 	CGDisplayModeRef bestMode = nil;
-	for(CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
+	for (CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
 	{
 		CGDisplayModeRef mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, i);
-		int64_t width = (int64_t)CGDisplayModeGetWidth(mode);
-		int64_t height = (int64_t)CGDisplayModeGetHeight(mode);
-		
+		int64_t          width = (int64_t)CGDisplayModeGetWidth(mode);
+		int64_t          height = (int64_t)CGDisplayModeGetHeight(mode);
+
 		int64_t desiredWidth = pMode->mWidth;
 		int64_t desiredHeight = pMode->mHeight;
-		
+
 		int64_t diffw = width - desiredWidth;
 		int64_t diffw2 = diffw * diffw;
-		
+
 		int64_t diffh = height - desiredHeight;
 		int64_t diffh2 = diffh * diffh;
-		
+
 		int64_t lenSq = diffw2 + diffh2;
-		if(smallestDiff > lenSq)
+		if (smallestDiff > lenSq)
 		{
 			smallestDiff = lenSq;
 			bestMode = mode;
 		}
 	}
-	
+
 	CFRelease(displayModes);
-	
+
 	return bestMode;
 }
 
@@ -720,33 +683,33 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {
 	ASSERT(pMonitor != nil);
 	ASSERT(pMode != nil);
-	
+
 	CGDirectDisplayID display = pMonitor->displayID;
-	CGDisplayModeRef bestMode = FindClosestResolution(display, pMode);
+	CGDisplayModeRef  bestMode = FindClosestResolution(display, pMode);
 	ASSERT(bestMode != nil);
-	
+
 	size_t width = CGDisplayModeGetWidth(bestMode);
 	size_t height = CGDisplayModeGetHeight(bestMode);
-	if(pMode->mWidth == width && pMode->mHeight == height)
+	if (pMode->mWidth == width && pMode->mHeight == height)
 	{
 		return;
 	}
-	
+
 	CGDisplayConfigRef configRef;
-	CGError error = CGBeginDisplayConfiguration(&configRef);
-	if(error != kCGErrorSuccess)
+	CGError            error = CGBeginDisplayConfiguration(&configRef);
+	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
 	}
-	
+
 	error = CGConfigureDisplayWithDisplayMode(configRef, display, bestMode, nil);
-	if(error != kCGErrorSuccess)
+	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
 	}
-	
+
 	error = CGCompleteDisplayConfiguration(configRef, kCGConfigureForSession);
-	if(error != kCGErrorSuccess)
+	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
 	}
@@ -754,24 +717,19 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 
 void getRecommendedResolution(RectDesc* rect)
 {
-	float2 dpiScale = getDpiScale();
+	float dpiScale[2];
+	getDpiScale(dpiScale);
 	NSRect mainScreenRect = [[NSScreen mainScreen] frame];
-	*rect = RectDesc
-	{
-		0,
-		0,
-		(int32_t)(mainScreenRect.size.width * dpiScale.x + 1e-6),
-		(int32_t)(mainScreenRect.size.height * dpiScale.y + 1e-6)
-	};
+	*rect = RectDesc{ 0, 0, (int32_t)(mainScreenRect.size.width * dpiScale[0] + 1e-6),
+					  (int32_t)(mainScreenRect.size.height * dpiScale[1] + 1e-6) };
 }
 
-void setCustomMessageProcessor(CustomMessageProcessor proc) { }
+void setCustomMessageProcessor(CustomMessageProcessor proc) {}
 
 void onRequestReload()
 {
 	gResetScenario |= RESET_SCENARIO_RELOAD;
 }
-
 void onDeviceLost()
 {
 	// NOT SUPPORTED ON THIS PLATFORM
@@ -789,89 +747,74 @@ void requestShutdown()
 	{
 		return;
 	}
-	
+
 	NSNotificationCenter* notificationCenter = [[NSWorkspace sharedWorkspace] notificationCenter];
-	[notificationCenter removeObserver:view
-								  name:NSWorkspaceDidActivateApplicationNotification
-								object:nil];
-	
-	[notificationCenter removeObserver:view
-								  name:NSWorkspaceDidDeactivateApplicationNotification
-								object:nil];
-	
+	[notificationCenter removeObserver:view name:NSWorkspaceDidActivateApplicationNotification object:nil];
+
+	[notificationCenter removeObserver:view name:NSWorkspaceDidDeactivateApplicationNotification object:nil];
+
 	[[NSApplication sharedApplication] terminate:[NSApplication sharedApplication]];
 }
 
 void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device, id<RenderDestinationProvider> delegateRenderProvider)
 {
 	NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
-	
-	NSRect viewRect { 0, 0, (float)getRectWidth(winDesc->clientRect), (float)getRectHeight(winDesc->clientRect) };
-	
-	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect
-													   styleMask:styleMask];
-	
+
+	NSRect viewRect{ 0, 0, (float)getRectWidth(&winDesc->clientRect), (float)getRectHeight(&winDesc->clientRect) };
+
+	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
+
 	ForgeNSWindow* window = [[ForgeNSWindow alloc] initWithContentRect:styleAdjustedRect
 															 styleMask:styleMask
 															   backing:NSBackingStoreBuffered
 																 defer:YES];
 	[window hideFullScreenButton];
-	
-	ForgeMTLView *view = [[ForgeMTLView alloc] initWithFrame:viewRect
-													  device:device
-													 display:0
-														 hdr:NO
-													   vsync:NO];
-	
+
+	ForgeMTLView* view = [[ForgeMTLView alloc] initWithFrame:viewRect device:device display:0 hdr:NO vsync:NO];
+
 	NSNotificationCenter* notificationCenter = [[NSWorkspace sharedWorkspace] notificationCenter];
-	[notificationCenter addObserver:view
-						   selector:@selector(onActivation:)
-							   name:NSWorkspaceDidActivateApplicationNotification
-							 object:nil];
-	
+	[notificationCenter addObserver:view selector:@selector(onActivation:) name:NSWorkspaceDidActivateApplicationNotification object:nil];
+
 	[notificationCenter addObserver:view
 						   selector:@selector(onDeactivation:)
 							   name:NSWorkspaceDidDeactivateApplicationNotification
 							 object:nil];
-	
-	[window setContentView: view];
-	[window setDelegate: view];
+
+	[window setContentView:view];
+	[window setDelegate:view];
 	[window setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-	
+
 	view.delegate = delegateRenderProvider;
 	winDesc->handle.window = (void*)CFBridgingRetain(view);
-	
-	float2 dpiScale = getDpiScale();
-	NSSize windowSize = CGSizeMake(viewRect.size.width / dpiScale.x,
-								   viewRect.size.height / dpiScale.y);
+
+	float dpiScale[2];
+	getDpiScale(dpiScale);
+	NSSize windowSize = CGSizeMake(viewRect.size.width / dpiScale[0], viewRect.size.height / dpiScale[1]);
 	[window setContentSize:windowSize];
-	
-	NSRect bounds = [view bounds];
+
+	NSRect                bounds = [view bounds];
 	NSTrackingAreaOptions options =
-	(NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow);
-	NSTrackingArea* trackingArea =
-	[[NSTrackingArea alloc] initWithRect: bounds
-								 options: options
-								   owner: view
-								userInfo: nil];
-	
-	[view addTrackingArea: trackingArea];
+		(NSTrackingCursorUpdate | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved |
+		 NSTrackingActiveInKeyWindow);
+	NSTrackingArea* trackingArea = [[NSTrackingArea alloc] initWithRect:bounds options:options owner:view userInfo:nil];
+
+	[view addTrackingArea:trackingArea];
 	[window makeFirstResponder:view];
-	
+
 	[window setAcceptsMouseMovedEvents:YES];
 	[window setTitle:[NSString stringWithUTF8String:app_name]];
 	[window setMinSize:NSSizeFromCGSize(CGSizeMake(128, 128))];
-	
+
 	[window setOpaque:YES];
 	[window setRestorable:NO];
 	[window invalidateRestorableState];
 	[window makeMainWindow];
 	[window setReleasedWhenClosed:NO];
 	[window makeKeyAndOrderFront:nil];
-	
+
 	[NSApp activateIgnoringOtherApps:YES];
-	[view.window setLevel: NSPopUpMenuWindowLevel];
-	
+	[view.window setLevel:NSPopUpMenuWindowLevel];
+
 	styleAdjustedRect.origin = [window convetToTopLeft:styleAdjustedRect.origin];
 	if (winDesc->centered)
 	{
@@ -881,33 +824,33 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
 	{
 		[window setFrameOrigin:styleAdjustedRect.origin];
 	}
-	
+
 	[window updateWindowRect:winDesc];
-	
+
 	if (winDesc->fullScreen)
 	{
 		winDesc->fullScreen = false;
 		toggleFullscreen(winDesc);
 	}
-	
-	setMousePositionRelative(winDesc, styleAdjustedRect.size.width / 2.0 / dpiScale.x, styleAdjustedRect.size.height / 2.0 / dpiScale.y);
+
+	setMousePositionRelative(winDesc, styleAdjustedRect.size.width / 2.0 / dpiScale[0], styleAdjustedRect.size.height / 2.0 / dpiScale[1]);
 }
 
 void closeWindow(const WindowsDesc* winDesc) {}
 
-void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
+void setWindowRect(WindowsDesc* winDesc, const RectDesc* pRect)
 {
 	ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
 	if (view == nil)
 	{
 		return;
 	}
-	
-	int clientWidthStart = (getRectWidth(winDesc->windowedRect) - getRectWidth(winDesc->clientRect)) >> 1;
-	int clientHeightStart = getRectHeight(winDesc->windowedRect) - getRectHeight(winDesc->clientRect) - clientWidthStart;
-	
-	winDesc->clientRect = rect;
-	
+
+	int clientWidthStart = (getRectWidth(&winDesc->windowedRect) - getRectWidth(&winDesc->clientRect)) >> 1;
+	int clientHeightStart = getRectHeight(&winDesc->windowedRect) - getRectHeight(&winDesc->clientRect) - clientWidthStart;
+
+	winDesc->clientRect = *pRect;
+
 	if (winDesc->centered)
 	{
 		centerWindow(winDesc);
@@ -915,26 +858,26 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	else
 	{
 		NSRect contentRect;
-		float2 dpiScale = getDpiScale();
-		contentRect.origin.x = rect.left / dpiScale.x;
-		contentRect.origin.y = (getRectHeight(gCurrentWindow.fullscreenRect) - rect.bottom - clientHeightStart) / dpiScale.y;
-		contentRect.size.width = (float)getRectWidth(rect) / dpiScale.x;
-		contentRect.size.height = (float)getRectHeight(rect) / dpiScale.y;
-		
+		float  dpiScale[2];
+		getDpiScale(dpiScale);
+		contentRect.origin.x = pRect->left / dpiScale[0];
+		contentRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - pRect->bottom - clientHeightStart) / dpiScale[1];
+		contentRect.size.width = (float)getRectWidth(pRect) / dpiScale[0];
+		contentRect.size.height = (float)getRectHeight(pRect) / dpiScale[1];
+
 		ForgeNSWindow* window = (ForgeNSWindow*)view.window;
 		window.styleMask = PrepareStyleMask(winDesc);
-		
-		NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect
-														   styleMask:window.styleMask];
-		
-		[window setFrame:styleAdjustedRect
-				 display:true];
+
+		NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect styleMask:window.styleMask];
+
+		[window setFrame:styleAdjustedRect display:true];
 	}
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 {
-	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
+	RectDesc desc{ 0, 0, (int)width, (int)height };
+	setWindowRect(winDesc, &desc);
 }
 
 void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
@@ -944,19 +887,20 @@ void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
 	{
 		return;
 	}
-	
+
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
 	winDesc->borderlessWindow = !winDesc->borderlessWindow;
 	if (winDesc->fullScreen)
 	{
 		return;
 	}
-	
+
 	window.styleMask = PrepareStyleMask(winDesc);
 	NSRect contentBounds = view.bounds;
-	float2 dpiScale = getDpiScale();
-	uint32_t currentWidth = (uint32_t)(contentBounds.size.width * dpiScale.x + 1e-6);
-	uint32_t currentHeight = (uint32_t)(contentBounds.size.height * dpiScale.y + 1e-6);
+	float  dpiScale[2];
+	getDpiScale(dpiScale);
+	uint32_t currentWidth = (uint32_t)(contentBounds.size.width * dpiScale[0] + 1e-6);
+	uint32_t currentHeight = (uint32_t)(contentBounds.size.height * dpiScale[1] + 1e-6);
 	if (currentWidth != width || currentHeight != height)
 	{
 		setWindowSize(winDesc, width, height);
@@ -970,43 +914,38 @@ void toggleFullscreen(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
+
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	
+
 	bool isFullscreen = !(window.styleMask & NSWindowStyleMaskFullScreen);
-	
-	float2 dpiScale = getDpiScale();
+
+	float dpiScale[2];
+	getDpiScale(dpiScale);
 	if (isFullscreen)
 	{
 		winDesc->fullScreen = isFullscreen;
 		window.styleMask = PrepareStyleMask(winDesc);
-		
-		NSSize size =
-		{
-			(CGFloat)getRectWidth(gCurrentWindow.fullscreenRect) / dpiScale.x,
-			(CGFloat)getRectHeight(gCurrentWindow.fullscreenRect) / dpiScale.y
-		};
+
+		NSSize size = { (CGFloat)getRectWidth(&gCurrentWindow.fullscreenRect) / dpiScale[0],
+						(CGFloat)getRectHeight(&gCurrentWindow.fullscreenRect) / dpiScale[1] };
 		[window setContentSize:size];
-		
-		[view.window setLevel: NSNormalWindowLevel];
+
+		[view.window setLevel:NSNormalWindowLevel];
 		HideMenuBar();
 	}
-	
+
 	[window toggleFullScreen:window];
-	
+
 	if (!isFullscreen)
 	{
-		NSSize size =
-		{
-			(CGFloat)getRectWidth(gCurrentWindow.clientRect) / dpiScale.x,
-			(CGFloat)getRectHeight(gCurrentWindow.clientRect) / dpiScale.y
-		};
+		NSSize size = { (CGFloat)getRectWidth(&gCurrentWindow.clientRect) / dpiScale[0],
+						(CGFloat)getRectHeight(&gCurrentWindow.clientRect) / dpiScale[1] };
 		[window setContentSize:size];
-		
+
 		winDesc->fullScreen = isFullscreen;
 		window.styleMask = PrepareStyleMask(winDesc);
-		
-		[view.window setLevel: NSPopUpMenuWindowLevel];
+
+		[view.window setLevel:NSPopUpMenuWindowLevel];
 		AutoHideMenuBar();
 	}
 }
@@ -1019,8 +958,8 @@ void showWindow(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
-    [[NSApplication sharedApplication] unhide:nil];
+
+	[[NSApplication sharedApplication] unhide:nil];
 }
 
 void hideWindow(WindowsDesc* winDesc)
@@ -1031,8 +970,8 @@ void hideWindow(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
-    [[NSApplication sharedApplication] hide:nil];
+
+	[[NSApplication sharedApplication] hide:nil];
 }
 
 void maximizeWindow(WindowsDesc* winDesc)
@@ -1043,7 +982,7 @@ void maximizeWindow(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
+
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
 	[window deminiaturize:nil];
 }
@@ -1056,7 +995,7 @@ void minimizeWindow(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
+
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
 	[window miniaturize:nil];
 }
@@ -1068,13 +1007,13 @@ void centerWindow(WindowsDesc* winDesc)
 	{
 		return;
 	}
-	
+
 	winDesc->centered = true;
 
-	uint32_t fsHalfWidth = getRectWidth(winDesc->fullscreenRect) >> 1;
-	uint32_t fsHalfHeight = getRectHeight(winDesc->fullscreenRect) >> 1;
-	uint32_t windowWidth = getRectWidth(winDesc->clientRect);
-	uint32_t windowHeight = getRectHeight(winDesc->clientRect);
+	uint32_t fsHalfWidth = getRectWidth(&winDesc->fullscreenRect) >> 1;
+	uint32_t fsHalfHeight = getRectHeight(&winDesc->fullscreenRect) >> 1;
+	uint32_t windowWidth = getRectWidth(&winDesc->clientRect);
+	uint32_t windowHeight = getRectHeight(&winDesc->clientRect);
 	uint32_t windowHalfWidth = windowWidth >> 1;
 	uint32_t windowHalfHeight = windowHeight >> 1;
 
@@ -1082,39 +1021,36 @@ void centerWindow(WindowsDesc* winDesc)
 	uint32_t Y = fsHalfHeight - windowHalfHeight;
 
 	NSRect contentRect;
-	float2 dpiScale = getDpiScale();
-	contentRect.origin.x = X / dpiScale.x;
-	contentRect.origin.y = (getRectHeight(gCurrentWindow.fullscreenRect) - (Y+windowHeight)) / dpiScale.y;
-	contentRect.size.width = (float)(windowWidth) / dpiScale.x;
-	contentRect.size.height = (float)(windowHeight) / dpiScale.y;
+	float  dpiScale[2];
+	getDpiScale(dpiScale);
+	contentRect.origin.x = X / dpiScale[0];
+	contentRect.origin.y = (getRectHeight(&gCurrentWindow.fullscreenRect) - (Y + windowHeight)) / dpiScale[1];
+	contentRect.size.width = (float)(windowWidth) / dpiScale[0];
+	contentRect.size.height = (float)(windowHeight) / dpiScale[1];
 
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
 	window.styleMask = PrepareStyleMask(winDesc);
-		
-	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect
-													   styleMask:window.styleMask];
 
-	[window setFrame:styleAdjustedRect
-			 display:true];
+	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:contentRect styleMask:window.styleMask];
+
+	[window setFrame:styleAdjustedRect display:true];
 }
 
 void* createCursor(const char* path)
 {
 	BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:[NSString stringWithUTF8String:path]];
-	if(!exists)
+	if (!exists)
 	{
 		return nil;
 	}
-	
-	NSImage* cursorImage =
-	[[NSImage alloc] initByReferencingFile:[NSString stringWithUTF8String:path]];
-	if(cursorImage == nil)
+
+	NSImage* cursorImage = [[NSImage alloc] initByReferencingFile:[NSString stringWithUTF8String:path]];
+	if (cursorImage == nil)
 	{
 		return nil;
 	}
-	
-	NSCursor* cursor = [[NSCursor alloc] initWithImage:cursorImage
-											   hotSpot:NSZeroPoint];
+
+	NSCursor* cursor = [[NSCursor alloc] initWithImage:cursorImage hotSpot:NSZeroPoint];
 	return (void*)CFBridgingRetain(cursor);
 }
 
@@ -1142,10 +1078,7 @@ void hideCursor()
 	}
 }
 
-bool isCursorInsideTrackingArea()
-{
-	return gCursorInsideTrackingArea;
-}
+bool isCursorInsideTrackingArea() { return gCursorInsideTrackingArea; }
 
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 {
@@ -1155,18 +1088,18 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 		CGWarpMouseCursorPosition(CGPointZero);
 		return;
 	}
-	
-	ForgeNSWindow* forgeWindow = (ForgeNSWindow* __nullable)view.window;
-	NSScreen* screen = [forgeWindow screen];
+
+	ForgeNSWindow* forgeWindow = (ForgeNSWindow * __nullable) view.window;
+	NSScreen*      screen = [forgeWindow screen];
 	if (screen == nil)
 	{
 		CGWarpMouseCursorPosition(CGPointZero);
 		return;
 	}
-	
-	CGFloat titleBarHeight = 0.0;
+
+	CGFloat         titleBarHeight = 0.0;
 	const RectDesc* windowRect = nil;
-	if(winDesc->fullScreen)
+	if (winDesc->fullScreen)
 	{
 		windowRect = &winDesc->fullscreenRect;
 	}
@@ -1175,11 +1108,12 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 		titleBarHeight = [forgeWindow titleBarHeight];
 		windowRect = &winDesc->windowedRect;
 	}
-	
+
 	CGPoint location;
-	float2 dpiScale = getDpiScale();
-	location.x = windowRect->left / dpiScale.x + x;
-	location.y = windowRect->top / dpiScale.y + titleBarHeight + y;
+	float   dpiScale[2];
+	getDpiScale(dpiScale);
+	location.x = windowRect->left / dpiScale[0] + x;
+	location.y = windowRect->top / dpiScale[1] + titleBarHeight + y;
 	CGWarpMouseCursorPosition(location);
 }
 
@@ -1205,7 +1139,7 @@ unsigned getSystemTime()
 	long            ms;    // Milliseconds
 	time_t          s;     // Seconds
 	struct timespec spec;
-	
+
 #if defined(ENABLE_CLOCK_GETTIME)
 	if (@available(macOS 10.12, *))
 	{
@@ -1215,7 +1149,7 @@ unsigned getSystemTime()
 #endif
 	{
 		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
-		clock_serv_t cclock;
+		clock_serv_t    cclock;
 		mach_timespec_t mts;
 		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
 		clock_get_time(cclock, &mts);
@@ -1223,18 +1157,18 @@ unsigned getSystemTime()
 		spec.tv_sec = mts.tv_sec;
 		spec.tv_nsec = mts.tv_nsec;
 	}
-	
+
 	s = spec.tv_sec;
 	ms = round(spec.tv_nsec / CLOCKS_PER_SEC);    // Convert nanoseconds to milliseconds
 	ms += s * 1000;
-	
+
 	return (unsigned int)ms;
 }
 
 int64_t getUSec()
 {
 	timespec ts;
-	
+
 #if defined(ENABLE_CLOCK_GETTIME)
 	if (@available(macOS 10.12, *))
 	{
@@ -1244,7 +1178,7 @@ int64_t getUSec()
 #endif
 	{
 		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
-		clock_serv_t cclock;
+		clock_serv_t    cclock;
 		mach_timespec_t mts;
 		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
 		clock_get_time(cclock, &mts);
@@ -1252,16 +1186,13 @@ int64_t getUSec()
 		ts.tv_sec = mts.tv_sec;
 		ts.tv_nsec = mts.tv_nsec;
 	}
-	
+
 	long us = (ts.tv_nsec / 1000);
 	us += ts.tv_sec * CLOCKS_PER_SEC;
 	return us;
 }
 
-int64_t getTimerFrequency()
-{
-	return CLOCKS_PER_SEC;
-}
+int64_t getTimerFrequency() { return CLOCKS_PER_SEC; }
 
 unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
@@ -1271,19 +1202,18 @@ MonitorDesc* getMonitor(uint32_t index)
 	return &gMonitors[index];
 }
 
-uint32_t getMonitorCount()
-{
-	return gMonitorCount;
-}
+uint32_t getMonitorCount() { return gMonitorCount; }
 
-float2 getDpiScale()
+void getDpiScale(float array[2])
 {
 	if (gCurrentWindow.forceLowDPI)
 	{
-		return { 1.0f, 1.0f };
+		array[0] = 1.f;
+		array[1] = 1.f;
+		return;
 	}
-	
-	return gDPIScales[0];
+	array[0] = gDPIScales[0].x;
+	array[1] = gDPIScales[0].y;
 }
 /************************************************************************/
 // App Entrypoint
@@ -1291,13 +1221,72 @@ float2 getDpiScale()
 
 static IApp* pApp = NULL;
 
+bool initBaseSubsystems()
+{
+	// Not exposed in the interface files / app layer
+	extern bool platformInitFontSystem();
+	extern bool platformInitUserInterface();
+	extern void platformInitLuaScriptingSystem();
+
+#ifdef USE_FORGE_FONTS
+	if (!platformInitFontSystem())
+		return false;
+#endif
+
+#ifdef USE_FORGE_UI
+	if (!platformInitUserInterface())
+		return false;
+#endif
+
+#ifdef USE_FORGE_SCRIPTING
+	platformInitLuaScriptingSystem();
+#endif
+
+	return true;
+}
+
+void updateBaseSubsystems(float deltaTime)
+{
+	// Not exposed in the interface files / app layer
+	extern void platformUpdateLuaScriptingSystem();
+	extern void platformUpdateUserInterface(float deltaTime);
+
+#ifdef USE_FORGE_SCRIPTING
+	platformUpdateLuaScriptingSystem();
+#endif
+
+#ifdef USE_FORGE_UI
+	platformUpdateUserInterface(deltaTime);
+#endif
+}
+
+void exitBaseSubsystems()
+{
+	// Not exposed in the interface files / app layer
+	extern void platformExitFontSystem();
+	extern void platformExitUserInterface();
+	extern void platformExitLuaScriptingSystem();
+
+#ifdef USE_FORGE_UI
+	platformExitUserInterface();
+#endif
+
+#ifdef USE_FORGE_FONTS
+	platformExitFontSystem();
+#endif
+
+#ifdef USE_FORGE_SCRIPTING
+	platformExitLuaScriptingSystem();
+#endif
+}
+
 int macOSMain(int argc, const char** argv, IApp* app)
 {
 	pApp = app;
-	
-	NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
-	NSString* minVersion = info[@"LSMinimumSystemVersion"];
-	NSArray* versionStr = [minVersion componentsSeparatedByString:@"."];
+
+	NSDictionary*            info = [[NSBundle mainBundle] infoDictionary];
+	NSString*                minVersion = info[@"LSMinimumSystemVersion"];
+	NSArray*                 versionStr = [minVersion componentsSeparatedByString:@"."];
 	NSOperatingSystemVersion version = {};
 	version.majorVersion = versionStr.count > 0 ? [versionStr[0] integerValue] : 10;
 	version.minorVersion = versionStr.count > 1 ? [versionStr[1] integerValue] : 11;
@@ -1308,11 +1297,9 @@ int macOSMain(int argc, const char** argv, IApp* app)
 		NSLog(@"Application requires at least macOS %@, but is being run on %@, and so is exiting", minVersion, osVersion);
 		return 0;
 	}
-	
+
 	return NSApplicationMain(argc, argv);
 }
-
-
 
 // Interface that controls the main updating/rendering loop on Metal appplications.
 @interface MetalKitApplication: NSObject
@@ -1347,18 +1334,18 @@ int macOSMain(int argc, const char** argv, IApp* app)
 - (id)init
 {
 	self = [super init];
-	
+
 	_device = MTLCreateSystemDefaultDevice();
 	isCaptured = false;
-	
+
 	// Kick-off the MetalKitApplication.
 	_application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self];
-	
+
 	if (!_device)
 	{
 		NSLog(@"Metal is not supported on this device");
 	}
-	
+
 	//register terminate callback
 	NSApplication* app = [NSApplication sharedApplication];
 	[[NSNotificationCenter defaultCenter] addObserver:self
@@ -1374,15 +1361,26 @@ int macOSMain(int argc, const char** argv, IApp* app)
 	[_application shutdown];
 }
 
+- (void)didDeminiaturize
+{
+    gCurrentWindow.minimized = false;
+    [_application onFocusChanged:TRUE];
+}
+
+- (void)didMiniaturize
+{
+    gCurrentWindow.minimized = true;
+    [_application onFocusChanged:FALSE];
+}
+
 // Called whenever view changes orientation or layout is changed
 - (void)didResize:(CGSize)size
 {
 	// On initial resize we might not be having the application which, thus we schedule a resize later on
 	if (!_application)
 	{
-		dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-			[self didResize:size];
-		});
+		dispatch_after(
+			dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ [self didResize:size]; });
 	}
 	else
 		[_application drawRectResized:size];
@@ -1391,7 +1389,19 @@ int macOSMain(int argc, const char** argv, IApp* app)
 // Called whenever the view needs to render
 - (void)draw
 {
-	[_application update];
+    static bool lastFocused = true;
+    bool focusChanged = false;
+    if (pApp)
+    {
+        focusChanged = lastFocused != pApp->mSettings.mFocused;
+        lastFocused = pApp->mSettings.mFocused;
+    }
+
+    // Call update once after minimizing so that IApp can react.
+    if (!gCurrentWindow.minimized || focusChanged)
+    {
+        [_application update];
+    }
 }
 
 @end
@@ -1404,8 +1414,9 @@ int macOSMain(int argc, const char** argv, IApp* app)
 Timer           deltaTimer;
 IApp::Settings* pSettings;
 #ifdef AUTOMATED_TESTING
-uint32_t testingCurrentFrameCount;
-uint32_t testingMaxFrameCount = 120;
+uint32_t frameCounter;
+uint32_t targetFrameCount = 240;
+char benchmarkOutput[1024] = { "\0" };
 #endif
 
 // Metal application implementation.
@@ -1415,41 +1426,43 @@ uint32_t testingMaxFrameCount = 120;
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
 {
-#define EXIT_IF_FAILED(cond) if (!(cond)) exit(1);
-	
+    initTimer(&deltaTimer);
+#define EXIT_IF_FAILED(cond) \
+	if (!(cond))             \
+		exit(1);
+
 	self = [super init];
 	if (self)
 	{
-		extern bool MemAllocInit(const char*);
-		if (!MemAllocInit(pApp->GetName()))
+		if (!initMemAlloc(pApp->GetName()))
 		{
 			NSLog(@"Failed to initialize memory manager");
 			exit(1);
 		}
-		
+
 #if TF_USE_MTUNER
 		rmemInit(0);
 #endif
-		
+
 		FileSystemInitDesc fsDesc = {};
 		fsDesc.pAppName = pApp->GetName();
-		if(!initFileSystem(&fsDesc))
+		if (!initFileSystem(&fsDesc))
 		{
 			NSLog(@"Failed to initialize filesystem");
 			exit(1);
 		}
-		
+
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-		Log::Init(pApp->GetName());
-		
+		initLog(pApp->GetName(), eALL);
+
 		collectMonitorInfo();
-		
+
 		pSettings = &pApp->mSettings;
 		if (pSettings->mMonitorIndex < 0)
 		{
 			pSettings->mMonitorIndex = 0;
 		}
-		
+
 		gCurrentWindow = {};
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.borderlessWindow = pSettings->mBorderlessWindow;
@@ -1457,51 +1470,84 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.maximized = false;
 		gCurrentWindow.centered = pSettings->mCentered;
 		gCurrentWindow.forceLowDPI = pSettings->mForceLowDPI;
-		
+
 		if (!gCurrentWindow.fullScreen)
 		{
 			AutoHideMenuBar();
 		}
-		
+
 		RectDesc fullScreenRect = {};
 		getRecommendedResolution(&fullScreenRect);
 		if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
 		{
 			MonitorDesc* windowMonitor = getMonitor(pSettings->mMonitorIndex);
-			uint32_t oneBeforeLast = windowMonitor->resolutionCount - 2;
+			uint32_t     oneBeforeLast = windowMonitor->resolutionCount - 2;
 			if (oneBeforeLast == ~0)
 			{
 				oneBeforeLast = 0;
 			}
-			
+
 			pSettings->mWidth = windowMonitor->resolutions[oneBeforeLast].mWidth;
-			pSettings->mHeight = windowMonitor->resolutions[oneBeforeLast].mWidth;
+			pSettings->mHeight = windowMonitor->resolutions[oneBeforeLast].mHeight;
 		}
-		
+
 		gCurrentWindow.clientRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 		gCurrentWindow.fullscreenRect = fullScreenRect;
-		
+
 		openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider);
-		
+
+		pSettings->mFocused = true;
+
 		pSettings->mWidth =
-		gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.clientRect);
+			gCurrentWindow.fullScreen ? getRectWidth(&gCurrentWindow.fullscreenRect) : getRectWidth(&gCurrentWindow.clientRect);
 		pSettings->mHeight =
-		gCurrentWindow.fullScreen ? getRectHeight(gCurrentWindow.fullscreenRect) : getRectHeight(gCurrentWindow.clientRect);
+			gCurrentWindow.fullScreen ? getRectHeight(&gCurrentWindow.fullscreenRect) : getRectHeight(&gCurrentWindow.clientRect);
 		pApp->pWindow = &gCurrentWindow;
+
+#ifdef AUTOMATED_TESTING
+	//Check if benchmarking was given through command line
+	for (int i = 0; i < pApp->argc; i += 1)
+	{
+		if (strcmp(pApp->argv[i], "-b") == 0)
+		{
+			pSettings->mBenchmarking = true;
+			if (i + 1 < pApp->argc && isdigit(*(pApp->argv[i + 1])))
+				targetFrameCount = min(max(atoi(pApp->argv[i + 1]), 32), 512);
+		}
+		else if (strcmp(pApp->argv[i], "-o") == 0 && i + 1 < pApp->argc)
+		{
+			strcpy(benchmarkOutput, pApp->argv[i + 1]);
+		}
+	}
+#endif
 		
 		@autoreleasepool
 		{
-			//if init fails then exit the app
+			
+			//if base subsystem fails then exit the app
+			if (!initBaseSubsystems())
+			{
+				for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
+				{
+					[window close];
+				}
+
+				exit(1);
+			}
+
+			//if app init fails then exit the app
 			if (!pApp->Init())
 			{
 				for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
 				{
 					[window close];
 				}
-				
+
 				exit(1);
 			}
-			
+
+			pApp->mSettings.mInitialized = true;
+
 			//if load fails then exit the app
 			if (!pApp->Load())
 			{
@@ -1509,39 +1555,44 @@ uint32_t testingMaxFrameCount = 120;
 				{
 					[window close];
 				}
-				
+
 				exit(1);
 			}
 		}
+
+#ifdef AUTOMATED_TESTING
+	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
+#endif
+		
+		
 	}
-	
+
 	return self;
 }
 
 - (void)drawRectResized:(CGSize)size
 {
-	float2 dpiScale = getDpiScale();
-	int32_t newWidth = (int32_t)(size.width * dpiScale.x + 1e-6);
-	int32_t newHeight = (int32_t)(size.height * dpiScale.y + 1e-6);
-	
+	float dpiScale[2];
+	getDpiScale(dpiScale);
+	int32_t newWidth = (int32_t)(size.width * dpiScale[0] + 1e-6);
+	int32_t newHeight = (int32_t)(size.height * dpiScale[1] + 1e-6);
+
 	if (newWidth != pApp->mSettings.mWidth || newHeight != pApp->mSettings.mHeight)
 	{
 		pApp->mSettings.mWidth = newWidth;
 		pApp->mSettings.mHeight = newHeight;
-		
+
 		onRequestReload();
 	}
 }
 
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle) 
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
 {
 #ifndef AUTOMATED_TESTING
 	NSAlert* alert = [[NSAlert alloc] init];
 
-	[alert setMessageText:[NSString stringWithCString:title
-		encoding:[NSString defaultCStringEncoding]]];
-	[alert setInformativeText:[NSString stringWithCString:msg
-		encoding:[NSString defaultCStringEncoding]]];
+	[alert setMessageText:[NSString stringWithCString:title encoding:[NSString defaultCStringEncoding]]];
+	[alert setInformativeText:[NSString stringWithCString:msg encoding:[NSString defaultCStringEncoding]]];
 	[alert setAlertStyle:NSAlertStyleCritical];
 	[alert addButtonWithTitle:@"OK"];
 	[alert beginSheetModalForWindow:[NSApplication sharedApplication].windows[0] completionHandler:nil];
@@ -1554,28 +1605,32 @@ void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
 	{
 		pApp->Unload();
 		pApp->Load();
-	
+
 		gResetScenario &= ~RESET_SCENARIO_RELOAD;
 		return;
 	}
-	
-	float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+
+	float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 	if (deltaTime > 0.15f)
 		deltaTime = 0.05f;
 	
+	// UPDATE BASE INTERFACES
+	updateBaseSubsystems(deltaTime);
+
+	// UPDATE APP
 	pApp->Update(deltaTime);
 	pApp->Draw();
-	
+
 #ifdef AUTOMATED_TESTING
-	testingCurrentFrameCount++;
-	if (testingCurrentFrameCount >= testingMaxFrameCount)
+	frameCounter++;
+	if (frameCounter >= targetFrameCount)
 	{
 		for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
 		{
 			[window close];
 		}
-		
+
 		[NSApp terminate:nil];
 	}
 #endif
@@ -1583,34 +1638,45 @@ void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
 
 - (void)shutdown
 {
-	for(int i = 0; i < gMonitorCount; ++i)
+	for (int i = 0; i < gMonitorCount; ++i)
 	{
 		MonitorDesc& monitor = gMonitors[i];
 		tf_free(monitor.resolutions);
 	}
-	
-	if(gMonitorCount > 0)
+
+	if (gMonitorCount > 0)
 	{
 		tf_free(gDPIScales);
 		tf_free(gMonitors);
 	}
+
+#ifdef AUTOMATED_TESTING
+	if (pSettings->mBenchmarking)
+	{
+		dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+		dumpProfileData(benchmarkOutput, targetFrameCount);
+	}
+#endif
 	
 	pApp->mSettings.mQuit = true;
+	
 	pApp->Unload();
 	pApp->Exit();
-	Log::Exit();
+
+	pApp->mSettings.mInitialized = false;
+
+	exitBaseSubsystems();
+	
+	exitLog();
 
 	exitFileSystem();
-	
+
 #if TF_USE_MTUNER
 	rmemUnload();
 	rmemShutDown();
 #endif
-	
-	extern void MemAllocExit();
-	MemAllocExit();
-	
 
+	exitMemAlloc();
 }
 - (void)onFocusChanged:(BOOL)focused
 {

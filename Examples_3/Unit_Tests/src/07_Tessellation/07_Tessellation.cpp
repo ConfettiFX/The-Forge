@@ -36,8 +36,11 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
@@ -45,7 +48,7 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //ui
-#include "../../../../Middleware_3/UI/AppUI.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
 
 //input
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
@@ -83,8 +86,8 @@ struct GrassUniformBlock
 	mat4 mWorld;
 	mat4 mView;
 	mat4 mInvView;
-	mat4 mProj;
-	mat4 mViewProj;
+	CameraMatrix mProj;
+    CameraMatrix mViewProj;
 
 	float mDeltaTime;
 	float mTotalTime;
@@ -136,15 +139,10 @@ struct HullOut
 
 eastl::vector<Blade> gBlades;
 
-Timer      gAccumTimer;
-HiresTimer gTimer;
-
-UIApp*        pAppUI = NULL;
-GuiComponent* pGui;
+UIComponent* pGui;
 
 const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
-static uint32_t	gSelectedApiIndex = 0;
 
 Renderer* pRenderer = NULL;
 
@@ -193,8 +191,6 @@ RootSignature* pGrassRootSignature = NULL;
 RootSignature* pGrassVertexHullRootSignature = NULL;
 #endif
 
-VirtualJoystickUI* pVirtualJoystick = NULL;
-
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRootSignature = NULL;
@@ -216,14 +212,17 @@ struct ObjectProperty
 	float mRotX = 0, mRotY = 0;
 } gObjSettings;
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+FontDrawDesc gFrameTimeDraw; 
+uint32_t gFontID = 0; 
 
 const char* gTestScripts[] = { "Test.lua" };
 uint32_t gScriptIndexes[] = { 0 };
 uint32_t gCurrentScriptIndex = 0;
 void RunScript()
 {
-	runAppUITestScript(pAppUI, gTestScripts[gCurrentScriptIndex]);
+	LuaScriptDesc runDesc = {};
+	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
+	luaQueueScriptToRun(&runDesc);
 }
 
 class Tessellation: public IApp
@@ -261,9 +260,10 @@ class Tessellation: public IApp
 		indirectDraw.mFirstVertex = 0;
 		indirectDraw.mFirstInstance = 0;
 
-		// renderer for swapchains
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
+		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -297,21 +297,14 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		pVirtualJoystick = initVirtualJoystickUI(pRenderer, "circlepad");
-		if (!pVirtualJoystick)
-		{
-			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
-			return false;
-		}
-
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
 #if !defined(METAL)
 			ShaderLoadDesc grassShader = {};
-			grassShader.mStages[0] = { "grass.vert", NULL, 0 };
-			grassShader.mStages[1] = { "grass.frag", NULL, 0 };
-			grassShader.mStages[2] = { "grass.tesc", NULL, 0 };
-			grassShader.mStages[3] = { "grass.tese", NULL, 0 };
+			grassShader.mStages[0] = { "grass.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			grassShader.mStages[2] = { "grass.tesc", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			grassShader.mStages[3] = { "grass.tese", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 #else
 			ShaderLoadDesc grassVertexHullShader = {};
 			grassVertexHullShader.mStages[0] = { "grass.tesc.comp", NULL, 0 };
@@ -350,7 +343,7 @@ class Tessellation: public IApp
 		}
 
 		ShaderLoadDesc computeShader = {};
-		computeShader.mStages[0] = { "compute.comp", NULL, 0 };
+		computeShader.mStages[0] = { "compute.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &computeShader, &pComputeShader);
 
 		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
@@ -458,43 +451,33 @@ class Tessellation: public IApp
 		cmdSigDesc.pRootSignature = pGrassRootSignature;
 		addIndirectCommandSignature(pRenderer, &cmdSigDesc, &pIndirectCommandSignature);
 
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
+
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
+
 		// GUI
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
 
-		GuiDesc guiDesc = {};
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
-		addAppUITestScripts(pAppUI, gTestScripts, sizeof(gTestScripts) / sizeof(gTestScripts[0]));
+		
+		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
-		pGui = addAppUIGuiComponent(pAppUI, "Tessellation Properties", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(pGui, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent("Tessellation Properties", &guiDesc, &pGui);
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
@@ -523,7 +506,7 @@ class Tessellation: public IApp
 				fillModeDropdown.mNames.push_back((char*)enumNames[i]);
 				fillModeDropdown.mValues.push_back(enumValues[i]);
 			}
-			addWidgetLua(addGuiWidget(pGui, "Fill Mode : ", &fillModeDropdown, WIDGET_TYPE_DROPDOWN));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Fill Mode : ", &fillModeDropdown, WIDGET_TYPE_DROPDOWN));
 
 			DropdownWidget windModeDropdown;
 			windModeDropdown.pData = &gWindMode;
@@ -532,42 +515,42 @@ class Tessellation: public IApp
 				windModeDropdown.mNames.push_back((char*)enumWindNames[i]);
 				windModeDropdown.mValues.push_back(enumWindValues[i]);
 			}
-			addWidgetLua(addGuiWidget(pGui, "Wind Mode : ", &windModeDropdown, WIDGET_TYPE_DROPDOWN));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Wind Mode : ", &windModeDropdown, WIDGET_TYPE_DROPDOWN));
 
 			SliderFloatWidget windSpeedSlider;
 			windSpeedSlider.pData = &gWindSpeed;
 			windSpeedSlider.mMin = 1.0f;
 			windSpeedSlider.mMax = 100.0f;
-			addWidgetLua(addGuiWidget(pGui, "Wind Speed : ", &windSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Wind Speed : ", &windSpeedSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			SliderFloatWidget waveWidthSlider;
 			waveWidthSlider.pData = &gWindWidth;
 			waveWidthSlider.mMin = 1.0f;
 			waveWidthSlider.mMax = 20.0f;
-			addWidgetLua(addGuiWidget(pGui, "Wave Width : ", &waveWidthSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Wave Width : ", &waveWidthSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			SliderFloatWidget windStrengthSlider;
 			windStrengthSlider.pData = &gWindStrength;
 			windStrengthSlider.mMin = 1.0f;
 			windStrengthSlider.mMax = 100.0f;
-			addWidgetLua(addGuiWidget(pGui, "Wind Strength : ", &windStrengthSlider, WIDGET_TYPE_SLIDER_FLOAT));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Wind Strength : ", &windStrengthSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			SliderUintWidget maxTesLevel;
 			maxTesLevel.pData = &gMaxTessellationLevel;
 			maxTesLevel.mMin = 1;
 			maxTesLevel.mMax = 10;
-			addWidgetLua(addGuiWidget(pGui, "Max Tessellation Level : ", &maxTesLevel, WIDGET_TYPE_SLIDER_UINT));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Max Tessellation Level : ", &maxTesLevel, WIDGET_TYPE_SLIDER_UINT));
 
 #if !defined(TARGET_IOS)
 			CheckboxWidget vSyncCheckbox;
 			vSyncCheckbox.pData = &gToggleVSync;
-			addWidgetLua(addGuiWidget(pGui, "Toggle Vsync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle Vsync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
 #endif
 		}
 		else
 		{
 			LabelWidget notSupportedLabel;
-			addWidgetLua(addGuiWidget(pGui, "Tessellation is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
+			luaRegisterWidget(uiCreateComponentWidget(pGui, "Tessellation is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
 
 		DropdownWidget ddTestScripts;
@@ -577,16 +560,20 @@ class Tessellation: public IApp
 			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
 			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
 		}
-		addWidgetLua(addGuiWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
+		luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
-		IWidget* pRunScript = addGuiWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		pRunScript->pOnEdited = RunScript;
-		addWidgetLua(pRunScript);
+		UIWidget* pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
+		uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+		luaRegisterWidget(pRunScript);
 
-		// Profiler
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
+
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		waitForAllResourceLoads();
@@ -638,7 +625,10 @@ class Tessellation: public IApp
 
 		pCameraController->setMotionParameters(cmp);
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
@@ -650,7 +640,7 @@ class Tessellation: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
+				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -659,9 +649,8 @@ class Tessellation: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!appUIIsFocused(pAppUI) && *ctx->pCaptured)
+			if (!uiIsFocused() && *ctx->pCaptured)
 			{
-				virtualJoystickUIOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -684,9 +673,11 @@ class Tessellation: public IApp
 		exitCameraController(pCameraController);
 		gBlades.set_capacity(0); 
 		
-		exitProfilerUI();
 		exitProfiler();
-		exitAppUI(pAppUI);
+
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
@@ -717,8 +708,6 @@ class Tessellation: public IApp
 		removeResource(pTessFactorsBuffer);
 		removeResource(pHullOutputBuffer);
 #endif
-
-		exitVirtualJoystickUI(pVirtualJoystick);
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
 
@@ -753,6 +742,7 @@ class Tessellation: public IApp
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
+		pRenderer = NULL; 
 	}
 
 	bool Load()
@@ -763,10 +753,15 @@ class Tessellation: public IApp
 		if (!addDepthBuffer())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0],
+			pDepthBuffer
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
 			return false;
 
-		if (!addVirtualJoystickUIPipeline(pVirtualJoystick, pSwapChain->ppRenderTargets[0]))
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
@@ -853,9 +848,9 @@ class Tessellation: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeVirtualJoystickUIPipeline(pVirtualJoystick);
+		removeUserInterfacePipelines();
 
-		removeAppGUIDriver(pAppUI);
+		removeFontSystemPipelines(); 
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
@@ -890,7 +885,7 @@ class Tessellation: public IApp
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
+		CameraMatrix projMat = CameraMatrix::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
 
 		gGrassUniformData.mDeltaTime = deltaTime;
 		gGrassUniformData.mProj = projMat;
@@ -909,13 +904,6 @@ class Tessellation: public IApp
 		gGrassUniformData.mWindSpeed = gWindSpeed;
 		gGrassUniformData.mWindWidth = gWindWidth;
 		gGrassUniformData.mWindStrength = gWindStrength;
-
-		/************************************************************************/
-		// Update GUI
-		/************************************************************************/
-		updateAppUI(pAppUI, deltaTime);
-		/************************************************************************/
-		/************************************************************************/
 	}
 
 	void Draw()
@@ -1044,17 +1032,13 @@ class Tessellation: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
+		gFrameTimeDraw.mFontColor = 0xff00ffff;
+		gFrameTimeDraw.mFontSize = 18.0f;
+		gFrameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-
-		float4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
-		drawVirtualJoystickUI(pVirtualJoystick, cmd, &color);
-
         cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
-		cmdDrawProfilerUI();
-
-		appUIGui(pAppUI, pGui);
-		drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1117,7 +1101,7 @@ class Tessellation: public IApp
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

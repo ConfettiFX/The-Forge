@@ -342,6 +342,7 @@ enum ProfileDumpType
 #endif
 
 struct Profile;
+struct GPUSettings;
 
 PROFILE_API ProfileToken ProfileFindToken(const char* sGroup, const char* sName, ThreadID* pThread = NULL);
 PROFILE_API ProfileToken ProfileGetToken(const char* sGroup, const char* sName, uint32_t nColor, ProfileTokenType Token = ProfileTokenTypeCpu);
@@ -403,7 +404,7 @@ PROFILE_API const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Bu
 PROFILE_API void ProfileDumpFile(const char* pPath, ProfileDumpType eType, uint32_t nFrames);
 
 typedef void ProfileWriteCallback(void* Handle, size_t size, const char* pData);
-PROFILE_API void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost, Renderer* pRenderer);
+PROFILE_API void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost);
 
 PROFILE_API int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBufferSize);
 
@@ -598,15 +599,15 @@ struct ProfileTimerInfo
 
 struct ProfileCounterInfo
 {
+	char* pName;
+	int64_t nLimit;
 	int nParent;
 	int nSibling;
 	int nFirstChild;
+	uint32_t nFlags;
+	ProfileCounterFormat eFormat;
 	uint16_t nNameLen;
 	uint8_t nLevel;
-	char* pName;
-	uint32_t nFlags;
-	int64_t nLimit;
-	ProfileCounterFormat eFormat;
 };
 
 struct ProfileCounterHistory
@@ -713,6 +714,7 @@ struct Profile
 	ProfileDumpType eDumpType;
 	uint32_t nDumpFrames;
 	const char* DumpFile;
+	const GPUSettings*	pGpuSettings;
 
 	int64_t nPauseTicks;
 

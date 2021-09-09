@@ -25,7 +25,6 @@
 		B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7C20EC387500592362 /* MetalKit.framework */; };
 		B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7F20EC387C00592362 /* ModelIO.framework */; };
 		B296CD8B261F502B0011E416 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B296CD87261F501E0011E416 /* libThe-Forge.a */; };
-		B296CD97261F507F0011E416 /* libLuaManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B296CD93261F506F0011E416 /* libLuaManager.a */; };
 		B296CDAD261F51BE0011E416 /* lpvVisualize.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B296CDA3261F51BD0011E416 /* lpvVisualize.vert.fsl */; };
 		B296CDAE261F51BE0011E416 /* lpvLightPropagate1.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B296CDA7261F51BE0011E416 /* lpvLightPropagate1.comp.fsl */; };
 		B296CDAF261F51BE0011E416 /* lpvLightPropagateN.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B296CDA8261F51BE0011E416 /* lpvLightPropagateN.comp.fsl */; };
@@ -104,20 +103,6 @@
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		B296CD92261F506F0011E416 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B296CD8D261F506F0011E416 /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB021D0F50F00B4778F;
-			remoteInfo = LuaManager;
-		};
-		B296CD94261F506F0011E416 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B296CD8D261F506F0011E416 /* LuaManager.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5CE86AB121D0F50F00B4778F;
-			remoteInfo = LuaManager_iOS;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -151,7 +136,6 @@
 		B235DC7C20EC387500592362 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B235DC7F20EC387C00592362 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
 		B296CD80261F501E0011E416 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
-		B296CD8D261F506F0011E416 /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		B296CDA2261F51BD0011E416 /* lpvSHMaths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lpvSHMaths.h; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvSHMaths.h"; sourceTree = "<group>"; };
 		B296CDA3261F51BD0011E416 /* lpvVisualize.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvVisualize.vert.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvVisualize.vert.fsl"; sourceTree = "<group>"; };
 		B296CDA4261F51BE0011E416 /* lpvCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lpvCommon.h; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvCommon.h"; sourceTree = "<group>"; };
@@ -235,7 +219,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B296CD97261F507F0011E416 /* libLuaManager.a in Frameworks */,
 				B296CD8B261F502B0011E416 /* libThe-Forge.a in Frameworks */,
 				651017B522253A5E009A1174 /* MetalPerformanceShaders.framework in Frameworks */,
 				B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */,
@@ -356,15 +339,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B296CD8E261F506F0011E416 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B296CD93261F506F0011E416 /* libLuaManager.a */,
-				B296CD95261F506F0011E416 /* libLuaManager_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		B296CD9D261F519A0011E416 /* FSL */ = {
 			isa = PBXGroup;
 			children = (
@@ -468,7 +442,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B296CD8D261F506F0011E416 /* LuaManager.xcodeproj */,
 				B296CD80261F501E0011E416 /* The-Forge.xcodeproj */,
 				D2D30A171F4772740086ED2E /* Fonts */,
 				D2D307F01F475F720086ED2E /* Meshes */,
@@ -577,10 +550,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B296CD8E261F506F0011E416 /* Products */;
-					ProjectRef = B296CD8D261F506F0011E416 /* LuaManager.xcodeproj */;
-				},
-				{
 					ProductGroup = B296CD81261F501E0011E416 /* Products */;
 					ProjectRef = B296CD80261F501E0011E416 /* The-Forge.xcodeproj */;
 				},
@@ -605,20 +574,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = B296CD88261F501E0011E416 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B296CD93261F506F0011E416 /* libLuaManager.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager.a;
-			remoteRef = B296CD92261F506F0011E416 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B296CD95261F506F0011E416 /* libLuaManager_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libLuaManager_iOS.a;
-			remoteRef = B296CD94261F506F0011E416 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -879,6 +834,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.Aura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -906,6 +862,7 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.Aura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

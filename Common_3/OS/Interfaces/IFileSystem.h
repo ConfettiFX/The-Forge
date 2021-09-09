@@ -26,7 +26,12 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 
+// IOS Simulator paths can get a bit longer then 256 bytes
+#ifdef TARGET_IOS_SIMULATOR
+#define FS_MAX_PATH 320
+#else
 #define FS_MAX_PATH 256
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -129,12 +134,14 @@ typedef struct MemoryStream
 {
 	uint8_t* pBuffer;
 	size_t   mCursor;
+	size_t   mCapacity;
 	bool     mOwner;
 } MemoryStream;
 
 typedef struct FileStream
 {
-	IFileSystem*      pIO;
+	IFileSystem*        pIO;
+	struct FileStream*  pBase; // for chaining streams
 	union
 	{
 		FILE*         pFile;
@@ -148,18 +155,20 @@ typedef struct FileStream
 	};
 	ssize_t           mSize;
 	FileMode          mMode;
+	ResourceMount     mMount;
 } FileStream;
 
 typedef struct FileSystemInitDesc
 {
-	const char* pAppName = NULL;
-	void*       pPlatformData = NULL;
-	const char* pResourceMounts[RM_COUNT] = {};
+	const char* pAppName;
+	void*       pPlatformData;
+	const char* pResourceMounts[RM_COUNT];
 } FileSystemInitDesc;
 
-typedef struct IFileSystem
+struct IFileSystem
 {
-	bool        (*Open)(IFileSystem* pIO, const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
+	bool        (*Open)(IFileSystem* pIO, const ResourceDirectory resourceDir, const char* fileName, 
+	             FileMode mode, const char* password, FileStream* pOut);
 	bool        (*Close)(FileStream* pFile);
 	size_t      (*Read)(FileStream* pFile, void* outputBuffer, size_t bufferSizeInBytes);
 	size_t      (*Write)(FileStream* pFile, const void* sourceBuffer, size_t byteCount);
@@ -170,8 +179,12 @@ typedef struct IFileSystem
 	bool        (*IsAtEnd)(const FileStream* pFile);
 	const char* (*GetResourceMount)(ResourceMount mount);
 
+	bool        (*GetPropInt64)(FileStream* pFile, int32_t prop, int64_t *pValue);
+	bool        (*SetPropInt64)(FileStream* pFile, int32_t prop, int64_t value);
+
+
 	void*       pUser;
-} IFileSystem;
+};
 
 /// Default file system using C File IO or Bundled File IO (Android) based on the ResourceDirectory
 extern IFileSystem* pSystemFileIO;
@@ -182,16 +195,54 @@ extern IFileSystem* pSystemFileIO;
 bool initFileSystem(FileSystemInitDesc* pDesc);
 
 /// Frees resources associated with the FileSystem API
-void exitFileSystem();
+void exitFileSystem(void);
+
+/************************************************************************/
+// MARK: - Zip file system IO
+/************************************************************************/
+/// Opens zip file and initializes IFileSystem for it.
+/// The actual file handle is open only when zip file entry is open.
+/// Internally it keeps track of entries opened and closes when the counter reaches 0.
+/// The counter can be manually incremented/decremented by calling fsOpenZipFile or fsCloseZipFile.
+/// Specified password is for the zip file itself, not for its content.
+bool initZipFileSystem(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, const char* password, IFileSystem* pOut);
+
+/// Frees resources associated with the zip file
+bool exitZipFileSystem(IFileSystem* pZip);
+
+/// Fetches number of entries in zip file
+bool fsEntryCountZipFile(IFileSystem* pIO, uint64_t* pOut);
+/// Opens zip entry by it's index in the zip file
+bool fsOpenZipEntryByIndex(IFileSystem* pIO, uint64_t index, FileMode mode, const char* filePassword, FileStream* pOut);
+
+/// Reopens file handle if open entry counter was 0 and increments the counter
+bool fsOpenZipFile(IFileSystem* pIO);
+/// Decrements open entry counter and closes file handle if it reaches 0
+bool fsCloseZipFile(IFileSystem* pIO);
+
+/// Fetches zip file index from it's filename
+bool fsFetchZipEntryIndex(IFileSystem* pIO, ResourceDirectory resourceDir, const char* pFileName, uint64_t* pOut);
+/// Fills pSize with the size of the filename of the entry with the given index
+/// If pBuffer is not NULL fills up to bufferSize - 1 bytes with filename
+/// the last byte of pBuffer is filled with null terminator
+bool fsFetchZipEntryName(IFileSystem* pIO, uint64_t index, char* pBuffer, size_t* pSize, size_t bufferSize);
+
+
 /************************************************************************/
 // MARK: - File IO
 /************************************************************************/
 /// Opens the file at `filePath` using the mode `mode`, returning a new FileStream that can be used
 /// to read from or modify the file. May return NULL if the file could not be opened.
-bool fsOpenStreamFromPath(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
+bool fsOpenStreamFromPath(const ResourceDirectory resourceDir, const char* fileName, 
+	                      FileMode mode, const char* password, FileStream* pOut);
 
 /// Opens a memory buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
 bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* pOut);
+
+/// Checks if stream is a standard system stream
+bool fsIsSystemFileStream(FileStream* pStream);
+/// Checks if stream is a memory stream
+bool fsIsMemoryStream(FileStream* pStream);
 
 /// Closes and invalidates the file stream.
 bool fsCloseStream(FileStream* stream);
@@ -202,9 +253,13 @@ size_t fsReadFromStream(FileStream* stream, void* outputBuffer, size_t bufferSiz
 /// Reads at most `bufferSizeInBytes` bytes from sourceBuffer and writes them into the file.
 /// Returns the number of bytes written.
 size_t fsWriteToStream(FileStream* stream, const void* sourceBuffer, size_t byteCount);
+/// Writes `byteCount` bytes from one stream to another
+bool fsCopyStream(FileStream* pDst, FileStream* pSrc, size_t byteCount);
 
 /// Seeks to the specified position in the file, using `baseOffset` as the reference offset.
-bool fsSeekStream(FileStream* stream, SeekBaseOffset baseOffset, ssize_t seekOffset);
+bool fsSeekStream(FileStream* pStream, SeekBaseOffset baseOffset, ssize_t seekOffset);
+bool fsFindStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t *pPosition);
+bool fsFindReverseStream(FileStream* pStream, const void* pFind, size_t findSize, ssize_t maxSeek, ssize_t *pPosition);
 
 /// Gets the current seek position in the file.
 ssize_t fsGetStreamSeekPosition(const FileStream* stream);
@@ -217,6 +272,23 @@ bool fsFlushStream(FileStream* stream);
 
 /// Returns whether the current seek position is at the end of the file stream.
 bool fsStreamAtEnd(const FileStream* stream);
+
+/// Get property of a stream (minizip requires such function)
+bool fsGetStreamPropInt64(FileStream* pStream, int32_t prop, int64_t *pValue);
+
+/// Set property of a stream (minizip requires such function)
+bool fsSetStreamPropInt64(FileStream* pStream, int32_t prop, int64_t value);
+
+/************************************************************************/
+// MARK: - Memory stream functions
+/************************************************************************/
+
+/// Gets buffer pointer from the begining of memory stream
+bool fsGetMemoryStreamBuffer(FileStream* pStream, const void** pBuf);
+/// Gets buffer pointer from the begining of memory stream with a given offset
+bool fsGetMemoryStreamBufferAt(FileStream* pStream, ssize_t offset, const void** pBuf);
+
+
 /************************************************************************/
 // MARK: - Minor filename manipulation
 /************************************************************************/
@@ -244,6 +316,8 @@ void fsGetPathExtension(const char* path, char* output);
 /************************************************************************/
 /// Returns location set for resource directory in fsSetPathForResourceDir.
 const char* fsGetResourceDirectory(ResourceDirectory resourceDir);
+/// Returns Resource Mount point for resource directory
+ResourceMount fsGetResourceDirectoryMount(ResourceDirectory resourceDir);
 
 /// Sets the relative path for `resourceDir` from `mount` to `bundledFolder`.
 /// The `resourceDir` will making use of the given IFileSystem `pIO` file functions.
@@ -301,7 +375,14 @@ static inline FileMode fsFileModeFromString(const char* modeStr)
 	{
 		return FM_READ_APPEND_BINARY;
 	}
-
+	if (strcmp(modeStr, "w+") == 0)
+	{
+		return FM_READ_WRITE;
+	}
+	if (strcmp(modeStr, "wb+") == 0)
+	{
+		return FM_READ_WRITE_BINARY;
+	}
 	return (FileMode)0;
 }
 
@@ -323,6 +404,16 @@ static inline FORGE_CONSTEXPR const char* fsFileModeToString(FileMode mode)
 	case FM_READ_WRITE_BINARY: return "rb+";
 	case FM_READ_APPEND_BINARY: return "ab+";
 	default: return "r";
+	}
+}
+static inline FORGE_CONSTEXPR const char* fsOverwriteFileModeToString(FileMode mode)
+{
+
+	switch (mode)
+	{
+	case FM_READ_WRITE: return "w+";
+	case FM_READ_WRITE_BINARY: return "wb+";
+	default: return fsFileModeToString(mode);
 	}
 }
 #ifdef __cplusplus

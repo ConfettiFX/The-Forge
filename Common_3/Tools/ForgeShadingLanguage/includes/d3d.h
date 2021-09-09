@@ -23,6 +23,16 @@ inline float2 f2(uint x) { return float2(x, x); }
 
 #define h4(X)  half4(X,X,X,X)
 
+#define short4 int4
+#define short3 int3
+#define short2 int2
+#define short  int
+
+#define ushort4 uint4
+#define ushort3 uint3
+#define ushort2 uint2
+#define ushort  uint
+
 #if !defined(DIRECT3D12) && !defined(DIRECT3D11)
 #define min16float half
 #define min16float2 half2
@@ -371,7 +381,7 @@ _DECL_TYPES(_DECL_AtomicStore)
 #define UPDATE_FREQ_PER_DRAW  space3
 #define UPDATE_FREQ_USER      UPDATE_FREQ_NONE
 
-#define flat(X) nointerpolation X
+#define FLAT(X) nointerpolation X
 
 #define STRUCT(NAME) struct NAME
 
@@ -474,6 +484,7 @@ inline TYPE LoadRWTex3D(RWTexture2DArray<TYPE> tex, int3 p) { return tex[p]; }
 _DECL_TYPES(_DECL_LoadTex3D)
 
 #define LoadTex2DMS(NAME, SAMPLER, COORD, SMP) NAME.Load(COORD, SMP)
+#define LoadTex2DArrayMS(NAME, SAMPLER, COORD, SMP) NAME.Load(COORD, SMP)
 
 
 #define LoadLvlOffsetTex2D(TEX, SMP, P, L, O) (TEX).Load( int3((P).xy, L), O )
@@ -784,5 +795,12 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 #define BeginPSInterlock()
 #define EndPSInterlock()
 #endif
+
+#ifndef STAGE_VERT
+    #define VR_VIEW_ID(VID) (0)
+#else
+    #define VR_VIEW_ID 0
+#endif
+#define VR_MULTIVIEW_COUNT 1
 
 #endif // _D3D_H

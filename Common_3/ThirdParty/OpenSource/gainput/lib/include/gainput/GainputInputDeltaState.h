@@ -8,8 +8,12 @@ namespace gainput
 struct GestureChange
 {
 	unsigned type;
+	gainput::GesturePhase phase;
 	// Average position of all touches
 	float position[2];
+
+	unsigned fingerIndex;
+
 	union
 	{
 		// Pan gesture data

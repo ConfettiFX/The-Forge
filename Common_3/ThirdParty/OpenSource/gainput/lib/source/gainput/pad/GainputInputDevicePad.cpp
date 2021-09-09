@@ -17,6 +17,8 @@
 	#include "GainputInputDevicePadMac.h"
 #elif defined(GAINPUT_PLATFORM_ANDROID)
 	#include "GainputInputDevicePadAndroid.h" 
+#elif defined(GAINPUT_PLATFORM_QUEST)
+	#include "../../../../../../../../Quest/Common_3/OS/Input/GainputInputDevicePadQuest.h" 
 #elif defined (GAINPUT_PLATFORM_XBOX_ONE)
 	#include "../../../../../../../../Xbox/Common_3/OS/Input/GainputInputDevicePadXboxOne.h"
 #elif defined(GAINPUT_PLATFORM_NX64)
@@ -147,6 +149,8 @@ InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned 
 	impl_ = manager.GetAllocator().New<InputDevicePadImplMac>(manager, *this, index_, *state_, *previousState_);
 #elif defined(GAINPUT_PLATFORM_ANDROID)
 	impl_ = manager.GetAllocator().New<InputDevicePadImplAndroid>(manager, *this, index_, *state_, *previousState_);
+#elif defined(GAINPUT_PLATFORM_QUEST)
+	impl_ = manager.GetAllocator().New<InputDevicePadImplQuest>(manager, *this, index_, *state_, *previousState_);
 #elif defined(GAINPUT_PLATFORM_XBOX_ONE)
 	impl_ = manager.GetAllocator().New<InputDevicePadImplXboxOne>(manager, *this, index_, *state_, *previousState_);
 #elif defined(GAINPUT_PLATFORM_NX64)

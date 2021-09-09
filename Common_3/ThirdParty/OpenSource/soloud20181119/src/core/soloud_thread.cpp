@@ -22,7 +22,7 @@ freely, subject to the following restrictions:
    distribution.
 */
 
-#if defined(_WIN32)||defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -33,68 +33,64 @@ freely, subject to the following restrictions:
 #include "../../../../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "soloud_thread.h"
 
-namespace SoLoud
+namespace SoLoud {
+namespace Thread {
+eastl::unordered_map<ThreadHandle, ThreadDesc*> gThreadDataToCleanup;
+
+void* createMutex()
 {
-	namespace Thread
+	Mutex* m = tf_new(Mutex);
+	::initMutex(m);
+	return (void*)m;
+}
+
+void destroyMutex(void* aHandle)
+{
+	Mutex* m = (Mutex*)aHandle;
+	::destroyMutex(m);
+	tf_delete(m);
+}
+
+void lockMutex(void* aHandle)
+{
+	Mutex* m = (Mutex*)aHandle;
+	if (m)
 	{
-		eastl::unordered_map<ThreadHandle, ThreadDesc*> gThreadDataToCleanup;
-
-		void * createMutex()
-		{
-			Mutex* m = tf_new(Mutex);
-			m->Init();
-			return (void*)m;
-		}
-
-		void destroyMutex(void *aHandle)
-		{
-			Mutex* m = (Mutex*)aHandle;
-			m->Destroy();
-			tf_delete(m);
-		}
-
-		void lockMutex(void *aHandle)
-		{
-			Mutex* m = (Mutex*)aHandle;
-			if (m)
-			{
-				m->Acquire();
-			}
-		}
-
-		void unlockMutex(void *aHandle)
-		{
-			Mutex* m = (Mutex*)aHandle;
-			if (m)
-			{
-				m->Release();
-			}
-		}
-
-        ThreadHandle createThread(ThreadFunction aThreadFunction, void *aParameter)
-		{
-			ThreadDesc* td = tf_new(ThreadDesc);
-			td->pFunc = aThreadFunction;
-			td->pData = aParameter;
-			ThreadHandle ret = create_thread(td);
-			gThreadDataToCleanup[ret] = td;
-			return ret;
-		}
-
-		void sleep(int aMSec)
-		{
-			::Thread::Sleep((unsigned)aMSec);
-		}		      
-
-        void release(ThreadHandle aThreadHandle)
-        {
-			eastl::unordered_map<ThreadHandle, ThreadDesc*>::iterator it = gThreadDataToCleanup.find(aThreadHandle);
-			ASSERT(it != gThreadDataToCleanup.end());
-			destroy_thread(aThreadHandle);
-			tf_delete(it->second);
-			gThreadDataToCleanup.erase(it);
-			if (gThreadDataToCleanup.empty())
-				gThreadDataToCleanup.clear(true);
-        }		
+		::acquireMutex(m);
 	}
 }
+
+void unlockMutex(void* aHandle)
+{
+	Mutex* m = (Mutex*)aHandle;
+	if (m)
+	{
+		::releaseMutex(m);
+	}
+}
+
+ThreadHandle createThread(ThreadFunction aThreadFunction, void* aParameter)
+{
+	ThreadDesc* td = tf_new(ThreadDesc);
+	td->pFunc = aThreadFunction;
+	td->pData = aParameter;
+	ThreadHandle ret;
+	::initThread(td, &ret);
+	gThreadDataToCleanup[ret] = td;
+	return ret;
+}
+
+void sleep(int aMSec) { threadSleep((unsigned)aMSec); }
+
+void release(ThreadHandle aThreadHandle)
+{
+	eastl::unordered_map<ThreadHandle, ThreadDesc*>::iterator it = gThreadDataToCleanup.find(aThreadHandle);
+	ASSERT(it != gThreadDataToCleanup.end());
+	::destroyThread(aThreadHandle);
+	tf_delete(it->second);
+	gThreadDataToCleanup.erase(it);
+	if (gThreadDataToCleanup.empty())
+		gThreadDataToCleanup.clear(true);
+}
+}    // namespace Thread
+}    // namespace SoLoud

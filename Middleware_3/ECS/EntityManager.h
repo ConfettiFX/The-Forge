@@ -51,10 +51,6 @@ public:
 	typedef eastl::unordered_map<uint32_t, BaseComponent*>				  ComponentMap;
 	typedef eastl::unordered_map<uint32_t, FCR::ComponentRepresentation*> ComponentRepMap;
 
-	Entity()
-	{
-	}
-
 	~Entity();
 
 	Entity*

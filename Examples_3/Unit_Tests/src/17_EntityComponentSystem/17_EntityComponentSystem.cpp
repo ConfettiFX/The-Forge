@@ -44,11 +44,17 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/OS/Interfaces/IUI.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IScripting.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Interfaces/IFont.h"
+
+//Renderer
+#include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
+
+//Core
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 //Math
@@ -74,10 +80,10 @@ Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPools[gImageCount];
 Cmd*     pCmds[gImageCount];
 
-SwapChain*    pSwapChain = NULL;
-Fence*        pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*    pImageAcquiredSemaphore = NULL;
-Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
+SwapChain* pSwapChain = NULL;
+Fence*     pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Shader*   pSpriteShader = NULL;
 Buffer*   pSpriteVertexBuffers[gImageCount] = { NULL };
@@ -85,10 +91,10 @@ Buffer*   pSpriteIndexBuffer = NULL;
 Buffer*   pSpriteVertexBuffer = NULL;
 Pipeline* pSpritePipeline = NULL;
 
-RootSignature*    pRootSignature = NULL;
-DescriptorSet*    pDescriptorSetTexture = NULL;
-DescriptorSet*    pDescriptorSetUniforms = NULL;
-Sampler*          pLinearClampSampler = NULL;
+RootSignature* pRootSignature = NULL;
+DescriptorSet* pDescriptorSetTexture = NULL;
+DescriptorSet* pDescriptorSetUniforms = NULL;
+Sampler*       pLinearClampSampler = NULL;
 
 Texture* pSpriteTexture = NULL;
 
@@ -96,12 +102,6 @@ uint32_t gFrameIndex = 0;
 
 SpriteData* gSpriteData = NULL;
 uint        gDrawSpriteCount = 0;
-
-/// UI
-UIApp* pAppUI = NULL;
-static uint32_t gSelectedApiIndex = 0;
-
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 // Based on: https://github.com/aras-p/dod-playground
 static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
@@ -123,9 +123,11 @@ static Entity* avoidEntities[AvoidCount];
 EntityManager* pEntityManager = nullptr;
 
 ThreadSystem* pThreadSystem = nullptr;
-bool multiThread			= true;
+bool          multiThread = true;
 
-GuiComponent* GUIWindow = nullptr;
+UIComponent* GUIWindow = nullptr;
+
+uint32_t gFontID = 0; 
 
 void MoveEntities(PositionComponent& position, MoveComponent& move, float deltaTime, const WorldBoundsComponent& bounds)
 {
@@ -156,9 +158,10 @@ void MoveEntities(PositionComponent& position, MoveComponent& move, float deltaT
 	}
 }
 
-struct timeAndBounds {
-	Entity** entities;
-	float deltaTime;
+struct timeAndBounds
+{
+	Entity**                    entities;
+	float                       deltaTime;
 	const WorldBoundsComponent* bounds;
 };
 
@@ -166,12 +169,12 @@ struct MoveSystem
 {
 	struct Task
 	{
-		size_t         start;
-		size_t         end;
-		timeAndBounds  data;
+		size_t        start;
+		size_t        end;
+		timeAndBounds data;
 	};
 
-	Task          tasks[MAX_LOAD_THREADS + 2] = {};
+	Task tasks[MAX_LOAD_THREADS + 2] = {};
 
 	void Update(float deltaTime)
 	{
@@ -179,7 +182,7 @@ struct MoveSystem
 
 		timeAndBounds moveData = { spriteEntities, deltaTime, &bounds };
 		timeAndBounds avoidData = { avoidEntities, deltaTime, &bounds };
-		
+
 		// 1 thread used by resource loader
 		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
 		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
@@ -201,7 +204,7 @@ struct MoveSystem
 			// Remaining entities on main thread
 			tasks[taskCount] = { tasks[taskCount - 1].end, SpriteEntityCount, moveData };
 			threadedUpdate(taskCount++);
-			
+
 			tasks[taskCount] = { 0, AvoidCount, avoidData };
 			threadedUpdate(taskCount++);
 
@@ -222,9 +225,9 @@ struct MoveSystem
 		const Task* task = &tasks[id];
 		for (uintptr_t i = task->start; i < task->end; ++i)
 		{
-			Entity* pEntity = (task->data.entities)[i];
+			Entity*            pEntity = (task->data.entities)[i];
 			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			MoveComponent& move = *(pEntity->getComponent<MoveComponent>());
+			MoveComponent&     move = *(pEntity->getComponent<MoveComponent>());
 
 			MoveEntities(position, move, task->data.deltaTime, *task->data.bounds);
 		}
@@ -242,26 +245,20 @@ struct AvoidanceSystem
 {
 	struct Task
 	{
-		size_t         start;
-		size_t         end;
-		timeAndBounds  data;
+		size_t        start;
+		size_t        end;
+		timeAndBounds data;
 	};
 
 	Task tasks[MAX_LOAD_THREADS + 1] = {};
 
-	static eastl::vector<float>    avoidDistanceList;
+	static eastl::vector<float> avoidDistanceList;
 
 	Mutex emplaceMutex = {};
-	
-	bool init()
-	{
-		return emplaceMutex.Init();
-	}
-	
-	void exit()
-	{
-		emplaceMutex.Destroy();
-	}
+
+	bool init() { return initMutex(&emplaceMutex); }
+
+	void exit() { destroyMutex(&emplaceMutex); }
 
 	void addAvoidThisObjectToSystem(Entity* entity, float distance)
 	{
@@ -271,14 +268,11 @@ struct AvoidanceSystem
 		}
 	}
 
-	static void removeAllObjects()
-	{
-		avoidDistanceList.set_capacity(0);
-	}
+	static void removeAllObjects() { avoidDistanceList.set_capacity(0); }
 
 	static void resolveCollision(Entity* pEntity, float deltaTime)
 	{
-		PositionComponent& pos  = *(pEntity->getComponent<PositionComponent>());
+		PositionComponent& pos = *(pEntity->getComponent<PositionComponent>());
 		MoveComponent&     move = *(pEntity->getComponent<MoveComponent>());
 
 		// flip velocity
@@ -295,7 +289,7 @@ struct AvoidanceSystem
 		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
 
 		timeAndBounds data = { spriteEntities, deltaTime, &bounds };
-		
+
 		// 1 thread used by resource loader
 		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
 		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
@@ -329,19 +323,19 @@ struct AvoidanceSystem
 
 	void threadedUpdate(uintptr_t id)
 	{
-		const Task* task = &tasks[id];
+		const Task*          task = &tasks[id];
 		const timeAndBounds& data = task->data;
 
 		for (uintptr_t i = task->start; i < task->end; ++i)
 		{
-			Entity* pEntity = spriteEntities[i];
+			Entity*            pEntity = spriteEntities[i];
 			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
 
 			for (size_t j = 0; j < AvoidCount; ++j)
 			{
-				Entity*					pAvoidEntity = avoidEntities[j];
-				float                    avDistance = avoidDistanceList[j];
-				PositionComponent&	  avoidPosition = *(pAvoidEntity->getComponent<PositionComponent>());
+				Entity*            pAvoidEntity = avoidEntities[j];
+				float              avDistance = avoidDistanceList[j];
+				PositionComponent& avoidPosition = *(pAvoidEntity->getComponent<PositionComponent>());
 
 				// is our position closer to "thing to avoid" position than the avoid distance?
 				if (DistanceSq(position, avoidPosition) < avDistance)
@@ -359,16 +353,16 @@ struct AvoidanceSystem
 	}
 };
 
-eastl::vector<float>    AvoidanceSystem::avoidDistanceList;
+eastl::vector<float> AvoidanceSystem::avoidDistanceList;
 
 static MoveSystem*      pMoveSystem;
 static AvoidanceSystem* pAvoidanceSystem;
 
 struct CreationData
 {
-	Entity** entities;
+	Entity**              entities;
 	WorldBoundsComponent* bounds;
-	const char* entityTypeName;
+	const char*           entityTypeName;
 };
 
 static void createEntities(void* pData, uintptr_t i)
@@ -386,37 +380,41 @@ static void createEntities(void* pData, uintptr_t i)
 	float y = RandomFloat(data.bounds->yMin, data.bounds->yMax);
 
 	PositionComponent* position = (data.entities)[i]->getComponent<PositionComponent>();
-	if (!position) {
-		position = pEntityManager->addComponentToEntity<PositionComponent>(entityId);	// ADD CUSTOM COMPONENTS
+	if (!position)
+	{
+		position = pEntityManager->addComponentToEntity<PositionComponent>(entityId);    // ADD CUSTOM COMPONENTS
 		ASSERT(position);
 	}
 	position->x = x;
 	position->y = y;
-	
+
 	MoveComponent* move = (data.entities)[i]->getComponent<MoveComponent>();
-	if (!move) {
+	if (!move)
+	{
 		move = pEntityManager->addComponentToEntity<MoveComponent>(entityId);
 		ASSERT(move);
 	}
 	move->Initialize(0.3f, 0.6f);
 
 	SpriteComponent* sprite = (data.entities)[i]->getComponent<SpriteComponent>();
-	if (!sprite) {
+	if (!sprite)
+	{
 		sprite = pEntityManager->addComponentToEntity<SpriteComponent>(entityId);
 		ASSERT(sprite);
 	}
 
-	if (strcmp(data.entityTypeName, "avoid"))  //-V526 : "Fixing" this conditional significantly changes this unit test
+	if (strcmp(data.entityTypeName, "avoid"))    //-V526 : "Fixing" this conditional significantly changes this unit test
 	{
 		pAvoidanceSystem->addAvoidThisObjectToSystem((data.entities)[i], 1.3f);
-		
+
 		sprite->colorR = 1.0f;
 		sprite->colorG = 1.0f;
 		sprite->colorB = 1.0f;
 		sprite->scale = 1.0f;
 		sprite->spriteIndex = rand() % 5;
 	}
-	else {
+	else
+	{
 		position->x *= 0.2f;
 		position->y *= 0.2f;
 		sprite->colorR = RandomFloat(0.5f, 1.0f);
@@ -434,16 +432,15 @@ class EntityComponentSystem: public IApp
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
-		// window and renderer setup
-		pRenderer = NULL;
-		RendererDesc settings = { 0 };
-		settings.mApi = (RendererApi)gSelectedApiIndex;
+		RendererDesc settings;
+		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Unsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -472,22 +469,34 @@ class EntityComponentSystem: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		UIAppDesc appUIDesc = {};
-		initAppUI(pRenderer, &appUIDesc, &pAppUI);
-		if (!pAppUI)
-			return false;
+		// Load fonts
+		FontDesc font = {};
+		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
+		fntDefineFonts(&font, 1, &gFontID);
 
-		initAppUIFont(pAppUI, "TitilliumText/TitilliumText-Bold.otf");
+		FontSystemDesc fontRenderDesc = {};
+		fontRenderDesc.pRenderer = pRenderer;
+		if (!initFontSystem(&fontRenderDesc))
+			return false; // report?
 
-		initProfiler();
-		initProfilerUI(pAppUI, mSettings.mWidth, mSettings.mHeight);
+		// Initialize Forge User Interface Rendering
+		UserInterfaceDesc uiRenderDesc = {};
+		uiRenderDesc.pRenderer = pRenderer;
+		initUserInterface(&uiRenderDesc);
+
+		// Initialize micro profiler and its UI.
+		ProfilerDesc profiler = {};
+		profiler.pRenderer = pRenderer;
+		profiler.mWidthUI = mSettings.mWidth;
+		profiler.mHeightUI = mSettings.mHeight;
+		initProfiler(&profiler);
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};
-		spriteShader.mStages[0] = { "basic.vert", NULL, 0 };
-		spriteShader.mStages[1] = { "basic.frag", NULL, 0 };
+		spriteShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		spriteShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 
 		addShader(pRenderer, &spriteShader, &pSpriteShader);
 
@@ -530,8 +539,7 @@ class EntityComponentSystem: public IApp
 		}
 
 		// Index buffer
-		uint16_t indices[] =
-		{
+		uint16_t indices[] = {
 			0, 1, 2, 2, 1, 3,
 		};
 		BufferLoadDesc spriteIBDesc = {};
@@ -543,9 +551,11 @@ class EntityComponentSystem: public IApp
 		addResource(&spriteIBDesc, NULL);
 
 		// Vertex buffer
-		float vertices[] =
-		{
-			0, 1.0, 2.0, 3.0,
+		float vertices[] = {
+			0,
+			1.0,
+			2.0,
+			3.0,
 		};
 		BufferLoadDesc spriteVBDesc = {};
 		spriteVBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -564,41 +574,13 @@ class EntityComponentSystem: public IApp
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		GuiDesc guiDesc = {};
+		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.1f);
-		GUIWindow = addAppUIGuiComponent(pAppUI, "MT", &guiDesc);
-
-#if defined(USE_MULTIPLE_RENDER_APIS)
-		static const char* pApiNames[] =
-		{
-		#if defined(GLES)
-			"GLES",
-		#endif
-		#if defined(DIRECT3D12)
-			"D3D12",
-		#endif
-		#if defined(VULKAN)
-			"Vulkan",
-		#endif
-		};
-		// Select Api 
-		DropdownWidget selectApiWidget;
-		selectApiWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			selectApiWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApiWidget.mValues.push_back(i);
-		}
-		IWidget* pSelectApiWidget = addGuiWidget(GUIWindow, "Select API", &selectApiWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApiWidget->pOnEdited = onAPISwitch;
-		addWidgetLua(pSelectApiWidget);
-		const char* apiTestScript = "Test_API_Switching.lua";
-		addAppUITestScripts(pAppUI, &apiTestScript, 1);
-#endif
+		uiCreateComponent("MT", &guiDesc, &GUIWindow);
 
 		CheckboxWidget Checkbox;
 		Checkbox.pData = &multiThread;
-		addWidgetLua(addGuiWidget(GUIWindow, "Threading", &Checkbox, WIDGET_TYPE_CHECKBOX));
+		luaRegisterWidget(uiCreateComponentWidget(GUIWindow, "Threading", &Checkbox, WIDGET_TYPE_CHECKBOX));
 
 		waitForAllResourceLoads();
 
@@ -626,7 +608,7 @@ class EntityComponentSystem: public IApp
 		// Create entities
 		pAvoidanceSystem = tf_new(AvoidanceSystem);
 		pAvoidanceSystem->init();
-		
+
 		pMoveSystem = tf_new(MoveSystem);
 
 		EntityId worldBoundsEntityId = pEntityManager->createEntity();
@@ -641,9 +623,9 @@ class EntityComponentSystem: public IApp
 		// THIS IS HOW YOU SERIALIZE AN ENTITY
 		//pSerializer->SerializeEntity(worldBoundsEntityId, "serializedWorldBounds", "../../../src/17_EntityComponentSystem/Entities/");
 
-		CreationData data	   = { spriteEntities, bounds, "sprite" };
-		CreationData avoidData = { avoidEntities,  bounds, "avoid" };
-		
+		CreationData data = { spriteEntities, bounds, "sprite" };
+		CreationData avoidData = { avoidEntities, bounds, "avoid" };
+
 		for (size_t i = 0; i < SpriteEntityCount; ++i)
 		{
 			createEntities(&data, i);
@@ -654,26 +636,36 @@ class EntityComponentSystem: public IApp
 			createEntities(&avoidData, i);
 		}
 
-		if (!initInputSystem(pWindow))
+		InputSystemDesc inputDesc = {};
+		inputDesc.pRenderer = pRenderer;
+		inputDesc.pWindow = pWindow;
+		inputDesc.mDisableVirtualJoystick = true; 
+		if (!initInputSystem(&inputDesc))
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
+									   [](InputActionContext* ctx) {
+										   toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
+										   return true;
+									   },
+									   this };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
+						  requestShutdown();
+						  return true;
+					  } };
 		addInputAction(&actionDesc);
-		actionDesc =
-		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = appUIOnButton(pAppUI, ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
-		};
+		actionDesc = { InputBindings::BUTTON_ANY,
+					   [](InputActionContext* ctx) {
+						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+						   return true;
+					   },
+					   this };
 		addInputAction(&actionDesc);
 
-		gFrameIndex = 0; 
+		gFrameIndex = 0;
 
 		return true;
 	}
@@ -681,9 +673,12 @@ class EntityComponentSystem: public IApp
 	void Exit()
 	{
 		waitThreadSystemIdle(pThreadSystem);
-		exitProfilerUI();
+
 		exitProfiler();
-		exitAppUI(pAppUI);
+
+		exitUserInterface();
+
+		exitFontSystem(); 
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -712,9 +707,6 @@ class EntityComponentSystem: public IApp
 			removeCmdPool(pRenderer, pCmdPools[i]);
 		}
 
-		exitResourceLoaderInterface(pRenderer);
-		removeQueue(pRenderer, pGraphicsQueue);
-		exitRenderer(pRenderer);
 		tf_free(gSpriteData);
 
 		exitInputSystem();
@@ -730,6 +722,11 @@ class EntityComponentSystem: public IApp
 		MoveComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
 		PositionComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
 		WorldBoundsComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
+
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
+		exitRenderer(pRenderer);
+		pRenderer = NULL;
 	}
 
 	bool Load()
@@ -737,7 +734,14 @@ class EntityComponentSystem: public IApp
 		if (!addMainSwapChain())
 			return false;
 
-		if (!addAppGUIDriver(pAppUI, pSwapChain->ppRenderTargets))
+		RenderTarget* ppPipelineRenderTargets[] = {
+			pSwapChain->ppRenderTargets[0]
+		};
+
+		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
+			return false;
+
+		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
 			return false;
 
 		RasterizerStateDesc rasterizerStateDesc = {};
@@ -789,7 +793,9 @@ class EntityComponentSystem: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeAppGUIDriver(pAppUI);
+		removeUserInterfacePipelines();
+
+		removeFontSystemPipelines(); 
 
 		removePipeline(pRenderer, pSpritePipeline);
 
@@ -812,37 +818,37 @@ class EntityComponentSystem: public IApp
 		gDrawSpriteCount = 0;
 		float globalScale = 0.05f;
 
-		for (size_t i = 0; i < SpriteEntityCount; ++i) {
-			Entity* pEntity				= spriteEntities[i];
+		for (size_t i = 0; i < SpriteEntityCount; ++i)
+		{
+			Entity*            pEntity = spriteEntities[i];
 			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			SpriteComponent&     sprite = *(pEntity->getComponent<SpriteComponent>());
-			
+			SpriteComponent&   sprite = *(pEntity->getComponent<SpriteComponent>());
+
 			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
-			spriteData.posX   = position.x * globalScale;
-			spriteData.posY   = position.y * globalScale;
-			spriteData.scale  = sprite.scale * globalScale;
-			spriteData.colR   = sprite.colorR;
-			spriteData.colG   = sprite.colorG;
-			spriteData.colB   = sprite.colorB;
+			spriteData.posX = position.x * globalScale;
+			spriteData.posY = position.y * globalScale;
+			spriteData.scale = sprite.scale * globalScale;
+			spriteData.colR = sprite.colorR;
+			spriteData.colG = sprite.colorG;
+			spriteData.colB = sprite.colorB;
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
 
-		for (size_t i = 0; i < AvoidCount; ++i) {
-			Entity* pEntity				= avoidEntities[i];
+		for (size_t i = 0; i < AvoidCount; ++i)
+		{
+			Entity*            pEntity = avoidEntities[i];
 			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			SpriteComponent&     sprite = *(pEntity->getComponent<SpriteComponent>());
+			SpriteComponent&   sprite = *(pEntity->getComponent<SpriteComponent>());
 
 			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
-			spriteData.posX   = position.x * globalScale;
-			spriteData.posY   = position.y * globalScale;
-			spriteData.scale  = sprite.scale * globalScale;
-			spriteData.colR   = sprite.colorR;
-			spriteData.colG   = sprite.colorG;
-			spriteData.colB   = sprite.colorB;
+			spriteData.posX = position.x * globalScale;
+			spriteData.posY = position.y * globalScale;
+			spriteData.scale = sprite.scale * globalScale;
+			spriteData.colR = sprite.colorR;
+			spriteData.colG = sprite.colorG;
+			spriteData.colB = sprite.colorB;
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
-
-		updateAppUI(pAppUI, deltaTime);
 	}
 
 	void Draw()
@@ -853,7 +859,7 @@ class EntityComponentSystem: public IApp
 		// Update uniform buffers.
 		const float w = (float)mSettings.mWidth;
 		const float h = (float)mSettings.mHeight;
-		float aspect = w / h;
+		float       aspect = w / h;
 
 		// Update vertex buffer
 		SyncToken updateComplete = {};
@@ -914,21 +920,14 @@ class EntityComponentSystem: public IApp
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
-		appUIGui(pAppUI, GUIWindow);
-
-		TextDrawDesc uiTextDesc;    // default
+		FontDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
-		 
-#if !defined(__ANDROID__)
-		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-        cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken, &uiTextDesc);
-#else
-		cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-#endif
-		cmdDrawProfilerUI();
+		uiTextDesc.mFontID = gFontID;
+		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
+		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken, &uiTextDesc);
 
-        drawAppUI(pAppUI, cmd);
+		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 

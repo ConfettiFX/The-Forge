@@ -157,7 +157,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 	watcher->mThreadDesc.pFunc = fswThreadFunc;
 	watcher->mThreadDesc.pData = watcher;
 
-	watcher->mThread = create_thread(&watcher->mThreadDesc);
+	initThread(&watcher->mThreadDesc, &watcher->mThread);
 
     return watcher;
 }
@@ -165,11 +165,11 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
 	fileWatcher->mRun = 0;
-	destroy_thread(fileWatcher->mThread);
+	destroyThread(fileWatcher->mThread);
 	tf_free(fileWatcher);
 }
 
-void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out)
+void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* count)
 {
 	char directoryPath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directoryPath);
@@ -187,6 +187,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 		++extension;
 	}
 
+    int filesFound = 0;
 	struct dirent* entry;
 	do
 	{
@@ -202,16 +203,55 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 			(extension[0] == 0 && fileExtLen == 0) ||
 			(fileExtLen > 0 && strncasecmp(fileExt, extension, fileExtLen) == 0))
 		{
-			char result[FS_MAX_PATH] = {};
-			fsAppendPathComponent(subDirectory, entry->d_name, result);
-			out.push_back(result);
+            filesFound += 1;
 		}
 	} while (entry != NULL);
-
 	closedir(directory);
+
+    *out = NULL;
+    *count = 0;
+
+    directory = opendir(directoryPath);
+    if (!directory)
+        return;
+
+    if (filesFound > 0)
+    {
+        char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+        char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+        for (int i = 0; i < filesFound; ++i)
+        {
+            stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+        }
+        *out = stringList;
+        *count = filesFound;
+    }
+
+    int strIndex = 0;
+    do
+    {
+        entry = readdir(directory);
+        if (!entry)
+            break;
+
+        char fileExt[FS_MAX_PATH] = {};
+        fsGetPathExtension(entry->d_name, fileExt);
+        size_t fileExtLen = strlen(fileExt);
+
+        if ((!extension) ||
+            (extension[0] == 0 && fileExtLen == 0) ||
+            (fileExtLen > 0 && strncasecmp(fileExt, extension, fileExtLen) == 0))
+        {
+            char result[FS_MAX_PATH] = {};
+            fsAppendPathComponent(subDirectory, entry->d_name, result);
+            char * dest = (*out)[strIndex++];
+            strcpy(dest, result);
+        }
+    } while (entry != NULL);
+    closedir(directory);
 }
 
-void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, eastl::vector<eastl::string>& out)
+void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count)
 {
 	char directoryPath[FS_MAX_PATH] = {};
 	fsAppendPathComponent(fsGetResourceDirectory(resourceDir), subDirectory, directoryPath);
@@ -222,6 +262,7 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 		return;
 	}
 
+    int filesFound = 0;
 	struct dirent* entry;
 	do
 	{
@@ -231,13 +272,46 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 
 		if ((entry->d_type & DT_DIR) && (entry->d_name[0] != '.'))
 		{
-			char result[FS_MAX_PATH] = {};
-			fsAppendPathComponent(subDirectory, entry->d_name, result);
-			out.push_back(result);
+            filesFound += 1;
 		}
 	} while (entry != NULL);
-
 	closedir(directory);
+
+    *out = NULL;
+    *count = 0;
+
+    directory = opendir(directoryPath);
+    if (!directory)
+        return;
+
+    if (filesFound > 0)
+    {
+        char** stringList = (char**)tf_malloc(filesFound * sizeof(char*) + filesFound * sizeof(char) * FS_MAX_PATH);
+        char* firstString = ((char*)stringList + filesFound * sizeof(char*));
+        for (int i = 0; i < filesFound; ++i)
+        {
+            stringList[i] = firstString + (sizeof(char) * FS_MAX_PATH * i);
+        }
+        *out = stringList;
+        *count = filesFound;
+    }
+
+    int strIndex = 0;
+    do
+    {
+        entry = readdir(directory);
+        if (!entry)
+            break;
+
+        if ((entry->d_type & DT_DIR) && (entry->d_name[0] != '.'))
+        {
+            char result[FS_MAX_PATH] = {};
+            fsAppendPathComponent(subDirectory, entry->d_name, result);
+            char * dest = (*out)[strIndex++];
+            strcpy(dest, result);
+        }
+    } while (entry != NULL);
+    closedir(directory);
 }
 
 bool fsRemoveFile(const ResourceDirectory resourceDir, const char* fileName)

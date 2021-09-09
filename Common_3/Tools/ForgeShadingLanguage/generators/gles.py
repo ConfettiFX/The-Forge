@@ -429,7 +429,7 @@ def gles(fsl, dst):
                 var = get_input_struct_var(parsing_struct, shader)
                 elem_dtype, elem_name, sem = getMacro(line)
                 sem = sem.upper()
-                flat_modifier = 'flat(' in line
+                flat_modifier = 'FLAT(' in line
                 if flat_modifier:
                     elem_dtype = getMacro(elem_dtype)
                     line = get_whitespace(line) + getMacro(elem_dtype) + ' '+ elem_name +';\n'

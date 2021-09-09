@@ -33,7 +33,6 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
         pssl = prospero
         shader_src += ['#define PROSPERO\n']
         shader_src += prospero.preamble()
-        prospero.copy_includes(os.path.join(os.path.dirname(dst), 'includes'))
 
 
     elif pssl:
@@ -41,13 +40,11 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
         pssl = orbis
         shader_src += ['#define ORBIS\n']
         shader_src += orbis.preamble()
-        orbis.copy_includes(os.path.join(os.path.dirname(dst), 'includes'))
 
     if xbox:
         import xbox
         shader_src += ['#define XBOX\n']
         shader_src += xbox.preamble()
-        xbox.copy_includes(os.path.join(os.path.dirname(dst), 'includes'))
 
     if d3d12:
         shader_src += ['#define DIRECT3D12\n']
@@ -56,13 +53,6 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
     shader_src += ['#define STAGE_', shader.stage.name, '\n']
     if shader.enable_waveops:
         shader_src += ['#define ENABLE_WAVEOPS()\n']
-
-    # shader_src += ['#include "includes/d3d.h"\n']
-    # incPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'd3d.h')
-    # dstInc = os.path.join(os.path.dirname(dst), "includes/d3d.h")
-    # if True or not os.path.exists(dstInc):
-    #     os.makedirs(os.path.dirname(dstInc), exist_ok=True)
-    #     copyfile(incPath, dstInc)
 
     # directly embed d3d header in shader
     header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'd3d.h')
@@ -164,7 +154,7 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
 
             # if this shader is the receiving end of a passthrough_gs, insert the necessary inputs
             if passthrough_gs and shader.struct_args[0][0] == parsing_struct:
-                shader_src += ['\tDATA(flat(uint), PrimitiveID, TEXCOORD8);\n']
+                shader_src += ['\tDATA(FLAT(uint), PrimitiveID, TEXCOORD8);\n']
 
             shader_src += [line]
 

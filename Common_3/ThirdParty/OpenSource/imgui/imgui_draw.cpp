@@ -1577,7 +1577,7 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
     size_t data_size = 0;
 
 	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_FONTS, filename, FM_READ_BINARY, &fh))
+	if (!fsOpenStreamFromPath(RD_FONTS, filename, FM_READ_BINARY, NULL, &fh))
 	{
 		return NULL;
 	}

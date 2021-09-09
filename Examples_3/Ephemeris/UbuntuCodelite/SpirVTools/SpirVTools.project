@@ -7,7 +7,7 @@
   </Plugins>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="src">    
+  <VirtualDirectory Name="src">
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.cpp"/>
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.h"/>
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp"/>
@@ -21,8 +21,6 @@
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp"/>
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -112,4 +110,6 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
 </CodeLite_Project>

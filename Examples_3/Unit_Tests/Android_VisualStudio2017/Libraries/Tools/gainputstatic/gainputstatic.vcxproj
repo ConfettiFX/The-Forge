@@ -65,6 +65,7 @@
     <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputInputDeviceKeyboard.cpp" />
     <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp" />
     <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePad.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceGestureDetectorAndroid.cpp" />
     <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouch.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -99,6 +100,7 @@
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputKeyboardKeyNames.h" />
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePadAndroid.h" />
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePadImpl.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceGestureDetectorAndroid.h" />
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouchAndroid.h" />
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouchImpl.h" />
   </ItemGroup>

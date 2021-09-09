@@ -40,13 +40,13 @@ void PrintHelp()
 		"\nCommand: ProcessAnimations          (GLTF to OZZ) -pa   \"animation/directory/\" \"output/directory/\" [flags]\n"
 		"\nCommand: ProcessVirtualTextures     (DDS to SVT)  -pvt  \"source texture directory/\" \"output directory/\" [flags]\n"
 		"\nCommand: ProcessTFX                 (TFX to GLTF) -ptfx \"source tfx directory/\" \"output directory/\" [flags]\n"
-			"\t --fhc | -followhaircount      : Number of follow hairs around loaded guide hairs procedually\n"
-			"\t --tsf | -tipseparationfactor  : Separation factor for the follow hairs\n"
-			"\t --maxradius | -maxradius      : Max radius of the random distribution to generate follow hairs\n"
+		"\t --fhc | -followhaircount      : Number of follow hairs around loaded guide hairs procedually\n"
+		"\t --tsf | -tipseparationfactor  : Separation factor for the follow hairs\n"
+		"\t --maxradius | -maxradius      : Max radius of the random distribution to generate follow hairs\n"
 		"\nCommon Options:\n"
-			"\t --quiet                       : Print only error messages.\n"
-			"\t --force                       : Force all assets to be processed. Including ones that are already up-to-date.\n"
-			"\t -h | -help                    : Print usage information.\n");
+		"\t --quiet                       : Print only error messages.\n"
+		"\t --force                       : Force all assets to be processed. Including ones that are already up-to-date.\n"
+		"\t -h | -help                    : Print usage information.\n");
 }
 
 ResourceDirectory RD_APPLICATION = RD_MIDDLEWARE_0;
@@ -144,10 +144,7 @@ int AssetPipelineCmd(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	extern bool MemAllocInit(const char*);
-	extern void MemAllocExit();
-
-	if (!MemAllocInit(gApplicationName))
+	if (!initMemAlloc(gApplicationName))
 		return EXIT_FAILURE;
 
 	FileSystemInitDesc fsDesc = {};
@@ -164,13 +161,13 @@ int main(int argc, char** argv)
 
 	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
-	Log::Init(gApplicationName);
+	initLog(gApplicationName, LogLevel::eALL);
 
 	int ret = AssetPipelineCmd(argc, argv);
 
-	Log::Exit();
+	exitLog();
 	exitFileSystem();
-	MemAllocExit();
+	exitMemAlloc();
 
 	return ret;
 }

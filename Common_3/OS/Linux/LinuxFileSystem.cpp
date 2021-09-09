@@ -60,6 +60,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	fsGetParentPath(applicationFilePath, gApplicationPath);
 	gResourceMounts[RM_CONTENT] = gApplicationPath;
 	gResourceMounts[RM_DEBUG] = gApplicationPath;
+	gResourceMounts[RM_SAVE_0] = gApplicationPath;
 
 	// Get user directory
 	if ((gHomedir = getenv("HOME")) == NULL)

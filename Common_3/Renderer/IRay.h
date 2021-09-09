@@ -120,14 +120,14 @@ typedef struct AccelerationStructureInstanceDesc
 
 typedef struct AccelerationStructureGeometryDesc
 {
-	AccelerationStructureGeometryFlags  mFlags;
 	void*                               pVertexArray;
-	uint32_t                            mVertexCount;
     union
 	{
         uint32_t*                       pIndices32;
         uint16_t*                       pIndices16;
     };
+	AccelerationStructureGeometryFlags  mFlags;
+	uint32_t                            mVertexCount;
 	uint32_t                            mIndexCount;
 	IndexType                           mIndexType;
 } AccelerationStructureGeometryDesc;

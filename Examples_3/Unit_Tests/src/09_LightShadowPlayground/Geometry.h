@@ -110,9 +110,19 @@ enum MaterialFlagBits
 struct MeshInfo
 {
 	const char*   name = NULL;
+	const char*   password = NULL;
 	MaterialFlags materialFlags = MATERIAL_FLAG_NONE;
 	float         twoSidedWorldSpaceBias = 0.0f;
 	bool          sdfGenerated = false;
+
+    MeshInfo() {}
+    MeshInfo(const char* name, const char* password, MaterialFlags materialFlags, float twoSidedWorldSpaceBias) :
+        name(name),
+        password(password),
+        materialFlags(materialFlags),
+        twoSidedWorldSpaceBias(twoSidedWorldSpaceBias),
+        sdfGenerated(false) 
+    {}
 };
 
 typedef struct Scene

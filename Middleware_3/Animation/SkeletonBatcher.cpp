@@ -102,7 +102,7 @@ void SkeletonBatcher::Exit()
 	}
 }
 
-void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor)
+void SkeletonBatcher::SetSharedUniforms(const CameraMatrix& projViewMat, const Vector3& lightPos, const Vector3& lightColor)
 {
 	for (uint32_t i = 0; i < MAX_BATCHES; ++i)
 	{
@@ -112,7 +112,7 @@ void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector
 
 		if (mDrawBones)
 		{
-			mUniformDataBones[i].mProjectView = projViewMat;
+            mUniformDataBones[i].mProjectView = projViewMat;
 			mUniformDataBones[i].mLightPosition = Vector4(lightPos);
 			mUniformDataBones[i].mLightColor = Vector4(lightColor);
 		}
