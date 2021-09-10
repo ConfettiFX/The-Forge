@@ -2,20 +2,20 @@
 
 The Forge is a cross-platform rendering framework supporting
 - PC 
-  * Windows 10 
+  * Windows 10 / 7
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
      * DirectX 11 Fallback Layer for Windows 7 support
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
-- Android Pie with 
+- Android Pie or higher with 
   * Vulkan 1.1
   * OpenGL ES 2.0 fallback for large scale business application frameworks
-- macOS / iOS / iPad OS with Metal 2.2
+- macOS / iOS / iPad OS with Metal 2.2 and M1 support
+- Quest 2 using Vulkan 1.1
 - XBOX One / XBOX One X / XBOX Series S/X *
 - PS4 / PS4 Pro *
 - PS5 *
 - Switch using Vulkan 1.1 *
-
 *(only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
@@ -58,10 +58,83 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.49 - September 09, 2021 - Quest 2 Support | Apple M1 support 
+<ul>
+
+<li>Quest 2 Support - after working now for the last 4 years on various Quest projects, we decided to add Quest 2 support to our framework. </li>
+
+
+Quest 2 running 01_Transformations
+![Quest 2 Running 01_Transformations](Screenshots/Quest/01_Transformations.png)
+
+Quest 2 running 09_ShadowPlayground
+![Quest 2 Running 09_ShadowPlayground](Screenshots/Quest/09_ShadowPlayground.png)
+
+<li>At this moment the following unit tests do not work:
+<ul>
+  <li> 07_Tessellation: Tesselation is not supported when using Multiview. Unit test has been removed from Quest solution file. </li>
+  <li>10_ScreenSpaceReflections: Lots of artifacts.</li> 
+  <li>14_WaveIntrinsics: Wave intrinsics are not supported.</li>
+</ul>
+</ul>
+
+<ul>
+<li> Apple M1 support - we are testing now on a M1 iMac and a M1 iPad Pro. Unfortunately we have crashes in one unit test and all the more complex examples and middleware. 
+</li>
+
+
+iMac with M1 chip running at 3840x2160 resolution
+![iMac with M1 Running 10_PerPixelProjectedReflections](Screenshots/10_Pixel-ProjectedReflections_iMacM1.png)
+
+iPad with M1 chip running with 1024x1366 resolution
+![iPad with M1 Running 10_PerPixelProjectedReflections](Screenshots/10_Pixel-ProjectedReflections_iPadM1.png)
+
+It is astonishing how well the iPad with M1 chip perform.
+Due to -what we consider driver bugs- M1 hardware crashes in 
+ <ul>
+ <li> Aura</li>
+ <li>16_raytracing</li>
+ <li>Visibility Buffer</li>
+ <li>Ephemeris</li>
+ </ul>
+ </ul>
+
+
+<ul>
+<li>UI / Fonts / Lua interface refactor</li>
+<ul>
+<li>Moved Virtual Joystick to IInput.h / InputSystem.cpp</li>
+<li>Pulled current Lua implementation out of AppUI and gave it its own interface (IScripting.h)</li>
+<li>Pulled Fontstash implementation out of AppUI and gave it its own interface (IFont.h)</li>
+<li>IFont and IScripting are now initialized on the OS Layer, with user customization functions available on the App Layer</li>
+<li>Fonts and Lua can now be disabled via preprocessor defines and UI will still function (using default 'ProggyClean' font)</li>
+</ul>
+<li>Zip unit test refactor to support encryption and writes into archive</li>
+For one of our customer projects we need password encryption, so we replaced our old zip library with 
+
+[minizip ng](https://github.com/zlib-ng/minizip-ng)
+<li>Extended iOS Gesture / Android gesture support</li>
+For the same project we added more gesture support for mobile platforms.
+<li>Partial C99 rewrite of OS/Interfaces headers and implementation files</li>
+Our on-going effort to make TF easier to use is to rewrite parts in C99, so that teams can work with it more efficiently, the compile time goes down as well as the memory footprint is smaller.
+<li>OpenGL ES 2 - Unit test 17 is now working as well.</li>
+</ul>
+
+<ul>
+<li>GitHub fixes:</li>
+<ul>
+<li> Pull Request "Fix typo" #199 </li>
+<li> Pull Request "Fix iOS Xcode OpenGL ES Error breakpoint crash" #202 </li>
+<li> Pull Request "Reduce GL ES buffer allocation frequency" #204 </li>
+<li> Pull Request "Apple silicon m1 fixes" #208 </li>
+</ul>
+</ul>
+
+
 ## Release 1.48 - May 20th, 2021 - Aura | New FSL Shader Language Translator | Run-time API Switching | Variable Rate Shading | MSAA | OpenGL ES 2 Update | PVS Studio
 This is our biggest update since we started this repository more than three years ago. This update is one of those "what we have learned from the last couple of projects that are using TF" updates and a few more things.
 
- - Aura - Dynamic Global Illumination - we developed this system in the 2010 / 2011 time frame. It is hard to believe it is 10 years ago now :-) ... it shipped in Agents of Mayhem at some point and was implemented and used in other games. We are just putting the "base" version without any game specific modifications in our commercial Middleware repository on GitHub. The games that used this system made specific modifications to the code base to align with their art asset and art style.
+- Aura - Dynamic Global Illumination - we developed this system in the 2010 / 2011 time frame. It is hard to believe it is 10 years ago now :-) ... it shipped in Agents of Mayhem at some point and was implemented and used in other games. We are just putting the "base" version without any game specific modifications in our commercial Middleware repository on GitHub. The games that used this system made specific modifications to the code base to align with their art asset and art style.
  In today's standards this system still fulfills the requirement of a stable rasterizer based Global Illumination system. It runs efficiently on the original XBOX One, that was the original target platform, but might require art asset modifications in a game level. 
  It works with an unlimited number of light sources with minimal memory footprint. You can also cache the reflective shadow maps for directional, point and spotlights the same way you currently cache shadow maps. At some point we did a demo running on a second generation integrated Intel GPU with 256 lights that emitted direct and indirect light and had shadow maps in 2011 at GDC? :-)
  It is best to integrate that system in a custom game engine that can cache shadow maps in an intelligent way. 
@@ -305,6 +378,7 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
 * MacBook Pro 13 inch (MacBookPro13,2) 
 * Macbook Pro 13 inch (MacbookPro14,2)
+* iMac with M1
 
 At this moment we do not have access to an iMac with M1 chipset (we ordered one), iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
@@ -331,6 +405,7 @@ We are currently testing on
 
 We are currently testing on:
 * iPad (Model A1893)
+* iPad Pro with M1
 
 
 # PC Linux Requirements:
@@ -918,4 +993,4 @@ The Forge utilizes the following Open-Source libraries:
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
-* [zip](https://github.com/kuba--/zip)
+* [minizip ng](https://github.com/zlib-ng/minizip-ng)
