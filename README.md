@@ -54,7 +54,7 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 # Build Status 
 
 * Windows [![Build status](https://ci.appveyor.com/api/projects/status/leqbpaqtqj549yhh/branch/master?svg=true)](https://ci.appveyor.com/project/wolfgangfengel/the-forge/branch/master)
-* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
+* macOS [![Build Status](https://app.travis-ci.com/ConfettiFX/The-Forge.svg?branch=master)](https://app.travis-ci.com/ConfettiFX/The-Forge)
 
 # News
 
