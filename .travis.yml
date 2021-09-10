@@ -1,8 +1,0 @@
-os: osx
-osx_image: xcode11
-language: objective-c
-python:
-  - 3.8
-script:
-- git clone https://github.com/ConfettiFX/Custom-Middleware.git ../Custom-Middleware
-- travis_wait 40 python3 CI/PyBuild.py --skipioscodesigning --forceprebuild --skipreleasebuild --preserveworkingdir
