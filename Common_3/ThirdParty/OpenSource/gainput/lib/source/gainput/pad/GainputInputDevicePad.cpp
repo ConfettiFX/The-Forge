@@ -18,7 +18,7 @@
 #elif defined(GAINPUT_PLATFORM_ANDROID)
 	#include "GainputInputDevicePadAndroid.h" 
 #elif defined(GAINPUT_PLATFORM_QUEST)
-	#include "../../../../../../../../Quest/Common_3/OS/Input/GainputInputDevicePadQuest.h" 
+	#include "GainputInputDevicePadQuest.h" 
 #elif defined (GAINPUT_PLATFORM_XBOX_ONE)
 	#include "../../../../../../../../Xbox/Common_3/OS/Input/GainputInputDevicePadXboxOne.h"
 #elif defined(GAINPUT_PLATFORM_NX64)

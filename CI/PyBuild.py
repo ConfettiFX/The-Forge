@@ -1618,7 +1618,7 @@ def TestAndroidProjects(benchmarkFrames, quest):
 
 	lowEndExamples = ["Transformations", "FontRendering", "ZipFileSystem", "UserInterface", "EntityComponentSystem"]
     
-	solutionPath = "./Examples_3/Unit_Tests/Android_VisualStudio2017" if not quest else "./Quest/Examples_3/Unit_Tests/Quest_VisualStudio2017"
+	solutionPath = "./Examples_3/Unit_Tests/Android_VisualStudio2017" if not quest else "./Examples_3/Unit_Tests/Quest_VisualStudio2017"
 	solutionDir = "Android_VisualStudio2017" if not quest else "Quest_VisualStudio2017"
 
 	projects = GetFilesPathByExtension(solutionPath,"apk",False)
@@ -1768,7 +1768,7 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
 		sys.exit(-1)
 		
-	solutionPath = "./Examples_3/Unit_Tests/Android_VisualStudio2017" if not quest else "./Quest/Examples_3/Unit_Tests/Quest_VisualStudio2017"
+	solutionPath = "./Examples_3/Unit_Tests/Android_VisualStudio2017" if not quest else "./Examples_3/Unit_Tests/Quest_VisualStudio2017"
 	platformName = "Android" if not quest else "Quest"
 
 	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)

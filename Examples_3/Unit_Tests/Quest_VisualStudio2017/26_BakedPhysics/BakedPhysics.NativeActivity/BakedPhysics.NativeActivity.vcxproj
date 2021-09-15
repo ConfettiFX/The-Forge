@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{64b14548-38b5-49b3-a169-00dff8b6764c}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>BakedPhysics</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <PreprocessorDefinitions>QUEST_VR;_DEBUG;VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Debug;$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;vrapi;VkLayer_khronos_validation</LibraryDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Animation\ozzLogo\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\ozzLogo\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y /d
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\26_BakedPhysics\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y /d
+$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d
+$(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Debug\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d
+$(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <FloatABI>
+      </FloatABI>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <PreprocessorDefinitions>QUEST_VR;VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Release;$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;vrapi</LibraryDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Animation\ozzLogo\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\ozzLogo\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
+$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\26_BakedPhysics\Scripts\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y
+$(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Release\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
+      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\26_BakedPhysics\26_BakedPhysics.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\..\src\26_BakedPhysics\Shaders\FSL\Quest\basic.frag.fsl" />
+    <FSLShader Include="..\..\..\src\26_BakedPhysics\Shaders\FSL\Quest\basic.vert.fsl" />
+    <FSLShader Include="..\..\..\src\26_BakedPhysics\Shaders\FSL\Quest\plane.frag.fsl" />
+    <FSLShader Include="..\..\..\src\26_BakedPhysics\Shaders\FSL\Quest\plane.vert.fsl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
+  </ImportGroup>
+</Project>

@@ -28,7 +28,7 @@
 #include "../Math/MathTypes.h"
 
 #if defined(QUEST_VR)
-#include "../../../Quest/Common_3/OS/VR/VrApi.h"
+#include "../Quest/VrApi.h"
 #endif
 
 struct CameraMotionParameters
