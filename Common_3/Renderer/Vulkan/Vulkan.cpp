@@ -93,7 +93,7 @@
 #include "../../ThirdParty/OpenSource/nvapi/NvApiHelper.h"
 
 #if defined(QUEST_VR)
-#include "../../../Quest/Common_3/Renderer/VR/VrApiHooks.h"
+#include "../Quest/VrApiHooks.h"
 #endif
 
 #include "../../OS/Interfaces/IMemory.h"

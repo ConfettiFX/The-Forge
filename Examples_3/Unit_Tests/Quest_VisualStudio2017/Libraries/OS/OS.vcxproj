@@ -1,0 +1,590 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugGLES|ARM">
+      <Configuration>DebugGLES</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugGLES|ARM64">
+      <Configuration>DebugGLES</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugVk|ARM64">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseGLES|ARM">
+      <Configuration>ReleaseGLES</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseGLES|ARM64">
+      <Configuration>ReleaseGLES</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM64">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="DebugVk|ARM">
+      <Configuration>DebugVk</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleaseVk|ARM">
+      <Configuration>ReleaseVk</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Screenshot.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\UnixFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\FontSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\fixed_pool.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\hashtable.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\intrusive_list.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\numeric_limits.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\red_black_tree.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\string.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\thread_support.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lapi.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lauxlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbaselib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lbitlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcode.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lcorolib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lctype.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldblib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldebug.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldo.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ldump.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lfunc.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lgc.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\linit.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\liolib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\llex.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmathlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lmem.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loadlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lobject.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lopcodes.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\loslib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lparser.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstate.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstring.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lstrlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltable.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltablib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\ltm.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lundump.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lutf8lib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lvm.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lzio.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\hmac.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha1.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha2.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt_brg.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_os.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_raw.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_zlib.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_zip.c" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Quest\VrApi.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\resources.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFont.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IScripting.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUI.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\hmac.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha1.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\sha2.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_crypt.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_os.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_strm_zlib.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\mz_zip.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\zip.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\miniz.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Quest\VrApi.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash2D.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash3D.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\imgui.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\imgui.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\textured_mesh.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\textured_mesh.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>OS</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-23</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-23</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="PropertySheets">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="PropertySheets">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="PropertySheets">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'" Label="PropertySheets">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;D:\Android_SDK\ndk-bundle\sources\cxx-stl\llvm-libc++\include;D:\Android_SDK\ndk-bundle\sources\cxx-stl\llvm-libc++abi\include;D:\Android_SDK\ndk-bundle\sources\cxx-stl\system\include;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <LibraryPath>
+    </LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <LibraryPath>
+    </LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(LLVMToolchainPrebuiltRoot)\lib64\clang\$(LLVMVersion)\include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(LLVMToolchainPrebuiltRoot)\lib64\clang\$(LLVMVersion)\include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(LLVMToolchainPrebuiltRoot)\lib64\clang\$(LLVMVersion)\include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(LLVMToolchainPrebuiltRoot)\lib64\clang\$(LLVMVersion)\include;</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>QUEST_VR;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <CompileAs>Default</CompileAs>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>QUEST_VR;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <CompileAs>Default</CompileAs>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>QUEST_VR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <CompileAs>Default</CompileAs>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+      <Verbose>
+      </Verbose>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>QUEST_VR;API_EXPORT;ANDROID;GLES;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <CompileAs>Default</CompileAs>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>Default</CompileAs>
+      <PreprocessorDefinitions>QUEST_VR;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;SCREENSHOT_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <CustomBuildStep>
+      <Message />
+    </CustomBuildStep>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>Default</CompileAs>
+      <PreprocessorDefinitions>QUEST_VR;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;GLES;SCREENSHOT_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <CustomBuildStep>
+      <Message>
+      </Message>
+    </CustomBuildStep>
+    <FSLShader>
+      <Language>VULKAN</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>Default</CompileAs>
+      <PreprocessorDefinitions>QUEST_VR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;GLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <CustomBuildStep>
+      <Message>
+      </Message>
+    </CustomBuildStep>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>Default</CompileAs>
+      <PreprocessorDefinitions>QUEST_VR;API_EXPORT;ANDROID;GLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <CustomBuildStep>
+      <Message>
+      </Message>
+    </CustomBuildStep>
+    <FSLShader>
+      <Language>GLES</Language>
+      <OutDir>$(OutDir)/$(ProjectName)/Shaders</OutDir>
+      <BinaryOutDir>$(OutDir)/$(ProjectName)/Shaders/Binary</BinaryOutDir>
+    </FSLShader>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>QUEST_VR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>QUEST_VR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>QUEST_VR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM'">
+    <ClCompile>
+      <PreprocessorDefinitions>QUEST_VR;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
+  </ImportGroup>
+</Project>
