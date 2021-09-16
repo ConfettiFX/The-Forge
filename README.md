@@ -409,10 +409,14 @@ We don't need NDK that comes with this packages so that can be unchecked.
 
 
 Building Shaderc library:
-Open Command Prompt at directory (ndk_root)\sources\third_party\shaderc
+Open Command Prompt at directory 
+```
+(ndk_root)\sources\third_party\shaderc
+```
 And use this command,
+```
 ..\..\..\ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk APP_STL:=c++_static APP_ABI=arm64-v8a libshaderc_combined APP_PLATFORM=android-28 -j16
-
+```
 Note: If building process gives python "import" errors, try setting this environment path variable, NDK_HOST_PYTHON = (Python_dir)\python.exe
 
 
