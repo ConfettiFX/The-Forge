@@ -285,59 +285,6 @@ Lua function name resolution will work like this:
 Numerous other fixes ...
 
 
-
-
-## Release 1.46 - October 1st, 2020 - Supergiant's Hades | Windows Management | AMD FX Stochastic SS Reflection
-* [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
-
-Here is a screenshot of Hades running on Switch:
-
-![Supergiant Hades](Screenshots/Supergiant_Hades.jpg)
-
-Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
-Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
-
-* Windows management: there is a new functional test named 32_Window that demonstrates windows management on Windows, Linux and macOS. 
-  * The window layout, position, and size are now driven by the client dimensions, meaning that
-the values that the client demands are the exact values the client area will be represented with, regardless of the window style. This allows for much greater flexibility
-and consistency, especially when working with a fullscreen window. 
-  * Multi-monitor support has also been improved significantly, offering smooth consistent transitions between client displays and guaranteeing correct window behavior and data retention. Media layer functionality has been expanded, allowing the client to control mouse positioning, mouse visibility, and mouse visual representation. 
-  * It is now possible to create independent mouse cursors to further customize the application.
-
-Here are the screenshots:
-
-Windows:
-![Windows Management for Windows](Screenshots/32_Window_Win.png)
-
-macOS:
-![Windows Management for macOS](Screenshots/32_Window_macOS.png)
-
-Linux:
-![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
-
-* Screen-Space reflections: we renamed the functional test "10_PixelProjectedReflections" to 10_ScreenSpaceReflections. You have now two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
-
-Here are the screenshots:
-
-Windows final scene:
-![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/SSSR_Scene_with_reflections.png)
-
-Without denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_only_defore_denoise.png)
-
-With denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_with_denoise.png)
-
-PS4:
-![AMD FX Stochastic Screen Space Reflections on PS4](Screenshots/SSSR/SSSR_on_PS4.png)
-
-macOS:
-![AMD FX Stochastic Screen Space Reflections on macOS](Screenshots/SSSR/SSSR_on_macOS.png)
-
-* Resolved GitHub issues:
-  * Issue #183 - VERTEX_ATTRIB_RATE_INSTANCE ignored on macOS 10.12, iOS 10.0
-
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -452,6 +399,83 @@ At the moment, the Android run-time does not support the following unit tests du
 * [Samsung S20 Ultra (Qualcomm Snapdragon 865 (Vulkan 1.1.120))](https://www.gsmarena.com/samsung_galaxy_s20_ultra_5g-10040.php) with Android 10. Please note that this version uses the Qualcomm based chipset compared to the European version that uses the Exynos chipset.
 * [Samsung Galaxy Note9 (Qualcomm 845 Octa-Core (Vulkan 1.1.87))](https://www.samsung.com/us/business/support/owners/product/galaxy-note9-unlocked/) with Android 10.0. Please note this is the Qualcomm version only available in the US
 
+## Setup Android Environment
+1) Using Visual Studio Installer install "Mobile Development with C++". 
+We don't need NDK that comes with this packages so that can be unchecked.
+
+2) Download latest NDK. -- https://developer.android.com/ndk/downloads
+
+3) Add NDK path in Visual Studio (Tools->Options->Android).
+
+
+Building Shaderc library:
+Open Command Prompt at directory (ndk_root)\sources\third_party\shaderc
+And use this command,
+..\..\..\ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk APP_STL:=c++_static APP_ABI=arm64-v8a libshaderc_combined APP_PLATFORM=android-28 -j16
+
+Note: If building process gives python "import" errors, try setting this environment path variable, NDK_HOST_PYTHON = (Python_dir)\python.exe
+
+
+Steps if You want to creat a new Project(--there are quite a few steps but we got you covered :) )
+1) Create A new Native-Activity Application for apk or Satitc Library if you want to build a library.
+
+2) 
+- copy all the includes from pch.h to android_native_app_glue.c and add #include <malloc.h>
+- Delete pch.h and main.cpp 
+- unselect the Use precompiled header files option from project property.
+
+3) Since we need to add UserMacros  
+- CustomSysroot ->  $(VS_NdkRoot)\sysroot
+- TRIPLE  : Refer the table below for values
+
+For respective architecture we insert the corresponding triple value in the macro(we only support ARM and ARM64)
+- ARM		arm-linux-androideabi
+- ARM64		aarch64-linux-android
+
+You can either add property sheets given by us which are included in Android_VisualStudio2017 folder, to your project's current target by selecting Add existing property sheet.
+or create your own and just add those two Macros.
+
+4) add path to include directories and uncheck inherit from parents
+```
+$(CustomSysroot)\usr\include
+$(CustomSysroot)\usr\include\$(TRIPLE)
+$(VS_Ndkroot)\sources\android\native_app_glue
+```
+5)add path to library 
+```
+$(SolutionDir)$(Platform)\$(Configuration)\ (this is where we have all our libs. set it accordingly)
+$(VS_Ndkroot)\sources\third_party\shaderc\libs\c++_static\$(TargetArchAbi)
+```
+6)add path to executable directory and uncheck inherit from parent
+```
+$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin
+```
+ 
+Notes:
+
+Add -lm to you project Linker Command Line options for if you get any undefined math  operations error
+
+If you get error related to "cannot use 'throw' with exceptions disabled"
+- Enable exceptions in C++ Project settings
+
+If you get error related to multiple instances of ioctl 
+ add BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD in preprocessor definitions
+ 
+ If you get errors related to neon support not enabled
+ -Enable Advance SIMD to Yes
+ -Set floating point ABI to softfp
+ 
+
+# Quest 2 Requirements:
+1) Uses Visual studio 2017 with "Mobile Development with C++"  -> see Android Setup above
+2) Follow steps in OS/Android/Visual Studio 2017 setup.txt for full android environment  
+3) Download OVR mobile sdk from oculus website.  https://developer.oculus.com/downloads/package/oculus-mobile-sdk/  
+4) Tested with ovr-mobile-sdk version 1.46  
+5) Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0  
+6) Download vulkan validation libs for android from https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases
+   a) Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/Vulkan-ValidationLayer-1.2.182.0
+   b) Folder should contain the following: Vulkan-ValidationLayer-1.2.182.0/arm64-v8a/libVkLayer_khronos_validation.so
+7) Run examples from Examples_3/Unit_Tests/Quest_VisualStudio2017
 
 
 # Install 
