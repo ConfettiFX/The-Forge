@@ -1605,7 +1605,7 @@ static void streamerThreadFunc(void* pThreadData)
 			eastl::vector<UpdateRequest>& requestQueue = pLoader->mRequestQueue[nodeIndex];
 			CopyEngine&                   copyEngine = pLoader->pCopyEngines[nodeIndex];
 
-			if (!requestQueue.size())
+			if (requestQueue.empty())
 			{
 				releaseMutex(&pLoader->mQueueMutex);
 				continue;
