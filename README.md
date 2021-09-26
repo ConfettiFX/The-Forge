@@ -16,6 +16,7 @@ The Forge is a cross-platform rendering framework supporting
 - PS4 / PS4 Pro *
 - PS5 *
 - Switch using Vulkan 1.1 *
+
 *(only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
