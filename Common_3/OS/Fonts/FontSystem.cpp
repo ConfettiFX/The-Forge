@@ -610,7 +610,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	if (ctx->mUpdateTexture)
 	{
 		// #TODO: Investigate - Causes hang on low-mid end Android phones (tested on Samsung Galaxy A50s)
-#ifndef __ANDROID__
+#ifdef __ANDROID__
 		waitQueueIdle(pCmd->pQueue);
 #endif
 
