@@ -28,13 +28,17 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11CapBuilder.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Commands.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12CapBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRay.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRenderer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IResourceLoader.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IShaderReflection.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\RendererConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\ags\AgsHelper.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\D3D12MemoryAllocator\Direct3D12MemoryAllocator.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
@@ -91,7 +95,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -127,7 +131,7 @@ xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompi
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../../Renderer/RendererConfig.h"
+
 #if defined(_WINDOWS) && !defined(DURANGO)
 #include "nvapi.h"
 #define NVAPI

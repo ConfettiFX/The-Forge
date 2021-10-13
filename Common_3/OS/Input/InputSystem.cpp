@@ -23,6 +23,8 @@
  * under the License.
  */
 
+#include "../../Renderer/RendererConfig.h"
+
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_set.h"
@@ -218,8 +220,10 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
 	*ppVirtualJoystick = pVirtualJoystick;
 }
 
-void exitVirtualJoystick(VirtualJoystick* pVirtualJoystick)
+void exitVirtualJoystick(VirtualJoystick** ppVirtualJoystick)
 {
+	ASSERT(ppVirtualJoystick);
+	VirtualJoystick* pVirtualJoystick = *ppVirtualJoystick;
 	if (!pVirtualJoystick)
 		return; 
 
@@ -233,7 +237,7 @@ void exitVirtualJoystick(VirtualJoystick* pVirtualJoystick)
 #endif
 
 	tf_delete(pVirtualJoystick);
-	pVirtualJoystick = NULL;
+	*ppVirtualJoystick = NULL;
 }
 
 bool addVirtualJoystickPipeline(void* pScreenRenderTarget)
@@ -2045,7 +2049,7 @@ void exitInputSystem()
 	ASSERT(pInputSystem);
 
 #if TOUCH_INPUT
-	exitVirtualJoystick(pVirtualJoystick);
+	exitVirtualJoystick(&pVirtualJoystick);
 #endif
 
 	setCustomMessageProcessor(nullptr);

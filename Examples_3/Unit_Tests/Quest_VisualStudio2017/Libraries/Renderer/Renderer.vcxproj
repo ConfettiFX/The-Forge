@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Quest\VrApiHooks.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Quest\VrApiHooks.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{12d02c10-8fb1-485a-827a-b489cbd8b88f}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>Renderer</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+    <ProjectName>Renderer</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <IncludePath>$(VS_Ndkroot)\sources\third_party\shaderc\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>$(VS_Ndkroot)\sources\third_party\shaderc\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile />
+    <PreBuildEvent>
+      <Command>cd /D $(VS_NdkRoot) &amp;&amp; $(VS_NdkRoot)\ndk-build.cmd NDK_PROJECT_PATH="$(VS_Ndkroot)\sources\third_party\shaderc" APP_BUILD_SCRIPT="$(VS_Ndkroot)\sources\third_party\shaderc\Android.mk" APP_STL:=$(UseOfStl) APP_ABI=$(TargetArchAbi) libshaderc_combined APP_PLATFORM=$(AndroidAPILevel) --debug TOOLCHAIN_PREFIX=$(ToolchainPrebuiltPath)\bin\$(ToolchainPrefix) -j 16</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <FloatABI>
+      </FloatABI>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>cd /D $(VS_NdkRoot) &amp;&amp; $(VS_NdkRoot)\ndk-build.cmd NDK_PROJECT_PATH="$(VS_Ndkroot)\sources\third_party\shaderc" APP_BUILD_SCRIPT="$(VS_Ndkroot)\sources\third_party\shaderc\Android.mk" APP_STL:=$(UseOfStl) APP_ABI=$(TargetArchAbi) libshaderc_combined APP_PLATFORM=$(AndroidAPILevel) --debug TOOLCHAIN_PREFIX=$(ToolchainPrebuiltPath)\bin\$(ToolchainPrefix) -j 16</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

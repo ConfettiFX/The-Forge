@@ -28,6 +28,7 @@
 #ifndef OZZ_OZZ_BASE_PLATFORM_H_
 #define OZZ_OZZ_BASE_PLATFORM_H_
 
+#include "../../../../../../OS/Core/Config.h"
 #include <stdint.h>
 #include <cassert>
 #include <cstddef>

@@ -23,6 +23,9 @@
 */
 
 #pragma once
+
+#include "../RendererConfig.h"
+
 #ifdef DIRECT3D12
 typedef struct GpuDesc
 {

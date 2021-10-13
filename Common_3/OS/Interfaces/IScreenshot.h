@@ -23,6 +23,7 @@
 */
 
 #pragma once
+
 #include "../../Renderer/IRenderer.h"
 
 void initScreenshotInterface(Renderer* pRenderer, Queue* pQueue);

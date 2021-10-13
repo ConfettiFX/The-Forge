@@ -1,40 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\ASMShader_Defs.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\cull_resources.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\Packing.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\Shader_Defs.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\shading.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\vb_resources.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Geometry.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\SDF_Constant.h">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Geometry.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\ASMShader_Defs.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\cull_resources.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\Packing.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\Shader_Defs.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\shading.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Shaders\FSL\Quest\vb_resources.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Geometry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Geometry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -51,24 +33,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_0.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_2.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_4.lua">
-      <Filter>Lua</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
-      <Filter>Lua</Filter>
-    </None>
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_ASM.lua" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_ESM.lua" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_0.lua" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_2.lua" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_MSAA_4.lua" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\09_LightShadowPlayground\Scripts\Test_SDF.lua" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\bakedSDFMeshShadow.comp.fsl">

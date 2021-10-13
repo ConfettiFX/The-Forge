@@ -63,11 +63,13 @@ eastl::vector<Buffer*> gAsyncBufferPointers;
 
 void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pp_texture)
 {
+	COMPILE_ASSERT(sizeof(TextureDesc) == sizeof(::TextureDesc));
 	::addTexture(pRenderer, (::TextureDesc*)pDesc, pp_texture);
 }
 void removeTexture(Renderer* pRenderer, Texture* p_texture) { ::removeTexture(pRenderer, p_texture); }
 void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** pp_render_target)
 {
+	COMPILE_ASSERT(sizeof(RenderTargetDesc) == sizeof(::RenderTargetDesc));
 	::addRenderTarget(pRenderer, (::RenderTargetDesc*)p_desc, pp_render_target);
 }
 void removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target) { ::removeRenderTarget(pRenderer, p_render_target); }
@@ -111,6 +113,7 @@ void updateUniformBuffer(Renderer* pRenderer, Buffer* pBuffer, uint32_t dstOffse
 }
 void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_sampler)
 {
+	COMPILE_ASSERT(sizeof(SamplerDesc) == sizeof(::SamplerDesc));
 	::addSampler(pRenderer, (::SamplerDesc*)pDesc, pp_sampler);
 }
 void removeSampler(Renderer* pRenderer, Sampler* p_sampler) { ::removeSampler(pRenderer, p_sampler); }
@@ -125,22 +128,26 @@ bool hasShaderResource(RootSignature* pRootSignature, const char* pResName)
 // shader functions
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* p_desc, Shader** p_shader_program)
 {
+	COMPILE_ASSERT(sizeof(ShaderLoadDesc) == sizeof(::ShaderLoadDesc));
 	::addShader(pRenderer, (::ShaderLoadDesc*)p_desc, p_shader_program);
 }
 void removeShader(Renderer* pRenderer, Shader* p_shader_program) { ::removeShader(pRenderer, p_shader_program); }
 // pipeline functions
 void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootDesc, RootSignature** pp_root_signature)
 {
+	COMPILE_ASSERT(sizeof(RootSignatureDesc) == sizeof(::RootSignatureDesc));
 	::addRootSignature(pRenderer, (::RootSignatureDesc*)pRootDesc, pp_root_signature);
 }
 void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature) { ::removeRootSignature(pRenderer, pRootSignature); }
 void addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, Pipeline** pp_pipeline)
 {
+	COMPILE_ASSERT(sizeof(PipelineDesc) == sizeof(::PipelineDesc));
 	::addPipeline(pRenderer, (::PipelineDesc*)p_pipeline_settings, pp_pipeline);
 }
 void removePipeline(Renderer* pRenderer, Pipeline* p_pipeline) { ::removePipeline(pRenderer, p_pipeline); }
 void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
 {
+	COMPILE_ASSERT(sizeof(DescriptorSetDesc) == sizeof(::DescriptorSetDesc));
 	::addDescriptorSet(pRenderer, (::DescriptorSetDesc*)pDesc, ppDescriptorSet);
 }
 void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet) { ::removeDescriptorSet(pRenderer, pDescriptorSet); }

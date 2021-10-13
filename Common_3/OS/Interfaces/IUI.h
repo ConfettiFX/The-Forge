@@ -25,6 +25,8 @@
 #ifndef IUI_H
 #define IUI_H
 
+#include "../Core/Config.h"
+
 // SCRIPTED TESTING :
 // For now, if a script file with the name "Test.lua", exist in the script directory, will run once an execution.
 // Lua function name resolution:
@@ -41,16 +43,6 @@
 #define MAX_LABEL_STR_LENGTH 128
 #define MAX_FORMAT_STR_LENGTH 30
 #define MAX_TITLE_STR_LENGTH 128
-
-/****************************************************************************/
-// MARK: - Forge User Interface Master Switch
-/****************************************************************************/
-
-/// Can be used to disable the Forge UI System if desired
-/// All interface functions will become non-operational if disabled
-#ifndef DISABLE_FORGE_UI
-#define USE_FORGE_UI
-#endif
 
 /****************************************************************************/
 // MARK: - UI Widget Data Structures

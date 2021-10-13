@@ -21,6 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+#include "../RendererConfig.h"
 
 #ifdef DIRECT3D12
 

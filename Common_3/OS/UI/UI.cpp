@@ -31,7 +31,7 @@
 #include "../../Renderer/IResourceLoader.h"
 
 // TODO(Alex): Delete this? Seems these files no longer exist.
-#ifdef USE_UI_PRECOMPILED_SHADERS
+#ifdef ENABLE_UI_PRECOMPILED_SHADERS
 #include "Shaders/Compiled/imgui.vert.h"
 #include "Shaders/Compiled/imgui.frag.h"
 #endif
@@ -118,7 +118,7 @@ typedef struct UserInterface
 
 } UserInterface;
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 static UserInterface* pUserInterface = NULL;
 
 namespace ImGui {
@@ -1872,7 +1872,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
 	tf_free(pWidget);
 }
 
-#endif // USE_FORGE_UI
+#endif // ENABLE_FORGE_UI
 
 /****************************************************************************/
 // MARK: - Collapsing Header Widget Public Functions
@@ -1881,7 +1881,7 @@ void destroyWidget(UIWidget* pWidget, bool freeUnderlying)
 // CollapsingHeaderWidget public functions
 UIWidget* uiCreateCollapsingHeaderSubWidget(CollapsingHeaderWidget* pWidget, const char* pLabel, const void* pSubWidget, WidgetType type)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	UIWidget widget{};
 	widget.mType = type;
 	widget.pWidget = (void*)pSubWidget;
@@ -1896,7 +1896,7 @@ UIWidget* uiCreateCollapsingHeaderSubWidget(CollapsingHeaderWidget* pWidget, con
 
 void uiDestroyCollapsingHeaderSubWidget(CollapsingHeaderWidget* pWidget, UIWidget* pSubWidget)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	decltype(pWidget->mGroupedWidgets)::iterator it = eastl::find_if(pWidget->mGroupedWidgets.begin(), pWidget->mGroupedWidgets.end(),
 		[pSubWidget](const UIWidget* pIterWidget) -> bool { return pSubWidget->pWidget == pIterWidget->pWidget; });
 	if (it != pWidget->mGroupedWidgets.end())
@@ -1909,7 +1909,7 @@ void uiDestroyCollapsingHeaderSubWidget(CollapsingHeaderWidget* pWidget, UIWidge
 
 void uiDestroyAllCollapsingHeaderSubWidgets(CollapsingHeaderWidget* pWidget)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (size_t i = 0; i < pWidget->mGroupedWidgets.size(); ++i)
 	{
 		destroyWidget(pWidget->mGroupedWidgets[i], true);
@@ -1919,7 +1919,7 @@ void uiDestroyAllCollapsingHeaderSubWidgets(CollapsingHeaderWidget* pWidget)
 
 void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget, bool collapsed)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	pWidget->mCollapsed = collapsed;
 	pWidget->mPreviousCollapsed = !collapsed;
 #endif
@@ -1932,7 +1932,7 @@ void uiSetCollapsingHeaderWidgetCollapsed(CollapsingHeaderWidget* pWidget, bool 
 // DynamicUIWidgets public functions
 UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabel, const void* pWidget, WidgetType type)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	UIWidget widget{};
 	widget.mType = type;
 	widget.pWidget = (void*)pWidget;
@@ -1948,7 +1948,7 @@ UIWidget* uiCreateDynamicWidgets(DynamicUIWidgets* pDynamicUI, const char* pLabe
 
 void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (size_t i = 0; i < pDynamicUI->mDynamicProperties.size(); ++i)
 	{
 		UIWidget* pWidget = pDynamicUI->mDynamicProperties[i];
@@ -1960,7 +1960,7 @@ void uiShowDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
 
 void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (size_t i = 0; i < pDynamicUI->mDynamicProperties.size(); i++)
 	{
 		// We should not erase the widgets in this for-loop, otherwise the IDs
@@ -1972,7 +1972,7 @@ void uiHideDynamicWidgets(const DynamicUIWidgets* pDynamicUI, UIComponent* pGui)
 
 void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (size_t i = 0; i < pDynamicUI->mDynamicProperties.size(); ++i)
 	{
 		destroyWidget(pDynamicUI->mDynamicProperties[i], true);
@@ -1988,7 +1988,7 @@ void uiDestroyDynamicWidgets(DynamicUIWidgets* pDynamicUI)
 
 void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UIComponent** ppUIComponent)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(ppUIComponent);
 	UIComponent* pComponent = (UIComponent*)(tf_calloc(1, sizeof(UIComponent)));
 	pComponent->mHasCloseButton = false;
@@ -1997,7 +1997,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
 	pComponent->mFlags |= GUI_COMPONENT_FLAGS_START_COLLAPSED;
 #endif
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	// Functions not accessible via normal interface header
 	extern void* fntGetRawFontData(uint32_t fontID);
 	extern uint32_t fntGetRawFontDataSize(uint32_t fontID);
@@ -2026,7 +2026,7 @@ void uiCreateComponent(const char* pTitle, const UIComponentDesc* pDesc, UICompo
 
 void uiDestroyComponent(UIComponent* pGui)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pGui);
 
 	uiDestroyAllComponentWidgets(pGui);
@@ -2044,7 +2044,7 @@ void uiDestroyComponent(UIComponent* pGui)
 
 void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	pUIComponent->mActive = active;
 #endif
 }
@@ -2056,7 +2056,7 @@ void uiSetComponentActive(UIComponent* pUIComponent, bool active)
 // UIComponent public functions
 UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone /* = true*/)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	UIWidget* pBaseWidget = (UIWidget*)tf_calloc(1, sizeof(UIWidget));
 	pBaseWidget->mType = type;
 	pBaseWidget->pWidget = (void*)pWidget;
@@ -2076,7 +2076,7 @@ UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const v
 
 void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	decltype(pGui->mWidgets)::iterator it = eastl::find_if(pGui->mWidgets.begin(), pGui->mWidgets.end(),
 		[pWidget](const UIWidget* pIterWidget) -> bool { return pWidget->pWidget == pIterWidget->pWidget; });
 	if (it != pGui->mWidgets.end())
@@ -2090,7 +2090,7 @@ void uiDestroyComponentWidget(UIComponent* pGui, UIWidget* pWidget)
 
 void uiDestroyAllComponentWidgets(UIComponent* pGui)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (uint32_t i = 0; i < (uint32_t)(pGui->mWidgets.size()); ++i)
 	{
 		destroyWidget(pGui->mWidgets[i], pGui->mWidgetsClone[i]);
@@ -2113,7 +2113,7 @@ void uiDestroyAllComponentWidgets(UIComponent* pGui)
 
 void uiSetComponentFlags(UIComponent* pGui, int32_t flags)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pGui);
 
 	pGui->mFlags = flags;
@@ -2122,7 +2122,7 @@ void uiSetComponentFlags(UIComponent* pGui, int32_t flags)
 
 void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 
 	pWidget->mDeferred = deferred; 
@@ -2131,7 +2131,7 @@ void uiSetWidgetDeferred(UIWidget* pWidget, bool deferred)
 
 void uiSetWidgetOnHoverCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 	ASSERT(callback);
 
@@ -2141,7 +2141,7 @@ void uiSetWidgetOnHoverCallback(UIWidget* pWidget, WidgetCallback callback)
 
 void uiSetWidgetOnActiveCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 	ASSERT(callback);
 
@@ -2151,7 +2151,7 @@ void uiSetWidgetOnActiveCallback(UIWidget* pWidget, WidgetCallback callback)
 
 void uiSetWidgetOnFocusCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 	ASSERT(callback);
 
@@ -2161,7 +2161,7 @@ void uiSetWidgetOnFocusCallback(UIWidget* pWidget, WidgetCallback callback)
 
 void uiSetWidgetOnEditedCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget); 
 	ASSERT(callback); 
 
@@ -2171,7 +2171,7 @@ void uiSetWidgetOnEditedCallback(UIWidget* pWidget, WidgetCallback callback)
 
 void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 	ASSERT(callback);
 
@@ -2181,7 +2181,7 @@ void uiSetWidgetOnDeactivatedCallback(UIWidget* pWidget, WidgetCallback callback
 
 void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, WidgetCallback callback)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pWidget);
 	ASSERT(callback);
 
@@ -2196,7 +2196,7 @@ void uiSetWidgetOnDeactivatedAfterEditCallback(UIWidget* pWidget, WidgetCallback
 // UIApp public functions
 bool platformInitUserInterface()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	UserInterface* pAppUI = tf_new(UserInterface);
 
 	pAppUI->mShowDemoUiWindow = false;
@@ -2238,7 +2238,7 @@ bool platformInitUserInterface()
 
 void platformExitUserInterface()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	for (uint32_t i = 0; i < (uint32_t)pUserInterface->mComponents.size(); ++i)
 	{
 		uiDestroyAllComponentWidgets(pUserInterface->mComponents[i]);
@@ -2255,7 +2255,7 @@ void platformExitUserInterface()
 
 void platformUpdateUserInterface(float deltaTime)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (pUserInterface->mUpdated)
 		return;
 
@@ -2453,7 +2453,7 @@ void platformUpdateUserInterface(float deltaTime)
 
 void initUserInterface(UserInterfaceDesc* pDesc)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	pUserInterface->pRenderer = (Renderer*)pDesc->pRenderer;
 	pUserInterface->pPipelineCache = (PipelineCache*)pDesc->pCache;
 	pUserInterface->mMaxDynamicUIUpdatesPerBatch = pDesc->maxDynamicUIUpdatesPerBatch; 
@@ -2471,7 +2471,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
 
 	if (!pUserInterface->mCustomShader)
 	{
-#ifdef USE_UI_PRECOMPILED_SHADERS
+#ifdef ENABLE_UI_PRECOMPILED_SHADERS
 		BinaryShaderDesc binaryShaderDesc = {};
 		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
 		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderImguiVert);
@@ -2556,7 +2556,7 @@ void initUserInterface(UserInterfaceDesc* pDesc)
 
 void exitUserInterface()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	removeSampler(pUserInterface->pRenderer, pUserInterface->pDefaultSampler);
 	if (!pUserInterface->mCustomShader)
 		removeShader(pUserInterface->pRenderer, pUserInterface->pShaderTextured);
@@ -2577,7 +2577,7 @@ void exitUserInterface()
 
 bool addUserInterfacePipelines(void* pRenderTarget)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ASSERT(pRenderTarget);
 	RenderTarget* pRT = (RenderTarget*)pRenderTarget;
 	pUserInterface->mWidth = (float)pRT->mWidth;
@@ -2630,7 +2630,7 @@ bool addUserInterfacePipelines(void* pRenderTarget)
 
 void removeUserInterfacePipelines()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 #if TOUCH_INPUT
 	extern bool removeVirtualJoystickPipeline(); 
 	removeVirtualJoystickPipeline();
@@ -2642,7 +2642,7 @@ void removeUserInterfacePipelines()
 
 void cmdDrawUserInterface(void* pCmd)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	Cmd* cmd = (Cmd*)pCmd; 
 
 	extern void drawProfilerUI();
@@ -2783,7 +2783,7 @@ void cmdDrawUserInterface(void* pCmd)
 
 bool uiOnText(const wchar_t* pText)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ImGui::SetCurrentContext(pUserInterface->context);
 	ImGuiIO& io = ImGui::GetIO();
 	uint32_t len = (uint32_t)wcslen(pText);
@@ -2798,7 +2798,7 @@ bool uiOnText(const wchar_t* pText)
 
 bool uiOnButton(uint32_t button, bool press, const float2* pVec)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ImGui::SetCurrentContext(pUserInterface->context);
 	ImGuiIO& io = ImGui::GetIO();
 	pUserInterface->pMovePosition = pVec;
@@ -2911,7 +2911,7 @@ bool uiOnButton(uint32_t button, bool press, const float2* pVec)
 
 uint8_t uiWantTextInput()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ImGui::SetCurrentContext(pUserInterface->context);
 	//The User flags are not what I expect them to be.
 	//We need access to Per-Component InputFlags
@@ -2936,7 +2936,7 @@ uint8_t uiWantTextInput()
 
 bool uiIsFocused()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	ImGui::SetCurrentContext(pUserInterface->context);
 	return ImGui::GetIO().WantCaptureMouse;
 #else

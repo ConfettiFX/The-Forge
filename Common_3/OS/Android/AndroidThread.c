@@ -26,6 +26,8 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
+#include "../Core/UnixThreadID.h"
+
 #include <sys/prctl.h>
 
 #include "../Interfaces/IMemory.h"
@@ -108,7 +110,7 @@ static ThreadID mainThreadID = 0;
 
 void setMainThread() { mainThreadID = getCurrentThreadID(); }
 
-ThreadID getCurrentThreadID() { return pthread_self(); }
+ThreadID getCurrentThreadID() { return getCurrentPthreadID(); }
 
 void getCurrentThreadName(char* buffer, int buffer_size)
 {
@@ -122,7 +124,7 @@ void setCurrentThreadName(const char* name)
 	prctl(PR_SET_NAME, name);    // Use this since pthread_setname is non portable for lower api versions
 }
 
-bool isMainThread() { return (bool)pthread_equal(getCurrentThreadID(), mainThreadID); }
+bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 
 void threadSleep(unsigned mSec) { usleep(mSec * 1000); }
 

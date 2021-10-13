@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 
 	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
-	initLog(gApplicationName, LogLevel::eALL);
+	initLog(gApplicationName, DEFAULT_LOG_LEVEL);
 
 	int ret = AssetPipelineCmd(argc, argv);
 

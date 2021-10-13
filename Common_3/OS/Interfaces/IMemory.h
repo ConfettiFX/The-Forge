@@ -32,6 +32,8 @@
 #ifndef IMEMORY_H
 #define IMEMORY_H
 
+#include "../Core/Config.h"
+
 #ifdef __cplusplus
 #include <new>
 #include "../../ThirdParty/OpenSource/EASTL/utility.h"

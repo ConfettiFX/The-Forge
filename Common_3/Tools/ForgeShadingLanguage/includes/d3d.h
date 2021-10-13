@@ -720,6 +720,8 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 #define Depth2D Tex2D
 #define Depth2DMS Tex2DMS
 
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE) const TYPE NAME = VALUE
+
 #define FSL_CONST(TYPE, NAME) static const TYPE NAME
 #define STATIC static
 #define INLINE inline

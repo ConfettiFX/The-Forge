@@ -22,6 +22,7 @@
  * under the License.
 */
 
+#include "../../Renderer/RendererConfig.h"
 #include "ProfilerBase.h"
 #include "GpuProfiler.h"
 
@@ -41,32 +42,7 @@
 
 #include "../Interfaces/IMemory.h"
 
-#if 0 == PROFILE_ENABLED
-void initProfiler(Renderer* pRenderer, Queue** ppQueue, const char** ppProfilerNames, ProfileToken* pProfileTokens, uint32_t nGpuProfilerCount) {}
-void exitProfiler() {}
-void flipProfiler() {}
-void dumpProfileData(const char* appName, uint32_t nMaxFrames) {}
-void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char* appName) {}
-void setAggregateFrames(uint32_t nFrames) {}
-float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
-
-float getCpuFrameTime() { return -1.0f; }
-float getCpuAvgFrameTime() { return -1.0f; }
-float getCpuMinFrameTime() { return -1.0f; }
-float getCpuMaxFrameTime() { return -1.0f; }
-
-uint64_t cpuProfileEnter(ProfileToken nToken) { return 0; }
-void cpuProfileLeave(ProfileToken nToken, uint64_t nTick) {}
-ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor) { return PROFILE_INVALID_TOKEN; }
-
-float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc) {}
-float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, FontDrawDesc* pDrawDesc) {}
-void toggleProfilerUI() {}
-#else
-
+#ifdef ENABLE_PROFILER
 /////////////////////////////////////////////////////////////////////////////
 // PROFILER UI DECLARATIONS
 
@@ -95,7 +71,7 @@ float2 gScreenPos;
 char gCpuProfileText[32] = { 0 };
 
 #ifndef __ANDROID__
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 const char gGpuProfileTitleText[] = "-----GPU Times-----";
 #endif
 #endif
@@ -207,7 +183,7 @@ const char* pDumpFramesDetailedViewNames[] = {
 	"16",
 };
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 const uint32_t gProfileModesValues[] = {
 	PROFILE_MODE_TIMER,
 	PROFILE_MODE_DETAILED,
@@ -292,10 +268,6 @@ void initGpuProfilers();
 void exitGpuProfilers();
 
 #if defined(_WINDOWS) || defined(XBOX)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
 #if !defined(_MSC_VER) || _MSC_VER < 1900    // VS2015 includes proper snprintf
 #define snprintf _snprintf
 #endif
@@ -318,7 +290,7 @@ int64_t ProfileGetTick()
 
 #endif
 
-#if PROFILE_WEBSERVER
+#ifdef ENABLE_PROFILER_WEBSERVER
 
 #if defined(_WINDOWS) || defined(XBOX)
 #if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
@@ -340,7 +312,7 @@ int64_t ProfileGetTick()
 
 #endif
 
-#if PROFILE_WEBSERVER || PROFILE_CONTEXT_SWITCH_TRACE
+#if defined(ENABLE_PROFILER_WEBSERVER) || PROFILE_CONTEXT_SWITCH_TRACE
 typedef ThreadFunction ProfileThreadFunc;
 
 inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
@@ -512,7 +484,7 @@ void ProfileCallbkReferenceTimeUpdated()
 void profileDrawDetailedModeGrid(
 	float startHeightPixels, float startWidthPixels, float interLineDistance, uint32_t totalLines, float lineHeight)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	float x = startWidthPixels;
 
 	for (uint32_t i = 0; i < totalLines; ++i)
@@ -737,7 +709,7 @@ void profileUpdateDetailedModeTooltip(Profile& S)
 /// Main functionality to draw the horizontal UI for detailed mode.
 void profileDrawDetailedMode(Profile& S)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	// Remove any tooltip widgets.
 	for (uint32_t i = 0; i < gDetailedModeTooltips.size(); ++i)
 	{
@@ -897,7 +869,7 @@ void profileUpdatePlotModeData(Profile& S, int frameNum)
 
 void profileDrawPlotMode(Profile& S)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	// Remove any previous widgets.
 	for (uint32_t i = 0; i < gPlotModeWidgets.size(); ++i)
 	{
@@ -990,7 +962,7 @@ void profileDrawPlotMode(Profile& S)
 // Timer mode functions.
 void profileDrawTimerMode(Profile& S)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	const char* headerNames[10] = { "Group/Timer",  "Time",       "Average Time",   "Max Time",          "Min Time",
 									"Call Average", "Call Count", "Exclusive Time", "Exclusive Average", "Exclusive Max Time" };
 
@@ -1209,7 +1181,7 @@ void profileUpdateTimerModeData(Profile& S, uint32_t groupIndex, uint32_t timerI
 
 void resetProfilerUI()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (pWidgetUIComponent)
 	{
 		uiDestroyAllComponentWidgets(pWidgetUIComponent);
@@ -1313,7 +1285,7 @@ void drawGpuProfileRecursive(
 float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc)
 {
 #ifndef __ANDROID__
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDrawDesc);
 
 	GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
@@ -1342,7 +1314,7 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfi
 
 float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDrawDesc);
 
 	sprintf(gCpuProfileText, "CPU %f ms", getCpuAvgFrameTime());
@@ -1360,7 +1332,7 @@ float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDraw
 /// Draws the top menu and draws the selected timer mode.
 void profileLoadWidgetUI(Profile& S)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	resetProfilerUI();
 
 	eastl::vector<UIWidget*> topMenu;
@@ -1560,7 +1532,7 @@ void profileUpdateProfileMode(Profile& S)
 /// Get data for the header histograms and updates the plot mode data. Called every frame.
 void profileUpdateWidgetUI(Profile& S)
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	float    fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 
@@ -1651,7 +1623,7 @@ void toggleProfilerUI() { gProfilerWidgetUIEnabled = (gProfilerWidgetUIEnabled =
 
 void drawProfilerUI()
 {
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (!pMenuUIComponent || !pWidgetUIComponent)
 		return; 
 
@@ -1820,12 +1792,12 @@ void initProfiler(ProfilerDesc* pDesc)
 {
 	// PROFILER BASE
 
-#if PROFILE_ENABLED
+#ifdef ENABLE_PROFILER
 	ProfileInit();
 	ProfileSetEnableAllGroups(true);
 	ProfileWebServerStart();
 
-#if GPU_PROFILER_SUPPORTED
+#ifdef ENABLE_GPU_PROFILER
 	initGpuProfilers();
 
 	if (pDesc->mGpuProfilerCount > 0)
@@ -1843,7 +1815,7 @@ void initProfiler(ProfilerDesc* pDesc)
 
 	// PROFILER UI
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	// Remove previous GUI component.
 	if (pWidgetUIComponent)
 	{
@@ -1922,7 +1894,7 @@ void exitProfiler()
 {
 	// PROFILER UI
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	resetProfilerUI();
 
 	gWidgetTable.set_capacity(0);
@@ -1947,10 +1919,10 @@ void exitProfiler()
 
 	// PROFILER BASE
 
-#if PROFILE_ENABLED
+#ifdef ENABLE_PROFILER
 	exitCpuProfiler();
 
-#if GPU_PROFILER_SUPPORTED
+#ifdef ENABLE_GPU_PROFILER
 	exitGpuProfilers();
 #endif
 #endif
@@ -2230,7 +2202,7 @@ ProfileToken ProfileGetToken(const char* pGroup, const char* pName, uint32_t nCo
 
 ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor)
 {
-#if PROFILE_ENABLED
+#ifdef ENABLE_PROFILER
 	return ProfileGetToken(pGroup, pName, nColor);
 #endif
 	return 0;
@@ -4248,7 +4220,7 @@ void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const
     }
 }
 
-#if PROFILE_WEBSERVER
+#ifdef ENABLE_PROFILER_WEBSERVER
 uint32_t ProfileWebServerPort()
 {
 	Profile& S = g_Profile;
@@ -4914,4 +4886,30 @@ const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32
 #include "ProfilerHTML.h"
 #endif    //PROFILE_EMBED_HTML
 
+#else
+
+void initProfiler(ProfilerDesc* pDesc) {}
+void exitProfiler() {}
+void flipProfiler() {}
+void dumpProfileData(const char* appName, uint32_t nMaxFrames) {}
+void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename, const char* appName) {}
+void setAggregateFrames(uint32_t nFrames) {}
+float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
+float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
+float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
+float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
+
+float getCpuFrameTime() { return -1.0f; }
+float getCpuAvgFrameTime() { return -1.0f; }
+float getCpuMinFrameTime() { return -1.0f; }
+float getCpuMaxFrameTime() { return -1.0f; }
+
+uint64_t cpuProfileEnter(ProfileToken nToken) { return 0; }
+void cpuProfileLeave(ProfileToken nToken, uint64_t nTick) {}
+ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor) { return PROFILE_INVALID_TOKEN; }
+
+float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc) { return float2{}; }
+float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc) { return float2{}; }
+void drawProfilerUI() {}
+void toggleProfilerUI() {}
 #endif

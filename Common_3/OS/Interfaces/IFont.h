@@ -27,18 +27,9 @@
 
 #define MAX_FONTS 16
 
+#include "../Core/Config.h"
 #include "../Math/MathTypes.h"
 #include "../Interfaces/ICameraController.h"
-
-/****************************************************************************/
-// MARK: - Forge Font System Master Switch
-/****************************************************************************/
-
-/// Can be used to disable the Forge Font Loading/Rendering System if desired
-/// All interface functions will become non-operational if disabled
-#ifndef DISABLE_FORGE_FONTS
-#define USE_FORGE_FONTS
-#endif
 
 /****************************************************************************/
 // MARK: - Public Font System Structs

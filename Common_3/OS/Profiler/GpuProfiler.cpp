@@ -22,10 +22,11 @@
  * under the License.
 */
 
+#include "../../Renderer/RendererConfig.h"
 #include "GpuProfiler.h"
 #include "../Interfaces/IProfiler.h"
 
-#if 0 == GPU_PROFILER_SUPPORTED
+#ifndef ENABLE_GPU_PROFILER
 ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName) { return PROFILE_INVALID_TOKEN; }
 void cmdBeginGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken, bool bUseMarker) {}
 void cmdEndGpuFrameProfile(Cmd* pCmd, ProfileToken nProfileToken) {}
@@ -37,6 +38,7 @@ float getGpuProfileMinTime(ProfileToken nProfileToken) { return -1.0f; }
 float getGpuProfileMaxTime(ProfileToken nProfileToken) { return -1.0f; }
 uint64_t getGpuProfileTicksPerSecond(ProfileToken nProfileToken) { return 0; }
 GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
+void removeGpuProfiler(ProfileToken nProfileToken) {}
 #else
 
 #include "ProfilerBase.h"

@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../Core/Config.h"
+
 extern "C"
 {
 #include "../../ThirdParty/OpenSource/lua-5.3.5/src/lua.h"

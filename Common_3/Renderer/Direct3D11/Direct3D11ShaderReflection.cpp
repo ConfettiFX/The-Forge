@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef DIRECT3D11
 #include "../IRenderer.h"
 #include "../../OS/Interfaces/ILog.h"

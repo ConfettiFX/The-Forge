@@ -22,6 +22,10 @@
 // * under the License.
 //*/
 
+#include "../Core/Config.h"
+
+#ifdef ENABLE_ZIP_FILESYSTEM
+
 #include "../../ThirdParty/OpenSource/minizip/mz.h"
 #include "../../ThirdParty/OpenSource/minizip/mz_crypt.h"
 #include "../../ThirdParty/OpenSource/minizip/mz_os.h"
@@ -776,3 +780,49 @@ bool fsFetchZipEntryName(IFileSystem* pIO, uint64_t index, char* pBuffer, size_t
 	}
 	return noerr;
 }
+
+#else
+
+#include "../Interfaces/IFileSystem.h"
+
+bool initZipFileSystem(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, const char* password, IFileSystem* pOut)
+{
+	return false;
+}
+
+bool exitZipFileSystem(IFileSystem* pZip)
+{
+	return false;
+}
+
+bool fsEntryCountZipFile(IFileSystem* pIO, uint64_t* pOut)
+{
+	return false;
+}
+
+bool fsOpenZipEntryByIndex(IFileSystem* pIO, uint64_t index, FileMode mode, const char* filePassword, FileStream* pOut)
+{
+	return false;
+}
+
+bool fsOpenZipFile(IFileSystem* pIO)
+{
+	return false;
+}
+
+bool fsCloseZipFile(IFileSystem* pIO)
+{
+	return false;
+}
+
+bool fsFetchZipEntryIndex(IFileSystem* pIO, ResourceDirectory resourceDir, const char* pFileName, uint64_t* pOut)
+{
+	return false;
+}
+
+bool fsFetchZipEntryName(IFileSystem* pIO, uint64_t index, char* pBuffer, size_t* pSize, size_t bufferSize)
+{
+	return false;
+}
+
+#endif

@@ -60,9 +60,6 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
-        <Preprocessor Value="VULKAN"/>
-        <Preprocessor Value="_DEBUG"/>
-        <Preprocessor Value="USE_MEMORY_TRACKING"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
@@ -139,8 +136,6 @@ shaders:&#xD;
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
-        <Preprocessor Value="VULKAN"/>
-        <Preprocessor Value="NDEBUG"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>

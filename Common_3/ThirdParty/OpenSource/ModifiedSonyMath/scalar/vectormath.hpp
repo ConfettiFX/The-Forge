@@ -73,6 +73,9 @@ class Quat;
 class Matrix3;
 class Matrix4;
 class Transform3;
+class Vector3d;
+class Vector4d;
+class Matrix4d;
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
 //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
@@ -133,6 +136,13 @@ public:
     // Set all elements of a 3-D vector to the same scalar value
     //
     explicit inline Vector3(float scalar);
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+    // Copy a high precision 3-D vector
+    // NOTE: Reduces precision
+    //
+    inline Vector3(const Vector3d & vec);
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
     // Assign one 3-D vector to another
     //
@@ -423,6 +433,12 @@ public:
     explicit inline Vector4(float scalar);
 
     //========================================= #TheForgeMathExtensionsBegin ================================================
+
+	// Copy a high precision 4-D vector
+    // NOTE: Reduces precision
+	//
+	explicit inline Vector4(const Vector4d & vec);
+
     //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
     // Convert from integer vector to float vector.
@@ -777,6 +793,682 @@ inline void print(const Vector4 & vec);
 inline void print(const Vector4 & vec, const char * name);
 
 #endif // VECTORMATH_DEBUG
+//========================================= #TheForgeMathExtensionsBegin ================================================
+
+// ========================================================
+// A high precision 3-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class Vector3d
+{
+    double mX;
+    double mY;
+    double mZ;
+    double mW;
+
+public:
+
+    // Default constructor; does no initialization
+    //
+    inline Vector3d() { }
+
+    // Copy a 3-D vector
+    //
+    inline Vector3d(const Vector3d & vec);
+
+    // Construct a 3-D vector from x, y, and z elements
+    //
+    inline Vector3d(double x, double y, double z);
+
+    // Copy elements from a 3-D point into a 3-D vector
+    //
+    explicit inline Vector3d(const Point3 & pnt);
+
+    // Set all elements of a 3-D vector to the same scalar value
+    //
+    explicit inline Vector3d(double scalar);
+
+    // Assign one 3-D vector to another
+    //
+    inline Vector3d & operator = (const Vector3d & vec);
+
+    // Set the x element of a 3-D vector
+    //
+    inline Vector3d & setX(double x);
+
+    // Set the y element of a 3-D vector
+    //
+    inline Vector3d & setY(double y);
+
+    // Set the z element of a 3-D vector
+    //
+    inline Vector3d & setZ(double z);
+
+    // Set the w element of a padded 3-D vector
+    // NOTE:
+    // You are free to use the additional w component - if never set, it's value is undefined.
+    //
+    inline Vector3d & setW(double w);
+
+    // Get the x element of a 3-D vector
+    //
+    inline double getX() const;
+
+    // Get the y element of a 3-D vector
+    //
+    inline double getY() const;
+
+    // Get the z element of a 3-D vector
+    //
+    inline double getZ() const;
+
+    // Get the w element of a padded 3-D vector
+    // NOTE:
+    // You are free to use the additional w component - if never set, it's value is undefined.
+    //
+    inline double getW() const;
+
+    // Set an x, y, or z element of a 3-D vector by index
+    //
+    inline Vector3d & setElem(int idx, double value);
+
+    // Get an x, y, or z element of a 3-D vector by index
+    //
+    inline double getElem(int idx) const;
+
+    // Subscripting operator to set or get an element
+    //
+    inline double & operator[](int idx);
+
+    // Subscripting operator to get an element
+    //
+    inline double operator[](int idx) const;
+
+    // Add two 3-D vectors
+    //
+    inline const Vector3d operator + (const Vector3d & vec) const;
+
+    // Subtract a 3-D vector from another 3-D vector
+    //
+    inline const Vector3d operator - (const Vector3d & vec) const;
+
+    // Multiply a 3-D vector by a scalar
+    //
+    inline const Vector3d operator * (double scalar) const;
+
+    // Divide a 3-D vector by a scalar
+    //
+    inline const Vector3d operator / (double scalar) const;
+
+    // Perform compound assignment and addition with a 3-D vector
+    //
+    inline Vector3d & operator += (const Vector3d & vec);
+
+    // Perform compound assignment and subtraction by a 3-D vector
+    //
+    inline Vector3d & operator -= (const Vector3d & vec);
+
+    // Perform compound assignment and multiplication by a scalar
+    //
+    inline Vector3d & operator *= (double scalar);
+
+    // Perform compound assignment and division by a scalar
+    //
+    inline Vector3d & operator /= (double scalar);
+
+    // Negate all elements of a 3-D vector
+    //
+    inline const Vector3d operator - () const;
+
+    // Construct x axis
+    //
+    static inline const Vector3d xAxis();
+
+    // Construct y axis
+    //
+    static inline const Vector3d yAxis();
+
+    // Construct z axis
+    //
+    static inline const Vector3d zAxis();
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 3-D vector by a scalar
+//
+inline const Vector3d operator * (double scalar, const Vector3d & vec);
+
+// Multiply two 3-D vectors per element
+//
+inline const Vector3d mulPerElem(const Vector3d & vec0, const Vector3d & vec1);
+
+// Divide two 3-D vectors per element
+// NOTE:
+// doubleing-point behavior matches standard library function divf4.
+//
+inline const Vector3d divPerElem(const Vector3d & vec0, const Vector3d & vec1);
+
+// Compute the reciprocal of a 3-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function recipf4.
+//
+inline const Vector3d recipPerElem(const Vector3d & vec);
+
+// Compute the square root of a 3-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function sqrtf4.
+//
+inline const Vector3d sqrtPerElem(const Vector3d & vec);
+
+// Compute the reciprocal square root of a 3-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function rsqrtf4.
+//
+inline const Vector3d rsqrtPerElem(const Vector3d & vec);
+
+// Compute the absolute value of a 3-D vector per element
+//
+inline const Vector3d absPerElem(const Vector3d & vec);
+
+// Copy sign from one 3-D vector to another, per element
+//
+inline const Vector3d copySignPerElem(const Vector3d & vec0, const Vector3d & vec1);
+
+// Maximum of two 3-D vectors per element
+//
+inline const Vector3d maxPerElem(const Vector3d & vec0, const Vector3d & vec1);
+
+// Minimum of two 3-D vectors per element
+//
+inline const Vector3d minPerElem(const Vector3d & vec0, const Vector3d & vec1);
+
+// Maximum element of a 3-D vector
+//
+inline double maxElem(const Vector3d & vec);
+
+// Minimum element of a 3-D vector
+//
+inline double minElem(const Vector3d & vec);
+
+// Compute the sum of all elements of a 3-D vector
+//
+inline double sum(const Vector3d & vec);
+
+// Compute the dot product of two 3-D vectors
+//
+inline double dot(const Vector3d & vec0, const Vector3d & vec1);
+
+// Compute the square of the length of a 3-D vector
+//
+inline double lengthSqr(const Vector3d & vec);
+
+// Compute the length of a 3-D vector
+//
+inline double length(const Vector3d & vec);
+
+// Normalize a 3-D vector
+// NOTE:
+// The result is unpredictable when all elements of vec are at or near zero.
+//
+inline const Vector3d normalize(const Vector3d & vec);
+
+// Compute cross product of two 3-D vectors
+//
+inline const Vector3d cross(const Vector3d & vec0, const Vector3d & vec1);
+
+// Outer product of two 3-D vectors
+//
+inline const Matrix3 outer(const Vector3d & vec0, const Vector3d & vec1);
+
+// Pre-multiply a row vector by a 3x3 matrix
+//
+inline const Vector3d rowMul(const Vector3d & vec, const Matrix3 & mat);
+
+// Cross-product matrix of a 3-D vector
+//
+inline const Matrix3 crossMatrix(const Vector3d & vec);
+
+// Create cross-product matrix and multiply
+// NOTE:
+// Faster than separately creating a cross-product matrix and multiplying.
+//
+inline const Matrix3 crossMatrixMul(const Vector3d & vec, const Matrix3 & mat);
+
+// Linear interpolation between two 3-D vectors
+// NOTE:
+// Does not clamp t between 0 and 1.
+//
+inline const Vector3d lerp(double t, const Vector3d & vec0, const Vector3d & vec1);
+
+// Spherical linear interpolation between two 3-D vectors
+// NOTE:
+// The result is unpredictable if the vectors point in opposite directions.
+// Does not clamp t between 0 and 1.
+//
+inline const Vector3d slerp(double t, const Vector3d & unitVec0, const Vector3d & unitVec1);
+
+// Conditionally select between two 3-D vectors
+//
+inline const Vector3d select(const Vector3d & vec0, const Vector3d & vec1, bool select1);
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 3-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Vector3d & vec);
+
+// Print a 3-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Vector3d & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
+// A high precision 4-D vector in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class Vector4d
+{
+    double mX;
+    double mY;
+    double mZ;
+    double mW;
+
+public:
+
+    // Default constructor; does no initialization
+    //
+    inline Vector4d() { }
+
+    // Copy a 4-D vector
+    //
+    inline Vector4d(const Vector4d & vec);
+
+    // Construct a 4-D vector from x, y, z, and w elements
+    //
+    inline Vector4d(double x, double y, double z, double w);
+
+    // Construct a 4-D vector from a 3-D vector and a scalar
+    //
+    inline Vector4d(const Vector3d & xyz, double w);
+
+    // Copy x, y, and z from a 3-D vector into a 4-D vector, and set w to 0
+    //
+    explicit inline Vector4d(const Vector3d & vec);
+
+    // Copy x, y, and z from a 3-D point into a 4-D vector, and set w to 1
+    //
+    explicit inline Vector4d(const Point3 & pnt);
+
+    // Copy elements from a quaternion into a 4-D vector
+    //
+    explicit inline Vector4d(const Quat & quat);
+
+    // Set all elements of a 4-D vector to the same scalar value
+    //
+    explicit inline Vector4d(double scalar);
+
+    //========================================= #TheForgeMathExtensionsBegin ================================================
+    //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+    // Convert from integer vector to double vector.
+    //
+	static inline const Vector4d fromVector4Int(const Vector4Int vecInt);
+
+    //========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+    //========================================= #TheForgeMathExtensionsEnd ================================================
+
+    // Assign one 4-D vector to another
+    //
+    inline Vector4d & operator = (const Vector4d & vec);
+
+    // Set the x, y, and z elements of a 4-D vector
+    // NOTE:
+    // This function does not change the w element.
+    //
+    inline Vector4d & setXYZ(const Vector3d & vec);
+
+    // Get the x, y, and z elements of a 4-D vector
+    //
+    inline const Vector3d getXYZ() const;
+
+    // Set the x element of a 4-D vector
+    //
+    inline Vector4d & setX(double x);
+
+    // Set the y element of a 4-D vector
+    //
+    inline Vector4d & setY(double y);
+
+    // Set the z element of a 4-D vector
+    //
+    inline Vector4d & setZ(double z);
+
+    // Set the w element of a 4-D vector
+    //
+    inline Vector4d & setW(double w);
+
+    // Get the x element of a 4-D vector
+    //
+    inline double getX() const;
+
+    // Get the y element of a 4-D vector
+    //
+    inline double getY() const;
+
+    // Get the z element of a 4-D vector
+    //
+    inline double getZ() const;
+
+    // Get the w element of a 4-D vector
+    //
+    inline double getW() const;
+
+    // Set an x, y, z, or w element of a 4-D vector by index
+    //
+    inline Vector4d & setElem(int idx, double value);
+
+    // Get an x, y, z, or w element of a 4-D vector by index
+    //
+    inline double getElem(int idx) const;
+
+    // Subscripting operator to set or get an element
+    //
+    inline double & operator[](int idx);
+
+    // Subscripting operator to get an element
+    //
+    inline double operator[](int idx) const;
+
+    // Add two 4-D vectors
+    //
+    inline const Vector4d operator + (const Vector4d & vec) const;
+
+    // Subtract a 4-D vector from another 4-D vector
+    //
+    inline const Vector4d operator - (const Vector4d & vec) const;
+
+    // Multiply a 4-D vector by a scalar
+    //
+    inline const Vector4d operator * (double scalar) const;
+
+    // Divide a 4-D vector by a scalar
+    //
+    inline const Vector4d operator / (double scalar) const;
+
+    // Perform compound assignment and addition with a 4-D vector
+    //
+    inline Vector4d & operator += (const Vector4d & vec);
+
+    // Perform compound assignment and subtraction by a 4-D vector
+    //
+    inline Vector4d & operator -= (const Vector4d & vec);
+
+    // Perform compound assignment and multiplication by a scalar
+    //
+    inline Vector4d & operator *= (double scalar);
+
+    // Perform compound assignment and division by a scalar
+    //
+    inline Vector4d & operator /= (double scalar);
+
+    // Negate all elements of a 4-D vector
+    //
+    inline const Vector4d operator - () const;
+
+    // Construct x axis
+    //
+    static inline const Vector4d xAxis();
+
+    // Construct y axis
+    //
+    static inline const Vector4d yAxis();
+
+    // Construct z axis
+    //
+    static inline const Vector4d zAxis();
+
+    // Construct w axis
+    //
+    static inline const Vector4d wAxis();
+
+	//========================================= #TheForgeMathExtensionsBegin ================================================
+    //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+    // Construct zero vector
+    //
+    static inline const Vector4d zero();
+
+    // Construct one vector
+    //
+    static inline const Vector4d one();
+
+    // Get a pointer to the mX element
+    //
+    inline const double * getXPtr() const;
+
+    //========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+	//========================================= #TheForgeMathExtensionsEnd ================================================
+
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 4-D vector by a scalar
+//
+inline const Vector4d operator * (double scalar, const Vector4d & vec);
+
+// Multiply two 4-D vectors per element
+//
+inline const Vector4d mulPerElem(const Vector4d & vec0, const Vector4d & vec1);
+
+// Divide two 4-D vectors per element
+// NOTE:
+// doubleing-point behavior matches standard library function divf4.
+//
+inline const Vector4d divPerElem(const Vector4d & vec0, const Vector4d & vec1);
+
+// Compute the reciprocal of a 4-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function recipf4.
+//
+inline const Vector4d recipPerElem(const Vector4d & vec);
+
+// Compute the square root of a 4-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function sqrtf4.
+//
+inline const Vector4d sqrtPerElem(const Vector4d & vec);
+
+// Compute the reciprocal square root of a 4-D vector per element
+// NOTE:
+// doubleing-point behavior matches standard library function rsqrtf4.
+//
+inline const Vector4d rsqrtPerElem(const Vector4d & vec);
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+// Returns the per component estimated reciprocal of v.
+//
+inline const Vector4d rcpEst(const Vector4d& v);
+
+// Returns the per component estimated reciprocal square root of v.
+//
+inline const Vector4d rSqrtEst(const Vector4d& v);
+
+// Returns the per component estimated reciprocal square root of v, where
+// approximation is improved with one more new Newton-Raphson step.
+//
+inline const Vector4d rSqrtEstNR(const Vector4d& v);
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+// Compute the absolute value of a 4-D vector per element
+//
+inline const Vector4d absPerElem(const Vector4d & vec);
+
+// Copy sign from one 4-D vector to another, per element
+//
+inline const Vector4d copySignPerElem(const Vector4d & vec0, const Vector4d & vec1);
+
+// Maximum of two 4-D vectors per element
+//
+inline const Vector4d maxPerElem(const Vector4d & vec0, const Vector4d & vec1);
+
+// Minimum of two 4-D vectors per element
+//
+inline const Vector4d minPerElem(const Vector4d & vec0, const Vector4d & vec1);
+
+// Maximum element of a 4-D vector
+//
+inline double maxElem(const Vector4d & vec);
+
+// Minimum element of a 4-D vector
+//
+inline double minElem(const Vector4d & vec);
+
+// Compute the sum of all elements of a 4-D vector
+//
+inline double sum(const Vector4d & vec);
+
+// Compute the dot product of two 4-D vectors
+//
+inline double dot(const Vector4d & vec0, const Vector4d & vec1);
+
+// Compute the square of the length of a 4-D vector
+//
+inline double lengthSqr(const Vector4d & vec);
+
+// Compute the length of a 4-D vector
+//
+inline double length(const Vector4d & vec);
+
+// Normalize a 4-D vector
+// NOTE:
+// The result is unpredictable when all elements of vec are at or near zero.
+//
+inline const Vector4d normalize(const Vector4d & vec);
+
+// Outer product of two 4-D vectors
+//
+inline const Matrix4 outer(const Vector4d & vec0, const Vector4d & vec1);
+
+// Linear interpolation between two 4-D vectors
+// NOTE:
+// Does not clamp t between 0 and 1.
+//
+inline const Vector4d lerp(double t, const Vector4d & vec0, const Vector4d & vec1);
+
+// Spherical linear interpolation between two 4-D vectors
+// NOTE:
+// The result is unpredictable if the vectors point in opposite directions.
+// Does not clamp t between 0 and 1.
+//
+inline const Vector4d slerp(double t, const Vector4d & unitVec0, const Vector4d & unitVec1);
+
+// Conditionally select between two 4-D vectors
+//
+inline const Vector4d select(const Vector4d & vec0, const Vector4d & vec1, bool select1);
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+// Per element "equal" comparison of _a and _b.
+inline const Vector4Int cmpEq(const Vector4d& a, const Vector4d& b);
+
+// Per element "not equal" comparison of _a and _b.
+inline const Vector4Int cmpNotEq(const Vector4d& a, const Vector4d& b);
+
+// Per element "less than" comparison of _a and _b.
+inline const Vector4Int cmpLt(const Vector4d& a, const Vector4d& b);
+
+// Per element "less than or equal" comparison of _a and _b.
+inline const Vector4Int cmpLe(const Vector4d& a, const Vector4d& b);
+
+// Per element "greater than" comparison of _a and _b.
+inline const Vector4Int cmpGt(const Vector4d& a, const Vector4d& b);
+
+// Per element "greater than or equal" comparison of _a and _b.
+inline const Vector4Int cmpGe(const Vector4d& a, const Vector4d& b);
+
+// Returns the sign bit of v.
+inline const Vector4Int signBit(const Vector4d& v);
+
+// Returns per element binary logical xor operation of _a and _b.
+// _v[0...127] = _a[0...127] ^ _b[0...127]
+inline const Vector4d xorPerElem(const Vector4d& a, const Vector4Int& b);
+
+// Returns per element binary or operation of _a and _b.
+// _v[0...127] = _a[0...127] | _b[0...127] 
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4Int& b);
+
+// Returns per element binary or operation of _a and _b.
+// _v[0...127] = _a[0...127] | _b[0...127]
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4d& b);
+
+// Returns per element binary and operation of _a and _b.
+// _v[0...127] = _a[0...127] & _b[0...127]
+inline const Vector4d andPerElem(const Vector4d& a, const Vector4Int& b);
+
+// Converts from a half to a double.
+inline const Vector4d halfTodouble(const Vector4Int& vecInt);
+
+// Transposes the 3 Vector4d of in into the x, y and z components of the 4
+// Vector4d of out. Remaining w are set to 0.
+inline void transpose3x4(const Vector4d in[3], Vector4d out[4]);
+
+// Transposes the 4 Vector4d of in into the 4 Vector4d of out.
+inline void transpose4x4(const Vector4d in[4], Vector4d out[4]);
+
+//CONFFX_TEST_BEGIN
+// Transposes the 4 Vector4d of in into the 3 Vector4d of out.
+inline void transpose4x3(const Vector4d in[4], Vector4d out[4]);
+//CONFFX_TEST_END
+
+// Transposes the 16 Vector4d of in into the 16 Vector4d of out.
+inline void transpose16x16(const Vector4d in[16], Vector4d out[16]);
+
+// Stores the 4 components of v to the four first doubles of f.
+// f must be aligned to 4 bytes.
+// f[0] = v.x
+// f[1] = v.y
+// f[2] = v.z
+// f[3] = v.w
+inline void storePtrU(const Vector4d& v, double* f);
+
+// Stores x, y and z components of v to the three first doubles of f.
+// f must be aligned to 4 bytes.
+// f[0] = v.x
+// f[1] = v.y
+// f[2] = v.z
+inline void store3PtrU(const Vector4d& v, double* f);
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 4-D vector
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Vector4d & vec);
+
+// Print a 4-D vector and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Vector4d & vec, const char * name);
+
+#endif // VECTORMATH_DEBUG
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+
 
 // ========================================================
 // A 3-D point in array-of-structures format
@@ -1700,7 +2392,12 @@ public:
     static inline const Matrix4 orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar);
 
 	//========================================= #TheForgeMathExtensionsBegin ================================================
-	// Construct a perspective projection matrix using horizontal fov
+    // Copy a high precision 4x4 matrix
+    // NOTE: Reduces precision
+    //
+    explicit inline Matrix4(const Matrix4d & mat);
+
+    // Construct a perspective projection matrix using horizontal fov
 	// 
 	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
     static inline const Matrix4 perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar);
@@ -1786,6 +2483,330 @@ inline void print(const Matrix4 & mat);
 inline void print(const Matrix4 & mat, const char * name);
 
 #endif // VECTORMATH_DEBUG
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+// ========================================================
+// A 4x4 high precision matrix in array-of-structures format
+// ========================================================
+
+VECTORMATH_ALIGNED_TYPE_PRE class Matrix4d
+{
+    Vector4d mCol0;
+    Vector4d mCol1;
+    Vector4d mCol2;
+    Vector4d mCol3;
+
+public:
+
+    // Default constructor; does no initialization
+    //
+    inline Matrix4d() { }
+
+    // Copy a 4x4 matrix
+    //
+    inline Matrix4d(const Matrix4d & mat);
+
+    // Construct a 4x4 matrix containing the specified columns
+    //
+    inline Matrix4d(const Vector4d & col0, const Vector4d & col1, const Vector4d & col2, const Vector4d & col3);
+
+    // Construct a 4x4 matrix from a 3x4 transformation matrix
+    //
+    //explicit inline Matrix4d(const Transform3 & mat);
+
+    // Construct a 4x4 matrix from a 3x3 matrix and a 3-D vector
+    //
+    //inline Matrix4d(const Matrix3 & mat, const Vector3d & translateVec);
+
+    // Construct a 4x4 matrix from a unit-length quaternion and a 3-D vector
+    //
+    //inline Matrix4d(const Quat & unitQuat, const Vector3d & translateVec);
+
+    // Set all elements of a 4x4 matrix to the same scalar value
+    //
+    explicit inline Matrix4d(double scalar);
+
+    // Assign one 4x4 matrix to another
+    //
+    inline Matrix4d & operator = (const Matrix4d & mat);
+
+    // Set the upper-left 3x3 submatrix
+    // NOTE:
+    // This function does not change the bottom row elements.
+    //
+    //inline Matrix4d & setUpper3x3(const Matrix3 & mat3);
+
+    // Get the upper-left 3x3 submatrix of a 4x4 matrix
+    //
+    //inline const Matrix3 getUpper3x3() const;
+
+    // Set translation component
+    // NOTE:
+    // This function does not change the bottom row elements.
+    //
+    inline Matrix4d & setTranslation(const Vector3d & translateVec);
+
+    // Get the translation component of a 4x4 matrix
+    //
+    inline const Vector3d getTranslation() const;
+
+    // Set column 0 of a 4x4 matrix
+    //
+    inline Matrix4d & setCol0(const Vector4d & col0);
+
+    // Set column 1 of a 4x4 matrix
+    //
+    inline Matrix4d & setCol1(const Vector4d & col1);
+
+    // Set column 2 of a 4x4 matrix
+    //
+    inline Matrix4d & setCol2(const Vector4d & col2);
+
+    // Set column 3 of a 4x4 matrix
+    //
+    inline Matrix4d & setCol3(const Vector4d & col3);
+
+    // Get column 0 of a 4x4 matrix
+    //
+    inline const Vector4d getCol0() const;
+
+    // Get column 1 of a 4x4 matrix
+    //
+    inline const Vector4d getCol1() const;
+
+    // Get column 2 of a 4x4 matrix
+    //
+    inline const Vector4d getCol2() const;
+
+    // Get column 3 of a 4x4 matrix
+    //
+    inline const Vector4d getCol3() const;
+
+    // Set the column of a 4x4 matrix referred to by the specified index
+    //
+    inline Matrix4d & setCol(int col, const Vector4d & vec);
+
+    // Set the row of a 4x4 matrix referred to by the specified index
+    //
+    inline Matrix4d & setRow(int row, const Vector4d & vec);
+
+    // Get the column of a 4x4 matrix referred to by the specified index
+    //
+    inline const Vector4d getCol(int col) const;
+
+    // Get the row of a 4x4 matrix referred to by the specified index
+    //
+    inline const Vector4d getRow(int row) const;
+
+    // Subscripting operator to set or get a column
+    //
+    inline Vector4d & operator[](int col);
+
+    // Subscripting operator to get a column
+    //
+    inline const Vector4d operator[](int col) const;
+
+    // Set the element of a 4x4 matrix referred to by column and row indices
+    //
+    inline Matrix4d & setElem(int col, int row, double val);
+
+    // Get the element of a 4x4 matrix referred to by column and row indices
+    //
+    inline double getElem(int col, int row) const;
+
+    // Add two 4x4 matrices
+    //
+    inline const Matrix4d operator + (const Matrix4d & mat) const;
+
+    // Subtract a 4x4 matrix from another 4x4 matrix
+    //
+    inline const Matrix4d operator - (const Matrix4d & mat) const;
+
+    // Negate all elements of a 4x4 matrix
+    //
+    inline const Matrix4d operator - () const;
+
+    // Multiply a 4x4 matrix by a scalar
+    //
+    inline const Matrix4d operator * (double scalar) const;
+
+    // Multiply a 4x4 matrix by a 4-D vector
+    //
+    inline const Vector4d operator * (const Vector4d & vec) const;
+
+    // Multiply a 4x4 matrix by a 3-D vector
+    //
+    inline const Vector4d operator * (const Vector3d & vec) const;
+
+    // Multiply a 4x4 matrix by a 3-D point
+    //
+    inline const Vector4d operator * (const Point3 & pnt) const;
+
+    // Multiply two 4x4 matrices
+    //
+    inline const Matrix4d operator * (const Matrix4d & mat) const;
+
+    // Multiply a 4x4 matrix by a 3x4 transformation matrix
+    //
+    //inline const Matrix4d operator * (const Transform3 & tfrm) const;
+
+    // Perform compound assignment and addition with a 4x4 matrix
+    //
+    inline Matrix4d & operator += (const Matrix4d & mat);
+
+    // Perform compound assignment and subtraction by a 4x4 matrix
+    //
+    inline Matrix4d & operator -= (const Matrix4d & mat);
+
+    // Perform compound assignment and multiplication by a scalar
+    //
+    inline Matrix4d & operator *= (double scalar);
+
+    // Perform compound assignment and multiplication by a 4x4 matrix
+    //
+    inline Matrix4d & operator *= (const Matrix4d & mat);
+
+    // Perform compound assignment and multiplication by a 3x4 transformation matrix
+    //
+    //inline Matrix4d & operator *= (const Transform3 & tfrm);
+
+    // Construct an identity 4x4 matrix
+    //
+    static inline const Matrix4d identity();
+
+    // Construct a 4x4 matrix to rotate around the x axis
+    //
+    static inline const Matrix4d rotationX(double radians);
+
+    // Construct a 4x4 matrix to rotate around the y axis
+    //
+    static inline const Matrix4d rotationY(double radians);
+
+    // Construct a 4x4 matrix to rotate around the z axis
+    //
+    static inline const Matrix4d rotationZ(double radians);
+
+    // Construct a 4x4 matrix to rotate around the x, y, and z axes
+    //
+    static inline const Matrix4d rotationZYX(const Vector3d & radiansXYZ);
+
+    // Construct a 4x4 matrix to rotate around a unit-length 3-D vector
+    //
+    static inline const Matrix4d rotation(double radians, const Vector3d & unitVec);
+
+    // Construct a rotation matrix from a unit-length quaternion
+    //
+    //static inline const Matrix4d rotation(const Quat & unitQuat);
+
+    // Construct a 4x4 matrix to perform scaling
+    //
+    static inline const Matrix4d scale(const Vector3d & scaleVec);
+
+    // Construct a 4x4 matrix to perform translation
+    //
+    static inline const Matrix4d translation(const Vector3d & translateVec);
+
+    // Construct viewing matrix based on eye position, position looked at, and up direction
+    //
+    //static inline const Matrix4d lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec);
+
+    // Construct a perspective projection matrix based on frustum
+    //
+    static inline const Matrix4d frustum(double left, double right, double bottom, double top, double zNear, double zFar);
+
+    // Construct an orthographic projection matrix
+    //
+    static inline const Matrix4d orthographic(double left, double right, double bottom, double top, double zNear, double zFar);
+    static inline const Matrix4d orthographicRH(double left, double right, double bottom, double top, double zNear, double zFar);
+
+	//========================================= #TheForgeMathExtensionsBegin ================================================
+	// Construct a perspective projection matrix using horizontal fov
+	// 
+	static inline const Matrix4d perspective(double fovxRadians, double aspectInverse, double zNear, double zFar);
+    static inline const Matrix4d perspectiveRH(double fovxRadians, double aspectInverse, double zNear, double zFar);
+    static inline const Matrix4d perspectiveReverseZ(double fovxRadians, double aspectInverse, double zNear, double zFar);
+
+	static inline const Matrix4d rotationYX(const double radiansY, const double radiansX);
+	static inline const Matrix4d rotationXY(const double radiansX, const double radiansY);
+
+	static inline const Matrix4d cubeProjection(const double zNear, const double zFar);
+    static inline const Matrix4d cubeProjectionRH(const double zNear, const double zFar);
+	static inline const Matrix4d cubeView(const unsigned int side);
+	static void inline extractFrustumClipPlanes(const Matrix4d& vp, Vector4d& rcp, Vector4d& lcp, Vector4d& tcp, Vector4d& bcp, Vector4d& fcp, Vector4d& ncp, bool const normalizePlanes);
+	//========================================= #TheForgeMathExtensionsEnd ==================================================
+
+} VECTORMATH_ALIGNED_TYPE_POST;
+
+// Multiply a 4x4 matrix by a scalar
+//
+inline const Matrix4d operator * (double scalar, const Matrix4d & mat);
+
+// Append (post-multiply) a scale transformation to a 4x4 matrix
+// NOTE:
+// Faster than creating and multiplying a scale transformation matrix.
+//
+inline const Matrix4d appendScale(const Matrix4d & mat, const Vector3d & scaleVec);
+
+// Prepend (pre-multiply) a scale transformation to a 4x4 matrix
+// NOTE:
+// Faster than creating and multiplying a scale transformation matrix.
+//
+inline const Matrix4d prependScale(const Vector3d & scaleVec, const Matrix4d & mat);
+
+// Multiply two 4x4 matrices per element
+//
+inline const Matrix4d mulPerElem(const Matrix4d & mat0, const Matrix4d & mat1);
+
+// Compute the absolute value of a 4x4 matrix per element
+//
+inline const Matrix4d absPerElem(const Matrix4d & mat);
+
+// Transpose of a 4x4 matrix
+//
+inline const Matrix4d transpose(const Matrix4d & mat);
+
+// Compute the inverse of a 4x4 matrix
+// NOTE:
+// Result is unpredictable when the determinant of mat is equal to or near 0.
+//
+inline const Matrix4d inverse(const Matrix4d & mat);
+
+// Compute the inverse of a 4x4 matrix, which is expected to be an affine matrix
+// NOTE:
+// This can be used to achieve better performance than a general inverse when the specified 4x4 matrix meets the given restrictions.  The result is unpredictable when the determinant of mat is equal to or near 0.
+//
+//inline const Matrix4d affineInverse(const Matrix4d & mat);
+
+// Compute the inverse of a 4x4 matrix, which is expected to be an affine matrix with an orthogonal upper-left 3x3 submatrix
+// NOTE:
+// This can be used to achieve better performance than a general inverse when the specified 4x4 matrix meets the given restrictions.
+//
+//inline const Matrix4d orthoInverse(const Matrix4d & mat);
+
+// Determinant of a 4x4 matrix
+//
+inline double determinant(const Matrix4d & mat);
+
+// Conditionally select between two 4x4 matrices
+//
+inline const Matrix4d select(const Matrix4d & mat0, const Matrix4d & mat1, bool select1);
+
+#ifdef VECTORMATH_DEBUG
+
+// Print a 4x4 matrix
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Matrix4d & mat);
+
+// Print a 4x4 matrix and an associated string identifier
+// NOTE:
+// Function is only defined when VECTORMATH_DEBUG is defined.
+//
+inline void print(const Matrix4d & mat, const char * name);
+
+#endif // VECTORMATH_DEBUG
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 // ========================================================
 // A 3x4 transformation matrix in array-of-structs format
@@ -2072,6 +3093,15 @@ union VectorFI4 {
 union VectorIF4 {
   Vector4Int i;
   Vector4 f;
+};
+
+union VectorDI4 {
+	Vector4d d;
+	Vector4Int i;
+};
+union VectorID4 {
+	Vector4Int i;
+	Vector4d d;
 };
 
 // ========================================================

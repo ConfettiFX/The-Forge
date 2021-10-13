@@ -7,6 +7,48 @@
     <Filter Include="Source Files\TressFX">
       <UniqueIdentifier>{8b3cbcc5-1b37-4257-868f-659f20386f29}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\OS">
+      <UniqueIdentifier>{78d4abca-9133-4800-8163-2d84d41f780e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\MemoryTracking">
+      <UniqueIdentifier>{331f6717-4441-4fbc-83fc-c64d6d1f6dc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\FileSystem">
+      <UniqueIdentifier>{621e1fee-5352-415c-9ea8-474b39635941}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Core">
+      <UniqueIdentifier>{54f97869-1092-4bcf-a7eb-4292aba51a0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Interfaces">
+      <UniqueIdentifier>{0f61c7e6-61d4-4718-ae6e-787d09460473}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Logging">
+      <UniqueIdentifier>{0312ba67-bae2-434c-9ebb-74811f19cc80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies">
+      <UniqueIdentifier>{deb34b29-0e6b-4259-a4bd-f8d890b70b79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\EASTL">
+      <UniqueIdentifier>{86010130-735a-467d-87cc-4f662a94b838}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\EASTL\EAStdC">
+      <UniqueIdentifier>{16607856-a7fd-4cd7-9215-9d6592cafefa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\rmem">
+      <UniqueIdentifier>{24819306-93bf-4863-ae9c-5c498f0d7b65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\minizip">
+      <UniqueIdentifier>{d24fa89e-e72d-4e4f-9e07-abe894ea1516}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\minizip\brg">
+      <UniqueIdentifier>{f0c592f9-9424-402d-99df-2d519dc4ae31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Dependencies\minizip\zlib%28zip%29">
+      <UniqueIdentifier>{485a30c4-78ad-477e-93b9-64be70019c6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\OS\Windows">
+      <UniqueIdentifier>{37780763-e753-4b01-a374-448b26d43a07}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\AssetPipelineCmd.cpp">
@@ -20,6 +62,123 @@
     </ClCompile>
     <ClCompile Include="..\..\FileSystem\WindowsToolsFileSystem.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\MemoryTracking\MemoryTracking.c">
+      <Filter>Source Files\OS\MemoryTracking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\FileSystem\FileSystem.cpp">
+      <Filter>Source Files\OS\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\FileSystem\SystemRun.cpp">
+      <Filter>Source Files\OS\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\FileSystem\ZipFileSystem.c">
+      <Filter>Source Files\OS\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Core\ThreadSystem.cpp">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Core\Timer.c">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Logging\Log.c">
+      <Filter>Source Files\OS\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\allocator_forge.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\assert.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\fixed_pool.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\hashtable.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\intrusive_list.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\numeric_limits.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\red_black_tree.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\string.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\thread_support.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL\EAStdC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp">
+      <Filter>Source Files\OS\Dependencies\EASTL\EAStdC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
+      <Filter>Source Files\OS\Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp">
+      <Filter>Source Files\OS\Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
+      <Filter>Source Files\OS\Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt_brg.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_os.cpp">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_raw.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_zlib.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_zip.c">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aestab.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\hmac.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha1.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha2.c">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsStackTraceDump.cpp">
+      <Filter>Source Files\OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsFileSystem.cpp">
+      <Filter>Source Files\OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsTime.c">
+      <Filter>Source Files\OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsLog.c">
+      <Filter>Source Files\OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsThread.c">
+      <Filter>Source Files\OS\Windows</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -37,6 +196,120 @@
     </ClInclude>
     <ClInclude Include="..\..\FileSystem\IToolFileSystem.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\MemoryTracking\NoMemoryDefines.h">
+      <Filter>Source Files\OS\MemoryTracking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Core\Atomics.h">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Core\Compiler.h">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Core\GPUConfig.h">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Core\ThreadSystem.h">
+      <Filter>Source Files\OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IFont.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IScreenshot.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IScripting.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IUI.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IApp.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\ICameraController.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IFileSystem.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IInput.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\ILog.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IMemory.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IMiddleware.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IOperatingSystem.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IProfiler.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\IThread.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Interfaces\ITime.h">
+      <Filter>Source Files\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Logging\Log.h">
+      <Filter>Source Files\OS\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_os.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_zlib.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_zip.h">
+      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aes.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aestab.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\hmac.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha1.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha2.h">
+      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\zip\miniz.h">
+      <Filter>Source Files\OS\Dependencies\minizip\zlib%28zip%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\OS\Windows\WindowsStackTraceDump.h">
+      <Filter>Source Files\OS\Windows</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

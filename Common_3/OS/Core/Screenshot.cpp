@@ -24,7 +24,7 @@
 
 #include "../Interfaces/IScreenshot.h"
 
-#if defined(SCREENSHOT_ENABLED)
+#if defined(ENABLE_SCREENSHOT)
 #include "../Math/MathTypes.h"
 
 #include "../Interfaces/ILog.h"

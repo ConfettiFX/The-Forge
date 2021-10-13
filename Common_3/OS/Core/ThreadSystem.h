@@ -23,6 +23,8 @@
  * under the License.
 */
 
+#include "Config.h"
+
 typedef void (*TaskFunc)(void* user, uintptr_t arg);
 
 template <class T, void (T::*callback)(size_t)>

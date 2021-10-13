@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugVk|ARM64">
-      <Configuration>DebugVk</Configuration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|ARM64">
-      <Configuration>ReleaseVk</Configuration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
@@ -20,18 +20,16 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
@@ -41,40 +39,20 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <Import Project="..\..\ARM64.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <Import Project="..\..\ARM64.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>_DEBUG;QUEST_VR;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile />
     <Link>
-      <LibraryDependencies>vrapi;$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;VkLayer_khronos_validation</LibraryDependencies>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Debug;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>%(LibraryDependencies);VkLayer_khronos_validation;ozz_animation;ozz_base;</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Examples_3\Unit_Tests\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
@@ -97,26 +75,11 @@ $(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSou
       <Command>
       </Command>
     </PreBuildEvent>
-    <FSLShader>
-      <Language>VULKAN</Language>
-      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
-      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
-    </FSLShader>
+    <FSLShader />
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>QUEST_VR;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>vrapi;$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base</LibraryDependencies>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Release;$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile />
+    <Link />
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Examples_3\Unit_Tests\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
 $(systemroot)\System32\xcopy "$(SolutionDir)..\..\..\Examples_3\Unit_Tests\UnitTestResources\Textures\LA_Helipad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
@@ -138,11 +101,10 @@ $(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shad
       <Command>
       </Command>
     </PreBuildEvent>
-    <FSLShader>
-      <Language>VULKAN</Language>
-      <OutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders</OutDir>
-      <BinaryOutDir>$(SolutionDir)$(Platform)/$(Configuration)/$(RootNameSpace)/assets/Shaders/Binary</BinaryOutDir>
-    </FSLShader>
+    <FSLShader />
+    <Link>
+      <LibraryDependencies>%(LibraryDependencies);ozz_animation;ozz_base;</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />

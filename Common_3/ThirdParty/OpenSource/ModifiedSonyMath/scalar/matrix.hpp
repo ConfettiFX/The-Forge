@@ -36,6 +36,7 @@ namespace Scalar
 {
 
 #define _VECTORMATH_PI_OVER_2 1.570796327f
+#define _VECTORMATH_PI_OVER_2_D 1.57079632679489661923
 
 // ========================================================
 // Matrix3
@@ -967,6 +968,14 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
 //========================================= #TheForgeMathExtensionsBegin ================================================
 // Note: If math library is updated, remember to add the below functions. search for #TheForgeMathExtensions
 
+inline Matrix4::Matrix4(const Matrix4d & mat)
+{
+    mCol0 = Vector4(mat.getCol0());
+    mCol1 = Vector4(mat.getCol1());
+    mCol2 = Vector4(mat.getCol2());
+	mCol3 = Vector4(mat.getCol3());
+}
+
 // PROJECTION MATRIX CONVENTION
 //----------------------------------------------------------------------------------------
 // OpenGL and DirectX maps Z coordinates into different ranges in projection matrices. 
@@ -1269,6 +1278,877 @@ inline void print(const Matrix4 & mat, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
+
+//========================================= #TheForgeMathExtensionsBegin ==================================================
+// ========================================================
+// High precision Matrix4d
+// ========================================================
+
+inline Matrix4d::Matrix4d(const Matrix4d & mat)
+{
+    mCol0 = mat.mCol0;
+    mCol1 = mat.mCol1;
+    mCol2 = mat.mCol2;
+    mCol3 = mat.mCol3;
+}
+
+inline Matrix4d::Matrix4d(double scalar)
+{
+    mCol0 = Vector4d(scalar);
+    mCol1 = Vector4d(scalar);
+    mCol2 = Vector4d(scalar);
+    mCol3 = Vector4d(scalar);
+}
+
+//inline Matrix4d::Matrix4d(const Transform3 & mat)
+//{
+//    mCol0 = Vector4d(mat.getCol0(), 0.0);
+//    mCol1 = Vector4d(mat.getCol1(), 0.0);
+//    mCol2 = Vector4d(mat.getCol2(), 0.0);
+//    mCol3 = Vector4d(mat.getCol3(), 1.0);
+//}
+
+inline Matrix4d::Matrix4d(const Vector4d & _col0, const Vector4d & _col1, const Vector4d & _col2, const Vector4d & _col3)
+{
+    mCol0 = _col0;
+    mCol1 = _col1;
+    mCol2 = _col2;
+    mCol3 = _col3;
+}
+
+//inline Matrix4d::Matrix4d(const Matrix3 & mat, const Vector3d & translateVec)
+//{
+//    mCol0 = Vector4d(mat.getCol0(), 0.0);
+//    mCol1 = Vector4d(mat.getCol1(), 0.0);
+//    mCol2 = Vector4d(mat.getCol2(), 0.0);
+//    mCol3 = Vector4d(translateVec,  1.0);
+//}
+
+//inline Matrix4d::Matrix4d(const Quat & unitQuat, const Vector3d & translateVec)
+//{
+//    Matrix3 mat;
+//    mat = Matrix3(unitQuat);
+//    mCol0 = Vector4d(mat.getCol0(), 0.0);
+//    mCol1 = Vector4d(mat.getCol1(), 0.0);
+//    mCol2 = Vector4d(mat.getCol2(), 0.0);
+//    mCol3 = Vector4d(translateVec,  1.0);
+//}
+
+inline Matrix4d & Matrix4d::setCol0(const Vector4d & _col0)
+{
+    mCol0 = _col0;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol1(const Vector4d & _col1)
+{
+    mCol1 = _col1;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol2(const Vector4d & _col2)
+{
+    mCol2 = _col2;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol3(const Vector4d & _col3)
+{
+    mCol3 = _col3;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol(int col, const Vector4d & vec)
+{
+    *(&mCol0 + col) = vec;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setRow(int row, const Vector4d & vec)
+{
+    mCol0.setElem(row, vec.getElem(0));
+    mCol1.setElem(row, vec.getElem(1));
+    mCol2.setElem(row, vec.getElem(2));
+    mCol3.setElem(row, vec.getElem(3));
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::setElem(int col, int row, double val)
+{
+    Vector4d tmpV3_0;
+    tmpV3_0 = this->getCol(col);
+    tmpV3_0.setElem(row, val);
+    this->setCol(col, tmpV3_0);
+    return *this;
+}
+
+inline double Matrix4d::getElem(int col, int row) const
+{
+    return this->getCol(col).getElem(row);
+}
+
+inline const Vector4d Matrix4d::getCol0() const
+{
+    return mCol0;
+}
+
+inline const Vector4d Matrix4d::getCol1() const
+{
+    return mCol1;
+}
+
+inline const Vector4d Matrix4d::getCol2() const
+{
+    return mCol2;
+}
+
+inline const Vector4d Matrix4d::getCol3() const
+{
+    return mCol3;
+}
+
+inline const Vector4d Matrix4d::getCol(int col) const
+{
+    return *(&mCol0 + col);
+}
+
+inline const Vector4d Matrix4d::getRow(int row) const
+{
+    return Vector4d(mCol0.getElem(row), mCol1.getElem(row), mCol2.getElem(row), mCol3.getElem(row));
+}
+
+inline Vector4d & Matrix4d::operator[](int col)
+{
+    return *(&mCol0 + col);
+}
+
+inline const Vector4d Matrix4d::operator[](int col) const
+{
+    return *(&mCol0 + col);
+}
+
+inline Matrix4d & Matrix4d::operator = (const Matrix4d & mat)
+{
+    mCol0 = mat.mCol0;
+    mCol1 = mat.mCol1;
+    mCol2 = mat.mCol2;
+    mCol3 = mat.mCol3;
+    return *this;
+}
+
+inline const Matrix4d transpose(const Matrix4d & mat)
+{
+    return Matrix4d(Vector4d(mat.getCol0().getX(), mat.getCol1().getX(), mat.getCol2().getX(), mat.getCol3().getX()),
+                   Vector4d(mat.getCol0().getY(), mat.getCol1().getY(), mat.getCol2().getY(), mat.getCol3().getY()),
+                   Vector4d(mat.getCol0().getZ(), mat.getCol1().getZ(), mat.getCol2().getZ(), mat.getCol3().getZ()),
+                   Vector4d(mat.getCol0().getW(), mat.getCol1().getW(), mat.getCol2().getW(), mat.getCol3().getW()));
+}
+
+inline const Matrix4d inverse(const Matrix4d & mat)
+{
+    Vector4d res0, res1, res2, res3;
+    double mA, mB, mC, mD, mE, mF, mG, mH, mI, mJ, mK, mL, mM, mN, mO, mP, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, detInv;
+    mA = mat.getCol0().getX();
+    mB = mat.getCol0().getY();
+    mC = mat.getCol0().getZ();
+    mD = mat.getCol0().getW();
+    mE = mat.getCol1().getX();
+    mF = mat.getCol1().getY();
+    mG = mat.getCol1().getZ();
+    mH = mat.getCol1().getW();
+    mI = mat.getCol2().getX();
+    mJ = mat.getCol2().getY();
+    mK = mat.getCol2().getZ();
+    mL = mat.getCol2().getW();
+    mM = mat.getCol3().getX();
+    mN = mat.getCol3().getY();
+    mO = mat.getCol3().getZ();
+    mP = mat.getCol3().getW();
+    tmp0 = ((mK * mD) - (mC * mL));
+    tmp1 = ((mO * mH) - (mG * mP));
+    tmp2 = ((mB * mK) - (mJ * mC));
+    tmp3 = ((mF * mO) - (mN * mG));
+    tmp4 = ((mJ * mD) - (mB * mL));
+    tmp5 = ((mN * mH) - (mF * mP));
+    res0.setX((((mJ * tmp1) - (mL * tmp3)) - (mK * tmp5)));
+    res0.setY((((mN * tmp0) - (mP * tmp2)) - (mO * tmp4)));
+    res0.setZ((((mD * tmp3) + (mC * tmp5)) - (mB * tmp1)));
+    res0.setW((((mH * tmp2) + (mG * tmp4)) - (mF * tmp0)));
+    detInv = (1.0 / ((((mA * res0.getX()) + (mE * res0.getY())) + (mI * res0.getZ())) + (mM * res0.getW())));
+    res1.setX((mI * tmp1));
+    res1.setY((mM * tmp0));
+    res1.setZ((mA * tmp1));
+    res1.setW((mE * tmp0));
+    res3.setX((mI * tmp3));
+    res3.setY((mM * tmp2));
+    res3.setZ((mA * tmp3));
+    res3.setW((mE * tmp2));
+    res2.setX((mI * tmp5));
+    res2.setY((mM * tmp4));
+    res2.setZ((mA * tmp5));
+    res2.setW((mE * tmp4));
+    tmp0 = ((mI * mB) - (mA * mJ));
+    tmp1 = ((mM * mF) - (mE * mN));
+    tmp2 = ((mI * mD) - (mA * mL));
+    tmp3 = ((mM * mH) - (mE * mP));
+    tmp4 = ((mI * mC) - (mA * mK));
+    tmp5 = ((mM * mG) - (mE * mO));
+    res2.setX((((mL * tmp1) - (mJ * tmp3)) + res2.getX()));
+    res2.setY((((mP * tmp0) - (mN * tmp2)) + res2.getY()));
+    res2.setZ((((mB * tmp3) - (mD * tmp1)) - res2.getZ()));
+    res2.setW((((mF * tmp2) - (mH * tmp0)) - res2.getW()));
+    res3.setX((((mJ * tmp5) - (mK * tmp1)) + res3.getX()));
+    res3.setY((((mN * tmp4) - (mO * tmp0)) + res3.getY()));
+    res3.setZ((((mC * tmp1) - (mB * tmp5)) - res3.getZ()));
+    res3.setW((((mG * tmp0) - (mF * tmp4)) - res3.getW()));
+    res1.setX((((mK * tmp3) - (mL * tmp5)) - res1.getX()));
+    res1.setY((((mO * tmp2) - (mP * tmp4)) - res1.getY()));
+    res1.setZ((((mD * tmp5) - (mC * tmp3)) + res1.getZ()));
+    res1.setW((((mH * tmp4) - (mG * tmp2)) + res1.getW()));
+    return Matrix4d((res0 * detInv), (res1 * detInv), (res2 * detInv), (res3 * detInv));
+}
+
+//inline const Matrix4d affineInverse(const Matrix4d & mat)
+//{
+//    Transform3 affineMat;
+//    affineMat.setCol0(mat.getCol0().getXYZ());
+//    affineMat.setCol1(mat.getCol1().getXYZ());
+//    affineMat.setCol2(mat.getCol2().getXYZ());
+//    affineMat.setCol3(mat.getCol3().getXYZ());
+//    return Matrix4d(inverse(affineMat));
+//}
+
+//inline const Matrix4d orthoInverse(const Matrix4d & mat)
+//{
+//    Transform3 affineMat;
+//    affineMat.setCol0(mat.getCol0().getXYZ());
+//    affineMat.setCol1(mat.getCol1().getXYZ());
+//    affineMat.setCol2(mat.getCol2().getXYZ());
+//    affineMat.setCol3(mat.getCol3().getXYZ());
+//    return Matrix4d(orthoInverse(affineMat));
+//}
+
+inline double determinant(const Matrix4d & mat)
+{
+    double dx, dy, dz, dw, mA, mB, mC, mD, mE, mF, mG, mH, mI, mJ, mK, mL, mM, mN, mO, mP, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5;
+    mA = mat.getCol0().getX();
+    mB = mat.getCol0().getY();
+    mC = mat.getCol0().getZ();
+    mD = mat.getCol0().getW();
+    mE = mat.getCol1().getX();
+    mF = mat.getCol1().getY();
+    mG = mat.getCol1().getZ();
+    mH = mat.getCol1().getW();
+    mI = mat.getCol2().getX();
+    mJ = mat.getCol2().getY();
+    mK = mat.getCol2().getZ();
+    mL = mat.getCol2().getW();
+    mM = mat.getCol3().getX();
+    mN = mat.getCol3().getY();
+    mO = mat.getCol3().getZ();
+    mP = mat.getCol3().getW();
+    tmp0 = ((mK * mD) - (mC * mL));
+    tmp1 = ((mO * mH) - (mG * mP));
+    tmp2 = ((mB * mK) - (mJ * mC));
+    tmp3 = ((mF * mO) - (mN * mG));
+    tmp4 = ((mJ * mD) - (mB * mL));
+    tmp5 = ((mN * mH) - (mF * mP));
+    dx = (((mJ * tmp1) - (mL * tmp3)) - (mK * tmp5));
+    dy = (((mN * tmp0) - (mP * tmp2)) - (mO * tmp4));
+    dz = (((mD * tmp3) + (mC * tmp5)) - (mB * tmp1));
+    dw = (((mH * tmp2) + (mG * tmp4)) - (mF * tmp0));
+    return ((((mA * dx) + (mE * dy)) + (mI * dz)) + (mM * dw));
+}
+
+inline const Matrix4d Matrix4d::operator + (const Matrix4d & mat) const
+{
+    return Matrix4d((mCol0 + mat.mCol0),
+                   (mCol1 + mat.mCol1),
+                   (mCol2 + mat.mCol2),
+                   (mCol3 + mat.mCol3));
+}
+
+inline const Matrix4d Matrix4d::operator - (const Matrix4d & mat) const
+{
+    return Matrix4d((mCol0 - mat.mCol0),
+                   (mCol1 - mat.mCol1),
+                   (mCol2 - mat.mCol2),
+                   (mCol3 - mat.mCol3));
+}
+
+inline Matrix4d & Matrix4d::operator += (const Matrix4d & mat)
+{
+    *this = *this + mat;
+    return *this;
+}
+
+inline Matrix4d & Matrix4d::operator -= (const Matrix4d & mat)
+{
+    *this = *this - mat;
+    return *this;
+}
+
+inline const Matrix4d Matrix4d::operator - () const
+{
+    return Matrix4d((-mCol0), (-mCol1), (-mCol2), (-mCol3));
+}
+
+inline const Matrix4d absPerElem(const Matrix4d & mat)
+{
+    return Matrix4d(absPerElem(mat.getCol0()),
+                   absPerElem(mat.getCol1()),
+                   absPerElem(mat.getCol2()),
+                   absPerElem(mat.getCol3()));
+}
+
+inline const Matrix4d Matrix4d::operator * (double scalar) const
+{
+    return Matrix4d((mCol0 * scalar),
+                   (mCol1 * scalar),
+                   (mCol2 * scalar),
+                   (mCol3 * scalar));
+}
+
+inline Matrix4d & Matrix4d::operator *= (double scalar)
+{
+    *this = *this * scalar;
+    return *this;
+}
+
+inline const Matrix4d operator * (double scalar, const Matrix4d & mat)
+{
+    return mat * scalar;
+}
+
+inline const Vector4d Matrix4d::operator * (const Vector4d & vec) const
+{
+    return Vector4d(((((mCol0.getX() * vec.getX()) + (mCol1.getX() * vec.getY())) + (mCol2.getX() * vec.getZ())) + (mCol3.getX() * vec.getW())),
+                   ((((mCol0.getY() * vec.getX()) + (mCol1.getY() * vec.getY())) + (mCol2.getY() * vec.getZ())) + (mCol3.getY() * vec.getW())),
+                   ((((mCol0.getZ() * vec.getX()) + (mCol1.getZ() * vec.getY())) + (mCol2.getZ() * vec.getZ())) + (mCol3.getZ() * vec.getW())),
+                   ((((mCol0.getW() * vec.getX()) + (mCol1.getW() * vec.getY())) + (mCol2.getW() * vec.getZ())) + (mCol3.getW() * vec.getW())));
+}
+
+inline const Vector4d Matrix4d::operator * (const Vector3d & vec) const
+{
+    return Vector4d((((mCol0.getX() * vec.getX()) + (mCol1.getX() * vec.getY())) + (mCol2.getX() * vec.getZ())),
+                   (((mCol0.getY() * vec.getX()) + (mCol1.getY() * vec.getY())) + (mCol2.getY() * vec.getZ())),
+                   (((mCol0.getZ() * vec.getX()) + (mCol1.getZ() * vec.getY())) + (mCol2.getZ() * vec.getZ())),
+                   (((mCol0.getW() * vec.getX()) + (mCol1.getW() * vec.getY())) + (mCol2.getW() * vec.getZ())));
+}
+
+inline const Vector4d Matrix4d::operator * (const Point3 & pnt) const
+{
+    return Vector4d(((((mCol0.getX() * pnt.getX()) + (mCol1.getX() * pnt.getY())) + (mCol2.getX() * pnt.getZ())) + mCol3.getX()),
+                   ((((mCol0.getY() * pnt.getX()) + (mCol1.getY() * pnt.getY())) + (mCol2.getY() * pnt.getZ())) + mCol3.getY()),
+                   ((((mCol0.getZ() * pnt.getX()) + (mCol1.getZ() * pnt.getY())) + (mCol2.getZ() * pnt.getZ())) + mCol3.getZ()),
+                   ((((mCol0.getW() * pnt.getX()) + (mCol1.getW() * pnt.getY())) + (mCol2.getW() * pnt.getZ())) + mCol3.getW()));
+}
+
+inline const Matrix4d Matrix4d::operator * (const Matrix4d & mat) const
+{
+    return Matrix4d((*this * mat.mCol0),
+                   (*this * mat.mCol1),
+                   (*this * mat.mCol2),
+                   (*this * mat.mCol3));
+}
+
+inline Matrix4d & Matrix4d::operator *= (const Matrix4d & mat)
+{
+    *this = *this * mat;
+    return *this;
+}
+
+//inline const Matrix4d Matrix4d::operator * (const Transform3 & tfrm) const
+//{
+//    return Matrix4d((*this * tfrm.getCol0()),
+//                   (*this * tfrm.getCol1()),
+//                   (*this * tfrm.getCol2()),
+//                   (*this * Point3(tfrm.getCol3())));
+//}
+
+//inline Matrix4d & Matrix4d::operator *= (const Transform3 & tfrm)
+//{
+//    *this = *this * tfrm;
+//    return *this;
+//}
+
+inline const Matrix4d mulPerElem(const Matrix4d & mat0, const Matrix4d & mat1)
+{
+    return Matrix4d(mulPerElem(mat0.getCol0(), mat1.getCol0()),
+                   mulPerElem(mat0.getCol1(), mat1.getCol1()),
+                   mulPerElem(mat0.getCol2(), mat1.getCol2()),
+                   mulPerElem(mat0.getCol3(), mat1.getCol3()));
+}
+
+inline const Matrix4d Matrix4d::identity()
+{
+    return Matrix4d(Vector4d::xAxis(),
+                   Vector4d::yAxis(),
+                   Vector4d::zAxis(),
+                   Vector4d::wAxis());
+}
+
+//inline Matrix4d & Matrix4d::setUpper3x3(const Matrix3 & mat3)
+//{
+//    mCol0.setXYZ(mat3.getCol0());
+//    mCol1.setXYZ(mat3.getCol1());
+//    mCol2.setXYZ(mat3.getCol2());
+//    return *this;
+//}
+
+//inline const Matrix3 Matrix4d::getUpper3x3() const
+//{
+//    return Matrix3(
+//    mCol0.getXYZ(),
+//    mCol1.getXYZ(),
+//    mCol2.getXYZ());
+//}
+
+inline Matrix4d & Matrix4d::setTranslation(const Vector3d & translateVec)
+{
+    mCol3.setXYZ(translateVec);
+    return *this;
+}
+
+inline const Vector3d Matrix4d::getTranslation() const
+{
+    return mCol3.getXYZ();
+}
+
+inline const Matrix4d Matrix4d::rotationX(double radians)
+{
+    double s, c;
+    s = std::sin(radians);
+    c = std::cos(radians);
+    return Matrix4d(Vector4d::xAxis(),
+                   Vector4d(0.0,  c, s, 0.0),
+                   Vector4d(0.0, -s, c, 0.0),
+                   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationY(double radians)
+{
+    double s, c;
+    s = std::sin(radians);
+    c = std::cos(radians);
+    return Matrix4d(Vector4d(c, 0.0, -s, 0.0),
+                   Vector4d::yAxis(),
+                   Vector4d(s, 0.0, c, 0.0),
+                   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationZ(double radians)
+{
+    double s, c;
+    s = std::sin(radians);
+    c = std::cos(radians);
+    return Matrix4d(Vector4d( c, s, 0.0, 0.0),
+                   Vector4d(-s, c, 0.0, 0.0),
+                   Vector4d::zAxis(),
+                   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationZYX(const Vector3d & radiansXYZ)
+{
+    double sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
+    sX = std::sin(radiansXYZ.getX());
+    cX = std::cos(radiansXYZ.getX());
+    sY = std::sin(radiansXYZ.getY());
+    cY = std::cos(radiansXYZ.getY());
+    sZ = std::sin(radiansXYZ.getZ());
+    cZ = std::cos(radiansXYZ.getZ());
+    tmp0 = (cZ * sY);
+    tmp1 = (sZ * sY);
+    return Matrix4d(Vector4d((cZ * cY), (sZ * cY), -sY, 0.0),
+                   Vector4d(((tmp0 * sX) - (sZ * cX)), ((tmp1 * sX) + (cZ * cX)), (cY * sX), 0.0),
+                   Vector4d(((tmp0 * cX) + (sZ * sX)), ((tmp1 * cX) - (cZ * sX)), (cY * cX), 0.0),
+                   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotation(double radians, const Vector3d & unitVec)
+{
+    double x, y, z, s, c, oneMinusC, xy, yz, zx;
+    s = std::sin(radians);
+    c = std::cos(radians);
+    x = unitVec.getX();
+    y = unitVec.getY();
+    z = unitVec.getZ();
+    xy = (x * y);
+    yz = (y * z);
+    zx = (z * x);
+    oneMinusC = (1.0 - c);
+    return Matrix4d(Vector4d((((x * x) * oneMinusC) + c), ((xy * oneMinusC) + (z * s)), ((zx * oneMinusC) - (y * s)), 0.0),
+                   Vector4d(((xy * oneMinusC) - (z * s)), (((y * y) * oneMinusC) + c), ((yz * oneMinusC) + (x * s)), 0.0),
+                   Vector4d(((zx * oneMinusC) + (y * s)), ((yz * oneMinusC) - (x * s)), (((z * z) * oneMinusC) + c), 0.0),
+                   Vector4d::wAxis());
+}
+
+//inline const Matrix4d Matrix4d::rotation(const Quat & unitQuat)
+//{
+//    return Matrix4d(Transform3::rotation(unitQuat));
+//}
+
+inline const Matrix4d Matrix4d::scale(const Vector3d & scaleVec)
+{
+    return Matrix4d(Vector4d(scaleVec.getX(), 0.0, 0.0, 0.0),
+                   Vector4d(0.0, scaleVec.getY(), 0.0, 0.0),
+                   Vector4d(0.0, 0.0, scaleVec.getZ(), 0.0),
+                   Vector4d::wAxis());
+}
+
+inline const Matrix4d appendScale(const Matrix4d & mat, const Vector3d & scaleVec)
+{
+    return Matrix4d((mat.getCol0() * scaleVec.getX()),
+                   (mat.getCol1() * scaleVec.getY()),
+                   (mat.getCol2() * scaleVec.getZ()),
+                   mat.getCol3());
+}
+
+inline const Matrix4d prependScale(const Vector3d & scaleVec, const Matrix4d & mat)
+{
+    Vector4d scale4;
+    scale4 = Vector4d(scaleVec, 1.0);
+    return Matrix4d(mulPerElem(mat.getCol0(), scale4),
+                   mulPerElem(mat.getCol1(), scale4),
+                   mulPerElem(mat.getCol2(), scale4),
+                   mulPerElem(mat.getCol3(), scale4));
+}
+
+inline const Matrix4d Matrix4d::translation(const Vector3d & translateVec)
+{
+    return Matrix4d(Vector4d::xAxis(),
+                   Vector4d::yAxis(),
+                   Vector4d::zAxis(),
+                   Vector4d(translateVec, 1.0));
+}
+
+//inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
+//{
+//    Matrix4d m4EyeFrame;
+//    Vector3d v3X, v3Y, v3Z;
+//    v3Y = normalize(upVec);
+//    v3Z = normalize((eyePos - lookAtPos));
+//    v3X = normalize(cross(v3Y, v3Z));
+//    v3Y = cross(v3Z, v3X);
+//    m4EyeFrame = Matrix4d(Vector4d(v3X), Vector4d(v3Y), Vector4d(v3Z), Vector4d(eyePos));
+//    return orthoInverse(m4EyeFrame);
+//}
+
+inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+    double sum_rl, sum_tb, sum_nf, inv_rl, inv_tb, inv_nf, n2;
+    sum_rl = (right + left);
+    sum_tb = (top + bottom);
+    sum_nf = (zNear + zFar);
+    inv_rl = (1.0 / (right - left));
+    inv_tb = (1.0 / (top - bottom));
+    inv_nf = (1.0 / (zNear - zFar));
+    n2 = (zNear + zNear);
+    return Matrix4d(Vector4d((n2 * inv_rl), 0.0, 0.0, 0.0),
+                   Vector4d(0.0, (n2 * inv_tb), 0.0, 0.0),
+                   Vector4d((sum_rl * inv_rl), (sum_tb * inv_tb), (sum_nf * inv_nf), -1.0),
+                   Vector4d(0.0, 0.0, ((n2 * inv_nf) * zFar), 0.0));
+}
+
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+// Note: If math library is updated, remember to add the below functions. search for #TheForgeMathExtensions
+
+// PROJECTION MATRIX CONVENTION
+//----------------------------------------------------------------------------------------
+// OpenGL and DirectX maps Z coordinates into different ranges in projection matrices. 
+// The OpenGL  convention maps the Z coordinate into [-1, 1] range based on zNear and zFar.
+// The DirectX convention maps the Z coordinate into [ 0, 1] range based on zNear and zFar.
+// Read more here: http://justinctlam.com/2015/05/10/opengl-vs-directx-perspective-matrix/
+//
+// Sony uses OpenGL convention by default, i.e: RH system.
+// The Forge has both RH and LH functions.
+// The default functions are using DirectX convention for perspective and orthographic projection matrices.
+// The RH functions have RH suffix in their name.
+
+
+// The default constructor of mat4 uses the vec4 arguments as columns.
+// This macro maps the default notation like you see on paper to this constructor.
+//Remember to update the documentation when this macro name is changed
+#define CONSTRUCT_TRANSPOSED_MAT4_D(m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34,m41,m42,m43,m44) \
+	Matrix4d(Vector4d(m11,m21,m31,m41),\
+		 Vector4d(m12,m22,m32,m42),\
+		 Vector4d(m13,m23,m33,m43),\
+		 Vector4d(m14,m24,m34,m44))
+
+//----------------------------------------------------------------------------------------
+#if USE_VERTICAL_FIELD_OF_VIEW
+inline const Matrix4d Matrix4d::perspective(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+// perspective projection matrix using horizontal field of view as parameter instead of vertical field of view
+inline const Matrix4d Matrix4d::perspective(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+#if USE_VERTICAL_FIELD_OF_VIEW
+    double aspectInverse = 1.0 / aspect;
+    double fovxRadians = fovyRadians * aspectInverse;
+#endif
+
+	double f, rangeInv;
+	f = tan( (_VECTORMATH_PI_OVER_2_D) - (0.5 * fovxRadians) );
+
+    // LH - DirectX: Z -> [0, 1]
+	rangeInv = (1.0 / (zFar - zNear));
+
+    return Matrix4d(
+        Vector4d(f, 0.0, 0.0, 0.0),
+        Vector4d(0.0, (f / aspectInverse), 0.0, 0.0),
+        Vector4d(0.0, 0.0, (zFar * rangeInv), 1.0),
+        Vector4d(0.0, 0.0, (-(zNear * zFar) * rangeInv), 0.0)
+    );
+}
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+inline const Matrix4d Matrix4d::perspectiveRH(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+inline const Matrix4d Matrix4d::perspectiveRH(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+#if USE_VERTICAL_FIELD_OF_VIEW
+    double aspectInverse = 1.0 / aspect;
+    double fovxRadians = fovyRadians * aspectInverse;
+#endif
+
+	double f, rangeInv;
+	f = tan( (_VECTORMATH_PI_OVER_2_D) - (0.5 * fovxRadians) );
+
+    // RH - OpenGL: Z -> [-1, +1]
+    rangeInv = (1.0 / (zNear - zFar));
+
+    return Matrix4d(
+        Vector4d(f, 0.0, 0.0, 0.0),
+        Vector4d(0.0, (f / aspectInverse), 0.0, 0.0),
+        Vector4d(0.0, 0.0, ((zNear + zFar) * rangeInv), -1.0),
+        Vector4d(0.0, 0.0, (((zNear * zFar) * rangeInv) * 2.0), 0.0)
+    );
+}
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+  Matrix4d perspMatrix =
+#if USE_VERTICAL_FIELD_OF_VIEW
+    perspective(fovyRadians, aspect, zNear, zFar);
+#else
+    perspective(fovxRadians, aspectInverse, zNear, zFar);
+#endif
+
+  const Vector4d &col2 = perspMatrix.mCol2;
+  const Vector4d &col3 = perspMatrix.mCol3;
+  perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
+  perspMatrix.mCol3.setZ(-col3.getZ());
+
+  return perspMatrix;
+}
+
+inline const Matrix4d Matrix4d::orthographic(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+	// LH - DirectX: Z -> [0, 1]
+    return CONSTRUCT_TRANSPOSED_MAT4_D(
+        2.0 / (right - left), 0                    , 0                    , -(right + left) / (right - left),
+        0                    , 2.0 / (top - bottom), 0                    , -(top + bottom) / (top - bottom),
+        0                    , 0                    , 1.0 / (zFar - zNear), -zNear / (zFar - zNear),
+        0                    , 0                    , 0                    , 1);
+}
+inline const Matrix4d Matrix4d::orthographicRH(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+    // RH - OpenGL: Z -> [-1, +1]
+    double sum_rl, sum_tb, sum_nf, inv_rl, inv_tb, inv_nf;
+    sum_rl = (right + left);
+    sum_tb = (top + bottom);
+    sum_nf = (zNear + zFar);
+    inv_rl = (1.0 / (right - left));
+    inv_tb = (1.0 / (top - bottom));
+    inv_nf = (1.0 / (zNear - zFar));
+    return Matrix4d(Vector4d((inv_rl + inv_rl), 0.0, 0.0, 0.0),
+                    Vector4d(0.0, (inv_tb + inv_tb), 0.0, 0.0),
+                    Vector4d(0.0, 0.0, (inv_nf + inv_nf), 0.0),
+                    Vector4d((-sum_rl * inv_rl), (-sum_tb * inv_tb), (sum_nf * inv_nf), 1.0));
+}
+
+inline const Matrix4d Matrix4d::cubeProjection(const double zNear, const double zFar)
+{
+	// LH - DirectX
+	return CONSTRUCT_TRANSPOSED_MAT4_D(
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, zFar / (zFar - zNear), (zFar * zNear) / (zNear - zFar),
+		0, 0, 1, 0);
+}
+inline const Matrix4d Matrix4d::cubeProjectionRH(const double zNear, const double zFar)
+{
+    // RH - OpenGL
+    return CONSTRUCT_TRANSPOSED_MAT4_D(
+        1, 0, 0, 0,
+        0, -1, 0, 0,
+        0, 0, (zFar + zNear) / (zFar - zNear), -(2 * zFar * zNear) / (zFar - zNear),
+        0, 0, 1, 0);
+}
+
+inline const Matrix4d Matrix4d::cubeView(const unsigned int side)
+{
+	switch (side)
+	{
+	case POSITIVE_X:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			1, 0, 0, 0,
+			0, 0, 0, 1);
+	case NEGATIVE_X:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			0, 0, 1, 0,
+			0, 1, 0, 0,
+			-1, 0, 0, 0,
+			0, 0, 0, 1);
+	case POSITIVE_Y:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1);
+	case NEGATIVE_Y:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			1, 0, 0, 0,
+			0, 0, 1, 0,
+			0, -1, 0, 0,
+			0, 0, 0, 1);
+	case POSITIVE_Z:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1);
+		//case NEGATIVE_Z:
+	default:
+		return CONSTRUCT_TRANSPOSED_MAT4_D(
+			-1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, -1, 0,
+			0, 0, 0, 1);
+	}
+}
+
+inline void Matrix4d::extractFrustumClipPlanes(const Matrix4d& vp, Vector4d& rcp, Vector4d& lcp, Vector4d& tcp, Vector4d& bcp, Vector4d& fcp, Vector4d& ncp, bool const normalizePlanes)
+{
+	// Left plane
+	lcp = vp.getRow(3) + vp.getRow(0);
+
+	// Right plane
+	rcp = vp.getRow(3) - vp.getRow(0);
+
+	// Bottom plane
+	bcp = vp.getRow(3) + vp.getRow(1);
+
+	// Top plane
+	tcp = vp.getRow(3) - vp.getRow(1);
+
+	// Near plane
+	ncp = vp.getRow(3) + vp.getRow(2);
+
+	// Far plane
+	fcp = vp.getRow(3) - vp.getRow(2);
+
+	// Normalize if needed
+	if (normalizePlanes)
+	{
+		double lcp_norm = length(lcp.getXYZ());
+		lcp /= lcp_norm;
+
+		double rcp_norm = length(rcp.getXYZ());
+		rcp /= rcp_norm;
+
+		double bcp_norm = length(bcp.getXYZ());
+		bcp /= bcp_norm;
+
+		double tcp_norm = length(tcp.getXYZ());
+		tcp /= tcp_norm;
+
+		double ncp_norm = length(ncp.getXYZ());
+		ncp /= ncp_norm;
+
+		double fcp_norm = length(fcp.getXYZ());
+		fcp /= fcp_norm;
+	}
+}
+
+// Note that:
+//  rotateYX(-y,-x)*rotateXY(x,y) == mat4::identity()
+// which means that
+//  inverse(rotateXY(x,y)) = rotateYX(-y,-x)
+inline const Matrix4d Matrix4d::rotationYX(const double radiansY, const double radiansX)
+{
+	//return mat4::rotationY(angleY) * mat4::rotationX(angleX);
+	/*
+	[	1,		 0,		 0,		 0]
+	[	0,		 c,		-s,		 0]
+	[	0,		 s,		 c,		 0]
+	[	0,		 0,		 0,		 1]
+
+	[ o, 0, i, 0]	[   o,		is,		ic,		0]
+	[ 0, 1, 0, 0]	[   0,		c ,		-s,		0]
+	[-i, 0, o, 0]	[  -i,		os,		oc,		0]
+	[ 0, 0, 0, 1]	[   0,		0 ,		0 ,		1]
+	*/
+	const double cosX = cos(radiansX), sinX = sin(radiansX);
+	const double cosY = cos(radiansY), sinY = sin(radiansY);
+
+	return CONSTRUCT_TRANSPOSED_MAT4_D(
+		cosY, sinY*sinX, sinY*cosX, 0,
+		0, cosX, -sinX, 0,
+		-sinY, cosY*sinX, cosY*cosX, 0,
+		0, 0, 0, 1
+	);
+}
+
+inline const Matrix4d Matrix4d::rotationXY(const double radiansX, const double radiansY)
+{
+	//same as: return mat4::rotationX(angleX) * mat4::rotationY(angleY);
+	const double cosX = cos(radiansX), sinX = sin(radiansX);
+	const double cosY = cos(radiansY), sinY = sin(radiansY);
+
+	return CONSTRUCT_TRANSPOSED_MAT4_D(
+		cosY, 0, sinY, 0,
+		sinX * sinY, cosX, -sinX * cosY, 0,
+		cosX *-sinY, sinX, cosX * cosY, 0,
+		0, 0, 0, 1);
+}
+//========================================= #TheForgeMathExtensionsEnd ==================================================
+
+inline const Matrix4d select(const Matrix4d & mat0, const Matrix4d & mat1, bool select1)
+{
+    return Matrix4d(select(mat0.getCol0(), mat1.getCol0(), select1),
+                   select(mat0.getCol1(), mat1.getCol1(), select1),
+                   select(mat0.getCol2(), mat1.getCol2(), select1),
+                   select(mat0.getCol3(), mat1.getCol3(), select1));
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Matrix4d & mat)
+{
+    print(mat.getRow(0));
+    print(mat.getRow(1));
+    print(mat.getRow(2));
+    print(mat.getRow(3));
+}
+
+inline void print(const Matrix4d & mat, const char * name)
+{
+    std::printf("%s:\n", name);
+    print(mat);
+}
+
+#endif // VECTORMATH_DEBUG
+//========================================= #TheForgeMathExtensionsEnd ==================================================
 
 // ========================================================
 // Transform3

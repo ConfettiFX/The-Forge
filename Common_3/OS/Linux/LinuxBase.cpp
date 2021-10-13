@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #ifdef __linux__
 
 #include <ctime>
@@ -930,17 +932,17 @@ bool initBaseSubsystems()
 	extern bool platformInitUserInterface();
 	extern void platformInitLuaScriptingSystem();
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (!platformInitFontSystem())
 		return false;
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (!platformInitUserInterface())
 		return false;
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformInitLuaScriptingSystem();
 #endif
 
@@ -953,11 +955,11 @@ void updateBaseSubsystems(float deltaTime)
 	extern void platformUpdateLuaScriptingSystem();
 	extern void platformUpdateUserInterface(float deltaTime);
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformUpdateLuaScriptingSystem();
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformUpdateUserInterface(deltaTime);
 #endif
 }
@@ -969,15 +971,15 @@ void exitBaseSubsystems()
 	extern void platformExitUserInterface();
 	extern void platformExitLuaScriptingSystem();
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformExitUserInterface(); 
 #endif
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	platformExitFontSystem();
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformExitLuaScriptingSystem();
 #endif
 }
@@ -999,7 +1001,7 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	rmemInit(0);
 #endif
 
-	initLog(app->GetName(), eALL);
+	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
 	pApp = app;
 

@@ -22,6 +22,7 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdarg.h>

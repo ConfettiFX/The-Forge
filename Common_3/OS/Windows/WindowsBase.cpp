@@ -22,6 +22,8 @@
 * under the License.
 */
 
+#include "../Core/Config.h"
+
 #ifdef _WINDOWS
 
 #include <ctime>
@@ -54,7 +56,7 @@
 
 #include "../../Renderer/IRenderer.h"
 
-#ifdef FORGE_STACKTRACE_DUMP
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 #include "WindowsStackTraceDump.h"
 #endif
 
@@ -535,6 +537,11 @@ void onAPISwitch()
 	gResetScenario |= RESET_SCENARIO_API_SWITCH;
 }
 
+void onGpuModeSwitch()
+{
+	gResetScenario |= RESET_SCENARIO_GPU_MODE_SWITCH;
+}
+
 void initWindowClass()
 {
 	if (!gWindowClassInitialized)
@@ -990,17 +997,17 @@ bool initBaseSubsystems()
 	extern bool platformInitUserInterface();
 	extern void platformInitLuaScriptingSystem();
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (!platformInitFontSystem())
 		return false;
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (!platformInitUserInterface())
 		return false;
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformInitLuaScriptingSystem();
 #endif
 
@@ -1013,11 +1020,11 @@ void updateBaseSubsystems(float deltaTime)
 	extern void platformUpdateLuaScriptingSystem();
 	extern void platformUpdateUserInterface(float deltaTime);
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformUpdateLuaScriptingSystem();
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformUpdateUserInterface(deltaTime);
 #endif
 }
@@ -1029,15 +1036,15 @@ void exitBaseSubsystems()
 	extern void platformExitUserInterface();
 	extern void platformExitLuaScriptingSystem();
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformExitUserInterface(); 
 #endif
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	platformExitFontSystem();
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformExitLuaScriptingSystem();
 #endif
 }
@@ -1046,7 +1053,7 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 {
 	gSelectedApiIndex = gSelectedRendererApi;
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	UIComponentDesc UIComponentDesc = {};
 	UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
 	uiCreateComponent("API Switching", &UIComponentDesc, &pAPISwitchingWindow);
@@ -1069,7 +1076,9 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 	selectApUIWidget.pData = &gSelectedApiIndex;
 
 	uint32_t apiCount = RENDERER_API_COUNT;
+#ifdef DIRECT3D11
 	if (gD3D11Unsupported) --apiCount; 
+#endif
 	for (uint32_t i = 0; i < apiCount; ++i)
 	{
 		selectApUIWidget.mNames.push_back((char*)pApiNames[i]);
@@ -1079,7 +1088,7 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 	pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
 	pSelectApUIWidget->pOnEdited = onAPISwitch;
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	luaRegisterWidget(pSelectApUIWidget);
 	LuaScriptDesc apiScriptDesc = {};
 	apiScriptDesc.pScriptFileName = "Test_API_Switching.lua";
@@ -1100,13 +1109,13 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
-#if USE_MTUNER
+#ifdef ENABLE_MTUNER
 	rmemInit(0);
 #endif
 
-	initLog(app->GetName(), LogLevel::eALL);
+	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
-#ifdef FORGE_STACKTRACE_DUMP
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 	if (!WindowsStackTrace::Init())
 		return EXIT_FAILURE;
 #endif
@@ -1317,7 +1326,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	exitWindowClass();
 
-#ifdef FORGE_STACKTRACE_DUMP
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 	WindowsStackTrace::Exit();
 #endif
 
@@ -1327,7 +1336,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	exitFileSystem();
 
-#if USE_MTUNER
+#ifdef ENABLE_MTUNER
 	rmemUnload();
 	rmemShutDown();
 #endif

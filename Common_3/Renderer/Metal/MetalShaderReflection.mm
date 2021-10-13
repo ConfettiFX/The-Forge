@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef METAL
 
 #include "../../OS/Interfaces/ILog.h"
@@ -537,7 +539,10 @@ void mtl_createShaderReflection(
 		// for layered rendering, metal requires the primitive topology beforehand.
 		// if no prim. topo. is specified and shader reflection finds 'render_target_array_index'
 		// pipelineState won't be created.
-		renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+		if (@available(macOS 10.11, iOS 12.0, *))
+		{
+			renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint;
+		}
 
 		MTLRenderPipelineReflection* ref;
 		id<MTLRenderPipelineState>   pipelineState = [pRenderer->pDevice newRenderPipelineStateWithDescriptor:renderPipelineDesc

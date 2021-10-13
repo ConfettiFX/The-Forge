@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef METAL
 
 #define RENDERER_IMPLEMENTATION
@@ -852,7 +854,33 @@ void mtl_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* 
 	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
 }
 
-void mtl_freeMemoryStats(Renderer* pRenderer, char* pStats) { vmaFreeStatsString(pRenderer->pVmaAllocator, pStats); }
+void mtl_freeMemoryStats(Renderer* pRenderer, char* pStats)
+{
+	vmaFreeStatsString(pRenderer->pVmaAllocator, pStats);
+}
+/************************************************************************/
+// Shader utility functions
+/************************************************************************/
+API_AVAILABLE(macos(10.12), ios(10.0))
+static void util_specialize_function(id<MTLLibrary> lib, const ShaderConstant* pConstants, uint32_t count, id<MTLFunction>* inOutFunction)
+{
+	id<MTLFunction> function = *inOutFunction;
+	MTLFunctionConstantValues* values = [[MTLFunctionConstantValues alloc] init];
+	NSArray<MTLFunctionConstant*>* mtlConstants = [[function functionConstantsDictionary] allValues];
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		const ShaderConstant* constant = &pConstants[i];
+		for (const MTLFunctionConstant* mtlConstant in mtlConstants)
+		{
+			if (mtlConstant.index == constant->mIndex)
+			{
+				[values setConstantValue:constant->pValue type:mtlConstant.type atIndex:mtlConstant.index];
+			}
+		}
+	}
+	
+	*inOutFunction = [lib newFunctionWithName:[function name] constantValues:values error:nil];
+}
 /************************************************************************/
 // Pipeline state functions
 /************************************************************************/
@@ -2689,6 +2717,18 @@ void mtl_addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShad
 				NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:entry_point];
 				id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 				assert(function != nil && "Entry point not found in shader.");
+				
+				if (pDesc->mConstantCount)
+				{
+					@autoreleasepool
+					{
+						if (@available(macOS 10.12, iOS 10.0, *))
+						{
+							util_specialize_function(lib, pDesc->pConstants, pDesc->mConstantCount, &function);
+						}
+					}
+				}
+				
 				*compiled_code = function;
 			}
 
@@ -2772,6 +2812,18 @@ void mtl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Sha
 			// Create a MTLFunction from the loaded MTLLibrary.
 			NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->pEntryPoint];
 			id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
+			
+			if (pDesc->mConstantCount)
+			{
+				@autoreleasepool
+				{
+					if (@available(macOS 10.12, iOS 10.0, *))
+					{
+						util_specialize_function(lib, pDesc->pConstants, pDesc->mConstantCount, &function);
+					}
+				}
+			}
+			
 			*compiled_code = function;
 
 			entryNames[reflectionCount] = pStage->pEntryPoint;
@@ -3520,17 +3572,35 @@ void mtl_cmdBindRenderTargets(
 			if (pColorArraySlices)
 			{
 				if (ppRenderTargets[i]->mDepth > 1)
+				{
 					pCmd->pRenderPassDesc.colorAttachments[i].depthPlane = pColorArraySlices[i];
+				}
 				else
+				{
 					pCmd->pRenderPassDesc.colorAttachments[i].slice = pColorArraySlices[i];
+				}
 			}
 			else if (ppRenderTargets[i]->mArraySize > 1)
 			{
-				pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mArraySize;
+				if (@available(macOS 10.11, iOS 12.0, *))
+				{
+					pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mArraySize;
+				}
+				else
+				{
+					ASSERT(false);
+				}
 			}
 			else if (ppRenderTargets[i]->mDepth > 1)
 			{
-				pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mDepth;
+				if (@available(macOS 10.11, iOS 12.0, *))
+				{
+					pCmd->pRenderPassDesc.renderTargetArrayLength = ppRenderTargets[i]->mDepth;
+				}
+				else
+				{
+					ASSERT(false);
+				}
 			}
 
 			// For on-tile (memoryless) textures, we never need to load or store.

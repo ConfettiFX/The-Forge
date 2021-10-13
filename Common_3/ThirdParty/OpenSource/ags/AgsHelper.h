@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../Renderer/RendererConfig.h"
 
 #if defined(_WINDOWS) && !defined(DURANGO)
 #include "ags_lib/inc/amd_ags.h"

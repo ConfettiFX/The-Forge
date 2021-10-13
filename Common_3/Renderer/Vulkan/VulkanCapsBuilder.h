@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../RendererConfig.h"
+
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
 inline void vk_utils_caps_builder(Renderer* pRenderer)

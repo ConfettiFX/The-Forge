@@ -10,6 +10,9 @@
 
 #define loadlib_c
 #define LUA_LIB
+
+#include "../../../../OS/Core/Config.h"
+
 #if !defined(ORBIS) && !defined(PROSPERO)
 #include "lprefix.h"
 

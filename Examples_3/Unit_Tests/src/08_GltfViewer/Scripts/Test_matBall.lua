@@ -16,7 +16,7 @@ loader.SetLight3Intensity(0.2)
 loader.SetAmbientLightColor(4294967142)
 loader.SetAmbientLightIntensity(0.25)
 
-loader.SetEnableFXAA(1)
-loader.SetEnableFXAA(1)
+loader.SetEnableTemporalAA(1)
+loader.SetEnableVignetting(1)
 
 loader.SetCounter(5)

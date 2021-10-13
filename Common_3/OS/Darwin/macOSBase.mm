@@ -22,6 +22,8 @@
  * under the License.
  */
 
+#include "../Core/Config.h"
+
 #ifdef __APPLE__
 
 #import <Cocoa/Cocoa.h>
@@ -1228,17 +1230,17 @@ bool initBaseSubsystems()
 	extern bool platformInitUserInterface();
 	extern void platformInitLuaScriptingSystem();
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (!platformInitFontSystem())
 		return false;
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (!platformInitUserInterface())
 		return false;
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformInitLuaScriptingSystem();
 #endif
 
@@ -1251,11 +1253,11 @@ void updateBaseSubsystems(float deltaTime)
 	extern void platformUpdateLuaScriptingSystem();
 	extern void platformUpdateUserInterface(float deltaTime);
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformUpdateLuaScriptingSystem();
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformUpdateUserInterface(deltaTime);
 #endif
 }
@@ -1267,15 +1269,15 @@ void exitBaseSubsystems()
 	extern void platformExitUserInterface();
 	extern void platformExitLuaScriptingSystem();
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformExitUserInterface();
 #endif
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	platformExitFontSystem();
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformExitLuaScriptingSystem();
 #endif
 }
@@ -1453,7 +1455,7 @@ char benchmarkOutput[1024] = { "\0" };
 		}
 
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-		initLog(pApp->GetName(), eALL);
+		initLog(pApp->GetName(), DEFAULT_LOG_LEVEL);
 
 		collectMonitorInfo();
 

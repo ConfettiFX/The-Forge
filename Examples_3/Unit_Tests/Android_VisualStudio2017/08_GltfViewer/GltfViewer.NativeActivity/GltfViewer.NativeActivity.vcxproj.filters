@@ -33,13 +33,7 @@
     <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\floor.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\FXAA.frag.fsl">
-      <Filter>Shaders\FSL</Filter>
-    </FSLShader>
     <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\Triangular.vert.fsl">
-      <Filter>Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\vignette.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\watermark.frag.fsl">
@@ -52,6 +46,18 @@
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\zPassFloor.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\FinalPostProcess.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\Skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\Skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\src\08_GltfViewer\Shaders\FSL\TemporalAA.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

@@ -8,6 +8,8 @@
 #ifndef GAINPUT_H_
 #define GAINPUT_H_
 
+#include "../../../../../../OS/Core/Config.h"
+
 #if defined(VK_USE_PLATFORM_GGP)
 	#define GAINPUT_PLATFORM_GGP
 	#define GAINPUT_LIBEXPORT

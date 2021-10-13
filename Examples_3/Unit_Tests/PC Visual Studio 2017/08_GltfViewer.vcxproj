@@ -16,13 +16,15 @@
   <ItemGroup>
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Skybox.frag.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Skybox.vert.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\TemporalAA.frag.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\FinalPostProcess.frag.fsl" />
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.EndsWith('Dx11'))">
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\floor.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\floor.vert.fsl" />
-    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\FXAA.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Triangular.vert.fsl" />
-    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\vignette.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\watermark.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\watermark.vert.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\zPass.vert.fsl" />
@@ -85,7 +87,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -109,6 +111,8 @@
       <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\*.basis" "$(OutDir)Textures\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\HDRI\*.ktx" "$(OutDir)Textures\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
@@ -150,7 +154,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -176,6 +180,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\*.basis" "$(OutDir)Textures\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\HDRI\*.ktx" "$(OutDir)Textures\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"

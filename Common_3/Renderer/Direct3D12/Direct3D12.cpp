@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef DIRECT3D12
 
 #define RENDERER_IMPLEMENTATION
@@ -33,12 +35,6 @@
 #endif
 
 // Pull in minimal Windows headers
-#if !defined(NOMINMAX)
-#define NOMINMAX
-#endif
-#if !defined(WIN32_LEAN_AND_MEAN)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <Windows.h>
 
 #include "../IRenderer.h"
@@ -116,6 +112,8 @@ DECLARE_RENDERER_FUNCTION(
 	void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 DECLARE_RENDERER_FUNCTION(
 	void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(
+	void, cmdCopySubresource, Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc)
 DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
@@ -1399,6 +1397,157 @@ D3D12_SHADING_RATE util_to_dx_shading_rate(ShadingRate shadingRate)
 }
 #endif
 
+#if !defined(XBOX)
+void util_enumerate_gpus(IDXGIFactory6* dxgiFactory, uint32_t* pGpuCount, GpuDesc* gpuDesc, bool* pFoundSoftwareAdapter)
+{
+	D3D_FEATURE_LEVEL feature_levels[4] = {
+		D3D_FEATURE_LEVEL_12_1,
+		D3D_FEATURE_LEVEL_12_0,
+		D3D_FEATURE_LEVEL_11_1,
+		D3D_FEATURE_LEVEL_11_0,
+	};
+
+	uint32_t       gpuCount = 0;
+	IDXGIAdapter4* adapter = NULL;
+	bool           foundSoftwareAdapter = false;
+
+	// Find number of usable GPUs
+	// Use DXGI6 interface which lets us specify gpu preference so we dont need to use NVOptimus or AMDPowerExpress exports
+	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != dxgiFactory->EnumAdapterByGpuPreference(
+		i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_ARGS(&adapter));
+		++i)
+	{
+		DECLARE_ZERO(DXGI_ADAPTER_DESC3, desc);
+		adapter->GetDesc3(&desc);
+
+		// Ignore Microsoft Driver
+		if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
+		{
+			for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
+			{
+				// Make sure the adapter can support a D3D12 device
+				if (SUCCEEDED(D3D12CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL)))
+				{
+					GpuDesc gpuDescTmp = {};
+					GpuDesc* pGpuDesc = gpuDesc ? &gpuDesc[gpuCount] : &gpuDescTmp;
+					HRESULT hres = adapter->QueryInterface(IID_ARGS(&pGpuDesc->pGpu));
+					if (SUCCEEDED(hres))
+					{
+						if (gpuDesc)
+						{
+							Renderer renderer = {};
+							D3D12CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&renderer.mD3D12.pDxDevice));
+							hook_fill_gpu_desc(&renderer, feature_levels[level], pGpuDesc);
+							//get preset for current gpu description
+							pGpuDesc->mPreset =
+								getGPUPresetLevel(pGpuDesc->mVendorId, pGpuDesc->mDeviceId, pGpuDesc->mRevisionId);
+							SAFE_RELEASE(renderer.mD3D12.pDxDevice);
+						}
+						else
+						{
+							SAFE_RELEASE(pGpuDesc->pGpu);
+						}
+						++gpuCount;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			foundSoftwareAdapter = true;
+		}
+
+		adapter->Release();
+	}
+
+	if (pGpuCount)
+		*pGpuCount = gpuCount;
+
+	if (pFoundSoftwareAdapter)
+		*pFoundSoftwareAdapter = foundSoftwareAdapter;
+}
+#endif
+
+GPUSettings util_to_GpuSettings(const GpuDesc* pGpuDesc)
+{
+	GPUSettings gpuSettings = {};
+	gpuSettings.mUniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+	gpuSettings.mUploadBufferTextureAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+	gpuSettings.mUploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+	gpuSettings.mMultiDrawIndirect = true;
+	gpuSettings.mMaxVertexInputBindings = 32U;
+
+	//assign device ID
+	strncpy(gpuSettings.mGpuVendorPreset.mModelId, pGpuDesc->mDeviceId, MAX_GPU_VENDOR_STRING_LENGTH);
+	//assign vendor ID
+	strncpy(gpuSettings.mGpuVendorPreset.mVendorId, pGpuDesc->mVendorId, MAX_GPU_VENDOR_STRING_LENGTH);
+	//assign Revision ID
+	strncpy(gpuSettings.mGpuVendorPreset.mRevisionId, pGpuDesc->mRevisionId, MAX_GPU_VENDOR_STRING_LENGTH);
+	//get name from api
+	strncpy(gpuSettings.mGpuVendorPreset.mGpuName, pGpuDesc->mName, MAX_GPU_VENDOR_STRING_LENGTH);
+	//get preset
+	gpuSettings.mGpuVendorPreset.mPresetLevel = pGpuDesc->mPreset;
+	//get wave lane count
+	gpuSettings.mWaveLaneCount = pGpuDesc->mFeatureDataOptions1.WaveLaneCountMin;
+	gpuSettings.mROVsSupported = pGpuDesc->mFeatureDataOptions.ROVsSupported ? true : false;
+	gpuSettings.mTessellationSupported = gpuSettings.mGeometryShaderSupported = true;
+	gpuSettings.mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_ALL;
+	gpuSettings.mGpuBreadcrumbs = true;
+	gpuSettings.mHDRSupported = true;
+
+	// Determine root signature size for this gpu driver
+	DXGI_ADAPTER_DESC adapterDesc;
+	pGpuDesc->pGpu->GetDesc(&adapterDesc);
+	gpuSettings.mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
+
+	return gpuSettings;
+}
+
+void util_query_variable_shading_rate_tier(Renderer* pRenderer, GPUSettings* pGpuSettings)
+{
+	pGpuSettings->mShadingRates = SHADING_RATE_NOT_SUPPORTED;
+	pGpuSettings->mShadingRateCaps = SHADING_RATE_CAPS_NOT_SUPPORTED;
+	pGpuSettings->mShadingRateTexelWidth = pGpuSettings->mShadingRateTexelHeight = 0;
+
+#ifdef ENABLE_VRS
+	D3D12_FEATURE_DATA_D3D12_OPTIONS6 options;
+	HRESULT hres = pRenderer->mD3D12.pDxDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options, sizeof(options));
+
+	if (SUCCEEDED(hres))
+	{
+		if (options.VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_1)
+		{
+			pGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_DRAW;
+		}
+
+		if (options.VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_2)
+		{
+			pGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_DRAW;
+			pGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_TILE;
+		}
+
+		if (pGpuSettings->mShadingRateCaps)
+		{
+			pGpuSettings->mShadingRates |= SHADING_RATE_FULL;
+			pGpuSettings->mShadingRates |= SHADING_RATE_HALF;
+			pGpuSettings->mShadingRates |= SHADING_RATE_1X2;
+			pGpuSettings->mShadingRates |= SHADING_RATE_2X1;
+
+			if (options.AdditionalShadingRatesSupported)
+			{
+				pGpuSettings->mShadingRates |= SHADING_RATE_2X4;
+				pGpuSettings->mShadingRates |= SHADING_RATE_4X2;
+				pGpuSettings->mShadingRates |= SHADING_RATE_QUARTER;
+			}
+
+			pGpuSettings->mShadingRateTexelWidth = pGpuSettings->mShadingRateTexelHeight =
+				options.ShadingRateImageTileSize;
+		}
+	}
+#endif
+}
+
 /************************************************************************/
 // Internal init functions
 /************************************************************************/
@@ -1434,12 +1583,12 @@ static void HANGPRINTCALLBACK(const CHAR* strLine)
 static void HANGDUMPCALLBACK(const WCHAR* strFileName) { return; }
 #endif
 
-static bool AddDevice(Renderer* pRenderer)
+static bool SelectBestGpu(Renderer* pRenderer, D3D_FEATURE_LEVEL* pFeatureLevel)
 {
 	// The D3D debug layer (as well as Microsoft PIX and other graphics debugger
 	// tools using an injection library) is not compatible with Nsight Aftermath.
 	// If Aftermath detects that any of these tools are present it will fail initialization.
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
 	//add debug layer if in debug mode
 	if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->mD3D12.pDXDebug), (void**)&(pRenderer->mD3D12.pDXDebug))))
 	{
@@ -1447,7 +1596,7 @@ static bool AddDevice(Renderer* pRenderer)
 	}
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	// Enable Nsight Aftermath GPU crash dump creation.
 	// This needs to be done before the Vulkan device is created.
 	CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
@@ -1461,7 +1610,8 @@ static bool AddDevice(Renderer* pRenderer)
 	pRenderer->pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
 #endif
 
-	D3D_FEATURE_LEVEL feature_levels[4] = {
+	D3D_FEATURE_LEVEL feature_levels[4] =
+	{
 		D3D_FEATURE_LEVEL_12_1,
 		D3D_FEATURE_LEVEL_12_0,
 		D3D_FEATURE_LEVEL_11_1,
@@ -1507,44 +1657,10 @@ static bool AddDevice(Renderer* pRenderer)
 	CHECK_HRESULT(CreateDXGIFactory2(flags, IID_ARGS(&pRenderer->mD3D12.pDXGIFactory)));
 
 	uint32_t       gpuCount = 0;
-	IDXGIAdapter4* adapter = NULL;
 	bool           foundSoftwareAdapter = false;
 
 	// Find number of usable GPUs
-	// Use DXGI6 interface which lets us specify gpu preference so we dont need to use NVOptimus or AMDPowerExpress exports
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->mD3D12.pDXGIFactory->EnumAdapterByGpuPreference(
-												 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_ARGS(&adapter));
-		 ++i)
-	{
-		DECLARE_ZERO(DXGI_ADAPTER_DESC3, desc);
-		adapter->GetDesc3(&desc);
-
-		// Ignore Microsoft Driver
-		if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
-		{
-			for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
-			{
-				// Make sure the adapter can support a D3D12 device
-				if (SUCCEEDED(D3D12CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL)))
-				{
-					GpuDesc gpuDesc = {};
-					HRESULT hres = adapter->QueryInterface(IID_ARGS(&gpuDesc.pGpu));
-					if (SUCCEEDED(hres))
-					{
-						SAFE_RELEASE(gpuDesc.pGpu);
-						++gpuCount;
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			foundSoftwareAdapter = true;
-		}
-
-		adapter->Release();
-	}
+	util_enumerate_gpus(pRenderer->mD3D12.pDXGIFactory, &gpuCount, NULL, &foundSoftwareAdapter);
 
 	// If the only adapter we found is a software adapter, log error message for QA
 	if (!gpuCount && foundSoftwareAdapter)
@@ -1559,42 +1675,7 @@ static bool AddDevice(Renderer* pRenderer)
 	memset(gpuDesc, 0, gpuCount * sizeof(GpuDesc));
 	gpuCount = 0;
 
-	// Use DXGI6 interface which lets us specify gpu preference so we dont need to use NVOptimus or AMDPowerExpress exports
-	for (UINT i = 0; DXGI_ERROR_NOT_FOUND != pRenderer->mD3D12.pDXGIFactory->EnumAdapterByGpuPreference(
-												 i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_ARGS(&adapter));
-		 ++i)
-	{
-		DECLARE_ZERO(DXGI_ADAPTER_DESC3, desc);
-		adapter->GetDesc3(&desc);
-
-		// Ignore Microsoft Driver
-		if (!(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE))
-		{
-			for (uint32_t level = 0; level < sizeof(feature_levels) / sizeof(feature_levels[0]); ++level)
-			{
-				// Make sure the adapter can support a D3D12 device
-				if (SUCCEEDED(D3D12CreateDevice(adapter, feature_levels[level], __uuidof(ID3D12Device), NULL)))
-				{
-					HRESULT hres = adapter->QueryInterface(IID_ARGS(&gpuDesc[gpuCount].pGpu));
-					if (SUCCEEDED(hres))
-					{
-						D3D12CreateDevice(adapter, feature_levels[level], IID_PPV_ARGS(&pRenderer->mD3D12.pDxDevice));
-						hook_fill_gpu_desc(pRenderer, feature_levels[level], &gpuDesc[gpuCount]);
-						//get preset for current gpu description
-						gpuDesc[gpuCount].mPreset =
-							getGPUPresetLevel(gpuDesc[gpuCount].mVendorId, gpuDesc[gpuCount].mDeviceId, gpuDesc[gpuCount].mRevisionId);
-
-						++gpuCount;
-						SAFE_RELEASE(pRenderer->mD3D12.pDxDevice);
-						break;
-					}
-				}
-			}
-		}
-
-		adapter->Release();
-	}
-
+	util_enumerate_gpus(pRenderer->mD3D12.pDXGIFactory, &gpuCount, gpuDesc, NULL);
 	ASSERT(gpuCount > 0);
 
 	typedef bool (*DeviceBetterFn)(GpuDesc * gpuDesc, uint32_t testIndex, uint32_t refIndex);
@@ -1635,39 +1716,11 @@ static bool AddDevice(Renderer* pRenderer)
 
 	for (uint32_t i = 0; i < gpuCount; ++i)
 	{
-		gpuSettings[i] = {};
-		gpuSettings[i].mUniformBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-		gpuSettings[i].mUploadBufferTextureAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-		gpuSettings[i].mUploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-		gpuSettings[i].mMultiDrawIndirect = true;
-		gpuSettings[i].mMaxVertexInputBindings = 32U;
-
-		//assign device ID
-		strncpy(gpuSettings[i].mGpuVendorPreset.mModelId, gpuDesc[i].mDeviceId, MAX_GPU_VENDOR_STRING_LENGTH);
-		//assign vendor ID
-		strncpy(gpuSettings[i].mGpuVendorPreset.mVendorId, gpuDesc[i].mVendorId, MAX_GPU_VENDOR_STRING_LENGTH);
-		//assign Revision ID
-		strncpy(gpuSettings[i].mGpuVendorPreset.mRevisionId, gpuDesc[i].mRevisionId, MAX_GPU_VENDOR_STRING_LENGTH);
-		//get name from api
-		strncpy(gpuSettings[i].mGpuVendorPreset.mGpuName, gpuDesc[i].mName, MAX_GPU_VENDOR_STRING_LENGTH);
-		//get preset
-		gpuSettings[i].mGpuVendorPreset.mPresetLevel = gpuDesc[i].mPreset;
-		//get wave lane count
-		gpuSettings[i].mWaveLaneCount = gpuDesc[i].mFeatureDataOptions1.WaveLaneCountMin;
-		gpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions.ROVsSupported ? true : false;
-		gpuSettings[i].mTessellationSupported = gpuSettings[i].mGeometryShaderSupported = true;
-		gpuSettings[i].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_ALL;
-		gpuSettings[i].mGpuBreadcrumbs = true;
-		gpuSettings[i].mHDRSupported = true;
-
-		// Determine root signature size for this gpu driver
-		DXGI_ADAPTER_DESC adapterDesc;
-		gpuDesc[i].pGpu->GetDesc(&adapterDesc);
-		gpuSettings[i].mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
+		gpuSettings[i] = util_to_GpuSettings(&gpuDesc[i]);
 		LOGF(
-			LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %x, Model ID: %x, Revision ID: %x, Preset: %s, GPU Name: %S", i,
-			adapterDesc.VendorId, adapterDesc.DeviceId, adapterDesc.Revision,
-			presetLevelToString(gpuSettings[i].mGpuVendorPreset.mPresetLevel), adapterDesc.Description);
+			LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %s, Model ID: %s, Revision ID: %s, Preset: %s, GPU Name: %S", i,
+			gpuSettings[i].mGpuVendorPreset.mVendorId, gpuSettings[i].mGpuVendorPreset.mModelId, gpuSettings[i].mGpuVendorPreset.mRevisionId,
+			presetLevelToString(gpuSettings[i].mGpuVendorPreset.mPresetLevel), gpuSettings[i].mGpuVendorPreset.mGpuName);
 
 		// Check that gpu supports at least graphics
 		if (gpuIndex == UINT32_MAX || isDeviceBetter(gpuDesc, i, gpuIndex))
@@ -1699,6 +1752,55 @@ static bool AddDevice(Renderer* pRenderer)
 	LOGF(LogLevel::eINFO, "Revision id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mRevisionId);
 	LOGF(LogLevel::eINFO, "Preset of selected gpu: %s", presetLevelToString(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel));
 
+	if (pFeatureLevel)
+		*pFeatureLevel = gpuDesc[gpuIndex].mMaxSupportedFeatureLevel;
+
+	return true;
+}
+
+static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
+{
+#if !defined(XBOX)
+	if (pRenderer->mGpuMode == GPU_MODE_UNLINKED && pDesc->pContext->mD3D12.pDXDebug)
+	{
+		pDesc->pContext->mD3D12.pDXDebug->QueryInterface(IID_ARGS(&pRenderer->mD3D12.pDXDebug));
+	}
+#endif
+
+#if defined(USE_NSIGHT_AFTERMATH)
+	// Enable Nsight Aftermath GPU crash dump creation.
+	// This needs to be done before the Vulkan device is created.
+	CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
+#endif
+
+#if defined(USE_DRED)
+	SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDredSettings), (void**)&(pRenderer->pDredSettings)));
+
+	// Turn on AutoBreadcrumbs and Page Fault reporting
+	pRenderer->pDredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+	pRenderer->pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+#endif
+
+	D3D_FEATURE_LEVEL supportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+#if !defined(XBOX)
+	if (pRenderer->mGpuMode == GPU_MODE_UNLINKED)
+	{
+		ASSERT(pDesc->pContext);
+		ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
+
+		CHECK_HRESULT(pDesc->pContext->mD3D12.pDXGIFactory->QueryInterface(IID_ARGS(&pRenderer->mD3D12.pDXGIFactory)));
+		CHECK_HRESULT(pDesc->pContext->pGpus[pDesc->mGpuIndex].mD3D12.pDxGPU->QueryInterface(IID_ARGS(&pRenderer->mD3D12.pDxActiveGPU)));
+		pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
+		*pRenderer->pActiveGpuSettings = pDesc->pContext->pGpus[pDesc->mGpuIndex].mSettings;
+		supportedFeatureLevel = pDesc->pContext->pGpus[pDesc->mGpuIndex].mD3D12.mMaxSupportedFeatureLevel;
+	}
+	else
+#endif
+	{
+		if (!SelectBestGpu(pRenderer, &supportedFeatureLevel))
+			return false;
+	}
+
 	// Load functions
 	{
 		HMODULE module = hook_get_d3d12_module_handle();
@@ -1715,10 +1817,10 @@ static bool AddDevice(Renderer* pRenderer)
 
 #if !defined(XBOX)
 	CHECK_HRESULT(D3D12CreateDevice(
-		pRenderer->mD3D12.pDxActiveGPU, gpuDesc[gpuIndex].mMaxSupportedFeatureLevel, IID_ARGS(&pRenderer->mD3D12.pDxDevice)));
+		pRenderer->mD3D12.pDxActiveGPU, supportedFeatureLevel, IID_ARGS(&pRenderer->mD3D12.pDxDevice)));
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	SetAftermathDevice(pRenderer->mD3D12.pDxDevice);
 #endif
 
@@ -1734,49 +1836,12 @@ static bool AddDevice(Renderer* pRenderer)
 	}
 #endif
 
-	// Query variable rate shading tier
+	// Query variable rate shading tier (for unlinked mode, this was already done during enumeration).
+	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
 	{
-		pRenderer->pActiveGpuSettings->mShadingRates = SHADING_RATE_NOT_SUPPORTED;
-		pRenderer->pActiveGpuSettings->mShadingRateCaps = SHADING_RATE_CAPS_NOT_SUPPORTED;
-		pRenderer->pActiveGpuSettings->mShadingRateTexelWidth = pRenderer->pActiveGpuSettings->mShadingRateTexelHeight = 0;
-
-#ifdef ENABLE_VRS
-		D3D12_FEATURE_DATA_D3D12_OPTIONS6 options;
-		HRESULT hres = pRenderer->mD3D12.pDxDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options, sizeof(options));
-
-		if (SUCCEEDED(hres))
-		{
-			if (options.VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_1)
-			{
-				pRenderer->pActiveGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_DRAW;
-			}
-
-			if (options.VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_2)
-			{
-				pRenderer->pActiveGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_DRAW;
-				pRenderer->pActiveGpuSettings->mShadingRateCaps |= SHADING_RATE_CAPS_PER_TILE;
-			}
-
-			if (pRenderer->pActiveGpuSettings->mShadingRateCaps)
-			{
-				pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_FULL;
-				pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_HALF;
-				pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_1X2;
-				pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_2X1;
-
-				if (options.AdditionalShadingRatesSupported)
-				{
-					pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_2X4;
-					pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_4X2;
-					pRenderer->pActiveGpuSettings->mShadingRates |= SHADING_RATE_QUARTER;
-				}
-
-				pRenderer->pActiveGpuSettings->mShadingRateTexelWidth = pRenderer->pActiveGpuSettings->mShadingRateTexelHeight =
-					options.ShadingRateImageTileSize;
-			}
-		}
-#endif
+		util_query_variable_shading_rate_tier(pRenderer, pRenderer->pActiveGpuSettings);
 	}
+
 	return true;
 }
 
@@ -1813,12 +1878,141 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->mD3D12.pDxDevice);
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	DestroyAftermathTracker(&pRenderer->mAftermathTracker);
 #endif
 
 #if defined(USE_DRED)
 	SAFE_RELEASE(pRenderer->pDredSettings);
+#endif
+}
+
+void InitCommon(const RendererDesc* pDesc, Renderer* pRenderer)
+{
+	AGSReturnCode agsRet = agsInit();
+	if (AGSReturnCode::AGS_SUCCESS == agsRet)
+	{
+		agsPrintDriverInfo();
+	}
+
+	NvAPI_Status nvStatus = nvapiInit();
+	if (NvAPI_Status::NVAPI_OK == nvStatus)
+	{
+		nvapiPrintDriverInfo();
+	}
+
+	// The D3D debug layer (as well as Microsoft PIX and other graphics debugger
+	// tools using an injection library) is not compatible with Nsight Aftermath.
+	// If Aftermath detects that any of these tools are present it will fail initialization.
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
+	//add debug layer if in debug mode
+	if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->mD3D12.pDXDebug), (void**)&(pRenderer->mD3D12.pDXDebug))))
+	{
+		hook_enable_debug_layer(pRenderer);
+	}
+#endif
+
+#if !defined(XBOX)
+	UINT flags = 0;
+#if defined(ENABLE_GRAPHICS_DEBUG)
+	flags = DXGI_CREATE_FACTORY_DEBUG;
+#endif
+
+	CHECK_HRESULT(CreateDXGIFactory2(flags, IID_ARGS(&pRenderer->mD3D12.pDXGIFactory)));
+#endif
+
+	pRenderer->mUnlinkedRendererIndex = 0;
+}
+
+void ExitCommon(Renderer* pRenderer)
+{
+	SAFE_RELEASE(pRenderer->mD3D12.pDXGIFactory);
+
+	nvapiExit();
+	agsExit();
+}
+
+/************************************************************************/
+// Renderer Context Init Exit (multi GPU)
+/************************************************************************/
+static uint32_t gRendererCount = 0;
+
+void d3d12_initRendererContext(const char* appName, const RendererContextDesc* pDesc, RendererContext** ppContext)
+{
+#if !defined(XBOX)
+	ASSERT(appName);
+	ASSERT(pDesc);
+	ASSERT(ppContext);
+	ASSERT(gRendererCount == 0);
+
+	RendererDesc fakeDesc = {};
+	fakeDesc.mDxFeatureLevel = pDesc->mDxFeatureLevel;
+	fakeDesc.mEnableGPUBasedValidation = pDesc->mEnableGPUBasedValidation;
+
+	Renderer fakeRenderer = {};
+
+	InitCommon(&fakeDesc, &fakeRenderer);
+
+	RendererContext* pContext = (RendererContext*)tf_calloc_memalign(1, alignof(RendererContext), sizeof(RendererContext));
+	pContext->mD3D12.pDXGIFactory = fakeRenderer.mD3D12.pDXGIFactory;
+	pContext->mD3D12.pDXDebug = fakeRenderer.mD3D12.pDXDebug;
+
+	bool           foundSoftwareAdapter = false;
+
+	// Find number of usable GPUs
+	util_enumerate_gpus(pContext->mD3D12.pDXGIFactory, &pContext->mGpuCount, NULL, &foundSoftwareAdapter);
+
+	// If the only adapter we found is a software adapter, log error message for QA
+	if (!pContext->mGpuCount && foundSoftwareAdapter)
+	{
+		LOGF(eERROR, "The only available GPU has DXGI_ADAPTER_FLAG_SOFTWARE. Early exiting");
+		ASSERT(false);
+		return;
+	}
+
+	ASSERT(pContext->mGpuCount);
+	GpuDesc* gpuDesc = (GpuDesc*)alloca(pContext->mGpuCount * sizeof(GpuDesc));
+	memset(gpuDesc, 0, pContext->mGpuCount * sizeof(GpuDesc));
+
+	util_enumerate_gpus(pContext->mD3D12.pDXGIFactory, &pContext->mGpuCount, gpuDesc, NULL);
+	ASSERT(pContext->mGpuCount > 0);
+	pContext->pGpus = (GpuInfo*)tf_calloc(pContext->mGpuCount, sizeof(GpuInfo));
+	for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
+	{
+		pContext->pGpus[i].mSettings = util_to_GpuSettings(&gpuDesc[i]);
+		pContext->pGpus[i].mD3D12.pDxGPU = gpuDesc[i].pGpu;
+		pContext->pGpus[i].mD3D12.mMaxSupportedFeatureLevel = gpuDesc[i].mMaxSupportedFeatureLevel;
+
+		// Create device to query additional properties.
+		D3D12CreateDevice(gpuDesc[i].pGpu, gpuDesc[i].mMaxSupportedFeatureLevel, IID_PPV_ARGS(&fakeRenderer.mD3D12.pDxDevice));
+
+		util_query_variable_shading_rate_tier(&fakeRenderer, &pContext->pGpus[i].mSettings);
+
+		SAFE_RELEASE(fakeRenderer.mD3D12.pDxDevice);
+	}
+
+	*ppContext = pContext;
+#endif
+}
+
+void d3d12_exitRendererContext(RendererContext* pContext)
+{
+#if !defined(XBOX)
+	ASSERT(pContext);
+
+	SAFE_RELEASE(pContext->mD3D12.pDXDebug);
+
+	Renderer fakeRenderer = {};
+
+	fakeRenderer.mD3D12.pDXGIFactory = pContext->mD3D12.pDXGIFactory;
+	ExitCommon(&fakeRenderer);
+
+	for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
+	{
+		SAFE_RELEASE(pContext->pGpus[i].mD3D12.pDxGPU);
+	}
+	SAFE_FREE(pContext->pGpus);
+	SAFE_FREE(pContext);
 #endif
 }
 /************************************************************************/
@@ -1842,19 +2036,16 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 
 	// Initialize the D3D12 bits
 	{
-		AGSReturnCode agsRet = agsInit();
-		if (AGSReturnCode::AGS_SUCCESS == agsRet)
+		if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
 		{
-			agsPrintDriverInfo();
+			InitCommon(pDesc, pRenderer);
+		}
+		else
+		{
+			pRenderer->mUnlinkedRendererIndex = gRendererCount;
 		}
 
-		NvAPI_Status nvStatus = nvapiInit();
-		if (NvAPI_Status::NVAPI_OK == nvStatus)
-		{
-			nvapiPrintDriverInfo();
-		}
-
-		if (!AddDevice(pRenderer))
+		if (!AddDevice(pDesc, pRenderer))
 		{
 			*ppRenderer = NULL;
 			return;
@@ -1941,8 +2132,8 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 		// Multi GPU - SLI Node Count
 		/************************************************************************/
 		uint32_t gpuCount = pRenderer->mD3D12.pDxDevice->GetNodeCount();
-		pRenderer->mLinkedNodeCount = gpuCount;
-		if (pRenderer->mLinkedNodeCount < 2)
+		pRenderer->mLinkedNodeCount = (pRenderer->mGpuMode == GPU_MODE_LINKED) ? gpuCount : 1;
+		if (pRenderer->mGpuMode == GPU_MODE_LINKED && pRenderer->mLinkedNodeCount < 2)
 			pRenderer->mGpuMode = GPU_MODE_SINGLE;
 		/************************************************************************/
 		// Descriptor heaps
@@ -2011,6 +2202,9 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 		pRenderer->pBuiltinShaderDefines[i] = rendererShaderDefines[i];
 	}
 
+	++gRendererCount;
+	ASSERT(gRendererCount <= MAX_UNLINKED_GPUS);
+
 	// Renderer is good!
 	*ppRenderer = pRenderer;
 }
@@ -2018,6 +2212,7 @@ void d3d12_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer
 void d3d12_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
+	--gRendererCount;
 
 	for (uint32_t i = 0; i < pRenderer->mBuiltinShaderDefinesCount; ++i)
 		pRenderer->pBuiltinShaderDefines[i].~ShaderMacro();
@@ -2043,8 +2238,8 @@ void d3d12_exitRenderer(Renderer* pRenderer)
 
 	hook_post_remove_renderer(pRenderer);
 
-	nvapiExit();
-	agsExit();
+	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+		ExitCommon(pRenderer);
 
 	// Free all the renderer components
 	SAFE_FREE(pRenderer->mD3D12.pCPUDescriptorHeaps);
@@ -2112,7 +2307,8 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
-	if (pDesc->mNodeIndex)
+	const uint32_t nodeIndex = pRenderer->mGpuMode == GPU_MODE_UNLINKED ? 0 : pDesc->mNodeIndex;
+	if (nodeIndex)
 	{
 		ASSERT(pRenderer->mGpuMode == GPU_MODE_LINKED && "Node Masking can only be used with Linked Multi GPU");
 	}
@@ -2122,7 +2318,7 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 		queueDesc.Flags |= D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT;
 	queueDesc.Type = gDx12CmdTypeTranslator[pDesc->mType];
 	queueDesc.Priority = gDx12QueuePriorityTranslator[pDesc->mPriority];
-	queueDesc.NodeMask = util_calculate_node_mask(pRenderer, pDesc->mNodeIndex);
+	queueDesc.NodeMask = util_calculate_node_mask(pRenderer, nodeIndex);
 
 	CHECK_HRESULT(hook_create_command_queue(pRenderer->mD3D12.pDxDevice, &queueDesc, &pQueue->mD3D12.pDxQueue));
 
@@ -2141,6 +2337,10 @@ void d3d12_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 
 	pQueue->mType = pDesc->mType;
 	pQueue->mNodeIndex = pDesc->mNodeIndex;
+
+	// override node index
+	if (pRenderer->mGpuMode == GPU_MODE_UNLINKED)
+		pQueue->mNodeIndex = pRenderer->mUnlinkedRendererIndex;
 
 	// Add queue fence. This fence will make sure we finish all GPU works before releasing the queue
 	addFence(pRenderer, &pQueue->mD3D12.pFence);
@@ -2203,7 +2403,7 @@ void d3d12_addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	ASSERT(pCmd);
 
 	//set command pool of new command
-	pCmd->mD3D12.mNodeIndex = pDesc->pPool->pQueue->mNodeIndex;
+	pCmd->mD3D12.mNodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->pPool->pQueue->mNodeIndex : 0;
 	pCmd->mD3D12.mType = pDesc->pPool->pQueue->mType;
 	pCmd->pQueue = pDesc->pPool->pQueue;
 	pCmd->pRenderer = pRenderer;
@@ -2441,6 +2641,7 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 	ASSERT(pDesc);
 	ASSERT(ppBuffer);
 	ASSERT(pDesc->mSize > 0);
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
 	// initialize to zero
 	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
@@ -2511,10 +2712,18 @@ void d3d12_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBu
 		alloc_desc.Flags |= D3D12MA::ALLOCATION_FLAG_COMMITTED;
 
 	// Multi GPU
-	alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
-	alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
-	for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-		alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
+	if (pRenderer->mGpuMode == GPU_MODE_LINKED)
+	{
+		alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
+		alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+		for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
+			alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
+	}
+	else
+	{
+		alloc_desc.CreationNodeMask = 1;
+		alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+	}
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
 	wchar_t debugName[MAX_DEBUG_NAME_LENGTH] = {};
@@ -2723,6 +2932,7 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 	if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
 	{
 		LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
@@ -2893,10 +3103,18 @@ void d3d12_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** p
 #endif
 
 		// Multi GPU
-		alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
-		alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
-		for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
-			alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
+		if (pRenderer->mGpuMode == GPU_MODE_LINKED)
+		{
+			alloc_desc.CreationNodeMask = (1 << pDesc->mNodeIndex);
+			alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+			for (uint32_t i = 0; i < pDesc->mSharedNodeIndexCount; ++i)
+				alloc_desc.VisibleNodeMask |= (1 << pDesc->pSharedNodeIndices[i]);
+		}
+		else
+		{
+			alloc_desc.CreationNodeMask = 1;
+			alloc_desc.VisibleNodeMask = alloc_desc.CreationNodeMask;
+		}
 
 		// Create resource
 		if (SUCCEEDED(
@@ -3134,6 +3352,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
 	ASSERT(ppRenderTarget);
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
 	const bool isDepth = TinyImageFormat_HasDepth(pDesc->mFormat);
 	ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
@@ -4146,7 +4365,7 @@ void d3d12_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
 	const RootSignature*            pRootSignature = pDesc->pRootSignature;
 	const DescriptorUpdateFrequency updateFreq = pDesc->mUpdateFrequency;
-	const uint32_t                  nodeIndex = pDesc->mNodeIndex;
+	const uint32_t                  nodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->mNodeIndex : 0;
 	const uint32_t                  cbvSrvUavDescCount = pRootSignature->mD3D12.mDxCumulativeViewDescriptorCounts[updateFreq];
 	const uint32_t                  samplerDescCount = pRootSignature->mD3D12.mDxCumulativeSamplerDescriptorCounts[updateFreq];
 	const uint32_t                  rootDescCount = pRootSignature->mD3D12.mDxRootDescriptorCounts[updateFreq];
@@ -5498,8 +5717,15 @@ void d3d12_cmdResourceBarrier(
 																				 pTrans->mMipLevel, pTrans->mArrayLayer, 0,
 																				 pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1)
 																		   : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->mCurrentState);
-			pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->mNewState);
+			if (pTrans->mAcquire)
+				pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+			else
+				pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->mCurrentState);
+
+			if (pTrans->mRelease)
+				pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+			else
+				pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->mNewState);
 
 			++transitionCount;
 		}
@@ -5535,8 +5761,15 @@ void d3d12_cmdResourceBarrier(
 																				 pTrans->mMipLevel, pTrans->mArrayLayer, 0,
 																				 pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1)
 																		   : D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->mCurrentState);
-			pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->mNewState);
+			if (pTrans->mAcquire)
+				pBarrier->Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+			else
+				pBarrier->Transition.StateBefore = util_to_dx12_resource_state(pTrans->mCurrentState);
+
+			if (pTrans->mRelease)
+				pBarrier->Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
+			else
+				pBarrier->Transition.StateAfter = util_to_dx12_resource_state(pTrans->mNewState);
 
 			++transitionCount;
 		}
@@ -5584,6 +5817,29 @@ void d3d12_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer
 	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 	dst.pResource = pTexture->mD3D12.pDxResource;
 	dst.SubresourceIndex = subresource;
+#if defined(XBOX)
+	pCmd->mD3D12.mDma.pDxCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+#else
+	pCmd->mD3D12.pDxCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+#endif
+}
+
+void d3d12_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pDesc)
+{
+	uint32_t subresource =
+		CALC_SUBRESOURCE_INDEX(pDesc->mMipLevel, pDesc->mArrayLayer, 0, pTexture->mMipLevels, pTexture->mArraySizeMinusOne + 1);
+	D3D12_RESOURCE_DESC resourceDesc = pTexture->mD3D12.pDxResource->GetDesc();
+
+	D3D12_TEXTURE_COPY_LOCATION src = {};
+	D3D12_TEXTURE_COPY_LOCATION dst = {};
+	src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	src.pResource = pTexture->mD3D12.pDxResource;
+	src.SubresourceIndex = subresource;
+	dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	dst.pResource = pDstBuffer->mD3D12.pDxResource;
+	pCmd->pRenderer->mD3D12.pDxDevice->GetCopyableFootprints(
+		&resourceDesc, subresource, 1, pDesc->mSrcOffset, &dst.PlacedFootprint, NULL, NULL, NULL);
+	dst.PlacedFootprint.Offset = pDesc->mSrcOffset;
 #if defined(XBOX)
 	pCmd->mD3D12.mDma.pDxCmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
 #else
@@ -5679,7 +5935,7 @@ void d3d12_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 				onDeviceLost();
 			}
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 			// DXGI_ERROR error notification is asynchronous to the NVIDIA display
 			// driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
 			// thread some time to do its work before terminating the process.
@@ -6014,7 +6270,7 @@ void d3d12_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 	//color is in B8G8R8X8 format where X is padding
 	PIXSetMarker(pCmd->mD3D12.pDxCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->mD3D12.pDxCmdList, pName);
 #endif
 }
@@ -6099,7 +6355,7 @@ void d3d12_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char*
 /************************************************************************/
 // Virtual Texture
 /************************************************************************/
-void alignedDivision(
+static void alignedDivision(
 	const D3D12_TILED_RESOURCE_COORDINATE& extent, const D3D12_TILED_RESOURCE_COORDINATE& granularity, D3D12_TILED_RESOURCE_COORDINATE* out)
 {
 	out->X = (extent.X / granularity.X + ((extent.X % granularity.X) ? 1u : 0u));
@@ -6727,6 +6983,7 @@ void initD3D12Renderer(const char* appName, const RendererDesc* pSettings, Rende
 	unmapBuffer = d3d12_unmapBuffer;
 	cmdUpdateBuffer = d3d12_cmdUpdateBuffer;
 	cmdUpdateSubresource = d3d12_cmdUpdateSubresource;
+	cmdCopySubresource = d3d12_cmdCopySubresource;
 	addTexture = d3d12_addTexture;
 	removeTexture = d3d12_removeTexture;
 	addVirtualTexture = d3d12_addVirtualTexture;
@@ -6834,4 +7091,16 @@ void exitD3D12Renderer(Renderer* pRenderer)
 	d3d12_exitRenderer(pRenderer);
 }
 
+void initD3D12RendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
+{
+	// No need to initialize API function pointers, initRenderer MUST be called before using anything else anyway.
+	d3d12_initRendererContext(appName, pSettings, ppContext);
+}
+
+void exitD3D12RendererContext(RendererContext* pContext)
+{
+	ASSERT(pContext);
+
+	d3d12_exitRendererContext(pContext);
+}
 #endif

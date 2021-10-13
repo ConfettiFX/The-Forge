@@ -1676,12 +1676,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-					ZIP_STATIC,
-				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1704,11 +1698,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					ZIP_STATIC,
-					SCREENSHOT_ENABLED,
-				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";

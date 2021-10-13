@@ -75,6 +75,7 @@ class Quat;
 class Matrix3;
 class Matrix4;
 class Transform3;
+
 //========================================= #TheForgeMathExtensionsBegin ================================================
 //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 class AffineTransform; //CONFFX_TEST_BEGIN

@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 ///start file generated from microprofile.html
 #ifdef PROFILE_EMBED_HTML
 const char g_ProfileHtml_begin_0[] =

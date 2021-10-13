@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "Config.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
@@ -236,7 +237,7 @@ static bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
 #endif
 
 //Reads the gpu config and sets the preset level of all available gpu's
-static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+inline void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, NULL, &fh))

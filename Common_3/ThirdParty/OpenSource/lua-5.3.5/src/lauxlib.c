@@ -7,6 +7,7 @@
 #define lauxlib_c
 #define LUA_LIB
 
+#include "../../../../OS/Core/Config.h"
 #include "lprefix.h"
 
 

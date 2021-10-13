@@ -24,24 +24,16 @@
 
 #pragma once
 
+#include "../Core/Config.h"
+
 #if defined(_WINDOWS) || defined(XBOX)
 #include <sys/stat.h>
 #include <stdlib.h>
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
 #include <windows.h>
-#undef min
-#undef max
 #endif
 
 #if defined(__APPLE__)
-#if defined(__aarch64__)
-#define TARGET_APPLE_ARM64
-#endif
 #if !defined(TARGET_IOS)
-// Exclude threads header, because we use POSIX threads
-#define __THREADS__
 #import <Carbon/Carbon.h>
 #else
 #include <stdint.h>
@@ -73,7 +65,6 @@ typedef uint64_t uint64;
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "../Core/Compiler.h"
 #define IMEMORY_FROM_HEADER
 #include "../Interfaces/IMemory.h"
 
@@ -89,24 +80,9 @@ typedef uint64_t uint64;
 #define stricmp(a, b) _stricmp(a, b)
 #endif
 
-// #TODO: Fix - FORGE_DEBUG is a toggle (either it is defined or not defined) Setting it to zero or one
-// so it can be used with #if is not the right approach
-#ifndef FORGE_DEBUG
-#if defined(DEBUG) || defined(_DEBUG) || defined(AUTOMATED_TESTING)
-#define FORGE_DEBUG
-#endif
-#endif
-
-#ifndef FORGE_STACKTRACE_DUMP
-#ifdef AUTOMATED_TESTING
-#if defined(NX64) || (defined(_WINDOWS) && defined(_M_X64)) || defined(ORBIS)
-#define FORGE_STACKTRACE_DUMP
-#endif
-#endif
-#endif
-
 typedef struct WindowHandle
 {
+// TODO: Separate vulkan ext from choosing xlib vs xcb
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 	Display* display;
 	Window   window;
@@ -212,11 +188,13 @@ typedef enum ResetScenario
 	RESET_SCENARIO_RELOAD = 0x1,
 	RESET_SCENARIO_DEVICE_LOST = 0x2,
 	RESET_SCENARIO_API_SWITCH = 0x4,
+	RESET_SCENARIO_GPU_MODE_SWITCH = 0x8,
 
 } ResetScenario;
 
 void onRequestReload();
 void onDeviceLost();
+void onGpuModeSwitch();
 #elif defined(__ANDROID__)
 typedef enum ResetScenario
 {

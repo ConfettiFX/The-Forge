@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #ifdef _WINDOWS
 
 #include <io.h>    // _isatty
@@ -81,7 +83,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 		}
 		else
 		{
-#ifdef FORGE_STACKTRACE_DUMP
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 			__debugbreak();
 #else
 			wcscat(str, L"Display more asserts?");

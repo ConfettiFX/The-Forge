@@ -27,7 +27,7 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IUI.h"
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 
 // RENDERER
 #include "../../Renderer/IRenderer.h"
@@ -59,7 +59,7 @@ static ScriptInfo* pRuntimeScripts    = NULL;
 static uint32_t    mRuntimeScriptCount = 0;
 static uint32_t    mRuntimeScriptIter  = 0; 
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 
 //////////////////////////////
 // PRIVATE HELPER FUNCTIONS //
@@ -477,7 +477,7 @@ void registerDynamicTextWidgetLua(const UIWidget* pWidget)
 
 void platformInitLuaScriptingSystem()
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	ASSERT(pLuaManager == NULL);
 
 	pLuaManager = tf_new(LuaManager);
@@ -513,7 +513,7 @@ void platformInitLuaScriptingSystem()
 
 void platformExitLuaScriptingSystem()
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	for (uint32_t i = 0; i < MAX_NUM_SCRIPTS; ++i)
 	{
 		tf_free(pTestScripts[i].pFileName);
@@ -551,7 +551,7 @@ void platformExitLuaScriptingSystem()
 
 void platformUpdateLuaScriptingSystem()
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	if (luaCounter > 0)
 		--luaCounter;
 
@@ -605,19 +605,19 @@ void platformUpdateLuaScriptingSystem()
 
 void luaDestroyCurrentManager()
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	pLuaManager->Exit();
 	tf_delete(pLuaManager);
 	localLuaManager = false;
 #else
 	LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
-	LOGF(LogLevel::eWARNING, "Make sure to define 'USE_FORGE_SCRIPTING' for Scripting to work!");
+	LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
 }
 
 void luaAssignCustomManager(LuaManager* pNewManager)
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	ASSERT(pNewManager && "Invalid Manager Handle provided!");
 
 	pNewManager->SetFunction("LOGINFO", [](ILuaStateWrap* state) -> int {
@@ -636,13 +636,13 @@ void luaAssignCustomManager(LuaManager* pNewManager)
 	localLuaManager = false;
 #else
 	LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
-	LOGF(LogLevel::eWARNING, "Make sure to define 'USE_FORGE_SCRIPTING' for Scripting to work!");
+	LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
 }
 
 void luaDefineScripts(LuaScriptDesc* pDescs, uint32_t count)
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	ASSERT(mTestScriptCount + count < MAX_NUM_SCRIPTS);
 
 	for (uint32_t i = 0; i < count; ++i)
@@ -657,13 +657,13 @@ void luaDefineScripts(LuaScriptDesc* pDescs, uint32_t count)
 	}
 #else
 	LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
-	LOGF(LogLevel::eWARNING, "Make sure to define 'USE_FORGE_SCRIPTING' for Scripting to work!");
+	LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
 }
 
 void luaQueueScriptToRun(LuaScriptDesc* pDesc)
 {
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	ASSERT(mRuntimeScriptCount < MAX_NUM_SCRIPTS - 1);
 
 	if (pDesc->pScriptFileName)
@@ -675,14 +675,14 @@ void luaQueueScriptToRun(LuaScriptDesc* pDesc)
 	++mRuntimeScriptCount; 
 #else
 	LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
-	LOGF(LogLevel::eWARNING, "Make sure to define 'USE_FORGE_SCRIPTING' for Scripting to work!");
+	LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
 }
 
 void luaRegisterWidget(const void* pWidgetHandle)
 {
-#ifdef USE_FORGE_UI
-#ifdef USE_FORGE_SCRIPTING 
+#ifdef ENABLE_FORGE_UI
+#ifdef ENABLE_FORGE_SCRIPTING 
 	ASSERT(pWidgetHandle);
 	const UIWidget* pWidget = (const UIWidget*)pWidgetHandle; 
 
@@ -866,7 +866,7 @@ void luaRegisterWidget(const void* pWidgetHandle)
 	}
 #else
 	LOGF(LogLevel::eWARNING, "Attempting to use Forge Lua Scripting without define!");
-	LOGF(LogLevel::eWARNING, "Make sure to define 'USE_FORGE_SCRIPTING' for Scripting to work!");
+	LOGF(LogLevel::eWARNING, "Make sure to define 'ENABLE_FORGE_SCRIPTING' for Scripting to work!");
 #endif
 #endif
 }

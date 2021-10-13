@@ -210,6 +210,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 } // namespace Vectormath
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
+#include "../../../OS/Core/Config.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -221,8 +222,6 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 #else
 #include <immintrin.h>
 #endif
-
-#include "../../../OS/Core/Compiler.h"
 
 /*
 * Copyright (c) 2018-2021 The Forge Interactive Inc.

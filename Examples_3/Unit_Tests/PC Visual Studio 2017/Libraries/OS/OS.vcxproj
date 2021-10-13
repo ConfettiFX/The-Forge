@@ -28,11 +28,16 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.cpp" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Config.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\resources.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFont.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IScreenshot.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IScripting.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IUI.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerCommon.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.c" />
@@ -109,7 +114,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
@@ -160,9 +164,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.c" />
   </ItemGroup>
   <ItemGroup>
@@ -230,7 +232,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -268,7 +270,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>SCREENSHOT_ENABLED;NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

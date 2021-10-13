@@ -26,6 +26,7 @@
  * This implementation retrofits the new low level interface to D3D11.
  * TODO: explain how GPU resource dependencies are handled...
  */
+#include "../RendererConfig.h"
 
 #ifdef DIRECT3D11
 #define RENDERER_IMPLEMENTATION
@@ -55,14 +56,6 @@
 
 #if !defined(__cplusplus)
 #error "D3D11 requires C++! Sorry!"
-#endif
-
-// Pull in minimal Windows headers
-#if !defined(NOMINMAX)
-#define NOMINMAX
-#endif
-#if !defined(WIN32_LEAN_AND_MEAN)
-#define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <Windows.h>
@@ -1012,11 +1005,11 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	// The D3D debug layer (as well as Microsoft PIX and other graphics debugger
 	// tools using an injection library) is not compatible with Nsight Aftermath.
 	// If Aftermath detects that any of these tools are present it will fail initialization.
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	// Enable Nsight Aftermath GPU crash dump creation.
 	// This needs to be done before the Vulkan device is created.
 	CreateAftermathTracker(pRenderer->pName, &pRenderer->mAftermathTracker);
@@ -1048,7 +1041,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 	pRenderer->mD3D11.mFeatureLevel = featureLevel;
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	SetAftermathDevice(pRenderer->mD3D11.pDxDevice);
 #endif
 
@@ -1068,7 +1061,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->mD3D11.pDxActiveGPU);
 
 	SAFE_RELEASE(pRenderer->mD3D11.pDxContext);
-#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
 	ID3D11Debug* pDebugDevice = NULL;
 	pRenderer->mD3D11.pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->mD3D11.pDxDevice);
@@ -1089,7 +1082,7 @@ static void RemoveDevice(Renderer* pRenderer)
 #endif
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	DestroyAftermathTracker(&pRenderer->mAftermathTracker);
 #endif
 }
@@ -4035,7 +4028,7 @@ void d3d11_queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 			}
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 			// DXGI_ERROR error notification is asynchronous to the NVIDIA display
 			// driver's GPU crash handling. Give the Nsight Aftermath GPU crash dump
 			// thread some time to do its work before terminating the process.
@@ -4275,7 +4268,7 @@ void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 	pCmd->pRenderer->pUserDefinedAnnotation->SetMarker(markerName);
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	SetAftermathMarker(&pCmd->pRenderer->mAftermathTracker, pCmd->pRenderer->mD3D11.pDxContext, pName);
 #endif
 }

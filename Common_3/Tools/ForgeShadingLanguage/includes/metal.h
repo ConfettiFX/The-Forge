@@ -462,6 +462,8 @@ void _Write3D(texture3d<T, A> tex, uint3 p, vec<T, 4> v)
 // void Write3D( RWTex2DArray(float) TEX, uint3 P, float4 V )
 // { TEX.write(_to4(V), P.xy, P.z); }
 
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE) constant TYPE NAME [[function_constant(INDEX)]]
+
 #define FSL_CONST(TYPE, NAME) const TYPE NAME
 
 bool any(float2 x) { return any(x!= 0.0f); }

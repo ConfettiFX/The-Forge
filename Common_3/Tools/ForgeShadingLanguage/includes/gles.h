@@ -10,6 +10,8 @@
 
 #define SV_INSTANCEID gles_InstanceID
 
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE) const TYPE NAME = VALUE
+
 #define STRUCT(NAME) struct NAME
 #define DATA(TYPE, NAME, SEM) TYPE NAME
 #define RES(TYPE, NAME, FREQ, REG, BINDING) uniform TYPE NAME

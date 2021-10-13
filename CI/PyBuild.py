@@ -56,6 +56,31 @@ sanitizer_UTs = {
 	"Ephemeris"
 }
 
+config_file_args = [
+	('memtracking', 'ENABLE_MEMORY_TRACKING'),
+	('logging', 'ENABLE_LOGGING'),
+	('forge-scripting', 'ENABLE_FORGE_SCRIPTING'),
+	('forge-ui', 'ENABLE_FORGE_UI'),
+	('forge-fonts', 'ENABLE_FORGE_FONTS'),
+	('zip-filesystem', 'ENABLE_ZIP_FILESYSTEM'),
+	('screenshot', 'ENABLE_SCREENSHOT'),
+	('profiler', 'ENABLE_PROFILER'),
+]
+
+def AddConfigFileArgs(parser):
+	global config_file_args
+	for argname, macroname in config_file_args:
+		parser.add_argument(f'--{argname}', dest=macroname, default=None, action="store_true", help=f'Enables "{macroname}" pre processor define.')
+		parser.add_argument(f'--no-{argname}', dest=macroname, action="store_false", help=f'Disables "{macroname}" pre processor define.')
+
+config_file_options = []
+
+def SaveConfigFileArgs(args):
+	for _, macroname in config_file_args:
+		arg_value = getattr(args, macroname)
+		if arg_value != None:
+			config_file_options.append((macroname, arg_value))
+
 def PrintResults():
 	if len(successfulBuilds) > 0:
 		print ("Successful Builds list:")
@@ -150,30 +175,83 @@ def RemovePreprocessorFromFile(filePath, definesList):
 		
 			f.truncate()
 
+# options is a list of (string, bool) pairs
+# Example: [('ENABLE_MEMORY_TRACKING', True), ('ENABLE_LOGGING', False)]
+def AddConfigOptions(configPath, options):
+	if len(options) == 0:
+		return
+	with open(configPath, 'a') as f:
+		for name, enabled in options:
+			if enabled:
+				f.write(f'\n#ifndef {name}\n#define {name}\n#endif\n')
+			else:
+				f.write(f'\n#ifdef {name}\n#undef {name}\n#endif\n')
+
+# options is a list of (string, bool) pairs
+# Example: [('ENABLE_MEMORY_TRACKING', True), ('ENABLE_LOGGING', False)]
+def RemoveConfigOptions(configPath, options):
+	# exit if options is empty
+	if not options:
+		return
+	with open(configPath, 'r+') as f:
+		lines = f.readlines()
+		# Remove options from the end of the file, so that file can act like a stack
+		for i in reversed(range(len(lines))):
+			line = ' ' + lines[i]
+			remove_opt = None
+			for j,(opt, _) in enumerate(options):
+				# Check for the exact match of the option
+				# For example without newline and space 
+				# option ENABLE_AB would be triggered by option ENABLE_A
+				opt = f" {opt}\n"
+				
+				if opt in line:
+					# Format:
+					#[i-2]:.*\n
+					#[i-1]:#ifn?def {name}\n
+					#[i  ]:#(define|undef) {name}\n
+					#[i+1]:#endif\n
+					lines[i-2] = lines[i-2][:-1]
+					lines[i-1] = ''
+					lines[i] = ''
+					lines[i+1] = ''
+					remove_opt = j
+					break
+			
+			if remove_opt != None:
+				options.pop(remove_opt)
+				if not options:
+					break
+		
+		f.seek(0)
+		for line in lines:
+			f.write(line)
+		f.truncate()
+
+
 def AddTestingPreProcessor(enabledGpuSelection):	
 	if setDefines == True:
 		print("Adding Automated testing preprocessor defines")
 		macro = "#define AUTOMATED_TESTING 1"
 		if enabledGpuSelection:
 			macro += "\n#define ACTIVE_TESTING_GPU 1"
-		AddPreprocessorToFile("Common_3/OS/Interfaces/IOperatingSystem.h", macro + "\n", "#pragma")
+		AddPreprocessorToFile("Common_3/OS/Core/Config.h", macro + "\n", "#pragma")
+
+	if config_file_options:
+		print('Adding config options preprocessor defines')
+		AddConfigOptions("Common_3/OS/Core/Config.h", config_file_options)
 	
-	if setMemTracker == True:
-		print("Adding Memory tracking preprocessor defines")
-		macro = "#define USE_MEMORY_TRACKING 1"
-		AddPreprocessorToFile("Common_3/OS/Interfaces/IMemory.h", macro, "#if")
-		AddPreprocessorToFile("Common_3/OS/MemoryTracking/MemoryTracking.c", macro, "#if")
 
 def RemoveTestingPreProcessor():
 	testingDefines = ["#define AUTOMATED_TESTING", "#define ACTIVE_TESTING_GPU"]
 	memTrackingDefines = ["#define USE_MEMORY_TRACKING"]
 	if setDefines == True:
 		print("Removing automated testing preprocessor defines")
-		RemovePreprocessorFromFile("Common_3/OS/Interfaces/IOperatingSystem.h", testingDefines)
-	if setMemTracker == True:
-		print("Removing memory tracking preprocessor defines")
-		RemovePreprocessorFromFile("Common_3/OS/Interfaces/IMemory.h", memTrackingDefines)
-		RemovePreprocessorFromFile("Common_3/OS/MemoryTracking/MemoryTracking.c", memTrackingDefines)
+		RemovePreprocessorFromFile("Common_3/OS/Core/Config.h", testingDefines)
+
+	if config_file_options:
+		print('Removing config options preprocessor defines')
+		RemoveConfigOptions("Common_3/OS/Core/Config.h", config_file_options)
 	
 def ExecuteTimedCommand(cmdList, printStdout: bool):
 	try:		
@@ -1625,7 +1703,7 @@ def TestAndroidProjects(benchmarkFrames, quest):
 	fileList = []
 
 	for proj in projects:
-		if solutionDir in proj and ("Release" in proj or "ReleaseGLES" in proj) and "Packaging" not in proj:
+		if solutionDir in proj and "Release" in proj and "Packaging" not in proj:
 			fileList.append(proj)
 
 	for proj in fileList:
@@ -1746,22 +1824,16 @@ def TestAndroidProjects(benchmarkFrames, quest):
 def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
-	androidConfigurations = ["Debug", "Release", "DebugVk", "ReleaseVk", "DebugGLES", "ReleaseGLES"]
-	androidPlatform = ["ARM", "ARM64"]
+	androidConfigurations = ["Debug", "Release"]
+	androidPlatform = ["ARM64"] # We don't test ARM platform
 
 	if skipDebug:
 		androidConfigurations.remove("Debug")
-		androidConfigurations.remove("DebugVk")
-		androidConfigurations.remove("DebugGLES")
 	
 	if skipRelease:
 		androidConfigurations.remove("Release")
-		androidConfigurations.remove("ReleaseVk")
-		androidConfigurations.remove("ReleaseGLES")
-        
+	
 	if quest:
-		androidConfigurations.remove("DebugGLES")
-		androidConfigurations.remove("ReleaseGLES") 
 		androidPlatform.remove("ARM")        
 
 	if msBuildPath == "":
@@ -1805,21 +1877,17 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 
 		#strip extension
 		filename = proj.split(os.sep)[-1]
-	   
 		
 		for platform in androidPlatform:
 			if ".sln" in proj:
 				for conf in androidConfigurations:
-					if 'ARM' == platform and 'GLES' not in conf:
-						continue
 					command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
 					#print(command)
 					retCode = ExecuteBuild(command, filename, conf, platform)
-			elif ".buildproj" in proj and 'ARM64' == platform:
-				command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+			elif ".buildproj" in proj:
+				command = [msBuildPath, filename, "/p:Platform=" + platform, "/m","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
 				retCode = ExecuteBuild(command, filename, "All Configurations", platform)
-		
-		
+
 		if retCode != 0:
 			errorOccured = True
 
@@ -2169,12 +2237,6 @@ def AddSanitizers(vcxprojects, ubsan, asan, isSwitch = False, isOrbis = False):
 		output = ""
 		f = open(vcxproj)
 		for line in f:
-			# orbis fibers and sanitizer don't work well together at the moment
-			# remove ENABLE_CPU_PROPAGATION macro so fiber codepath is not compiled
-			if isOrbis and "Aura" in vcxproj and "<PreprocessorDefinitions>" in line:
-				line = line.split("ENABLE_CPU_PROPAGATION;")
-				line = line[0] + line[1]
-
 			output += line
 			line = line.strip()
 			if line == "<ClCompile>":
@@ -2212,11 +2274,6 @@ def RemoveSanitizers(arguments):
 			for line in f:
 				if line.startswith("<AdditionalOptions>-fsanitize"):
 					continue
-
-				# add ENABLE_CPU_PROPAGATION again
-				if arguments.orbis and "Aura" in vcxproj and "<PreprocessorDefinitions>" in line:
-					line = line.split("<PreprocessorDefinitions>")
-					line = line[0] + "<PreprocessorDefinitions>ENABLE_CPU_PROPAGATION;" + line[1]
 				output += line
 			f.close()
 
@@ -2467,7 +2524,6 @@ def MainLogic():
 	parser.add_argument('--android', action="store_true", help='Enable android building')
 	parser.add_argument('--quest', action="store_true", help='Enable Quest building')
 	parser.add_argument('--defines', action="store_true", help='Enables pre processor defines for automated testing.')
-	parser.add_argument('--memtracking', action="store_true", help='Enables pre processor defines for memory tracking.')
 	parser.add_argument('--gpuselection', action="store_true", help='Enables pre processor defines for using active gpu determined from activeTestingGpu.cfg.')
 	parser.add_argument('--timeout',type=int, default="45", help='Specify timeout, in seconds, before app is killed when testing. Default value is 45 seconds.')
 	parser.add_argument('--skipdebugbuild', action="store_true", help='If enabled, will skip Debug build.')
@@ -2484,6 +2540,8 @@ def MainLogic():
 	parser.add_argument("--asan", action="store_true", help='Enable the Address sanitizer. Can be paired with --ubsan only.')
 	parser.add_argument("--tsan", action="store_true", help='Enable the Thread sanitizer. Can be paired with --ubsan only.')
 	parser.add_argument('--benchmark',type=int, default="-1", help='Specify number of frames to benchmark. Default value is -1 which means no benchmarking.')
+
+	AddConfigFileArgs(parser)
 
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
@@ -2534,8 +2592,8 @@ def MainLogic():
 		arguments.xbox = True 
 
 	setDefines = arguments.defines
-	setMemTracker = arguments.memtracking
-	if setDefines == True or setMemTracker == True:
+	SaveConfigFileArgs(arguments)
+	if setDefines == True or config_file_options:
 		AddTestingPreProcessor(arguments.gpuselection)
 
 	# workaround to just set defines and avoid the signal handler to revert those changes

@@ -636,19 +636,6 @@
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					TARGET_IOS,
-					USE_MEMORY_TRACKING,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
-					METAL,
-					_DEBUG,
-					TARGET_IOS_SIMULATOR,
-					TARGET_IOS,
-					USE_MEMORY_TRACKING,
-				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -686,15 +673,6 @@
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					TARGET_IOS,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
-					METAL,
-					TARGET_IOS_SIMULATOR,
-					TARGET_IOS,
-				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -845,12 +823,6 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = "";
 				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-					ZIP_STATIC,
-				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -888,10 +860,6 @@
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = "";
 				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					ZIP_STATIC,
-				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,

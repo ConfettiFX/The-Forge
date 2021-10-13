@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "RendererConfig.h"
+
 #include "../OS/Math/MathTypes.h"
 #include "../OS/Core/Atomics.h"
 #include "IRenderer.h"
@@ -76,7 +78,7 @@ typedef struct TextureLoadDesc
 	const char* pFileName;
 	/// Password for loading texture from encrypted files
 	const char* pFilePassword;
-	/// The index of the GPU in SLI/Cross-Fire that owns this texture
+	/// The index of the GPU in SLI/Cross-Fire that owns this texture, or the Renderer index in unlinked mode.
 	uint32_t mNodeIndex;
 	/// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag;
@@ -152,7 +154,7 @@ typedef struct GeometryLoadDesc
 	const char* pFilePassword;
 	/// Loading flags
 	GeometryLoadFlags mFlags;
-	/// Linked gpu node
+	/// Linked gpu node / Unlinked Renderer index
 	uint32_t mNodeIndex;
 	/// Specifies how to arrange the vertex data loaded from the file into GPU memory
 	VertexLayout* pVertexLayout;
@@ -232,6 +234,21 @@ typedef struct TextureUpdateDesc
 	} mInternal;
 } TextureUpdateDesc;
 
+typedef struct TextureCopyDesc
+{
+	Texture* pTexture;
+	Buffer* pBuffer;
+	/// Semaphore to synchronize graphics/compute operations that write to the texture with the texture -> buffer copy.
+	Semaphore* pWaitSemaphore;
+	uint32_t mTextureMipLevel;
+	uint32_t mTextureArrayLayer;
+	/// Current texture state.
+	ResourceState mTextureState;
+	/// Queue the texture is copied from.
+	QueueType mQueueType;
+	uint64_t mBufferOffset;
+} TextureCopyDesc;
+
 typedef enum ShaderStageLoadFlags
 {
 	SHADER_STAGE_LOAD_FLAG_NONE = 0x0,
@@ -253,8 +270,10 @@ typedef struct ShaderStageLoadDesc
 
 typedef struct ShaderLoadDesc
 {
-	ShaderStageLoadDesc mStages[SHADER_STAGE_COUNT];
-	ShaderTarget        mTarget;
+	ShaderStageLoadDesc   mStages[SHADER_STAGE_COUNT];
+	ShaderTarget          mTarget;
+	const ShaderConstant* pConstants;
+	uint32_t              mConstantCount;
 } ShaderLoadDesc;
 
 typedef struct PipelineCacheLoadDesc
@@ -286,6 +305,10 @@ extern ResourceLoaderDesc gDefaultResourceLoaderDesc;
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc = nullptr);
 void exitResourceLoaderInterface(Renderer* pRenderer);
 
+/// Multiple Renderer (unlinked GPU) variants. The Resource Loader must be shared between Renderers.
+void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount, ResourceLoaderDesc* pDesc = nullptr);
+void exitResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount);
+
 // MARK: addResource and updateResource
 
 /// Adding and updating resources can be done using a addResource or
@@ -303,6 +326,11 @@ void beginUpdateResource(BufferUpdateDesc* pBufferDesc);
 void beginUpdateResource(TextureUpdateDesc* pTextureDesc);
 void endUpdateResource(BufferUpdateDesc* pBuffer, SyncToken* token);
 void endUpdateResource(TextureUpdateDesc* pTexture, SyncToken* token);
+
+/// Copies data from GPU to the CPU, typically for transferring it to another GPU in unlinked mode.
+/// For optimal use, the amount of data to transfer should be minimized as much as possible and applications should
+/// provide additional graphics/compute work that the GPU can execute alongside the copy.
+void copyResource(TextureCopyDesc* pTextureDesc, SyncToken* token);
 
 // MARK: removeResource
 
@@ -330,6 +358,13 @@ bool isResourceLoaderSingleThreaded();
 SyncToken getLastTokenCompleted();
 bool      isTokenCompleted(const SyncToken* token);
 void      waitForToken(const SyncToken* token);
+
+/// Allows clients to synchronize with the submission of copy commands (as opposed to their completion).
+/// This can reduce the wait time for clients but requires using the Semaphore from getLastSemaphoreCompleted() in a wait
+/// operation in a submit that uses the textures just updated.
+SyncToken getLastTokenSubmitted();
+bool      isTokenSubmitted(const SyncToken* token);
+void      waitForTokenSubmitted(const SyncToken* token);
 
 /// Return the semaphore for the last copy operation of a specific GPU.
 /// Could be NULL if no operations have been executed.

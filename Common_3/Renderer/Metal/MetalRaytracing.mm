@@ -30,6 +30,8 @@
  Xcode 10.0+
  */
 
+#include "../RendererConfig.h"
+
 #ifdef METAL
 
 #if !defined(__APPLE__) && !defined(TARGET_OS_MAC)

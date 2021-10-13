@@ -24,21 +24,7 @@
 
 #pragma once
 
-#ifndef PROFILE_ENABLED
-#define PROFILE_ENABLED 1
-#endif
-
-#if (PROFILE_ENABLED)
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO) || defined(GLES)
-#define GPU_PROFILER_SUPPORTED 1
-#endif
-
-#ifndef PROFILE_WEBSERVER
-#define PROFILE_WEBSERVER \
-	0    // Enable this if you want to have the profiler through a web browser, see PROFILE_WEBSERVER_PORT for server location
-#endif
-
-#endif
+#include "../../Renderer/RendererConfig.h"
 
 #include "ILog.h"
 #include "IApp.h"

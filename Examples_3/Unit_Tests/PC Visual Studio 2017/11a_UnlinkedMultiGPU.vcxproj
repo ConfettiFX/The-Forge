@@ -12,19 +12,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Middleware_3\PaniniProjection\Panini.cpp" />
-    <ClCompile Include="..\src\11_MultiGPU\11_MultiGPU.cpp" />
+    <ClCompile Include="..\src\11a_UnlinkedMultiGPU\11a_UnlinkedMultiGPU.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\basic.frag.fsl" />
-    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\basic.vert.fsl" />
-    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\skybox.frag.fsl" />
-    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{3C4D4A39-3CD2-4462-A655-8F18CF045F2B}</ProjectGuid>
+    <ProjectGuid>{765fe836-821c-4ae9-8465-3640dd8fb33f}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Samples_GLFW</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
@@ -74,7 +74,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -130,7 +130,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;DIRECT3D11;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>

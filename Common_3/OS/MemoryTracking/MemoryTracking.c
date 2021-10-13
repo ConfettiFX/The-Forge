@@ -21,8 +21,10 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+#include "../Core/Config.h"
 
 #include "wchar.h"
+
 
 #if !defined(TARGET_IOS)
 #include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
@@ -39,7 +41,7 @@
 #define ALIGN_TO(size, alignment) (((size) + (alignment)-1) & ~((alignment)-1))
 #define MIN_ALLOC_ALIGNMENT MEM_MAX(VECTORMATH_MIN_ALIGN, EA_PLATFORM_MIN_MALLOC_ALIGNMENT)
 
-#if USE_MTUNER
+#ifdef ENABLE_MTUNER
 #define MTUNER_ALLOC(_handle, _ptr, _size, _overhead) rmemAlloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead))
 #define MTUNER_ALIGNED_ALLOC(_handle, _ptr, _size, _overhead, _align) \
 	rmemAllocAligned((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead), (uint32_t)(_align))
@@ -53,7 +55,7 @@
 #define MTUNER_FREE(_handle, _ptr)
 #endif
 
-#if defined(USE_MEMORY_TRACKING)
+#if defined(ENABLE_MEMORY_TRACKING)
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
@@ -113,7 +115,7 @@ void tf_free_internal(void* ptr, const char* f, int l, const char* sf)
 	mmgrDeallocator(f, l, sf, m_alloc_free, ptr);
 }
 
-#else    // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)
+#else    // defined(ENABLE_MEMORY_TRACKING) || defined(ENABLE_MTUNER)
 
 #include "stdbool.h"
 
@@ -223,4 +225,4 @@ void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const ch
 
 void tf_free_internal(void* ptr, const char* f, int l, const char* sf) { tf_free(ptr); }
 
-#endif    // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)
+#endif    // defined(ENABLE_MEMORY_TRACKING) || defined(ENABLE_MTUNER)

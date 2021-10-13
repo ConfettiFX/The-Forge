@@ -21,10 +21,14 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+
+#include "../Core/Config.h"
+
 #ifdef __linux__
 
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 #include "stdarg.h"
 #include "../Interfaces/IOperatingSystem.h"
 
@@ -57,6 +61,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	if (debug)
 	{
 		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
+		raise(SIGTRAP);
 	}
 }
 

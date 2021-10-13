@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #include <sys/sysctl.h>
 #include <time.h>
 #include <mach/clock.h>
@@ -30,6 +32,7 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
+#include "../Core/UnixThreadID.h"
 
 #include "../Interfaces/IMemory.h"
 
@@ -121,16 +124,14 @@ void setMainThread() { mainThreadID = getCurrentThreadID(); }
 
 ThreadID getCurrentThreadID()
 {
-	uint64_t threadID;
-	pthread_threadid_np(pthread_self(), &threadID);
-	return (ThreadID)threadID;
+	return getCurrentPthreadID();
 }
 
 void getCurrentThreadName(char* buffer, int buffer_size) { pthread_getname_np(pthread_self(), buffer, buffer_size); }
 
 void setCurrentThreadName(const char* name) { pthread_setname_np(name); }
 
-bool isMainThread() { return pthread_equal(getCurrentThreadID(), mainThreadID); }
+bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 
 void threadSleep(unsigned mSec) { usleep(mSec * 1000); }
 

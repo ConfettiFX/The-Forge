@@ -1,49 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="DebugGLES|ARM">
-      <Configuration>DebugGLES</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugGLES|ARM64">
-      <Configuration>DebugGLES</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|ARM64">
-      <Configuration>DebugVk</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|ARM">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseGLES|ARM">
-      <Configuration>ReleaseGLES</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseGLES|ARM64">
-      <Configuration>ReleaseGLES</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|ARM64">
-      <Configuration>ReleaseVk</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="DebugVk|ARM">
-      <Configuration>DebugVk</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="ReleaseVk|ARM">
-      <Configuration>ReleaseVk</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM">
-      <Configuration>Release</Configuration>
-      <Platform>ARM</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
@@ -60,42 +20,9 @@
     <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-28</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-28</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-28</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-23</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
@@ -103,24 +30,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
     <AndroidAPILevel>android-28</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-28</AndroidAPILevel>
-    <UseOfStl>c++_shared</UseOfStl>
-    <ThumbMode>Disabled</ThumbMode>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>Clang_5_0</PlatformToolset>
-    <AndroidAPILevel>android-23</AndroidAPILevel>
     <UseOfStl>c++_shared</UseOfStl>
     <ThumbMode>Disabled</ThumbMode>
   </PropertyGroup>
@@ -129,99 +39,20 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <Import Project="..\..\ARM64.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
-    <Import Project="..\..\ARM64.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'" Label="PropertySheets">
-    <Import Project="..\..\ARM64.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'" Label="PropertySheets">
-    <Import Project="..\..\ARM.props" />
-  </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <Import Project="..\..\ARM64.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
-    <Import Project="..\..\ARM64.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'" Label="PropertySheets">
-    <Import Project="..\..\ARM64.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'" Label="PropertySheets">
-    <Import Project="..\..\ARM.props" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\ARM64Quest.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin;$(PATH);</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
-    <UseMultiToolTask>true</UseMultiToolTask>
-    <ExecutablePath>$(LLVMToolchainPrebuiltRoot)\bin;$(ToolchainPrebuiltPath)\bin</ExecutablePath>
-    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
-    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>QUEST_VR;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile />
     <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;vrapi;VkLayer_khronos_validation</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Debug;$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+      <LibraryDependencies>VkLayer_khronos_validation;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -236,101 +67,9 @@ $(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSou
 $(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformShortName)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;VULKAN;GLES;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;RendererGLES;OS;SpirvTools;gainputstatic;shaderc;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\VULKAN\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\VULKAN\" /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\GLES\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\GLES\" /s /y /d
-$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;ANDROID_ARM_NEON;_DEBUG;GLES;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);RendererGLES;OS;gainputstatic;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugGLES|ARM'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;_DEBUG;GLES;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);RendererGLES;OS;gainputstatic;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>QUEST_VR;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;SpirvTools;gainputstatic;shaderc;vrapi</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Release;$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-    </Link>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile />
+    <Link />
     <PreBuildEvent>
       <Command>
       </Command>
@@ -340,83 +79,6 @@ $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
 $(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
 $(systemroot)\System32\xcopy  $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformShortName)\Release\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;VULKAN;GLES;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);Renderer;RendererGLES;OS;SpirvTools;gainputstatic;shaderc;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Scripts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\ /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\VULKAN\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\VULKAN\" /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\GLES\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\GLES\" /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM64'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;GLES;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);RendererGLES;OS;gainputstatic;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d</Command>
-    </PostBuildEvent>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseGLES|ARM'">
-    <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <CompileAs>CompileAsCpp</CompileAs>
-      <CppLanguageStandard>c++11</CppLanguageStandard>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <PreprocessorDefinitions>ANDROID;GLES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <EnableNeonCodegen>false</EnableNeonCodegen>
-    </ClCompile>
-    <Link>
-      <LibraryDependencies>$(AndroidNativeLibs);RendererGLES;OS;gainputstatic;GLESv2;EGL;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-    </Link>
-    <PreBuildEvent>
-      <Command>
-      </Command>
-    </PreBuildEvent>
-    <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\ /s /y /d
-$(systemroot)\System32\xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\" /s /y /d
-$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\..\..\Examples_3\Unit_Tests\src\05_FontRendering\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Scripts\" /s /y /d</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -74,10 +74,29 @@ static const uint32_t mModelCount				= 6;
 int					gCurrentLod					= 0;
 int					gMaxLod						= 5;
 
-bool				bToggleFXAA					= true;
-bool				bVignetting					= true;
+bool				bEnableVignette				= true;
 bool				bToggleVSync				= false;
 bool				bScreenShotMode				= false;
+
+static const uint32_t TEMPORAL_AA_JITTER_SAMPLES = 8;
+
+bool				bEnableTemporalAA = true;
+bool				gCurrentTemporalAARenderTarget = 0;
+uint32_t			gCurrentTemporalAAJitterSample = 0;
+
+vec2				gTemporalAAJitterSamples[TEMPORAL_AA_JITTER_SAMPLES] = {
+	vec2(-0.5F,    0.33333337F),
+	vec2( 0.5F,   -0.7777778F),
+	vec2(-0.75F,  -0.111111104F),
+	vec2( 0.25F,   0.5555556F),
+	vec2(-0.25F,  -0.5555556F),
+	vec2( 0.75F,   0.111111164F),
+	vec2(-0.875F,  0.7777778F),
+	vec2( 0.125F, -0.9259259F),
+};
+
+mat4	gTemporalAAPreviousViewProjection = mat4::identity();
+mat4	gTemporalAAReprojection = mat4::identity();
 
 ProfileToken   gGpuProfileToken;
 Texture*			pTextureBlack = NULL;
@@ -98,7 +117,7 @@ Texture*			pTextureBlack = NULL;
 
 struct UniformBlock
 {
-	CameraMatrix mProjectView;
+	mat4 mProjectView;
 	mat4 mShadowLightViewProj;
 	vec4 mCameraPosition;
 	vec4 mLightColor[gTotalLightCount];
@@ -113,7 +132,7 @@ struct UniformBlock_Shadow
 struct UniformBlock_Floor
 {
 	mat4	worldMat;
-	CameraMatrix	projViewMat;
+	mat4	projViewMat;
 	vec4	screenSize;
 };
 
@@ -174,12 +193,60 @@ struct GLTFAsset
 			addSampler(pRenderer, pData->pSamplers + i, &mSamplers[i]);
 		
 		mTextures.resize(pData->pHandle->images_count);
+
+		// Classify textures by usage.
+		// Base color textures need sRGB format, normal maps and non-color textures need different compression settings.
+		eastl::vector<TextureCreationFlags> textureCreationFlags;
+		textureCreationFlags.resize(pData->pHandle->images_count);
+
+		for (uint32_t materialIndex = 0; materialIndex < pData->pHandle->materials_count; ++materialIndex)
+		{
+			const GLTFMaterial& material = pData->pMaterials[materialIndex];
+
+			switch (material.mMaterialType)
+			{
+				case GLTF_MATERIAL_TYPE_METALLIC_ROUGHNESS:
+				{
+					updateTextureCreationFlags(textureCreationFlags, material.mMetallicRoughness.mBaseColorTexture, TEXTURE_CREATION_FLAG_SRGB);
+					updateTextureCreationFlags(textureCreationFlags, material.mMetallicRoughness.mMetallicRoughnessTexture, TEXTURE_CREATION_FLAG_NONE);
+				}
+				break;
+
+				case GLTF_MATERIAL_TYPE_SPECULAR_GLOSSINESS:
+				{
+					updateTextureCreationFlags(textureCreationFlags, material.mSpecularGlossiness.mDiffuseTexture, TEXTURE_CREATION_FLAG_SRGB);
+					updateTextureCreationFlags(textureCreationFlags, material.mSpecularGlossiness.mSpecularGlossinessTexture, TEXTURE_CREATION_FLAG_SRGB);
+				} break;
+			}
+
+			updateTextureCreationFlags(textureCreationFlags, material.mNormalTexture, TEXTURE_CREATION_FLAG_NORMAL_MAP);
+			updateTextureCreationFlags(textureCreationFlags, material.mOcclusionTexture, TEXTURE_CREATION_FLAG_NONE);
+			updateTextureCreationFlags(textureCreationFlags, material.mEmissiveTexture, TEXTURE_CREATION_FLAG_SRGB);
+		}
+
 		SyncToken token = {};
-		for (uint32_t i = 0; i < pData->pHandle->images_count; ++i)
-			gltfLoadTextureAtIndex(pData, i, false, &token, TEXTURE_CONTAINER_BASIS, &mTextures[i]);
+		for (uint32_t imageIndex = 0; imageIndex < pData->pHandle->images_count; ++imageIndex)
+		{
+			TextureCreationFlags flags = textureCreationFlags[imageIndex];
+			gltfLoadTextureAtIndex(pData, imageIndex, flags, &token, TEXTURE_CONTAINER_BASIS, &mTextures[imageIndex]);
+		}
 
 		if (pData->mNodeCount)
 			createNodeTransformsBuffer();
+	}
+
+	static void updateTextureCreationFlags(eastl::vector<TextureCreationFlags>& creationFlags, const GLTFTextureView& texture, TextureCreationFlags flag)
+	{
+		if (texture.mTextureIndex != -1)
+		{
+			TextureCreationFlags oldFlag = creationFlags[texture.mTextureIndex];
+			if (oldFlag != TEXTURE_CREATION_FLAG_NONE && oldFlag != flag)
+			{
+				LOGF(LogLevel::eWARNING, "Malformed GLTF file, texture %s is used in multiple incompatible ways", texture.pName);
+			}
+
+			creationFlags[texture.mTextureIndex] = flag;
+		}
 	}
 
 	void updateTransform(size_t nodeIndex, mat4* nodeTransforms, bool* nodeTransformsInited)
@@ -496,12 +563,22 @@ struct GLTFAsset
 	}
 };
 
-struct FXAAINFO
+struct TAAUniformBuffer
 {
-	float2 ScreenSize;
-	uint Use;
-	uint padding00;
+	mat4 ReprojectionMatrix;
 };
+
+struct SkyboxUniformBuffer
+{
+	mat4 InverseViewProjection;
+};
+
+struct PostProcessRootConstant
+{
+	int2 SceneTextureSize;
+	float VignetteRadius;
+};
+
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -516,9 +593,9 @@ Cmd*				pCmds[gImageCount];
 SwapChain*			pSwapChain			= NULL;
 
 RenderTarget*		pForwardRT			= NULL;
-RenderTarget*		pPostProcessRT		= NULL;
 RenderTarget*		pDepthBuffer		= NULL;
 RenderTarget*		pShadowRT			= NULL;
+RenderTarget*		pTemporalAAHistoryRT[2] = { NULL, NULL };
 
 Fence*				pRenderCompleteFences[gImageCount]	= { NULL };
 
@@ -529,31 +606,40 @@ Shader*				pShaderZPass						= NULL;
 Shader*				pShaderZPass_NonOptimized			= NULL;
 Shader*				pMeshOptDemoShader					= NULL;
 Shader*				pFloorShader						= NULL;
-Shader*				pVignetteShader						= NULL;
-Shader*				pFXAAShader							= NULL;
 Shader*				pWaterMarkShader					= NULL;
+Shader*				pSkyboxShader						= NULL;
+Shader*				pFinalPostProcessShader				= NULL;
+Shader*				pTemporalAAShader					= NULL;
 
 Pipeline*			pPipelineShadowPass					= NULL;
 Pipeline*			pPipelineShadowPass_NonOPtimized	= NULL;
 Pipeline*			pMeshOptDemoPipeline				= NULL;
 Pipeline*			pFloorPipeline						= NULL;
-Pipeline*			pVignettePipeline					= NULL;
-Pipeline*			pFXAAPipeline						= NULL;
 Pipeline*			pWaterMarkPipeline					= NULL;
+Pipeline*			pSkyboxPipeline						= NULL;
+Pipeline*			pFinalPostProcessPipeline			= NULL;
+Pipeline*			pTemporalAAPipeline					= NULL;
 
 RootSignature*		pRootSignatureShadow				= NULL;
 RootSignature*		pRootSignatureShaded				= NULL;
 RootSignature*		pRootSignaturePostEffects			= NULL;
+RootSignature*		pRootSignatureSkybox				= NULL;
+RootSignature*		pRootSignatureFinalPostProcess		= NULL;
+RootSignature*		pRootSignatureTemporalAA			= NULL;
 
-DescriptorSet*      pDescriptorSetVignette;
-DescriptorSet*      pDescriptorSetFXAA;
 DescriptorSet*      pDescriptorSetWatermark;
+DescriptorSet*      pDescriptorSetSkybox;
+DescriptorSet*      pDescriptorSetsFinalPostProcess[3];
+DescriptorSet*      pDescriptorSetsTemporalAA[2];
 DescriptorSet*      pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_COUNT];
 DescriptorSet*      pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_COUNT];
 
 Buffer*				pUniformBuffer[gImageCount]			= { NULL };
 Buffer*				pShadowUniformBuffer[gImageCount]	= { NULL };
 Buffer*				pFloorUniformBuffer[gImageCount]	= { NULL };
+
+Buffer*				pSkyboxUniformBuffer[gImageCount]	= { NULL };
+Buffer*				pTAAUniformBuffer[gImageCount]		= { NULL };
 
 Buffer*				TriangularVB						= NULL;
 Buffer*				pFloorVB							= NULL;
@@ -562,6 +648,7 @@ Buffer*				WaterMarkVB							= NULL;
 
 Sampler*			pDefaultSampler						= NULL;
 Sampler*			pBilinearClampSampler				= NULL;
+Sampler*			pPointClampSampler					= NULL;
 
 UniformBlock		gUniformData;
 UniformBlock_Floor	gFloorUniformBlock;
@@ -588,12 +675,15 @@ const char*		gMissingTextureString				= "MissingTexture";
 const char*					    gModelFile;
 uint32_t						gPreviousLoadedModel = mModelSelected;
 
-const uint			gBackroundColor = { 0xb2b2b2ff };
 static uint			gLightColor[gTotalLightCount] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffff66 };
-static float		gLightColorIntensity[gTotalLightCount] = { 2.0f, 0.2f, 0.2f, 0.25f };
+static float		gLightColorIntensity[gTotalLightCount] = { 0.1f, 0.2f, 0.2f, 0.25f };
 static float2		gLightDirection = { -122.0f, 222.0f };
 
 GLTFAsset gCurrentAsset;
+
+Texture* gEnvironmentMapIem = NULL;
+Texture* gEnvironmentMapPmrem = NULL;
+Texture* gEnvironmentBRDF = NULL;
 
 FontDrawDesc gFrameTimeDraw; 
 uint32_t gFontID = 0; 
@@ -636,20 +726,20 @@ public:
 		MeshOptDemoShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		
 		addShader(pRenderer, &MeshOptDemoShader, &pMeshOptDemoShader);
-		
-		ShaderLoadDesc VignetteShader = {};
-		
-		VignetteShader.mStages[0] = { "Triangular.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		VignetteShader.mStages[1] = { "vignette.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		
-		addShader(pRenderer, &VignetteShader, &pVignetteShader);
-		
-		ShaderLoadDesc FXAAShader = {};
-		
-		FXAAShader.mStages[0] = { "Triangular.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		FXAAShader.mStages[1] = { "FXAA.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		
-		addShader(pRenderer, &FXAAShader, &pFXAAShader);
+
+		ShaderLoadDesc FinalPostProcessShader = {};
+
+		FinalPostProcessShader.mStages[0] = { "Triangular.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		FinalPostProcessShader.mStages[1] = { "FinalPostProcess.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &FinalPostProcessShader, &pFinalPostProcessShader);
+
+		ShaderLoadDesc TemporalAAShader = {};
+
+		TemporalAAShader.mStages[0] = { "Triangular.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		TemporalAAShader.mStages[1] = { "TemporalAA.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &TemporalAAShader, &pTemporalAAShader);
 		
 		ShaderLoadDesc WaterMarkShader = {};
 		
@@ -657,12 +747,20 @@ public:
 		WaterMarkShader.mStages[1] = { "watermark.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		
 		addShader(pRenderer, &WaterMarkShader, &pWaterMarkShader);
+
+		ShaderLoadDesc SkyboxShader = {};
+
+		SkyboxShader.mStages[0] = { "Skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		SkyboxShader.mStages[1] = { "Skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &SkyboxShader, &pSkyboxShader);
 		
-		const char* pStaticSamplerNames[] = { "clampMiplessLinearSampler" };
-		Sampler* pStaticSamplers[] = { pBilinearClampSampler };
+		const char* pStaticSamplerNames[] = { "clampMiplessLinearSampler", "clampMiplessPointSampler", "cubemapSampler"};
+		Sampler* pStaticSamplers[] = { pBilinearClampSampler, pPointClampSampler, pDefaultSampler };
+
 		Shader*           shaders[] = { pShaderZPass, pShaderZPass_NonOptimized };
 		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.mStaticSamplerCount = 3;
 		rootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		rootDesc.ppStaticSamplers = pStaticSamplers;
 		rootDesc.mShaderCount = 2;
@@ -677,11 +775,30 @@ public:
 		
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureShaded);
 
-		Shader* postShaders[] = { pVignetteShader, pFXAAShader, pWaterMarkShader };
-		rootDesc.mShaderCount = 3;
+		Shader* postShaders[] = { pWaterMarkShader };
+		rootDesc.mShaderCount = 1;
 		rootDesc.ppShaders = postShaders;
 
 		addRootSignature(pRenderer, &rootDesc, &pRootSignaturePostEffects);
+
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pFinalPostProcessShader;
+
+		addRootSignature(pRenderer, &rootDesc, &pRootSignatureFinalPostProcess);
+
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pTemporalAAShader;
+
+		addRootSignature(pRenderer, &rootDesc, &pRootSignatureTemporalAA);
+
+		const char* skyboxSamplerNames[] = { "skyboxTextureSampler" };
+		rootDesc.ppStaticSamplerNames = skyboxSamplerNames;
+		rootDesc.ppStaticSamplers = &pDefaultSampler;
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pSkyboxShader;
+
+		addRootSignature(pRenderer, &rootDesc, &pRootSignatureSkybox);
 		
 		if (!AddDescriptorSets())
 			return false;
@@ -892,6 +1009,12 @@ public:
 		};
 		addSampler(pRenderer, &samplerClampDesc, &pBilinearClampSampler);
 
+		SamplerDesc samplerPointDesc = {
+			FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerPointDesc, &pPointClampSampler);
+
 		float floorPoints[] = {
 			-1.0f, 0.0f, 1.0f, -1.0f, -1.0f,
 			-1.0f, 0.0f, -1.0f, -1.0f, 1.0f,
@@ -996,6 +1119,31 @@ public:
 			ubDesc.ppBuffer = &pFloorUniformBuffer[i];
 			addResource(&ubDesc, NULL);
 		}
+
+		ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(TAAUniformBuffer);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pTAAUniformBuffer[i];
+			addResource(&ubDesc, NULL);
+		}
+
+		ubDesc = {};
+		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		ubDesc.mDesc.mSize = sizeof(SkyboxUniformBuffer);
+		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		ubDesc.pData = NULL;
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
+			addResource(&ubDesc, NULL);
+		}
+
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
@@ -1036,13 +1184,13 @@ public:
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.35f);
 		uiCreateComponent("Graphics Options", &guiDesc, &pGuiGraphics);
 
-		CheckboxWidget fxaaCheckbox;
-		fxaaCheckbox.pData = &bToggleFXAA;
-		luaRegisterWidget(uiCreateComponentWidget(pGuiGraphics, "Enable FXAA", &fxaaCheckbox, WIDGET_TYPE_CHECKBOX));
+		CheckboxWidget temporalAACheckbox;
+		temporalAACheckbox.pData = &bEnableTemporalAA;
+		luaRegisterWidget(uiCreateComponentWidget(pGuiGraphics, "Enable Temporal AA", &temporalAACheckbox, WIDGET_TYPE_CHECKBOX));
 
-		CheckboxWidget vignetCheckbox;
-		vignetCheckbox.pData = &bVignetting;
-		luaRegisterWidget(uiCreateComponentWidget(pGuiGraphics, "Enable Vignetting", &vignetCheckbox, WIDGET_TYPE_CHECKBOX));
+		CheckboxWidget vignetteCheckbox;
+		vignetteCheckbox.pData = &bEnableVignette;
+		luaRegisterWidget(uiCreateComponentWidget(pGuiGraphics, "Enable Vignetting", &vignetteCheckbox, WIDGET_TYPE_CHECKBOX));
 
 		luaRegisterWidget(uiCreateComponentWidget(pGuiGraphics, "", &separator, WIDGET_TYPE_SEPARATOR));
 
@@ -1197,7 +1345,7 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-		gFrameIndex = 0; 
+		gFrameIndex = 0;
 
 		return true;
 	}
@@ -1232,8 +1380,6 @@ public:
 	static bool AddDescriptorSets()
 	{
 		DescriptorSetDesc setDesc = { pRootSignaturePostEffects, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetVignette);
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFXAA);
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetWatermark);
 
 		setDesc = { pRootSignatureShadow, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
@@ -1245,15 +1391,31 @@ public:
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_NONE]);
 		setDesc = { pRootSignatureShaded, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-		
+
+		setDesc = { pRootSignatureSkybox, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox);
+
+		setDesc = { pRootSignatureFinalPostProcess, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFinalPostProcess[0]);
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFinalPostProcess[1]);
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsFinalPostProcess[2]);
+
+		setDesc = { pRootSignatureTemporalAA, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsTemporalAA[0]);
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetsTemporalAA[1]);
+
 		return true;
 	}
 	
 	static void RemoveDescriptorSets()
 	{
-		removeDescriptorSet(pRenderer, pDescriptorSetVignette);
-		removeDescriptorSet(pRenderer, pDescriptorSetFXAA);
 		removeDescriptorSet(pRenderer, pDescriptorSetWatermark);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox);
+		removeDescriptorSet(pRenderer, pDescriptorSetsFinalPostProcess[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetsFinalPostProcess[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetsFinalPostProcess[2]);
+		removeDescriptorSet(pRenderer, pDescriptorSetsTemporalAA[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetsTemporalAA[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_NONE]);
 		removeDescriptorSet(pRenderer, pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
 		removeDescriptorSet(pRenderer, pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_NONE]);
@@ -1264,22 +1426,68 @@ public:
 	{
 		// Shadow
 		{
-			DescriptorData params[2] = {};
+			DescriptorData params[4] = {};
 			if (gCurrentAsset.pNodeTransformsBuffer)
 			{
 				params[0].pName = "modelToWorldMatrices";
 				params[0].ppBuffers = &gCurrentAsset.pNodeTransformsBuffer;
 				updateDescriptorSet(pRenderer, 0, pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_NONE], 1, params);
 			}
-			
-			params[0].pName = "sceneTexture";
-			params[0].ppTextures = &pForwardRT->pTexture;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetVignette, 1, params);
-			
-			params[0].pName = "sceneTexture";
-			params[0].ppTextures = &pPostProcessRT->pTexture;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetFXAA, 1, params);
-			
+
+			RenderTarget* historyInput = pTemporalAAHistoryRT[gCurrentTemporalAARenderTarget];
+			RenderTarget* historyOutput = pTemporalAAHistoryRT[!gCurrentTemporalAARenderTarget];
+
+			{
+				params[0].pName = "sceneTexture";
+				params[0].ppTextures = &pForwardRT->pTexture;
+
+				params[2].pName = "depthTexture";
+				params[2].ppTextures = &pDepthBuffer->pTexture;
+
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					params[1].pName = "historyTexture";
+					params[1].ppTextures = &historyInput->pTexture;
+
+					params[3].pName = "TAAUniformBuffer";
+					params[3].ppBuffers = &pTAAUniformBuffer[i];
+					updateDescriptorSet(pRenderer, i, pDescriptorSetsTemporalAA[0], 4, params);
+
+					params[1].pName = "historyTexture";
+					params[1].ppTextures = &historyOutput->pTexture;
+
+					params[3].pName = "TAAUniformBuffer";
+					params[3].ppBuffers = &pTAAUniformBuffer[i];
+					updateDescriptorSet(pRenderer, i, pDescriptorSetsTemporalAA[1], 4, params);
+				}
+			}
+
+			{
+				params[0].pName = "sceneTexture";
+				params[0].ppTextures = &pForwardRT->pTexture;
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetsFinalPostProcess[0], 1, params);
+
+				params[0].pName = "sceneTexture";
+				params[0].ppTextures = &historyOutput->pTexture;
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetsFinalPostProcess[1], 1, params);
+
+				params[0].pName = "sceneTexture";
+				params[0].ppTextures = &historyInput->pTexture;
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetsFinalPostProcess[2], 1, params);
+			}
+
+			{
+				params[0].pName = "skyboxTexture";
+				params[0].ppTextures = &gEnvironmentMapPmrem;
+
+				for (uint32_t i = 0; i < gImageCount; ++i)
+				{
+					params[1].pName = "SkyboxUniformBuffer";
+					params[1].ppBuffers = &pSkyboxUniformBuffer[i];
+					updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox, 2, params);
+				}
+			}
+
 			params[0].pName = "sceneTexture";
 			params[0].ppTextures = &pTextureBlack;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetWatermark, 1, params);
@@ -1294,15 +1502,25 @@ public:
 		}
 		// Shading
 		{
-			DescriptorData params[3] = {};
+			DescriptorData params[5] = {};
 			params[0].pName = "ShadowTexture";
 			params[0].ppTextures = &pShadowRT->pTexture;
+
+			params[1].pName = "iemCubemap";
+			params[1].ppTextures = &gEnvironmentMapIem;
+
+			params[2].pName = "pmremCubemap";
+			params[2].ppTextures = &gEnvironmentMapPmrem;
+
+			params[3].pName = "environmentBRDF";
+			params[3].ppTextures = &gEnvironmentBRDF;
+
 			if (gCurrentAsset.pNodeTransformsBuffer)
 			{
-				params[1].pName = "modelToWorldMatrices";
-				params[1].ppBuffers = &gCurrentAsset.pNodeTransformsBuffer;
+				params[4].pName = "modelToWorldMatrices";
+				params[4].ppBuffers = &gCurrentAsset.pNodeTransformsBuffer;
 			}
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_NONE], gCurrentAsset.pNodeTransformsBuffer ? 2 : 1, params);
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_NONE], gCurrentAsset.pNodeTransformsBuffer ? 5 : 4, params);
 			
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -1321,15 +1539,19 @@ public:
 		
 		removeShader(pRenderer, pShaderZPass);
 		removeShader(pRenderer, pShaderZPass_NonOptimized);
-		removeShader(pRenderer, pVignetteShader);
 		removeShader(pRenderer, pFloorShader);
 		removeShader(pRenderer, pMeshOptDemoShader);
-		removeShader(pRenderer, pFXAAShader);
 		removeShader(pRenderer, pWaterMarkShader);
+		removeShader(pRenderer, pSkyboxShader);
+		removeShader(pRenderer, pFinalPostProcessShader);
+		removeShader(pRenderer, pTemporalAAShader);
 		
 		removeRootSignature(pRenderer, pRootSignatureShadow);
 		removeRootSignature(pRenderer, pRootSignatureShaded);
 		removeRootSignature(pRenderer, pRootSignaturePostEffects);
+		removeRootSignature(pRenderer, pRootSignatureSkybox);
+		removeRootSignature(pRenderer, pRootSignatureFinalPostProcess);
+		removeRootSignature(pRenderer, pRootSignatureTemporalAA);
 	}
 	
 	static void RemoveModelDependentResources()
@@ -1360,6 +1582,8 @@ public:
 			removeResource(pShadowUniformBuffer[i]);
 			removeResource(pUniformBuffer[i]);
 			removeResource(pFloorUniformBuffer[i]);
+			removeResource(pSkyboxUniformBuffer[i]);
+			removeResource(pTAAUniformBuffer[i]);
 		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1377,6 +1601,7 @@ public:
 
 		removeSampler(pRenderer, pDefaultSampler);
 		removeSampler(pRenderer, pBilinearClampSampler);
+		removeSampler(pRenderer, pPointClampSampler);
 
 		removeResource(TriangularVB);
 
@@ -1405,6 +1630,11 @@ public:
 		depthStateDesc.mDepthTest = true;
 		depthStateDesc.mDepthWrite = true;
 		depthStateDesc.mDepthFunc = CMP_GEQUAL;
+
+		DepthStateDesc skyboxStateDesc = {};
+		skyboxStateDesc.mDepthTest = true;
+		skyboxStateDesc.mDepthWrite = false;
+		skyboxStateDesc.mDepthFunc = CMP_EQUAL;
 
 		BlendStateDesc blendStateAlphaDesc = {};
 		blendStateAlphaDesc.mSrcFactors[0] = BC_SRC_ALPHA;
@@ -1502,41 +1732,7 @@ public:
 			pipelineSettings.pShaderProgram = pFloorShader;
 			addPipeline(pRenderer, &desc, &pFloorPipeline);
 		}
-		
-		{
-			desc = {};
-			desc.mType = PIPELINE_TYPE_GRAPHICS;
-			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = 1;
-			pipelineSettings.pDepthState = NULL;
-			pipelineSettings.pBlendState = &blendStateAlphaDesc;
-			pipelineSettings.pColorFormats = &pPostProcessRT->mFormat;
-			pipelineSettings.mSampleCount = pPostProcessRT->mSampleCount;
-			pipelineSettings.mSampleQuality = pPostProcessRT->mSampleQuality;
-			pipelineSettings.pRootSignature = pRootSignaturePostEffects;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-			pipelineSettings.pShaderProgram = pVignetteShader;
-			addPipeline(pRenderer, &desc, &pVignettePipeline);
-		}
-		
-		{
-			desc = {};
-			desc.mType = PIPELINE_TYPE_GRAPHICS;
-			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = 1;
-			pipelineSettings.pDepthState = NULL;
-			pipelineSettings.pBlendState = NULL;
-			pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-			pipelineSettings.pRootSignature = pRootSignaturePostEffects;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-			pipelineSettings.pShaderProgram = pFXAAShader;
-			addPipeline(pRenderer, &desc, &pFXAAPipeline);
-		}
-		
+
 		{
 			desc = {};
 			desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -1553,6 +1749,58 @@ public:
 			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 			pipelineSettings.pShaderProgram = pWaterMarkShader;
 			addPipeline(pRenderer, &desc, &pWaterMarkPipeline);
+		}
+
+		{
+			desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = &skyboxStateDesc;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+			pipelineSettings.pBlendState = NULL;
+			pipelineSettings.pColorFormats = &pForwardRT->mFormat;
+			pipelineSettings.mSampleCount = pForwardRT->mSampleCount;
+			pipelineSettings.mSampleQuality = pForwardRT->mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureSkybox;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			pipelineSettings.pShaderProgram = pSkyboxShader;
+			addPipeline(pRenderer, &desc, &pSkyboxPipeline);
+		}
+
+		{
+			desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = NULL;
+			pipelineSettings.pBlendState = NULL;
+			pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureFinalPostProcess;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			pipelineSettings.pShaderProgram = pFinalPostProcessShader;
+			addPipeline(pRenderer, &desc, &pFinalPostProcessPipeline);
+		}
+
+		{
+			desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pDepthState = NULL;
+			pipelineSettings.pBlendState = NULL;
+			pipelineSettings.pColorFormats = &pForwardRT->mFormat;
+			pipelineSettings.mSampleCount = pForwardRT->mSampleCount;
+			pipelineSettings.mSampleQuality = pForwardRT->mSampleQuality;
+			pipelineSettings.pRootSignature = pRootSignatureTemporalAA;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			pipelineSettings.pShaderProgram = pTemporalAAShader;
+			addPipeline(pRenderer, &desc, &pTemporalAAPipeline);
 		}
 	}
 
@@ -1609,6 +1857,23 @@ public:
 			screenQuadVbDesc.pData = screenWaterMarkPoints;
 			screenQuadVbDesc.ppBuffer = &WaterMarkVB;
 			addResource(&screenQuadVbDesc, NULL);
+
+			TextureLoadDesc loadDesc = {};
+			loadDesc.mContainer = TEXTURE_CONTAINER_KTX;
+
+			SyncToken token = {};
+
+			loadDesc.ppTexture = &gEnvironmentMapIem;
+			loadDesc.pFileName = "autumn_hockey_4k_iem";
+			addResource(&loadDesc, &token);
+
+			loadDesc.ppTexture = &gEnvironmentMapPmrem;
+			loadDesc.pFileName = "autumn_hockey_4k_pmrem";
+			addResource(&loadDesc, &token);
+
+			loadDesc.ppTexture = &gEnvironmentBRDF;
+			loadDesc.pFileName = "brdf";
+			addResource(&loadDesc, &token);
 		}
 
 		InitModelDependentResources();
@@ -1622,11 +1887,12 @@ public:
 	{
 		removePipeline(pRenderer, pPipelineShadowPass_NonOPtimized);
 		removePipeline(pRenderer, pPipelineShadowPass);
-		removePipeline(pRenderer, pVignettePipeline);
 		removePipeline(pRenderer, pFloorPipeline);
 		removePipeline(pRenderer, pMeshOptDemoPipeline);
-		removePipeline(pRenderer, pFXAAPipeline);
 		removePipeline(pRenderer, pWaterMarkPipeline);
+		removePipeline(pRenderer, pSkyboxPipeline);
+		removePipeline(pRenderer, pFinalPostProcessPipeline);
+		removePipeline(pRenderer, pTemporalAAPipeline);
 	}
 	
 	void Unload()
@@ -1642,6 +1908,10 @@ public:
 			return;
 		}
 
+		removeResource(gEnvironmentMapIem);
+		removeResource(gEnvironmentMapPmrem);
+		removeResource(gEnvironmentBRDF);
+
 		removeResource(WaterMarkVB);
 
 		removeUserInterfacePipelines();
@@ -1649,9 +1919,10 @@ public:
 		removeFontSystemPipelines(); 
 		
 		removeSwapChain(pRenderer, pSwapChain);
-		
-		removeRenderTarget(pRenderer, pPostProcessRT);
+
 		removeRenderTarget(pRenderer, pForwardRT);
+		removeRenderTarget(pRenderer, pTemporalAAHistoryRT[0]);
+		removeRenderTarget(pRenderer, pTemporalAAHistoryRT[1]);
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeRenderTarget(pRenderer, pShadowRT);
 	}
@@ -1675,11 +1946,26 @@ public:
 		mat4 viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 3.0f;
-		CameraMatrix projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, 0.001f, 1000.0f);
+		mat4 projMat = mat4::perspectiveReverseZ(horizontal_fov, aspectInverse, 0.001f, 1000.0f);
+
+		if (bEnableTemporalAA)
+		{
+			vec2 jitterSample = gTemporalAAJitterSamples[gCurrentTemporalAAJitterSample];
+
+			mat4 projMatNoJitter = projMat;
+
+			projMat[2][0] += jitterSample.getX() / float(mSettings.mWidth);
+			projMat[2][1] += jitterSample.getY() / float(mSettings.mHeight);
+
+			mat4 projViewNoJitter = projMatNoJitter * viewMat;
+			gTemporalAAReprojection = gTemporalAAPreviousViewProjection * inverse(projViewNoJitter);
+			gTemporalAAPreviousViewProjection = projViewNoJitter;
+		}
+
 		gUniformData.mProjectView = projMat * viewMat;
 		gUniformData.mCameraPosition = vec4(pCameraController->getViewPosition(), 1.0f);
 		
-        for (uint i = 0; i < gTotalLightCount; ++i)
+		for (uint i = 0; i < gTotalLightCount; ++i)
 		{
 			gUniformData.mLightColor[i] = vec4(float((gLightColor[i] >> 24) & 0xff),
 											   float((gLightColor[i] >> 16) & 0xff),
@@ -1701,7 +1987,7 @@ public:
 		
 		gFloorUniformBlock.projViewMat = gUniformData.mProjectView;
 		gFloorUniformBlock.worldMat = mat4::scale(vec3(3.0f));
-		gFloorUniformBlock.screenSize = vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 1.0f / mSettings.mWidth, bVignetting ? 1.0f : 0.0f);
+		gFloorUniformBlock.screenSize = vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 1.0f / mSettings.mWidth, bEnableVignette ? 1.0f : 0.0f);
 		
 		
 		/************************************************************************/
@@ -1724,7 +2010,16 @@ public:
 	
 	void PostDrawUpdate()
 	{
-		if (gPreviousLoadedModel != mModelSelected)
+		// HACK: This is a hack to avoid model reloading breaking TAA state.
+		// The problem is that this sample reloads model by reloading almost everything, and that includes all
+		//   root signatures, pipelines, shaders, etc. When this happens on the wrong frame this messes up TAA pipeline states.
+		//
+		// This code makes sure that reloading doesn't happen on odd TAA frames and the state of reloaded TAA pipelines matches
+		//   what the runtime expects.
+		// 
+		// We should heavily refactor this sample at some point, especially the model loading code.
+		bool allowReload = gCurrentTemporalAARenderTarget == 0;
+		if (allowReload && gPreviousLoadedModel != mModelSelected)
 		{
 			gPreviousLoadedModel = mModelSelected;
 			gModelFile = pModelNames[mModelSelected];
@@ -1786,13 +2081,7 @@ public:
 		
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-		
-		vec4 bgColor = vec4(float((gBackroundColor >> 24) & 0xff),
-							float((gBackroundColor >> 16) & 0xff),
-							float((gBackroundColor >> 8) & 0xff),
-							float((gBackroundColor >> 0) & 0xff)) / 255.0f;
-		
-		
+
 		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
@@ -1803,10 +2092,10 @@ public:
 		{
 			LoadActionsDesc loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[0].r = bgColor.getX();
-			loadActions.mClearColorValues[0].g = bgColor.getY();
-			loadActions.mClearColorValues[0].b = bgColor.getZ();
-			loadActions.mClearColorValues[0].a = bgColor.getW();
+			loadActions.mClearColorValues[0].r = 0.0F;
+			loadActions.mClearColorValues[0].g = 0.0F;
+			loadActions.mClearColorValues[0].b = 0.0F;
+			loadActions.mClearColorValues[0].a = 0.0F;
 			loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 			loadActions.mClearDepth.depth = 0.0f;
 			loadActions.mClearDepth.stencil = 0;
@@ -1881,84 +2170,116 @@ public:
 
 				pushConstants.nodeIndex += 1;
 			}
-			
-			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		}
 
-		pRenderTarget = pPostProcessRT;
+		{
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Skybox");
+
+			BufferUpdateDesc bufferUpdate = { pSkyboxUniformBuffer[gFrameIndex] };
+			beginUpdateResource(&bufferUpdate);
+			*(SkyboxUniformBuffer*)bufferUpdate.pMappedData = { inverse(gUniformData.mProjectView) };
+			endUpdateResource(&bufferUpdate, NULL);
+
+			cmdBindPipeline(cmd, pSkyboxPipeline);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox);
+			cmdDraw(cmd, 3, 0);
+
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		}
+
+		cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
+
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-			{ pForwardRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
+			{ pForwardRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
 		};
 		
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
-		
-		if (bVignetting)
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+
+		DescriptorSet* postProcessDescriptorSet = pDescriptorSetsFinalPostProcess[0];
+		if (bEnableTemporalAA)
 		{
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Temporal AA");
+
+			BufferUpdateDesc bufferUpdate = { pTAAUniformBuffer[gFrameIndex] };
+			beginUpdateResource(&bufferUpdate);
+			*(TAAUniformBuffer*)bufferUpdate.pMappedData = { gTemporalAAReprojection };
+			endUpdateResource(&bufferUpdate, NULL);
+
+			RenderTarget* historyInput = pTemporalAAHistoryRT[gCurrentTemporalAARenderTarget];
+			RenderTarget* historyOutput = pTemporalAAHistoryRT[!gCurrentTemporalAARenderTarget];
+
+			pRenderTarget = historyOutput;
+
 			LoadActionsDesc loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-			loadActions.mLoadActionStencil = LOAD_ACTION_LOAD;
+			loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Vignetting");
+			RenderTargetBarrier depthBarrier = {
+				pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE
+			};
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &depthBarrier);
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
-			
-			cmdBindPipeline(cmd, pVignettePipeline);
-			
-			cmdBindDescriptorSet(cmd, 0, pDescriptorSetVignette);
-			
+
+			cmdBindPipeline(cmd, pTemporalAAPipeline);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsTemporalAA[gCurrentTemporalAARenderTarget]);
 			cmdDraw(cmd, 3, 0);
-			
-			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+
+			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
+
+			RenderTargetBarrier temporalAABarriers[] = {
+				{ historyInput, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ historyOutput, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
+			};
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, temporalAABarriers);
+
+			postProcessDescriptorSet = pDescriptorSetsFinalPostProcess[gCurrentTemporalAARenderTarget + 1];
+
+			gCurrentTemporalAAJitterSample = (gCurrentTemporalAAJitterSample + 1) % TEMPORAL_AA_JITTER_SAMPLES;
+			gCurrentTemporalAARenderTarget = !gCurrentTemporalAARenderTarget;
 		}
-        
+
+		cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
+
 		pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		{
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Final Post Process");
+
+			LoadActionsDesc loadActions = {};
+			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+			loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
+			loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
+
 			RenderTargetBarrier barriers[] =
 			{
 				{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
-				{ pPostProcessRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
-			
-			LoadActionsDesc loadActions = {};
-			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[0].r = 0.0f;
-			loadActions.mClearColorValues[0].g = 0.0f;
-			loadActions.mClearColorValues[0].b = 0.0f;
-			loadActions.mClearColorValues[0].a = 0.0f;
-			loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-			
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
+
+			PostProcessRootConstant rootConstant;
+			rootConstant.SceneTextureSize = int2(pRenderTarget->mWidth, pRenderTarget->mHeight);
+			rootConstant.VignetteRadius = bEnableVignette ? 0.2F : 0.0F;
+
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "FXAA");
-
-			cmdBindPipeline(cmd, pFXAAPipeline);
-			
-			FXAAINFO FXAAinfo;
-			FXAAinfo.ScreenSize = float2((float)mSettings.mWidth, (float)mSettings.mHeight);
-			FXAAinfo.Use = bToggleFXAA ? 1 : 0;
-			
-			cmdBindDescriptorSet(cmd, 0, bVignetting ? pDescriptorSetFXAA : pDescriptorSetVignette);
-			cmdBindPushConstants(cmd, pRootSignaturePostEffects, "FXAARootConstant", &FXAAinfo);
-			
+			cmdBindPipeline(cmd, pFinalPostProcessPipeline);
+			cmdBindDescriptorSet(cmd, 0, postProcessDescriptorSet);
+			cmdBindPushConstants(cmd, pRootSignatureFinalPostProcess, "PostProcessRootConstant", &rootConstant);
 			cmdDraw(cmd, 3, 0);
-			
-			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
-			
+
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		}
-		
-		
+
 		if (bScreenShotMode)
 		{
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
@@ -1969,7 +2290,7 @@ public:
 			
 			cmdBindPipeline(cmd, pWaterMarkPipeline);
 			
-			cmdBindDescriptorSet(cmd, 0, pDescriptorSetVignette);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetWatermark);
 			
 			const uint32_t stride = sizeof(float) * 5;
 			cmdBindVertexBuffer(cmd, 1, &WaterMarkVB, &stride, NULL);
@@ -2056,43 +2377,37 @@ public:
 		RT.mArraySize = 1;
 		RT.mDepth = 1;
 		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		RT.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
 		RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-		
-		vec4 bgColor = vec4(float((gBackroundColor >> 24) & 0xff),
-							float((gBackroundColor >> 16) & 0xff),
-							float((gBackroundColor >> 8) & 0xff),
-							float((gBackroundColor >> 0) & 0xff)) / 255.0f;
-		
-		RT.mClearValue.r = bgColor.getX();
-		RT.mClearValue.g = bgColor.getY();
-		RT.mClearValue.b = bgColor.getZ();
-		RT.mClearValue.a = bgColor.getW();
+
+		RT.mClearValue.r = 0.0F;
+		RT.mClearValue.g = 0.0F;
+		RT.mClearValue.b = 0.0F;
+		RT.mClearValue.a = 0.0F;
 		
 		RT.mWidth = mSettings.mWidth;
 		RT.mHeight = mSettings.mHeight;
 		
 		RT.mSampleCount = SAMPLE_COUNT_1;
 		RT.mSampleQuality = 0;
-		RT.pName = "Render Target";
-        RT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
+		
+		RT.pName = "HDR Forward Target";
 		addRenderTarget(pRenderer, &RT, &pForwardRT);
-		
-		RT = {};
-		RT.mArraySize = 1;
-		RT.mDepth = 1;
-		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+
+		RT.pName = "TAA History 0";
 		RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-		RT.mWidth = mSettings.mWidth;
-		RT.mHeight = mSettings.mHeight;
-		RT.mSampleCount = SAMPLE_COUNT_1;
-		RT.mSampleQuality = 0;
-        RT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
-		RT.pName = "Post Process Render Target";
-		addRenderTarget(pRenderer, &RT, &pPostProcessRT);
-		
-		return pForwardRT != NULL && pPostProcessRT != NULL;
+		RT.mClearValue = {};
+		addRenderTarget(pRenderer, &RT, &pTemporalAAHistoryRT[0]);
+
+		RT.pName = "TAA History 1";
+		RT.mStartState = RESOURCE_STATE_RENDER_TARGET;
+		RT.mClearValue = {};
+		addRenderTarget(pRenderer, &RT, &pTemporalAAHistoryRT[1]);
+
+		gCurrentTemporalAAJitterSample = 0;
+		gCurrentTemporalAARenderTarget = 0;
+
+		return pForwardRT != NULL && pTemporalAAHistoryRT[0] != NULL && pTemporalAAHistoryRT[1] != NULL;
 	}
 	
 	bool addDepthBuffer()
@@ -2103,13 +2418,13 @@ public:
 		depthRT.mClearValue.depth = 0.0f;
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
+		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE | TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 		/************************************************************************/
 		// Shadow Map Render Target

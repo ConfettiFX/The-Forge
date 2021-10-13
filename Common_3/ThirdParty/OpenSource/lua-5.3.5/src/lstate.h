@@ -47,6 +47,7 @@
 
 */
 
+#include "../../../../OS/Core/Config.h"
 
 struct lua_longjmp;  /* defined in ldo.c */
 

@@ -16,7 +16,7 @@ loader.SetLight3Intensity(math.random() + math.random(0, 5))
 loader.SetAmbientLightColor(math.random(0, 4294967142))
 loader.SetAmbientLightIntensity(math.random() + math.random(0, 5))
 
-loader.SetEnableFXAA((loader.GetEnableFXAA()+1) % 2)
-loader.SetEnableFXAA((loader.GetEnableVignetting()+1) % 2)
+loader.SetEnableTemporalAA((loader.GetEnableTemporalAA()+1) % 2)
+loader.SetEnableVignetting((loader.GetEnableVignetting()+1) % 2)
 
 loader.SetCounter(5)
