@@ -998,7 +998,7 @@ M²H uses The Forge - [M²H](https://msquarehealthcare.com/) is a medical techno
 The Forge provides the rendering layer for their application.
 Here is a YouTube video on what they do:
 
-[![M²H on YouTube](Screenshots/M2Hscreenshot.png)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
+[![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 ## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
