@@ -67,7 +67,7 @@ Here is a YouTube video on what they do:
 [![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 
-* Unlinked multiple GPU Support: for professional visualization applications, we now support unlined multiple GPU. 
+* Unlinked multiple GPU Support: for professional visualization applications, we now support unlinked multiple GPU. 
 A new renderer API is added to enumerate available GPUs.
 Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list.
 Multiple Renderers can be created this way.
