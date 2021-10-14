@@ -59,6 +59,116 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.50 - October xx , 2021 - M²H uses The Forge  | Unlinked Multi GPU Support | Central Config.h | glTF Viewer improvements | Scalar High Precision Math 
+* M²H uses The Forge for Stroke Therapy - [M²H](https://msquarehealthcare.com/) is a medical technology company. They developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
+The Forge provides the rendering layer for their application.
+Here is a YouTube video on what they do:
+
+[![M²H on YouTube](Screenshots/M2Hscreenshot.png)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
+
+
+* Unlinked multiple GPU Support: for professional visualization applications, we now support unlined multiple GPU. 
+A new renderer API is added to enumerate available GPUs.
+Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list.
+Multiple Renderers can be created this way.
+The resource loader interface has been extended to support multiple Renderers.
+It is initialized with the list of all Renderers created.
+To select which Renderer (GPU) resources are loaded on, the NodeIndex used in linked GPU configurations is reused for the same purpose.
+Resources cannot be shared on multiple Renderers however, resources must be duplicated explicitly if needed.
+To retrieve generated content from one GPU to another (e.g. for presentation), a new resource loader operation is provided to schedule a transfer from a texture to a buffer. The target buffer should be mappable.
+This operation requires proper synchronization with the rendering work; a semaphore can be provided to the copy operation for that purpose.
+Available with Vulkan and D3D12.
+For other APIs, the enumeration API will not create a RendererContext which indicates lack of unlinked multi GPU support.
+
+* Config.h: We now have a central config.h file that can be used to configure TF.
+  * Created config files:
+```
+Common_3/OS/Core/Config.h
+Common_3/Renderer/RendererConfig.h
+Common_3/Renderer/{RenderingAPI}/{RenderingAPI}Config.h
+```
+        * Modified PyBuild.py
+            * Proper handling of config options.
+            * Every config option has --{option-name}/--no-{option-name} flag that uses define/undef directives to enable/disable macros. 
+            * Macros are guarded with ifndef/ifdef.
+            * Updated Android platform handling
+          * Deleted Common_3/Renderer/Compiler.h. It's functionality was moved into Config.h
+          * Moved all macro options to config files
+          * Renamed USE_{OPTON_NAME} to ENABLE_{OPTION_NAME}
+          * Changed some macros to be defined/not defined instead of having values of 0 or 1.
+          * Deleted all DISABLE_{OPTION_NAME} macros
+          * When detecting raytracing replaced ENABLE_RAYTRACING with RAYTRACING_AVAILABLE. This was done, because not all projects need raytracing even if it is available. RendererConfig.h defines ENABLE_RAYTRACING macro if it is available. So, it can be commented out in singular place instead of searching for it for every platform
+          * Removed most of the macro definitions from build systems. Some of the remaining macros are:
+            * Target platform macros: NX64, QUEST_VR
+            * Arm neon macro ANDROID_ARM_NEON.
+            * Windows suppression macros(like _CRT_SECURE_NO_WARNINGS)
+            * Macros specific to gainputstatic
+* glTF viewer improvements: 
+  * sRGB fixes
+  * IBL support now with prefiltered CCO/public domain cube maps
+  * TAA support on more platforms and fixes
+  * Vignette support
+
+
+glTF Viewer running on Android Galaxy Note 9
+![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
+
+glTF Viewer running on iPhone 7
+![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
+
+glTF Viewer running on Linux with NVIDIA RTX 2060
+![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
+
+glTF Viewer running on Mac Mini M1
+![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
+
+glTF Viewer running on PS5
+![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
+
+glTF Viewer running on Switch
+![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
+
+glTF Viewer running on XBOX One Original 
+![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
+
+
+* Specialization/Function constants support on Vulkan and Metal only - these constants get baked into the micro-code during pipeline creation time so the performance is identical to using a macro without any of the downsides of macros (too many shader variations increasing the size of the build).
+
+Good read on Specialization constants. Same things apply to function constants on Metal
+
+https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/specialization_constants/specialization_constants_tutorial.html
+
+Declared at global scope using SHADER_CONSTANT macro. Used as any regular variable after declaration
+
+Macro arguments:
+```
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE)
+```
+Example usage:
+```
+SHADER_CONSTANT(0, uint, gRenderMode, 0);
+// Vulkan - layout (constant_id = 0) const uint gRenderMode = 0;
+// Metal  - constant uint gRenderMode [[function_constant(0)]];
+// Others - const uint gRenderMode = 0;
+
+void main()
+{
+    // Can be used like regular variables in shader code
+    if (gRenderMode == 1)
+    {
+        // 
+    }
+}
+```
+
+* Resolved GitHub Issues
+  * #206 - Executing Unit Tests on Mac OS 10.14 gives a Bad Access error
+  * #209 - way to read texture back from GPU to CPU - this functionality is now in the resource loader
+  * #210 - memory allocation challenge - not an issue
+  * #212 - Question: updating partial uniform data on OpenGLES backend - not possible with OpenGL ES 2.0 run-time
+  * #219 - Question : way to support Vulkan SpecializationInfo? - support is now in the code base see above
+
+
 ## Release 1.49 - September 09, 2021 - Quest 2 Support | Apple M1 support 
 <ul>
 
@@ -226,66 +336,6 @@ In general we are testing many Android phones at the moment on the low and high 
 
 
 
-## Release 1.47 - December 18th, 2020 - OpenGL ES 2.0 Android support | Device Reset Support | DRED / Breadcrumb support | Lua driven functional tests | DX11 refactor | YUV support through Vulkan
-As the year winds slowly down, we finally found time to do another release. First of all, Happy Holidays and a happy new Year! 
-
-![Happy Holidays and a happy new Year!](Screenshots/Holidycard-2020-front.png)
-
-Most of us will take off over the Holiday season and spent time with their families. We should be back online in the middle of January 2021.
-* OpenGL ES 2.0: TF will run on probably several hundred million of mobile devices in the future. It will be the rendering layer of business application frameworks. For this usage case, we added OpenGL ES 2.0 support only for Android. The OpenGL ES 2.0 layer only supports unit tests 1, 5, 12 and 31 at the moment. 
-* Device change / reset: we finally implemented all the code that can deal with device changes, device resets or device removed scenarios on all platforms. The underlying design was always there but it took us 3+ years to finally add the functionality :-)
-When you go into any of the ```*OSBase.*``` files you can find a snippet of code that looks like this:
-
-```
-if (pApp->mSettings.mResetGraphics) 
-	{
-		pApp->Unload();
-		pApp->Load();
-		pApp->mSettings.mResetGraphics = false;
-	}
-  ```
-* DRED / Breadcrumb support: to be able to better tell what the reason behind a removed device is, we implemented DRED support on PC with DirectX 12 and XBOX. We integrated this into the first functional test 01_Transformations. Here is a screenshot. Look for the "Simulate crash" button:
-
-![Image of the Transformations Unit test](Screenshots/01_Transformations.PNG)
-
-Breadcrumb are user defined markers used to pinpoint which command has caused GPU to stall.
-In the Breadcrumb unit test, two markers get injected into the command list. 
-Pressing the crash button would result in a GPU hang. 
-In this situation, the first marker would be written before the draw command, but the second one would stall for the draw command to finish.
-Due to the infinite loop in the shader, the second marker won't be written, and we can reason that the draw command has caused the GPU to hang.
-We log the markers' information to verify this.
-Check out this link for more info: [D3D12 Device Removed Extended Data (DRED)](https://microsoft.github.io/DirectX-Specs/d3d/DeviceRemovedExtendedData.html)
-
-* More Lua Scripting support for all functional tests:
-  * For the scripted testing of the Unit Tests, this layer provides automated function registration of the UI elements to Lua State.
-  * Any UI elements added to the GUI will add a function or a pair of function(Getter/Setter) to the Lua state for using them in any script.
-Lua function name resolution will work like this:
-  * UI Widget "label" name will be included in the function name as follows,
-	- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", and event - OnEdited : "PressOnEdited"
-	- For Widget modifiers such as ints / floats: "Set" and "Get" function pair will be added as a prefix to label name e.g., "X" variable will have "SetX" and "GetX" pair of functions.
- * After writing the scripts, you can let the layer know about the scripts using AddTestScripts() function call and run them on any frame by RunTestScript() defined in UIApp class. There are examples of these test scripts in most of the UTs showing how you can also add these scripts to UI and test them on runtime.
-
- Here is how the current Lua support in the functional tests might look like:
-
-![Lua support](Screenshots/Lua_Support.png)
-
-* DX11 refactor: we re-wrote the DX11 run-time a few times. We ended up with the most straighforward version. This version only recently shipped in Hades along with the Vulkan run-time on PC. 
-
-* YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
-
-![YUV unit test](Screenshots/34_YUV.png)
-
-* Audio: we removed the audio functional test. It was the only test that was released unfinished and didn't run on all our platforms. Our customers show  love for FMOD ... would make more sense to show an integration of that.
-
-* GitHub issues fixed: 
-  * #188 - typo - lowercase L in first DepthStencilClearFlags constant "ClEAR_DEPTH"
-  * #186 - Ubuntu: Examples fail to build
-  * #182 - Flickering on master when vsync is off
-  * #176 - [08_GlftViewer] Application crash on missing resource
-
-Numerous other fixes ...
-
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -317,18 +367,15 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS min spec. 10.13.6
+1. macOS min spec. 10.15.7
 
-2. Xcode 11.0 (11A419c)
+2. Xcode 12.1
 
 3. The Forge is currently tested on the following macOS devices:
-* iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
-* MacBook Pro 13 inch (MacBookPro13,2) 
-* Macbook Pro 13 inch (MacbookPro14,2)
-* iMac with M1
+* iMac with M1 macOS 11.6
 
-At this moment we do not have access to an iMac with M1 chipset (we ordered one), iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
 
 
@@ -347,13 +394,13 @@ We are currently testing on
 
 # iPad OS Requirements:
 
-1. iPadOS 13.1 beta 3 (17A5837a)
+1. iPadOS 14
 
 2. XCode: see macOS
 
 We are currently testing on:
 * iPad (Model A1893)
-* iPad Pro with M1
+* iPad Pro with M1 with 14.7.1
 
 
 # PC Linux Requirements:
@@ -555,26 +602,30 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
 ## 8. glTF Model Viewer
-A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. We integrated Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and use the same PBR as used in the Material Playground unit test.
-This modelviewer can also utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
+A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. 
+This modelviewer can utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
 
-glTF model viewer running on iPad with 2048x1536 resolution
+glTF Viewer running on Android Galaxy Note 9
+![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.PNG)
+glTF Viewer running on iPhone 7
+![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.PNG)
+glTF Viewer running on Linux with NVIDIA RTX 2060
+![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
 
-glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
+glTF Viewer running on Mac Mini M1
+![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.JPEG)
+glTF Viewer running on PS5
+![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.JPEG)
+glTF Viewer running on Switch
+![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
 
-glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
+glTF Viewer running on XBOX One Original 
+![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
 
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
@@ -942,7 +993,12 @@ Here is more info about this game engine:
 
 [Bethesda's overhauling its engine for Starfield and The Elder Scrolls 6](https://www.gamesradar.com/bethesda-engine-starfield-elder-scrolls-6/)
 
+## M²H - Stroke Therapy
+M²H uses The Forge - [M²H](https://msquarehealthcare.com/) is a medical technology company. They have developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
+The Forge provides the rendering layer for their application.
+Here is a YouTube video on what they do:
 
+[![M²H on YouTube](Screenshots/M2Hscreenshot.png)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 ## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
