@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #include <functional>
 
 #if !defined(XBOX)

@@ -224,6 +224,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "../../../OS/Core/Config.h"
+
 // Defines to completely disable specific portions of miniz.c:
 // If all macros here are defined the only functionality remaining will be
 // CRC-32, adler-32, tinfl, and tdefl.
@@ -6852,7 +6854,7 @@ miniz_bool miniz_zip_add_mem_to_archive_file_in_place(
  //   created_new_archive = MINIZ_TRUE;
  // } else {
     // Append to an existing archive.
-    if (!miniz_zip_reader_init_file(&zip_archive, resourceDirectory, fileName, filePassword,
+  if (!miniz_zip_reader_init_file(&zip_archive, resourceDirectory, fileName, filePassword,
                                  level_and_flags | MINIZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY))
       return MINIZ_FALSE;
     if (!miniz_zip_writer_init_from_reader(&zip_archive, resourceDirectory, fileName)) {

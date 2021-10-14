@@ -24,20 +24,13 @@
 
 #pragma once
 
-#include "Compiler.h"
+#include "Config.h"
 
 typedef volatile ALIGNAS(4) uint32_t tfrg_atomic32_t;
 typedef volatile ALIGNAS(8) uint64_t tfrg_atomic64_t;
 typedef volatile ALIGNAS(PTR_SIZE) uintptr_t tfrg_atomicptr_t;
 
 #if defined(_MSC_VER) && !defined(NX64)
-    #ifndef NOMINMAX
-        #define NOMINMAX
-    #endif
-    #ifndef WIN32_LEAN_AND_MEAN
-        #define WIN32_LEAN_AND_MEAN
-    #endif
-
 	#include <windows.h>
 	#include <intrin.h>
 

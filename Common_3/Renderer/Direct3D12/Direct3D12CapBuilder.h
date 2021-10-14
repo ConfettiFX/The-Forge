@@ -23,6 +23,9 @@
 */
 
 #pragma once
+
+#include "../RendererConfig.h"
+
 #ifdef DIRECT3D12
 
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"

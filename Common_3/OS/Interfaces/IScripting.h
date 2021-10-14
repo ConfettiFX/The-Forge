@@ -25,18 +25,10 @@
 #ifndef ISCRIPTING_H
 #define ISCRIPTING_H
 
+#include "../Core/Config.h"
+
 // LUA
 #include "../Scripting/LuaManager.h"
-
-/****************************************************************************/
-// MARK: - Forge Lua Scripting Master Switch
-/****************************************************************************/
-
-/// Can be used to disable the Forge Lua Scripting System if desired
-/// All interface functions will become non-operational if disabled
-#ifndef DISABLE_FORGE_SCRIPTING
-#define USE_FORGE_SCRIPTING
-#endif
 
 /****************************************************************************/
 // MARK: - Lua Scripting Data Structs

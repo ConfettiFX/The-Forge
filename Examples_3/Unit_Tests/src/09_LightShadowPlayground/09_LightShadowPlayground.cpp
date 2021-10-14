@@ -25,16 +25,6 @@
 #define ESM_SHADOWMAP_RES 2048u
 #define NUM_SDF_MESHES 3
 
-#if defined(XBOX)
-#include "../../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
-#include "../../../../Xbox/Common_3/Renderer/IESRAMManager.h"
-#define BEGINALLOCATION(X) esramBeginAllocation(pRenderer->mD3D12.pESRAMManager, X, esramGetCurrentOffset(pRenderer->mD3D12.pESRAMManager))
-#define ENDALLOCATION(X) esramEndAllocation(pRenderer->mD3D12.pESRAMManager)
-#else
-#define BEGINALLOCATION(X)
-#define ENDALLOCATION(X)
-#endif
-
 //ea stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/queue.h"
@@ -57,6 +47,11 @@
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../../../Common_3/OS/Core/RingBuffer.h"
+
+#if defined(XBOX)
+#include "../../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
+#include "../../../../Xbox/Common_3/Renderer/IESRAMManager.h"
+#endif
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -6371,7 +6366,7 @@ class LightShadowPlayground: public IApp
 
 		waitForToken(&token);
 
-		// Since this happens on iniatilization, use the first cmd/fence pair available.
+		// Since this happens on initialization, use the first cmd/fence pair available.
 		Cmd* cmd = pCmds[0];
 
 		// Compute the BRDF Integration map.
@@ -7295,6 +7290,10 @@ class LightShadowPlayground: public IApp
 		}
 
 		RemoveRenderTargetsAndSwapChain();
+
+#if defined(XBOX)
+        esramResetAllocations(pRenderer->mD3D12.pESRAMManager);
+#endif
 
 		gMissingSDFTaskData = { NULL, NULL };
 	}
@@ -8577,8 +8576,6 @@ class LightShadowPlayground: public IApp
 
 		addSwapChain();
 
-		BEGINALLOCATION("RTs");
-
 		/************************************************************************/
 		// Main depth buffer
 		/************************************************************************/
@@ -8853,7 +8850,6 @@ class LightShadowPlayground: public IApp
 		addRenderTarget(pRenderer, &lodClampRTDesc, &pRenderTargetASMLodClamp);
 		addRenderTarget(pRenderer, &lodClampRTDesc, &pRenderTargetASMPrerenderLodClamp);
 
-		ENDALLOCATION("RTs");
 		return true;
 	}
 

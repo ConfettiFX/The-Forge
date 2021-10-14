@@ -107,21 +107,21 @@
 
 /* Begin PBXFileReference section */
 		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
-		B204599325EE57E0004548FC /* TaskManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TaskManager.cpp; path = ../../src/AuraMiddlewareImpl/TaskManager.cpp; sourceTree = "<group>"; };
-		B204599425EE57E0004548FC /* AuraTaskManagerImpl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AuraTaskManagerImpl.cpp; path = ../../src/AuraMiddlewareImpl/AuraTaskManagerImpl.cpp; sourceTree = "<group>"; };
+		B204599325EE57E0004548FC /* TaskManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = TaskManager.cpp; path = ../../src/AuraMiddlewareImpl/TaskManager.cpp; sourceTree = "<group>"; };
+		B204599425EE57E0004548FC /* AuraTaskManagerImpl.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AuraTaskManagerImpl.cpp; path = ../../src/AuraMiddlewareImpl/AuraTaskManagerImpl.cpp; sourceTree = "<group>"; };
 		B204599525EE57E0004548FC /* TaskManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TaskManager.h; path = ../../src/AuraMiddlewareImpl/TaskManager.h; sourceTree = "<group>"; };
 		B204599B25EE58DD004548FC /* MTDefaultAppInterop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTDefaultAppInterop.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTDefaultAppInterop.cpp; sourceTree = "<group>"; };
 		B204599C25EE58DD004548FC /* MTFiberContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTFiberContext.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTFiberContext.cpp; sourceTree = "<group>"; };
 		B204599D25EE58DD004548FC /* MTScheduler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTScheduler.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTScheduler.cpp; sourceTree = "<group>"; };
 		B204599E25EE58DD004548FC /* MTThreadContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTThreadContext.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTThreadContext.cpp; sourceTree = "<group>"; };
 		B225219425E7B76E002CBF00 /* LightPropagationGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationGrid.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationGrid.h"; sourceTree = "<group>"; };
-		B225219525E7B76E002CBF00 /* LightPropagationGrid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LightPropagationGrid.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationGrid.cpp"; sourceTree = "<group>"; };
+		B225219525E7B76E002CBF00 /* LightPropagationGrid.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LightPropagationGrid.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationGrid.cpp"; sourceTree = "<group>"; };
 		B225219625E7B76E002CBF00 /* LightPropagationCascade.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationCascade.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCascade.h"; sourceTree = "<group>"; };
 		B225219725E7B76E002CBF00 /* LightPropagationCPUContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationCPUContext.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCPUContext.h"; sourceTree = "<group>"; };
-		B225219825E7B76E002CBF00 /* LightPropagationVolume.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LightPropagationVolume.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationVolume.cpp"; sourceTree = "<group>"; };
+		B225219825E7B76E002CBF00 /* LightPropagationVolume.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LightPropagationVolume.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationVolume.cpp"; sourceTree = "<group>"; };
 		B225219925E7B76E002CBF00 /* LightPropagationVolume.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationVolume.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationVolume.h"; sourceTree = "<group>"; };
-		B225219A25E7B76E002CBF00 /* LightPropagationCPUContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LightPropagationCPUContext.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCPUContext.cpp"; sourceTree = "<group>"; };
-		B225219B25E7B76E002CBF00 /* LightPropagationCascade.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LightPropagationCascade.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCascade.cpp"; sourceTree = "<group>"; };
+		B225219A25E7B76E002CBF00 /* LightPropagationCPUContext.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LightPropagationCPUContext.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCPUContext.cpp"; sourceTree = "<group>"; };
+		B225219B25E7B76E002CBF00 /* LightPropagationCascade.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LightPropagationCascade.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCascade.cpp"; sourceTree = "<group>"; };
 		B22521A225E7B79D002CBF00 /* AuraVector.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AuraVector.cpp; path = "../../../../../Custom-Middleware/Aura/Math/AuraVector.cpp"; sourceTree = "<group>"; };
 		B22521A325E7B79D002CBF00 /* AuraVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AuraVector.h; path = "../../../../../Custom-Middleware/Aura/Math/AuraVector.h"; sourceTree = "<group>"; };
 		B22521A425E7B79D002CBF00 /* AuraMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AuraMath.h; path = "../../../../../Custom-Middleware/Aura/Math/AuraMath.h"; sourceTree = "<group>"; };
@@ -815,11 +815,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -847,7 +842,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,

@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #if defined(GLES)
 
 #include "../IRenderer.h"

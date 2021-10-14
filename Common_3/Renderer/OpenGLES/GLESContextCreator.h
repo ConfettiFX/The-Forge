@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../RendererConfig.h"
+
 #if defined(GLES)
 struct WindowHandle;
 typedef void* GLContext;

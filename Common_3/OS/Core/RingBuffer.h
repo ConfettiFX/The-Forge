@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "Config.h"
 #include "../../Renderer/IRenderer.h"
 #include "../../Renderer/IResourceLoader.h"
 #include "../Interfaces/ILog.h"

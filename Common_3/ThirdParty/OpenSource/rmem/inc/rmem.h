@@ -16,6 +16,7 @@
 #ifndef RMEM_RMEM_H
 #define RMEM_RMEM_H
 
+#include "../../../../OS/Core/Config.h"
 #include <stdint.h>
 
 /*--------------------------------------------------------------------------

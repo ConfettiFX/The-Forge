@@ -26,6 +26,9 @@
 
 #ifndef THEFORGE_INCLUDE_MATHTYPES_H
 #define THEFORGE_INCLUDE_MATHTYPES_H
+
+#include "../Core/Config.h"
+
 // ModifiedSonyMath ReadMe:
 // - All you need to do is include the public header file vectormath.hpp. It will expose the relevant parts of
 //   the library for you and try to select the SSE implementation if supported.
@@ -46,4 +49,12 @@ typedef UVector4 uvec4;
 typedef Matrix2 mat2;
 typedef Matrix3 mat3;
 typedef Matrix4 mat4;
+
+#if VECTORMATH_MODE_SCALAR
+// high precision types
+typedef Vector3d vec3d;
+typedef Vector4d vec4d;
+typedef Matrix4d mat4d;
+#endif
+
 #endif // THEFORGE_INCLUDE_MATHTYPES_H

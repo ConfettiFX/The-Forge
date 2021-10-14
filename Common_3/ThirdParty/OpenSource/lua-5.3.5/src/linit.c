@@ -24,6 +24,7 @@
 **  lua_pop(L, 1);  // remove PRELOAD table
 */
 
+#include "../../../../OS/Core/Config.h"
 #include "lprefix.h"
 
 

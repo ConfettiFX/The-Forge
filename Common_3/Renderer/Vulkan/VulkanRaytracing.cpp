@@ -22,8 +22,13 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef VULKAN
 
+#include "../IRay.h"
+
+#ifdef ENABLE_RAYTRACING
 #include "../../OS/Interfaces/ILog.h"
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
@@ -37,17 +42,6 @@
 
 #include "../../OS/Interfaces/IMemory.h"
 
-#define CHECK_VKRESULT(exp)                                                      \
-	{                                                                            \
-		VkResult vkres = (exp);                                                  \
-		if (VK_SUCCESS != vkres)                                                 \
-		{                                                                        \
-			LOGF(eERROR, "%s: FAILED with VkResult: %i", #exp, (int)vkres); \
-			ASSERT(false);                                                       \
-		}                                                                        \
-	}
-
-#ifdef ENABLE_RAYTRACING
 
 extern VkAllocationCallbacks gVkAllocationCallbacks;
 
@@ -718,7 +712,7 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 		//nVidia comment: This member has to be 'main', regardless of the actual entry point of the shader
 		stageCreateInfo.pName = "main";
 		stageCreateInfo.flags = 0;
-		stageCreateInfo.pSpecializationInfo = nullptr;
+		stageCreateInfo.pSpecializationInfo = pDesc->pRayGenShader->mVulkan.pSpecializationInfo;
 		stages.push_back(stageCreateInfo);
 		//stagesNames.push_back(pDesc->pRayGenShader->mName);
 		pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pRayGenShader->mVulkan.pEntryNames[0];
@@ -746,7 +740,6 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 		//nVidia comment: This member has to be 'main', regardless of the actual entry point of the shader
 		stageCreateInfo.pName = "main";
 		stageCreateInfo.flags = 0;
-		stageCreateInfo.pSpecializationInfo = nullptr;
 
 		VkRayTracingShaderGroupCreateInfoNV groupInfo;
 		groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
@@ -759,6 +752,7 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 		for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 		{
 			stageCreateInfo.module = pDesc->ppMissShaders[i]->mVulkan.pShaderModules[0];
+			stageCreateInfo.pSpecializationInfo = pDesc->ppMissShaders[i]->mVulkan.pSpecializationInfo;
 			stages.push_back(stageCreateInfo);
 			//stagesNames.push_back(pDesc->ppMissShaders[i]->mName);
 			pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->ppMissShaders[i]->mVulkan.pEntryNames[0];
@@ -780,7 +774,6 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 		//nVidia comment: This member has to be 'main', regardless of the actual entry point of the shader
 		stageCreateInfo.pName = "main";
 		stageCreateInfo.flags = 0;
-		stageCreateInfo.pSpecializationInfo = nullptr;
 
 		VkRayTracingShaderGroupCreateInfoNV groupInfo;
 		groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
@@ -798,6 +791,7 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pIntersectionShader->mVulkan.pShaderModules[0];
+				stageCreateInfo.pSpecializationInfo = pDesc->pHitGroups[i].pIntersectionShader->mVulkan.pSpecializationInfo;
 				stages.push_back(stageCreateInfo);
 				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
 				pResult->mVulkan.mShaderStageCount += 1;
@@ -809,6 +803,7 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pAnyHitShader->mVulkan.pShaderModules[0];
+				stageCreateInfo.pSpecializationInfo = pDesc->pHitGroups[i].pAnyHitShader->mVulkan.pSpecializationInfo;
 				stages.push_back(stageCreateInfo);
 				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
 				pResult->mVulkan.mShaderStageCount += 1;
@@ -820,6 +815,7 @@ void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeli
 			{
 				stageCreateInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pClosestHitShader->mVulkan.pShaderModules[0];
+				stageCreateInfo.pSpecializationInfo = pDesc->pHitGroups[i].pClosestHitShader->mVulkan.pSpecializationInfo;
 				stages.push_back(stageCreateInfo);
 				pResult->mVulkan.ppShaderStageNames[pResult->mVulkan.mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
 				pResult->mVulkan.mShaderStageCount += 1;
@@ -861,6 +857,7 @@ void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationS
 	pWriteNV->pAccelerationStructures = &pAccelerationStructure->mAccelerationStructure;
 }
 #else
+
 bool vk_isRaytracingSupported(Renderer* pRenderer) { return false; }
 
 bool vk_initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing) { return false; }
@@ -882,8 +879,6 @@ void vk_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShader
 
 void vk_cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc) {}
 
-void vk_addRaytracingPipeline(const PipelineDesc* pMainDesc, Pipeline** ppPipeline) {}
-
 void vk_removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) {}
 
 void vk_removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) {}
@@ -904,5 +899,4 @@ void initVulkanRaytracingFunctions()
 	cmdBuildAccelerationStructure = vk_cmdBuildAccelerationStructure;
 	cmdDispatchRays = vk_cmdDispatchRays;
 }
-
 #endif

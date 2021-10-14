@@ -280,7 +280,7 @@ def gles(fsl, dst):
     parsing_comments = False
     
     parsing_ubuffer = None
-    parsing_ubufferCount = 0
+    parsing_ubuffer_float_count = 0
 
     nonuniformresourceindex = None
     parsed_entry = False
@@ -505,8 +505,8 @@ def gles(fsl, dst):
 
             get_name = 'Get_' + element_basename.upper()
 
-            _, result = set_ubo(parsing_ubuffer, element_basename, '', elem_dtype, get_name, float_stride, False, isArray(name), parsing_ubufferCount, result)
-            parsing_ubufferCount += float_stride * (array_length)
+            _, result = set_ubo(parsing_ubuffer, element_basename, '', elem_dtype, get_name, float_stride, False, isArray(name), parsing_ubuffer_float_count, result)
+            parsing_ubuffer_float_count += float_stride * (array_length)
 
             shader_src += result
             continue
@@ -522,8 +522,9 @@ def gles(fsl, dst):
         if '{' in line and parsing_ubuffer:
             continue
         if '};' in line and parsing_ubuffer:
-            shader_src += ['uniform float4 ', parsing_ubuffer, '[', str(parsing_ubufferCount),'];\n']
-            parsing_ubufferCount = 0
+            parsing_ubuffer_float_count = math.ceil(parsing_ubuffer_float_count / 4)
+            shader_src += ['uniform float4 ', parsing_ubuffer, '[', str(parsing_ubuffer_float_count),'];\n']
+            parsing_ubuffer_float_count = 0
             parsing_ubuffer = None
             continue
 

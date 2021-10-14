@@ -73,7 +73,7 @@
 
 #include "../Interfaces/IProfiler.h"
 
-#if 0 == PROFILE_ENABLED
+#ifndef ENABLE_PROFILER
 
 #define PROFILE_DECLARE(var)
 #define PROFILE_DEFINE(var, group, name, color)

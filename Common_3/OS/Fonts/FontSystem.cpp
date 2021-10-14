@@ -22,6 +22,7 @@
  * under the License.
 */
 
+#include "../../Renderer/RendererConfig.h"
 #include "../Interfaces/IFont.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IFileSystem.h"
@@ -105,7 +106,7 @@ public:
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
 
-#ifdef USE_TEXT_PRECOMPILED_SHADERS
+#ifdef ENABLE_TEXT_PRECOMPILED_SHADERS
 		BinaryShaderDesc binaryShaderDesc = {};
 		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
 		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderFontstash2DVert);
@@ -309,7 +310,7 @@ _Impl_FontStash* impl;
 bool renderInitialized = false;
 bool renderLoaded = false;
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 #if defined(TARGET_IOS) || defined(ANDROID)
 const int TextureAtlasDimension = 512;
 #elif defined(XBOX)
@@ -321,7 +322,7 @@ const int TextureAtlasDimension = 2048;
 
 bool platformInitFontSystem()
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	impl = tf_placement_new<_Impl_FontStash>(tf_calloc(1, sizeof(_Impl_FontStash)));
 	{
 		float dpiScale[2];
@@ -346,7 +347,7 @@ bool platformInitFontSystem()
 
 void platformExitFontSystem()
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	impl->exit();
 	impl->~_Impl_FontStash();
 	tf_free(impl);
@@ -355,7 +356,7 @@ void platformExitFontSystem()
 
 bool initFontSystem(FontSystemDesc* pDesc)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(!renderInitialized);
 
 	bool success = impl->initRender((Renderer*)pDesc->pRenderer, mWidth, mHeight, pDesc->mFontstashRingSizeBytes);
@@ -370,7 +371,7 @@ bool initFontSystem(FontSystemDesc* pDesc)
 
 void exitFontSystem()
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(renderInitialized); 
 
 	impl->exitRender();
@@ -380,7 +381,7 @@ void exitFontSystem()
 
 bool addFontSystemPipelines(void* ppRenderTargets, uint32_t count, void* pPipelineCache)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(!renderLoaded);
 
 	RenderTarget** ppRts = (RenderTarget**)ppRenderTargets;
@@ -398,7 +399,7 @@ bool addFontSystemPipelines(void* ppRenderTargets, uint32_t count, void* pPipeli
 
 void removeFontSystemPipelines()
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(renderLoaded);
 
 	impl->unload();
@@ -408,7 +409,7 @@ void removeFontSystemPipelines()
 
 void cmdDrawTextWithFont(void* pCmd, float2 screenCoordsInPx, const FontDrawDesc* pDesc)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(renderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
 	ASSERT(renderLoaded && "Font Rendering not loaded! Make sure to call addFontSystemPipelines!");
 
@@ -447,7 +448,7 @@ void cmdDrawTextWithFont(void* pCmd, float2 screenCoordsInPx, const FontDrawDesc
 
 void cmdDrawWorldSpaceTextWithFont(void* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDesc)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	//ASSERT(pFontStash);
 	ASSERT(renderInitialized && "Font Rendering not initialized! Make sure to call initFontRendering!");
 	ASSERT(renderLoaded && "Font Rendering not loaded! Make sure to call addFontSystemPipelines!");
@@ -487,7 +488,7 @@ void cmdDrawWorldSpaceTextWithFont(void* pCmd, const mat4* pMatWorld, const Came
 
 void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDescs);
 	ASSERT(pOutIDs);
 	ASSERT(count > 0); 
@@ -528,7 +529,7 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
 
 void* fntGetRawFontData(uint32_t fontID)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (fontID < impl->mFontBuffers.size())
 		return impl->mFontBuffers[fontID];
 	else
@@ -540,7 +541,7 @@ void* fntGetRawFontData(uint32_t fontID)
 
 uint32_t fntGetRawFontDataSize(uint32_t fontID)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (fontID < impl->mFontBufferSizes.size())
 		return impl->mFontBufferSizes[fontID];
 	else
@@ -552,7 +553,7 @@ uint32_t fntGetRawFontDataSize(uint32_t fontID)
 
 float2 fntMeasureFontText(const char* pText, const FontDrawDesc* pDrawDesc)
 {
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 
 	float textBounds[4] = {};
 

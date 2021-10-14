@@ -818,12 +818,8 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 	textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	textureDesc.mFormat = TinyImageFormat_UNDEFINED;
 
-	bool isNormalMap;
-
-	if (fileinfo.m_userdata0 == 1)
-		isNormalMap = true;
-	else
-		isNormalMap = false;
+	bool isNormalMap = (fileinfo.m_userdata0 == 1) || ((pOutDesc->mFlags & TEXTURE_CREATION_FLAG_NORMAL_MAP) != 0);
+	bool isSRGB = (pOutDesc->mFlags & TEXTURE_CREATION_FLAG_SRGB) != 0;
 
 	basist::transcoder_texture_format basisTextureFormat = basist::transcoder_texture_format::cTFTotalTextureFormats;
 
@@ -833,13 +829,13 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 	// This makes sure that PVRTC support is maintained
 	if (isPowerOf2(textureDesc.mWidth) && isPowerOf2(textureDesc.mHeight))
 	{
-		textureDesc.mFormat = TinyImageFormat_PVRTC1_4BPP_UNORM;
+		textureDesc.mFormat = isSRGB ? TinyImageFormat_PVRTC1_4BPP_SRGB : TinyImageFormat_PVRTC1_4BPP_UNORM;
 		basisTextureFormat = imageinfo.m_alpha_flag ? basist::transcoder_texture_format::cTFPVRTC1_4_RGB : basist::transcoder_texture_format::cTFPVRTC1_4_RGBA;
 	}
 #endif
 	if (TinyImageFormat_UNDEFINED == textureDesc.mFormat)
 	{
-		textureDesc.mFormat = TinyImageFormat_ASTC_4x4_UNORM;
+		textureDesc.mFormat = isSRGB ? TinyImageFormat_ASTC_4x4_SRGB : TinyImageFormat_ASTC_4x4_UNORM;
 		basisTextureFormat = basist::transcoder_texture_format::cTFASTC_4x4_RGBA;
 	}
 #else
@@ -847,12 +843,12 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 	{
 		if (!imageinfo.m_alpha_flag)
 		{
-			textureDesc.mFormat = TinyImageFormat_DXBC7_UNORM;
+			textureDesc.mFormat = isSRGB ? TinyImageFormat_DXBC7_SRGB : TinyImageFormat_DXBC7_UNORM;
 			basisTextureFormat = basist::transcoder_texture_format::cTFBC7_M6_RGB;
 		}
 		else
 		{
-			textureDesc.mFormat = TinyImageFormat_DXBC7_UNORM;
+			textureDesc.mFormat = isSRGB ? TinyImageFormat_DXBC7_SRGB : TinyImageFormat_DXBC7_UNORM;
 			basisTextureFormat = basist::transcoder_texture_format::cTFBC7_M5;
 		}
 	}

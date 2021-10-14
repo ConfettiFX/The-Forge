@@ -23,6 +23,8 @@
 */
 
 #pragma once
+#include "../Core/Config.h"
+
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IThread.h"
 

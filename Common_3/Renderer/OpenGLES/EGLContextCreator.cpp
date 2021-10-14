@@ -1,3 +1,5 @@
+#include "../RendererConfig.h"
+
 #if defined(GLES)
 
 #include "GLESContextCreator.h"

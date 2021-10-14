@@ -22,30 +22,16 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef VULKAN
 
 #define RENDERER_IMPLEMENTATION
 #define VMA_IMPLEMENTATION
-/************************************************************************/
-// Debugging Macros
-/************************************************************************/
-// Uncomment this to enable render doc capture support
-//#define USE_RENDER_DOC
 
-// Debug Utils Extension not present on many Android devices
-#if !defined(__ANDROID__)
-#define USE_DEBUG_UTILS_EXTENSION
-#endif
 /************************************************************************/
 /************************************************************************/
 #if defined(_WINDOWS)
-// Pull in minimal Windows headers
-#if !defined(NOMINMAX)
-#define NOMINMAX
-#endif
-#if !defined(WIN32_LEAN_AND_MEAN)
-#define WIN32_LEAN_AND_MEAN
-#endif
 #include <Windows.h>
 #endif
 
@@ -98,15 +84,6 @@
 
 #include "../../OS/Interfaces/IMemory.h"
 
-#define CHECK_VKRESULT(exp)                                                      \
-	{                                                                            \
-		VkResult vkres = (exp);                                                  \
-		if (VK_SUCCESS != vkres)                                                 \
-		{                                                                        \
-			LOGF(eERROR, "%s: FAILED with VkResult: %i", #exp, (int)vkres); \
-			ASSERT(false);                                                       \
-		}                                                                        \
-	}
 
 extern void
 	vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
@@ -210,7 +187,7 @@ const char* gVkWantedInstanceExtensions[] =
 	VK_NN_VI_SURFACE_EXTENSION_NAME,
 #endif
 	// Debug utils not supported on all devices yet
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 	VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 #else
 	VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
@@ -259,7 +236,7 @@ const char* gVkWantedDeviceExtensions[] =
 #endif
 #endif
 	// Debug marker extension in case debug utils is not supported
-#ifndef USE_DEBUG_UTILS_EXTENSION
+#ifndef ENABLE_DEBUG_UTILS_EXTENSION
 	VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 #endif
 #if defined(VK_USE_PLATFORM_GGP)
@@ -324,7 +301,7 @@ const char* gVkWantedDeviceExtensions[] =
     /************************************************************************/
 	// Nsight Aftermath
 	/************************************************************************/
-#ifdef USE_NSIGHT_AFTERMATH
+#ifdef ENABLE_NSIGHT_AFTERMATH
 	VK_NV_DEVICE_DIAGNOSTICS_CONFIG_EXTENSION_NAME,
 	VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME,
 #endif
@@ -333,22 +310,11 @@ const char* gVkWantedDeviceExtensions[] =
 };
 // clang-format on
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 static bool gDebugUtilsExtension = false;
 #endif
 static bool gRenderDocLayerEnabled = false;
-static bool gDedicatedAllocationExtension = false;
-static bool gExternalMemoryExtension = false;
-#ifndef NX64
-static bool gDrawIndirectCountExtension = false;
-#endif
 static bool gDeviceGroupCreationExtension = false;
-static bool gDescriptorIndexingExtension = false;
-static bool gAMDDrawIndirectCountExtension = false;
-static bool gAMDGCNShaderExtension = false;
-static bool gNVRayTracingExtension = false;
-static bool gYCbCrExtension = false;
-static bool gDebugMarkerSupport = false;
 
 static void* VKAPI_PTR gVkAllocation(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope)
 {
@@ -373,7 +339,8 @@ static void VKAPI_PTR
 {
 }
 
-VkAllocationCallbacks gVkAllocationCallbacks = {
+VkAllocationCallbacks gVkAllocationCallbacks =
+{
 	// pUserData
 	NULL,
 	// pfnAllocation
@@ -432,6 +399,8 @@ DECLARE_RENDERER_FUNCTION(
 	void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 DECLARE_RENDERER_FUNCTION(
 	void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_RENDERER_FUNCTION(
+	void, cmdCopySubresource, Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc)
 DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
@@ -963,19 +932,19 @@ using FrameBufferMapNode = FrameBufferMap::value_type;
 using FrameBufferMapIt = FrameBufferMap::iterator;
 
 // RenderPass map per thread (this will make lookups lock free and we only need a lock when inserting a RenderPass Map for the first time)
-eastl::hash_map<ThreadID, RenderPassMap>* gRenderPassMap;
+eastl::hash_map<ThreadID, RenderPassMap>* gRenderPassMap[MAX_UNLINKED_GPUS];
 // FrameBuffer map per thread (this will make lookups lock free and we only need a lock when inserting a FrameBuffer map for the first time)
-eastl::hash_map<ThreadID, FrameBufferMap>* gFrameBufferMap;
-Mutex*                                     pRenderPassMutex;
+eastl::hash_map<ThreadID, FrameBufferMap>* gFrameBufferMap[MAX_UNLINKED_GPUS];
+Mutex*                                     pRenderPassMutex[MAX_UNLINKED_GPUS];
 
-static RenderPassMap& get_render_pass_map()
+static RenderPassMap& get_render_pass_map(uint32_t rendererID)
 {
 	// Only need a lock when creating a new renderpass map for this thread
-	MutexLock                                          lock(*pRenderPassMutex);
-	eastl::hash_map<ThreadID, RenderPassMap>::iterator it = gRenderPassMap->find(getCurrentThreadID());
-	if (it == gRenderPassMap->end())
+	MutexLock                                          lock(*pRenderPassMutex[rendererID]);
+	eastl::hash_map<ThreadID, RenderPassMap>::iterator it = gRenderPassMap[rendererID]->find(getCurrentThreadID());
+	if (it == gRenderPassMap[rendererID]->end())
 	{
-		return gRenderPassMap->insert(getCurrentThreadID()).first->second;
+		return gRenderPassMap[rendererID]->insert(getCurrentThreadID()).first->second;
 	}
 	else
 	{
@@ -983,14 +952,14 @@ static RenderPassMap& get_render_pass_map()
 	}
 }
 
-static FrameBufferMap& get_frame_buffer_map()
+static FrameBufferMap& get_frame_buffer_map(uint32_t rendererID)
 {
 	// Only need a lock when creating a new framebuffer map for this thread
-	MutexLock                                           lock(*pRenderPassMutex);
-	eastl::hash_map<ThreadID, FrameBufferMap>::iterator it = gFrameBufferMap->find(getCurrentThreadID());
-	if (it == gFrameBufferMap->end())
+	MutexLock                                           lock(*pRenderPassMutex[rendererID]);
+	eastl::hash_map<ThreadID, FrameBufferMap>::iterator it = gFrameBufferMap[rendererID]->find(getCurrentThreadID());
+	if (it == gFrameBufferMap[rendererID]->end())
 	{
-		return gFrameBufferMap->insert(getCurrentThreadID()).first->second;
+		return gFrameBufferMap[rendererID]->insert(getCurrentThreadID()).first->second;
 	}
 	else
 	{
@@ -1008,7 +977,7 @@ static void internal_log(LogLevel level, const char* msg, const char* component)
 #endif
 }
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 // Debug callback for Vulkan layers
 static VkBool32 VKAPI_PTR internal_debug_report_callback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1239,14 +1208,14 @@ static void util_initial_transition(Renderer* pRenderer, Texture* pTexture, Reso
 
 static void add_default_resources(Renderer* pRenderer)
 {
-	pRenderer->pNullDescriptors = (NullDescriptors*)tf_calloc(1, sizeof(NullDescriptors));
 	initMutex(&pRenderer->pNullDescriptors->mSubmitMutex);
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
+		uint32_t nodeIndex = pRenderer->mGpuMode == GPU_MODE_UNLINKED ? pRenderer->mUnlinkedRendererIndex : i;
 		// 1D texture
 		TextureDesc textureDesc = {};
-		textureDesc.mNodeIndex = i;
+		textureDesc.mNodeIndex = nodeIndex;
 		textureDesc.mArraySize = 1;
 		textureDesc.mDepth = 1;
 		textureDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
@@ -1310,7 +1279,7 @@ static void add_default_resources(Renderer* pRenderer)
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureSRV[i][TEXTURE_DIM_CUBE_ARRAY]);
 
 		BufferDesc bufferDesc = {};
-		bufferDesc.mNodeIndex = i;
+		bufferDesc.mNodeIndex = nodeIndex;
 		bufferDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufferDesc.mStartState = RESOURCE_STATE_COMMON;
@@ -1421,7 +1390,6 @@ static void remove_default_resources(Renderer* pRenderer)
 	destroyMutex(&pRenderer->pNullDescriptors->mInitialTransitionMutex);
 
 	destroyMutex(&pRenderer->pNullDescriptors->mSubmitMutex);
-	SAFE_FREE(pRenderer->pNullDescriptors);
 }
 /************************************************************************/
 // Globals
@@ -1919,6 +1887,9 @@ void util_find_queue_family_index(
 	const Renderer* pRenderer, uint32_t nodeIndex, QueueType queueType, VkQueueFamilyProperties* pOutProps, uint8_t* pOutFamilyIndex,
 	uint8_t* pOutQueueIndex)
 {
+	if (pRenderer->mGpuMode != GPU_MODE_LINKED)
+		nodeIndex = 0;
+
 	uint32_t     queueFamilyIndex = UINT32_MAX;
 	uint32_t     queueIndex = UINT32_MAX;
 	VkQueueFlags requiredFlags = util_to_vk_queue_flags(queueType);
@@ -2031,6 +2002,98 @@ void util_calculate_device_indices(
 	for (uint32_t i = 0; i < sharedNodeIndexCount; ++i)
 		pIndices[pSharedNodeIndices[i]] = nodeIndex;
 }
+
+void util_query_gpu_settings(VkPhysicalDevice gpu, VkPhysicalDeviceProperties2* gpuProperties, VkPhysicalDeviceMemoryProperties* gpuMemoryProperties,
+	VkPhysicalDeviceFeatures2KHR* gpuFeatures, VkQueueFamilyProperties** queueFamilyProperties, uint32_t* queueFamilyPropertyCount, GPUSettings* gpuSettings)
+{
+	*gpuProperties = {};
+	*gpuMemoryProperties = {};
+	*gpuFeatures = {};
+	*queueFamilyProperties = NULL;
+	*queueFamilyPropertyCount = 0;
+
+	// Get memory properties
+	vkGetPhysicalDeviceMemoryProperties(gpu, gpuMemoryProperties);
+
+	// Get features
+	gpuFeatures->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
+
+#if VK_EXT_fragment_shader_interlock
+	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures =
+	{
+		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT
+	};
+	gpuFeatures->pNext = &fragmentShaderInterlockFeatures;
+#endif
+	vkGetPhysicalDeviceFeatures2KHR(gpu, gpuFeatures);
+
+	// Get device properties
+	VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
+	subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+	subgroupProperties.pNext = NULL;
+	gpuProperties->sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
+	subgroupProperties.pNext = gpuProperties->pNext;
+	gpuProperties->pNext = &subgroupProperties;
+#if defined(NX64)
+	vkGetPhysicalDeviceProperties2(gpu, gpuProperties);
+#else
+	vkGetPhysicalDeviceProperties2KHR(gpu, gpuProperties);
+#endif
+
+	// Get queue family properties
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, queueFamilyPropertyCount, NULL);
+	*queueFamilyProperties = (VkQueueFamilyProperties*)tf_calloc(*queueFamilyPropertyCount, sizeof(VkQueueFamilyProperties));
+	vkGetPhysicalDeviceQueueFamilyProperties(gpu, queueFamilyPropertyCount, *queueFamilyProperties);
+
+	*gpuSettings = {};
+	gpuSettings->mUniformBufferAlignment = (uint32_t)gpuProperties->properties.limits.minUniformBufferOffsetAlignment;
+	gpuSettings->mUploadBufferTextureAlignment = (uint32_t)gpuProperties->properties.limits.optimalBufferCopyOffsetAlignment;
+	gpuSettings->mUploadBufferTextureRowAlignment = (uint32_t)gpuProperties->properties.limits.optimalBufferCopyRowPitchAlignment;
+	gpuSettings->mMaxVertexInputBindings = gpuProperties->properties.limits.maxVertexInputBindings;
+	gpuSettings->mMultiDrawIndirect = gpuProperties->properties.limits.maxDrawIndirectCount > 1;
+
+	gpuSettings->mWaveLaneCount = subgroupProperties.subgroupSize;
+	gpuSettings->mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_VOTE_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_ARITHMETIC_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_CLUSTERED_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_QUAD_BIT)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_QUAD_BIT;
+	if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_PARTITIONED_BIT_NV)
+		gpuSettings->mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV;
+
+#if VK_EXT_fragment_shader_interlock
+	gpuSettings->mROVsSupported = (bool)fragmentShaderInterlockFeatures.fragmentShaderPixelInterlock;
+#endif
+	gpuSettings->mTessellationSupported = gpuFeatures->features.tessellationShader;
+	gpuSettings->mGeometryShaderSupported = gpuFeatures->features.geometryShader;
+
+	//save vendor and model Id as string
+	sprintf(gpuSettings->mGpuVendorPreset.mModelId, "%#x", gpuProperties->properties.deviceID);
+	sprintf(gpuSettings->mGpuVendorPreset.mVendorId, "%#x", gpuProperties->properties.vendorID);
+	strncpy(gpuSettings->mGpuVendorPreset.mGpuName, gpuProperties->properties.deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
+
+	//TODO: Fix once vulkan adds support for revision ID
+	strncpy(gpuSettings->mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
+	gpuSettings->mGpuVendorPreset.mPresetLevel = getGPUPresetLevel(
+		gpuSettings->mGpuVendorPreset.mVendorId, gpuSettings->mGpuVendorPreset.mModelId,
+		gpuSettings->mGpuVendorPreset.mRevisionId);
+
+	gpuFeatures->pNext = NULL;
+	gpuProperties->pNext = NULL;
+}
+
 /************************************************************************/
 // Internal init functions
 /************************************************************************/
@@ -2069,11 +2132,7 @@ void CreateInstance(
 	app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	app_info.pEngineName = "TheForge";
 	app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-#if defined(ANDROID) && !defined(QUEST_VR)
-	app_info.apiVersion = VK_API_VERSION_1_0;
-#else
-	app_info.apiVersion = VK_API_VERSION_1_1;
-#endif
+	app_info.apiVersion = TARGET_VULKAN_API_VERSION;
 
 	eastl::vector<const char*> layerTemp = eastl::vector<const char*>(userDefinedInstanceLayerCount);
 	memcpy(layerTemp.data(), userDefinedInstanceLayers, layerTemp.size() * sizeof(char*));
@@ -2130,7 +2189,7 @@ void CreateInstance(
 					{
 						if (strcmp(wantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 							gDeviceGroupCreationExtension = true;
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 						if (strcmp(wantedInstanceExtensions[k], VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 							gDebugUtilsExtension = true;
 #endif
@@ -2164,7 +2223,7 @@ void CreateInstance(
 							//gVkWantedInstanceExtensions[k] = "";
 							if (strcmp(wantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 								gDeviceGroupCreationExtension = true;
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 							if (strcmp(wantedInstanceExtensions[k], VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
 								gDebugUtilsExtension = true;
 #endif
@@ -2218,7 +2277,7 @@ void CreateInstance(
 
 	// Debug
 	{
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 		if (gDebugUtilsExtension)
 		{
 			VkDebugUtilsMessengerCreateInfoEXT create_info = {};
@@ -2269,7 +2328,7 @@ static void RemoveInstance(Renderer* pRenderer)
 {
 	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 	if (pRenderer->mVulkan.pVkDebugUtilsMessenger)
 	{
 		vkDestroyDebugUtilsMessengerEXT(pRenderer->mVulkan.pVkInstance, pRenderer->mVulkan.pVkDebugUtilsMessenger, &gVkAllocationCallbacks);
@@ -2286,59 +2345,84 @@ static void RemoveInstance(Renderer* pRenderer)
 	vkDestroyInstance(pRenderer->mVulkan.pVkInstance, &gVkAllocationCallbacks);
 }
 
-static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
+static bool initCommon(const char* appName, const RendererDesc* pDesc, Renderer* pRenderer)
 {
-	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
-
-	// These are the extensions that we have loaded
-	const char* deviceExtensionCache[MAX_DEVICE_EXTENSIONS] = {};
-	VkResult    vk_res = VK_RESULT_MAX_ENUM;
-
-#if VK_KHR_device_group_creation
-	VkDeviceGroupDeviceCreateInfoKHR   deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
-	VkPhysicalDeviceGroupPropertiesKHR props[MAX_LINKED_GPUS] = {};
-
-	pRenderer->mLinkedNodeCount = 1;
-	if (pRenderer->mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+	AGSReturnCode agsRet = agsInit();
+	if (AGSReturnCode::AGS_SUCCESS == agsRet)
 	{
-		// (not shown) fill out devCreateInfo as usual.
-		uint32_t deviceGroupCount = 0;
+		agsPrintDriverInfo();
+	}
 
-		// Query the number of device groups
-		vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, NULL);
+	// Display NVIDIA driver version using nvapi
+	NvAPI_Status nvStatus = nvapiInit();
+	if (NvAPI_Status::NVAPI_OK == nvStatus)
+	{
+		nvapiPrintDriverInfo();
+	}
 
-		// Allocate and initialize structures to query the device groups
-		for (uint32_t i = 0; i < deviceGroupCount; ++i)
-		{
-			props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
-			props[i].pNext = NULL;
-		}
-		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, props);
-		ASSERT(VK_SUCCESS == vk_res);
+#if defined(VK_USE_DISPATCH_TABLES)
+	VkResult vkRes = volkInitializeWithDispatchTables(pRenderer);
+	if (vkRes != VK_SUCCESS)
+	{
+		LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
+		nvapiExit();
+		agsExit();
+		return false;
+	}
+#else
+		const char** instanceLayers = (const char**)alloca((2 + pDesc->mVulkan.mInstanceLayerCount) * sizeof(char*));
+		uint32_t     instanceLayerCount = 0;
 
-		// If the first device group has more than one physical device. create
-		// a logical device using all of the physical devices.
-		for (uint32_t i = 0; i < deviceGroupCount; ++i)
-		{
-			if (props[i].physicalDeviceCount > 1)
-			{
-				deviceGroupInfo.physicalDeviceCount = props[i].physicalDeviceCount;
-				deviceGroupInfo.pPhysicalDevices = props[i].physicalDevices;
-				pRenderer->mLinkedNodeCount = deviceGroupInfo.physicalDeviceCount;
-				break;
-			}
-		}
+#if defined(ENABLE_GRAPHICS_DEBUG)
+		// this turns on all validation layers
+		instanceLayers[instanceLayerCount++] = "VK_LAYER_KHRONOS_validation";
+#endif
+
+		// this turns on render doc layer for gpu capture
+#ifdef ENABLE_RENDER_DOC
+		instanceLayers[instanceLayerCount++] = "VK_LAYER_RENDERDOC_Capture";
+#endif
+
+	// Add user specified instance layers for instance creation
+	for (uint32_t i = 0; i < (uint32_t)pDesc->mVulkan.mInstanceLayerCount; ++i)
+		instanceLayers[instanceLayerCount++] = pDesc->mVulkan.ppInstanceLayers[i];
+
+#if !defined(NX64)
+	VkResult vkRes = volkInitialize();
+	if (vkRes != VK_SUCCESS)
+	{
+		LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
+		nvapiExit();
+		agsExit();
+		return false;
 	}
 #endif
 
-	if (pRenderer->mLinkedNodeCount < 2)
-	{
-		pRenderer->mGpuMode = GPU_MODE_SINGLE;
-	}
+	CreateInstance(appName, pDesc, instanceLayerCount, instanceLayers, pRenderer);
+#endif
+
+	pRenderer->mUnlinkedRendererIndex = 0;
+	return true;
+}
+
+static void exitCommon(Renderer* pRenderer)
+{
+#if defined(VK_USE_DISPATCH_TABLES)
+#else
+	RemoveInstance(pRenderer);
+#endif
+
+	nvapiExit();
+	agsExit();
+}
+
+static bool SelectBestGpu(Renderer* pRenderer)
+{
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
 
 	uint32_t gpuCount = 0;
 
-	vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, NULL);
+	VkResult vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, NULL);
 	ASSERT(VK_SUCCESS == vk_res);
 
 	if (gpuCount < 1)
@@ -2424,91 +2508,10 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	for (uint32_t i = 0; i < gpuCount; ++i)
 	{
-		gpuProperties[i] = {};
-		gpuMemoryProperties[i] = {};
-		gpuFeatures[i] = {};
-		queueFamilyProperties[i] = NULL;
-		queueFamilyPropertyCount[i] = 0;
-
-		// Get memory properties
-		vkGetPhysicalDeviceMemoryProperties(gpus[i], &gpuMemoryProperties[i]);
-
-		// Get features
-		gpuFeatures[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
-
-#if VK_EXT_fragment_shader_interlock
-		VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures = {
-			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT
-		};
-		gpuFeatures[i].pNext = &fragmentShaderInterlockFeatures;
-#endif
-		vkGetPhysicalDeviceFeatures2KHR(gpus[i], &gpuFeatures[i]);
-
-		// Get device properties
-		VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
-		subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
-		subgroupProperties.pNext = NULL;
-		gpuProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR;
-		subgroupProperties.pNext = gpuProperties[i].pNext;
-		gpuProperties[i].pNext = &subgroupProperties;
-#ifdef ANDROID
-		vkGetPhysicalDeviceProperties2KHR(gpus[i], &gpuProperties[i]);
-#else
-		vkGetPhysicalDeviceProperties2(gpus[i], &gpuProperties[i]);
-#endif
-
-		// Get queue family properties
-		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyPropertyCount[i], NULL);
-		queueFamilyProperties[i] = (VkQueueFamilyProperties*)tf_calloc(queueFamilyPropertyCount[i], sizeof(VkQueueFamilyProperties));
-		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyPropertyCount[i], queueFamilyProperties[i]);
-
-		gpuSettings[i] = {};
-		gpuSettings[i].mUniformBufferAlignment = (uint32_t)gpuProperties[i].properties.limits.minUniformBufferOffsetAlignment;
-		gpuSettings[i].mUploadBufferTextureAlignment = (uint32_t)gpuProperties[i].properties.limits.optimalBufferCopyOffsetAlignment;
-		gpuSettings[i].mUploadBufferTextureRowAlignment = (uint32_t)gpuProperties[i].properties.limits.optimalBufferCopyRowPitchAlignment;
-		gpuSettings[i].mMaxVertexInputBindings = gpuProperties[i].properties.limits.maxVertexInputBindings;
-		gpuSettings[i].mMultiDrawIndirect = gpuProperties[i].properties.limits.maxDrawIndirectCount > 1;
-
-		gpuSettings[i].mWaveLaneCount = subgroupProperties.subgroupSize;
-		gpuSettings[i].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_BASIC_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_VOTE_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_ARITHMETIC_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_ARITHMETIC_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_BALLOT_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_SHUFFLE_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_SHUFFLE_RELATIVE_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_CLUSTERED_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_CLUSTERED_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_QUAD_BIT)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_QUAD_BIT;
-		if (subgroupProperties.supportedOperations & VK_SUBGROUP_FEATURE_PARTITIONED_BIT_NV)
-			gpuSettings[i].mWaveOpsSupportFlags |= WAVE_OPS_SUPPORT_FLAG_PARTITIONED_BIT_NV;
-
-#if VK_EXT_fragment_shader_interlock
-		gpuSettings[i].mROVsSupported = (bool)fragmentShaderInterlockFeatures.fragmentShaderPixelInterlock;
-#endif
-		gpuSettings[i].mTessellationSupported = gpuFeatures[i].features.tessellationShader;
-		gpuSettings[i].mGeometryShaderSupported = gpuFeatures[i].features.geometryShader;
-
-		//save vendor and model Id as string
-		sprintf(gpuSettings[i].mGpuVendorPreset.mModelId, "%#x", gpuProperties[i].properties.deviceID);
-		sprintf(gpuSettings[i].mGpuVendorPreset.mVendorId, "%#x", gpuProperties[i].properties.vendorID);
-		strncpy(gpuSettings[i].mGpuVendorPreset.mGpuName, gpuProperties[i].properties.deviceName, MAX_GPU_VENDOR_STRING_LENGTH);
-
-		//TODO: Fix once vulkan adds support for revision ID
-		strncpy(gpuSettings[i].mGpuVendorPreset.mRevisionId, "0x00", MAX_GPU_VENDOR_STRING_LENGTH);
-		gpuSettings[i].mGpuVendorPreset.mPresetLevel = getGPUPresetLevel(
-			gpuSettings[i].mGpuVendorPreset.mVendorId, gpuSettings[i].mGpuVendorPreset.mModelId,
-			gpuSettings[i].mGpuVendorPreset.mRevisionId);
+		util_query_gpu_settings(gpus[i], &gpuProperties[i], &gpuMemoryProperties[i], &gpuFeatures[i], &queueFamilyProperties[i], &queueFamilyPropertyCount[i], &gpuSettings[i]);
 
 		LOGF(
-			LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %x, Model ID: %x, Preset: %s, GPU Name: %s", i,
+			LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %s, Model ID: %s, Preset: %s, GPU Name: %s", i,
 			gpuSettings[i].mGpuVendorPreset.mVendorId, gpuSettings[i].mGpuVendorPreset.mModelId,
 			presetLevelToString(gpuSettings[i].mGpuVendorPreset.mPresetLevel), gpuSettings[i].mGpuVendorPreset.mGpuName);
 
@@ -2559,6 +2562,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	pRenderer->mVulkan.pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)tf_malloc(sizeof(VkPhysicalDeviceProperties2));
 	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 	*pRenderer->mVulkan.pVkActiveGPUProperties = gpuProperties[gpuIndex];
+	pRenderer->mVulkan.pVkActiveGPUProperties->pNext = NULL;
 	*pRenderer->pActiveGpuSettings = gpuSettings[gpuIndex];
 	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkActiveGPU);
 
@@ -2567,6 +2571,81 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	LOGF(LogLevel::eINFO, "Vendor id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
 	LOGF(LogLevel::eINFO, "Model id of selected gpu: %s", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
 	LOGF(LogLevel::eINFO, "Preset of selected gpu: %s", presetLevelToString(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel));
+
+	for (uint32_t i = 0; i < gpuCount; ++i)
+		SAFE_FREE(queueFamilyProperties[i]);
+
+	return true;
+}
+
+static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
+{
+	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkInstance);
+
+	// These are the extensions that we have loaded
+	const char* deviceExtensionCache[MAX_DEVICE_EXTENSIONS] = {};
+	VkResult    vk_res = VK_RESULT_MAX_ENUM;
+
+#if VK_KHR_device_group_creation
+	VkDeviceGroupDeviceCreateInfoKHR   deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
+	VkPhysicalDeviceGroupPropertiesKHR props[MAX_LINKED_GPUS] = {};
+
+	pRenderer->mLinkedNodeCount = 1;
+	if (pRenderer->mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
+	{
+		// (not shown) fill out devCreateInfo as usual.
+		uint32_t deviceGroupCount = 0;
+
+		// Query the number of device groups
+		vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, NULL);
+
+		// Allocate and initialize structures to query the device groups
+		for (uint32_t i = 0; i < deviceGroupCount; ++i)
+		{
+			props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
+			props[i].pNext = NULL;
+		}
+		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, props);
+		ASSERT(VK_SUCCESS == vk_res);
+
+		// If the first device group has more than one physical device. create
+		// a logical device using all of the physical devices.
+		for (uint32_t i = 0; i < deviceGroupCount; ++i)
+		{
+			if (props[i].physicalDeviceCount > 1)
+			{
+				deviceGroupInfo.physicalDeviceCount = props[i].physicalDeviceCount;
+				deviceGroupInfo.pPhysicalDevices = props[i].physicalDevices;
+				pRenderer->mLinkedNodeCount = deviceGroupInfo.physicalDeviceCount;
+				break;
+			}
+		}
+	}
+#endif
+
+	if (pRenderer->mLinkedNodeCount < 2 && pRenderer->mGpuMode == GPU_MODE_LINKED)
+	{
+		pRenderer->mGpuMode = GPU_MODE_SINGLE;
+	}
+
+	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+	{
+		if (!SelectBestGpu(pRenderer))
+			return false;
+	}
+	else
+	{
+		ASSERT(pDesc->pContext);
+		ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
+
+		pRenderer->mVulkan.pVkActiveGPU = pDesc->pContext->pGpus[pDesc->mGpuIndex].mVulkan.pGPU;
+		pRenderer->mVulkan.pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)tf_malloc(sizeof(VkPhysicalDeviceProperties2));
+		pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
+		*pRenderer->mVulkan.pVkActiveGPUProperties = pDesc->pContext->pGpus[pDesc->mGpuIndex].mVulkan.mGPUProperties;
+		pRenderer->mVulkan.pVkActiveGPUProperties->pNext = NULL;
+		*pRenderer->pActiveGpuSettings = pDesc->pContext->pGpus[pDesc->mGpuIndex].mSettings;
+	}
+
 
 	uint32_t layerCount = 0;
 	uint32_t extCount = 0;
@@ -2628,9 +2707,9 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 					{
 						deviceExtensionCache[extension_count++] = wantedDeviceExtensions[k];
 
-#ifndef USE_DEBUG_UTILS_EXTENSION
+#ifndef ENABLE_DEBUG_UTILS_EXTENSION
 						if (strcmp(wantedDeviceExtensions[k], VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0)
-							gDebugMarkerSupport = true;
+							pRenderer->mVulkan.mDebugMarkerSupport = true;
 #endif
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) == 0)
 							dedicatedAllocationExtension = true;
@@ -2644,29 +2723,29 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 #endif
 #ifdef VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME) == 0)
-							gDrawIndirectCountExtension = true;
+							pRenderer->mVulkan.mDrawIndirectCountExtension = true;
 #endif
 						if (strcmp(wantedDeviceExtensions[k], VK_AMD_DRAW_INDIRECT_COUNT_EXTENSION_NAME) == 0)
-							gAMDDrawIndirectCountExtension = true;
+							pRenderer->mVulkan.mAMDDrawIndirectCountExtension = true;
 						if (strcmp(wantedDeviceExtensions[k], VK_AMD_GCN_SHADER_EXTENSION_NAME) == 0)
-							gAMDGCNShaderExtension = true;
+							pRenderer->mVulkan.mAMDGCNShaderExtension = true;
 						if (strcmp(wantedDeviceExtensions[k], VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
-							gDescriptorIndexingExtension = true;
+							pRenderer->mVulkan.mDescriptorIndexingExtension = true;
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 						if (strcmp(wantedDeviceExtensions[k], VK_NV_RAY_TRACING_EXTENSION_NAME) == 0)
 						{
 							pRenderer->mVulkan.mRaytracingExtension = 1;
-							gNVRayTracingExtension = true;
+							pRenderer->mVulkan.mNVRayTracingExtension = true;
 							gDescriptorTypeRangeSize = FORGE_DESCRIPTOR_TYPE_RANGE_SIZE;
 						}
 #endif
 #ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) == 0)
 						{
-							gYCbCrExtension = true;
+							pRenderer->mVulkan.mYCbCrExtension = true;
 						}
 #endif
-#ifdef USE_NSIGHT_AFTERMATH
+#ifdef ENABLE_NSIGHT_AFTERMATH
 						if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME) == 0)
 						{
 							pRenderer->mDiagnosticCheckPointsSupport = true;
@@ -2704,7 +2783,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 #ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
 	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
-	if (gYCbCrExtension)
+	if (pRenderer->mVulkan.mYCbCrExtension)
 	{
 		ycbcr_features.pNext = gpuFeatures2.pNext;
 		gpuFeatures2.pNext = &ycbcr_features;
@@ -2717,9 +2796,13 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
 #endif
 
+	// Get queue family properties
+	uint32_t                 queueFamiliesCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamiliesCount, NULL);
+	VkQueueFamilyProperties* queueFamiliesProperties = (VkQueueFamilyProperties*)alloca(queueFamiliesCount * sizeof(VkQueueFamilyProperties));
+	vkGetPhysicalDeviceQueueFamilyProperties(pRenderer->mVulkan.pVkActiveGPU, &queueFamiliesCount, queueFamiliesProperties);
+
 	// need a queue_priority for each queue in the queue family we create
-	uint32_t                 queueFamiliesCount = queueFamilyPropertyCount[gpuIndex];
-	VkQueueFamilyProperties* queueFamiliesProperties = queueFamilyProperties[gpuIndex];
 	constexpr uint32_t       kMaxQueueFamilies = 16;
 	constexpr uint32_t       kMaxQueueCount = 64;
 	float                    queueFamilyPriorities[kMaxQueueFamilies][kMaxQueueCount] = {};
@@ -2783,7 +2866,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	create_info.ppEnabledExtensionNames = deviceExtensionCache;
 	create_info.pEnabledFeatures = NULL;
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	if (pRenderer->mDiagnosticCheckPointsSupport && pRenderer->mDiagnosticsConfigSupport)
 	{
 		pRenderer->mAftermathSupport = true;
@@ -2818,34 +2901,35 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 #if !defined(NX64)
 	// Load Vulkan device functions to bypass loader
-	volkLoadDevice(pRenderer->mVulkan.pVkDevice);
+	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+		volkLoadDevice(pRenderer->mVulkan.pVkDevice);
 #endif
 #endif
 
-	gDedicatedAllocationExtension = dedicatedAllocationExtension && memoryReq2Extension;
+	pRenderer->mVulkan.mDedicatedAllocationExtension = dedicatedAllocationExtension && memoryReq2Extension;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	gExternalMemoryExtension = externalMemoryExtension && externalMemoryWin32Extension;
+	pRenderer->mVulkan.mExternalMemoryExtension = externalMemoryExtension && externalMemoryWin32Extension;
 #endif
 
-	if (gDedicatedAllocationExtension)
+	if (pRenderer->mVulkan.mDedicatedAllocationExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded Dedicated Allocation extension");
 	}
 
-	if (gExternalMemoryExtension)
+	if (pRenderer->mVulkan.mExternalMemoryExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded External Memory extension");
 	}
 
 #ifdef VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME
-	if (gDrawIndirectCountExtension)
+	if (pRenderer->mVulkan.mDrawIndirectCountExtension)
 	{
 		pfnVkCmdDrawIndirectCountKHR = vkCmdDrawIndirectCountKHR;
 		pfnVkCmdDrawIndexedIndirectCountKHR = vkCmdDrawIndexedIndirectCountKHR;
 		LOGF(LogLevel::eINFO, "Successfully loaded Draw Indirect extension");
 	}
-	else if (gAMDDrawIndirectCountExtension)
+	else if (pRenderer->mVulkan.mAMDDrawIndirectCountExtension)
 #endif
 	{
 		pfnVkCmdDrawIndirectCountKHR = vkCmdDrawIndirectCountAMD;
@@ -2853,28 +2937,25 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		LOGF(LogLevel::eINFO, "Successfully loaded AMD Draw Indirect extension");
 	}
 
-	if (gAMDGCNShaderExtension)
+	if (pRenderer->mVulkan.mAMDGCNShaderExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded AMD GCN Shader extension");
 	}
 
-	if (gDescriptorIndexingExtension)
+	if (pRenderer->mVulkan.mDescriptorIndexingExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded Descriptor Indexing extension");
 	}
 
-	if (gNVRayTracingExtension)
+	if (pRenderer->mVulkan.mNVRayTracingExtension)
 	{
 		LOGF(LogLevel::eINFO, "Successfully loaded Nvidia Ray Tracing extension");
 	}
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
-	gDebugMarkerSupport = (&vkCmdBeginDebugUtilsLabelEXT) && (&vkCmdEndDebugUtilsLabelEXT) && (&vkCmdInsertDebugUtilsLabelEXT) &&
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+	pRenderer->mVulkan.mDebugMarkerSupport = (&vkCmdBeginDebugUtilsLabelEXT) && (&vkCmdEndDebugUtilsLabelEXT) && (&vkCmdInsertDebugUtilsLabelEXT) &&
 						  (&vkSetDebugUtilsObjectNameEXT);
 #endif
-
-	for (uint32_t i = 0; i < gpuCount; ++i)
-		SAFE_FREE(queueFamilyProperties[i]);
 
 	vk_utils_caps_builder(pRenderer);
 
@@ -2887,7 +2968,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 	SAFE_FREE(pRenderer->mVulkan.pVkActiveGPUProperties);
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	if (pRenderer->mAftermathSupport)
 	{
 		DestroyAftermathTracker(&pRenderer->mAftermathTracker);
@@ -2909,6 +2990,122 @@ uint64_t get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer)
 	return (uint64_t)allocInfo.offset;
 }
 /************************************************************************/
+// Renderer Context Init Exit (multi GPU)
+/************************************************************************/
+static uint32_t gRendererCount = 0;
+
+void vk_initRendererContext(const char* appName, const RendererContextDesc* pDesc, RendererContext** ppContext)
+{
+	ASSERT(appName);
+	ASSERT(pDesc);
+	ASSERT(ppContext);
+	ASSERT(gRendererCount == 0);
+
+	RendererDesc fakeDesc = {};
+	fakeDesc.mVulkan.mInstanceExtensionCount = pDesc->mVulkan.mInstanceExtensionCount;
+	fakeDesc.mVulkan.mInstanceLayerCount = pDesc->mVulkan.mInstanceLayerCount;
+	fakeDesc.mVulkan.ppInstanceExtensions = pDesc->mVulkan.ppInstanceExtensions;
+	fakeDesc.mVulkan.ppInstanceLayers = pDesc->mVulkan.ppInstanceLayers;
+	fakeDesc.mEnableGPUBasedValidation = pDesc->mEnableGPUBasedValidation;
+
+	Renderer fakeRenderer = {};
+
+	if (!initCommon(appName, &fakeDesc, &fakeRenderer))
+		return;
+
+	RendererContext* pContext = (RendererContext*)tf_calloc_memalign(1, alignof(RendererContext), sizeof(RendererContext));
+
+	pContext->mVulkan.pVkInstance = fakeRenderer.mVulkan.pVkInstance;
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+	pContext->mVulkan.pVkDebugUtilsMessenger = fakeRenderer.mVulkan.pVkDebugUtilsMessenger;
+#else
+	pContext->mVulkan.pVkDebugReport = fakeRenderer.mVulkan.pVkDebugReport;
+#endif
+
+	uint32_t gpuCount = 0;
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(pContext->mVulkan.pVkInstance, &gpuCount, NULL));
+
+	VkPhysicalDevice* gpus = (VkPhysicalDevice*)alloca(gpuCount * sizeof(VkPhysicalDevice));
+	VkPhysicalDeviceProperties2* gpuProperties = (VkPhysicalDeviceProperties2*)alloca(gpuCount * sizeof(VkPhysicalDeviceProperties2));
+	VkPhysicalDeviceMemoryProperties* gpuMemoryProperties = (VkPhysicalDeviceMemoryProperties*)alloca(gpuCount * sizeof(VkPhysicalDeviceMemoryProperties));
+	VkPhysicalDeviceFeatures2KHR* gpuFeatures = (VkPhysicalDeviceFeatures2KHR*)alloca(gpuCount * sizeof(VkPhysicalDeviceFeatures2KHR));
+
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(pContext->mVulkan.pVkInstance, &gpuCount, gpus));
+
+	GPUSettings* gpuSettings = (GPUSettings*)alloca(gpuCount * sizeof(GPUSettings));
+	bool* gpuValid = (bool*)alloca(gpuCount * sizeof(bool));
+
+	uint32_t realGpuCount = 0;
+
+	for (uint32_t i = 0; i < gpuCount; ++i)
+	{
+		uint32_t queueFamilyPropertyCount = 0;
+		VkQueueFamilyProperties* queueFamilyProperties = NULL;
+		util_query_gpu_settings(gpus[i], &gpuProperties[i], &gpuMemoryProperties[i], &gpuFeatures[i],
+			&queueFamilyProperties, &queueFamilyPropertyCount, &gpuSettings[i]);
+
+		// Filter GPUs that don't meet requirements
+		bool supportGraphics = false;
+		for (uint32_t j = 0; j < queueFamilyPropertyCount; ++j)
+		{
+			if (queueFamilyProperties[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+			{
+				supportGraphics = true;
+				break;
+			}
+		}
+		gpuValid[i] = supportGraphics && (VK_PHYSICAL_DEVICE_TYPE_CPU != gpuProperties[i].properties.deviceType);
+		if (gpuValid[i])
+		{
+			++realGpuCount;
+		}
+
+		SAFE_FREE(queueFamilyProperties);
+	}
+
+	pContext->mGpuCount = realGpuCount;
+	pContext->pGpus = (GpuInfo*)tf_calloc(realGpuCount, sizeof(GpuInfo));
+
+	for (uint32_t i = 0, realGpu = 0; i < gpuCount; ++i)
+	{
+		if (!gpuValid[i])
+			continue;
+
+		pContext->pGpus[realGpu].mSettings = gpuSettings[i];
+		pContext->pGpus[realGpu].mVulkan.pGPU = gpus[i];
+		pContext->pGpus[realGpu].mVulkan.mGPUProperties = gpuProperties[i];
+		pContext->pGpus[realGpu].mVulkan.mGPUProperties.pNext = NULL;
+
+		LOGF(LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %s, Model ID: %s, Preset: %s, GPU Name: %s", realGpu,
+			gpuSettings[i].mGpuVendorPreset.mVendorId,
+			gpuSettings[i].mGpuVendorPreset.mModelId,
+			presetLevelToString(gpuSettings[i].mGpuVendorPreset.mPresetLevel),
+			gpuSettings[i].mGpuVendorPreset.mGpuName);
+
+		++realGpu;
+	}
+	*ppContext = pContext;
+}
+
+void vk_exitRendererContext(RendererContext* pContext)
+{
+	ASSERT(gRendererCount == 0);
+
+	Renderer fakeRenderer = {};
+	fakeRenderer.mVulkan.pVkInstance = pContext->mVulkan.pVkInstance;
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+	fakeRenderer.mVulkan.pVkDebugUtilsMessenger = pContext->mVulkan.pVkDebugUtilsMessenger;
+#else
+	fakeRenderer.mVulkan.pVkDebugReport = pContext->mVulkan.pVkDebugReport;
+#endif
+	exitCommon(&fakeRenderer);
+
+	SAFE_FREE(pContext->pGpus);
+	SAFE_FREE(pContext);
+}
+
+
+/************************************************************************/
 // Renderer Init Remove
 /************************************************************************/
 void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppRenderer)
@@ -2917,73 +3114,44 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 	ASSERT(pDesc);
 	ASSERT(ppRenderer);
 
-	Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
-	ASSERT(pRenderer);
+	uint8_t* mem = (uint8_t*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer) + sizeof(NullDescriptors));
+	ASSERT(mem);
 
+	Renderer* pRenderer = (Renderer*)mem;
 	pRenderer->mGpuMode = pDesc->mGpuMode;
 	pRenderer->mShaderTarget = pDesc->mShaderTarget;
 	pRenderer->mEnableGpuBasedValidation = pDesc->mEnableGPUBasedValidation;
+	pRenderer->pNullDescriptors = (NullDescriptors*)(mem + sizeof(Renderer));
 
 	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	strcpy(pRenderer->pName, appName);
 
 	// Initialize the Vulkan internal bits
 	{
-		AGSReturnCode agsRet = agsInit();
-		if (AGSReturnCode::AGS_SUCCESS == agsRet)
+		if (pDesc->mGpuMode == GPU_MODE_UNLINKED)
 		{
-			agsPrintDriverInfo();
-		}
-
-		// Display NVIDIA driver version using nvapi
-		NvAPI_Status nvStatus = nvapiInit();
-		if (NvAPI_Status::NVAPI_OK == nvStatus)
-		{
-			nvapiPrintDriverInfo();
-		}
-
-#if defined(VK_USE_DISPATCH_TABLES)
-		VkResult vkRes = volkInitializeWithDispatchTables(pRenderer);
-		if (vkRes != VK_SUCCESS)
-		{
-			LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
-			return;
-		}
+			ASSERT(pDesc->pContext);
+			ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
+			pRenderer->mVulkan.pVkInstance = pDesc->pContext->mVulkan.pVkInstance;
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+			pRenderer->mVulkan.pVkDebugUtilsMessenger = pDesc->pContext->mVulkan.pVkDebugUtilsMessenger;
 #else
-		const char** instanceLayers = (const char**)alloca((2 + pDesc->mVulkan.mInstanceLayerCount) * sizeof(char*));
-		uint32_t     instanceLayerCount = 0;
-
-#if defined(ENABLE_GRAPHICS_DEBUG)
-		// this turns on all validation layers
-		instanceLayers[instanceLayerCount++] = "VK_LAYER_KHRONOS_validation";
+			pRenderer->mVulkan.pVkDebugReport = pDesc->pContext->mVulkan.pVkDebugReport;
 #endif
-
-		// this turns on render doc layer for gpu capture
-#ifdef USE_RENDER_DOC
-		instanceLayers[instanceLayerCount++] = "VK_LAYER_RENDERDOC_Capture";
-#endif
-
-		// Add user specified instance layers for instance creation
-		for (uint32_t i = 0; i < (uint32_t)pDesc->mVulkan.mInstanceLayerCount; ++i)
-			instanceLayers[instanceLayerCount++] = pDesc->mVulkan.ppInstanceLayers[i];
-
-#if !defined(NX64)
-		VkResult vkRes = volkInitialize();
-		if (vkRes != VK_SUCCESS)
+			pRenderer->mUnlinkedRendererIndex = gRendererCount;
+		}
+		else if (!initCommon(appName, pDesc, pRenderer))
 		{
-			LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
 			SAFE_FREE(pRenderer->pName);
 			SAFE_FREE(pRenderer);
 			return;
 		}
-#endif
 
-		CreateInstance(appName, pDesc, instanceLayerCount, instanceLayers, pRenderer);
-#endif
 		if (!AddDevice(pDesc, pRenderer))
 		{
+			if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
+				exitCommon(pRenderer);
 			SAFE_FREE(pRenderer->pName);
-			RemoveInstance(pRenderer);
 			SAFE_FREE(pRenderer);
 			return;
 		}
@@ -2999,13 +3167,12 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 
 			//remove device and any memory we allocated in just above as this is the first function called
 			//when initializing the forge
-#if !defined(VK_USE_DISPATCH_TABLES)
 			RemoveDevice(pRenderer);
-			RemoveInstance(pRenderer);
+			if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
+				exitCommon(pRenderer);
 			SAFE_FREE(pRenderer);
 			LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
 			LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
-#endif
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -3020,8 +3187,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		createInfo.physicalDevice = pRenderer->mVulkan.pVkActiveGPU;
 		createInfo.instance = pRenderer->mVulkan.pVkInstance;
 
-		// Render Doc Capture currently does not support use of this extension
-		if (gDedicatedAllocationExtension && !gRenderDocLayerEnabled)
+		if (pRenderer->mVulkan.mDedicatedAllocationExtension)
 		{
 			createInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 		}
@@ -3066,7 +3232,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 },
 	};
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-	if (gNVRayTracingExtension)
+	if (pRenderer->mVulkan.mNVRayTracingExtension)
 	{
 		descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1] = { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1024 };
 	}
@@ -3074,10 +3240,10 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 	add_descriptor_pool(
 		pRenderer, 8192, (VkDescriptorPoolCreateFlags)0, descriptorPoolSizes, gDescriptorTypeRangeSize,
 		&pRenderer->mVulkan.pDescriptorPool);
-	pRenderPassMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
-	initMutex(pRenderPassMutex);
-	gRenderPassMap = tf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(tf_malloc(sizeof(*gRenderPassMap)));
-	gFrameBufferMap = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap)));
+	pRenderPassMutex[pRenderer->mUnlinkedRendererIndex] = (Mutex*)tf_calloc(1, sizeof(Mutex));
+	initMutex(pRenderPassMutex[pRenderer->mUnlinkedRendererIndex]);
+	gRenderPassMap[pRenderer->mUnlinkedRendererIndex] = tf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(tf_malloc(sizeof(*gRenderPassMap[0])));
+	gFrameBufferMap[pRenderer->mUnlinkedRendererIndex] = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap[0])));
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
 	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
@@ -3085,7 +3251,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 	// Set shader macro based on runtime information
 	static char descriptorIndexingMacroBuffer[2] = {};
 	static char textureArrayDynamicIndexingMacroBuffer[2] = {};
-	sprintf(descriptorIndexingMacroBuffer, "%u", (uint32_t)(gDescriptorIndexingExtension));
+	sprintf(descriptorIndexingMacroBuffer, "%u", (uint32_t)(pRenderer->mVulkan.mDescriptorIndexingExtension));
 	sprintf(textureArrayDynamicIndexingMacroBuffer, "%u", (uint32_t)(gpuFeatures.features.shaderSampledImageArrayDynamicIndexing));
 	static ShaderMacro rendererShaderDefines[] = {
 		{ "VK_EXT_DESCRIPTOR_INDEXING_ENABLED", descriptorIndexingMacroBuffer },
@@ -3114,7 +3280,8 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
         SAFE_FREE(pRenderer->pName);
 #if !defined(VK_USE_DISPATCH_TABLES)
         RemoveDevice(pRenderer);
-        RemoveInstance(pRenderer);
+		if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
+			exitCommon(pRenderer);
         SAFE_FREE(pRenderer);
         LOGF(LogLevel::eERROR, "Failed to initialize VrApi Vulkan systems.");
 #endif
@@ -3123,6 +3290,9 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
     }
 #endif
 
+	++gRendererCount;
+	ASSERT(gRendererCount <= MAX_UNLINKED_GPUS);
+
 	// Renderer is good!
 	*ppRenderer = pRenderer;
 }
@@ -3130,17 +3300,18 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 void vk_exitRenderer(Renderer* pRenderer)
 {
 	ASSERT(pRenderer);
+	--gRendererCount;
 
 	remove_default_resources(pRenderer);
 
 	remove_descriptor_pool(pRenderer, pRenderer->mVulkan.pDescriptorPool);
 
 	// Remove the renderpasses
-	for (eastl::hash_map<ThreadID, RenderPassMap>::value_type& t : *gRenderPassMap)
+	for (eastl::hash_map<ThreadID, RenderPassMap>::value_type& t : *gRenderPassMap[pRenderer->mUnlinkedRendererIndex])
 		for (RenderPassMapNode& it : t.second)
 			remove_render_pass(pRenderer, it.second);
 
-	for (eastl::hash_map<ThreadID, FrameBufferMap>::value_type& t : *gFrameBufferMap)
+	for (eastl::hash_map<ThreadID, FrameBufferMap>::value_type& t : *gFrameBufferMap[pRenderer->mUnlinkedRendererIndex])
 		for (FrameBufferMapNode& it : t.second)
 			remove_framebuffer(pRenderer, it.second);
 
@@ -3154,19 +3325,17 @@ void vk_exitRenderer(Renderer* pRenderer)
 #if defined(VK_USE_DISPATCH_TABLES)
 #else
 	RemoveDevice(pRenderer);
-	RemoveInstance(pRenderer);
 #endif
+	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+		exitCommon(pRenderer);
 
-	nvapiExit();
-	agsExit();
+	destroyMutex(pRenderPassMutex[pRenderer->mUnlinkedRendererIndex]);
+	gRenderPassMap[pRenderer->mUnlinkedRendererIndex]->clear(true);
+	gFrameBufferMap[pRenderer->mUnlinkedRendererIndex]->clear(true);
 
-	destroyMutex(pRenderPassMutex);
-	gRenderPassMap->clear(true);
-	gFrameBufferMap->clear(true);
-
-	SAFE_FREE(pRenderPassMutex);
-	SAFE_FREE(gRenderPassMap);
-	SAFE_FREE(gFrameBufferMap);
+	SAFE_FREE(pRenderPassMutex[pRenderer->mUnlinkedRendererIndex]);
+	SAFE_FREE(gRenderPassMap[pRenderer->mUnlinkedRendererIndex]);
+	SAFE_FREE(gFrameBufferMap[pRenderer->mUnlinkedRendererIndex]);
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
@@ -3253,7 +3422,7 @@ void vk_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 {
 	ASSERT(pDesc != NULL);
 
-	const uint32_t          nodeIndex = pDesc->mNodeIndex;
+	const uint32_t          nodeIndex = (pRenderer->mGpuMode == GPU_MODE_LINKED) ? pDesc->mNodeIndex : 0;
 	VkQueueFamilyProperties queueProps = {};
 	uint8_t                 queueFamilyIndex = UINT8_MAX;
 	uint8_t                 queueIndex = UINT8_MAX;
@@ -3272,6 +3441,10 @@ void vk_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	pQueue->mVulkan.mTimestampPeriod = pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.timestampPeriod;
 	pQueue->mVulkan.mFlags = queueProps.queueFlags;
 	pQueue->mVulkan.pSubmitMutex = &pRenderer->pNullDescriptors->mSubmitMutex;
+
+	// override node index
+	if (pRenderer->mGpuMode == GPU_MODE_UNLINKED)
+		pQueue->mNodeIndex = pRenderer->mUnlinkedRendererIndex;
 
 	// Get queue handle
 	vkGetDeviceQueue(
@@ -3298,7 +3471,7 @@ void vk_removeQueue(Renderer* pRenderer, Queue* pQueue)
 	ASSERT(pRenderer);
 	ASSERT(pQueue);
 
-	const uint32_t     nodeIndex = pQueue->mNodeIndex;
+	const uint32_t     nodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pQueue->mNodeIndex : 0;
 	const VkQueueFlags queueFlags = pQueue->mVulkan.mFlags;
 	--pRenderer->mVulkan.pUsedQueueCount[nodeIndex][queueFlags];
 
@@ -3752,6 +3925,7 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
 	descColor.mStartState = RESOURCE_STATE_PRESENT;
+	descColor.mNodeIndex = pRenderer->mUnlinkedRendererIndex;
 
 	// Populate the vk_image field and add the Vulkan texture objects
 	for (uint32_t i = 0; i < imageCount; ++i)
@@ -3799,6 +3973,7 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
 	ASSERT(pDesc);
 	ASSERT(pDesc->mSize > 0);
 	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
 	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(ppBuffer);
@@ -3966,6 +4141,7 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 {
 	ASSERT(pRenderer);
 	ASSERT(pDesc && pDesc->mWidth && pDesc->mHeight && (pDesc->mDepth || pDesc->mArraySize));
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 	if (pDesc->mSampleCount > SAMPLE_COUNT_1 && pDesc->mMipLevels > 1)
 	{
 		LOGF(LogLevel::eERROR, "Multi-Sampled textures cannot have mip maps");
@@ -4106,7 +4282,7 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 #endif
 		VkExportMemoryAllocateInfoKHR exportMemoryInfo = { VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR, NULL };
 
-		if (gExternalMemoryExtension && pDesc->mFlags & TEXTURE_CREATION_FLAG_IMPORT_BIT)
+		if (pRenderer->mVulkan.mExternalMemoryExtension && pDesc->mFlags & TEXTURE_CREATION_FLAG_IMPORT_BIT)
 		{
 			add_info.pNext = &externalInfo;
 
@@ -4128,7 +4304,7 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 			mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 #endif
 		}
-		else if (gExternalMemoryExtension && pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
+		else if (pRenderer->mVulkan.mExternalMemoryExtension && pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
 		{
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 			exportMemoryInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT_KHR;
@@ -4378,6 +4554,7 @@ void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 	ASSERT(pRenderer);
 	ASSERT(pDesc);
 	ASSERT(ppRenderTarget);
+	ASSERT(pRenderer->mGpuMode != GPU_MODE_UNLINKED || pDesc->mNodeIndex == pRenderer->mUnlinkedRendererIndex);
 
 	bool const isDepth = TinyImageFormat_IsDepthOnly(pDesc->mFormat) || TinyImageFormat_IsDepthAndStencil(pDesc->mFormat);
 
@@ -4586,7 +4763,7 @@ void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
 
 		// Check format props
 		{
-			ASSERT(gYCbCrExtension);
+			ASSERT(pRenderer->mVulkan.mYCbCrExtension);
 
 			DECLARE_ZERO(VkFormatProperties, format_props);
 			vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, format, &format_props);
@@ -4678,7 +4855,7 @@ void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, De
 
 	const RootSignature*            pRootSignature = pDesc->pRootSignature;
 	const DescriptorUpdateFrequency updateFreq = pDesc->mUpdateFrequency;
-	const uint32_t                  nodeIndex = pDesc->mNodeIndex;
+	const uint32_t                  nodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->mNodeIndex : 0;
 	const uint32_t                  descriptorCount = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[updateFreq];
 	const uint32_t                  dynamicOffsetCount = pRootSignature->mVulkan.mVkDynamicDescriptorCounts[updateFreq];
 
@@ -5173,6 +5350,17 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
 		}
 	}
 
+	if (pDesc->mConstantCount)
+	{
+		totalSize += sizeof(VkSpecializationInfo);
+		totalSize += sizeof(VkSpecializationMapEntry) * pDesc->mConstantCount;
+		for (uint32_t i = 0; i < pDesc->mConstantCount; ++i)
+		{
+			const ShaderConstant* constant = &pDesc->pConstants[i];
+			totalSize += (constant->mSize == sizeof(bool)) ? sizeof(VkBool32) : constant->mSize;
+		}
+	}
+
 	totalSize += counter * sizeof(VkShaderModule);
 	totalSize += counter * sizeof(char*);
 	Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
@@ -5180,6 +5368,7 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
 	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);    //-V1027
 	pShaderProgram->mVulkan.pShaderModules = (VkShaderModule*)(pShaderProgram->pReflection + 1);
 	pShaderProgram->mVulkan.pEntryNames = (char**)(pShaderProgram->mVulkan.pShaderModules + counter);
+	pShaderProgram->mVulkan.pSpecializationInfo = NULL;
 
 	uint8_t* mem = (uint8_t*)(pShaderProgram->mVulkan.pEntryNames + counter);
 	counter = 0;
@@ -5293,6 +5482,46 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
 			strcpy(pShaderProgram->mVulkan.pEntryNames[counter], pStageDesc->pEntryPoint);
 			++counter;
 		}
+	}
+
+	// Fill specialization constant entries
+	if (pDesc->mConstantCount)
+	{
+		pShaderProgram->mVulkan.pSpecializationInfo = (VkSpecializationInfo*)mem;
+		mem += sizeof(VkSpecializationInfo);
+
+		VkSpecializationMapEntry* mapEntries = (VkSpecializationMapEntry*)mem;
+		mem += pDesc->mConstantCount * sizeof(VkSpecializationMapEntry);
+
+		uint8_t* data = mem;
+		uint32_t offset = 0;
+		for (uint32_t i = 0; i < pDesc->mConstantCount; ++i)
+		{
+			const ShaderConstant* constant = &pDesc->pConstants[i];
+			const bool boolType = constant->mSize == sizeof(bool);
+			const uint32_t size = boolType ? sizeof(VkBool32) : constant->mSize;
+
+			VkSpecializationMapEntry* entry = &mapEntries[i];
+			entry->constantID = constant->mIndex;
+			entry->offset = offset;
+			entry->size = size;
+
+			if (boolType)
+			{
+				*(VkBool32*)(data + offset) = *(const bool*)constant->pValue;
+			}
+			else
+			{
+				memcpy(data + offset, constant->pValue, constant->mSize);
+			}
+			offset += size;
+		}
+
+		VkSpecializationInfo* specializationInfo = pShaderProgram->mVulkan.pSpecializationInfo;
+		specializationInfo->dataSize = offset;
+		specializationInfo->mapEntryCount = pDesc->mConstantCount;
+		specializationInfo->pData = data;
+		specializationInfo->pMapEntries = mapEntries;
 	}
 
 	createPipelineReflection(stageReflections, counter, pShaderProgram->pReflection);
@@ -5898,6 +6127,8 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	for (uint32_t i = 0; i < pShaderProgram->pReflection->mStageReflectionCount; ++i)
 		ASSERT(VK_NULL_HANDLE != pShaderProgram->mVulkan.pShaderModules[i]);
 
+	const VkSpecializationInfo* specializationInfo = pShaderProgram->mVulkan.pSpecializationInfo;
+
 	// Pipeline
 	{
 		uint32_t stage_count = 0;
@@ -5910,7 +6141,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 				stages[stage_count].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				stages[stage_count].pNext = NULL;
 				stages[stage_count].flags = 0;
-				stages[stage_count].pSpecializationInfo = NULL;
+				stages[stage_count].pSpecializationInfo = specializationInfo;
 				switch (stage_mask)
 				{
 					case SHADER_STAGE_VERT:
@@ -6151,7 +6382,7 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
 		stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 		stage.module = pDesc->pShaderProgram->mVulkan.pShaderModules[0];
 		stage.pName = pDesc->pShaderProgram->pReflection->mStageReflections[0].pEntryPoint;
-		stage.pSpecializationInfo = NULL;
+		stage.pSpecializationInfo = pDesc->pShaderProgram->mVulkan.pSpecializationInfo;
 
 		DECLARE_ZERO(VkComputePipelineCreateInfo, create_info);
 		create_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -6377,8 +6608,8 @@ void vk_cmdBindRenderTargets(
 
 	SampleCount sampleCount = SAMPLE_COUNT_1;
 
-	RenderPassMap&  renderPassMap = get_render_pass_map();
-	FrameBufferMap& frameBufferMap = get_frame_buffer_map();
+	RenderPassMap&  renderPassMap = get_render_pass_map(pCmd->pRenderer->mUnlinkedRendererIndex);
+	FrameBufferMap& frameBufferMap = get_frame_buffer_map(pCmd->pRenderer->mUnlinkedRendererIndex);
 
 	const RenderPassMapIt  pNode = renderPassMap.find(renderPassHash);
 	const FrameBufferMapIt pFrameBufferNode = frameBufferMap.find(frameBufferHash);
@@ -6721,12 +6952,12 @@ void vk_cmdResourceBarrier(
 			pImageBarrier->subresourceRange.baseArrayLayer = pTrans->mSubresourceBarrier ? pTrans->mArrayLayer : 0;
 			pImageBarrier->subresourceRange.layerCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_ARRAY_LAYERS;
 
-			if (pTrans->mAcquire)
+			if (pTrans->mAcquire && pTrans->mCurrentState != RESOURCE_STATE_UNDEFINED)
 			{
 				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
 				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 			}
-			else if (pTrans->mRelease)
+			else if (pTrans->mRelease && pTrans->mCurrentState != RESOURCE_STATE_UNDEFINED)
 			{
 				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
@@ -6780,12 +7011,12 @@ void vk_cmdResourceBarrier(
 			pImageBarrier->subresourceRange.baseArrayLayer = pTrans->mSubresourceBarrier ? pTrans->mArrayLayer : 0;
 			pImageBarrier->subresourceRange.layerCount = pTrans->mSubresourceBarrier ? 1 : VK_REMAINING_ARRAY_LAYERS;
 
-			if (pTrans->mAcquire)
+			if (pTrans->mAcquire && pTrans->mCurrentState != RESOURCE_STATE_UNDEFINED)
 			{
 				pImageBarrier->srcQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
 				pImageBarrier->dstQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 			}
-			else if (pTrans->mRelease)
+			else if (pTrans->mRelease && pTrans->mCurrentState != RESOURCE_STATE_UNDEFINED)
 			{
 				pImageBarrier->srcQueueFamilyIndex = pCmd->pQueue->mVulkan.mVkQueueFamilyIndex;
 				pImageBarrier->dstQueueFamilyIndex = pCmd->pRenderer->mVulkan.mQueueFamilyIndices[pTrans->mQueueType];
@@ -6907,6 +7138,72 @@ void vk_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, c
 	}
 }
 
+void vk_cmdCopySubresource(Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const SubresourceDataDesc* pSubresourceDesc)
+{
+	const TinyImageFormat fmt = (TinyImageFormat)pTexture->mFormat;
+	const bool            isSinglePlane = TinyImageFormat_IsSinglePlane(fmt);
+
+	if (isSinglePlane)
+	{
+		const uint32_t width = max<uint32_t>(1, pTexture->mWidth >> pSubresourceDesc->mMipLevel);
+		const uint32_t height = max<uint32_t>(1, pTexture->mHeight >> pSubresourceDesc->mMipLevel);
+		const uint32_t depth = max<uint32_t>(1, pTexture->mDepth >> pSubresourceDesc->mMipLevel);
+		const uint32_t numBlocksWide = pSubresourceDesc->mRowPitch / (TinyImageFormat_BitSizeOfBlock(fmt) >> 3);
+		const uint32_t numBlocksHigh = (pSubresourceDesc->mSlicePitch / pSubresourceDesc->mRowPitch);
+
+		VkBufferImageCopy copy = {};
+		copy.bufferOffset = pSubresourceDesc->mSrcOffset;
+		copy.bufferRowLength = numBlocksWide * TinyImageFormat_WidthOfBlock(fmt);
+		copy.bufferImageHeight = numBlocksHigh * TinyImageFormat_HeightOfBlock(fmt);
+		copy.imageSubresource.aspectMask = (VkImageAspectFlags)pTexture->mAspectMask;
+		copy.imageSubresource.mipLevel = pSubresourceDesc->mMipLevel;
+		copy.imageSubresource.baseArrayLayer = pSubresourceDesc->mArrayLayer;
+		copy.imageSubresource.layerCount = 1;
+		copy.imageOffset.x = 0;
+		copy.imageOffset.y = 0;
+		copy.imageOffset.z = 0;
+		copy.imageExtent.width = width;
+		copy.imageExtent.height = height;
+		copy.imageExtent.depth = depth;
+
+		vkCmdCopyImageToBuffer(
+			pCmd->mVulkan.pVkCmdBuf, pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, pDstBuffer->mVulkan.pVkBuffer, 1,
+			&copy);
+	}
+	else
+	{
+		const uint32_t width = pTexture->mWidth;
+		const uint32_t height = pTexture->mHeight;
+		const uint32_t depth = pTexture->mDepth;
+		const uint32_t numOfPlanes = TinyImageFormat_NumOfPlanes(fmt);
+
+		uint64_t          offset = pSubresourceDesc->mSrcOffset;
+		VkBufferImageCopy bufferImagesCopy[MAX_PLANE_COUNT];
+
+		for (uint32_t i = 0; i < numOfPlanes; ++i)
+		{
+			VkBufferImageCopy& copy = bufferImagesCopy[i];
+			copy.bufferOffset = offset;
+			copy.bufferRowLength = 0;
+			copy.bufferImageHeight = 0;
+			copy.imageSubresource.aspectMask = (VkImageAspectFlagBits)(VK_IMAGE_ASPECT_PLANE_0_BIT << i);
+			copy.imageSubresource.mipLevel = pSubresourceDesc->mMipLevel;
+			copy.imageSubresource.baseArrayLayer = pSubresourceDesc->mArrayLayer;
+			copy.imageSubresource.layerCount = 1;
+			copy.imageOffset.x = 0;
+			copy.imageOffset.y = 0;
+			copy.imageOffset.z = 0;
+			copy.imageExtent.width = TinyImageFormat_PlaneWidth(fmt, i, width);
+			copy.imageExtent.height = TinyImageFormat_PlaneHeight(fmt, i, height);
+			copy.imageExtent.depth = depth;
+			offset += copy.imageExtent.width * copy.imageExtent.height * TinyImageFormat_PlaneSizeOfBlock(fmt, i);
+		}
+
+		vkCmdCopyImageToBuffer(
+			pCmd->mVulkan.pVkCmdBuf, pTexture->mVulkan.pVkImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, pDstBuffer->mVulkan.pVkBuffer,
+			numOfPlanes, bufferImagesCopy);
+	}
+}
 /************************************************************************/
 // Queue Fence Semaphore Functions
 /************************************************************************/
@@ -7166,7 +7463,7 @@ void vk_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences
 
 	if (numValidFences)
 	{
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 		VkResult result = vkWaitForFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
 		if (pRenderer->mAftermathSupport)
 		{
@@ -7434,9 +7731,9 @@ void vk_freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(p
 /************************************************************************/
 void vk_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	if (gDebugMarkerSupport)
+	if (pCmd->pRenderer->mVulkan.mDebugMarkerSupport)
 	{
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 		VkDebugUtilsLabelEXT markerInfo = {};
 		markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 		markerInfo.color[0] = r;
@@ -7445,7 +7742,7 @@ void vk_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pN
 		markerInfo.color[3] = 1.0f;
 		markerInfo.pLabelName = pName;
 		vkCmdBeginDebugUtilsLabelEXT(pCmd->mVulkan.pVkCmdBuf, &markerInfo);
-#elif !defined(NX64) || !defined(USE_RENDER_DOC)
+#elif !defined(NX64) || !defined(ENABLE_RENDER_DOC)
 		VkDebugMarkerMarkerInfoEXT markerInfo = {};
 		markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
 		markerInfo.color[0] = r;
@@ -7460,11 +7757,11 @@ void vk_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pN
 
 void vk_cmdEndDebugMarker(Cmd* pCmd)
 {
-	if (gDebugMarkerSupport)
+	if (pCmd->pRenderer->mVulkan.mDebugMarkerSupport)
 	{
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 		vkCmdEndDebugUtilsLabelEXT(pCmd->mVulkan.pVkCmdBuf);
-#elif !defined(NX64) || !defined(USE_RENDER_DOC)
+#elif !defined(NX64) || !defined(ENABLE_RENDER_DOC)
 		vkCmdDebugMarkerEndEXT(pCmd->mVulkan.pVkCmdBuf);
 #endif
 	}
@@ -7472,9 +7769,9 @@ void vk_cmdEndDebugMarker(Cmd* pCmd)
 
 void vk_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	if (gDebugMarkerSupport)
+	if (pCmd->pRenderer->mVulkan.mDebugMarkerSupport)
 	{
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 		VkDebugUtilsLabelEXT markerInfo = {};
 		markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 		markerInfo.color[0] = r;
@@ -7495,7 +7792,7 @@ void vk_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pNam
 #endif
 	}
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	if (pCmd->pRenderer->mAftermathSupport)
 	{
 		vkCmdSetCheckpointNV(pCmd->pVkCmdBuf, pName);
@@ -7510,34 +7807,28 @@ uint32_t vk_cmdWriteMarker(Cmd* pCmd, MarkerType markerType, uint32_t markerValu
 /************************************************************************/
 // Resource Debug Naming Interface
 /************************************************************************/
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 void util_set_object_name(VkDevice pDevice, uint64_t handle, VkObjectType type, const char* pName)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
-	if (gDebugMarkerSupport)
-	{
-		VkDebugUtilsObjectNameInfoEXT nameInfo = {};
-		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-		nameInfo.objectType = type;
-		nameInfo.objectHandle = handle;
-		nameInfo.pObjectName = pName;
-		vkSetDebugUtilsObjectNameEXT(pDevice, &nameInfo);
-	}
+	VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+	nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	nameInfo.objectType = type;
+	nameInfo.objectHandle = handle;
+	nameInfo.pObjectName = pName;
+	vkSetDebugUtilsObjectNameEXT(pDevice, &nameInfo);
 #endif
 }
 #else
 void util_set_object_name(VkDevice pDevice, uint64_t handle, VkDebugReportObjectTypeEXT type, const char* pName)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
-	if (gDebugMarkerSupport)
-	{
-		VkDebugMarkerObjectNameInfoEXT nameInfo = {};
-		nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
-		nameInfo.objectType = type;
-		nameInfo.object = (uint64_t)handle;
-		nameInfo.pObjectName = pName;
-		vkDebugMarkerSetObjectNameEXT(pDevice, &nameInfo);
-	}
+	VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+	nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+	nameInfo.objectType = type;
+	nameInfo.object = (uint64_t)handle;
+	nameInfo.pObjectName = pName;
+	vkDebugMarkerSetObjectNameEXT(pDevice, &nameInfo);
 #endif
 }
 #endif
@@ -7548,11 +7839,14 @@ void vk_setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName)
 	ASSERT(pBuffer);
 	ASSERT(pName);
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
+	if (pRenderer->mVulkan.mDebugMarkerSupport)
+	{
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+		util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_OBJECT_TYPE_BUFFER, pName);
 #else
-	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, pName);
+		util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pBuffer->mVulkan.pVkBuffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT, pName);
 #endif
+	}
 }
 
 void vk_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
@@ -7561,11 +7855,14 @@ void vk_setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName
 	ASSERT(pTexture);
 	ASSERT(pName);
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_OBJECT_TYPE_IMAGE, pName);
+	if (pRenderer->mVulkan.mDebugMarkerSupport)
+	{
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+		util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_OBJECT_TYPE_IMAGE, pName);
 #else
-	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, pName);
+		util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pTexture->mVulkan.pVkImage, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT, pName);
 #endif
+	}
 }
 
 void vk_setRenderTargetName(Renderer* pRenderer, RenderTarget* pRenderTarget, const char* pName)
@@ -7579,17 +7876,20 @@ void vk_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pN
 	ASSERT(pPipeline);
 	ASSERT(pName);
 
-#ifdef USE_DEBUG_UTILS_EXTENSION
-	util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_OBJECT_TYPE_PIPELINE, pName);
+	if (pRenderer->mVulkan.mDebugMarkerSupport)
+	{
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+		util_set_object_name(pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_OBJECT_TYPE_PIPELINE, pName);
 #else
-	util_set_object_name(
-		pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, pName);
+		util_set_object_name(
+			pRenderer->mVulkan.pVkDevice, (uint64_t)pPipeline->mVulkan.pVkPipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT, pName);
 #endif
+	}
 }
 /************************************************************************/
 // Virtual Texture
 /************************************************************************/
-void alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity, VkExtent3D* out)
+static void alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity, VkExtent3D* out)
 {
 	out->width = (extent.width / granularity.width + ((extent.width % granularity.width) ? 1u : 0u));
 	out->height = (extent.height / granularity.height + ((extent.height % granularity.height) ? 1u : 0u));
@@ -8298,6 +8598,7 @@ void initVulkanRenderer(const char* appName, const RendererDesc* pSettings, Rend
 	unmapBuffer = vk_unmapBuffer;
 	cmdUpdateBuffer = vk_cmdUpdateBuffer;
 	cmdUpdateSubresource = vk_cmdUpdateSubresource;
+	cmdCopySubresource = vk_cmdCopySubresource;
 	addTexture = vk_addTexture;
 	removeTexture = vk_removeTexture;
 	addVirtualTexture = vk_addVirtualTexture;
@@ -8403,6 +8704,20 @@ void exitVulkanRenderer(Renderer* pRenderer)
 	ASSERT(pRenderer);
 
 	vk_exitRenderer(pRenderer);
+}
+
+
+void initVulkanRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
+{
+	// No need to initialize API function pointers, initRenderer MUST be called before using anything else anyway.
+	vk_initRendererContext(appName, pSettings, ppContext);
+}
+
+void exitVulkanRendererContext(RendererContext* pContext)
+{
+	ASSERT(pContext);
+
+	vk_exitRendererContext(pContext);
 }
 
 #if !defined(NX64)

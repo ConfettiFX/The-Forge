@@ -46,14 +46,6 @@
 
 #include "../../../Common_3/OS/Interfaces/IMemory.h"
 
-#if defined(XBOX)
-#define BEGINALLOCATION(X) esramBeginAllocation(pRenderer->mD3D12.pESRAMManager, X, esramGetCurrentOffset(pRenderer->mD3D12.pESRAMManager))
-#define ENDALLOCATION(X) esramEndAllocation(pRenderer->mD3D12.pESRAMManager)
-#else
-#define BEGINALLOCATION(X)
-#define ENDALLOCATION(X)
-#endif
-
 #define NO_FSL_DEFINITIONS
 #include "Shaders/FSL/wind.h"
 
@@ -1369,8 +1361,6 @@ public:
 
 		gFrameCount = 0;
 
-		BEGINALLOCATION("RenderTargets");
-
 		if (!addRenderTargets())
 			return false;
 
@@ -1408,8 +1398,6 @@ public:
 			1024, 1024, params, gImageCount, LPVFlags, (aura::TinyImageFormat)pSwapChain->ppRenderTargets[0]->mFormat, (aura::TinyImageFormat)pDepthBuffer->mFormat,
 			(aura::SampleCount)pSwapChain->ppRenderTargets[0]->mSampleCount, pSwapChain->ppRenderTargets[0]->mSampleQuality, gRSMCascadeCount,
 			cascades, &pAura);
-
-		ENDALLOCATION("RenderTargets");
 
 		setCascadeCenter(pAura, 2, aura::vec3(0.0f, 0.0f, 0.0f));
 
@@ -1751,6 +1739,10 @@ public:
 			uiDestroyComponent(pDebugTexturesWindow);
 			pDebugTexturesWindow = NULL;
 		}
+
+#if defined(XBOX)
+        esramResetAllocations(pRenderer->mD3D12.pESRAMManager);
+#endif
 	}
 
 	void Update(float deltaTime)
@@ -2454,7 +2446,7 @@ public:
 		shadowRTDesc.mWidth = gShadowMapSize;
 		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowRTDesc.mSampleQuality = 0;
-		//shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+		shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		shadowRTDesc.mHeight = gShadowMapSize;
 		shadowRTDesc.pName = "Shadow Map RT";
 		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
@@ -2487,6 +2479,7 @@ public:
 		rsmRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		rsmRTDesc.mHeight = gRSMResolution;
 		rsmRTDesc.mSampleCount = SAMPLE_COUNT_1;
+		rsmRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		rsmRTDesc.mWidth = gRSMResolution;
 		rsmRTDesc.pName = "RSM RT";
 #if TEST_RSM

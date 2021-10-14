@@ -145,7 +145,9 @@ ClearValue       gClearDepth;
 Panini           gPanini = {};
 PaniniParameters gPaniniParams = {};
 bool             gMultiGPU = true;
+bool             gMultiGpuUi = true;
 bool             gMultiGPURestart = false;
+bool             gMultiGpuAvailable = false;
 float* pSpherePoints;
 
 const char* gTestScripts[] = { "Test0.lua", "Test1.lua" };
@@ -159,11 +161,19 @@ void RunScript()
 	luaQueueScriptToRun(&runDesc);
 }
 
+void SwitchGpuMode()
+{
+	gMultiGPURestart = true;
+	onGpuModeSwitch();
+}
+
 class MultiGPU : public IApp
 {
 public:
 	bool Init()
 	{
+		gMultiGPU = gMultiGpuUi;
+
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
@@ -295,6 +305,11 @@ public:
 			return false;
 
 		initResourceLoaderInterface(pRenderer);
+
+		if (!gMultiGPURestart)
+		{
+			gMultiGpuAvailable = gMultiGpuAvailable || pRenderer->mGpuMode == GPU_MODE_LINKED;
+		}
 
 		if (pRenderer->mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
@@ -520,11 +535,13 @@ public:
 		// Reset graphics with a button.
 
 // Show this checkbox only when multiple GPUs are present
-		if (pRenderer->mLinkedNodeCount > 1)
+		if (gMultiGpuAvailable)
 		{
 			CheckboxWidget multiGpuCheckbox;
-			multiGpuCheckbox.pData = &gMultiGPU;
-			luaRegisterWidget(uiCreateComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX));
+			multiGpuCheckbox.pData = &gMultiGpuUi;
+			UIWidget* pMultiGPUToggle = uiCreateComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
+			uiSetWidgetOnEditedCallback(pMultiGPUToggle, SwitchGpuMode);
+			luaRegisterWidget(pMultiGPUToggle);
 		}
 
 		SliderFloatWidget camHorFovSlider;
@@ -649,6 +666,7 @@ public:
 		addInputAction(&actionDesc);
 
 		gFrameIndex = 0;
+		gMultiGPURestart = false;
 
 		return true;
 	}
@@ -849,24 +867,6 @@ public:
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
-		static bool prevMultiGPU = gMultiGPU;
-		if (prevMultiGPU != gMultiGPU)
-		{
-			bool temp = gMultiGPU;
-			gMultiGPU = prevMultiGPU;
-			gMultiGPURestart = true;
-
-			Unload();
-			Exit();
-
-			gMultiGPU = temp;
-			gMultiGPURestart = false;
-
-			Init();
-			Load();
-
-			prevMultiGPU = gMultiGPU;
-		}
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -1060,7 +1060,6 @@ public:
 				presentDesc.pSwapChain = pSwapChain;
 				presentDesc.mSubmitDone = true;
 				queuePresent(pGraphicsQueue[i], &presentDesc);
-				flipProfiler();
 			}
 			else
 			{

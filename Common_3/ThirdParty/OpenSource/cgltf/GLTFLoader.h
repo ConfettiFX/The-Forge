@@ -215,6 +215,11 @@ static void gltfGetTextureView(const cgltf_data* scene, GLTFTextureView* texture
 #define GL_REPEAT                         0x2901
 #define GL_CLAMP_TO_EDGE                  0x812F
 #define GL_MIRRORED_REPEAT                0x8370
+#endif
+
+// IRenderer includes OpenGL ES 2 header for Android
+// but GL_CLAMP_TO_BORDER is part only of GL ES 3.2
+#ifndef GL_CLAMP_TO_BORDER
 #define GL_CLAMP_TO_BORDER                0x812D
 #endif
 
@@ -741,7 +746,7 @@ static void gltfUnloadContainer(GLTFContainer* pGLTF)
 	tf_free(pGLTF);
 }
 
-void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, size_t index, bool isSRGB, SyncToken* token, TextureContainerType container, Texture** ppOutTexture)
+void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, size_t index, TextureCreationFlags creationFlags, SyncToken* token, TextureContainerType container, Texture** ppOutTexture)
 {
 	if (!pGLTF)
 	{
@@ -754,7 +759,7 @@ void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, size_t index, bool isSRGB, Syn
 
 	TextureLoadDesc loadDesc = {};
 	loadDesc.ppTexture = ppOutTexture;
-	loadDesc.mCreationFlag = isSRGB ? TEXTURE_CREATION_FLAG_SRGB : TEXTURE_CREATION_FLAG_NONE;
+	loadDesc.mCreationFlag = creationFlags;
 	loadDesc.mContainer = container;
 
 	if (!image->buffer_view)

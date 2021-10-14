@@ -21,6 +21,9 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+
+#include "../Core/Config.h"
+
 #ifdef __linux__
 
 #define _GNU_SOURCE
@@ -28,8 +31,14 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
+#include "../Core/UnixThreadID.h"
 
 #include "../Interfaces/IMemory.h"
+
+void callOnce(CallOnceGuard* pGuard, CallOnceFn pFn)
+{
+	pthread_once(pGuard, pFn);
+}
 
 bool initMutex(Mutex* pMutex)
 {
@@ -104,13 +113,13 @@ static ThreadID mainThreadID;
 
 void setMainThread() { mainThreadID = getCurrentThreadID(); }
 
-ThreadID getCurrentThreadID() { return pthread_self(); }
+ThreadID getCurrentThreadID() { return getCurrentPthreadID(); }
 
 void getCurrentThreadName(char* buffer, int buffer_size) { pthread_getname_np(pthread_self(), buffer, buffer_size); }
 
 void setCurrentThreadName(const char* name) { pthread_setname_np(pthread_self(), name); }
 
-bool isMainThread() { return (bool)pthread_equal(getCurrentThreadID(), mainThreadID); }
+bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 
 void threadSleep(unsigned mSec) { usleep(mSec * 1000); }
 

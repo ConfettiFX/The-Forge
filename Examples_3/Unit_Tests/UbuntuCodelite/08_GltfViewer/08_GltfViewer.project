@@ -15,13 +15,15 @@
     <File Name="../../src/08_GltfViewer/Shaders/FSL/basic.vert.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/floor.frag.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/floor.vert.fsl"/>
-    <File Name="../../src/08_GltfViewer/Shaders/FSL/FXAA.frag.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/Triangular.vert.fsl"/>
-    <File Name="../../src/08_GltfViewer/Shaders/FSL/vignette.frag.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/watermark.frag.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/watermark.vert.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/zPass.vert.fsl"/>
     <File Name="../../src/08_GltfViewer/Shaders/FSL/zPassFloor.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/FinalPostProcess.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/Skybox.frag.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/Skybox.vert.fsl"/>
+    <File Name="../../src/08_GltfViewer/Shaders/FSL/TemporalAA.frag.fsl"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
@@ -58,10 +60,6 @@
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
-        <Preprocessor Value="VULKAN"/>
-        <Preprocessor Value="_DEBUG"/>
-        <Preprocessor Value="USE_MEMORY_TRACKING"/>
-        <Preprocessor Value="__LINUX__"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
@@ -105,6 +103,8 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/HDRI/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/HDRI/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Fonts</Command>
@@ -142,9 +142,6 @@ shaders:&#xD;
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
-        <Preprocessor Value="VULKAN"/>
-        <Preprocessor Value="NDEBUG"/>
-        <Preprocessor Value="__LINUX__"/>
       </Compiler>
       <Linker Options="-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
@@ -188,6 +185,8 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.basis' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/HDRI/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/HDRI/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Fonts</Command>

@@ -339,6 +339,8 @@ vec4 _SampleClampedSparseTex2D(texture2D TEX, sampler SMP, vec2 P, float L, out(
 #endif
 
 
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE) layout (constant_id = INDEX) const TYPE NAME = VALUE
+
 #define FSL_CONST(TYPE, NAME) const TYPE NAME
 #define STATIC
 #define INLINE

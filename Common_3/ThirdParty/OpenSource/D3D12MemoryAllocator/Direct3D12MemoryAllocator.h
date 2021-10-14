@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "../../../Renderer/RendererConfig.h"
+
 /** \mainpage D3D12 Memory Allocator
 
 <b>Version 2.0.0-development</b> (2020-05-25)

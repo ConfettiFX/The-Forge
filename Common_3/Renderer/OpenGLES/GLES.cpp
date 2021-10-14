@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #if defined(GLES)
 #define RENDERER_IMPLEMENTATION
 
@@ -2089,12 +2091,20 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 	}
 
 	uint32_t totalSize = sizeof(RootSignature);
+
+	// Order members by decreasing alignment
+	COMPILE_ASSERT(alignof(RootSignature) >= alignof(DescriptorInfo));
+	COMPILE_ASSERT(alignof(DescriptorInfo) >= alignof(DescriptorIndexMap));
+	COMPILE_ASSERT(alignof(DescriptorIndexMap) >= alignof(GlVariable));
+	COMPILE_ASSERT(alignof(GlVariable) >= alignof(uint32_t));
+
+	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
+	totalSize += sizeof(DescriptorIndexMap);
+	totalSize += shaderVariables.size() * sizeof(GlVariable);
+
 	totalSize += sizeof(uint32_t) * pRootSignatureDesc->mShaderCount;
 	totalSize += sizeof(uint32_t) * pRootSignatureDesc->mShaderCount * shaderResources.size();
 	totalSize += sizeof(uint32_t) * pRootSignatureDesc->mShaderCount * shaderVariables.size();
-	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
-	totalSize += shaderVariables.size() * sizeof(GlVariable);
-	totalSize += sizeof(DescriptorIndexMap);
 
 	eastl::sort(shaderVariables.begin(), shaderVariables.end(), util_compare_shader_variable);
 
@@ -2106,18 +2116,22 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 	pRootSignature->mGLES.mVariableCount = (uint32_t)shaderVariables.size();
 
 	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
-	pRootSignature->mGLES.pProgramTargets = (uint32_t*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount);
+	ASSERT((uintptr_t)pRootSignature->pDescriptors % alignof(DescriptorInfo) == 0);
+	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount);
+	ASSERT((uintptr_t)pRootSignature->pDescriptorNameToIndexMap % alignof(DescriptorIndexMap) == 0);
+	
+	pRootSignature->mGLES.pVariables = (GlVariable*)(pRootSignature->pDescriptorNameToIndexMap + 1);
+	ASSERT((uintptr_t)pRootSignature->mGLES.pVariables % alignof(GlVariable) == 0);
+
+	pRootSignature->mGLES.pProgramTargets = (uint32_t*)(pRootSignature->mGLES.pVariables + pRootSignature->mGLES.mVariableCount);
 	pRootSignature->mGLES.pDescriptorGlLocations = (int32_t*)(pRootSignature->mGLES.pProgramTargets + pRootSignature->mGLES.mProgramCount);
-	pRootSignature->mGLES.pVariables = (GlVariable*)(pRootSignature->mGLES.pDescriptorGlLocations + pRootSignature->mGLES.mProgramCount * pRootSignature->mDescriptorCount);
-	uint8_t* mem = (uint8_t*)(pRootSignature->mGLES.pVariables + pRootSignature->mGLES.mVariableCount);
+	int32_t* mem = (int32_t*)(pRootSignature->mGLES.pDescriptorGlLocations + pRootSignature->mGLES.mProgramCount * pRootSignature->mDescriptorCount);
+	
 	for (uint32_t i = 0; i < pRootSignature->mGLES.mVariableCount; ++i)
 	{
-		pRootSignature->mGLES.pVariables[i].pGlLocations = (int32_t*)mem;
-		mem += pRootSignature->mGLES.mProgramCount * sizeof(int32_t);
+		pRootSignature->mGLES.pVariables[i].pGlLocations = mem;
+		mem += pRootSignature->mGLES.mProgramCount;
 	}
-	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(mem);
-
-	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
 
 	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
 

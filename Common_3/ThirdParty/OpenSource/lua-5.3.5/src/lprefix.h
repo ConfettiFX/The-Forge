@@ -7,6 +7,7 @@
 #ifndef lprefix_h
 #define lprefix_h
 
+#include "../../../../OS/Core/Config.h"
 
 /*
 ** Allows POSIX/XSI stuff

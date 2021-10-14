@@ -127,8 +127,6 @@ float4 PS_MAIN( VSOutput In )
 
 	color *= CalcPCFShadowFactor(In.WorldPos);
 
-	float i = 1.0 - length(abs(In.TexCoord.xy));
-	i = pow(i, 1.2f);	
-	Out = float4(color.rgb, i);
+	Out = float4(color.rgb, 1.0);
 	RETURN(Out);
 }

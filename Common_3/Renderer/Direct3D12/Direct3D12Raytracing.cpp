@@ -22,10 +22,14 @@
  * under the License.
 */
 
-#ifdef DIRECT3D12
-
 // Socket is used in microprofile this header need to be included before d3d12 headers
 #include <WinSock2.h>
+
+#include "../RendererConfig.h"
+
+#ifdef DIRECT3D12
+
+
 
 #ifdef XBOX
 #include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"

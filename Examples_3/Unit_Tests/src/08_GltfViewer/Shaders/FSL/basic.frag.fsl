@@ -179,6 +179,23 @@ float3 N, float3 L, float3 V, float3 H, float NoL, float NoV)
 	return result;
 }
 
+float3 ComputeIBL(float3 albedo, float metalness, float roughness,
+	float NoV, float3 N, float3 V)
+{
+	float3 F0 = float3(0.04f, 0.04f, 0.04f);
+
+	float3 diffuse = (1.0 - metalness) * albedo;
+	float3 specular = lerp(F0, albedo, metalness);
+
+	float3 R = normalize(reflect(-V, N));
+
+	float3 irradiance = SampleTexCube(Get(iemCubemap), Get(cubemapSampler), N).rgb;
+	float3 radiance = SampleLvlTexCube(Get(pmremCubemap), Get(cubemapSampler), R, roughness * 10.0).rgb;
+	float2 brdf = SampleTex2D(Get(environmentBRDF), Get(cubemapSampler), float2(NoV, roughness)).rg;
+
+	return irradiance * diffuse + radiance * (specular * brdf.x + brdf.y);
+}
+
 float CalcESMShadowFactor(float3 worldPos)
 {
 	float4 posLS = mul(Get(shadowLightViewProj), float4(worldPos.xyz, 1.0));
@@ -309,7 +326,7 @@ PSOut PS_MAIN( PsIn In )
 	float3 V = normalize(Get(camPos).xyz - In.pos);
 	float NoV = max(dot(N,V), 0.0);	
 
-	float3 result = float3(0.0, 0.0, 0.0);
+	float3 result = ComputeIBL(baseColor.rgb, metalness.r, roughness, NoV, N, V);
 
 	UNROLL
 	for(uint i=0; i<1; ++i)

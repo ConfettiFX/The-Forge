@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #include "WindowsStackTraceDump.h"
 #include "../Interfaces/ILog.h"
 #pragma warning(push)
@@ -34,6 +36,8 @@
 WindowsStackTrace* WindowsStackTrace::pInst;
 
 static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo) { return WindowsStackTrace::Dump(pExceptionInfo); }
+
+#ifdef ENABLE_FORGE_STACKTRACE_DUMP
 
 bool WindowsStackTrace::Init()
 {
@@ -224,3 +228,24 @@ LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
+#else
+
+bool WindowsStackTrace::Init()
+{
+	return false;
+}
+
+void WindowsStackTrace::Exit()
+{
+}
+
+void* WindowsStackTrace::Alloc(size_t size) {
+	return NULL;
+}
+
+LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
+{
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+#endif // ENABLE_FORGE_STACKTRACE_DUMP

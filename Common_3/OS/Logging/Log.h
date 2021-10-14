@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../Core/Config.h"
+
 #include "../../OS/Interfaces/IFileSystem.h"
 
 #include "stdbool.h"

@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "RendererConfig.h"
+
 static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
 
 typedef enum TextureDimension

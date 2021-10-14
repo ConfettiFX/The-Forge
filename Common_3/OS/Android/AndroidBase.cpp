@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../../Renderer/RendererConfig.h"
+
 #include <ctime>
 #include <unistd.h>
 #include <android/configuration.h>
@@ -399,17 +401,17 @@ bool initBaseSubsystems(IApp* app)
 	extern bool platformInitUserInterface();
 	extern void platformInitLuaScriptingSystem();
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	if (!platformInitFontSystem())
 		return false;
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	if (!platformInitUserInterface())
 		return false;
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformInitLuaScriptingSystem();
 #endif
 
@@ -422,11 +424,11 @@ void updateBaseSubsystems(float deltaTime)
 	extern void platformUpdateLuaScriptingSystem();
 	extern void platformUpdateUserInterface(float deltaTime);
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformUpdateLuaScriptingSystem();
 #endif
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformUpdateUserInterface(deltaTime);
 #endif
 }
@@ -438,15 +440,15 @@ void exitBaseSubsystems()
 	extern void platformExitUserInterface();
 	extern void platformExitLuaScriptingSystem();
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	platformExitUserInterface();
 #endif
 
-#ifdef USE_FORGE_FONTS
+#ifdef ENABLE_FORGE_FONTS
 	platformExitFontSystem();
 #endif
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 	platformExitLuaScriptingSystem();
 #endif
 }
@@ -455,7 +457,7 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 {
 	gSelectedApiIndex = gSelectedRendererApi;
 
-#ifdef USE_FORGE_UI
+#ifdef ENABLE_FORGE_UI
 	static const char* pApiNames[] =
 	{
 	#if defined(GLES)
@@ -484,7 +486,7 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 		pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
 		pSelectApUIWidget->pOnEdited = onAPISwitch;
 
-#ifdef USE_FORGE_SCRIPTING
+#ifdef ENABLE_FORGE_SCRIPTING
 		luaRegisterWidget(pSelectApUIWidget);
 		LuaScriptDesc apiScriptDesc = {};
 		apiScriptDesc.pScriptFileName = "Test_API_Switching.lua";
@@ -515,7 +517,7 @@ int AndroidMain(void* param, IApp* app)
 
 	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
-	initLog(app->GetName(), eALL);
+	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
     JNIEnv* pJavaEnv;
     android_app->activity->vm->AttachCurrentThread(&pJavaEnv, NULL);

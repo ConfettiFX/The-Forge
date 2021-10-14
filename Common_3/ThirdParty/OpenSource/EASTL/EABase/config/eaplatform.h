@@ -79,6 +79,7 @@
 #ifndef INCLUDED_eaplatform_H
 #define INCLUDED_eaplatform_H
 
+#include "../../../../../OS/Core/Config.h"
 
 // Cygwin
 // This is a pseudo-platform which will be defined along with EA_PLATFORM_LINUX when

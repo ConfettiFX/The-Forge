@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../Core/Config.h"
 #include "../Interfaces/IOperatingSystem.h"
 
 // IOS Simulator paths can get a bit longer then 256 bytes

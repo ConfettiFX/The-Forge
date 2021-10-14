@@ -1777,8 +1777,8 @@ int ImGui::DragScalar(const char* label, ImGuiDataType data_type, void* v, float
     if (label_size.x > 0.0f)
         RenderText(float2(frame_bb.Max.x + style.ItemInnerSpacing.x, inner_bb.Min.y), label);
 
-	if (using_text_input)
-		return 2;
+    if (using_text_input)
+        return 2;
 
     return value_changed? 1 : 0;
 }

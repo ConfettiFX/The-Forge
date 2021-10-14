@@ -37,6 +37,7 @@ namespace Scalar
 
 // Small epsilon value
 static const float VECTORMATH_SLERP_TOL = 0.999f;
+static const double VECTORMATH_SLERP_TOL_D = 0.999;
 
 // ========================================================
 // Vector3
@@ -69,6 +70,16 @@ inline Vector3::Vector3(float scalar)
 	mY = scalar;
 	mZ = scalar;
 }
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+inline Vector3::Vector3(const Vector3d & vec)
+{
+	mX = (float)vec.getX();
+	mY = (float)vec.getY();
+	mZ = (float)vec.getZ();
+}
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
 
 inline const Vector3 Vector3::xAxis()
 {
@@ -458,6 +469,15 @@ inline Vector4::Vector4(float scalar)
 }
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
+
+inline Vector4::Vector4(const Vector4d & vec)
+{
+	mX = (float)vec.getX();
+	mY = (float)vec.getY();
+	mZ = (float)vec.getZ();
+	mW = (float)vec.getW();
+}
+
 //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
@@ -1179,6 +1199,1147 @@ inline void print(const Vector4 & vec)
 }
 
 inline void print(const Vector4 & vec, const char * name)
+{
+	std::printf("%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+}
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
+// High precision Vector3d
+// ========================================================
+
+inline Vector3d::Vector3d(const Vector3d & vec)
+{
+	mX = vec.mX;
+	mY = vec.mY;
+	mZ = vec.mZ;
+}
+
+inline Vector3d::Vector3d(double _x, double _y, double _z)
+{
+	mX = _x;
+	mY = _y;
+	mZ = _z;
+}
+
+inline Vector3d::Vector3d(const Point3 & pnt)
+{
+	mX = pnt.getX();
+	mY = pnt.getY();
+	mZ = pnt.getZ();
+}
+
+inline Vector3d::Vector3d(double scalar)
+{
+	mX = scalar;
+	mY = scalar;
+	mZ = scalar;
+}
+
+inline const Vector3d Vector3d::xAxis()
+{
+	return Vector3d(1.0, 0.0, 0.0);
+}
+
+inline const Vector3d Vector3d::yAxis()
+{
+	return Vector3d(0.0, 1.0, 0.0);
+}
+
+inline const Vector3d Vector3d::zAxis()
+{
+	return Vector3d(0.0, 0.0, 1.0);
+}
+
+inline const Vector3d lerp(double t, const Vector3d & vec0, const Vector3d & vec1)
+{
+	return (vec0 + ((vec1 - vec0) * t));
+}
+
+inline const Vector3d slerp(double t, const Vector3d & unitVec0, const Vector3d & unitVec1)
+{
+	double recipSinAngle, scale0, scale1, cosAngle, angle;
+	cosAngle = dot(unitVec0, unitVec1);
+	if (cosAngle < VECTORMATH_SLERP_TOL)
+	{
+		angle = std::acos(cosAngle);
+		recipSinAngle = (1.0 / std::sin(angle));
+		scale0 = (std::sin(((1.0 - t) * angle)) * recipSinAngle);
+		scale1 = (std::sin((t * angle)) * recipSinAngle);
+	}
+	else
+	{
+		scale0 = (1.0 - t);
+		scale1 = t;
+	}
+	return ((unitVec0 * scale0) + (unitVec1 * scale1));
+}
+
+inline Vector3d & Vector3d::operator = (const Vector3d & vec)
+{
+	mX = vec.mX;
+	mY = vec.mY;
+	mZ = vec.mZ;
+	return *this;
+}
+
+inline Vector3d & Vector3d::setX(double _x)
+{
+	mX = _x;
+	return *this;
+}
+
+inline double Vector3d::getX() const
+{
+	return mX;
+}
+
+inline Vector3d & Vector3d::setY(double _y)
+{
+	mY = _y;
+	return *this;
+}
+
+inline double Vector3d::getY() const
+{
+	return mY;
+}
+
+inline Vector3d & Vector3d::setZ(double _z)
+{
+	mZ = _z;
+	return *this;
+}
+
+inline double Vector3d::getZ() const
+{
+	return mZ;
+}
+
+inline Vector3d & Vector3d::setW(double _w)
+{
+	mW = _w;
+	return *this;
+}
+
+inline double Vector3d::getW() const
+{
+	return mW;
+}
+
+inline Vector3d & Vector3d::setElem(int idx, double value)
+{
+	*(&mX + idx) = value;
+	return *this;
+}
+
+inline double Vector3d::getElem(int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline double & Vector3d::operator[](int idx)
+{
+	return *(&mX + idx);
+}
+
+inline double Vector3d::operator[](int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline const Vector3d Vector3d::operator + (const Vector3d & vec) const
+{
+	return Vector3d((mX + vec.mX),
+				   (mY + vec.mY),
+				   (mZ + vec.mZ));
+}
+
+inline const Vector3d Vector3d::operator - (const Vector3d & vec) const
+{
+	return Vector3d((mX - vec.mX),
+				   (mY - vec.mY),
+				   (mZ - vec.mZ));
+}
+
+inline const Vector3d Vector3d::operator * (double scalar) const
+{
+	return Vector3d((mX * scalar),
+				   (mY * scalar),
+				   (mZ * scalar));
+}
+
+inline Vector3d & Vector3d::operator += (const Vector3d & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator -= (const Vector3d & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator *= (double scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Vector3d Vector3d::operator / (double scalar) const
+{
+	return Vector3d((mX / scalar),
+				   (mY / scalar),
+				   (mZ / scalar));
+}
+
+inline Vector3d & Vector3d::operator /= (double scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline const Vector3d Vector3d::operator - () const
+{
+	return Vector3d(-mX, -mY, -mZ);
+}
+
+inline const Vector3d operator * (double scalar, const Vector3d & vec)
+{
+	return vec * scalar;
+}
+
+inline const Vector3d mulPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d((vec0.getX() * vec1.getX()),
+				   (vec0.getY() * vec1.getY()),
+				   (vec0.getZ() * vec1.getZ()));
+}
+
+inline const Vector3d divPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d((vec0.getX() / vec1.getX()),
+				   (vec0.getY() / vec1.getY()),
+				   (vec0.getZ() / vec1.getZ()));
+}
+
+inline const Vector3d recipPerElem(const Vector3d & vec)
+{
+	return Vector3d((1.0 / vec.getX()),
+				   (1.0 / vec.getY()),
+				   (1.0 / vec.getZ()));
+}
+
+inline const Vector3d sqrtPerElem(const Vector3d & vec)
+{
+	return Vector3d(std::sqrt(vec.getX()),
+				   std::sqrt(vec.getY()),
+				   std::sqrt(vec.getZ()));
+}
+
+inline const Vector3d rsqrtPerElem(const Vector3d & vec)
+{
+	return Vector3d((1.0 / std::sqrt(vec.getX())),
+				   (1.0 / std::sqrt(vec.getY())),
+				   (1.0 / std::sqrt(vec.getZ())));
+}
+
+inline const Vector3d absPerElem(const Vector3d & vec)
+{
+	return Vector3d(std::fabs(vec.getX()),
+				   std::fabs(vec.getY()),
+				   std::fabs(vec.getZ()));
+}
+
+inline const Vector3d copySignPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d((vec1.getX() < 0.0) ? -std::fabs(vec0.getX()) : std::fabs(vec0.getX()),
+				   (vec1.getY() < 0.0) ? -std::fabs(vec0.getY()) : std::fabs(vec0.getY()),
+				   (vec1.getZ() < 0.0) ? -std::fabs(vec0.getZ()) : std::fabs(vec0.getZ()));
+}
+
+inline const Vector3d maxPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d((vec0.getX() > vec1.getX()) ? vec0.getX() : vec1.getX(),
+				   (vec0.getY() > vec1.getY()) ? vec0.getY() : vec1.getY(),
+				   (vec0.getZ() > vec1.getZ()) ? vec0.getZ() : vec1.getZ());
+}
+
+inline double maxElem(const Vector3d & vec)
+{
+	double result;
+	result = (vec.getX() > vec.getY()) ? vec.getX() : vec.getY();
+	result = (vec.getZ() > result)     ? vec.getZ() : result;
+	return result;
+}
+
+inline const Vector3d minPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d((vec0.getX() < vec1.getX()) ? vec0.getX() : vec1.getX(),
+				   (vec0.getY() < vec1.getY()) ? vec0.getY() : vec1.getY(),
+				   (vec0.getZ() < vec1.getZ()) ? vec0.getZ() : vec1.getZ());
+}
+
+inline double minElem(const Vector3d & vec)
+{
+	double result;
+	result = (vec.getX() < vec.getY()) ? vec.getX() : vec.getY();
+	result = (vec.getZ() < result)     ? vec.getZ() : result;
+	return result;
+}
+
+inline double sum(const Vector3d & vec)
+{
+	double result;
+	result = (vec.getX() + vec.getY());
+	result = (result + vec.getZ());
+	return result;
+}
+
+inline double dot(const Vector3d & vec0, const Vector3d & vec1)
+{
+	double result;
+	result = (vec0.getX() * vec1.getX());
+	result = (result + (vec0.getY() * vec1.getY()));
+	result = (result + (vec0.getZ() * vec1.getZ()));
+	return result;
+}
+
+inline double lengthSqr(const Vector3d & vec)
+{
+	double result;
+	result = (vec.getX() * vec.getX());
+	result = (result + (vec.getY() * vec.getY()));
+	result = (result + (vec.getZ() * vec.getZ()));
+	return result;
+}
+
+inline double length(const Vector3d & vec)
+{
+	return std::sqrt(lengthSqr(vec));
+}
+
+inline const Vector3d normalize(const Vector3d & vec)
+{
+	double lenSqr, lenInv;
+	lenSqr = lengthSqr(vec);
+	lenInv = (1.0 / std::sqrt(lenSqr));
+	return Vector3d((vec.getX() * lenInv),
+				   (vec.getY() * lenInv),
+				   (vec.getZ() * lenInv));
+}
+
+inline const Vector3d cross(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(((vec0.getY() * vec1.getZ()) - (vec0.getZ() * vec1.getY())),
+				   ((vec0.getZ() * vec1.getX()) - (vec0.getX() * vec1.getZ())),
+				   ((vec0.getX() * vec1.getY()) - (vec0.getY() * vec1.getX())));
+}
+
+inline const Vector3d select(const Vector3d & vec0, const Vector3d & vec1, bool select1)
+{
+	return Vector3d((select1) ? vec1.getX() : vec0.getX(),
+				   (select1) ? vec1.getY() : vec0.getY(),
+				   (select1) ? vec1.getZ() : vec0.getZ());
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Vector3d & vec)
+{
+	std::printf("( %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ());
+}
+
+inline void print(const Vector3d & vec, const char * name)
+{
+	std::printf("%s: ( %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ());
+}
+
+#endif // VECTORMATH_DEBUG
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+// ========================================================
+// Vector4
+// ========================================================
+
+inline Vector4d::Vector4d(const Vector4d & vec)
+{
+	mX = vec.mX;
+	mY = vec.mY;
+	mZ = vec.mZ;
+	mW = vec.mW;
+}
+
+inline Vector4d::Vector4d(double _x, double _y, double _z, double _w)
+{
+	mX = _x;
+	mY = _y;
+	mZ = _z;
+	mW = _w;
+}
+
+inline Vector4d::Vector4d(const Vector3d & xyz, double _w)
+{
+	this->setXYZ(xyz);
+	this->setW(_w);
+}
+
+inline Vector4d::Vector4d(const Vector3d & vec)
+{
+	mX = vec.getX();
+	mY = vec.getY();
+	mZ = vec.getZ();
+	mW = 0.0;
+}
+
+inline Vector4d::Vector4d(const Point3 & pnt)
+{
+	mX = pnt.getX();
+	mY = pnt.getY();
+	mZ = pnt.getZ();
+	mW = 1.0f;
+}
+
+inline Vector4d::Vector4d(const Quat & quat)
+{
+	mX = quat.getX();
+	mY = quat.getY();
+	mZ = quat.getZ();
+	mW = quat.getW();
+}
+
+inline Vector4d::Vector4d(double scalar)
+{
+	mX = scalar;
+	mY = scalar;
+	mZ = scalar;
+	mW = scalar;
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4d Vector4d::fromVector4Int(const Vector4Int vecInt)
+{
+	Vector4d ret = {};
+	ret.mX = static_cast<double>(vecInt.x);
+	ret.mY = static_cast<double>(vecInt.y);
+	ret.mZ = static_cast<double>(vecInt.z);
+	ret.mW = static_cast<double>(vecInt.w);
+	return ret;
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+inline const Vector4d Vector4d::xAxis()
+{
+	return Vector4d(1.0, 0.0, 0.0, 0.0);
+}
+
+inline const Vector4d Vector4d::yAxis()
+{
+	return Vector4d(0.0, 1.0, 0.0, 0.0);
+}
+
+inline const Vector4d Vector4d::zAxis()
+{
+	return Vector4d(0.0, 0.0, 1.0, 0.0);
+}
+
+inline const Vector4d Vector4d::wAxis()
+{
+	return Vector4d(0.0, 0.0, 0.0, 1.0);
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4d Vector4d::zero()
+{
+	return Vector4d(0.0, 0.0, 0.0, 0.0);
+}
+
+inline const Vector4d Vector4d::one()
+{
+	return Vector4d(1.0, 1.0, 1.0, 1.0);
+}
+
+inline const double * Vector4d::getXPtr() const
+{
+	return &mX;
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+
+inline const Vector4d lerp(double t, const Vector4d & vec0, const Vector4d & vec1)
+{
+	return (vec0 + ((vec1 - vec0) * t));
+}
+
+inline const Vector4d slerp(double t, const Vector4d & unitVec0, const Vector4d & unitVec1)
+{
+	double recipSinAngle, scale0, scale1, cosAngle, angle;
+	cosAngle = dot(unitVec0, unitVec1);
+	if (cosAngle < VECTORMATH_SLERP_TOL_D)
+	{
+		angle = std::acos(cosAngle);
+		recipSinAngle = (1.0 / std::sin(angle));
+		scale0 = (std::sin(((1.0 - t) * angle)) * recipSinAngle);
+		scale1 = (std::sin((t * angle)) * recipSinAngle);
+	}
+	else
+	{
+		scale0 = (1.0 - t);
+		scale1 = t;
+	}
+	return ((unitVec0 * scale0) + (unitVec1 * scale1));
+}
+
+inline Vector4d & Vector4d::operator = (const Vector4d & vec)
+{
+	mX = vec.mX;
+	mY = vec.mY;
+	mZ = vec.mZ;
+	mW = vec.mW;
+	return *this;
+}
+
+inline Vector4d & Vector4d::setXYZ(const Vector3d & vec)
+{
+	mX = vec.getX();
+	mY = vec.getY();
+	mZ = vec.getZ();
+	return *this;
+}
+
+inline const Vector3d Vector4d::getXYZ() const
+{
+	return Vector3d(mX, mY, mZ);
+}
+
+inline Vector4d & Vector4d::setX(double _x)
+{
+	mX = _x;
+	return *this;
+}
+
+inline double Vector4d::getX() const
+{
+	return mX;
+}
+
+inline Vector4d & Vector4d::setY(double _y)
+{
+	mY = _y;
+	return *this;
+}
+
+inline double Vector4d::getY() const
+{
+	return mY;
+}
+
+inline Vector4d & Vector4d::setZ(double _z)
+{
+	mZ = _z;
+	return *this;
+}
+
+inline double Vector4d::getZ() const
+{
+	return mZ;
+}
+
+inline Vector4d & Vector4d::setW(double _w)
+{
+	mW = _w;
+	return *this;
+}
+
+inline double Vector4d::getW() const
+{
+	return mW;
+}
+
+inline Vector4d & Vector4d::setElem(int idx, double value)
+{
+	*(&mX + idx) = value;
+	return *this;
+}
+
+inline double Vector4d::getElem(int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline double & Vector4d::operator[](int idx)
+{
+	return *(&mX + idx);
+}
+
+inline double Vector4d::operator[](int idx) const
+{
+	return *(&mX + idx);
+}
+
+inline const Vector4d Vector4d::operator + (const Vector4d & vec) const
+{
+	return Vector4d((mX + vec.mX),
+				   (mY + vec.mY),
+				   (mZ + vec.mZ),
+				   (mW + vec.mW));
+}
+
+inline const Vector4d Vector4d::operator - (const Vector4d & vec) const
+{
+	return Vector4d((mX - vec.mX),
+				   (mY - vec.mY),
+				   (mZ - vec.mZ),
+				   (mW - vec.mW));
+}
+
+inline const Vector4d Vector4d::operator * (double scalar) const
+{
+	return Vector4d((mX * scalar),
+				   (mY * scalar),
+				   (mZ * scalar),
+				   (mW * scalar));
+}
+
+inline Vector4d & Vector4d::operator += (const Vector4d & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator -= (const Vector4d & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator *= (double scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Vector4d Vector4d::operator / (double scalar) const
+{
+	return Vector4d((mX / scalar),
+				   (mY / scalar),
+				   (mZ / scalar),
+				   (mW / scalar));
+}
+
+inline Vector4d & Vector4d::operator /= (double scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline const Vector4d Vector4d::operator - () const
+{
+	return Vector4d(-mX, -mY, -mZ, -mW);
+}
+
+inline const Vector4d operator * (double scalar, const Vector4d & vec)
+{
+	return vec * scalar;
+}
+
+inline const Vector4d mulPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d((vec0.getX() * vec1.getX()),
+				   (vec0.getY() * vec1.getY()),
+				   (vec0.getZ() * vec1.getZ()),
+				   (vec0.getW() * vec1.getW()));
+}
+
+inline const Vector4d divPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d((vec0.getX() / vec1.getX()),
+				   (vec0.getY() / vec1.getY()),
+				   (vec0.getZ() / vec1.getZ()),
+				   (vec0.getW() / vec1.getW()));
+}
+
+inline const Vector4d recipPerElem(const Vector4d & vec)
+{
+	return Vector4d((1.0 / vec.getX()),
+				   (1.0 / vec.getY()),
+				   (1.0 / vec.getZ()),
+				   (1.0 / vec.getW()));
+}
+
+inline const Vector4d sqrtPerElem(const Vector4d & vec)
+{
+	return Vector4d(std::sqrt(vec.getX()),
+				   std::sqrt(vec.getY()),
+				   std::sqrt(vec.getZ()),
+				   std::sqrt(vec.getW()));
+}
+
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+//#define RCP_EST(_in, _out)                 \
+//do {                                           \
+//	const double in = _in;                      \
+//	const union {                              \
+//	  double f;                                 \
+//	  int i;                                   \
+//	} uf = {in};                               \
+//	const union {                              \
+//	  int i;                                   \
+//	  double f;                                 \
+//	} ui = {(0x3f800000 * 2) - uf.i};          \
+//	const double fp = ui.f * (2.f - in * ui.f); \
+//	_out = fp * (2.f - in * fp);               \
+//} while (void(0), 0)
+//
+//#define RSQRT_EST(_in, _out)                               \
+//do {                                                           \
+//	const double in = _in;                                      \
+//	union {                                                    \
+//	  double f;                                                 \
+//	  int i;                                                   \
+//	} uf = {in};                                               \
+//	union {                                                    \
+//	  int i;                                                   \
+//	  double f;                                                 \
+//	} ui = {0x5f3759df - (uf.i / 2)};                          \
+//	const double fp = ui.f * (1.5f - (in * .5f * ui.f * ui.f)); \
+//	_out = fp * (1.5f - (in * .5f * fp * fp));                 \
+//} while (void(0), 0)
+//
+//#define RSQRT_EST_NR(_in, _out)                \
+//do {                                               \
+//	double fp2;                                     \
+//	RSQRT_EST(_in, fp2);                       \
+//	_out = fp2 * (1.5f - (_in * .5f * fp2 * fp2)); \
+//} while (void(0), 0)
+//
+//inline const Vector4d rcpEst(const Vector4d& v) {
+//  Vector4d ret;
+//  double vX = v.getX();
+//  double vY = v.getY();
+//  double vZ = v.getZ();
+//  double vW = v.getW();
+//  
+//  double rX = ret.getX();
+//  double rY = ret.getY();
+//  double rZ = ret.getZ();
+//  double rW = ret.getW();
+//
+//  RCP_EST(vX, rX);
+//  RCP_EST(vY, rY);
+//  RCP_EST(vZ, rZ);
+//  RCP_EST(vW, rW);
+//
+//  ret.setX(rX);
+//  ret.setY(rY);
+//  ret.setZ(rZ);
+//  ret.setW(rW);
+//
+//  return ret;
+//}
+//
+//inline const Vector4d rSqrtEst(const Vector4d& v) {
+//  Vector4d ret;
+//  double vX = v.getX();
+//  double vY = v.getY();
+//  double vZ = v.getZ();
+//  double vW = v.getW();
+//  
+//  double rX = ret.getX();
+//  double rY = ret.getY();
+//  double rZ = ret.getZ();
+//  double rW = ret.getW();
+//
+//  RSQRT_EST(vX, rX);
+//  RSQRT_EST(vY, rY);
+//  RSQRT_EST(vZ, rZ);
+//  RSQRT_EST(vW, rW);
+//
+//  ret.setX(rX);
+//  ret.setY(rY);
+//  ret.setZ(rZ);
+//  ret.setW(rW);
+//
+//  return ret;
+//}
+//
+//inline const Vector4d rSqrtEstNR(const Vector4d& v) {
+//  Vector4d ret;
+//  double vX = v.getX();
+//  double vY = v.getY();
+//  double vZ = v.getZ();
+//  double vW = v.getW();
+//  
+//  double rX = ret.getX();
+//  double rY = ret.getY();
+//  double rZ = ret.getZ();
+//  double rW = ret.getW();
+//
+//  RSQRT_EST_NR(vX, rX);
+//  RSQRT_EST_NR(vY, rY);
+//  RSQRT_EST_NR(vZ, rZ);
+//  RSQRT_EST_NR(vW, rW);
+//
+//  ret.setX(rX);
+//  ret.setY(rY);
+//  ret.setZ(rZ);
+//  ret.setW(rW);
+//
+//  return ret;
+//}
+//
+////========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+////========================================= #TheForgeMathExtensionsEnd ================================================
+//
+inline const Vector4d rsqrtPerElem(const Vector4d & vec)
+{
+	return Vector4d((1.0 / std::sqrt(vec.getX())),
+				   (1.0 / std::sqrt(vec.getY())),
+				   (1.0 / std::sqrt(vec.getZ())),
+				   (1.0 / std::sqrt(vec.getW())));
+}
+
+inline const Vector4d absPerElem(const Vector4d & vec)
+{
+	return Vector4d(std::fabs(vec.getX()),
+				   std::fabs(vec.getY()),
+				   std::fabs(vec.getZ()),
+				   std::fabs(vec.getW()));
+}
+
+inline const Vector4d copySignPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d((vec1.getX() < 0.0) ? -std::fabs(vec0.getX()) : std::fabs(vec0.getX()),
+				   (vec1.getY() < 0.0) ? -std::fabs(vec0.getY()) : std::fabs(vec0.getY()),
+				   (vec1.getZ() < 0.0) ? -std::fabs(vec0.getZ()) : std::fabs(vec0.getZ()),
+				   (vec1.getW() < 0.0) ? -std::fabs(vec0.getW()) : std::fabs(vec0.getW()));
+}
+
+inline const Vector4d maxPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d((vec0.getX() > vec1.getX()) ? vec0.getX() : vec1.getX(),
+				   (vec0.getY() > vec1.getY()) ? vec0.getY() : vec1.getY(),
+				   (vec0.getZ() > vec1.getZ()) ? vec0.getZ() : vec1.getZ(),
+				   (vec0.getW() > vec1.getW()) ? vec0.getW() : vec1.getW());
+}
+
+inline double maxElem(const Vector4d & vec)
+{
+	double result;
+	result = (vec.getX() > vec.getY()) ? vec.getX() : vec.getY();
+	result = (vec.getZ() > result)     ? vec.getZ() : result;
+	result = (vec.getW() > result)     ? vec.getW() : result;
+	return result;
+}
+
+inline const Vector4d minPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d((vec0.getX() < vec1.getX()) ? vec0.getX() : vec1.getX(),
+				   (vec0.getY() < vec1.getY()) ? vec0.getY() : vec1.getY(),
+				   (vec0.getZ() < vec1.getZ()) ? vec0.getZ() : vec1.getZ(),
+				   (vec0.getW() < vec1.getW()) ? vec0.getW() : vec1.getW());
+}
+
+inline double minElem(const Vector4d & vec)
+{
+	double result;
+	result = (vec.getX() < vec.getY()) ? vec.getX() : vec.getY();
+	result = (vec.getZ() < result)     ? vec.getZ() : result;
+	result = (vec.getW() < result)     ? vec.getW() : result;
+	return result;
+}
+
+inline double sum(const Vector4d & vec)
+{
+	double result;
+	result = (vec.getX() + vec.getY());
+	result = (result + vec.getZ());
+	result = (result + vec.getW());
+	return result;
+}
+
+inline double dot(const Vector4d & vec0, const Vector4d & vec1)
+{
+	double result;
+	result = (vec0.getX() * vec1.getX());
+	result = (result + (vec0.getY() * vec1.getY()));
+	result = (result + (vec0.getZ() * vec1.getZ()));
+	result = (result + (vec0.getW() * vec1.getW()));
+	return result;
+}
+
+inline double lengthSqr(const Vector4d & vec)
+{
+	double result;
+	result = (vec.getX() * vec.getX());
+	result = (result + (vec.getY() * vec.getY()));
+	result = (result + (vec.getZ() * vec.getZ()));
+	result = (result + (vec.getW() * vec.getW()));
+	return result;
+}
+
+inline double length(const Vector4d & vec)
+{
+	return std::sqrt(lengthSqr(vec));
+}
+
+inline const Vector4d normalize(const Vector4d & vec)
+{
+	double lenSqr, lenInv;
+	lenSqr = lengthSqr(vec);
+	lenInv = (1.0 / std::sqrt(lenSqr));
+	return Vector4d((vec.getX() * lenInv),
+				   (vec.getY() * lenInv),
+				   (vec.getZ() * lenInv),
+				   (vec.getW() * lenInv));
+}
+
+inline const Vector4d select(const Vector4d & vec0, const Vector4d & vec1, bool select1)
+{
+	return Vector4d((select1) ? vec1.getX() : vec0.getX(),
+				   (select1) ? vec1.getY() : vec0.getY(),
+				   (select1) ? vec1.getZ() : vec0.getZ(),
+				   (select1) ? vec1.getW() : vec0.getW());
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4Int cmpEq(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() == b.getX()), -static_cast<int>(a.getY() == b.getY()),
+		-static_cast<int>(a.getZ() == b.getZ()), -static_cast<int>(a.getW() == b.getW())};
+	return ret;
+}
+
+inline const Vector4Int cmpNotEq(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() != b.getX()), -static_cast<int>(a.getY() != b.getY()),
+		-static_cast<int>(a.getZ() != b.getZ()), -static_cast<int>(a.getW() != b.getW())};
+	return ret;
+}
+
+inline const Vector4Int cmpLt(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() < b.getX()), -static_cast<int>(a.getY() < b.getY()),
+		-static_cast<int>(a.getZ() < b.getZ()), -static_cast<int>(a.getW() < b.getW())};
+	return ret;
+}
+
+inline const Vector4Int cmpLe(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() <= b.getX()), -static_cast<int>(a.getY() <= b.getY()),
+		-static_cast<int>(a.getZ() <= b.getZ()), -static_cast<int>(a.getW() <= b.getW())};
+	return ret;
+}
+
+inline const Vector4Int cmpGt(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() > b.getX()), -static_cast<int>(a.getY() > b.getY()),
+		-static_cast<int>(a.getZ() > b.getZ()), -static_cast<int>(a.getW() > b.getW())};
+	return ret;
+}
+
+inline const Vector4Int cmpGe(const Vector4d& a, const Vector4d& b) {
+	const Vector4Int ret = {
+		-static_cast<int>(a.getX() >= b.getX()), -static_cast<int>(a.getY() >= b.getY()),
+		-static_cast<int>(a.getZ() >= b.getZ()), -static_cast<int>(a.getW() >= b.getW())};
+	return ret;
+}
+
+inline const Vector4Int signBit(const Vector4d& v) {
+	VectorDI4 fi = {v};
+	const Vector4Int ret = {fi.i.x & static_cast<int>(0x80000000),
+						fi.i.y & static_cast<int>(0x80000000),
+						fi.i.z & static_cast<int>(0x80000000),
+						fi.i.w & static_cast<int>(0x80000000)};
+	return ret;
+}
+
+inline const Vector4d xorPerElem(const Vector4d& a, const Vector4Int& b) {
+	const VectorDI4 c = {a};
+	const VectorID4 ret = {
+		{c.i.x ^ b.x, c.i.y ^ b.y, c.i.z ^ b.z, c.i.w ^ b.w}};
+	return ret.d;
+}
+	
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4Int& b) {
+	const VectorDI4 c = {a};
+	const VectorID4 ret = {
+		{c.i.x | b.x, c.i.y | b.y, c.i.z | b.z, c.i.w | b.w}};
+	return ret.d;
+}
+
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4d& b) {
+	const VectorDI4 c = {a};
+	const VectorDI4 d = {b};
+	const VectorID4 ret = {
+		{c.i.x | d.i.x, c.i.y | d.i.y, c.i.z | d.i.z, c.i.w | d.i.w}};
+	return ret.d;
+}
+
+inline const Vector4d andPerElem(const Vector4d& a, const Vector4Int& b) {
+	const VectorDI4 c = {a};
+	const VectorID4 ret = {
+		{c.i.x & b.x, c.i.y & b.y, c.i.z & b.z, c.i.w & b.w}};
+	return ret.d;
+}
+
+inline double HalfTodouble(uint16_t _h) {
+  const union {
+	uint32_t u;
+	double f;
+  } magic = {(254 - 15) << 23};
+  const union {
+	uint32_t u;
+	double f;
+  } infnan = {(127 + 16) << 23};
+
+  const uint32_t sign = _h & 0x8000;
+  const union {
+	int32_t u;
+	double f;
+  } exp_mant = {(_h & 0x7fff) << 13};
+  const union {
+	double f;
+	uint32_t u;
+  } adjust = {exp_mant.f * magic.f};
+  // Make sure Inf/NaN survive
+  const union {
+	uint32_t u;
+	double f;
+  } result = {(adjust.f >= infnan.f ? (adjust.u | 255 << 23) : adjust.u) |
+			  (sign << 16)};
+  return result.f;
+}
+
+inline const Vector4d halfTodouble(const Vector4Int& vecInt) {
+
+	const Vector4d ret = {
+		HalfTodouble(vecInt.x & 0x0000ffff), HalfTodouble(vecInt.y & 0x0000ffff),
+		HalfTodouble(vecInt.z & 0x0000ffff), HalfTodouble(vecInt.w & 0x0000ffff)};
+	return ret;
+}
+
+inline void transpose3x4(const Vector4d in[3], Vector4d out[4]) {
+
+	out[0].setX(in[0].getX());
+	out[0].setY(in[1].getX());
+	out[0].setZ(in[2].getX());
+	out[0].setW(0.f);
+	out[1].setX(in[0].getY());
+	out[1].setY(in[1].getY());
+	out[1].setZ(in[2].getY());
+	out[1].setW(0.f);
+	out[2].setX(in[0].getZ());
+	out[2].setY(in[1].getZ());
+	out[2].setZ(in[2].getZ());
+	out[2].setW(0.f);
+	out[3].setX(in[0].getW());
+	out[3].setY(in[1].getW());
+	out[3].setZ(in[2].getW());
+	out[3].setW(0.f);
+}
+
+inline void transpose4x4(const Vector4d in[4], Vector4d out[4]) {
+
+	out[0].setX(in[0].getX());
+	out[1].setX(in[0].getY());
+	out[2].setX(in[0].getZ());
+	out[3].setX(in[0].getW());
+	out[0].setY(in[1].getX());
+	out[1].setY(in[1].getY());
+	out[2].setY(in[1].getZ());
+	out[3].setY(in[1].getW());
+	out[0].setZ(in[2].getX());
+	out[1].setZ(in[2].getY());
+	out[2].setZ(in[2].getZ());
+	out[3].setZ(in[2].getW());
+	out[0].setW(in[3].getX());
+	out[1].setW(in[3].getY());
+	out[2].setW(in[3].getZ());
+	out[3].setW(in[3].getW());
+}
+
+//CONFFX_TEST_BEGIN
+inline void transpose4x3(const Vector4d in[4], Vector4d out[4]) {
+
+	out[0].setX(in[0].getX());
+	out[0].setY(in[1].getX());
+	out[0].setZ(in[2].getX());
+	out[0].setW(in[3].getX());
+	out[1].setX(in[0].getY());
+	out[1].setY(in[1].getY());
+	out[1].setZ(in[2].getY());
+	out[1].setW(in[3].getY());
+	out[2].setX(in[0].getZ());
+	out[2].setY(in[1].getZ());
+	out[2].setZ(in[2].getZ());
+	out[2].setW(in[3].getZ());
+}
+//CONFFX_TEST_END
+
+inline void transpose16x16(const Vector4d in[16], Vector4d out[16]) {
+	for (int i = 0; i < 4; ++i) {
+		const int i4 = i * 4;
+		
+		out[i4 + 0].setX(*(in[0].getXPtr() + i));
+		out[i4 + 0].setY(*(in[1].getXPtr() + i));
+		out[i4 + 0].setZ(*(in[2].getXPtr() + i));
+		out[i4 + 0].setW(*(in[3].getXPtr() + i));
+		out[i4 + 1].setX(*(in[4].getXPtr() + i));
+		out[i4 + 1].setY(*(in[5].getXPtr() + i));
+		out[i4 + 1].setZ(*(in[6].getXPtr() + i));
+		out[i4 + 1].setW(*(in[7].getXPtr() + i));
+		out[i4 + 2].setX(*(in[8].getXPtr() + i));
+		out[i4 + 2].setY(*(in[9].getXPtr() + i));
+		out[i4 + 2].setZ(*(in[10].getXPtr() + i));
+		out[i4 + 2].setW(*(in[11].getXPtr() + i));
+		out[i4 + 3].setX(*(in[12].getXPtr() + i));
+		out[i4 + 3].setY(*(in[13].getXPtr() + i));
+		out[i4 + 3].setZ(*(in[14].getXPtr() + i));
+		out[i4 + 3].setW(*(in[15].getXPtr() + i));
+	}
+}
+
+inline void storePtrU(const Vector4d& v, double* f) {
+	f[0] = v.getX();
+	f[1] = v.getY();
+	f[2] = v.getZ();
+	f[3] = v.getW();
+}
+
+inline void store3PtrU(const Vector4d& v, double* f) {
+	f[0] = v.getX();
+	f[1] = v.getY();
+	f[2] = v.getZ();
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Vector4d & vec)
+{
+	std::printf("( %f %f %f %f )\n", vec.getX(), vec.getY(), vec.getZ(), vec.getW());
+}
+
+inline void print(const Vector4d & vec, const char * name)
 {
 	std::printf("%s: ( %f %f %f %f )\n", name, vec.getX(), vec.getY(), vec.getZ(), vec.getW());
 }

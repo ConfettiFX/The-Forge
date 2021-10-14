@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include "../Core/Config.h"
 #include "../../OS/Logging/Log.h"
 
 #ifdef __cplusplus

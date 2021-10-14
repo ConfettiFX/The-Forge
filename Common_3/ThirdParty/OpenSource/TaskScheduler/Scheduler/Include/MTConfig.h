@@ -25,23 +25,23 @@
 
 // Target Platform
 ////////////////////////////////////////////////////////////////////////
-#if _DURANGO
+#if defined(_DURANGO) || defined(_GAMING_XBOX)
 
 #define MT_PLATFORM_DURANGO (1)
 
-#elif ORBIS
+#elif defined(__ORBIS__)
 
 #define MT_PLATFORM_ORBIS (1)
 
-#elif _WIN32
+#elif defined(_WIN32)
 
 #define MT_PLATFORM_WINDOWS (1)
 
-#elif __APPLE_CC__
+#elif defined(__APPLE__)
 
 #define MT_PLATFORM_OSX (1)
 
-#elif NX64
+#elif defined(NX64)
 
 #define MT_PLATFORM_NX64 (1)
 

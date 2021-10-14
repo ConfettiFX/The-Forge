@@ -58,9 +58,6 @@
     <Filter Include="Dependencies\rmem">
       <UniqueIdentifier>{b4df5063-637c-4986-968c-c129bdde13c4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dependencies\basisu">
-      <UniqueIdentifier>{a429a440-a05a-4264-9328-6e4a39cbba91}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Middleware_3\PaniniProjection">
       <UniqueIdentifier>{d459b70a-ff6e-4b31-b330-f4c3a76268ed}</UniqueIdentifier>
     </Filter>
@@ -106,6 +103,9 @@
     <Filter Include="Dependencies\minizip\zlib%28zip%29">
       <UniqueIdentifier>{f9910a80-fa9e-4227-b22a-88d76b685c11}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies\basisu">
+      <UniqueIdentifier>{a429a440-a05a-4264-9328-6e4a39cbba91}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -124,9 +124,6 @@
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h">
-      <Filter>OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h">
@@ -269,6 +266,21 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\miniz.h">
       <Filter>Dependencies\minizip\zlib%28zip%29</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Config.h">
+      <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsConfig.h">
+      <Filter>OS\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.h">
+      <Filter>OS\Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManager.h">
+      <Filter>OS\Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerCommon.h">
+      <Filter>OS\Scripting</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -23,6 +23,9 @@
 */
 
 #pragma once
+
+#include "../RendererConfig.h"
+
 #ifdef DIRECT3D11
 
 #include "../IRenderer.h"

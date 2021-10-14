@@ -1515,7 +1515,7 @@ static bool mz_zip_recover_cd(void* handle)
 
 	if (noerr)
 	{
-		noerr = fsFindStream(zip->stream, (const void*)local_header_magic, sizeof(local_header_magic), INT64_MAX, &next_header_pos);
+		noerr = fsFindStream(zip->stream, (const void*)local_header_magic, sizeof(local_header_magic), SSIZE_MAX, &next_header_pos);
 	}
 
 	while (noerr && !eof)
@@ -1545,7 +1545,7 @@ static bool mz_zip_recover_cd(void* handle)
 		for (;;)
 		{
 			/* Search for the next local header */
-			noerr = fsFindStream(zip->stream, (const void*)local_header_magic, sizeof(local_header_magic), INT64_MAX, &next_header_pos);
+			noerr = fsFindStream(zip->stream, (const void*)local_header_magic, sizeof(local_header_magic), SSIZE_MAX, &next_header_pos);
 
 			//if (err == MZ_EXIST_ERROR) {
 			if (!noerr)
@@ -1554,7 +1554,7 @@ static bool mz_zip_recover_cd(void* handle)
 
 				/* Search for central dir if no local header found */
 				noerr =
-					fsFindStream(zip->stream, (const void*)central_header_magic, sizeof(central_header_magic), INT64_MAX, &next_header_pos);
+					fsFindStream(zip->stream, (const void*)central_header_magic, sizeof(central_header_magic), SSIZE_MAX, &next_header_pos);
 
 				//if (err == MZ_EXIST_ERROR) {
 				if (!noerr)

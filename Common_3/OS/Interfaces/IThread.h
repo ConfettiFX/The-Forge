@@ -22,17 +22,30 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
 #include "../Interfaces/IOperatingSystem.h"
 
 #ifndef _THREAD_H_
 #define _THREAD_H_
 
+
 #if defined(_WINDOWS) || defined(XBOX)
 typedef unsigned long ThreadID;
+#define THREAD_ID_MAX ULONG_MAX
+#define THREAD_ID_MIN ((unsigned long)0)
 #else
 #include <pthread.h>
-#define ThreadID pthread_t
+#if !defined(NX64)
+#if !defined(__APPLE__) || defined(TARGET_IOS)
+typedef uint32_t ThreadID;
 #endif
+#define THREAD_ID_MAX UINT32_MAX
+#define THREAD_ID_MIN ((uint32_t)0)
+#endif // !NX64
+
+#endif
+
+#define INVALID_THREAD_ID 0
 
 #if defined(_WINDOWS) || defined(XBOX)
 #define THREAD_LOCAL __declspec( thread )

@@ -37,7 +37,7 @@ class MyRandom
 
 	void SetSeed(unsigned seed) { srand(seed); }
 
-	float GetUniformDistribution(float min, float max) { return min + float(rand()) / (float(RAND_MAX / (max - min))); }
+	float GetUniformDistribution(float min, float max) { return min + float(rand()) / (float(RAND_MAX) / (max - min)); }
 
 	int GetUniformDistribution(int min, int max) { return (rand() % (max - min)) + min; }
 

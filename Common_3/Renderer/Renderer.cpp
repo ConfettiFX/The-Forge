@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
+#include "RendererConfig.h"
 #include "../OS/Interfaces/ILog.h"
 #include "IRenderer.h"
 #include "IRay.h"
@@ -179,6 +179,7 @@ DECLARE_INTERNAL_RENDERER_FUNCTION(void, mapBuffer, Renderer* pRenderer, Buffer*
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, unmapBuffer, Renderer* pRenderer, Buffer* pBuffer)
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
+DECLARE_INTERNAL_RENDERER_FUNCTION(void, cmdCopySubresource, Cmd* pCmd, Buffer* pDstBuffer, Texture* pTexture, const struct SubresourceDataDesc* pSubresourceDesc)
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 DECLARE_INTERNAL_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
@@ -204,12 +205,16 @@ extern void exitD3D11Renderer(Renderer* pRenderer);
 extern void initD3D12Renderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initD3D12RaytracingFunctions();
 extern void exitD3D12Renderer(Renderer* pRenderer);
+extern void initD3D12RendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext);
+extern void exitD3D12RendererContext(RendererContext* pContext);
 #endif
 
 #if defined(VULKAN)
 extern void initVulkanRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer);
 extern void initVulkanRaytracingFunctions();
 extern void exitVulkanRenderer(Renderer* pRenderer);
+extern void initVulkanRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext);
+extern void exitVulkanRendererContext(RendererContext* pContext);
 #endif
 
 #if defined(METAL)
@@ -340,6 +345,88 @@ static void exitRendererAPI(Renderer* pRenderer, const RendererApi api)
 		LOGF(LogLevel::eERROR, "No Renderer API defined!");
 		break;
 	}
+}
+
+static void initRendererContextAPI(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext, const RendererApi api)
+{
+	switch (api)
+	{
+#if defined(DIRECT3D12)
+	case RENDERER_API_D3D12:
+		initD3D12RendererContext(appName, pSettings, ppContext);
+		break;
+#endif
+#if defined(VULKAN)
+	case RENDERER_API_VULKAN:
+		initVulkanRendererContext(appName, pSettings, ppContext);
+		break;
+#endif
+	default:
+		LOGF(LogLevel::eERROR, "No Renderer API defined!");
+		break;
+	}
+}
+
+static void exitRendererContextAPI(RendererContext* pContext, const RendererApi api)
+{
+	switch (api)
+	{
+#if defined(DIRECT3D12)
+	case RENDERER_API_D3D12:
+		exitD3D12RendererContext(pContext);
+		break;
+#endif
+#if defined(VULKAN)
+	case RENDERER_API_VULKAN:
+		exitVulkanRendererContext(pContext);
+		break;
+#endif
+	default:
+		LOGF(LogLevel::eERROR, "No Renderer API defined!");
+		break;
+	}
+
+}
+
+void initRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
+{
+	ASSERT(ppContext);
+	ASSERT(*ppContext == NULL);
+
+	ASSERT(pSettings);
+
+	gD3D11Unsupported = true;
+	gGLESUnsupported = true;
+
+	// Init requested renderer API
+	if (!apiIsUnsupported(gSelectedRendererApi))
+	{
+		initRendererContextAPI(appName, pSettings, ppContext, gSelectedRendererApi);
+	}
+	else
+	{
+		LOGF(LogLevel::eWARNING, "Requested Graphics API has been marked as disabled and/or not supported in the Renderer's descriptor!");
+		LOGF(LogLevel::eWARNING, "Falling back to the first available API...");
+	}
+
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	// Fallback on other available APIs
+	for (uint32_t i = 0; i < RENDERER_API_COUNT && !*ppContext; ++i)
+	{
+		if (i == gSelectedRendererApi || apiIsUnsupported((RendererApi)i))
+			continue;
+
+		gSelectedRendererApi = (RendererApi)i;
+		initRendererContextAPI(appName, pSettings, ppContext, gSelectedRendererApi);
+	}
+#endif
+}
+
+void exitRendererContext(RendererContext* pContext)
+{
+	ASSERT(pContext);
+
+	exitRendererContextAPI(pContext, gSelectedRendererApi);
 }
 
 void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)

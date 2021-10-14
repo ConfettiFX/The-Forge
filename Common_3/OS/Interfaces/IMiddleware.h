@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../Core/Config.h"
+
 struct Renderer;
 struct RenderTarget;
 struct Cmd;

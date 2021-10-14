@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #if defined(_WINDOWS) || defined(XBOX)
 
 #include "../Interfaces/IThread.h"

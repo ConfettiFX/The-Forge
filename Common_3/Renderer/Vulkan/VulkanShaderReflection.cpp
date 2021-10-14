@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../RendererConfig.h"
+
 #ifdef VULKAN
 
 #include "../IRenderer.h"

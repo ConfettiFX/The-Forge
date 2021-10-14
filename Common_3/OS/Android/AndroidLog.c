@@ -25,6 +25,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "../Interfaces/IOperatingSystem.h"
 
 // interfaces
@@ -52,12 +53,10 @@ void _OutputDebugString(const char* str, ...)
 
 void _FailedAssert(const char* file, int line, const char* statement)
 {
-	static bool debug = true;
-
-	if (debug)
-	{
-		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Assertion failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-	}
+#ifdef FORGE_DEBUG
+	__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Assertion failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
+	// raise(SIGTRAP);
+#endif
 }
 
 void _PrintUnicode(const char* str, bool error) { 

@@ -47,6 +47,38 @@ float4 PS_MAIN( VSOutput In )
 }
 ```
 
+## Specialization/Function constants(Vulkan and Metal only)
+These constants get baked into the micro-code during pipeline creation time so the performance is identical to using a macro without
+any of the downsides of macros (too many shader variations increasing the size of the build).
+
+Good read on Specialization constants. Same things apply to function constants on Metal
+https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/specialization_constants/specialization_constants_tutorial.html
+
+Declared at global scope using SHADER_CONSTANT macro. Used as any regular variable after declaration
+
+Macro arguments:
+```
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE)
+```
+Example usage:
+```
+SHADER_CONSTANT(0, uint, gRenderMode, 0);
+// Vulkan - layout (constant_id = 0) const uint gRenderMode = 0;
+// Metal  - constant uint gRenderMode [[function_constant(0)]];
+// Others - const uint gRenderMode = 0;
+
+void main()
+{
+    // Can be used like regular variables in shader code
+    if (gRenderMode == 1)
+    {
+        // 
+    }
+}
+```
+
+NOTE: Unlike Vulkan, Metal does not provide a way to initialize function constants to default value. So all required function constants need to be passed through ShaderLoadDesc/BinaryShaderDesc when creating the shader
+
 ## Matrices
 FSL matrices are column major.
 Matrices declared inside cbuffer, pushconstants, or structure buffers are initialized from memory in column major order.  

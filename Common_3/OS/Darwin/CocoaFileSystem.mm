@@ -22,6 +22,8 @@
  * under the License.
 */
 
+#include "../Core/Config.h"
+
 #import <Foundation/Foundation.h>
 
 #include "../Interfaces/IFileSystem.h"
@@ -38,7 +40,9 @@ const char* getResourceMount(ResourceMount mount) {
 
 static NSURL* gSaveUrl;
 static NSURL* gDebugUrl;
+#ifndef TARGET_IOS
 static char gApplicationPath[FS_MAX_PATH] = {};
+#endif
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {

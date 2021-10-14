@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include "../Core/Config.h"
+
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 

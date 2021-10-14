@@ -1,24 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\AsteroidSim.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\NoiseOctaves.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Random.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\simplexnoise1234.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\TextureGen.h" />
-    <ClInclude Include="..\..\..\..\..\..\Middleware_3\PaniniProjection\Panini.h" />
-    <ClInclude Include="..\..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
-    <ClInclude Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\FSL\Quest\ExecuteIndirect.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\AsteroidSim.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\NoiseOctaves.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Random.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\FSL\Quest\ExecuteIndirect.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\simplexnoise1234.h" />
+    <ClInclude Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\TextureGen.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\PaniniProjection\Panini.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\04_ExecuteIndirect.cpp" />
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\AsteroidSim.cpp" />
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\simplexnoise1234.cpp" />
-    <ClCompile Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\TextureGen.cpp" />
-    <ClCompile Include="..\..\..\..\..\..\Middleware_3\PaniniProjection\Panini.cpp" />
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\04_ExecuteIndirect.cpp" />
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\AsteroidSim.cpp" />
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\simplexnoise1234.cpp" />
+    <ClCompile Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\TextureGen.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\PaniniProjection\Panini.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -32,33 +30,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ComputeUpdate.comp">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\basic.frag" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\basic.vert" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.frag" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ExecuteIndirect.vert" />
+    <None Include="..\..\..\..\..\Examples_3\Unit_Tests\src\04_ExecuteIndirect\Shaders\Vulkan\ComputeUpdate.comp" />
+    <None Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.frag" />
+    <None Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\Vulkan\panini_projection.vert" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\basic.frag.fsl">

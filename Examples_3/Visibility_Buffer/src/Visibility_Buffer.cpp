@@ -47,10 +47,12 @@
 #if defined(XBOX)
 #include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
 #include "../../../Xbox/Common_3/Renderer/IESRAMManager.h"
-#define BEGINALLOCATION(X) esramBeginAllocation(pRenderer->mD3D12.pESRAMManager, X, esramGetCurrentOffset(pRenderer->mD3D12.pESRAMManager))
+#define BEGINALLOCATION(X, O) esramBeginAllocation(pRenderer->mD3D12.pESRAMManager, X, O)
+#define ALLOCATIONOFFSET() esramGetCurrentOffset(pRenderer->mD3D12.pESRAMManager)
 #define ENDALLOCATION(X) esramEndAllocation(pRenderer->mD3D12.pESRAMManager)
 #else
-#define BEGINALLOCATION(X)
+#define BEGINALLOCATION(X, O)
+#define ALLOCATIONOFFSET() 0u
 #define ENDALLOCATION(X)
 #endif
 
@@ -2396,6 +2398,10 @@ public:
 			uiDestroyComponent(pDebugTexturesWindow);
 			pDebugTexturesWindow = NULL;
 		}
+
+#if defined(XBOX)
+        esramResetAllocations(pRenderer->mD3D12.pESRAMManager);
+#endif
 	}
 
 	void Update(float deltaTime)
@@ -2655,7 +2661,7 @@ public:
 			uint32_t rtBarriersCount = gAppSettings.mMsaaLevel > 1 ? 3 : 2;
 			RenderTargetBarrier rtBarriers[] = {
 				{ pScreenRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+				{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
 				{ pRenderTargetMSAA, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
 
@@ -3265,26 +3271,30 @@ public:
 		ClearValue optimizedColorClearBlack = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		ClearValue optimizedColorClearWhite = {{1.0f, 1.0f, 1.0f, 1.0f}};
 
-		BEGINALLOCATION("RTs");
-
 		/************************************************************************/
 		// Main depth buffer
 		/************************************************************************/
 		// Add depth buffer
+		BEGINALLOCATION("Depth Buffer", 0u);
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = optimizedDepthClear;
 		depthRT.mDepth = 1;
 		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
-		depthRT.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		depthRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = gAppSettings.mMsaaLevel;
 		depthRT.mSampleQuality = 0;
-		depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_NONE : TEXTURE_CREATION_FLAG_ESRAM;;
+		depthRT.mFlags = gAppSettings.mMsaaLevel > SAMPLE_COUNT_2 ? TEXTURE_CREATION_FLAG_NONE : TEXTURE_CREATION_FLAG_ESRAM;
 		depthRT.mWidth = width;
 		depthRT.pName = "Depth Buffer RT";
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
+#if defined(XBOX)
+		const uint32_t depthAllocationOffset = ALLOCATIONOFFSET();
+#endif
+		ENDALLOCATION("Depth Buffer");
+
 		/************************************************************************/
 		// Shadow pass render target
 		/************************************************************************/
@@ -3305,6 +3315,7 @@ public:
 		/************************************************************************/
 		// Visibility buffer pass render target
 		/************************************************************************/
+		BEGINALLOCATION("VB RT", depthAllocationOffset);
 		RenderTargetDesc vbRTDesc = {};
 		vbRTDesc.mArraySize = 1;
 		vbRTDesc.mClearValue = optimizedColorClearWhite;
@@ -3319,6 +3330,7 @@ public:
 		vbRTDesc.mWidth = width;
 		vbRTDesc.pName = "VB RT";
 		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
+		ENDALLOCATION("VB RT");
 		/************************************************************************/
 		// Deferred pass render targets
 		/************************************************************************/
@@ -3328,7 +3340,7 @@ public:
 		deferredRTDesc.mDepth = 1;
 		deferredRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		deferredRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-		deferredRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		deferredRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		deferredRTDesc.mHeight = height;
 		deferredRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
 		deferredRTDesc.mSampleQuality = 0;
@@ -3336,6 +3348,9 @@ public:
 		deferredRTDesc.pName = "G-Buffer RTs";
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
+			char namebuf[64];
+			snprintf(namebuf, sizeof(namebuf), "G-Buffer RT %u of %u", i + 1, DEFERRED_RT_COUNT);
+			deferredRTDesc.pName = namebuf;
 			addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[i]);
 		}
 		/************************************************************************/
@@ -3380,6 +3395,7 @@ public:
 		/************************************************************************/
 		// Intermediate render target
 		/************************************************************************/
+		BEGINALLOCATION("Intermediate", depthAllocationOffset);
 		RenderTargetDesc postProcRTDesc = {};
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
@@ -3391,6 +3407,7 @@ public:
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		postProcRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		postProcRTDesc.pName = "pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 		/************************************************************************/
@@ -3454,14 +3471,17 @@ public:
 		GRRTDesc.mWidth = mSettings.mWidth / gGodrayScale;
 		GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		GRRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		GRRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 
 		GRRTDesc.pName = "GodRay RT A";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
 		GRRTDesc.pName = "GodRay RT B";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[1]);
+		ENDALLOCATION("Intermediate");
 		/************************************************************************/
 		// Color Conversion render target
 		/************************************************************************/
+		BEGINALLOCATION("CurveConversion", 0u);
 		RenderTargetDesc postCurveConversionRTDesc = {};
 		postCurveConversionRTDesc.mArraySize = 1;
 		postCurveConversionRTDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -3473,12 +3493,12 @@ public:
 		postCurveConversionRTDesc.mWidth = mSettings.mWidth;
 		postCurveConversionRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postCurveConversionRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		postCurveConversionRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		postCurveConversionRTDesc.pName = "pCurveConversionRenderTarget";
 		addRenderTarget(pRenderer, &postCurveConversionRTDesc, &pCurveConversionRenderTarget);
+		ENDALLOCATION("CurveConversion");
 		/************************************************************************/
 		/************************************************************************/
-
-		ENDALLOCATION("RTs");
 		return true;
 	}
 
@@ -3583,12 +3603,15 @@ public:
 
 		for (uint32_t i = 0; i < MSAA_LEVELS_COUNT; ++i)
 		{
+			// USE_AMBIENT_OCCLUSION doesn't matter for these shaders
+			uint32_t index = i * 2;
+
 			deferredPointlights[i].mStages[0] = { "deferred_shade_pointlight.vert", NULL, 0 };
-			deferredPointlights[i].mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[i], 1 };
+			deferredPointlights[i].mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[index], 1 };
 
 			// Resolve shader
 			resolvePass[i].mStages[0] = { "resolve.vert", NULL, 0 };
-			resolvePass[i].mStages[1] = { "resolve.frag", shadingMacros[i], 1 };
+			resolvePass[i].mStages[1] = { "resolve.frag", shadingMacros[index], 1 };
 		}
 
 		// Resolve shader
@@ -4387,7 +4410,15 @@ public:
 				waitQueueIdle(pGraphicsQueue);
 				waitQueueIdle(pComputeQueue);
 				removeUserInterfacePipelines();
-				addUserInterfacePipelines(gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0] : pIntermediateRenderTarget);
+				removeFontSystemPipelines();
+
+				RenderTarget* ppPipelineRenderTargets[] = {
+					gAppSettings.mEnableGodray ? pSwapChain->ppRenderTargets[0] : pIntermediateRenderTarget,
+					pDepthBuffer
+				};
+
+				addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL);
+				addUserInterfacePipelines(ppPipelineRenderTargets[0]);
 			}
 		}
 
@@ -5233,10 +5264,10 @@ public:
 		else if (gAppSettings.mRenderMode == RENDERMODE_DEFERRED)
 		{
 			RenderTargetBarrier rtBarriers[] = {
-				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 				{ pRenderTargetShadow, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
 				{ pRenderTargetAO, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
@@ -5253,7 +5284,7 @@ public:
 			RenderTargetBarrier barriers[] = {
 				{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
 			cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
@@ -5281,11 +5312,11 @@ public:
 			cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
 
 			RenderTargetBarrier barriers[] = {
-				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 2, barriers);
@@ -5474,7 +5505,7 @@ public:
 	{
 		RenderTargetBarrier barrierThree[3] = {
 			{ pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-			{ pDepthBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+			{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
 			{ pRenderTargetSun, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET }
 		};
 
@@ -5503,7 +5534,7 @@ public:
 		{
 			RenderTargetBarrier barrier2[] = {
 				{ pRenderTargetSun, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pRenderTargetGodRay[0], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 				{ pRenderTargetSunResolved, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
@@ -5513,7 +5544,7 @@ public:
 		{
 			RenderTargetBarrier barrier2[] = {
 				{ pRenderTargetSun, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pRenderTargetGodRay[0], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, sizeof(barrier2) / sizeof(barrier2[0]), barrier2);

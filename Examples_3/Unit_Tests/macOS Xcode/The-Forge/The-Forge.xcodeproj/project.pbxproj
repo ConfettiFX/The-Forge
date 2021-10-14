@@ -52,6 +52,9 @@
 		5557BC4A268CBFFA00B7ACF4 /* aestab.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BC37268CBFFA00B7ACF4 /* aestab.c */; };
 		5557BC4B268CBFFA00B7ACF4 /* sha2.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BC38268CBFFA00B7ACF4 /* sha2.c */; };
 		5557BC4C268CBFFA00B7ACF4 /* sha2.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BC38268CBFFA00B7ACF4 /* sha2.c */; };
+		559C35F42716EBCD00823211 /* Config.h in Headers */ = {isa = PBXBuildFile; fileRef = 559C35F32716EBCD00823211 /* Config.h */; };
+		55EF1A5A26E0E99100880C04 /* RendererConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = 55EF1A5926E0E99100880C04 /* RendererConfig.h */; };
+		55EF1A6226E0EA9800880C04 /* MetalConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = 55EF1A6126E0EA9800880C04 /* MetalConfig.h */; };
 		5C172F50214148840074EE71 /* IRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
 		5C172F52214148840074EE71 /* IShaderReflection.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F48214148830074EE71 /* IShaderReflection.h */; };
 		5C172F53214148840074EE71 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F49214148830074EE71 /* CommonShaderReflection.cpp */; };
@@ -358,6 +361,9 @@
 		5557BC36268CBFFA00B7ACF4 /* brg_endian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = brg_endian.h; path = ../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/brg_endian.h; sourceTree = "<group>"; };
 		5557BC37268CBFFA00B7ACF4 /* aestab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aestab.c; path = ../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aestab.c; sourceTree = "<group>"; };
 		5557BC38268CBFFA00B7ACF4 /* sha2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sha2.c; path = ../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/sha2.c; sourceTree = "<group>"; };
+		559C35F32716EBCD00823211 /* Config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Config.h; sourceTree = "<group>"; };
+		55EF1A5926E0E99100880C04 /* RendererConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RendererConfig.h; sourceTree = "<group>"; };
+		55EF1A6126E0EA9800880C04 /* MetalConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalConfig.h; path = Metal/MetalConfig.h; sourceTree = "<group>"; };
 		5C172F1F214145410074EE71 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		5C172F21214145440074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		5C172F44214148830074EE71 /* IResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IResourceLoader.h; sourceTree = "<group>"; };
@@ -994,6 +1000,8 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				55EF1A5926E0E99100880C04 /* RendererConfig.h */,
+				55EF1A6126E0EA9800880C04 /* MetalConfig.h */,
 				B22CEE9125D682460062036A /* Renderer.cpp */,
 				5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
@@ -1051,6 +1059,7 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				559C35F32716EBCD00823211 /* Config.h */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.c */,
 			);
@@ -1083,6 +1092,7 @@
 				5557BC3C268CBFFA00B7ACF4 /* aestab.h in Headers */,
 				5557BC29268CBFEC00B7ACF4 /* mz_crypt.h in Headers */,
 				5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */,
+				55EF1A6226E0EA9800880C04 /* MetalConfig.h in Headers */,
 				B231A24D23F40207006D7450 /* GpuProfiler.h in Headers */,
 				B23498372693B74100504010 /* LuaManagerCommon.h in Headers */,
 				B23498382693B74100504010 /* LunaV.hpp in Headers */,
@@ -1093,6 +1103,7 @@
 				5557BC3D268CBFFA00B7ACF4 /* hmac.h in Headers */,
 				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
 				B234983B2693B74100504010 /* LuaManagerImpl.h in Headers */,
+				55EF1A5A26E0E99100880C04 /* RendererConfig.h in Headers */,
 				B234985F2693B7BE00504010 /* resources.h in Headers */,
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
 				B22CEEDA25D686980062036A /* GPUConfig.h in Headers */,
@@ -1109,6 +1120,7 @@
 				B231A25323F40207006D7450 /* ProfilerHTML.h in Headers */,
 				5557BC42268CBFFA00B7ACF4 /* sha1.h in Headers */,
 				5557BC47268CBFFA00B7ACF4 /* sha2.h in Headers */,
+				559C35F42716EBCD00823211 /* Config.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
 				5557BC17268CBFEC00B7ACF4 /* mz_os.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
@@ -1533,19 +1545,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_BITCODE = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					TARGET_IOS,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
-					METAL,
-					TARGET_IOS_SIMULATOR,
-					TARGET_IOS,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
@@ -1571,17 +1571,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_BITCODE = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					TARGET_IOS,
-					SCREENSHOT_ENABLED,
-				);
-				"GCC_PREPROCESSOR_DEFINITIONS[sdk=iphonesimulator*]" = (
-					METAL,
-					TARGET_IOS_SIMULATOR,
-					TARGET_IOS,
-					SCREENSHOT_ENABLED,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
@@ -1606,12 +1596,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					_DEBUG,
-					USE_MEMORY_TRACKING,
-					ZIP_STATIC,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1634,11 +1619,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					METAL,
-					ZIP_STATIC,
-					SCREENSHOT_ENABLED,
-				);
+				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";

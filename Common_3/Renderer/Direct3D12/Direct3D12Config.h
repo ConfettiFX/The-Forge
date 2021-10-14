@@ -1,8 +1,9 @@
 /*
- * 
+ * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -10,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -21,29 +22,37 @@
  * under the License.
 */
 
-#include "resources.h"
+#pragma once 
 
-STRUCT(VSOutput)
-{
-	DATA(float4, Position, SV_Position);
-    DATA(float2, TexCoord, TEXCOORD);
-};
+#ifndef FORGE_RENDERER_CONFIG_H
+#error "Direct3D12Config should be included from RendererConfig only"
+#endif
 
-float4 PS_MAIN( VSOutput In )
-{
-	INIT_MAIN;
-	float4 Out;
-	float4 src = SampleTex2D(Get(sceneTexture), Get(clampMiplessLinearSampler), In.TexCoord);
+#define DIRECT3D12
 
-	int2 size = GetDimensions(Get(sceneTexture), Get(clampMiplessLinearSampler));
+#ifdef XBOX
+#include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
+#else
+#include <d3d12.h>
+#include "../../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
+#include <dxgi1_6.h>
+#include <dxgidebug.h>
+#endif
 
-	float2 uv = In.TexCoord;
-	float2 coord = 2.0 * (uv - 0.5) * float(size.x) / float(size.y);
-	float rf = sqrt(dot(coord, coord)) * 0.2;
-	float rf2_1 = rf * rf + 1.0;
-	float e = 1.0 / (rf2_1 * rf2_1);
-	//e = pow(e, 2.0);
-	//e = saturate(e + 0.5);
-	Out = float4(src.rgb* e, 1.0f);
-	RETURN(Out);
-}
+
+//////////////////////////////////////////////
+//// Availability macros
+//// Do not modify
+//////////////////////////////////////////////
+
+#ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT
+#define RAYTRACING_AVAILABLE
+#endif
+
+#ifdef D3D12_RS_SET_SHADING_RATE_COMBINER_COUNT
+#define VRS_AVAILABLE
+#endif
+
+#if defined(_WINDOWS)
+#define NSIGHT_AFTERMATH_AVAILABLE
+#endif

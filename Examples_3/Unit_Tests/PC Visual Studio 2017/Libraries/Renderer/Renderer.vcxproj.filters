@@ -98,5 +98,17 @@
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Commands.h">
       <Filter>DX11</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\RendererConfig.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Config.h">
+      <Filter>DX12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanConfig.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Config.h">
+      <Filter>DX11</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

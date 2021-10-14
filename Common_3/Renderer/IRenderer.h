@@ -24,124 +24,10 @@
 
 #pragma once
 
-//
-// default capability levels of the renderer
-//
-#if !defined(RENDERER_CUSTOM_MAX)
-enum
-{
-	MAX_INSTANCE_EXTENSIONS = 64,
-	MAX_DEVICE_EXTENSIONS = 64,
-	/// Max number of GPUs in SLI or Cross-Fire
-	MAX_LINKED_GPUS = 4,
-	MAX_RENDER_TARGET_ATTACHMENTS = 8,
-	MAX_VERTEX_BINDINGS = 15,
-	MAX_VERTEX_ATTRIBS = 15,
-	MAX_SEMANTIC_NAME_LENGTH = 128,
-	MAX_DEBUG_NAME_LENGTH = 128,
-	MAX_MIP_LEVELS = 0xFFFFFFFF,
-	MAX_SWAPCHAIN_IMAGES = 3,
-	MAX_ROOT_CONSTANTS_PER_ROOTSIGNATURE = 4,
-	MAX_GPU_VENDOR_STRING_LENGTH = 64,    //max size for GPUVendorPreset strings
-#if defined(VULKAN)
-	MAX_PLANE_COUNT = 3,
-#endif
-};
-#endif
+#include "RendererConfig.h"
 
-#if defined(DIRECT3D11)
-#include <d3d11_1.h>
-#include <dxgi1_2.h>
-#endif
-#if defined(XBOX)
-#include "../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
-#elif defined(DIRECT3D12)
-#include <d3d12.h>
-#include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
-#include <dxgi1_6.h>
-#include <dxgidebug.h>
-
-// Nsight Aftermath
-#if defined(_WIN32) && defined(_DEBUG) && defined(NSIGHT_AFTERMATH)
+#ifdef ENABLE_NSIGHT_AFTERMATH
 #include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
-#endif
-#endif
-
-#if defined(DIRECT3D11)
-#include <d3d11_1.h>
-#include <dxgi1_2.h>
-
-// Nsight Aftermath
-#if defined(_WIN32) && defined(_DEBUG) && defined(NSIGHT_AFTERMATH)
-#include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
-#endif
-#endif
-#if defined(DIRECT3D12)
-// Raytracing
-#ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT
-#define ENABLE_RAYTRACING
-#endif
-
-// Variable Rate Shading
-#ifdef D3D12_RS_SET_SHADING_RATE_COMBINER_COUNT
-#define ENABLE_VRS
-#endif
-
-// Forward declare memory allocator classes
-namespace D3D12MA {
-class Allocator;
-class Allocation;
-};    // namespace D3D12MA
-#endif
-#if defined(VULKAN)
-#if defined(_WINDOWS) || defined(XBOX)
-#define VK_USE_PLATFORM_WIN32_KHR
-#elif defined(__ANDROID__)
-#ifndef VK_USE_PLATFORM_ANDROID_KHR
-#define VK_USE_PLATFORM_ANDROID_KHR
-#endif
-#elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
-#define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib or Xcb as display server, defaults to Xlib
-#endif
-#if defined(NX64)
-#define VK_USE_PLATFORM_VI_NN
-#include <vulkan/vulkan.h>
-#include "../../Switch/Common_3/Renderer/Vulkan/NX/NXVulkanExt.h"
-#else
-#include "../ThirdParty/OpenSource/volk/volk.h"
-#endif
-
-// Set this define to enable renderdoc layer
-// NOTE: Setting this define will disable use of the khr dedicated allocation extension since it conflicts with the renderdoc capture layer
-//#define USE_RENDER_DOC
-
-// Raytracing
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-#define ENABLE_RAYTRACING
-
-// Nsight Aftermath
-#if (defined(_WIN32) || defined(__linux__)) && defined(_DEBUG) && defined(NSIGHT_AFTERMATH)
-#include "../ThirdParty/PrivateNvidia/NsightAftermath/include/AftermathTracker.h"
-#endif
-#endif
-
-#endif
-#if defined(METAL)
-#import <MetalKit/MetalKit.h>
-#include "Metal/MetalAvailabilityMacros.h"
-#endif
-#if defined(ORBIS)
-#include "../../PS4/Common_3/Renderer/Orbis/OrbisStructs.h"
-#endif
-#if defined(PROSPERO)
-#include "../../Prospero/Common_3/Renderer/ProsperoStructs.h"
-#endif
-
-#if defined(GLES)
-#include "../../Common_3/ThirdParty/OpenSource/OpenGL/GLES2/gl2.h"
-typedef void* GLContext;
-typedef void* GLConfig;
-typedef void* GLSurface;
 #endif
 
 #include "../OS/Interfaces/ILog.h"
@@ -162,9 +48,49 @@ typedef void* GLSurface;
 #define MAKE_ENUM_FLAG(TYPE, ENUM_TYPE)
 #endif
 
-// Enable graphics validation in debug builds by default.
-#if defined(FORGE_DEBUG) && !defined(DISABLE_GRAPHICS_DEBUG)
-#define ENABLE_GRAPHICS_DEBUG
+//
+// default capability levels of the renderer
+//
+#if !defined(RENDERER_CUSTOM_MAX)
+enum
+{
+	MAX_INSTANCE_EXTENSIONS = 64,
+	MAX_DEVICE_EXTENSIONS = 64,
+	/// Max number of GPUs in SLI or Cross-Fire
+	MAX_LINKED_GPUS = 4,
+	/// Max number of GPUs in unlinked mode
+	MAX_UNLINKED_GPUS = 4,
+	/// Max number of GPus for either linked or unlinked mode.
+	MAX_MULTIPLE_GPUS = 4,
+	MAX_RENDER_TARGET_ATTACHMENTS = 8,
+	MAX_VERTEX_BINDINGS = 15,
+	MAX_VERTEX_ATTRIBS = 15,
+	MAX_SEMANTIC_NAME_LENGTH = 128,
+	MAX_DEBUG_NAME_LENGTH = 128,
+	MAX_MIP_LEVELS = 0xFFFFFFFF,
+	MAX_SWAPCHAIN_IMAGES = 3,
+	MAX_ROOT_CONSTANTS_PER_ROOTSIGNATURE = 4,
+	MAX_GPU_VENDOR_STRING_LENGTH = 64,    //max size for GPUVendorPreset strings
+#if defined(VULKAN)
+	MAX_PLANE_COUNT = 3,
+#endif
+};
+#endif
+
+
+#ifdef DIRECT3D12
+// Forward declare memory allocator classes
+namespace D3D12MA {
+	class Allocator;
+	class Allocation;
+};    // namespace D3D12MA
+#endif
+
+#if defined(ORBIS)
+#include "../../PS4/Common_3/Renderer/Orbis/OrbisStructs.h"
+#endif
+#if defined(PROSPERO)
+#include "../../Prospero/Common_3/Renderer/ProsperoStructs.h"
 #endif
 
 typedef enum RendererApi
@@ -192,11 +118,6 @@ typedef enum RendererApi
 #endif
 	RENDERER_API_COUNT
 } RendererApi;
-
-#if (defined(DIRECT3D11) && defined(VULKAN)) || (defined(GLES) && defined(VULKAN)) || (defined(DIRECT3D12) && defined(VULKAN)) || \
-	(defined(DIRECT3D12) && defined(DIRECT3D11))
-#define USE_MULTIPLE_RENDER_APIS
-#endif
 
 typedef enum QueueType
 {
@@ -275,6 +196,7 @@ typedef enum ResourceMemoryUsage
 } ResourceMemoryUsage;
 
 // Forward declarations
+typedef struct RendererContext    RendererContext;
 typedef struct Renderer           Renderer;
 typedef struct Queue              Queue;
 typedef struct Pipeline           Pipeline;
@@ -698,14 +620,16 @@ typedef enum TextureCreationFlags
 	TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET = 0x200,
 	/// Create an sRGB texture.
 	TEXTURE_CREATION_FLAG_SRGB = 0x400,
+	/// Create a normal map texture
+	TEXTURE_CREATION_FLAG_NORMAL_MAP = 0x800,
 	/// Fast clear
-	TEXTURE_CREATION_FLAG_FAST_CLEAR = 0x800,
+	TEXTURE_CREATION_FLAG_FAST_CLEAR = 0x1000,
 	/// Fragment mask
-	TEXTURE_CREATION_FLAG_FRAG_MASK = 0x1000,
-    /// Doubles the amount of array layers of the texture when rendering VR. Also forces the texture to be a 2D Array texture.
-    TEXTURE_CREATION_FLAG_VR_MULTIVIEW = 0x2000,
+	TEXTURE_CREATION_FLAG_FRAG_MASK = 0x2000,
+	/// Doubles the amount of array layers of the texture when rendering VR. Also forces the texture to be a 2D Array texture.
+    TEXTURE_CREATION_FLAG_VR_MULTIVIEW = 0x4000,
     /// Binds the FFR fragment density if this texture is used as a render target.
-    TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING = 0x4000,
+    TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING = 0x8000,
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 
@@ -909,6 +833,7 @@ typedef struct BufferDesc
 	TinyImageFormat mFormat;
 	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
 	DescriptorType mDescriptors;
+	/// The index of the GPU in SLI/Cross-Fire that owns this buffer, or the Renderer index in unlinked mode.
 	uint32_t       mNodeIndex;
 	uint32_t       mSharedNodeIndexCount;
 } BufferDesc;
@@ -2155,6 +2080,14 @@ typedef struct ShaderMacro
 	const char* value;
 } ShaderMacro;
 
+/// ShaderConstant only supported by Vulkan and Metal APIs
+typedef struct ShaderConstant
+{
+	const void*    pValue;
+	uint32_t       mIndex;
+	uint32_t       mSize;
+} ShaderConstant;
+
 #if defined(TARGET_IOS)
 typedef struct ShaderStageDesc
 {
@@ -2167,13 +2100,15 @@ typedef struct ShaderStageDesc
 
 typedef struct ShaderDesc
 {
-	ShaderStage     mStages;
-	ShaderStageDesc mVert;
-	ShaderStageDesc mFrag;
-	ShaderStageDesc mGeom;
-	ShaderStageDesc mHull;
-	ShaderStageDesc mDomain;
-	ShaderStageDesc mComp;
+	ShaderStage           mStages;
+	ShaderStageDesc       mVert;
+	ShaderStageDesc       mFrag;
+	ShaderStageDesc       mGeom;
+	ShaderStageDesc       mHull;
+	ShaderStageDesc       mDomain;
+	ShaderStageDesc       mComp;
+	const ShaderConstant* pConstants;
+	uint32_t              mConstantCount;
 } ShaderDesc;
 #endif
 
@@ -2199,7 +2134,7 @@ typedef struct BinaryShaderStageDesc
 
 typedef struct BinaryShaderDesc
 {
-	ShaderStage mStages;
+	ShaderStage           mStages;
 	/// Specify whether shader will own byte code memory
 	uint32_t              mOwnByteCode : 1;
 	BinaryShaderStageDesc mVert;
@@ -2208,12 +2143,14 @@ typedef struct BinaryShaderDesc
 	BinaryShaderStageDesc mHull;
 	BinaryShaderStageDesc mDomain;
 	BinaryShaderStageDesc mComp;
+	const ShaderConstant* pConstants;
+	uint32_t              mConstantCount;
 } BinaryShaderDesc;
 
 typedef struct Shader
 {
 	ShaderStage mStages : 31;
-    bool mIsMultiviewVR : 1;
+    bool        mIsMultiviewVR : 1;
 	uint32_t    mNumThreadsPerGroup[3];
 	union
 	{
@@ -2227,8 +2164,9 @@ typedef struct Shader
 #if defined(VULKAN)
 		struct
 		{
-			VkShaderModule* pShaderModules;
-			char**          pEntryNames;
+			VkShaderModule*       pShaderModules;
+			char**                pEntryNames;
+			VkSpecializationInfo* pSpecializationInfo;
 		} mVulkan;
 #endif
 #if defined(METAL)
@@ -2347,7 +2285,6 @@ typedef struct VertexAttrib
 	uint32_t         mLocation;
 	uint32_t         mOffset;
 	VertexAttribRate mRate;
-
 } VertexAttrib;
 
 typedef struct VertexLayout
@@ -2720,7 +2657,7 @@ typedef enum GpuMode
 {
 	GPU_MODE_SINGLE = 0,
 	GPU_MODE_LINKED,
-	// #TODO GPU_MODE_UNLINKED,
+	GPU_MODE_UNLINKED,
 } GpuMode;
 
 typedef struct RendererDesc
@@ -2769,6 +2706,10 @@ typedef struct RendererDesc
 	LogFn        pLogFn;
 	ShaderTarget mShaderTarget;
 	GpuMode      mGpuMode;
+
+	/// Required when creating unlinked multiple renderers. Ignored otherwise.
+	RendererContext* pContext;
+	uint32_t         mGpuIndex;
 
 	/// This results in new validation not possible during API calls on the CPU, by creating patched shaders that have validation added directly to the shader.
 	/// However, it can slow things down a lot, especially for applications with numerous PSOs. Time to see the first render frame may take several minutes
@@ -2896,7 +2837,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 			VkPhysicalDevice             pVkActiveGPU;
 			VkPhysicalDeviceProperties2* pVkActiveGPUProperties;
 			VkDevice                     pVkDevice;
-#ifdef USE_DEBUG_UTILS_EXTENSION
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
 			VkDebugUtilsMessengerEXT pVkDebugUtilsMessenger;
 #else
 			VkDebugReportCallbackEXT                 pVkDebugReport;
@@ -2906,6 +2847,15 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 			struct DescriptorPool* pDescriptorPool;
 			struct VmaAllocator_T* pVmaAllocator;
 			uint32_t               mRaytracingExtension : 1;
+			uint32_t               mYCbCrExtension : 1;
+			uint32_t               mNVRayTracingExtension : 1;
+			uint32_t               mAMDGCNShaderExtension : 1;
+			uint32_t               mAMDDrawIndirectCountExtension : 1;
+			uint32_t               mDescriptorIndexingExtension : 1;
+			uint32_t               mDrawIndirectCountExtension : 1;
+			uint32_t               mDedicatedAllocationExtension : 1;
+			uint32_t               mExternalMemoryExtension : 1;
+			uint32_t               mDebugMarkerSupport : 1;
 			union
 			{
 				struct
@@ -2971,7 +2921,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 	};
 #endif
 
-#if defined(USE_NSIGHT_AFTERMATH)
+#if defined(ENABLE_NSIGHT_AFTERMATH)
 	// GPU crash dump tracker using Nsight Aftermath instrumentation
 	AftermathTracker mAftermathTracker;
 	bool             mAftermathSupport;
@@ -2984,6 +2934,7 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 	ShaderMacro*            pBuiltinShaderDefines;
 	GPUCapBits*             pCapBits;
 	uint32_t                mLinkedNodeCount : 4;
+	uint32_t                mUnlinkedRendererIndex : 4;
 	uint32_t                mGpuMode : 3;
 	uint32_t                mShaderTarget : 4;
 	uint32_t                mEnableGpuBasedValidation : 1;
@@ -2992,6 +2943,89 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 } Renderer;
 // 3 cache lines
 COMPILE_ASSERT(sizeof(Renderer) <= 24 * sizeof(uint64_t));
+
+typedef struct RendererContextDesc
+{
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	union
+	{
+#endif
+#if defined(DIRECT3D12)
+		D3D_FEATURE_LEVEL mDxFeatureLevel;
+#endif
+#if defined(VULKAN)
+		struct
+		{
+			const char** ppInstanceLayers;
+			const char** ppInstanceExtensions;
+			uint32_t     mInstanceLayerCount;
+			uint32_t     mInstanceExtensionCount;
+		} mVulkan;
+#endif
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	};
+#endif
+	bool mEnableGPUBasedValidation;
+} RendererContextDesc;
+
+typedef struct GpuInfo
+{
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	union
+	{
+#endif
+#if defined (DIRECT3D12) && defined(_WINDOWS)
+		struct
+		{
+			IDXGIAdapter4*               pDxGPU;
+			D3D_FEATURE_LEVEL            mMaxSupportedFeatureLevel;
+		} mD3D12;
+#endif
+#if defined(VULKAN)
+		struct
+		{
+			VkPhysicalDevice             pGPU;
+			VkPhysicalDeviceProperties2  mGPUProperties;
+		} mVulkan;
+#endif
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	};
+#endif
+	GPUSettings mSettings;
+} GpuInfo;
+
+typedef struct DEFINE_ALIGNED(RendererContext, 64)
+{
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	union
+	{
+#endif
+#if defined(DIRECT3D12) && defined(_WINDOWS)
+
+		struct
+		{
+			IDXGIFactory6* pDXGIFactory;
+			ID3D12Debug*   pDXDebug;
+		} mD3D12;
+#endif
+#if defined(VULKAN)
+		struct
+		{
+			VkInstance               pVkInstance;
+#ifdef ENABLE_DEBUG_UTILS_EXTENSION
+			VkDebugUtilsMessengerEXT pVkDebugUtilsMessenger;
+#else
+			VkDebugReportCallbackEXT pVkDebugReport;
+#endif
+		} mVulkan;
+#endif
+#if defined(USE_MULTIPLE_RENDER_APIS)
+	};
+#endif
+	GpuInfo* pGpus;
+	uint32_t mGpuCount;
+} RendererContext;
+COMPILE_ASSERT(sizeof(RendererContext) <= 8 * sizeof(uint64_t));
 
 // Indirect command structure define
 typedef struct IndirectArgument
@@ -3090,14 +3124,17 @@ typedef struct QueuePresentDesc
 	bool        mSubmitDone;
 } QueuePresentDesc;
 
-#define API_INTERFACE
-
 #define DECLARE_RENDERER_FUNCTION(ret, name, ...)                     \
 	typedef API_INTERFACE ret(FORGE_CALLCONV* name##Fn)(__VA_ARGS__); \
 	extern name##Fn       name;
 
 // clang-format off
 // API functions
+
+// Multiple renderer API (optional)
+API_INTERFACE void FORGE_CALLCONV initRendererContext(const char* app_name, const RendererContextDesc* p_settings, RendererContext** ppContext);
+API_INTERFACE void FORGE_CALLCONV exitRendererContext(RendererContext* pContext);
+
 // allocates memory and initializes the renderer -> returns pRenderer
 //
 API_INTERFACE void FORGE_CALLCONV initRenderer(const char* app_name, const RendererDesc* p_settings, Renderer** pRenderer);
