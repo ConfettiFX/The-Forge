@@ -59,12 +59,12 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
-## Release 1.50 - October xx , 2021 - M²H uses The Forge  | Unlinked Multi GPU Support | Central Config.h | glTF Viewer improvements | Scalar High Precision Math 
+## Release 1.50 - October 13, 2021 - M²H uses The Forge  | Unlinked Multi GPU Support | Central Config.h | glTF Viewer improvements | Scalar High Precision Math 
 * M²H uses The Forge for Stroke Therapy - [M²H](https://msquarehealthcare.com/) is a medical technology company. They developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
 The Forge provides the rendering layer for their application.
 Here is a YouTube video on what they do:
 
-[![M²H on YouTube](Screenshots/M2Hscreenshot.png)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
+[![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 
 * Unlinked multiple GPU Support: for professional visualization applications, we now support unlined multiple GPU. 
