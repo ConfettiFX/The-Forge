@@ -628,12 +628,12 @@ bool fsSetStreamPropInt64(FileStream* pStream, int32_t prop, int64_t value)
 // Memory stream functions
 /************************************************************************/
 
-/// Gets buffer pointer from the begining of memory stream
+/// Gets buffer pointer from the beginning of memory stream
 bool fsGetMemoryStreamBuffer(FileStream* pStream, const void** pBuf)
 {
 	return fsGetMemoryStreamBufferAt(pStream, 0, pBuf);
 }
-/// Gets buffer pointer from the begining of memory stream with a given offset
+/// Gets buffer pointer from the beginning of memory stream with a given offset
 bool fsGetMemoryStreamBufferAt(FileStream* pStream, ssize_t offset, const void** pBuf)
 {
 	ASSERT(pBuf);
@@ -851,18 +851,18 @@ void fsGetParentPath(const char* path, char* output)
 	const char directorySeparator = fsGetDirectorySeparator();
 	const char forwardSlash = '/';    // Forward slash is accepted on all platforms as a path component.
 
-	//Find last seperator
-	const char* dirSeperatorLoc = strrchr(path, directorySeparator);
-	if (dirSeperatorLoc == NULL)
+	//Find last separator
+	const char* dirSeparatorLoc = strrchr(path, directorySeparator);
+	if (dirSeparatorLoc == NULL)
 	{
-		dirSeperatorLoc = strrchr(path, forwardSlash);
-		if (dirSeperatorLoc == NULL)
+		dirSeparatorLoc = strrchr(path, forwardSlash);
+		if (dirSeparatorLoc == NULL)
 		{
 			return;
 		}
 	}
 
-	const size_t outputLength = pathLength - strlen(dirSeperatorLoc);
+	const size_t outputLength = pathLength - strlen(dirSeparatorLoc);
 	strncpy(output, path, outputLength);
 	output[outputLength] = '\0';
 	return;
@@ -966,7 +966,7 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
 	{
 		if (!fsCreateDirectory(resourceDir))
 		{
-			LOGF(LogLevel::eERROR, "Could not create direcotry '%s' in filesystem", resourcePath);
+			LOGF(LogLevel::eERROR, "Could not create directory '%s' in filesystem", resourcePath);
 		}
 	}
 }
