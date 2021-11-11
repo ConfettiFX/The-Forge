@@ -349,7 +349,7 @@ bool allResourceLoadsCompleted();
 /// completed when this function returns.
 void waitForAllResourceLoads();
 
-/// Returns wheter the resourceloader is single threaded or not
+/// Returns whether the resourceloader is single threaded or not
 bool isResourceLoaderSingleThreaded();
 
 /// A SyncToken is an array of monotonically increasing integers.
