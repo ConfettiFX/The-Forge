@@ -308,7 +308,7 @@ void AutoHideMenuBar()
 	CVDisplayLinkRef displayLink;
 	CAMetalLayer*    metalLayer;
 }
-@property(weak) id<RenderDestinationProvider> delegate;
+@property(assign) id<RenderDestinationProvider> delegate;
 
 - (id)initWithFrame:(NSRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
 - (CVReturn)getFrameForTime:(const CVTimeStamp*)outputTime;
