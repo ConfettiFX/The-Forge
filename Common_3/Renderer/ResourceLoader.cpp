@@ -862,6 +862,12 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 {
 	const TextureLoadDesc* pTextureDesc = &pTextureUpdate.texLoadDesc;
 
+	ASSERT((((pTextureDesc->mCreationFlag & TEXTURE_CREATION_FLAG_SRGB) == 0) ||
+		    (pTextureDesc->pFileName != NULL)) &&
+	       "Only textures loaded from file can have TEXTURE_CREATION_FLAG_SRGB. "
+	       "Please change format of the provided texture if you need srgb format."
+	);
+
 	if (pTextureDesc->pFileName)
 	{
 		FileStream stream = {};
@@ -976,6 +982,21 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 		{
 			textureDesc.mStartState = RESOURCE_STATE_COMMON;
 			textureDesc.mNodeIndex = pTextureDesc->mNodeIndex;
+
+			if (pTextureDesc->mCreationFlag & TEXTURE_CREATION_FLAG_SRGB)
+			{
+				TinyImageFormat srgbFormat = TinyImageFormat_ToSRGB(textureDesc.mFormat);
+				if (srgbFormat != TinyImageFormat_UNDEFINED)
+					textureDesc.mFormat = srgbFormat;
+				else
+				{
+					LOGF(eWARNING,
+						"Trying to load '%s' image using SRGB profile. "
+						"But image has '$s' format, which doesn't have SRGB counterpart.",
+						pTextureDesc->pFileName, TinyImageFormat_Name(textureDesc.mFormat));
+				}
+			}
+
 #if defined(VULKAN)
 			if (NULL != pTextureDesc->pDesc)
 				textureDesc.pVkSamplerYcbcrConversionInfo = pTextureDesc->pDesc->pVkSamplerYcbcrConversionInfo;
@@ -1009,6 +1030,20 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 					textureDesc.mStartState = RESOURCE_STATE_COPY_DEST;
 					textureDesc.mFlags |= pTextureDesc->mCreationFlag;
 					textureDesc.mNodeIndex = pTextureDesc->mNodeIndex;
+					if (pTextureDesc->mCreationFlag & TEXTURE_CREATION_FLAG_SRGB)
+					{
+						TinyImageFormat srgbFormat = TinyImageFormat_ToSRGB(textureDesc.mFormat);
+						if (srgbFormat != TinyImageFormat_UNDEFINED)
+							textureDesc.mFormat = srgbFormat;
+						else
+						{
+							LOGF(eWARNING,
+								"Trying to load '%s' image using SRGB profile. "
+								"But image has '$s' format, which doesn't have SRGB counterpart.",
+								pTextureDesc->pFileName, TinyImageFormat_Name(textureDesc.mFormat));
+						}
+					}
+
 					addVirtualTexture(acquireCmd(pCopyEngine, activeSet), &textureDesc, pTextureDesc->ppTexture, data);
 
 					fsCloseStream(&stream);
@@ -2455,24 +2490,13 @@ void vk_compileShader(
 	char outFilePath[FS_MAX_PATH] = { 0 };
 	fsAppendPathComponent(fsGetResourceDirectory(RD_SHADER_BINARIES), outFile, outFilePath);
 
-	// If there is a config file located in the shader source directory use it to specify the limits
-	FileStream confStream = {};
-	if (fsOpenStreamFromPath(RD_SHADER_SOURCES, "config.conf", FM_READ, NULL, &confStream))
-	{
-		fsCloseStream(&confStream);
-		char configFilePath[FS_MAX_PATH] = { 0 };
-		fsAppendPathComponent(fsGetResourceDirectory(RD_SHADER_SOURCES), "config.conf", configFilePath);
-
-		// Add command to compile from Vulkan GLSL to Spirv
-		commandLine.append_sprintf("\"%s\" -V \"%s\" -o \"%s\"", configFilePath, filePath, outFilePath);
-	}
-	else
-	{
-		commandLine.append_sprintf("-V \"%s\" -o \"%s\"", filePath, outFilePath);
-	}
+	commandLine.append_sprintf("-V \"%s\" -o \"%s\"", filePath, outFilePath);
 
 	if (target >= shader_target_6_0)
 		commandLine += " --target-env vulkan1.1 ";
+
+	if (target >= shader_target_6_3)
+		commandLine += " --target-env spirv1.4";
 	//commandLine += " \"-D" + eastl::string("VULKAN") + "=" + "1" + "\"";
 
 	if (pEntryPoint != NULL)

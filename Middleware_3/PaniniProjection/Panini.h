@@ -140,6 +140,7 @@ private:
 	PaniniParameters  mParams;
 	uint32_t          mIndex = 0;
 	uint32_t          mMaxDraws = 0;
+	uint32_t          mRootConstantIndex = 0;
 
 	// Panini projection renders into a tessellated rectangle which imitates a curved cylinder surface
 	const uint32_t    mPaniniDistortionTessellation[2] = { 64, 32 };

@@ -22,9 +22,9 @@
 */ 
 
 #define BACKFACE_CULLING 0
-#include"raytracingCommon.h"
+#include"raytracingCommon.h.fsl"
 
-#include "compute_resources.h"
+#include "compute_resources.h.fsl"
 
 #define THREADX 8
 #define THREADY 8

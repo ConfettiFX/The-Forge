@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "shaderDefs.h"
+#include "shaderDefs.h.fsl"
 
 RES(Tex2DArray(float4), uTex0, UPDATE_FREQ_NONE, t3, binding = 3);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s4, binding = 4);
@@ -79,9 +79,6 @@ float4 PS_MAIN( PsIn In )
     color *= light;
     color *= texColor * 2;
 	color *= coverage;
-#if defined(ORBIS) || defined(PROSPERO)
-	color = pow(color, 2.2f);
-#endif
 	Out = float4(color, 1);
     RETURN(Out);
 

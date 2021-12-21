@@ -89,8 +89,9 @@ Semaphore*          pRenderCompleteSemaphores[gImageCount]    = {NULL};
 Shader*             pShadingRateShader                        = NULL;
 Pipeline*           pShadingRatePipeline                      = NULL;
 RootSignature*      pShadingRateRootSignature                 = NULL;
-DescriptorSet*      pShadingRateDescriptorSet_PerFrame        = {NULL};
+DescriptorSet*      pShadingRateDescriptorSet_PerFrame        = {};
 ShadingRateCB       gShadingRateCB;
+uint32_t            gShadingRateRootConstantIndex             = 0;
 
 Shader*             pResolveShader                            = NULL;
 Shader*             pPlaneShader                              = NULL;
@@ -100,14 +101,15 @@ Pipeline*           pPlanePipeline                            = NULL;
 Pipeline*           pResolvePipeline                          = NULL;
 RootSignature*      pRootSignature                            = NULL;
 RenderTarget*       pColorRenderTarget                        = NULL;
-DescriptorSet*      pDescriptorSet_NonFreq                    = {NULL};
-DescriptorSet*      pDescriptorSet_PerFrame                   = {NULL};
-Buffer*             pUniformBuffer[gImageCount]               = {NULL};
+DescriptorSet*      pDescriptorSet_NonFreq                    = {};
+DescriptorSet*      pDescriptorSet_PerFrame                   = {};
+Buffer*             pUniformBuffer[gImageCount]               = {};
 Texture*            pPaletteTexture                           = NULL;
 Texture*            pShadingRateTexture                       = NULL;
 Texture*            pTestTexture                              = NULL;
 UniformBlock        gUniformData                              = {};
-DescriptorSet*      pResolveDescriptorSet_NonFreq             = {NULL};
+DescriptorSet*      pResolveDescriptorSet_NonFreq             = {};
+uint32_t            gDebugViewRootConstantIndex               = 0;
 
 Sampler*            pStaticSampler                            = {NULL};
 const char*         pStaticSamplerName                        = "uSampler";
@@ -191,11 +193,15 @@ public:
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pFileName = "colorPalette";
 		loadDesc.ppTexture = &pPaletteTexture;
+		// Textures representing color should be stored in SRGB or HDR format
+		loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&loadDesc, NULL);
 
 		loadDesc = {};
 		loadDesc.pFileName = "Lion_Albedo";
 		loadDesc.ppTexture = &pTestTexture;
+		// Textures representing color should be stored in SRGB or HDR format
+		loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&loadDesc, NULL);
 
 		// Sampler
@@ -232,6 +238,7 @@ public:
 			rootDesc.mShaderCount = 1;
 			rootDesc.ppShaders = shaders;
 			addRootSignature(pRenderer, &rootDesc, &pShadingRateRootSignature);
+			gShadingRateRootConstantIndex = getDescriptorIndexFromName(pShadingRateRootSignature, "cbRootConstant");
 
 			DescriptorSetDesc desc = { pShadingRateRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
 			addDescriptorSet(pRenderer, &desc, &pShadingRateDescriptorSet_PerFrame);
@@ -261,6 +268,7 @@ public:
 			rootDesc.mShaderCount = 3;
 			rootDesc.ppShaders = shaders;
 			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+			gDebugViewRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbRootConstant");
 
 			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 			addDescriptorSet(pRenderer, &desc, &pDescriptorSet_NonFreq);
@@ -502,6 +510,7 @@ public:
 		exitProfiler();
 
 		tf_free(pShadingRates);
+        pShadingRates = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -770,7 +779,7 @@ public:
 
 				cmdBindPipeline(cmd, pShadingRatePipeline);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pShadingRateDescriptorSet_PerFrame);
-				cmdBindPushConstants(cmd, pShadingRateRootSignature, "cbRootConstant", &gShadingRateCB);
+				cmdBindPushConstants(cmd, pShadingRateRootSignature, gShadingRateRootConstantIndex, &gShadingRateCB);
 
 				uint32_t* threadGroupSize = pShadingRateShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 				uint32_t groupCountX = (pShadingRateTexture->mWidth  + threadGroupSize[0] - 1) / threadGroupSize[0];
@@ -812,7 +821,7 @@ public:
 					cmdBindPipeline(cmd, pPlanePipeline);
 					cmdBindDescriptorSet(cmd, 0, pDescriptorSet_NonFreq);
 
-					cmdBindPushConstants(cmd, pRootSignature, "cbRootConstant", &toggleDebugView);
+					cmdBindPushConstants(cmd, pRootSignature, gDebugViewRootConstantIndex, &toggleDebugView);
 
 					if (bToggleVRS && (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE))
 					{
@@ -832,7 +841,7 @@ public:
 					cmdBindDescriptorSet(cmd, 0, pDescriptorSet_NonFreq);
 					cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSet_PerFrame);
 
-					cmdBindPushConstants(cmd, pRootSignature, "cbRootConstant", &toggleDebugView);
+					cmdBindPushConstants(cmd, pRootSignature, gDebugViewRootConstantIndex, &toggleDebugView);
 
 					static uint32_t stride = sizeof(float) * 8;
 					cmdBindVertexBuffer(cmd, 1, &pCuboidVertexBuffer, &stride, NULL);
@@ -944,7 +953,7 @@ public:
 		desc.mMipLevels = 1;
 		desc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		desc.mSampleCount = SAMPLE_COUNT_1;
-		desc.mFormat = getRecommendedSwapchainFormat(true);
+		desc.mFormat = getRecommendedSwapchainFormat(true, true);
 		desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		desc.mClearValue.r = 0.0f;
 		desc.mClearValue.g = 0.0f;
@@ -996,7 +1005,7 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

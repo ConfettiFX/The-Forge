@@ -208,7 +208,7 @@ SRC_VC = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Volumetri
 SRC_EX = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/src/EphemerisExample/Shaders/FSL/
 &#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_SKY)/*.fsl), $(fsl) $(file);)
@@ -294,7 +294,7 @@ SRC_VC = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Volumetri
 SRC_EX = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/src/EphemerisExample/Shaders/FSL/
 &#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_SKY)/*.fsl), $(fsl) $(file);)

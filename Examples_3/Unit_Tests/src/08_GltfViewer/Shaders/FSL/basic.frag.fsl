@@ -23,9 +23,9 @@
 
 #define PI 3.141592654f
 
-#include "shadowSamples.h"
+#include "shadowSamples.h.fsl"
 #define BASIC
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(PsIn)
 {    

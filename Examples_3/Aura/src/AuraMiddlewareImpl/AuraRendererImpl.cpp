@@ -171,9 +171,9 @@ void cmdSetViewport(Cmd* p_cmd, float x, float y, float width, float height, flo
 void cmdSetScissor(Cmd* p_cmd, uint32_t x, uint32_t y, uint32_t width, uint32_t height) { ::cmdSetScissor(p_cmd, x, y, width, height); }
 void cmdBindPipeline(Cmd* p_cmd, Pipeline* p_pipeline) { ::cmdBindPipeline(p_cmd, p_pipeline); }
 void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet) { ::cmdBindDescriptorSet(pCmd, index, pDescriptorSet); }
-void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
-	::cmdBindPushConstants(pCmd, pRootSignature, pName, pConstants);
+	::cmdBindPushConstants(pCmd, pRootSignature, paramIndex, pConstants);
 }
 void cmdBindIndexBuffer(Cmd* p_cmd, uint32_t indexType, Buffer* p_buffer) { ::cmdBindIndexBuffer(p_cmd, p_buffer, indexType, 0); }
 void cmdBindVertexBuffer(Cmd* p_cmd, uint32_t buffer_count, uint32_t* strides, Buffer** pp_buffers)
@@ -312,4 +312,8 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 void cmdEndDebugMarker(Cmd* pCmd) { ::cmdEndDebugMarker(pCmd); }
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName) { ::cmdAddDebugMarker(pCmd, r, g, b, pName); }
 /************************************************************************/
+uint32_t getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
+{
+	return ::getDescriptorIndexFromName(pRootSignature, pName);
+}
 }    // namespace aura

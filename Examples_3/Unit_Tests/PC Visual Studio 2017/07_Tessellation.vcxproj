@@ -19,6 +19,7 @@
     <FSLShader Include="..\src\07_Tessellation\Shaders\FSL\grass.tesc.fsl" />
     <FSLShader Include="..\src\07_Tessellation\Shaders\FSL\grass.tese.fsl" />
     <FSLShader Include="..\src\07_Tessellation\Shaders\FSL\grass.vert.fsl" />
+    <FSLShader Include="..\src\07_Tessellation\Shaders\FSL\resources.h.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{95AEBEE2-4980-4C6D-A4A9-B78B9A469E67}</ProjectGuid>

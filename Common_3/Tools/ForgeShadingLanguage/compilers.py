@@ -85,7 +85,7 @@ def metal(src, dst):
     
 
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     return status
     
     # return get_status(bin, params)
@@ -116,7 +116,7 @@ def d3d11(src, dst):
     
 
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     return status
 
 def d3d12(src, dst):
@@ -142,7 +142,7 @@ def d3d12(src, dst):
     
 
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     return status
 
 def orbis(src, dst):
@@ -168,7 +168,7 @@ def orbis(src, dst):
     # params += ['-I'+fsl_basepath, src, '-E']
     
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     if output:
         print(output)
     return status
@@ -196,7 +196,7 @@ def prospero(src, dst):
     params += ['-I'+fsl_basepath, '-o', dst, src]
     
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     if output:
         print(output)
     return status
@@ -221,7 +221,7 @@ def xbox(src, dst):
     params += ['/I', fsl_basepath, '/D__XBOX_DISABLE_PRECOMPILE', '/Fo', dst, src]
     
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     if output:
         print(output)
     return status
@@ -233,9 +233,9 @@ def scarlett(src, dst):
 
     params = ['/Zi', '-Qembed_debug']
     if '.frag' in src:
-        params += ['/T', 'ps_6_0']
+        params += ['/T', 'ps_6_4']
     if '.vert' in src:
-        params += ['/T', 'vs_6_0']
+        params += ['/T', 'vs_6_4']
     if '.comp' in src:
         params += ['/T', 'cs_6_0']
     if '.tesc' in src:
@@ -245,7 +245,7 @@ def scarlett(src, dst):
     params += ['/I', fsl_basepath, '/D__XBOX_DISABLE_PRECOMPILE', '/Fo', dst, src]
     
     status, output = get_status(bin, params)
-    fsl_assert(status == 0, src+'.fsl', message=output)
+    fsl_assert(status == 0, src, message=output)
     if output:
         print(output)
     return status

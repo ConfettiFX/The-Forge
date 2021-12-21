@@ -26,7 +26,7 @@
 #define SAMPLE_COUNT 4
 #endif
 
-#include "SDF_Constant.h"
+#include "SDF_Constant.h.fsl"
 
 RES(Tex2DArray(float2), SDFShadowTexture, UPDATE_FREQ_NONE, t0, binding = 0);
 #if SAMPLE_COUNT > 1

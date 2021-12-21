@@ -30,6 +30,7 @@
 
 #if defined(QUEST_VR)
 #include "../Quest/VrApi.h"
+extern QuestVR* pQuest;
 #endif
 
 struct CameraMotionParameters
@@ -145,8 +146,12 @@ inline const CameraMatrix CameraMatrix::perspective(float fovxRadians, float asp
 {
     CameraMatrix result;
 #if defined(QUEST_VR)
-    result.mLeftEye = getHeadsetLeftEyeProjectionMatrix(zNear, zFar);
-    result.mRightEye = getHeadsetRightEyeProjectionMatrix(zNear, zFar);
+	float4 fov;
+    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+	result.mLeftEye = mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+
+	ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+	result.mRightEye = mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
 #else
     result.mCamera = mat4::perspective(fovxRadians, aspectInverse, zNear, zFar);
 #endif
@@ -157,8 +162,12 @@ inline const CameraMatrix CameraMatrix::perspectiveReverseZ(float fovxRadians, f
 {
     CameraMatrix result;
 #if defined(QUEST_VR)
-    result.mLeftEye = getHeadsetLeftEyeProjectionMatrix(zNear, zFar);
-    result.mRightEye = getHeadsetRightEyeProjectionMatrix(zNear, zFar);
+	float4 fov;
+	ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+	result.mLeftEye = mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+
+	ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+	result.mRightEye = mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
 
     Vector4 col2 = result.mLeftEye.getCol2();
     Vector4 col3 = result.mLeftEye.getCol3();
@@ -183,7 +192,10 @@ inline const CameraMatrix CameraMatrix::orthographic(float left, float right, fl
 {
     CameraMatrix result;
 #if defined(QUEST_VR)
-    mat4 projMat = getHeadsetLeftEyeProjectionMatrix(zNear, zFar);
+	float4 fov;
+	ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
+	mat4 projMat = mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
+
     float eyeSeperation = projMat[2][0];
     result.mLeftEye = mat4::orthographic(left + eyeSeperation, right + eyeSeperation, bottom, top, zNear, zFar);
     result.mRightEye = mat4::orthographic(left - eyeSeperation, right - eyeSeperation, bottom, top, zNear, zFar);

@@ -38,9 +38,9 @@
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 #define NO_FSL_DEFINITIONS
-#include "Shaders/FSL/Shader_Defs.h"
-#include "Shaders/FSL/ASMShader_Defs.h"
-#include "Shaders/FSL/SDF_Constant.h"
+#include "Shaders/FSL/Shader_Defs.h.fsl"
+#include "Shaders/FSL/ASMShader_Defs.h.fsl"
+#include "Shaders/FSL/SDF_Constant.h.fsl"
 
 namespace eastl
 {

@@ -44,7 +44,7 @@
 *THE SOFTWARE.
 */
 
-#include "hair.comp.h"
+#include "hair.comp.h.fsl"
 
 float2 ConstraintMultiplier(float4 particle0, float4 particle1)
 {

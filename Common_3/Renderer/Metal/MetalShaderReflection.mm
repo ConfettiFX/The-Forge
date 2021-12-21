@@ -700,11 +700,8 @@ void mtl_createShaderReflection(
 				}
 				else
 				{
-					eastl::string bufferName = bufferInfo.name;
-					bufferName.make_lower();
 					DescriptorType descriptorType =
-						(bufferName.find("rootconstant", 0) != eastl::string::npos ? DESCRIPTOR_TYPE_ROOT_CONSTANT
-																				   : DESCRIPTOR_TYPE_BUFFER);
+						isDescriptorRootConstant(bufferInfo.name) ? DESCRIPTOR_TYPE_ROOT_CONSTANT : DESCRIPTOR_TYPE_BUFFER;
 
 					addShaderResource(
 						pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, bufferInfo.alignment,

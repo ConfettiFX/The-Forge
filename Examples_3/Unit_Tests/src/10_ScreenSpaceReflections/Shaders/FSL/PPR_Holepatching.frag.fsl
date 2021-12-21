@@ -72,13 +72,6 @@ float4 PS_MAIN( VSOutput In )
 		outColor = SampleTex2D(Get(SceneTexture), Get(bilinearSampler), In.uv);
 		outColor = outColor / (outColor + f4(1));
 
-#if !defined(ORBIS)
-		float gammaCorr = 1.0f / 2.2f;
-		outColor.r = pow(outColor.r, gammaCorr);
-		outColor.g = pow(outColor.g, gammaCorr);
-		outColor.b = pow(outColor.b, gammaCorr);
-#endif
-
 		outColor.w = 1.0f;
 		RETURN(outColor);
 	}		
@@ -255,13 +248,6 @@ float4 PS_MAIN( VSOutput In )
 	}
 
 	outColor = outColor / (outColor + float4(1.0f, 1.0f, 1.0f, 1.0f));
-
-#if !defined(ORBIS)
-	float gammaCorr = 1.0f / 2.2f;
-	outColor.r = pow(outColor.r, gammaCorr);
-	outColor.g = pow(outColor.g, gammaCorr);
-	outColor.b = pow(outColor.b, gammaCorr);
-#endif
 
 	outColor.w = 1.0f;
 	RETURN(outColor);

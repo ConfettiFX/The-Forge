@@ -5728,6 +5728,9 @@ class LightShadowPlayground: public IApp
 			TextureLoadDesc desc = {};
 			desc.pFileName = pScene->textures[i];
 			desc.ppTexture = &gDiffuseMapsStorage[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+
 			addResource(&desc, NULL);
 
 			TextureLoadDesc descNormal = {};
@@ -5972,7 +5975,7 @@ class LightShadowPlayground: public IApp
 #else
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].pName = "indirectRootConstant";
+		indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
 		indirectArgs[0].mByteSize = sizeof(uint32_t);
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 2 };
@@ -6387,10 +6390,12 @@ class LightShadowPlayground: public IApp
 			uint textureSize;
 		} data = { 0, gSkyboxSize };
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pPanoToCubeRootSignature, "RootConstant");
+
 		for (uint32_t i = 0; i < gSkyboxMips; ++i)
 		{
 			data.mip = i;
-			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, "RootConstant", &data);
+			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, rootConstantIndex, &data);
 
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pTextureSkybox;
@@ -7796,15 +7801,12 @@ class LightShadowPlayground: public IApp
 		if (batchChunk->currentBatchCount == 0)
 			return;
 
-		uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
-
+		DescriptorDataRange range = { (uint32_t)offset, BATCH_COUNT * sizeof(SmallBatchData) };
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData_rootcbv";
-		params[0].pOffsets = &offset;
-		params[0].pSizes = &size;
+		params[0].pRanges = &range;
 		params[0].ppBuffers = &pBuffer;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 1, params);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
+		cmdBindDescriptorSetWithRootCbvs(cmd, 0, pDescriptorSetTriangleFiltering[0], 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
 		// Reset batch chunk to start adding triangles to it
@@ -8552,7 +8554,7 @@ class LightShadowPlayground: public IApp
 		swapChainDesc.mWidth = width;
 		swapChainDesc.mHeight = height;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mColorClearValue = {{0,0,0,0}};
 
 		swapChainDesc.mEnableVsync = false;
@@ -8601,7 +8603,7 @@ class LightShadowPlayground: public IApp
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		postProcRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		postProcRTDesc.mFormat = getRecommendedSwapchainFormat(true, true);
 		postProcRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
@@ -8761,7 +8763,7 @@ class LightShadowPlayground: public IApp
 		msaaRTDesc.mClearValue = optimizedColorClearBlack;
 		msaaRTDesc.mDepth = 1;
 		msaaRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		msaaRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		msaaRTDesc.mFormat = getRecommendedSwapchainFormat(true, true);
 		msaaRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
@@ -8984,8 +8986,7 @@ class LightShadowPlayground: public IApp
 	{
 		// Triangle Filtering
 		{
-			uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
-			DescriptorData filterParams[5] = {};
+			DescriptorData filterParams[4] = {};
 			filterParams[0].pName = "vertexDataBuffer";
 			filterParams[0].ppBuffers = &pGeom->pVertexBuffers[0];
 			filterParams[1].pName = "indexDataBuffer";
@@ -8994,10 +8995,7 @@ class LightShadowPlayground: public IApp
 			filterParams[2].ppBuffers = &pBufferMeshConstants;
 			filterParams[3].pName = "materialProps";
 			filterParams[3].ppBuffers = &pBufferMaterialProperty;
-			filterParams[4].pName = "batchData_rootcbv";
-			filterParams[4].ppBuffers = &pBufferFilterBatchData->pBuffer;
-			filterParams[4].pSizes = &size;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 5, filterParams);
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{

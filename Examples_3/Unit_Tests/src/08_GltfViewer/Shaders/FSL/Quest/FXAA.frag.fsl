@@ -21,7 +21,7 @@
  * under the License.
 */
 
-#include "resources.h"
+#include "resources.h.fsl"
 
 #define ITERATIONS			12
 #define SUBPIXEL_QUALITY	0.75

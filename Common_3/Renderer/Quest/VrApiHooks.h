@@ -16,8 +16,4 @@ void hook_remove_swap_chain(Renderer* pRenderer, SwapChain* pSwapChain);
 void hook_acquire_next_image(SwapChain* pSwapChain, uint32_t* pImageIndex);
 void hook_queue_present(const QueuePresentDesc* pQueuePresentDesc);
 
-Queue* getSynchronisationQueue();
-VkImageView getFFRFragmentDensityMask();
-bool isFFRFragmentDensityMaskAvailable();
-
 #endif

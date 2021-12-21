@@ -29,6 +29,7 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 
+#include <stddef.h>
 #include <regex>
 
 inline void fsReadFromStreamLine(FileStream* stream, char* pOutLine)
@@ -96,58 +97,110 @@ inline bool parseConfigLine(
 	const char* pLine,
 	const char* pInVendorId,
 	const char* pInModelId,
-	const char* pInGpuName,
+	const char* pInModelName,
 	char pOutVendorId[MAX_GPU_VENDOR_STRING_LENGTH],
 	char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
 	char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH],
 	char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH],
     GPUPresetLevel* pOutPresetLevel)
 {
-	//     VendorId;         ModelId;        Preset;             Name;               RevisionId (optional); Codename (can be null)
-	// ([0xA-Fa-f0-9]+); ([0xA-Fa-f0-9]+); ([A-Za-z]); ([A-Za-z0-9 /\\(\\);]+)[; ]*([0xA-Fa-f0-9]*)
-	char buffer[128] = {};
-	sprintf(
-		buffer,
-		"%s; %s; ([A-Za-z]+); ([A-Za-z0-9 /\\(\\);]+)[; ]*([0xA-Fa-f0-9]*)",
-		// If input is unspecified it means we need to fill it
-		pInVendorId ? pInVendorId : "([0xA-Fa-f0-9]+)",
-		pInModelId ? pInModelId : "([0xA-Fa-f0-9]+)");
+	const char* pOrigLine = pLine;
+	ASSERT(pLine && pOutPresetLevel);
+	*pOutPresetLevel = GPU_PRESET_LOW;
+	
+	// exclude comments from line
+	size_t lineSize = strcspn(pLine, "#");
+	const char* pLineEnd = pLine + lineSize;
+	
+	// Exclude whitespace in the begining (for early exit)
+	while (pLine != pLineEnd && isspace(*pLine))
+		++pLine;
 
-	const uint32_t offsetIndex = (pInVendorId ? 1 : 0) + (pInModelId ? 1 : 0);
-	const uint32_t modelIndex = pInVendorId ? 1 : 2;
-	const uint32_t presetIndex   = 3 - offsetIndex;
-	const uint32_t gpuNameIndex  = 4 - offsetIndex;
-	const uint32_t revisionIndex = 5 - offsetIndex;
+	if (pLine == pLineEnd)
+		return false;
 
-	std::regex expr(buffer, std::regex::optimize);
-	std::cmatch match;
-	if (std::regex_match(pLine, match, expr))
+	char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH];
+
+	char* tokens[] = { 
+		pOutVendorId,
+		pOutModelId,
+		presetLevel,
+		pOutModelName,
+		pOutRevisionId,
+		// codename is not used
+	};
+
+	// Initialize all to empty string
+	for (int i = 0; i < sizeof(tokens)/sizeof(tokens[0]); ++i)
 	{
-		if (!pInVendorId)
-		{
-			strncpy(pOutVendorId, match[1].first, match[1].second - match[1].first);
-		}
-
-		if (!pInModelId)
-		{
-			strncpy(pOutModelId, match[modelIndex].first, match[modelIndex].second - match[modelIndex].first);
-		}
-
-		char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH] = {};
-		strncpy(presetLevel, match[presetIndex].first,   match[presetIndex].second -   match[presetIndex].first);
-		strncpy(pOutModelName,  match[gpuNameIndex].first,  match[gpuNameIndex].second -  match[gpuNameIndex].first);
-		strncpy(pOutRevisionId,  match[revisionIndex].first, match[revisionIndex].second - match[revisionIndex].first);
-
-		*pOutPresetLevel = stringToPresetLevel(presetLevel);
-		
-		if (pInGpuName)
-			return strcmp(pInGpuName, pOutModelName) == 0;
-
-		return true;
+		tokens[i][0] = '\0';
 	}
 
-	*pOutPresetLevel = GPU_PRESET_LOW;
-	return false;
+	// Tokenize line
+	for (int i = 0; pLine != pLineEnd && i < sizeof(tokens) / sizeof(tokens[0]); ++i)
+	{
+		const char* begin = pLine;
+		const char* end = pLine + strcspn(pLine, ";");
+
+		if (end > pLineEnd)
+			end = pLineEnd;
+
+		pLine = end + 1;
+		pLine = pLine < pLineEnd ? pLine : pLineEnd;
+
+		/* trim whitespace characters in the begining*/
+		while (begin != end && isspace(*begin))
+			++begin;
+
+		/* trim whitespace characters in the end*/
+		while (begin != end && isspace(*(end - 1)))
+			--end;
+
+
+		ptrdiff_t length = end - begin;
+		ASSERT(length < MAX_GPU_VENDOR_STRING_LENGTH);
+		
+		strncpy(tokens[i], begin, length);
+		tokens[i][length] = '\0';
+	}
+
+
+	// validate required fields
+	if (pOutVendorId[0] == '\0' ||
+		pOutModelId[0] == '\0' ||
+		presetLevel[0] == '\0' ||
+		pOutModelName[0] == '\0')
+	{
+		LOGF(eWARNING, "GPU config requires VendorId, DeviceId, Classification and Name. "
+					   "Following line has invalid format:\n'%s'", pOrigLine);
+		return false;
+	}
+
+	// convert ids to lower case
+	for (char* p = pOutVendorId; *p != '\0'; ++p)
+		*p = tolower(*p);
+	for (char* p = pOutModelId; *p != '\0'; ++p)
+		*p = tolower(*p);
+	for (char* p = presetLevel; *p != '\0'; ++p)
+		*p = tolower(*p);
+	
+
+	// Parsing logic
+
+	*pOutPresetLevel = stringToPresetLevel(presetLevel);
+
+	bool success = true;
+
+	if (pInVendorId)
+		success = success && strcmp(pInVendorId, pOutVendorId) == 0;
+
+	if (pInModelId)
+		success = success && strcmp(pInModelId, pOutModelId) == 0;
+
+	if (pInModelName)
+		success = success && strcmp(pInModelName, pOutModelName) == 0;
+
+	return success;
 }
 
 #if !defined(__ANDROID__)
@@ -264,7 +317,7 @@ inline void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSetting
 
 #if defined(VULKAN)
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const eastl::string& vendorId, const eastl::string& modelId, const eastl::string& revId)
+inline GPUPresetLevel getGPUPresetLevel(const eastl::string& vendorId, const eastl::string& modelId, const eastl::string& revId)
 {
 	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
@@ -351,7 +404,7 @@ static void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint
 
 #endif
 
-static bool isGPUWhitelisted(const char* vendorId, const char* modelId, const char* gpuName)
+inline bool isGPUWhitelisted(const char* vendorId, const char* modelId, const char* gpuName)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpuWhitelist.cfg", FM_READ, NULL, &fh))

@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "shader_defs.h"
-#include "deferred_resources.h"
+#include "shader_defs.h.fsl"
+#include "deferred_resources.h.fsl"
 
 STRUCT(PsIn)
 {

@@ -12,8 +12,8 @@
  * You may not use the material for commercial purposes.
 */
 
-#include "shader_defs.h"
-#include "cull_resources.h"
+#include "shader_defs.h.fsl"
+#include "cull_resources.h.fsl"
 
 // This compute shader is ran over all indirect draw arguments - 0 - MAX_INDIRECT_DRAWS
 

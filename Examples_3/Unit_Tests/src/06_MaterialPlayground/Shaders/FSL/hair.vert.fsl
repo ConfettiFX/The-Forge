@@ -49,7 +49,7 @@
 #if !defined(SHORT_CUT_RESOLVE_DEPTH) && !defined(SHORT_CUT_CLEAR) && !defined(SHORT_CUT_RESOLVE_COLOR) && !defined(HAIR_SHADOW) && !defined(SHORT_CUT_DEPTH_PEELING) && !defined(SHORT_CUT_FILL_COLOR)
 #define HAIR_REGULAR
 #endif
-#include "hair.h"
+#include "hair.h.fsl"
 
 float4 GetStrandColor(int index)
 {

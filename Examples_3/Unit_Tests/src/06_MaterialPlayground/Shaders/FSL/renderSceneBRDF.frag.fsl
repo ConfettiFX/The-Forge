@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "renderSceneBRDF_resources.h"
+#include "renderSceneBRDF_resources.h.fsl"
 
 #define PI      3.14159265359
 #define PI_DIV2 1.57079632679
@@ -294,8 +294,6 @@ float4 PS_MAIN(VSOutput In)
 	float3 N = HasNormalTexture(Get(textureConfig))
 		? UnpackNormals(uv, In.pos, Get(normalMap), Get(bilinearSampler), In.normal, Get(fNormalMapIntensity))
 		: normalize(In.normal);
-
-	_albedo = pow(_albedo, f3(2.2f));
 	
 	const int isOrenNayar = IsOrenNayarDiffuse(Get(textureConfig)) ? 1 : 0;
 
@@ -352,18 +350,16 @@ float4 PS_MAIN(VSOutput In)
 			Lo += _albedo * (_ao  * Get(fAOIntensity) + (1.0f - Get(fAOIntensity))) * Get(fAmbientLightIntensity);
 	}
 	
-	// Gamma correction
 	float3 color = Lo;
+	// Tone mapping
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
-	float gammaCorr = 1.0f / 2.2f;
-	color = pow(color, f3(gammaCorr));
 	
 	// final color
 	switch (Get(renderMode))
 	{
 	default:
 	case 0: break;
-	case 1: color = pow(_albedo, f3(gammaCorr)); break;
+	case 1: color = _albedo; break;
 	case 2: color = N; break;
 	case 3: color = f3(_roughness); break;
 	case 4: color = f3(_metalness); break;

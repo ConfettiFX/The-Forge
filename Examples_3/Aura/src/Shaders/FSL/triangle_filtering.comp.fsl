@@ -44,9 +44,9 @@
 // For every triangle that passes the tests, the vertexCount property of IndirectDrawArguments is incremented in 3. This
 // property is used later during rendering the scene geometry to determine the amount of triangles to draw per batch.
 
-#include "shader_defs.h"
-#include "cull_resources.h"
-#include "wind.h"
+#include "shader_defs.h.fsl"
+#include "cull_resources.h.fsl"
+#include "wind.h.fsl"
 
 #define ENABLE_CULL_INDEX            1
 #define ENABLE_CULL_BACKFACE         1

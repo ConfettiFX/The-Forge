@@ -25,22 +25,8 @@
 		B21F76C021420E7000DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BD21420E7000DF2297 /* Metal.framework */; };
 		B22BBEB121C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */; };
 		B22BBEB221C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */; };
-		B27403F722BC661500F7660D /* MoveComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F622BC661500F7660D /* MoveComponent.cpp */; };
-		B27403F822BC661500F7660D /* MoveComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F622BC661500F7660D /* MoveComponent.cpp */; };
-		B27403FF22BC663F00F7660D /* PositionComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F922BC663F00F7660D /* PositionComponent.cpp */; };
-		B274040022BC663F00F7660D /* PositionComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F922BC663F00F7660D /* PositionComponent.cpp */; };
-		B274040122BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */; };
-		B274040222BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */; };
-		B274040322BC663F00F7660D /* SpriteComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FD22BC663F00F7660D /* SpriteComponent.cpp */; };
-		B274040422BC663F00F7660D /* SpriteComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FD22BC663F00F7660D /* SpriteComponent.cpp */; };
-		B274040D22BC666800F7660D /* PositionRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040522BC666700F7660D /* PositionRepresentation.cpp */; };
-		B274040E22BC666800F7660D /* PositionRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040522BC666700F7660D /* PositionRepresentation.cpp */; };
-		B274040F22BC666800F7660D /* SpriteRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040922BC666800F7660D /* SpriteRepresentation.cpp */; };
-		B274041022BC666800F7660D /* SpriteRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040922BC666800F7660D /* SpriteRepresentation.cpp */; };
-		B274041122BC666800F7660D /* MoveRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040A22BC666800F7660D /* MoveRepresentation.cpp */; };
-		B274041222BC666800F7660D /* MoveRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040A22BC666800F7660D /* MoveRepresentation.cpp */; };
-		B274041322BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */; };
-		B274041422BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */; };
+		B2DA9AB6274E942200617414 /* flecs.c in Sources */ = {isa = PBXBuildFile; fileRef = B2DA9AB5274E942200617414 /* flecs.c */; };
+		B2DA9AB7274E942200617414 /* flecs.c in Sources */ = {isa = PBXBuildFile; fileRef = B2DA9AB5274E942200617414 /* flecs.c */; };
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -59,7 +45,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97E9429C25BF4A0F009F2F2B /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -72,7 +58,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -124,22 +110,8 @@
 		B21F76BC21420E7000DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76BD21420E7000DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 17_EntityComponentSystem.cpp; path = ../../../src/17_EntityComponentSystem/17_EntityComponentSystem.cpp; sourceTree = "<group>"; };
-		B27403F522BC661500F7660D /* MoveComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/MoveComponent.h; sourceTree = "<group>"; };
-		B27403F622BC661500F7660D /* MoveComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/MoveComponent.cpp; sourceTree = "<group>"; };
-		B27403F922BC663F00F7660D /* PositionComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PositionComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/PositionComponent.cpp; sourceTree = "<group>"; };
-		B27403FA22BC663F00F7660D /* SpriteComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpriteComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/SpriteComponent.h; sourceTree = "<group>"; };
-		B27403FB22BC663F00F7660D /* WorldBoundsComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WorldBoundsComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.h; sourceTree = "<group>"; };
-		B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorldBoundsComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.cpp; sourceTree = "<group>"; };
-		B27403FD22BC663F00F7660D /* SpriteComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SpriteComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/SpriteComponent.cpp; sourceTree = "<group>"; };
-		B27403FE22BC663F00F7660D /* PositionComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PositionComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/PositionComponent.h; sourceTree = "<group>"; };
-		B274040522BC666700F7660D /* PositionRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PositionRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/PositionRepresentation.cpp; sourceTree = "<group>"; };
-		B274040622BC666700F7660D /* WorldBoundsRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WorldBoundsRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h; sourceTree = "<group>"; };
-		B274040722BC666800F7660D /* MoveRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/MoveRepresentation.h; sourceTree = "<group>"; };
-		B274040822BC666800F7660D /* PositionRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PositionRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/PositionRepresentation.h; sourceTree = "<group>"; };
-		B274040922BC666800F7660D /* SpriteRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SpriteRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.cpp; sourceTree = "<group>"; };
-		B274040A22BC666800F7660D /* MoveRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/MoveRepresentation.cpp; sourceTree = "<group>"; };
-		B274040B22BC666800F7660D /* SpriteRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpriteRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.h; sourceTree = "<group>"; };
-		B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorldBoundsRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.cpp; sourceTree = "<group>"; };
+		B2DA9AB4274E942200617414 /* flecs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = flecs.h; path = ../../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.h; sourceTree = "<group>"; };
+		B2DA9AB5274E942200617414 /* flecs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = flecs.c; path = ../../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.c; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 17_EntityComponentSystem_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 17_EntityComponentSystem_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -216,34 +188,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B2A3552122BC5C0D00E1844E /* Components */ = {
+		B2DA9AAF274E935E00617414 /* flecs */ = {
 			isa = PBXGroup;
 			children = (
-				B27403F922BC663F00F7660D /* PositionComponent.cpp */,
-				B27403FE22BC663F00F7660D /* PositionComponent.h */,
-				B27403FD22BC663F00F7660D /* SpriteComponent.cpp */,
-				B27403FA22BC663F00F7660D /* SpriteComponent.h */,
-				B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */,
-				B27403FB22BC663F00F7660D /* WorldBoundsComponent.h */,
-				B27403F622BC661500F7660D /* MoveComponent.cpp */,
-				B27403F522BC661500F7660D /* MoveComponent.h */,
+				B2DA9AB5274E942200617414 /* flecs.c */,
+				B2DA9AB4274E942200617414 /* flecs.h */,
 			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		B2A3552222BC5C1500E1844E /* Representations */ = {
-			isa = PBXGroup;
-			children = (
-				B274040A22BC666800F7660D /* MoveRepresentation.cpp */,
-				B274040722BC666800F7660D /* MoveRepresentation.h */,
-				B274040522BC666700F7660D /* PositionRepresentation.cpp */,
-				B274040822BC666800F7660D /* PositionRepresentation.h */,
-				B274040922BC666800F7660D /* SpriteRepresentation.cpp */,
-				B274040B22BC666800F7660D /* SpriteRepresentation.h */,
-				B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */,
-				B274040622BC666700F7660D /* WorldBoundsRepresentation.h */,
-			);
-			path = Representations;
+			name = flecs;
 			sourceTree = "<group>";
 		};
 		C95132EE2010E68A002E584B /* 17_EntityComponentSystem_iOS */ = {
@@ -282,8 +233,7 @@
 		EA463C941EF81E8F005AC8C7 /* 17_EntityComponentSystem */ = {
 			isa = PBXGroup;
 			children = (
-				B2A3552222BC5C1500E1844E /* Representations */,
-				B2A3552122BC5C0D00E1844E /* Components */,
+				B2DA9AAF274E935E00617414 /* flecs */,
 				B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */,
 				5C172F33214147700074EE71 /* AppDelegate.h */,
 				5C172F32214147700074EE71 /* AppDelegate.m */,
@@ -467,16 +417,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B274041422BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */,
 				B22BBEB221C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */,
 				5C17300521414D110074EE71 /* AppDelegate.m in Sources */,
-				B274040422BC663F00F7660D /* SpriteComponent.cpp in Sources */,
-				B274041022BC666800F7660D /* SpriteRepresentation.cpp in Sources */,
-				B274040222BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */,
-				B274041222BC666800F7660D /* MoveRepresentation.cpp in Sources */,
-				B274040E22BC666800F7660D /* PositionRepresentation.cpp in Sources */,
-				B274040022BC663F00F7660D /* PositionComponent.cpp in Sources */,
-				B27403F822BC661500F7660D /* MoveComponent.cpp in Sources */,
+				B2DA9AB7274E942200617414 /* flecs.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -484,16 +427,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B274041322BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */,
-				B274040122BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */,
-				B274040322BC663F00F7660D /* SpriteComponent.cpp in Sources */,
 				5C172F34214147700074EE71 /* AppDelegate.m in Sources */,
-				B274040F22BC666800F7660D /* SpriteRepresentation.cpp in Sources */,
 				B22BBEB121C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */,
-				B274041122BC666800F7660D /* MoveRepresentation.cpp in Sources */,
-				B274040D22BC666800F7660D /* PositionRepresentation.cpp in Sources */,
-				B27403FF22BC663F00F7660D /* PositionComponent.cpp in Sources */,
-				B27403F722BC661500F7660D /* MoveComponent.cpp in Sources */,
+				B2DA9AB6274E942200617414 /* flecs.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

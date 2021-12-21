@@ -21,6 +21,8 @@
 
 #include "../../../../../../Common_3/OS/Interfaces/ILog.h"
 
+extern QuestVR* pQuest; 
+
 namespace gainput {
 
     struct ovrRemote
@@ -33,13 +35,11 @@ namespace gainput {
     {
     public:
         InputDevicePadImplQuest(InputManager& manager, InputDevice& device, unsigned index, InputState& state, InputState& previousState) :
-            manager_(manager),
             device_(device),
             state_(state),
-            previousState_(previousState),
             ovr_(NULL)
         {
-            ovr_ = getOvrContext();
+			ovr_ = pQuest->pOvr;
             for (int i = 0; i < QUEST_REMOTE_MAX; ++i)
                 inputDevices_[i].capabilities.Header.DeviceID = ovrDeviceIdType_Invalid;
             EnumerateInputDevices();
@@ -53,7 +53,7 @@ namespace gainput {
 
         void Update(InputDeltaState* delta)
         {
-            ovr_ = getOvrContext();
+			ovr_ = pQuest->pOvr; 
             EnumerateInputDevices();
             
             for (int i = 0; i < QUEST_REMOTE_MAX; ++i)
@@ -84,11 +84,8 @@ namespace gainput {
         bool Vibrate(float leftMotor, float rightMotor) { return false; }
 
     private:
-        InputManager&            manager_;
         InputDevice&             device_;
         InputState&              state_;
-        InputState&              previousState_;
-        InputDevice::DeviceState deviceState_;
         ovrMobile*               ovr_;
 
         ovrRemote inputDevices_[QUEST_REMOTE_MAX];

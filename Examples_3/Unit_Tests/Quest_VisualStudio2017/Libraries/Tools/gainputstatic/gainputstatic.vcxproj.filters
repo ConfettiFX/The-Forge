@@ -158,8 +158,5 @@
     <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceGestureDetectorAndroid.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePadQuest.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

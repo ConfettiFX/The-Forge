@@ -15,12 +15,15 @@
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\compositePass.comp.fsl" />
+    <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\compute_resources.h.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\display.frag.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\display.vert.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\gbufferPass.frag.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\gbufferPass.vert.fsl" />
+    <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\gbuffer_resources.h.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\lightingPass.comp.fsl" />
     <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\raytracedShadowsPass.comp.fsl" />
+    <FSLShader Include="..\src\09a_HybridRaytracing\Shaders\FSL\raytracingCommon.h.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A29200ED-1F8E-47A1-8A38-BB4A82668C15}</ProjectGuid>

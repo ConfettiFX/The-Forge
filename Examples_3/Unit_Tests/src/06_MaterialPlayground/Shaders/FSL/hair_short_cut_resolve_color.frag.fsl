@@ -45,7 +45,7 @@
 */
 
 #define SHORT_CUT_RESOLVE_COLOR
-#include "hair.h"
+#include "hair.h.fsl"
 
 EARLY_FRAGMENT_TESTS
 float4 PS_MAIN( VSOutputFullscreen In )

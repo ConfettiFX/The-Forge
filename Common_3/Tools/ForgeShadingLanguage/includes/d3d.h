@@ -96,44 +96,66 @@ inline f4x4 Identity()
     );
 }
 
-inline void setElem(inout f4x4 M, int i, int j, float val)
-{ M[j][i] = val; }
-inline float getElem(f4x4 M, int i, int j)
-{ return M[j][i]; }
+inline void setElem(inout f4x4 M, int i, int j, float val) { M[j][i] = val; }
+inline float getElem(f4x4 M, int i, int j) { return M[j][i]; }
 
-#define getRow(M, I) M[I]
-#define getRow0(M) getRow(M, 0)
-#define getRow1(M) getRow(M, 1)
-#define getRow2(M) getRow(M, 2)
-#define getRow3(M) getRow(M, 3)
+inline float4 getCol(in f4x4 M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float3 getCol(in f4x3 M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+inline float2 getCol(in f4x2 M, const uint i) { return float2(M[0][i], M[1][i]); }
 
-// get the i-th col of a float3x2 hlsl mat
-inline float3 getCol(in f2x3 M, const uint i)
-{ return float3(M[0][i], M[1][i], M[2][i]); }
-// get the i-th col of a float2x3 hlsl mat
-inline float2 getCol(in f3x2 M, const uint i)
-{ return float2(M[0][i], M[1][i]); }
+inline float4 getCol(in f3x4 M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float3 getCol(in f3x3 M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+inline float2 getCol(in f3x2 M, const uint i) { return float2(M[0][i], M[1][i]); }
 
-inline float3 getCol(in float3x3 M, const uint i)
-{ return float3(M[0][i], M[1][i], M[2][i]); }
-
-inline float4 getCol(in float4x4 M, const uint i)
-{ return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float4 getCol(in f2x4 M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float3 getCol(in f2x3 M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+inline float2 getCol(in f2x2 M, const uint i) { return float2(M[0][i], M[1][i]); }
 
 #define getCol0(M) getCol(M, 0)
 #define getCol1(M) getCol(M, 1)
 #define getCol2(M) getCol(M, 2)
 #define getCol3(M) getCol(M, 3)
 
-inline float4x4 setCol(inout float4x4 M, in float4 col, const uint i)
-{
-    M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2]; M[3][i] = col[3];
-    return M;
-}
+#define getRow(M, I) (M)[I]
+#define getRow0(M) getRow(M, 0)
+#define getRow1(M) getRow(M, 1)
+#define getRow2(M) getRow(M, 2)
+#define getRow3(M) getRow(M, 3)
+
+
+inline f4x4 setCol(inout f4x4 M, in float4 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2]; M[3][i] = col[3]; return M; }
+inline f4x3 setCol(inout f4x3 M, in float3 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2];; return M; }
+inline f4x2 setCol(inout f4x2 M, in float2 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; return M; }
+
+inline f3x4 setCol(inout f3x4 M, in float4 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2]; M[3][i] = col[3]; return M; }
+inline f3x3 setCol(inout f3x3 M, in float3 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2];; return M; }
+inline f3x2 setCol(inout f3x2 M, in float2 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; return M; }
+
+inline f2x4 setCol(inout f2x4 M, in float4 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2]; M[3][i] = col[3]; return M; }
+inline f2x3 setCol(inout f2x3 M, in float3 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; M[2][i] = col[2];; return M; }
+inline f2x2 setCol(inout f2x2 M, in float2 col, const uint i) { M[0][i] = col[0]; M[1][i] = col[1]; return M; }
+
 #define setCol0(M, C) setCol(M, C, 0)
 #define setCol1(M, C) setCol(M, C, 1)
 #define setCol2(M, C) setCol(M, C, 2)
 #define setCol3(M, C) setCol(M, C, 3)
+
+f4x4 setRow(inout f4x4 M, in float4 row, const uint i) { M[i] = row; return M; }
+f4x3 setRow(inout f4x3 M, in float4 row, const uint i) { M[i] = row; return M; }
+f4x2 setRow(inout f4x2 M, in float4 row, const uint i) { M[i] = row; return M; }
+
+f3x4 setRow(inout f3x4 M, in float3 row, const uint i) { M[i] = row; return M; }
+f3x3 setRow(inout f3x3 M, in float3 row, const uint i) { M[i] = row; return M; }
+f3x2 setRow(inout f3x2 M, in float3 row, const uint i) { M[i] = row; return M; }
+
+f2x4 setRow(inout f2x4 M, in float2 row, const uint i) { M[i] = row; return M; }
+f2x3 setRow(inout f2x3 M, in float2 row, const uint i) { M[i] = row; return M; }
+f2x2 setRow(inout f2x2 M, in float2 row, const uint i) { M[i] = row; return M; }
+
+#define setRow0(M, R) setRow(M, R, 0)
+#define setRow1(M, R) setRow(M, R, 1)
+#define setRow2(M, R) setRow(M, R, 2)
+#define setRow3(M, R) setRow(M, R, 3)
 
 
 // mapping of glsl format qualifiers

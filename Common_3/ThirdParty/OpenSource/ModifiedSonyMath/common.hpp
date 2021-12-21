@@ -1117,35 +1117,131 @@ static inline size_t tf_mem_hash(const T* mem, size_t size, size_t prev = 216613
 //----------------------------------------------------------------------------
 // Color conversions / packing / unpacking
 //----------------------------------------------------------------------------
+static const float gGammaValue = 2.4f;
 
-//Output format is B8G8R8A8
-static inline uint32_t packColorU32(uint32_t r, uint32_t g, uint32_t b, uint32_t a)
+inline float srgbToLinearf(float val)
 {
-	return
-		((r & 0xff) << 24) |
-		((g & 0xff) << 16) |
-		((b & 0xff) << 8) |
-		((a & 0xff) << 0);
-}
+	static const float threshold = 0.04045f;
+	if (val <= threshold)
+		return val / 12.92f;
 
-//Output format is R8G8B8A8
-static inline uint32_t packColorF32(float r, float g, float b, float a)
-{
-	return packColorU32(
-		(uint32_t)(clamp(r, 0.0f, 1.0f) * 255),
-		(uint32_t)(clamp(g, 0.0f, 1.0f) * 255),
-		(uint32_t)(clamp(b, 0.0f, 1.0f) * 255),
-		(uint32_t)(clamp(a, 0.0f, 1.0f) * 255));
+	return powf((val + 0.055f) / 1.055f, gGammaValue);
 }
-static inline uint32_t packColorF32_4(float4 rgba) { return packColorF32(rgba.x, rgba.y, rgba.z, rgba.w); }
-static inline Vector4 unpackColorU32(uint32_t colorValue)
+inline float3 srgbToLinearf3(float3 val)
 {
-	return Vector4 ( 
-		  (float)((colorValue & 0xFF000000) >> 24) / 255.0f
-		, (float)((colorValue & 0x00FF0000) >> 16) / 255.0f
-		, (float)((colorValue & 0x0000FF00) >> 8 ) / 255.0f
-		, (float)((colorValue & 0x000000FF)      ) / 255.0f
+	return float3(
+		srgbToLinearf(val.x),
+		srgbToLinearf(val.y),
+		srgbToLinearf(val.z)
 	);
+}
+inline float4 srgbToLinearf4(float4 val)
+{
+	return float4(
+		srgbToLinearf(val.x),
+		srgbToLinearf(val.y),
+		srgbToLinearf(val.z),
+		val.w
+	);
+}
+inline float linearToSrgbf(float val)
+{
+	static const float threshold = 0.0031308f;
+	if (val <= threshold)
+		return val * 12.92f;
+	return 1.055f * powf(val, 1.f / gGammaValue) - 0.055f;
+}
+inline float3 linearToSrgbf3(float3 val)
+{
+	return float3(
+		linearToSrgbf(val.x),
+		linearToSrgbf(val.y),
+		linearToSrgbf(val.z)
+	);
+}
+inline float4 linearToSrgbf4(float4 val)
+{
+	return float4(
+		linearToSrgbf(val.x),
+		linearToSrgbf(val.y),
+		linearToSrgbf(val.z),
+		val.w
+	);
+}
+// Converts U32 color defined as 0x11223344 into float4 color
+// where 11 - alpha, 22 - blue, 33 - g, 44 - red
+inline float4 unpackA8B8G8R8(uint32_t color)
+{
+	return float4(
+		(float)( color & 0x000000FF) / 255.f,
+		(float)((color & 0x0000FF00) >> 0x8) / 255.f,
+		(float)((color & 0x00FF0000) >> 0x10) / 255.f,
+		(float)((color & 0xFF000000) >> 0x18) / 255.f
+	);
+}
+// Converts U32 color defined as 0x11223344 into float4 color
+// where 11 - alpha, 22 - blue, 33 - g, 44 - red
+// Performs conversion from srgb to linear color space
+inline float4 unpackA8B8G8R8_SRGB(uint32_t color)
+{
+	return srgbToLinearf4(unpackA8B8G8R8(color));
+}
+// Converts float4 into U32 color defined as 0x11223344
+// where 11 - alpha, 22 - blue, 33 - g, 44 - red
+// Performs conversion from linear to srgb color space
+inline uint32_t packA8B8G8R8(float4 color)
+{
+	uint32_t result = 0;
+	result |= (uint32_t)(clamp(color[3], 0.f, 1.f) * 255.f);
+	result |= (uint32_t)(clamp(color[2], 0.f, 1.f) * 255.f) << 0x8;
+	result |= (uint32_t)(clamp(color[1], 0.f, 1.f) * 255.f) << 0x10;
+	result |= (uint32_t)(clamp(color[0], 0.f, 1.f) * 255.f) << 0x18;
+	return result;
+}
+// Converts float4 into U32 color defined as 0x11223344
+// where 11 - alpha, 22 - blue, 33 - g, 44 - red
+// Performs conversion from linear to srgb color space
+inline uint32_t packA8B8G8R8_SRGB(float4 color)
+{
+	color = linearToSrgbf4(color);
+	return packA8B8G8R8(color);
+}
+// Converts U32 color defined as 0x11223344 into float4 color
+// where 11 - red, 22 - green, 33 - blue, 44 - alpha
+inline float4 unpackR8G8B8A8(uint32_t color)
+{
+	return float4(
+		(float)((color & 0xFF000000) >> 0x18) / 255.f,
+		(float)((color & 0x00FF0000) >> 0x10) / 255.f,
+		(float)((color & 0x0000FF00) >> 0x8) / 255.f,
+		(float)(color  & 0x000000FF) / 255.f
+	);
+}
+// Converts U32 color defined as 0x11223344 into float4 color
+// where 11 - red, 22 - green, 33 - blue, 44 - alpha
+// Performs conversion from srgb to linear color space
+inline float4 unpackR8G8B8A8_SRGB(uint32_t color)
+{
+	return srgbToLinearf4(unpackR8G8B8A8(color));
+}
+// Converts float4 into U32 color defined as 0x11223344
+// where 11 - red, 22 - green, 33 - blue, 44 - alpha
+inline uint32_t packR8G8B8A8(float4 color)
+{
+	uint32_t result = 0;
+	result |= (uint32_t)(clamp(color[0], 0.f, 1.f) * 255.f);
+	result |= (uint32_t)(clamp(color[1], 0.f, 1.f) * 255.f) << 0x8;
+	result |= (uint32_t)(clamp(color[2], 0.f, 1.f) * 255.f) << 0x10;
+	result |= (uint32_t)(clamp(color[3], 0.f, 1.f) * 255.f) << 0x18;
+	return result;
+}
+// Converts float4 into U32 color defined as 0x11223344
+// where 11 - red, 22 - green, 33 - blue, 44 - alpha
+// Performs conversion from linear to srgb color space
+inline uint32_t packR8G8B8A8_SRGB(float4 color)
+{
+	color = linearToSrgbf4(color);
+	return packR8G8B8A8(color);
 }
 
 

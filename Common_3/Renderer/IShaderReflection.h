@@ -25,6 +25,11 @@
 #pragma once
 
 #include "RendererConfig.h"
+#ifdef GLES
+#include "../ThirdParty/OpenSource/OpenGL/GLES2/gl2.h"
+#endif
+
+#include <ctype.h>
 
 static const uint32_t MAX_SHADER_STAGE_COUNT = 5;
 
@@ -176,6 +181,28 @@ void destroyShaderReflection(ShaderReflection* pReflection);
 
 void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount, PipelineReflection* pOutReflection);
 void destroyPipelineReflection(PipelineReflection* pReflection);
+
+inline bool isDescriptorRootConstant(const char* resourceName)
+{
+	char lower[MAX_RESOURCE_NAME_LENGTH] = {};
+	uint32_t length = (uint32_t)strlen(resourceName);
+	for (uint32_t i = 0; i < length; ++i)
+	{
+		lower[i] = tolower(resourceName[i]);
+	}
+	return strstr(lower, "rootconstant") || strstr(lower, "pushconstant");
+}
+
+inline bool isDescriptorRootCbv(const char* resourceName)
+{
+	char lower[MAX_RESOURCE_NAME_LENGTH] = {};
+	uint32_t length = (uint32_t)strlen(resourceName);
+	for (uint32_t i = 0; i < length; ++i)
+	{
+		lower[i] = tolower(resourceName[i]);
+	}
+	return strstr(lower, "rootcbv");
+}
 
 //void serializeReflection(File* pInFile, Reflection* pReflection);
 //void deserializeReflection(File* pOutFile, Reflection* pReflection);

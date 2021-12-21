@@ -16,14 +16,12 @@ public:
 		manager_(manager),
 		device_(device),
 		state_(&state),
-		previousState_(&previousState),
 		nextState_(manager.GetAllocator(), PadButtonMax_),
 		delta_(0),
-		index_(index),
 		deviceState_(InputDevice::DS_UNAVAILABLE)
 	{
 		(void)previousState;
-		GAINPUT_ASSERT(index_ < MaxPadCount);
+		GAINPUT_ASSERT(index < MaxPadCount);
 	}
 
 	~InputDevicePadImplAndroid()
@@ -66,7 +64,6 @@ public:
 	int32_t HandleInput(AInputEvent* event)
 	{
 		GAINPUT_ASSERT(state_);
-		GAINPUT_ASSERT(previousState_);
 		GAINPUT_ASSERT(event);
 
 		if (AInputEvent_getType(event) != AINPUT_EVENT_TYPE_MOTION ||
@@ -91,10 +88,8 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	InputState* state_;
-	InputState* previousState_;
 	InputState nextState_;
 	InputDeltaState* delta_;
-	unsigned index_;
 	InputDevice::DeviceState deviceState_;
 
 };

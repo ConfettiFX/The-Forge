@@ -446,13 +446,17 @@ void AssignSponzaTextures()
 	gSponzaTextureIndexForMaterial.push_back(AO);
 }
 
-bool LoadSponza()
+bool initSponza()
 {
 	for (int i = 0; i < TOTAL_IMGS; ++i)
 	{
 		TextureLoadDesc textureDesc = {};
 		textureDesc.pFileName = pMaterialImageFileNames[i];
 		textureDesc.ppTexture = &pMaterialTextures[i];
+		if (strstr(pMaterialImageFileNames[i], "Albedo") ||
+			strstr(pMaterialImageFileNames[i], "albedo") ||
+			strstr(pMaterialImageFileNames[i], "diffuse"))
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&textureDesc, NULL);
 	}
 
@@ -551,7 +555,7 @@ bool LoadSponza()
 }
 
 
-void UnloadSponza()
+void exitSponza()
 {
 	if (!SponzaProp.pGeom)
 		return;
@@ -756,7 +760,7 @@ public:
 
 			/************************************************************************/
 			/************************************************************************/
-			if (!LoadSponza())
+			if (!initSponza())
 				return false;
 
 			/************************************************************************/
@@ -799,6 +803,7 @@ public:
 			topAS.mInstancesDescCount = 1;
 			topAS.pInstanceDescs = &instanceDesc;
 			addAccelerationStructure(pRaytracing, &topAS, &pSponzaAS);
+
 			waitForAllResourceLoads();
 
 			// Build Acceleration Structure
@@ -985,17 +990,19 @@ public:
 	void Exit()
 	{
 		exitInputSystem();
+
 		exitCameraController(pCameraController);
+
 		exitProfiler();
 
 		exitUserInterface();
 
 		exitFontSystem(); 
 
-		UnloadSponza();
-
 		if (pRaytracing != NULL)
 		{
+			exitSponza();
+
 			removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
 			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 
@@ -1072,7 +1079,7 @@ public:
 
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.mColorClearValue = { { 1, 1, 1, 1 } };
-		swapChainDesc.mColorFormat = TinyImageFormat_B8G8R8A8_SRGB; // getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = false;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;

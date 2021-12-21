@@ -24,8 +24,10 @@
 #define  TinyImageFormat_ASSERT(x)
 #endif
 
-TIF_CONSTEXPR inline uint64_t TinyImageFormat_Code(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint64_t TinyImageFormat_Code(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 0x0000000000000000;
 		case TinyImageFormat_R1_UNORM: return 0x0000D9000000C000;
 		case TinyImageFormat_R2_UNORM: return 0x0000D90000013000;
@@ -234,8 +236,10 @@ TIF_CONSTEXPR inline uint64_t TinyImageFormat_Code(TinyImageFormat const fmt) {
 
 #define TinyImageFormat_MaxPixelCountOfBlock 144U 
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthOnly(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthOnly(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_D16_UNORM: return true;
 		case TinyImageFormat_X8_D24_UNORM: return true;
 		case TinyImageFormat_D32_SFLOAT: return true;
@@ -243,15 +247,19 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthOnly(TinyImageFormat const fmt)
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsStencilOnly(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsStencilOnly(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_S8_UINT: return true;
 		default: return false;
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthAndStencil(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthAndStencil(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_D16_UNORM_S8_UINT: return true;
 		case TinyImageFormat_D24_UNORM_S8_UINT: return true;
 		case TinyImageFormat_D32_SFLOAT_S8_UINT: return true;
@@ -259,20 +267,25 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthAndStencil(TinyImageFormat cons
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_HasDepth(TinyImageFormat const fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_HasDepth(TinyImageFormat const fmt) 
+{
 	return TinyImageFormat_IsDepthOnly(fmt) || TinyImageFormat_IsDepthAndStencil(fmt);
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_HasStencil(TinyImageFormat const fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_HasStencil(TinyImageFormat const fmt) 
+{
 	return TinyImageFormat_IsStencilOnly(fmt) || TinyImageFormat_IsDepthAndStencil(fmt);
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_HasDepthOrStencil(TinyImageFormat const fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_HasDepthOrStencil(TinyImageFormat const fmt) 
+{
 	return TinyImageFormat_IsDepthOnly(fmt) || TinyImageFormat_IsStencilOnly(fmt) || TinyImageFormat_IsDepthAndStencil(fmt);
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsCLUT(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCLUT(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_CLUT_P4: return true;
 		case TinyImageFormat_CLUT_P4A4: return true;
 		case TinyImageFormat_CLUT_P8: return true;
@@ -281,8 +294,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsCLUT(TinyImageFormat const fmt) {
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsFloat(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsFloat(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_R16_SFLOAT: return true;
 		case TinyImageFormat_R16_SBFLOAT: return true;
 		case TinyImageFormat_R16G16_SFLOAT: return true;
@@ -309,8 +324,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsFloat(TinyImageFormat const fmt) {
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsNormalised(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsNormalised(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_R1_UNORM: return true;
 		case TinyImageFormat_R2_UNORM: return true;
 		case TinyImageFormat_R4_UNORM: return true;
@@ -445,8 +462,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsNormalised(TinyImageFormat const fmt
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsSigned(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsSigned(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_R8_SNORM: return true;
 		case TinyImageFormat_R8_SINT: return true;
 		case TinyImageFormat_R8G8_SNORM: return true;
@@ -512,8 +531,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsSigned(TinyImageFormat const fmt) {
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsSRGB(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsSRGB(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_R8_SRGB: return true;
 		case TinyImageFormat_R8G8_SRGB: return true;
 		case TinyImageFormat_R8G8B8_SRGB: return true;
@@ -550,8 +571,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsSRGB(TinyImageFormat const fmt) {
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsYCbCr(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsYCbCr(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8B8G8R8_422_UNORM:
 		case TinyImageFormat_B8G8R8G8_422_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
@@ -588,8 +611,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsYCbCr(TinyImageFormat const fmt) {
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_DXBC1_RGB_UNORM: return true;
 		case TinyImageFormat_DXBC1_RGB_SRGB: return true;
 		case TinyImageFormat_DXBC1_RGBA_UNORM: return true;
@@ -656,8 +681,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsCompressed(TinyImageFormat const fmt
 	}
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsPlanar(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsPlanar(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
@@ -685,8 +712,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsPlanar(TinyImageFormat const fmt) {
    }
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsPacked(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsPacked(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8B8G8R8_422_UNORM:
 		case TinyImageFormat_B8G8R8G8_422_UNORM:
 		case TinyImageFormat_G16B16G16R16_422_UNORM:
@@ -704,8 +733,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsPacked(TinyImageFormat const fmt) {
    }
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_NumOfPlanes(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_NumOfPlanes(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
@@ -735,11 +766,13 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_NumOfPlanes(TinyImageFormat const 
    }
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneWidth(TinyImageFormat const fmt, uint32_t const plane, uint32_t const width) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneWidth(TinyImageFormat const fmt, uint32_t const plane, uint32_t const width) 
+{
 	if (0 == plane)
 		return width;
 
-	switch(fmt) {
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
 		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
@@ -762,11 +795,13 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneWidth(TinyImageFormat const f
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneHeight(TinyImageFormat const fmt, uint32_t const plane, uint32_t const height) {	
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneHeight(TinyImageFormat const fmt, uint32_t const plane, uint32_t const height) 
+{
 	if (0 == plane)
 		return height;
 
-	switch(fmt) {
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
 		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
@@ -782,8 +817,10 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneHeight(TinyImageFormat const 
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneSizeOfBlock(TinyImageFormat const fmt, uint32_t plane) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneSizeOfBlock(TinyImageFormat const fmt, uint32_t plane) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
 		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
@@ -818,12 +855,15 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_PlaneSizeOfBlock(TinyImageFormat c
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_IsSinglePlane(TinyImageFormat const fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_IsSinglePlane(TinyImageFormat const fmt) 
+{
 	return !TinyImageFormat_IsPlanar(fmt) || TinyImageFormat_NumOfPlanes(fmt) < 2;
 }
 
-TIF_CONSTEXPR inline bool TinyImageFormat_IsHomogenous(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline bool TinyImageFormat_IsHomogenous(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return false;
 		case TinyImageFormat_B2G3R3_UNORM: return false;
 		case TinyImageFormat_X4R4G4B4_UNORM: return false;
@@ -933,8 +973,10 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsHomogenous(TinyImageFormat const fmt
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_WidthOfBlock(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_WidthOfBlock(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 1;
 		case TinyImageFormat_R1_UNORM: return 8;
 		case TinyImageFormat_R2_UNORM: return 4;
@@ -1006,8 +1048,10 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_WidthOfBlock(TinyImageFormat const
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_HeightOfBlock(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_HeightOfBlock(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 1;
 		case TinyImageFormat_DXBC1_RGB_UNORM: return 4;
 		case TinyImageFormat_DXBC1_RGB_SRGB: return 4;
@@ -1075,15 +1119,19 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_HeightOfBlock(TinyImageFormat cons
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_DepthOfBlock(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_DepthOfBlock(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 1;
 		default: return 1;
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_BitSizeOfBlock(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_BitSizeOfBlock(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 0;
 		case TinyImageFormat_R1_UNORM: return 8;
 		case TinyImageFormat_R2_UNORM: return 8;
@@ -1255,8 +1303,10 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_BitSizeOfBlock(TinyImageFormat con
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelCount(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelCount(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return 0;
 		case TinyImageFormat_R1_UNORM: return 1;
 		case TinyImageFormat_R2_UNORM: return 1;
@@ -1357,9 +1407,12 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelCount(TinyImageFormat const
 	}
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImageFormat const fmt, uint32_t const channel) {
-	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) {
-		switch(fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImageFormat const fmt, uint32_t const channel) 
+{
+	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return 0;
 			case TinyImageFormat_R1_UNORM: return 1;
 			case TinyImageFormat_R2_UNORM: return 2;
@@ -1477,8 +1530,11 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImag
 			case TinyImageFormat_CLUT_P4A4: return 4;
 			default: return 8;
 		}
-	}	else if(channel == 1) {
-		switch(fmt) { 
+	}	
+	else if(channel == 1) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0;
 			case TinyImageFormat_R1_UNORM: return 0;
 			case TinyImageFormat_R2_UNORM: return 0;
@@ -1602,8 +1658,11 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImag
 			case TinyImageFormat_CLUT_P8: return 0;
 			default: return 8;
 		}
-	}	else if(channel == 2) {
-		switch(fmt) { 
+	}	
+	else if(channel == 2) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0;
 			case TinyImageFormat_R1_UNORM: return 0;
 			case TinyImageFormat_R2_UNORM: return 0;
@@ -1738,8 +1797,11 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImag
 			case TinyImageFormat_CLUT_P8A8: return 0;
 			default: return 8;
 		}
-	}	else if(channel == 3) {
-		switch(fmt) { 
+	}	
+	else if(channel == 3) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0;
 			case TinyImageFormat_R1_UNORM: return 0;
 			case TinyImageFormat_R2_UNORM: return 0;
@@ -1890,9 +1952,12 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidthAtPhysical(TinyImag
 	return 0;
 }
 
-TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const fmt, uint32_t const channel) {
-	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) {
-		switch(fmt) {
+TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const fmt, uint32_t const channel) 
+{
+	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_R8_SNORM: return -1.000000;
 			case TinyImageFormat_R8_SINT: return -128.000000;
 			case TinyImageFormat_R8G8_SNORM: return -1.000000;
@@ -1952,8 +2017,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return -1.000000;
 			default: return 0.000000;
 		}
-	}	else if(channel == 1) {
-		switch(fmt) { 
+	}	
+	else if(channel == 1) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_R8G8_SNORM: return -1.000000;
 			case TinyImageFormat_G8R8_SNORM: return -1.000000;
 			case TinyImageFormat_R8G8_SINT: return -128.000000;
@@ -2002,8 +2070,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return -1.000000;
 			default: return 0.000000;
 		}
-	}	else if(channel == 2) {
-		switch(fmt) { 
+	}	
+	else if(channel == 2) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_R8G8B8_SNORM: return -1.000000;
 			case TinyImageFormat_R8G8B8_SINT: return -128.000000;
 			case TinyImageFormat_B8G8R8_SNORM: return -1.000000;
@@ -2041,8 +2112,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return -1.000000;
 			default: return 0.000000;
 		}
-	}	else if(channel == 3) {
-		switch(fmt) { 
+	}	
+	else if(channel == 3) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_R8G8B8A8_SNORM: return -1.000000;
 			case TinyImageFormat_R8G8B8A8_SINT: return -128.000000;
 			case TinyImageFormat_B8G8R8A8_SNORM: return -1.000000;
@@ -2074,9 +2148,12 @@ TIF_CONSTEXPR inline double TinyImageFormat_MinAtPhysical(TinyImageFormat const 
 	return 0.0;
 }
 
-TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const fmt, uint32_t const channel) {
-	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) {
-		switch(fmt) {
+TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const fmt, uint32_t const channel) 
+{
+	if(TinyImageFormat_IsHomogenous(fmt) || channel == 0) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return 0.000000;
 			case TinyImageFormat_R8_UINT: return 255.000000;
 			case TinyImageFormat_R8_SINT: return 127.000000;
@@ -2148,8 +2225,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_DXBC6H_SFLOAT: return 65504.000000;
 			default: return 1.000000;
 		}
-	}	else if(channel == 1) {
-		switch(fmt) { 
+	}	
+	else if(channel == 1) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0.000000;
 			case TinyImageFormat_R1_UNORM: return 0.000000;
 			case TinyImageFormat_R2_UNORM: return 0.000000;
@@ -2232,8 +2312,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_DXBC6H_SFLOAT: return 65504.000000;
 			default: return 1.000000;
 		}
-	}	else if(channel == 2) {
-		switch(fmt) { 
+	}	
+	else if(channel == 2) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0.000000;
 			case TinyImageFormat_R1_UNORM: return 0.000000;
 			case TinyImageFormat_R2_UNORM: return 0.000000;
@@ -2328,8 +2411,11 @@ TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const 
 			case TinyImageFormat_DXBC6H_SFLOAT: return 65504.000000;
 			default: return 1.000000;
 		}
-	}	else if(channel == 3) {
-		switch(fmt) { 
+	}	
+	else if(channel == 3) 
+	{
+		switch(fmt) 
+		{ 
 			case TinyImageFormat_UNDEFINED: return 0.000000;
 			case TinyImageFormat_R1_UNORM: return 0.000000;
 			case TinyImageFormat_R2_UNORM: return 0.000000;
@@ -2438,11 +2524,14 @@ TIF_CONSTEXPR inline double TinyImageFormat_MaxAtPhysical(TinyImageFormat const 
 	return 0.0;
 }
 
-TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChannelToLogical(TinyImageFormat const fmt, int8_t const channel) {
+TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChannelToLogical(TinyImageFormat const fmt, int8_t const channel) 
+{
 	 TinyImageFormat_ASSERT(channel != TinyImageFormat_PC_CONST_0);
 	 TinyImageFormat_ASSERT(channel != TinyImageFormat_PC_CONST_1);
-	if(channel == TinyImageFormat_PC_0) {
-		switch(fmt) {
+	if(channel == TinyImageFormat_PC_0) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_LC_0;
 			case TinyImageFormat_G4R4_UNORM: return TinyImageFormat_LC_Green;
 			case TinyImageFormat_A8_UNORM: return TinyImageFormat_LC_Alpha;
@@ -2494,8 +2583,11 @@ TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChan
 			case TinyImageFormat_S8_UINT: return TinyImageFormat_LC_Green;
 			default: return TinyImageFormat_LC_Red;
 		}
-	}	else if(channel == TinyImageFormat_PC_1) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_PC_1) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_LC_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_LC_0;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_LC_0;
@@ -2554,8 +2646,11 @@ TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChan
 			case TinyImageFormat_CLUT_P8A8: return TinyImageFormat_LC_Alpha;
 			default: return TinyImageFormat_LC_Green;
 		}
-	}	else if(channel == TinyImageFormat_PC_2) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_PC_2) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_LC_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_LC_0;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_LC_0;
@@ -2662,8 +2757,11 @@ TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChan
 			case TinyImageFormat_CLUT_P8A8: return TinyImageFormat_LC_0;
 			default: return TinyImageFormat_LC_Blue;
 		}
-	}	else if(channel == TinyImageFormat_PC_3) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_PC_3) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_LC_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_LC_1;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_LC_1;
@@ -2790,11 +2888,14 @@ TIF_CONSTEXPR inline TinyImageFormat_LogicalChannel TinyImageFormat_PhysicalChan
 	return TinyImageFormat_LC_0;
 }
 
-TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) {
+TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) 
+{
 	 TinyImageFormat_ASSERT(channel != TinyImageFormat_LC_0);
 	 TinyImageFormat_ASSERT(channel != TinyImageFormat_LC_1);
-	if(channel == TinyImageFormat_LC_Red) {
-		switch(fmt) {
+	if(channel == TinyImageFormat_LC_Red) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_G4R4_UNORM: return TinyImageFormat_PC_1;
 			case TinyImageFormat_A8_UNORM: return TinyImageFormat_PC_CONST_0;
@@ -2846,8 +2947,11 @@ TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFo
 			case TinyImageFormat_S8_UINT: return TinyImageFormat_PC_CONST_0;
 			default: return TinyImageFormat_PC_0;
 		}
-	}	else if(channel == TinyImageFormat_LC_Green) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_LC_Green) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_PC_CONST_0;
@@ -2906,8 +3010,11 @@ TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFo
 			case TinyImageFormat_CLUT_P8A8: return TinyImageFormat_PC_CONST_0;
 			default: return TinyImageFormat_PC_1;
 		}
-	}	else if(channel == TinyImageFormat_LC_Blue) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_LC_Blue) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_PC_CONST_0;
@@ -3014,8 +3121,11 @@ TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFo
 			case TinyImageFormat_CLUT_P8A8: return TinyImageFormat_PC_CONST_0;
 			default: return TinyImageFormat_PC_2;
 		}
-	}	else if(channel == TinyImageFormat_LC_Alpha) {
-		switch(fmt) {
+	}	
+	else if(channel == TinyImageFormat_LC_Alpha) 
+	{
+		switch(fmt) 
+		{
 			case TinyImageFormat_UNDEFINED: return TinyImageFormat_PC_CONST_0;
 			case TinyImageFormat_R1_UNORM: return TinyImageFormat_PC_CONST_1;
 			case TinyImageFormat_R2_UNORM: return TinyImageFormat_PC_CONST_1;
@@ -3142,8 +3252,484 @@ TIF_CONSTEXPR inline int8_t TinyImageFormat_LogicalChannelToPhysical(TinyImageFo
 	return TinyImageFormat_PC_CONST_0;
 }
 
-TIF_CONSTEXPR inline char const * const TinyImageFormat_Name(TinyImageFormat const fmt) {
-	switch(fmt) {
+TIF_CONSTEXPR inline TinyImageFormat TinyImageFormat_ToSRGB(TinyImageFormat const fmt)
+{
+	switch (fmt)
+	{
+	case TinyImageFormat_R8_UNORM:
+		return TinyImageFormat_R8_SRGB;
+	case TinyImageFormat_R8_SNORM:
+		return TinyImageFormat_R8_SRGB;
+	case TinyImageFormat_R8_UINT:
+		return TinyImageFormat_R8_SRGB;
+	case TinyImageFormat_R8_SINT:
+		return TinyImageFormat_R8_SRGB;
+	case TinyImageFormat_R8_SRGB:
+		return TinyImageFormat_R8_SRGB;
+	case TinyImageFormat_R8G8_UNORM:
+		return TinyImageFormat_R8G8_SRGB;
+	case TinyImageFormat_R8G8_SNORM:
+		return TinyImageFormat_R8G8_SRGB;
+	case TinyImageFormat_R8G8_UINT:
+		return TinyImageFormat_R8G8_SRGB;
+	case TinyImageFormat_R8G8_SINT:
+		return TinyImageFormat_R8G8_SRGB;
+	case TinyImageFormat_R8G8_SRGB:
+		return TinyImageFormat_R8G8_SRGB;
+	case TinyImageFormat_R8G8B8_UNORM:
+		return TinyImageFormat_R8G8B8_SRGB;
+	case TinyImageFormat_R8G8B8_SNORM:
+		return TinyImageFormat_R8G8B8_SRGB;
+	case TinyImageFormat_R8G8B8_UINT:
+		return TinyImageFormat_R8G8B8_SRGB;
+	case TinyImageFormat_R8G8B8_SINT:
+		return TinyImageFormat_R8G8B8_SRGB;
+	case TinyImageFormat_R8G8B8_SRGB:
+		return TinyImageFormat_R8G8B8_SRGB;
+	case TinyImageFormat_B8G8R8_UNORM:
+		return TinyImageFormat_B8G8R8_SRGB;
+	case TinyImageFormat_B8G8R8_SNORM:
+		return TinyImageFormat_B8G8R8_SRGB;
+	case TinyImageFormat_B8G8R8_UINT:
+		return TinyImageFormat_B8G8R8_SRGB;
+	case TinyImageFormat_B8G8R8_SINT:
+		return TinyImageFormat_B8G8R8_SRGB;
+	case TinyImageFormat_B8G8R8_SRGB:
+		return TinyImageFormat_B8G8R8_SRGB;
+	case TinyImageFormat_R8G8B8A8_UNORM:
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	case TinyImageFormat_R8G8B8A8_SNORM:
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	case TinyImageFormat_R8G8B8A8_UINT:
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	case TinyImageFormat_R8G8B8A8_SINT:
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	case TinyImageFormat_R8G8B8A8_SRGB:
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	case TinyImageFormat_B8G8R8A8_UNORM:
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	case TinyImageFormat_B8G8R8A8_SNORM:
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	case TinyImageFormat_B8G8R8A8_UINT:
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	case TinyImageFormat_B8G8R8A8_SINT:
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	case TinyImageFormat_B8G8R8A8_SRGB:
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	case TinyImageFormat_DXBC1_RGB_UNORM:
+		return TinyImageFormat_DXBC1_RGB_SRGB;
+	case TinyImageFormat_DXBC1_RGB_SRGB:
+		return TinyImageFormat_DXBC1_RGB_SRGB;
+	case TinyImageFormat_DXBC1_RGBA_UNORM:
+		return TinyImageFormat_DXBC1_RGBA_SRGB;
+	case TinyImageFormat_DXBC1_RGBA_SRGB:
+		return TinyImageFormat_DXBC1_RGBA_SRGB;
+	case TinyImageFormat_DXBC2_UNORM:
+		return TinyImageFormat_DXBC2_SRGB;
+	case TinyImageFormat_DXBC2_SRGB:
+		return TinyImageFormat_DXBC2_SRGB;
+	case TinyImageFormat_DXBC3_UNORM:
+		return TinyImageFormat_DXBC3_SRGB;
+	case TinyImageFormat_DXBC3_SRGB:
+		return TinyImageFormat_DXBC3_SRGB;
+	case TinyImageFormat_DXBC7_UNORM:
+		return TinyImageFormat_DXBC7_SRGB;
+	case TinyImageFormat_DXBC7_SRGB:
+		return TinyImageFormat_DXBC7_SRGB;
+	case TinyImageFormat_PVRTC1_2BPP_UNORM:
+		return TinyImageFormat_PVRTC1_2BPP_SRGB;
+	case TinyImageFormat_PVRTC1_4BPP_UNORM:
+		return TinyImageFormat_PVRTC1_4BPP_SRGB;
+	case TinyImageFormat_PVRTC2_2BPP_UNORM:
+		return TinyImageFormat_PVRTC2_2BPP_SRGB;
+	case TinyImageFormat_PVRTC2_4BPP_UNORM:
+		return TinyImageFormat_PVRTC2_4BPP_SRGB;
+	case TinyImageFormat_PVRTC1_2BPP_SRGB:
+		return TinyImageFormat_PVRTC1_2BPP_SRGB;
+	case TinyImageFormat_PVRTC1_4BPP_SRGB:
+		return TinyImageFormat_PVRTC1_4BPP_SRGB;
+	case TinyImageFormat_PVRTC2_2BPP_SRGB:
+		return TinyImageFormat_PVRTC2_2BPP_SRGB;
+	case TinyImageFormat_PVRTC2_4BPP_SRGB:
+		return TinyImageFormat_PVRTC2_4BPP_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8_UNORM:
+		return TinyImageFormat_ETC2_R8G8B8_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8_SRGB:
+		return TinyImageFormat_ETC2_R8G8B8_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8A1_UNORM:
+		return TinyImageFormat_ETC2_R8G8B8A1_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8A1_SRGB:
+		return TinyImageFormat_ETC2_R8G8B8A1_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8A8_UNORM:
+		return TinyImageFormat_ETC2_R8G8B8A8_SRGB;
+	case TinyImageFormat_ETC2_R8G8B8A8_SRGB:
+		return TinyImageFormat_ETC2_R8G8B8A8_SRGB;
+	case TinyImageFormat_ASTC_4x4_UNORM:
+		return TinyImageFormat_ASTC_4x4_SRGB;
+	case TinyImageFormat_ASTC_4x4_SRGB:
+		return TinyImageFormat_ASTC_4x4_SRGB;
+	case TinyImageFormat_ASTC_5x4_UNORM:
+		return TinyImageFormat_ASTC_5x4_SRGB;
+	case TinyImageFormat_ASTC_5x4_SRGB:
+		return TinyImageFormat_ASTC_5x4_SRGB;
+	case TinyImageFormat_ASTC_5x5_UNORM:
+		return TinyImageFormat_ASTC_5x5_SRGB;
+	case TinyImageFormat_ASTC_5x5_SRGB:
+		return TinyImageFormat_ASTC_5x5_SRGB;
+	case TinyImageFormat_ASTC_6x5_UNORM:
+		return TinyImageFormat_ASTC_6x5_SRGB;
+	case TinyImageFormat_ASTC_6x5_SRGB:
+		return TinyImageFormat_ASTC_6x5_SRGB;
+	case TinyImageFormat_ASTC_6x6_UNORM:
+		return TinyImageFormat_ASTC_6x6_SRGB;
+	case TinyImageFormat_ASTC_6x6_SRGB:
+		return TinyImageFormat_ASTC_6x6_SRGB;
+	case TinyImageFormat_ASTC_8x5_UNORM:
+		return TinyImageFormat_ASTC_8x5_SRGB;
+	case TinyImageFormat_ASTC_8x5_SRGB:
+		return TinyImageFormat_ASTC_8x5_SRGB;
+	case TinyImageFormat_ASTC_8x6_UNORM:
+		return TinyImageFormat_ASTC_8x6_SRGB;
+	case TinyImageFormat_ASTC_8x6_SRGB:
+		return TinyImageFormat_ASTC_8x6_SRGB;
+	case TinyImageFormat_ASTC_8x8_UNORM:
+		return TinyImageFormat_ASTC_8x8_SRGB;
+	case TinyImageFormat_ASTC_8x8_SRGB:
+		return TinyImageFormat_ASTC_8x8_SRGB;
+	case TinyImageFormat_ASTC_10x5_UNORM:
+		return TinyImageFormat_ASTC_10x5_SRGB;
+	case TinyImageFormat_ASTC_10x5_SRGB:
+		return TinyImageFormat_ASTC_10x5_SRGB;
+	case TinyImageFormat_ASTC_10x6_UNORM:
+		return TinyImageFormat_ASTC_10x6_SRGB;
+	case TinyImageFormat_ASTC_10x6_SRGB:
+		return TinyImageFormat_ASTC_10x6_SRGB;
+	case TinyImageFormat_ASTC_10x8_UNORM:
+		return TinyImageFormat_ASTC_10x8_SRGB;
+	case TinyImageFormat_ASTC_10x8_SRGB:
+		return TinyImageFormat_ASTC_10x8_SRGB;
+	case TinyImageFormat_ASTC_10x10_UNORM:
+		return TinyImageFormat_ASTC_10x10_SRGB;
+	case TinyImageFormat_ASTC_10x10_SRGB:
+		return TinyImageFormat_ASTC_10x10_SRGB;
+	case TinyImageFormat_ASTC_12x10_UNORM:
+		return TinyImageFormat_ASTC_12x10_SRGB;
+	case TinyImageFormat_ASTC_12x10_SRGB:
+		return TinyImageFormat_ASTC_12x10_SRGB;
+	case TinyImageFormat_ASTC_12x12_UNORM:
+		return TinyImageFormat_ASTC_12x12_SRGB;
+	case TinyImageFormat_ASTC_12x12_SRGB:
+		return TinyImageFormat_ASTC_12x12_SRGB;
+	default:
+		return TinyImageFormat_UNDEFINED;
+	}
+}
+
+TIF_CONSTEXPR inline TinyImageFormat TinyImageFormat_ToUNORM(TinyImageFormat fmt)
+{
+	switch (fmt)
+	{
+		case TinyImageFormat_R8_SNORM:
+			return TinyImageFormat_R8_UNORM;
+		case TinyImageFormat_R8_UINT:
+			return TinyImageFormat_R8_UNORM;
+		case TinyImageFormat_R8_SINT:
+			return TinyImageFormat_R8_UNORM;
+		case TinyImageFormat_R8_SRGB:
+			return TinyImageFormat_R8_UNORM;
+		case TinyImageFormat_R8G8_SNORM:
+			return TinyImageFormat_R8G8_UNORM;
+		case TinyImageFormat_G8R8_SNORM:
+			return TinyImageFormat_G8R8_UNORM;
+		case TinyImageFormat_R8G8_UINT:
+			return TinyImageFormat_R8G8_UNORM;
+		case TinyImageFormat_R8G8_SINT:
+			return TinyImageFormat_R8G8_UNORM;
+		case TinyImageFormat_R8G8_SRGB:
+			return TinyImageFormat_R8G8_UNORM;
+		case TinyImageFormat_R16_SNORM:
+			return TinyImageFormat_R16_UNORM;
+		case TinyImageFormat_R16_UINT:
+			return TinyImageFormat_R16_UNORM;
+		case TinyImageFormat_R16_SINT:
+			return TinyImageFormat_R16_UNORM;
+		case TinyImageFormat_R16_SFLOAT:
+			return TinyImageFormat_R16_UNORM;
+		case TinyImageFormat_R16_SBFLOAT:
+			return TinyImageFormat_R16_UNORM;
+		case TinyImageFormat_R8G8B8_SNORM:
+			return TinyImageFormat_R8G8B8_UNORM;
+		case TinyImageFormat_R8G8B8_UINT:
+			return TinyImageFormat_R8G8B8_UNORM;
+		case TinyImageFormat_R8G8B8_SINT:
+			return TinyImageFormat_R8G8B8_UNORM;
+		case TinyImageFormat_R8G8B8_SRGB:
+			return TinyImageFormat_R8G8B8_UNORM;
+		case TinyImageFormat_B8G8R8_SNORM:
+			return TinyImageFormat_B8G8R8_UNORM;
+		case TinyImageFormat_B8G8R8_UINT:
+			return TinyImageFormat_B8G8R8_UNORM;
+		case TinyImageFormat_B8G8R8_SINT:
+			return TinyImageFormat_B8G8R8_UNORM;
+		case TinyImageFormat_B8G8R8_SRGB:
+			return TinyImageFormat_B8G8R8_UNORM;
+		case TinyImageFormat_R8G8B8A8_SNORM:
+			return TinyImageFormat_R8G8B8A8_UNORM;
+		case TinyImageFormat_R8G8B8A8_UINT:
+			return TinyImageFormat_R8G8B8A8_UNORM;
+		case TinyImageFormat_R8G8B8A8_SINT:
+			return TinyImageFormat_R8G8B8A8_UNORM;
+		case TinyImageFormat_R8G8B8A8_SRGB:
+			return TinyImageFormat_R8G8B8A8_UNORM;
+		case TinyImageFormat_B8G8R8A8_SNORM:
+			return TinyImageFormat_B8G8R8A8_UNORM;
+		case TinyImageFormat_B8G8R8A8_UINT:
+			return TinyImageFormat_B8G8R8A8_UNORM;
+		case TinyImageFormat_B8G8R8A8_SINT:
+			return TinyImageFormat_B8G8R8A8_UNORM;
+		case TinyImageFormat_B8G8R8A8_SRGB:
+			return TinyImageFormat_B8G8R8A8_UNORM;
+		case TinyImageFormat_R16G16_SNORM:
+			return TinyImageFormat_R16G16_UNORM;
+		case TinyImageFormat_G16R16_SNORM:
+			return TinyImageFormat_G16R16_UNORM;
+		case TinyImageFormat_R16G16_UINT:
+			return TinyImageFormat_R16G16_UNORM;
+		case TinyImageFormat_R16G16_SINT:
+			return TinyImageFormat_R16G16_UNORM;
+		case TinyImageFormat_R16G16_SFLOAT:
+			return TinyImageFormat_R16G16_UNORM;
+		case TinyImageFormat_R16G16_SBFLOAT:
+			return TinyImageFormat_R16G16_UNORM;
+		case TinyImageFormat_A2R10G10B10_UINT:
+			return TinyImageFormat_A2R10G10B10_UNORM;
+		case TinyImageFormat_A2R10G10B10_SNORM:
+			return TinyImageFormat_A2R10G10B10_UNORM;
+		case TinyImageFormat_A2R10G10B10_SINT:
+			return TinyImageFormat_A2R10G10B10_UNORM;
+		case TinyImageFormat_A2B10G10R10_UINT:
+			return TinyImageFormat_A2B10G10R10_UNORM;
+		case TinyImageFormat_A2B10G10R10_SNORM:
+			return TinyImageFormat_A2B10G10R10_UNORM;
+		case TinyImageFormat_A2B10G10R10_SINT:
+			return TinyImageFormat_A2B10G10R10_UNORM;
+		case TinyImageFormat_R10G10B10A2_UINT:
+			return TinyImageFormat_R10G10B10A2_UNORM;
+		case TinyImageFormat_R10G10B10A2_SNORM:
+			return TinyImageFormat_R10G10B10A2_UNORM;
+		case TinyImageFormat_R10G10B10A2_SINT:
+			return TinyImageFormat_R10G10B10A2_UNORM;
+		case TinyImageFormat_B10G10R10A2_UINT:
+			return TinyImageFormat_B10G10R10A2_UNORM;
+		case TinyImageFormat_B10G10R10A2_SNORM:
+			return TinyImageFormat_B10G10R10A2_UNORM;
+		case TinyImageFormat_B10G10R10A2_SINT:
+			return TinyImageFormat_B10G10R10A2_UNORM;
+		case TinyImageFormat_R16G16B16_SNORM:
+			return TinyImageFormat_R16G16B16_UNORM;
+		case TinyImageFormat_R16G16B16_UINT:
+			return TinyImageFormat_R16G16B16_UNORM;
+		case TinyImageFormat_R16G16B16_SINT:
+			return TinyImageFormat_R16G16B16_UNORM;
+		case TinyImageFormat_R16G16B16_SFLOAT:
+			return TinyImageFormat_R16G16B16_UNORM;
+		case TinyImageFormat_R16G16B16_SBFLOAT:
+			return TinyImageFormat_R16G16B16_UNORM;
+		case TinyImageFormat_R16G16B16A16_SNORM:
+			return TinyImageFormat_R16G16B16A16_UNORM;
+		case TinyImageFormat_R16G16B16A16_UINT:
+			return TinyImageFormat_R16G16B16A16_UNORM;
+		case TinyImageFormat_R16G16B16A16_SINT:
+			return TinyImageFormat_R16G16B16A16_UNORM;
+		case TinyImageFormat_R16G16B16A16_SFLOAT:
+			return TinyImageFormat_R16G16B16A16_UNORM;
+		case TinyImageFormat_R16G16B16A16_SBFLOAT:
+			return TinyImageFormat_R16G16B16A16_UNORM;
+		case TinyImageFormat_DXBC1_RGB_SRGB:
+			return TinyImageFormat_DXBC1_RGB_UNORM;
+		case TinyImageFormat_DXBC1_RGBA_SRGB:
+			return TinyImageFormat_DXBC1_RGBA_UNORM;
+		case TinyImageFormat_DXBC2_SRGB:
+			return TinyImageFormat_DXBC2_UNORM;
+		case TinyImageFormat_DXBC3_SRGB:
+			return TinyImageFormat_DXBC3_UNORM;
+		case TinyImageFormat_DXBC4_SNORM:
+			return TinyImageFormat_DXBC4_UNORM;
+		case TinyImageFormat_DXBC5_SNORM:
+			return TinyImageFormat_DXBC5_UNORM;
+		case TinyImageFormat_DXBC7_SRGB:
+			return TinyImageFormat_DXBC7_UNORM;
+		case TinyImageFormat_PVRTC1_2BPP_SRGB:
+			return TinyImageFormat_PVRTC1_2BPP_UNORM;
+		case TinyImageFormat_PVRTC1_4BPP_SRGB:
+			return TinyImageFormat_PVRTC1_4BPP_UNORM;
+		case TinyImageFormat_PVRTC2_2BPP_SRGB:
+			return TinyImageFormat_PVRTC2_2BPP_UNORM;
+		case TinyImageFormat_PVRTC2_4BPP_SRGB:
+			return TinyImageFormat_PVRTC2_4BPP_UNORM;
+		case TinyImageFormat_ETC2_R8G8B8_SRGB:
+			return TinyImageFormat_ETC2_R8G8B8_UNORM;
+		case TinyImageFormat_ETC2_R8G8B8A1_SRGB:
+			return TinyImageFormat_ETC2_R8G8B8A1_UNORM;
+		case TinyImageFormat_ETC2_R8G8B8A8_SRGB:
+			return TinyImageFormat_ETC2_R8G8B8A8_UNORM;
+		case TinyImageFormat_ETC2_EAC_R11_SNORM:
+			return TinyImageFormat_ETC2_EAC_R11_UNORM;
+		case TinyImageFormat_ETC2_EAC_R11G11_SNORM:
+			return TinyImageFormat_ETC2_EAC_R11G11_UNORM;
+		case TinyImageFormat_ASTC_4x4_SRGB:
+			return TinyImageFormat_ASTC_4x4_UNORM;
+		case TinyImageFormat_ASTC_5x4_SRGB:
+			return TinyImageFormat_ASTC_5x4_UNORM;
+		case TinyImageFormat_ASTC_5x5_SRGB:
+			return TinyImageFormat_ASTC_5x5_UNORM;
+		case TinyImageFormat_ASTC_6x5_SRGB:
+			return TinyImageFormat_ASTC_6x5_UNORM;
+		case TinyImageFormat_ASTC_6x6_SRGB:
+			return TinyImageFormat_ASTC_6x6_UNORM;
+		case TinyImageFormat_ASTC_8x5_SRGB:
+			return TinyImageFormat_ASTC_8x5_UNORM;
+		case TinyImageFormat_ASTC_8x6_SRGB:
+			return TinyImageFormat_ASTC_8x6_UNORM;
+		case TinyImageFormat_ASTC_8x8_SRGB:
+			return TinyImageFormat_ASTC_8x8_UNORM;
+		case TinyImageFormat_ASTC_10x5_SRGB:
+			return TinyImageFormat_ASTC_10x5_UNORM;
+		case TinyImageFormat_ASTC_10x6_SRGB:
+			return TinyImageFormat_ASTC_10x6_UNORM;
+		case TinyImageFormat_ASTC_10x8_SRGB:
+			return TinyImageFormat_ASTC_10x8_UNORM;
+		case TinyImageFormat_ASTC_10x10_SRGB:
+			return TinyImageFormat_ASTC_10x10_UNORM;
+		case TinyImageFormat_ASTC_12x10_SRGB:
+			return TinyImageFormat_ASTC_12x10_UNORM;
+		case TinyImageFormat_ASTC_12x12_SRGB:
+			return TinyImageFormat_ASTC_12x12_UNORM;
+		case TinyImageFormat_R1_UNORM:
+		case TinyImageFormat_R2_UNORM:
+		case TinyImageFormat_R4_UNORM:
+		case TinyImageFormat_R4G4_UNORM:
+		case TinyImageFormat_G4R4_UNORM:
+		case TinyImageFormat_A8_UNORM:
+		case TinyImageFormat_R8_UNORM:
+		case TinyImageFormat_B2G3R3_UNORM:
+		case TinyImageFormat_R4G4B4A4_UNORM:
+		case TinyImageFormat_R4G4B4X4_UNORM:
+		case TinyImageFormat_B4G4R4A4_UNORM:
+		case TinyImageFormat_B4G4R4X4_UNORM:
+		case TinyImageFormat_A4R4G4B4_UNORM:
+		case TinyImageFormat_X4R4G4B4_UNORM:
+		case TinyImageFormat_A4B4G4R4_UNORM:
+		case TinyImageFormat_X4B4G4R4_UNORM:
+		case TinyImageFormat_R5G6B5_UNORM:
+		case TinyImageFormat_B5G6R5_UNORM:
+		case TinyImageFormat_R5G5B5A1_UNORM:
+		case TinyImageFormat_B5G5R5A1_UNORM:
+		case TinyImageFormat_A1B5G5R5_UNORM:
+		case TinyImageFormat_A1R5G5B5_UNORM:
+		case TinyImageFormat_R5G5B5X1_UNORM:
+		case TinyImageFormat_B5G5R5X1_UNORM:
+		case TinyImageFormat_X1R5G5B5_UNORM:
+		case TinyImageFormat_X1B5G5R5_UNORM:
+		case TinyImageFormat_B2G3R3A8_UNORM:
+		case TinyImageFormat_R8G8_UNORM:
+		case TinyImageFormat_G8R8_UNORM:
+		case TinyImageFormat_R16_UNORM:
+		case TinyImageFormat_R8G8B8_UNORM:
+		case TinyImageFormat_B8G8R8_UNORM:
+		case TinyImageFormat_R8G8B8A8_UNORM:
+		case TinyImageFormat_B8G8R8A8_UNORM:
+		case TinyImageFormat_R8G8B8X8_UNORM:
+		case TinyImageFormat_B8G8R8X8_UNORM:
+		case TinyImageFormat_R16G16_UNORM:
+		case TinyImageFormat_G16R16_UNORM:
+		case TinyImageFormat_A2R10G10B10_UNORM:
+		case TinyImageFormat_A2B10G10R10_UNORM:
+		case TinyImageFormat_R10G10B10A2_UNORM:
+		case TinyImageFormat_B10G10R10A2_UNORM:
+		case TinyImageFormat_R16G16B16_UNORM:
+		case TinyImageFormat_R16G16B16A16_UNORM:
+		case TinyImageFormat_D16_UNORM:
+		case TinyImageFormat_X8_D24_UNORM:
+		case TinyImageFormat_D16_UNORM_S8_UINT:
+		case TinyImageFormat_D24_UNORM_S8_UINT:
+		case TinyImageFormat_DXBC1_RGB_UNORM:
+		case TinyImageFormat_DXBC1_RGBA_UNORM:
+		case TinyImageFormat_DXBC2_UNORM:
+		case TinyImageFormat_DXBC3_UNORM:
+		case TinyImageFormat_DXBC4_UNORM:
+		case TinyImageFormat_DXBC5_UNORM:
+		case TinyImageFormat_DXBC7_UNORM:
+		case TinyImageFormat_PVRTC1_2BPP_UNORM:
+		case TinyImageFormat_PVRTC1_4BPP_UNORM:
+		case TinyImageFormat_PVRTC2_2BPP_UNORM:
+		case TinyImageFormat_PVRTC2_4BPP_UNORM:
+		case TinyImageFormat_ETC2_R8G8B8_UNORM:
+		case TinyImageFormat_ETC2_R8G8B8A1_UNORM:
+		case TinyImageFormat_ETC2_R8G8B8A8_UNORM:
+		case TinyImageFormat_ETC2_EAC_R11_UNORM:
+		case TinyImageFormat_ETC2_EAC_R11G11_UNORM:
+		case TinyImageFormat_ASTC_4x4_UNORM:
+		case TinyImageFormat_ASTC_5x4_UNORM:
+		case TinyImageFormat_ASTC_5x5_UNORM:
+		case TinyImageFormat_ASTC_6x5_UNORM:
+		case TinyImageFormat_ASTC_6x6_UNORM:
+		case TinyImageFormat_ASTC_8x5_UNORM:
+		case TinyImageFormat_ASTC_8x6_UNORM:
+		case TinyImageFormat_ASTC_8x8_UNORM:
+		case TinyImageFormat_ASTC_10x5_UNORM:
+		case TinyImageFormat_ASTC_10x6_UNORM:
+		case TinyImageFormat_ASTC_10x8_UNORM:
+		case TinyImageFormat_ASTC_10x10_UNORM:
+		case TinyImageFormat_ASTC_12x10_UNORM:
+		case TinyImageFormat_ASTC_12x12_UNORM:
+		case TinyImageFormat_R4G4B4A4_UNORM_PACK16:
+		case TinyImageFormat_B4G4R4A4_UNORM_PACK16:
+		case TinyImageFormat_R5G6B5_UNORM_PACK16:
+		case TinyImageFormat_B5G6R5_UNORM_PACK16:
+		case TinyImageFormat_R5G5B5A1_UNORM_PACK16:
+		case TinyImageFormat_B5G5R5A1_UNORM_PACK16:
+		case TinyImageFormat_A1R5G5B5_UNORM_PACK16:
+		case TinyImageFormat_G16B16G16R16_422_UNORM:
+		case TinyImageFormat_B16G16R16G16_422_UNORM:
+		case TinyImageFormat_R12X4G12X4B12X4A12X4_UNORM_4PACK16:
+		case TinyImageFormat_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16:
+		case TinyImageFormat_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16:
+		case TinyImageFormat_R10X6G10X6B10X6A10X6_UNORM_4PACK16:
+		case TinyImageFormat_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16:
+		case TinyImageFormat_G8B8G8R8_422_UNORM:
+		case TinyImageFormat_B8G8R8G8_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_420_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8R8_2PLANE_422_UNORM:
+		case TinyImageFormat_G8_B8_R8_3PLANE_444_UNORM:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
+		case TinyImageFormat_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
+		case TinyImageFormat_G16_B16_R16_3PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_422_UNORM:
+		case TinyImageFormat_G16_B16_R16_3PLANE_444_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_420_UNORM:
+		case TinyImageFormat_G16_B16R16_2PLANE_422_UNORM:
+			return fmt;
+		default:
+			return TinyImageFormat_UNDEFINED;
+	}
+}
+
+TIF_CONSTEXPR inline char const * const TinyImageFormat_Name(TinyImageFormat const fmt) 
+{
+	switch(fmt) 
+	{
 		case TinyImageFormat_UNDEFINED: return "UNDEFINED";
 		case TinyImageFormat_R1_UNORM: return "R1_UNORM";
 		case TinyImageFormat_R2_UNORM: return "R2_UNORM";
@@ -3350,11 +3936,13 @@ TIF_CONSTEXPR inline char const * const TinyImageFormat_Name(TinyImageFormat con
 	}
 }
 
-inline TinyImageFormat TinyImageFormat_FromName(char const* p) {
+inline TinyImageFormat TinyImageFormat_FromName(char const* p) 
+{
 	// FNV-1a hashing algorithm.
 	uint64_t hash = 0xcbf29ce484222325ULL;
 	while ((*p) != 0) { hash = (((uint64_t) *p) ^ hash) * 1099511628211ULL;	p++; }
-	switch(hash) {
+	switch(hash) 
+	{
 		case 0x2BF653266B186C03: return TinyImageFormat_UNDEFINED;
 		case 0x9C45001516D833DA: return TinyImageFormat_R1_UNORM;
 		case 0x6C00F001F570B433: return TinyImageFormat_R2_UNORM;
@@ -3564,19 +4152,23 @@ inline TinyImageFormat TinyImageFormat_FromName(char const* p) {
 
 
 // Helpers
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_PixelCountOfBlock(TinyImageFormat const fmt) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_PixelCountOfBlock(TinyImageFormat const fmt) 
+{
 	return TinyImageFormat_WidthOfBlock(fmt) * TinyImageFormat_HeightOfBlock(fmt) * TinyImageFormat_DepthOfBlock(fmt);
 }
 
-TIF_CONSTEXPR inline double TinyImageFormat_Min(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) {
+TIF_CONSTEXPR inline double TinyImageFormat_Min(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) 
+{
 	return TinyImageFormat_MinAtPhysical(fmt, TinyImageFormat_LogicalChannelToPhysical(fmt, channel));
 }
 
-TIF_CONSTEXPR inline double TinyImageFormat_Max(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) {
+TIF_CONSTEXPR inline double TinyImageFormat_Max(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) 
+{
 	return TinyImageFormat_MaxAtPhysical(fmt, TinyImageFormat_LogicalChannelToPhysical(fmt, channel));
 }
 
-TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidth(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) {
+TIF_CONSTEXPR inline uint32_t TinyImageFormat_ChannelBitWidth(TinyImageFormat const fmt, TinyImageFormat_LogicalChannel const channel) 
+{
 	return TinyImageFormat_ChannelBitWidthAtPhysical(fmt, TinyImageFormat_LogicalChannelToPhysical(fmt, channel));
 }
 

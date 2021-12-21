@@ -153,6 +153,8 @@ bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
 	paninniRootDesc.ppStaticSamplers = &pSamplerPointWrap;
 	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignature);
 
+	mRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "PaniniRootConstants");
+
 	SetMaxDraws(1);    // Create descriptor binder space that allows for 1 texture per frame by default
 
 	createTessellatedQuadBuffers(
@@ -236,7 +238,7 @@ void Panini::Draw(Cmd* cmd)
 
 	// set pipeline state
 	cmdBindPipeline(cmd, pPipeline);
-	cmdBindPushConstants(cmd, pRootSignature, "PaniniRootConstants", &mParams);
+	cmdBindPushConstants(cmd, pRootSignature, mRootConstantIndex, &mParams);
 	cmdBindDescriptorSet(cmd, mIndex++, pDescriptorSet);
 
 	// draw

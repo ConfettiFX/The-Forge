@@ -22,8 +22,8 @@
 * under the License.
 */
 
-#include "shaderDefs.h"
-#include "varianceShadowMapping.h"
+#include "shaderDefs.h.fsl"
+#include "varianceShadowMapping.h.fsl"
 
 STRUCT(VSOutput)
 {

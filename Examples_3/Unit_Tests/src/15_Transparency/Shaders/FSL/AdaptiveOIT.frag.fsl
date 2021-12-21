@@ -22,10 +22,10 @@
 * under the License.
 */
 
-#include "shaderDefs.h"
+#include "shaderDefs.h.fsl"
 #define AOIT_UNORDERED_ACCESS
-#include "AOIT.h"
-#include "shading.h"
+#include "AOIT.h.fsl"
+#include "shading.h.fsl"
 
 STRUCT(VSOutput)
 {

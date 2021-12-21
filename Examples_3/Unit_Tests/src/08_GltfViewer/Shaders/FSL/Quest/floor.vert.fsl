@@ -22,7 +22,7 @@
 */
 
 #define FLOOR
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSInput)
 {

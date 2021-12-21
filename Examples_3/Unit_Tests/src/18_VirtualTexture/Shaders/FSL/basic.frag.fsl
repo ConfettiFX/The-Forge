@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "resources.h"
+#include "resources.h.fsl"
 
 RES(Tex2D(float4), SparseTexture, UPDATE_FREQ_NONE, t0, binding = 8);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s0, binding = 7);

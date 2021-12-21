@@ -23,7 +23,7 @@
 */
 
 #define AOIT_UNORDERED_ACCESS
-#include "AOIT.h"
+#include "AOIT.h.fsl"
 
 STRUCT(VSOutput)
 {

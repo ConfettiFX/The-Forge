@@ -31,7 +31,7 @@ RES(RWTex2D(float4), g_temporally_denoised_reflections, UPDATE_FREQ_NONE, u0, bi
 RES(RWTex2D(float4), g_denoised_reflections, UPDATE_FREQ_NONE, u1, binding = 3);
 RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u2, binding = 4);
 
-#include "SSSR_Common.h"
+#include "SSSR_Common.h.fsl"
 
 GroupShared(uint, g_shared_0[12][12]);
 GroupShared(uint, g_shared_1[12][12]);

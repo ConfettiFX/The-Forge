@@ -21,7 +21,7 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-#include "SDF_Constant.h"
+#include "SDF_Constant.h.fsl"
 
 RES(Buffer(float), SDFVolumeDataBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
 RES(RWTex3D(half), SDFVolumeTextureAtlas, UPDATE_FREQ_NONE, u0, binding = 2);

@@ -45,7 +45,7 @@
 */
 
 #define SHORT_CUT_CLEAR
-#include "hair.h"
+#include "hair.h.fsl"
 
 void PS_MAIN( VSOutputFullscreen In )
 {

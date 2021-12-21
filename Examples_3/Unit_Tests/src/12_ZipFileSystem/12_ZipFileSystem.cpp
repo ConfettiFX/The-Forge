@@ -976,6 +976,8 @@ class FileSystemUnitTest : public IApp
 		textureDescZip.pFileName = pCubeTextureName[0];
 		textureDescZip.pFilePassword = pZipPassword;
 		textureDescZip.ppTexture = &pZipTexture[0];
+		// Textures representing color should be stored in SRGB or HDR format
+		textureDescZip.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&textureDescZip, NULL);
 
 		// Loads Skybox Textures
@@ -985,6 +987,8 @@ class FileSystemUnitTest : public IApp
 			textureDesc.pFileName = pSkyboxImageFileNames[i];
 			textureDesc.pFilePassword = pZipPassword;
 			textureDesc.ppTexture = &pSkyboxTextures[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureDesc, NULL);
 		}
 
@@ -1622,7 +1626,7 @@ class FileSystemUnitTest : public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

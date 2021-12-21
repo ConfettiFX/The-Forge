@@ -17,20 +17,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\shaderDefs.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\shading.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\varianceShadowMapping.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\AOIT.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\copy.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
@@ -92,6 +78,18 @@
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AdaptiveOITComposite.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AOIT.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shaderDefs.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shading.h.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\varianceShadowMapping.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

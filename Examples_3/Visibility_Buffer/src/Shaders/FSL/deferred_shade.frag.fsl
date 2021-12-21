@@ -25,7 +25,7 @@
 // USERMACRO: SAMPLE_COUNT [1,2,4]
 // USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
 
-#include "shading.h"
+#include "shading.h.fsl"
 
 // This shader loads gBuffer data and shades the pixel.
 
@@ -157,7 +157,7 @@ FSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 
 	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL * ao;
 
-	float ambientIntencity = 0.2f;
+	float ambientIntencity = 0.05f;
 	float3 ambient = colorData.xyz * ambientIntencity;
 
 	float3 FinalColor = shadedColor + ambient;

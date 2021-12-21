@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.forge.unittest">
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+		android:hasCode="true" 
+		android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+		
+		<meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
+		<meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2"/>
+        
+		<activity android:name=".ForgeBaseActivity"
+			android:label="@string/app_name"
+			android:configChanges="density|keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
+			android:screenOrientation="landscape"
+			android:launchMode="singleTask"
+			android:resizeableActivity="false">
+			<meta-data android:name="android.app.lib_name"
+				android:value="ForgeGame" />
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+    </application>
+
+</manifest>

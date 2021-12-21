@@ -19,7 +19,6 @@ namespace gainput
 			manager_(manager),
 			device_(device),
 			state_(&state),
-			previousState_(&previousState),
 			nextState_(manager.GetAllocator(), TouchPointCount*TouchDataElems),
 			delta_(0),
 			gestureTypeToID()
@@ -88,7 +87,6 @@ namespace gainput
 		int32_t HandleInput(AInputEvent* event)
 		{
 			GAINPUT_ASSERT(state_);
-			GAINPUT_ASSERT(previousState_);
 			GAINPUT_ASSERT(event);
 
 			if (AInputEvent_getType(event) != AINPUT_EVENT_TYPE_MOTION)
@@ -177,7 +175,6 @@ namespace gainput
 		InputManager& manager_;
 		InputDevice& device_;
 		InputState* state_;
-		InputState* previousState_;
 		InputState nextState_;
 		InputDeltaState* delta_;
 		gainput::HashMap<gainput::GestureType, uint32_t> gestureTypeToID;

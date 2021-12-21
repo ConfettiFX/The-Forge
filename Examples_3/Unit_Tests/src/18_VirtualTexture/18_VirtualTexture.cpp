@@ -281,6 +281,8 @@ public:
 			textureLoadDesc.mContainer = TEXTURE_CONTAINER_SVT;
 			textureLoadDesc.pFileName = gPlanetName[i];
 			textureLoadDesc.ppTexture = &pVirtualTexture[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureLoadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureLoadDesc, NULL);
 		}
 		gAccuFrameIndex = 0;
@@ -1374,7 +1376,7 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

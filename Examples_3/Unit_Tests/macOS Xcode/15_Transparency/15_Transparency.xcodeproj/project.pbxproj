@@ -80,7 +80,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97E9426D25BF498C009F2F2B /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -93,7 +93,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -160,19 +160,19 @@
 		97E9427525BF49C7009F2F2B /* weightedBlendedOITVolitionComposite.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = weightedBlendedOITVolitionComposite.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/weightedBlendedOITVolitionComposite.frag.fsl; sourceTree = "<group>"; };
 		97E9427625BF49C7009F2F2B /* stochasticShadow.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = stochasticShadow.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/stochasticShadow.frag.fsl; sourceTree = "<group>"; };
 		97E9427725BF49C7009F2F2B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
-		97E9427825BF49C7009F2F2B /* shading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shading.h; path = ../../src/15_Transparency/Shaders/FSL/shading.h; sourceTree = "<group>"; };
+		97E9427825BF49C7009F2F2B /* shading.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shading.h.fsl; path = ../../src/15_Transparency/Shaders/FSL/shading.h.fsl; sourceTree = "<group>"; };
 		97E9427925BF49C7009F2F2B /* gaussianBlur.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = gaussianBlur.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/gaussianBlur.frag.fsl; sourceTree = "<group>"; };
 		97E9427A25BF49C7009F2F2B /* AdaptiveOITComposite.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = AdaptiveOITComposite.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/AdaptiveOITComposite.frag.fsl; sourceTree = "<group>"; };
 		97E9427B25BF49C7009F2F2B /* AdaptiveOITClear.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = AdaptiveOITClear.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/AdaptiveOITClear.frag.fsl; sourceTree = "<group>"; };
 		97E9427C25BF49C7009F2F2B /* fullscreen.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = fullscreen.vert.fsl; path = ../../src/15_Transparency/Shaders/FSL/fullscreen.vert.fsl; sourceTree = "<group>"; };
 		97E9427D25BF49C7009F2F2B /* phenomenologicalTransparency.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = phenomenologicalTransparency.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/phenomenologicalTransparency.frag.fsl; sourceTree = "<group>"; };
-		97E9427E25BF49C7009F2F2B /* varianceShadowMapping.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = varianceShadowMapping.h; path = ../../src/15_Transparency/Shaders/FSL/varianceShadowMapping.h; sourceTree = "<group>"; };
+		97E9427E25BF49C7009F2F2B /* varianceShadowMapping.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = varianceShadowMapping.h.fsl; path = ../../src/15_Transparency/Shaders/FSL/varianceShadowMapping.h.fsl; sourceTree = "<group>"; };
 		97E9427F25BF49C7009F2F2B /* weightedBlendedOITVolition.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = weightedBlendedOITVolition.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/weightedBlendedOITVolition.frag.fsl; sourceTree = "<group>"; };
 		97E9428025BF49C7009F2F2B /* phenomenologicalTransparencyComposite.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = phenomenologicalTransparencyComposite.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/phenomenologicalTransparencyComposite.frag.fsl; sourceTree = "<group>"; };
 		97E9428125BF49C7009F2F2B /* downsample.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = downsample.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/downsample.frag.fsl; sourceTree = "<group>"; };
 		97E9428225BF49C7009F2F2B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../src/15_Transparency/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
-		97E9428325BF49C7009F2F2B /* shaderDefs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shaderDefs.h; path = ../../src/15_Transparency/Shaders/FSL/shaderDefs.h; sourceTree = "<group>"; };
-		97E9428425BF49C7009F2F2B /* AOIT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AOIT.h; path = ../../src/15_Transparency/Shaders/FSL/AOIT.h; sourceTree = "<group>"; };
+		97E9428325BF49C7009F2F2B /* shaderDefs.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shaderDefs.h.fsl; path = ../../src/15_Transparency/Shaders/FSL/shaderDefs.h.fsl; sourceTree = "<group>"; };
+		97E9428425BF49C7009F2F2B /* AOIT.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AOIT.h.fsl; path = ../../src/15_Transparency/Shaders/FSL/AOIT.h.fsl; sourceTree = "<group>"; };
 		97E9428525BF49C7009F2F2B /* weightedBlendedOITComposite.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = weightedBlendedOITComposite.frag.fsl; path = ../../src/15_Transparency/Shaders/FSL/weightedBlendedOITComposite.frag.fsl; sourceTree = "<group>"; };
 		97E9428625BF49C7009F2F2B /* forward.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = forward.vert.fsl; path = ../../src/15_Transparency/Shaders/FSL/forward.vert.fsl; sourceTree = "<group>"; };
 		B2087DF121421A66006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };

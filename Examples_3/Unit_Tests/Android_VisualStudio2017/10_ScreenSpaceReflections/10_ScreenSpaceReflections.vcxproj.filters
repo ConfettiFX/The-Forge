@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{899360c9-6d4b-40cb-895c-97998d84cb14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{c623bd60-b2cb-4c6c-bf7c-b6afcb2d7405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{85499b51-592c-4343-a10e-eb0608cba541}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\copyDepth.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\DepthDownsample.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\fillGbuffers.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\fillGbuffers.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\generateMips.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\panoToCube.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Holepatching.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Projection.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\PPR_Reflection.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\renderSceneBRDF.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\renderSceneBRDF.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ClassifyTiles.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Intersect.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_PrepareIndirectArgs.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEaw.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEawStride.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveSpatial.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveTemporal.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

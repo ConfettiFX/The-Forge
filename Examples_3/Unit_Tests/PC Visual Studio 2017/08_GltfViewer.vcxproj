@@ -16,6 +16,8 @@
   <ItemGroup>
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\shadowSamples.h.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Skybox.frag.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\Skybox.vert.fsl" />
     <FSLShader Include="..\src\08_GltfViewer\Shaders\FSL\TemporalAA.frag.fsl" />
@@ -32,8 +34,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\cgltf\cgltf.h" />
-    <ClInclude Include="..\src\08_GltfViewer\Shaders\FSL\resources.h" />
-    <ClInclude Include="..\src\08_GltfViewer\Shaders\FSL\shadowSamples.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{72714A3C-1FFA-412F-A6B0-130550B1DD2C}</ProjectGuid>

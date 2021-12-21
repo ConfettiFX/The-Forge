@@ -212,6 +212,7 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 Shader*           pBasicShader = NULL;
 Pipeline*         pBasicPipeline = NULL;
 RootSignature*    pBasicRoot = NULL;
+uint32_t          gDrawIdRootConstantIndex = 0;
 Sampler*          pBasicSampler = NULL;
 
 // Execute Indirect variables
@@ -391,6 +392,8 @@ class ExecuteIndirect: public IApp
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureDesc, NULL);
 		}
 
@@ -434,6 +437,8 @@ class ExecuteIndirect: public IApp
 		RootSignatureDesc computeRootDesc = { &pComputeShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
 		RootSignatureDesc indirectRootDesc = { &pIndirectShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
 		addRootSignature(pRenderer, &basicRootDesc, &pBasicRoot);
+		gDrawIdRootConstantIndex = getDescriptorIndexFromName(pBasicRoot, "rootConstant");
+
 		addRootSignature(pRenderer, &skyRootDesc, &pSkyBoxRoot);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
 		addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
@@ -480,7 +485,7 @@ class ExecuteIndirect: public IApp
 #else
 		IndirectArgumentDescriptor indirectArgDescs[2] = {};
 		indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
-		indirectArgDescs[0].pName = "rootConstant";
+		indirectArgDescs[0].mIndex = getDescriptorIndexFromName(pIndirectRoot, "rootConstant");
 		indirectArgDescs[0].mByteSize = sizeof(uint32_t);
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #endif
@@ -1497,7 +1502,7 @@ class ExecuteIndirect: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
@@ -1871,7 +1876,7 @@ class ExecuteIndirect: public IApp
 					continue;
 
 				uint32_t rcInd = i - startIdx;
-				cmdBindPushConstants(cmd, pBasicRoot, "rootConstant", &rcInd);
+				cmdBindPushConstants(cmd, pBasicRoot, gDrawIdRootConstantIndex, &rcInd);
 				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
 

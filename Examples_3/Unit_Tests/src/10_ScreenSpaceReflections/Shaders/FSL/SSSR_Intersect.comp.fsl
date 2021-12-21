@@ -39,7 +39,7 @@ RES(RWTex2D(float),  g_ray_lengths,             UPDATE_FREQ_NONE, u1, binding = 
 RES(RWTex2D(float4), g_denoised_reflections,    UPDATE_FREQ_NONE, u2, binding = 12);
 RES(RWBuffer(uint),  g_ray_list,                UPDATE_FREQ_NONE, u3, binding = 13);
 
-#include "SSSR_Common.h"
+#include "SSSR_Common.h.fsl"
 
 // Blue Noise Sampler by Eric Heitz. Returns a value in the range [0, 1].
 float SampleRandomNumber(in(uint) pixel_i, in(uint) pixel_j, in(uint) sample_index, in(uint) sample_dimension)

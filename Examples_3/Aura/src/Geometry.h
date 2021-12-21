@@ -21,7 +21,7 @@
 #include "../../../Common_3/Renderer/IResourceLoader.h"
 
 #define NO_FSL_DEFINITIONS
-#include "Shaders/FSL/shader_defs.h"
+#include "Shaders/FSL/shader_defs.h.fsl"
 
 #define MAX_PATH 260
 

@@ -45,7 +45,7 @@
 */
 
 #define HAIR_REGULAR
-#include "hair.h"
+#include "hair.h.fsl"
 
 float4 PS_MAIN(VSOutput In)
 {

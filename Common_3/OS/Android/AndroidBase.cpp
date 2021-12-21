@@ -67,6 +67,10 @@ static uint32_t gSelectedApiIndex = 0;
 extern RendererApi gSelectedRendererApi; // Renderer.cpp
 extern bool gGLESUnsupported; // Renderer.cpp
 
+#if defined(QUEST_VR)
+extern QuestVR* pQuest;
+#endif
+
 void adjustWindow(WindowsDesc* winDesc);
 
 void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
@@ -279,6 +283,38 @@ void onAPISwitch()
 	gResetScenario |= RESET_SCENARIO_API_SWITCH;
 }
 
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
+{
+#if !defined(QUEST_VR)
+	ASSERT(windowHandle);
+	
+	WindowHandle* handle = (WindowHandle*)windowHandle;
+	JNIEnv* jni = 0;
+	handle->activity->vm->AttachCurrentThread(&jni, NULL);
+	if (!jni)
+		return;
+	
+	jclass clazz = jni->GetObjectClass(handle->activity->clazz);
+	jmethodID methodID = jni->GetMethodID(clazz, "showAlert", "(Ljava/lang/String;Ljava/lang/String;)V");
+	if (!methodID)
+	{
+		LOGF(LogLevel::eERROR, "Could not find method \'showAlert\' in activity class");
+		handle->activity->vm->DetachCurrentThread();
+		return;
+	}
+	
+	jstring jTitle = jni->NewStringUTF(title);
+	jstring jMessage = jni->NewStringUTF(msg);
+	
+	jni->CallVoidMethod(handle->activity->clazz, methodID, jTitle, jMessage);
+	
+	jni->DeleteLocalRef(jTitle);
+	jni->DeleteLocalRef(jMessage);
+	
+	handle->activity->vm->DetachCurrentThread();
+#endif
+}
+
 // Process the next main command.
 void handle_cmd(android_app* app, int32_t cmd)
 {
@@ -292,8 +328,8 @@ void handle_cmd(android_app* app, int32_t cmd)
 			int32_t screenWidth = ANativeWindow_getWidth(app->window);
 			int32_t screenHeight = ANativeWindow_getHeight(app->window);
 #else
-            int32_t screenWidth = hook_window_width();
-            int32_t screenHeight = hook_window_height();
+			int32_t screenWidth = pQuest->mEyeTextureWidth;
+			int32_t screenHeight = pQuest->mEyeTextureHeight;
 #endif
 
 			IApp::Settings* pSettings = &pApp->mSettings;
@@ -332,8 +368,8 @@ void handle_cmd(android_app* app, int32_t cmd)
             int32_t screenWidth = ANativeWindow_getWidth(app->window);
             int32_t screenHeight = ANativeWindow_getHeight(app->window);
 #else
-            int32_t screenWidth = hook_window_width();
-            int32_t screenHeight = hook_window_height();
+            int32_t screenWidth = pQuest->mEyeTextureWidth;
+			int32_t screenHeight = pQuest->mEyeTextureHeight;
 #endif
 
 			IApp::Settings* pSettings = &pApp->mSettings;
@@ -668,7 +704,7 @@ int AndroidMain(void* param, IApp* app)
 		}
 
 #if defined(QUEST_VR)
-        if (!isHeadsetReady())
+        if (pQuest->pOvr == NULL)
             continue;
 
         updateVrApi();

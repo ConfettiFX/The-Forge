@@ -663,7 +663,7 @@ class WaveIntrinsics: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
@@ -678,7 +678,7 @@ class WaveIntrinsics: public IApp
 		rtDesc.mClearValue = { { 0.001f, 0.001f, 0.001f, 0.001f } }; // This is a temporary workaround for AMD cards on macOS. Setting this to (0,0,0,0) will introduce weird behavior.
 		rtDesc.mDepth = 1;
 		rtDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		rtDesc.mFormat = getRecommendedSwapchainFormat(true);
+		rtDesc.mFormat = getRecommendedSwapchainFormat(true, true);
 		rtDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		rtDesc.mHeight = mSettings.mHeight;
 		rtDesc.mSampleCount = SAMPLE_COUNT_1;

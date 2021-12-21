@@ -25,8 +25,8 @@
 // This compute shader resets the vertex count property of the IndirectDrawArguments struct.
 // This needs to be done before triangle filtering is executed to reset it to 0.
 
-#include "shader_defs.h"
-#include "cull_resources.h"
+#include "shader_defs.h.fsl"
+#include "cull_resources.h.fsl"
 
 PUSH_CONSTANT(maxDrawsRootConstant, b0)
 {

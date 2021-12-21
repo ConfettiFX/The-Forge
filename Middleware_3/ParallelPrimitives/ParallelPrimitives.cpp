@@ -75,6 +75,8 @@ void ParallelPrimitives::PipelineComponents::init(Renderer* renderer, const char
 	descSetDesc.mUpdateFrequency = DESCRIPTOR_UPDATE_FREQ_PER_DRAW;
 	descSetDesc.pRootSignature = pRootSignature;
 	addDescriptorSet(pRenderer, &descSetDesc, &pDescriptorSet);
+	
+	mRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "rootConstants");
 }
 
 ParallelPrimitives::PipelineComponents::~PipelineComponents() {
@@ -155,7 +157,7 @@ void ParallelPrimitives::depositTemporaryBuffer(Buffer* buffer) {
 void ParallelPrimitives::scanExclusiveAddWG(Cmd* pCmd, Buffer* input, Buffer* output, uint32_t elementCount) {
 	
 	cmdBindPipeline(pCmd, mScanExclusiveInt4.pPipeline);
-	cmdBindPushConstants(pCmd, mScanExclusiveInt4.pRootSignature, "elementCountRootConstant", &elementCount);
+	cmdBindPushConstants(pCmd, mScanExclusiveInt4.pRootSignature, mScanExclusiveInt4.mRootConstantIndex, &elementCount);
 	
 	DescriptorData params[2] = {};
 	
@@ -204,7 +206,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		params[2].ppBuffers = &devicePartSums;
 		params[2].pName = "outputSums";
 		
-		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, "elementCountRootConstant", &elementCount);
+		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, bottomLevelScan.mRootConstantIndex, &elementCount);
 		
 		uint32_t setIndex = incrementSetIndex(&bottomLevelScan.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, bottomLevelScan.pDescriptorSet, 3, params);
@@ -227,7 +229,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		params[1].ppBuffers = &devicePartSums;
 		params[1].pName = "outputArray";
 		
-		cmdBindPushConstants(pCmd, topLevelScan.pRootSignature, "elementCountRootConstant", &bottomLevelScanGroupCount);
+		cmdBindPushConstants(pCmd, topLevelScan.pRootSignature, topLevelScan.mRootConstantIndex, &bottomLevelScanGroupCount);
 		
 		uint32_t setIndex = incrementSetIndex(&topLevelScan.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, topLevelScan.pDescriptorSet, 2, params);
@@ -248,7 +250,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		params[1].ppBuffers = &output;
 		params[1].pName = "inoutArray";
 		
-		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, "elementCountRootConstant", &elementCount);
+		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, distributeSums.mRootConstantIndex, &elementCount);
 		
 		uint32_t setIndex = incrementSetIndex(&distributeSums.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, distributeSums.pDescriptorSet, 2, params);
@@ -296,7 +298,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		params[2].ppBuffers = &devicePartSumsBottomLevel;
 		params[2].pName = "outputSums";
 		
-		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, "elementCountRootConstant", &elementCount);
+		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, bottomLevelScan.mRootConstantIndex, &elementCount);
 		
 		uint32_t setIndex = incrementSetIndex(&bottomLevelScan.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, bottomLevelScan.pDescriptorSet, 3, params);
@@ -321,7 +323,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		params[2].ppBuffers = &devicePartSumsMidLevel;
 		params[2].pName = "outputSums";
 		
-		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, "elementCountRootConstant", &bottomLevelScanGroupCount);
+		cmdBindPushConstants(pCmd, bottomLevelScan.pRootSignature, bottomLevelScan.mRootConstantIndex, &bottomLevelScanGroupCount);
 		
 		uint32_t setIndex = incrementSetIndex(&bottomLevelScan.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, bottomLevelScan.pDescriptorSet, 3, params);
@@ -344,7 +346,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		params[1].ppBuffers = &devicePartSumsMidLevel;
 		params[1].pName = "outputArray";
 		
-		cmdBindPushConstants(pCmd, topLevelScan.pRootSignature, "elementCountRootConstant", &midLevelScanGroupCount);
+		cmdBindPushConstants(pCmd, topLevelScan.pRootSignature, topLevelScan.mRootConstantIndex, &midLevelScanGroupCount);
 		
 		uint32_t setIndex = incrementSetIndex(&topLevelScan.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, topLevelScan.pDescriptorSet, 2, params);
@@ -366,7 +368,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		params[1].ppBuffers = &devicePartSumsBottomLevel;
 		params[1].pName = "outputArray";
 		
-		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, "elementCountRootConstant", &bottomLevelScanGroupCount);
+		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, distributeSums.mRootConstantIndex, &bottomLevelScanGroupCount);
 		
 		uint32_t setIndex = incrementSetIndex(&distributeSums.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, distributeSums.pDescriptorSet, 2, params);
@@ -388,7 +390,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		params[1].ppBuffers = &output;
 		params[1].pName = "inoutArray";
 		
-		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, "elementCountRootConstant", &elementCount);
+		cmdBindPushConstants(pCmd, distributeSums.pRootSignature, distributeSums.mRootConstantIndex, &elementCount);
 		
 		uint32_t setIndex = incrementSetIndex(&distributeSums.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, distributeSums.pDescriptorSet, 2, params);
@@ -454,7 +456,7 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 		{
 			cmdBindPipeline(pCmd, histogramKernel.pPipeline);
 			
-			cmdBindPushConstants(pCmd, histogramKernel.pRootSignature, "rootConstants", &offset);
+			cmdBindPushConstants(pCmd, histogramKernel.pRootSignature, histogramKernel.mRootConstantIndex, &offset);
 			
 			params[0].ppBuffers = &fromKeys;
 			params[0].pName = "inputArray";
@@ -482,7 +484,7 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 		{
 			cmdBindPipeline(pCmd, scatterKeysAndVals.pPipeline);
 			
-			cmdBindPushConstants(pCmd, scatterKeysAndVals.pRootSignature, "rootConstants", &offset);
+			cmdBindPushConstants(pCmd, scatterKeysAndVals.pRootSignature, scatterKeysAndVals.mRootConstantIndex, &offset);
 			
 			params[0].ppBuffers = &fromKeys;
 			params[0].pName = "inputKeys";
@@ -572,7 +574,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 		{
 			cmdBindPipeline(pCmd, histogramKernel.pPipeline);
 			
-			cmdBindPushConstants(pCmd, histogramKernel.pRootSignature, "rootConstants", &offset);
+			cmdBindPushConstants(pCmd, histogramKernel.pRootSignature, histogramKernel.mRootConstantIndex, &offset);
 			params[0].ppBuffers = &fromKeys;
 			params[0].pName = "inputArray";
 			params[1].ppBuffers = &deviceHistograms;
@@ -599,7 +601,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 		{
 			cmdBindPipeline(pCmd, scatterKeys.pPipeline);
 			
-			cmdBindPushConstants(pCmd, scatterKeys.pRootSignature, "rootConstants", &offset);
+			cmdBindPushConstants(pCmd, scatterKeys.pRootSignature, scatterKeys.mRootConstantIndex, &offset);
 			params[0].ppBuffers = &fromKeys;
 			params[0].pName = "inputKeys";
 			params[1].ppBuffers = &elementCount.pBuffer;
@@ -668,7 +670,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 	{
 		cmdBindPipeline(pCmd, mClearOffsetBuffer.pPipeline);
 		
-		cmdBindPushConstants(pCmd, mClearOffsetBuffer.pRootSignature, "rootConstants", &pushConstants);
+		cmdBindPushConstants(pCmd, mClearOffsetBuffer.pRootSignature, mClearOffsetBuffer.mRootConstantIndex, &pushConstants);
 		
 		uint32_t setIndex = incrementSetIndex(&mClearOffsetBuffer.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, mClearOffsetBuffer.pDescriptorSet, 4, params);
@@ -685,7 +687,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 	{
 		cmdBindPipeline(pCmd, mGenerateOffsetBuffer.pPipeline);
 		
-		cmdBindPushConstants(pCmd, mGenerateOffsetBuffer.pRootSignature, "rootConstants", &pushConstants);
+		cmdBindPushConstants(pCmd, mGenerateOffsetBuffer.pRootSignature, mGenerateOffsetBuffer.mRootConstantIndex, &pushConstants);
 		
 		uint32_t setIndex = incrementSetIndex(&mGenerateOffsetBuffer.mNextSetIndex);
 		updateDescriptorSet(pCmd->pRenderer, setIndex, mGenerateOffsetBuffer.pDescriptorSet, 4, params);
@@ -719,7 +721,7 @@ void ParallelPrimitives::generateIndirectArgumentsFromOffsetBuffer(Cmd* pCmd, Bu
 	
 	cmdBindPipeline(pCmd, mIndirectArgsFromOffsetBuffer.pPipeline);
 	
-	cmdBindPushConstants(pCmd, mIndirectArgsFromOffsetBuffer.pRootSignature, "rootConstants", &pushConstants);
+	cmdBindPushConstants(pCmd, mIndirectArgsFromOffsetBuffer.pRootSignature, mIndirectArgsFromOffsetBuffer.mRootConstantIndex, &pushConstants);
 	
 	DescriptorData params[3] = {};
 	

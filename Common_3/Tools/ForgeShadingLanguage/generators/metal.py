@@ -278,10 +278,18 @@ def metal(fsl, dst):
             ab_decl += ['\t};\n']
             ab_decl += ['#endif // End of Resource Declaration: ', argBufType, '\n']
         return ab_decl
+
+    shader_src += ['#line 1 \"'+fsl.replace(os.sep, '/')+'\"\n']
+    line_index = 0
     
     last_res_decl = 0
     explicit_res_decl = None
     for line in shader.lines:
+
+        line_index += 1
+        shader_src_len = len(shader_src)
+        if line.startswith('#line'):
+            line_index = int(line.split()[1]) - 1
 
         def get_uid(name):
             return name + '_' + str(len(shader_src))
@@ -346,6 +354,7 @@ def metal(fsl, dst):
                     if not color_location: color_location = '0'
                     output_semantic = '[[color('+color_location+')]]'
 
+                shader_src += ['#line {}\n'.format(line_index)]
                 shader_src += [get_whitespace(line), dtype, ' ', name, ' ', output_semantic, ';\n']
                 continue
 
@@ -374,6 +383,7 @@ def metal(fsl, dst):
                         attribute = '[[position]]'
                     elif 'SV_RENDERTARGETARRAYINDEX' in sem:
                         attribute = '[[render_target_array_index]]'
+                shader_src += ['#line {}\n'.format(line_index)]
                 shader_src += [get_whitespace(line), dtype, ' ', name, ' ', attribute, ';\n']
                 continue
 
@@ -435,6 +445,7 @@ def metal(fsl, dst):
 
             shader_src += ['#define _Get_', basename, ' ', basename, '\n']
 
+            shader_src += ['#line {}\n'.format(line_index)]
             shader_src += ['\t// End of GroupShared Declaration: ', basename, '\n']
             continue
 
@@ -473,7 +484,8 @@ def metal(fsl, dst):
             is_rootcbv = 'rootcbv' in cbuffer_name
 
             if cbuffer_freq not in metal_ab_frequencies and not is_rootcbv:
-                shader_src += ['\n\t// Ignored CBuffer Declaration: '+line+'\n']
+                shader_src += ['#line {}\n'.format(line_index)]
+                shader_src += ['\t// Ignored CBuffer Declaration: '+line+'\n']
                 continue
 
             is_embedded = cbuffer_freq in ab_elements
@@ -505,7 +517,8 @@ def metal(fsl, dst):
             is_embedded = freq in ab_elements and freq != 'UPDATE_FREQ_USER'
 
             if freq not in metal_ab_frequencies:
-                shader_src += ['\n\t// Ignored Resource Declaration: '+line+'\n']
+                shader_src += ['#line {}\n'.format(line_index)]
+                shader_src += ['\t// Ignored Resource Declaration: '+line+'\n']
                 continue
 
             if not is_embedded: # regular resource
@@ -580,6 +593,7 @@ def metal(fsl, dst):
                 shader_src += ['\t//End of Resource Declaration: ', baseName, '\n']
 
             last_res_decl = len(shader_src)+1
+            shader_src += ['#line {}\n'.format(line_index)]
             continue
 
         # create comment hint for shader reflection
@@ -648,6 +662,7 @@ def metal(fsl, dst):
                 shader_src += ['#endif\n']
 
             shader_src += [')\n']
+            shader_src += ['#line {}\n'.format(line_index)]
             continue
 
         if 'INIT_MAIN' in line:
@@ -669,6 +684,8 @@ def metal(fsl, dst):
                     if 'SV_OUTPUTCONTROLPOINTID' in dtype.upper():
                         shader_src += ['\t'+getMacro(dtype)+' '+getMacro(dvar)+' = 0u;\n'] # TODO: extend this for >1 CPs
 
+            
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
         if re.search('(^|\s+)RETURN', line):
@@ -701,6 +718,7 @@ def metal(fsl, dst):
 
             return_statement += [ ws+'}\n' ]
             shader_src += return_statement
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
         # tessellation PCF
@@ -718,6 +736,9 @@ def metal(fsl, dst):
             ws = get_whitespace(line)
             return_value = getMacro(line)
             line = ws+'return '+return_value+';\n'
+
+        if shader_src_len != len(shader_src):
+            shader_src += ['#line {}\n'.format(line_index)]
 
         shader_src += [line]
 

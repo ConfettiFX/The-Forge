@@ -168,10 +168,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.frag.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\plane.vert.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl" />
+    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.h.fsl" />
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\28_Skinning\Shaders\FSL\skinning.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

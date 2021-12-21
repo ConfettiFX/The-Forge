@@ -39,10 +39,6 @@ STRUCT(VSOutput)
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
-	float4 Out;
 	float4 outColor = SampleTexCube(Get(skyboxTex), Get(skyboxSampler), In.pos);
-
-	float inverseArg = 1 / 2.2;
-    Out = float4(pow(outColor.r, inverseArg), pow(outColor.g, inverseArg), pow(outColor.b, inverseArg), 1.0f);
-	RETURN(Out);
+	RETURN(outColor);
 }

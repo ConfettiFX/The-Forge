@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\SDF_Constant.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Geometry.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\ASMShader_Defs.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\cull_resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\Packing.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\Shader_Defs.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\shading.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\vb_resources.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\09_LightShadowPlayground\Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{eef23cb1-e192-41b6-8601-6c2e68af214a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lua">
+      <UniqueIdentifier>{9e766f1e-a886-4a71-b7f5-03de99f6c623}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8e817bae-f53d-41f2-af20-e869d1a276a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{9477b571-635b-43f9-b4dc-15d4755f1a88}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ASM.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_ESM.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSAA_0.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSAA_2.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_MSAA_4.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\src\09_LightShadowPlayground\Scripts\Test_SDF.lua">
+      <Filter>Lua</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\bakedSDFMeshShadow.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\batchCompaction.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\clearVisibilityBuffers.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\copyDEMQuads.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\copyDEMQuads.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\copyDepthQuads.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\copyDepthQuads.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\display.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\display.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\fill_Indirection.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\fill_Indirection.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\generateAsmDEM.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\generateAsmDEM.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\meshDepthPass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\meshDepthPassAlpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\meshDepthPassAlpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\panoToCube.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\quad.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\quad.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\resolve.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\resolve.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\triangleFiltering.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\updateRegion3DTexture.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\upsampleSDFShadow.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\upsampleSDFShadow.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferPass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferPass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferPassAlpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferPassAlpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferShade.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visibilityBufferShade.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\09_LightShadowPlayground\Shaders\FSL\Quest\visualizeSDFMesh.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+</Project>

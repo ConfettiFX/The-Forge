@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "shading.h"
-#include "light_cull_resources.h"
+#include "shading.h.fsl"
+#include "light_cull_resources.h.fsl"
 
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.

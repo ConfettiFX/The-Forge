@@ -1,0 +1,41 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.1"
+    ndkVersion MSBUILD_NDK_VERSION
+    defaultConfig {
+        applicationId "com.forge.unittest.${ANDROID_APPLICATION_NAME}"
+        minSdkVersion MSBUILD_MIN_SDK_VERSION
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+
+        resValue "string", "app_name", ANDROID_APPLICATION_NAME
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += ["${MSBUILD_ANDROID_GRADLE_BUILD_OUTPUT_DIR}/../assets"]
+            jniLibs.srcDirs += MSBUILD_JNI_LIBS_SRC_DIR 
+			jniLibs.srcDirs += "${MSBUILD_ANDROID_GRADLE_BUILD_OUTPUT_DIR}/../libs/"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = MSBUILD_ANDROID_OUTPUT_APK_NAME
+        }
+    }
+
+    aaptOptions {
+        noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+}
+
+buildDir = MSBUILD_ANDROID_GRADLE_BUILD_OUTPUT_DIR

@@ -818,7 +818,6 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 	textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	textureDesc.mFormat = TinyImageFormat_UNDEFINED;
 
-	bool isNormalMap = (fileinfo.m_userdata0 == 1) || ((pOutDesc->mFlags & TEXTURE_CREATION_FLAG_NORMAL_MAP) != 0);
 	bool isSRGB = (pOutDesc->mFlags & TEXTURE_CREATION_FLAG_SRGB) != 0;
 
 	basist::transcoder_texture_format basisTextureFormat = basist::transcoder_texture_format::cTFTotalTextureFormats;
@@ -839,6 +838,7 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 		basisTextureFormat = basist::transcoder_texture_format::cTFASTC_4x4_RGBA;
 	}
 #else
+	bool isNormalMap = (fileinfo.m_userdata0 == 1) || ((pOutDesc->mFlags & TEXTURE_CREATION_FLAG_NORMAL_MAP) != 0);
 	if (!isNormalMap)
 	{
 		if (!imageinfo.m_alpha_flag)

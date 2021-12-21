@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "shading.h"
+#include "shading.h.fsl"
 
 STRUCT(VSInput)
 {

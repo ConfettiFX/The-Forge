@@ -101,7 +101,7 @@ struct UserInterfaceUnitTestingData
 		char                 mText[STRING_SIZE];
 		size_t               mProgressBarValue;
 		size_t               mProgressBarValueMax;
-		uint                 mColorForSlider;
+		float4               mColorForSlider;
 		const char**         mContextItems;
 	} mStandalone;
 };
@@ -117,7 +117,7 @@ const char* sContextMenuItems[7] = { "Random Background Color",  "Random Profile
 void            fnItem1Callback()    // sets slider color value: RGBA
 {
 	// LOGF(LogLevel::eINFO, "Contextual: Menu Item 1 Function called.");
-	gUIData.mStandalone.mColorForSlider = packColorF32(
+	gUIData.mStandalone.mColorForSlider = float4(
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // r
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // g
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // b
@@ -127,12 +127,12 @@ void            fnItem1Callback()    // sets slider color value: RGBA
 void fnItem2Callback()    // sets debug text's font color: ABGR
 {
 	//LOGF(LogLevel::eINFO, "Contextual: Menu Item 2 Function called.");
-	gFrameTimeDraw.mFontColor = packColorF32(
+	gFrameTimeDraw.mFontColor = packA8B8G8R8_SRGB(float4(
 		1.0f,                                      // a
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // b
 		2.0f * rand() / (float)RAND_MAX - 1.0f,    // g
 		2.0f * rand() / (float)RAND_MAX - 1.0f     // r
-	);
+	));
 }
 
 // DropDown Example:
@@ -240,6 +240,8 @@ public:
 		TextureLoadDesc textureDesc = {};
 		textureDesc.ppTexture = &pSpriteTexture;
 		textureDesc.pFileName = "sprites";
+		// Textures representing color should be stored in SRGB or HDR format
+		textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&textureDesc, NULL);
 
 		waitForAllResourceLoads();
@@ -422,7 +424,7 @@ public:
 			// Color Slider & Picker
 			CollapsingHeaderWidget CollapsingColorWidgets;
 
-			gUIData.mStandalone.mColorForSlider = packColorF32(0.067f, 0.153f, 0.329f, 1.0f);    // dark blue
+			gUIData.mStandalone.mColorForSlider = float4(0.067f, 0.153f, 0.329f, 1.0f);    // dark blue
 
 			ColorSliderWidget colorSlider;
 			colorSlider.pData = &gUIData.mStandalone.mColorForSlider;
@@ -559,7 +561,7 @@ public:
 
 	void Draw()
 	{
-		const vec4        backgroundColor = unpackColorU32(gUIData.mStandalone.mColorForSlider);
+		const vec4        backgroundColor = gUIData.mStandalone.mColorForSlider.toVec4();
 		ClearValue  clearVal;
 		clearVal.r = backgroundColor.getX();
 		clearVal.g = backgroundColor.getY();
@@ -658,7 +660,7 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

@@ -22,9 +22,9 @@
  * under the License.
 */
 
-#include "shader_defs.h"
-#include "packing.h"
-#include "vb_resources.h"
+#include "shader_defs.h.fsl"
+#include "packing.h.fsl"
+#include "vb_resources.h.fsl"
 
 STRUCT(PsInOpaque)
 {

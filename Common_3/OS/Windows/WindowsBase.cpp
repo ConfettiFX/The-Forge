@@ -136,7 +136,7 @@ DWORD PrepareStyleMask(WindowsDesc* winDesc)
 	DWORD windowStyle = WS_OVERLAPPEDWINDOW;
 	if (winDesc->borderlessWindow)
 	{
-		windowStyle = WS_POPUP | WS_THICKFRAME;
+		windowStyle = WS_POPUP | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
 	}
 
 	if (winDesc->noresizeFrame)
@@ -166,7 +166,78 @@ void OffsetRectToDisplay(WindowsDesc* winDesc, LPRECT rect)
 }
 
 static CustomMessageProcessor sCustomProc = nullptr;
-void                          setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
+void setCustomMessageProcessor(CustomMessageProcessor proc)
+{
+	sCustomProc = proc;
+}
+
+#define LEFTEXTENDWIDTH 6
+#define RIGHTEXTENDWIDTH 6
+#define BOTTOMEXTENDWIDTH 20
+#define TOPEXTENDWIDTH 27
+
+// Hit test the frame for resizing and moving.
+LRESULT HitTestNCA(HWND hWnd, WPARAM /*wParam*/, LPARAM lParam)
+{
+	// Get the point coordinates for the hit test.
+	POINT ptMouse = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+
+	// Get the window rectangle.
+	RECT rcWindow;
+	GetWindowRect(hWnd, &rcWindow);
+
+	// Get the frame rectangle, adjusted for the style without a caption.
+	RECT rcFrame = { 0 };
+	AdjustWindowRectEx(&rcFrame, WS_OVERLAPPEDWINDOW & ~WS_CAPTION, FALSE, NULL);
+
+	// Determine if the hit test is for resizing. Default middle (1,1).
+	USHORT uRow = 1;
+	USHORT uCol = 1;
+	bool   fOnResizeBorder = false;
+
+	if (::IsZoomed(hWnd)) // if maximized, only the frame title remains
+	{
+		// Determine if the point is at the top or bottom of the window.
+		if ((ptMouse.y >= 0) && (ptMouse.y < TOPEXTENDWIDTH))
+		{
+			uRow = 0;
+		}
+	}
+	else
+	{
+		// Determine if the point is at the top or bottom of the window.
+		if (ptMouse.y >= rcWindow.top && ptMouse.y < rcWindow.top + TOPEXTENDWIDTH)
+		{
+			fOnResizeBorder = (ptMouse.y < (rcWindow.top - rcFrame.top));
+			uRow = 0;
+		}
+		else if (ptMouse.y < rcWindow.bottom && ptMouse.y >= rcWindow.bottom - BOTTOMEXTENDWIDTH)
+		{
+			uRow = 2;
+		}
+
+		// Determine if the point is at the left or right of the window.
+		if (ptMouse.x >= rcWindow.left && ptMouse.x < rcWindow.left + LEFTEXTENDWIDTH)
+		{
+			uCol = 0; // left side
+		}
+		else if (ptMouse.x < rcWindow.right && ptMouse.x >= rcWindow.right - RIGHTEXTENDWIDTH)
+		{
+			uCol = 2; // right side
+		}
+	}
+
+
+	// Hit test (HTTOPLEFT, ... HTBOTTOMRIGHT)
+	LRESULT hitTests[3][3] =
+	{
+		{ fOnResizeBorder ? HTTOPLEFT : HTLEFT, fOnResizeBorder ? HTTOP : HTCAPTION, fOnResizeBorder ? HTTOPRIGHT : HTRIGHT },
+		{ HTLEFT, HTNOWHERE, HTRIGHT },
+		{ HTBOTTOMLEFT, HTBOTTOM, HTBOTTOMRIGHT },
+	};
+
+	return hitTests[uRow][uCol];
+}
 
 // Window event handler - Use as less as possible
 LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -175,6 +246,45 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		return DefWindowProcW(hwnd, message, wParam, lParam);
 	}
+	if (gWindow->borderlessWindow)
+	{
+		switch (message)
+		{
+		case WM_NCHITTEST:
+		{
+			auto lr = HitTestNCA(hwnd, wParam, lParam);
+			if (lr == HTNOWHERE)
+				return DefWindowProcW(hwnd, message, wParam, lParam);
+
+			return lr;
+		}
+		case WM_NCCALCSIZE:
+		{
+			// Calculate new NCCALCSIZE_PARAMS based on custom NCA inset.
+			NCCALCSIZE_PARAMS* pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+
+			if(wParam == TRUE)
+			{
+				if (::IsZoomed(hwnd))
+				{
+					pncsp->rgrc[0].left = pncsp->rgrc[0].left + 6;
+					pncsp->rgrc[0].top = pncsp->rgrc[0].top + 6;
+					pncsp->rgrc[0].right = pncsp->rgrc[0].right - 6;
+					pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 6;
+				}
+				else
+				{
+					pncsp->rgrc[0].left = pncsp->rgrc[0].left + 6;
+					pncsp->rgrc[0].top = pncsp->rgrc[0].top + 1;
+					pncsp->rgrc[0].right = pncsp->rgrc[0].right - 6;
+					pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 6;
+				}
+			}
+
+			return 0;
+		}
+		}
+	} // if (gWindow->borderlessWindow)
 
 	switch (message)
 	{

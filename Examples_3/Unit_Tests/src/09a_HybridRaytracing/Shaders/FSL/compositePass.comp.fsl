@@ -21,7 +21,7 @@
 * under the License.
 */
 
-#include "compute_resources.h"
+#include "compute_resources.h.fsl"
 
 NUM_THREADS(16, 16, 1)
 void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupThreadID(uint3) GTid, SV_GroupIndex(uint) GI )

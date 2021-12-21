@@ -434,7 +434,7 @@ class FontRendering: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		swapChainDesc.mColorClearValue = gSceneData.theme ? gDarkBackgroundColor : gLightBackgroundColor;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

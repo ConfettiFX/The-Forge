@@ -444,37 +444,67 @@ f4x4(E00, E10, E20, E30, E01, E11, E21, E31, E02, E12, E22, E32, E03, E13, E23, 
 
 f4x4 Identity() { return f4x4(1.0f); }
 
+#define setElem(M, I, J, V) {M[I][J] = V;}
+#define getElem(M, I, J) (M[I][J])
+
 #define getCol(M, I) M[I]
 #define getCol0(M) getCol(M, 0)
 #define getCol1(M) getCol(M, 1)
 #define getCol2(M) getCol(M, 2)
 #define getCol3(M) getCol(M, 3)
 
-// #define elem(M, I, J) M[I][J]
+vec4 getRow(in(mat4)   M, uint i) { return vec4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+vec4 getRow(in(mat4x3) M, uint i) { return vec4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+vec4 getRow(in(mat4x2) M, uint i) { return vec4(M[0][i], M[1][i], M[2][i], M[3][i]); }
 
-#define setElem(M, I, J, V) {M[I][J] = V;}
-#define getElem(M, I, J) (M[I][J])
+vec3 getRow(in(mat3x4) M, uint i) { return vec3(M[0][i], M[1][i], M[2][i]); }
+vec3 getRow(in(mat3)   M, uint i) { return vec3(M[0][i], M[1][i], M[2][i]); }
+vec3 getRow(in(mat3x2) M, uint i) { return vec3(M[0][i], M[1][i], M[2][i]); }
 
-vec3 getRow(in(mat3) M, uint i)
-{ return vec3(M[0][i], M[1][i], M[2][i]); }
-
-vec2 getRow(in(mat2x3) M, uint i)
-{ return vec2(M[0][i], M[1][i]); }
-
-vec3 getRow(in(mat3x2) M, uint i)
-{ return vec3(M[0][i], M[1][i], M[2][i]); }
+vec2 getRow(in(mat2x4) M, uint i) { return vec2(M[0][i], M[1][i]); }
+vec2 getRow(in(mat2x3) M, uint i) { return vec2(M[0][i], M[1][i]); }
+vec2 getRow(in(mat2)   M, uint i) { return vec2(M[0][i], M[1][i]); }
 
 #define getRow0(M) getRow(M, 0)
 #define getRow1(M) getRow(M, 1)
 #define getRow2(M) getRow(M, 2)
 #define getRow3(M) getRow(M, 3)
 
-f4x4 setCol(inout(f4x4) M, in(vec4) col, const uint i)
-{ M[i] = col; return M; }
+
+f4x4 setCol(inout(f4x4) M, in(vec4) col, const uint i) { M[i] = col; return M; }
+f4x3 setCol(inout(f4x3) M, in(vec3) col, const uint i) { M[i] = col; return M; }
+f4x2 setCol(inout(f4x2) M, in(vec2) col, const uint i) { M[i] = col; return M; }
+
+f3x4 setCol(inout(f3x4) M, in(vec4) col, const uint i) { M[i] = col; return M; }
+f3x3 setCol(inout(f3x3) M, in(vec3) col, const uint i) { M[i] = col; return M; }
+f3x2 setCol(inout(f3x2) M, in(vec2) col, const uint i) { M[i] = col; return M; }
+
+f2x4 setCol(inout(f2x4) M, in(vec4) col, const uint i) { M[i] = col; return M; }
+f2x3 setCol(inout(f2x3) M, in(vec3) col, const uint i) { M[i] = col; return M; }
+f2x2 setCol(inout(f2x2) M, in(vec2) col, const uint i) { M[i] = col; return M; }
+
 #define setCol0(M, C) setCol(M, C, 0)
 #define setCol1(M, C) setCol(M, C, 1)
 #define setCol2(M, C) setCol(M, C, 2)
 #define setCol3(M, C) setCol(M, C, 3)
+
+
+f4x4 setRow(inout(f4x4) M, in(vec4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+f4x3 setRow(inout(f4x3) M, in(vec4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+f4x2 setRow(inout(f4x2) M, in(vec4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+
+f3x4 setRow(inout(f3x4) M, in(vec3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+f3x3 setRow(inout(f3x3) M, in(vec3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+f3x2 setRow(inout(f3x2) M, in(vec3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+
+f2x4 setRow(inout(f2x4) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+f2x3 setRow(inout(f2x3) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+f2x2 setRow(inout(f2x2) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+
+#define setRow0(M, R) setRow(M, R, 0)
+#define setRow1(M, R) setRow(M, R, 1)
+#define setRow2(M, R) setRow(M, R, 2)
+#define setRow3(M, R) setRow(M, R, 3)
 
 
 #define atomic_uint uint

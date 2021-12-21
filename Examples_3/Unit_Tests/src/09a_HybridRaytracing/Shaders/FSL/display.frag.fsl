@@ -22,7 +22,7 @@
 */
 
 #define DISPLAY
-#include "gbuffer_resources.h"
+#include "gbuffer_resources.h.fsl"
 
 STRUCT(PsIn)
 {

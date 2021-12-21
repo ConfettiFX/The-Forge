@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSInput)
 {
@@ -53,7 +53,7 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID )
 
     float3 lightDir;
 
-    if (Get(color)[InstanceID].w == 0) // Special case for Sun, so that it is lit from its top
+    if (Get(color)[InstanceID].w == 0.0f) // Special case for Sun, so that it is lit from its top
         lightDir = float3(0.0f, 1.0f, 0.0f);
     else
         lightDir = normalize(Get(lightPosition) - pos.xyz);

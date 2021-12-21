@@ -21,9 +21,9 @@
  * under the License.
 */
 
-#include "shadowSamples.h"
+#include "shadowSamples.h.fsl"
 #define FLOOR
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSOutput)
 {

@@ -25,8 +25,8 @@
 // USERMACRO: SAMPLE_COUNT [1,2,4]
 // USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
 
-#include "packing.h"
-#include "shading.h"
+#include "packing.h.fsl"
+#include "shading.h.fsl"
 
 // This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
 
@@ -395,7 +395,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		fLightingMode);
 	}
 
-	float ambientIntencity = 0.2f;
+	float ambientIntencity = 0.05f;
 	float3 ambient = diffuseColor.xyz * ambientIntencity;
 
 	float3 FinalColor = shadedColor + ambient;

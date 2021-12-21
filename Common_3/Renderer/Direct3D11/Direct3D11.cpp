@@ -46,7 +46,6 @@
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #include "Direct3D11CapBuilder.h"
-#include "Direct3D11Commands.h"
 
 #include "../../ThirdParty/OpenSource/gpudetect/include/GpuDetectHelper.h"
 
@@ -68,6 +67,8 @@ extern "C"
 }
 
 #include "../../OS/Interfaces/IMemory.h"
+
+#define D3D11_REQ_CONSTANT_BUFFER_SIZE (D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16u)
 
 // clang-format off
 extern void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
@@ -670,6 +671,15 @@ void d3d11_cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffe
 	}
 }
 
+struct SubresourceDataDesc
+{
+	uint64_t mSrcOffset;
+	uint32_t mMipLevel;
+	uint32_t mArrayLayer;
+	uint32_t mRowPitch;
+	uint32_t mSlicePitch;
+};
+
 void d3d11_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const SubresourceDataDesc* pSubresourceDesc)
 {
 	ASSERT(pCmd);
@@ -1034,6 +1044,16 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	if (FAILED(hr))
 		LOGF(LogLevel::eERROR, "Failed to create D3D11 device and context.");
 
+	hr = pRenderer->mD3D11.pDxContext->QueryInterface(&pRenderer->mD3D11.pDxContext1);
+	if (SUCCEEDED(hr))
+	{
+		LOGF(LogLevel::eERROR, "Device supports ID3D11DeviceContext1.");
+	}
+	else
+	{
+		pRenderer->mD3D11.pDxContext1 = NULL;
+	}
+
 	for (uint32_t i = 0; i < gpuCount; ++i)
 	{
 		SAFE_RELEASE(gpuDesc[i].pGpu);
@@ -1060,6 +1080,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->mD3D11.pDXGIFactory);
 	SAFE_RELEASE(pRenderer->mD3D11.pDxActiveGPU);
 
+	SAFE_RELEASE(pRenderer->mD3D11.pDxContext1);
 	SAFE_RELEASE(pRenderer->mD3D11.pDxContext);
 #if defined(ENABLE_GRAPHICS_DEBUG) && !defined(ENABLE_NSIGHT_AFTERMATH)
 	ID3D11Debug* pDebugDevice = NULL;
@@ -1568,16 +1589,6 @@ void d3d11_removeCmd(Renderer* pRenderer, Cmd* pCmd)
 	ASSERT(pCmd);
 
 	SAFE_RELEASE(pCmd->mD3D11.pRootConstantBuffer);
-	if (pCmd->mD3D11.pTransientConstantBuffers[0])
-	{
-		const uint32_t transientConstantBufferCount =
-			sizeof(pCmd->mD3D11.pTransientConstantBuffers) / sizeof(pCmd->mD3D11.pTransientConstantBuffers[0]);
-		for (uint32_t i = 0; i < transientConstantBufferCount; ++i)
-		{
-			SAFE_RELEASE(pCmd->mD3D11.pTransientConstantBuffers[i]);
-		}
-	}
-	SAFE_FREE(pCmd->mD3D11.pDescriptorCache);
 	SAFE_FREE(pCmd);
 }
 
@@ -2811,7 +2822,7 @@ void d3d11_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->pName);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
-				pDesc->mIndexInParent = -1;
+				pDesc->mStaticSampler = true;
 				staticSamplers.push_back({ pDesc, pNode->second });
 			}
 			else
@@ -2824,22 +2835,20 @@ void d3d11_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootS
 		{
 			// D3D11 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-			eastl::string name = pRes->name;
-			name.make_lower();
-			if (name.find("rootconstant", 0) != eastl::string::npos)
+			if (isDescriptorRootConstant(pRes->name))
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 				pDesc->mType = DESCRIPTOR_TYPE_ROOT_CONSTANT;
 				pDesc->mSize = constantSizes[i] / sizeof(uint32_t);
 			}
-			else if (name.find("rootcbv", 0) != eastl::string::npos)
+			else if (isDescriptorRootCbv(pRes->name))
 			{
-				pDesc->mIndexInParent = -1;
+				pDesc->mRootDescriptor = true;
 				pDesc->mHandleIndex = dynamicCbvCount++;
 			}
 		}
 
-		if (DESCRIPTOR_TYPE_UNIFORM_BUFFER == pDesc->mType && pDesc->mIndexInParent != -1)
+		if (DESCRIPTOR_TYPE_UNIFORM_BUFFER == pDesc->mType && !pDesc->mRootDescriptor)
 			pDesc->mHandleIndex = cbvCount++;
 	}
 
@@ -3144,30 +3153,18 @@ void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
 	size_t totalSize = sizeof(DescriptorSet);
 	totalSize += pDesc->mMaxSets * sizeof(DescriptorDataArray);
-	totalSize += pDesc->mMaxSets * sizeof(CBV*);
-	totalSize += pDesc->mMaxSets * sizeof(uint32_t);
-	totalSize += pDesc->mMaxSets * sizeof(uint32_t);
-	totalSize += pDesc->mMaxSets * sizeof(uint32_t*);
-
-	for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
-	{
-		totalSize += pRootSignature->mD3D11.mSrvCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mD3D11.mUavCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mD3D11.mSamplerCount * sizeof(DescriptorHandle);
-		totalSize += pRootSignature->mD3D11.mCbvCount * sizeof(CBV);
-	}
+	totalSize += pDesc->mMaxSets * pRootSignature->mD3D11.mSrvCount * sizeof(DescriptorHandle);
+	totalSize += pDesc->mMaxSets * pRootSignature->mD3D11.mUavCount * sizeof(DescriptorHandle);
+	totalSize += pDesc->mMaxSets * pRootSignature->mD3D11.mSamplerCount * sizeof(DescriptorHandle);
+	totalSize += pDesc->mMaxSets * pRootSignature->mD3D11.mCbvCount * sizeof(CBV);
 
 	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
 	pDescriptorSet->mD3D11.mMaxSets = pDesc->mMaxSets;
 	pDescriptorSet->mD3D11.pRootSignature = pRootSignature;
 
 	pDescriptorSet->mD3D11.pHandles = (DescriptorDataArray*)(pDescriptorSet + 1);    //-V1027
-	pDescriptorSet->mD3D11.pDynamicCBVs = (CBV**)(pDescriptorSet->mD3D11.pHandles + pDesc->mMaxSets);
-	pDescriptorSet->mD3D11.pDynamicCBVsCount = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVs + pDesc->mMaxSets);
-	pDescriptorSet->mD3D11.pDynamicCBVsCapacity = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVsCount + pDesc->mMaxSets);
-	pDescriptorSet->mD3D11.pDynamicCBVsPrevCount = (uint32_t*)(pDescriptorSet->mD3D11.pDynamicCBVsCapacity + pDesc->mMaxSets);
 
-	uint8_t* mem = (uint8_t*)(pDescriptorSet->mD3D11.pDynamicCBVsPrevCount + pDesc->mMaxSets);
+	uint8_t* mem = (uint8_t*)(pDescriptorSet->mD3D11.pHandles + pDesc->mMaxSets);
 
 	for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
 	{
@@ -3182,12 +3179,6 @@ void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
 		pDescriptorSet->mD3D11.pHandles[i].pCBVs = (CBV*)mem;
 		mem += pRootSignature->mD3D11.mCbvCount * sizeof(CBV);
-
-		if (pRootSignature->mD3D11.mDynamicCbvCount)
-		{
-			pDescriptorSet->mD3D11.pDynamicCBVsCapacity[i] = 16;
-			pDescriptorSet->mD3D11.pDynamicCBVs[i] = (CBV*)tf_calloc(pDescriptorSet->mD3D11.pDynamicCBVsCapacity[i], sizeof(CBV));
-		}
 	}
 
 	*ppDescriptorSet = pDescriptorSet;
@@ -3195,17 +3186,9 @@ void d3d11_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc,
 
 void d3d11_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 {
-	for (uint32_t i = 0; i < pDescriptorSet->mD3D11.mMaxSets; ++i)
-	{
-		SAFE_FREE(pDescriptorSet->mD3D11.pDynamicCBVs[i]);
-	}
-
 	SAFE_FREE(pDescriptorSet);
 }
 
-void d3d11_updateDescriptorSet(
-	Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
-{
 #if defined(ENABLE_GRAPHICS_DEBUG)
 #define VALIDATE_DESCRIPTOR(descriptor, ...)                                                            \
 	if (!(descriptor))                                                                                  \
@@ -3219,6 +3202,9 @@ void d3d11_updateDescriptorSet(
 #define VALIDATE_DESCRIPTOR(descriptor, ...)
 #endif
 
+void d3d11_updateDescriptorSet(
+	Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
 	ASSERT(index < pDescriptorSet->mD3D11.mMaxSets);
@@ -3228,9 +3214,9 @@ void d3d11_updateDescriptorSet(
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam = pParams + i;
-		uint32_t              paramIndex = pParam->mIndex;
+		uint32_t              paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
 		const DescriptorInfo* pDesc =
-			(paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : d3d11_get_descriptor(pRootSignature, pParam->pName);
+			(paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : d3d11_get_descriptor(pRootSignature, pParam->pName);
 
 		if (!pDesc)
 		{
@@ -3240,6 +3226,7 @@ void d3d11_updateDescriptorSet(
 
 		paramIndex = pDesc->mHandleIndex;
 		const DescriptorType type = (DescriptorType)pDesc->mType;
+		const uint32_t       arrayStart = pParam->mArrayOffset;
 		const uint32_t       arrayCount = max(1U, pParam->mCount);
 
 		switch (type)
@@ -3248,7 +3235,7 @@ void d3d11_updateDescriptorSet(
 			{
 				// Index is invalid when descriptor is a static sampler
 				VALIDATE_DESCRIPTOR(
-					pDesc->mIndexInParent != -1,
+					!pDesc->mStaticSampler,
 					"Trying to update a static sampler (%s). All static samplers must be set in addRootSignature and cannot be updated "
 					"later",
 					pDesc->pName);
@@ -3259,8 +3246,8 @@ void d3d11_updateDescriptorSet(
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->mD3D11.pHandles[index].pSamplers[paramIndex] = (DescriptorHandle{
-						pParam->ppSamplers[arr]->mD3D11.pSamplerState, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arr });
+					pDescriptorSet->mD3D11.pHandles[index].pSamplers[paramIndex + arrayStart + arr] = (DescriptorHandle{
+						pParam->ppSamplers[arr]->mD3D11.pSamplerState, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arrayStart + arr });
 				}
 				break;
 			}
@@ -3272,9 +3259,9 @@ void d3d11_updateDescriptorSet(
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex] =
+					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex + arrayStart + arr] =
 						(DescriptorHandle{ pParam->ppTextures[arr]->mD3D11.pDxSRVDescriptor, (ShaderStage)pDesc->mD3D11.mUsedStages,
-										   pDesc->mD3D11.mReg + arr });
+										   pDesc->mD3D11.mReg + arrayStart + arr });
 				}
 				break;
 			}
@@ -3290,9 +3277,9 @@ void d3d11_updateDescriptorSet(
 						mipSlice < pParam->ppTextures[arr]->mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
 						pDesc->pName, arr, mipSlice, pParam->ppTextures[arr]->mMipLevels);
 
-					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex] =
+					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex + arrayStart + arr] =
 						(DescriptorHandle{ pParam->ppTextures[arr]->mD3D11.pDxUAVDescriptors[pParam->mUAVMipSlice],
-										   (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arr });
+										   (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arrayStart + arr });
 				}
 				break;
 			}
@@ -3305,8 +3292,8 @@ void d3d11_updateDescriptorSet(
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex] = (DescriptorHandle{
-						pParam->ppBuffers[arr]->mD3D11.pDxSrvHandle, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arr });
+					pDescriptorSet->mD3D11.pHandles[index].pSRVs[paramIndex + arrayStart + arr] = (DescriptorHandle{
+						pParam->ppBuffers[arr]->mD3D11.pDxSrvHandle, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arrayStart + arr });
 				}
 				break;
 			}
@@ -3319,8 +3306,8 @@ void d3d11_updateDescriptorSet(
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
 
-					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex] = (DescriptorHandle{
-						pParam->ppBuffers[arr]->mD3D11.pDxUavHandle, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arr });
+					pDescriptorSet->mD3D11.pHandles[index].pUAVs[paramIndex + arrayStart + arr] = (DescriptorHandle{
+						pParam->ppBuffers[arr]->mD3D11.pDxUavHandle, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg + arrayStart + arr });
 				}
 				break;
 			}
@@ -3328,56 +3315,33 @@ void d3d11_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->pName);
 
-				if (pDesc->mIndexInParent == -1)
+				if (pDesc->mRootDescriptor)
 				{
-					VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, 0);
-					VALIDATE_DESCRIPTOR(arrayCount == 1, "Descriptor (%s) : RootCBV does not support arrays", pDesc->pName);
-					VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) : Must provide pSizes for RootCBV", pDesc->pName);
-					VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, 0);
 					VALIDATE_DESCRIPTOR(
-						pParam->pSizes[0] <= 65536, "Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, 0,
-						pParam->pSizes[0], 65536);
-
-					// buffers with NO_DESCRIPTOR_VIEW_CREATION flag should not be added to the descriptor set
-					if (pParam->ppBuffers[0]->mD3D11.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION)
-						break;
-
-					uint32_t offset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
-					uint32_t size = (uint32_t)pParam->pSizes[0];
-					CBV      cbv = { pParam->ppBuffers[0]->mD3D11.pDxResource, offset, size, (ShaderStage)pDesc->mD3D11.mUsedStages,
-                                pDesc->mD3D11.mReg };
-
-					uint32_t dynamicCbvCount = pDescriptorSet->mD3D11.pDynamicCBVsCount[index];
-					if ((dynamicCbvCount + 1) >= pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index])
-					{
-						pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index] <<= 1;
-						pDescriptorSet->mD3D11.pDynamicCBVs[index] = (CBV*)tf_realloc(
-							pDescriptorSet->mD3D11.pDynamicCBVs[index], pDescriptorSet->mD3D11.pDynamicCBVsCapacity[index] * sizeof(CBV));
-					}
-
-					pDescriptorSet->mD3D11.pDynamicCBVs[index][dynamicCbvCount++] = cbv;
-					pDescriptorSet->mD3D11.pDynamicCBVsCount[index] = dynamicCbvCount;
+						false,
+						"Descriptor (%s) - Trying to update a root cbv through updateDescriptorSet. All root cbvs must be updated through cmdBindDescriptorSetWithRootCbvs",
+						pDesc->pName);
 				}
 				else
 				{
 					for (uint32_t arr = 0; arr < arrayCount; ++arr)
 					{
 						VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, arr);
-						if (pParam->pOffsets || pParam->pSizes)
+						if (pParam->pRanges)
 						{
-							VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->pName);
-							VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, arr);
+							DescriptorDataRange range = pParam->pRanges[arr];
+							VALIDATE_DESCRIPTOR(range.mSize > 0, "Descriptor (%s) - pRanges[%u].mSize is zero", pDesc->pName, arr);
 							VALIDATE_DESCRIPTOR(
-								pParam->pSizes[arr] <= 65536, "Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u",
-								pDesc->pName, arr, pParam->pSizes[arr], 65536);
+								range.mSize <= D3D11_REQ_CONSTANT_BUFFER_SIZE, "Descriptor (%s) - pRanges[%u].mSize is %u which exceeds max size %u",
+								pDesc->pName, arr, range.mSize, D3D11_REQ_CONSTANT_BUFFER_SIZE);
 						}
 
-						pDescriptorSet->mD3D11.pHandles[index].pCBVs[paramIndex] = (CBV{
+						pDescriptorSet->mD3D11.pHandles[index].pCBVs[paramIndex + arrayStart + arr] = (CBV{
 							pParam->ppBuffers[arr]->mD3D11.pDxResource,
-							pParam->pOffsets ? (uint32_t)pParam->pOffsets[i] : 0U,
-							pParam->pSizes ? (uint32_t)pParam->pSizes[i] : 0U,
+							pParam->pRanges ? (uint32_t)pParam->pRanges[arr].mOffset : 0U,
+							pParam->pRanges ? (uint32_t)pParam->pRanges[arr].mSize : 0U,
 							(ShaderStage)pDesc->mD3D11.mUsedStages,
-							pDesc->mD3D11.mReg + arr,
+							pDesc->mD3D11.mReg + arrayStart + arr,
 						});
 					}
 				}
@@ -3680,40 +3644,26 @@ void set_constant_buffers(ID3D11DeviceContext* pContext, ShaderStage used_stages
 		pContext->CSSetConstantBuffers(reg, count, pCBVs);
 }
 
-void set_dynamic_constant_buffer(Cmd* pCmd, ID3D11DeviceContext* pContext, const CBV* pHandle)
+void set_constant_buffer_offset(ID3D11DeviceContext1* pContext1, ShaderStage used_stages, uint32_t reg, uint32_t offset, uint32_t size, ID3D11Buffer* pCBV)
 {
-	ASSERT(pCmd);
-	ASSERT(pContext);
-	ASSERT(pHandle);
+	ASSERT(pContext1);
+	// https://docs.microsoft.com/en-us/windows/win32/api/d3d11_1/nf-d3d11_1-id3d11devicecontext1-pssetconstantbuffers1
+	uint32_t firstConstant = offset / 16;
+	// Offset and Count must be multiples of 16
+	uint32_t constantCount = round_up(size / 16, 16);
 
-	const uint32_t transientConstantBufferCount =
-		sizeof(pCmd->mD3D11.pTransientConstantBuffers) / sizeof(pCmd->mD3D11.pTransientConstantBuffers[0]);
-	if (!pCmd->mD3D11.pTransientConstantBuffers[0])
-	{
-		pCmd->mD3D11.mTransientConstantBufferIndex = 0;
-		for (uint32_t i = 0; i < transientConstantBufferCount; ++i)
-		{
-			Buffer*    buffer = {};
-			BufferDesc bufDesc = {};
-			bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			// Max Constant Buffer Size
-			bufDesc.mSize = 65536;
-			addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-			pCmd->mD3D11.pTransientConstantBuffers[i] = buffer->mD3D11.pDxResource;
-			SAFE_FREE(buffer);
-		}
-	}
-	const uint32_t           transientConstantBufferIndex = pCmd->mD3D11.mTransientConstantBufferIndex++ % transientConstantBufferCount;
-	ID3D11Buffer*            pTransientConstantBuffer = pCmd->mD3D11.pTransientConstantBuffers[transientConstantBufferIndex];
-	D3D11_MAPPED_SUBRESOURCE read = {};
-	pContext->Map(pHandle->pHandle, 0, D3D11_MAP_READ, 0, &read);    //-V522
-	D3D11_MAPPED_SUBRESOURCE sub = {};
-	pContext->Map(pTransientConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-	memcpy(sub.pData, (uint8_t*)read.pData + pHandle->mOffset, pHandle->mSize);
-	pContext->Unmap(pTransientConstantBuffer, 0);
-	pContext->Unmap(pHandle->pHandle, 0);
-	set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, &pTransientConstantBuffer);
+	if (used_stages & SHADER_STAGE_VERT)
+		pContext1->VSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
+	if (used_stages & SHADER_STAGE_FRAG)
+		pContext1->PSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
+	if (used_stages & SHADER_STAGE_HULL)
+		pContext1->HSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
+	if (used_stages & SHADER_STAGE_DOMN)
+		pContext1->DSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
+	if (used_stages & SHADER_STAGE_GEOM)
+		pContext1->GSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
+	if (used_stages & SHADER_STAGE_COMP)
+		pContext1->CSSetConstantBuffers1(reg, 1, &pCBV, &firstConstant, &constantCount);
 }
 
 void d3d11_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
@@ -3724,6 +3674,7 @@ void d3d11_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
 
 	Renderer*            pRenderer = pCmd->pRenderer;
 	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
+	ID3D11DeviceContext1* pContext1 = pRenderer->mD3D11.pDxContext1;
 
 	const RootSignature* pRootSignature = pDescriptorSet->mD3D11.pRootSignature;
 
@@ -3759,7 +3710,8 @@ void d3d11_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
 		{
 			if (pHandle->mOffset || pHandle->mSize)
 			{
-				set_dynamic_constant_buffer(pCmd, pContext, pHandle);
+				ASSERT(pContext1);
+				set_constant_buffer_offset(pContext1, pHandle->mStage, pHandle->mBinding, pHandle->mOffset, pHandle->mSize, pHandle->pHandle);
 			}
 			else
 			{
@@ -3768,80 +3720,15 @@ void d3d11_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescr
 		}
 	}
 
-	uint32_t dynamicCBVCount = 0;
-	CBV*     pDynamicCBVs = 0;
-
-	if (pDescriptorSet->mD3D11.pDynamicCBVsCount[index] != pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index])
-	{
-		// Create descriptor pool for storing the descriptor data
-		if (!pCmd->mD3D11.pDescriptorCache)
-		{
-			pCmd->mD3D11.pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
-		}
-
-		dynamicCBVCount = (uint32_t)(pDescriptorSet->mD3D11.pDynamicCBVsCount[index] - pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index]);
-		pDynamicCBVs = (CBV*)(pCmd->mD3D11.pDescriptorCache + pCmd->mD3D11.mDescriptorCacheOffset);
-		pCmd->mD3D11.mDescriptorCacheOffset += sizeof(CBV) * dynamicCBVCount;
-
-		for (uint32_t i = 0; i < dynamicCBVCount; ++i)
-		{
-			CBV* pCbv = (CBV*)pDynamicCBVs + i;
-			*pCbv = pDescriptorSet->mD3D11.pDynamicCBVs[index][pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] + i];
-		}
-
-		pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->mD3D11.pDynamicCBVsCount[index];
-	}
-
-	for (uint32_t i = 0; i < dynamicCBVCount; ++i)
-	{
-		CBV* pHandle = (CBV*)pDynamicCBVs + i;    //-V769
-		set_dynamic_constant_buffer(pCmd, pContext, pHandle);
-	}
-
 	for (uint32_t i = 0; i < pRootSignature->mD3D11.mSamplerCount; ++i)
 	{
 		DescriptorHandle* pHandle = &pDescriptorSet->mD3D11.pHandles[index].pSamplers[i];
 		if (pHandle->pHandle)
 			set_samplers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11SamplerState**)&pHandle->pHandle);
 	}
-
-	pDescriptorSet->mD3D11.pDynamicCBVsCount[index] = 0;
-	pDescriptorSet->mD3D11.pDynamicCBVsPrevCount[index] = 0;
 }
 
-void d3d11_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
-{
-	ASSERT(pCmd);
-	ASSERT(pName);
-	ASSERT(pConstants);
-	ASSERT(pRootSignature);
-
-	Renderer*            pRenderer = pCmd->pRenderer;
-	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
-
-	if (!pCmd->mD3D11.pRootConstantBuffer)
-	{
-		Buffer*    buffer = {};
-		BufferDesc bufDesc = {};
-		bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		bufDesc.mSize = 256;
-		addBuffer(pCmd->pRenderer, &bufDesc, &buffer);
-		pCmd->mD3D11.pRootConstantBuffer = buffer->mD3D11.pDxResource;
-		SAFE_FREE(buffer);
-	}
-
-	D3D11_MAPPED_SUBRESOURCE sub = {};
-	const DescriptorInfo*    pDesc = d3d11_get_descriptor(pRootSignature, pName);
-	ASSERT(pDesc);
-
-	pContext->Map(pCmd->mD3D11.pRootConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-	memcpy(sub.pData, pConstants, pDesc->mSize * sizeof(uint32_t));    //-V522
-	pContext->Unmap(pCmd->mD3D11.pRootConstantBuffer, 0);
-	set_constant_buffers(pContext, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg, 1, &pCmd->mD3D11.pRootConstantBuffer);
-}
-
-void d3d11_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void d3d11_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -3872,6 +3759,46 @@ void d3d11_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature,
 	set_constant_buffers(pContext, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg, 1, &pCmd->mD3D11.pRootConstantBuffer);
 }
 
+void d3d11_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
+	ASSERT(pCmd);
+	ASSERT(pDescriptorSet);
+	ASSERT(pParams);
+
+	d3d11_cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
+
+	const RootSignature* pRootSignature = pDescriptorSet->mD3D11.pRootSignature;
+	ID3D11DeviceContext1* pContext1 = pCmd->pRenderer->mD3D11.pDxContext1;
+	ASSERT(pContext1);
+
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		const DescriptorData* pParam = pParams + i;
+		uint32_t              paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
+		const DescriptorInfo* pDesc =
+			(paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : d3d11_get_descriptor(pRootSignature, pParam->pName);
+
+		if (!pDesc)
+		{
+			LOGF(LogLevel::eERROR, "Unable to get DescriptorInfo for descriptor param %u", i);
+			continue;
+		}
+
+		VALIDATE_DESCRIPTOR(pDesc->mRootDescriptor, "Descriptor (%s) - must be a root cbv", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->mCount <= 1, "Descriptor (%s) - cmdBindDescriptorSetWithRootCbvs does not support arrays", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->pRanges, "Descriptor (%s) - pRanges must be provided for cmdBindDescriptorSetWithRootCbvs", pDesc->pName);
+
+		DescriptorDataRange range = pParam->pRanges[0];
+		VALIDATE_DESCRIPTOR(range.mSize > 0, "Descriptor (%s) - pRange->mSize is zero", pDesc->pName);
+		VALIDATE_DESCRIPTOR(
+			range.mSize <= D3D11_REQ_CONSTANT_BUFFER_SIZE, "Descriptor (%s) - pRange->mSize is %u which exceeds max size %u",
+			pDesc->pName, range.mSize, D3D11_REQ_CONSTANT_BUFFER_SIZE);
+
+		set_constant_buffer_offset(pContext1, (ShaderStage)pDesc->mD3D11.mUsedStages, pDesc->mD3D11.mReg,
+			range.mOffset, range.mSize, pParam->ppBuffers[0]->mD3D11.pDxResource);
+	}
+}
+
 void d3d11_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
 {
 	ASSERT(pCmd);
@@ -3895,19 +3822,16 @@ void d3d11_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffe
 	Renderer*            pRenderer = pCmd->pRenderer;
 	ID3D11DeviceContext* pContext = pRenderer->mD3D11.pDxContext;
 
-	ID3D11Buffer** ppDxBuffers = (ID3D11Buffer**)tf_calloc(bufferCount, sizeof(ID3D11Buffer*));
-	uint32_t*      pDxOffsets = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
+	ID3D11Buffer* buffers[MAX_VERTEX_BINDINGS] = {};
+	uint32_t offsets[MAX_VERTEX_BINDINGS] = {};
 
 	for (uint32_t i = 0; i < bufferCount; ++i)
 	{
-		ppDxBuffers[i] = ppBuffers[i]->mD3D11.pDxResource;
-		pDxOffsets[i] = (uint32_t)(pOffsets ? pOffsets[i] : 0);
+		buffers[i] = ppBuffers[i]->mD3D11.pDxResource;
+		offsets[i] = (uint32_t)(pOffsets ? pOffsets[i] : 0);
 	}
 
-	pContext->IASetVertexBuffers(0, bufferCount, ppDxBuffers, pStrides, pDxOffsets);
-
-	tf_free(ppDxBuffers);
-	tf_free(pDxOffsets);
+	pContext->IASetVertexBuffers(0, bufferCount, buffers, pStrides, offsets);
 }
 
 void d3d11_cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
@@ -4092,7 +4016,13 @@ void d3d11_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat d3d11_getRecommendedSwapchainFormat(bool hintHDR) { return TinyImageFormat_B8G8R8A8_UNORM; }
+TinyImageFormat d3d11_getRecommendedSwapchainFormat(bool hintHDR, bool hintSRGB) 
+{
+	if (hintSRGB)
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	else
+		return TinyImageFormat_B8G8R8A8_UNORM;
+}
 /************************************************************************/
 // Indirect Draw functions
 /************************************************************************/
@@ -4380,7 +4310,7 @@ void initD3D11Renderer(const char* appName, const RendererDesc* pSettings, Rende
 	cmdBindPipeline = d3d11_cmdBindPipeline;
 	cmdBindDescriptorSet = d3d11_cmdBindDescriptorSet;
 	cmdBindPushConstants = d3d11_cmdBindPushConstants;
-	cmdBindPushConstantsByIndex = d3d11_cmdBindPushConstantsByIndex;
+	cmdBindDescriptorSetWithRootCbvs = d3d11_cmdBindDescriptorSetWithRootCbvs;
 	cmdBindIndexBuffer = d3d11_cmdBindIndexBuffer;
 	cmdBindVertexBuffer = d3d11_cmdBindVertexBuffer;
 	cmdDraw = d3d11_cmdDraw;

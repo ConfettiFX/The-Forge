@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{34e31d51-b38e-4810-b67f-d256440fe5ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{79ac5505-fe40-4745-885f-ebd2f4a369ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{3e033a6d-0b03-40f3-ad8c-7c590bd51f89}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AOIT.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shaderDefs.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shading.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\varianceShadowMapping.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOIT.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOITClear.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOITComposite.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\copy.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\downsample.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\forward.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\forward.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\fullscreen.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\gaussianBlur.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\generateMips.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\phenomenologicalTransparency.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\phenomenologicalTransparencyComposite.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shadow.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shadow.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\stochasticShadow.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOIT.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITComposite.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITVolition.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITVolitionComposite.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\15_Transparency\15_Transparency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

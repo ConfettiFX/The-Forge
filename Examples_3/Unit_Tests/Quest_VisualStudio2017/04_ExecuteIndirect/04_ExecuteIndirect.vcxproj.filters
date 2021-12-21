@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{0e92271e-f4fb-4de0-8f28-4d90ca1e1c4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{cc7bda9a-3399-4904-804d-4a00ca4eb772}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Panini">
+      <UniqueIdentifier>{d7dfe476-7d4a-40e2-9dfe-d28735883c82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{5f991074-2e15-46ae-9822-a3afd925c96d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\Middleware_3\PaniniProjection\Panini.cpp">
+      <Filter>Panini</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\04_ExecuteIndirect\04_ExecuteIndirect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\04_ExecuteIndirect\AsteroidSim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\04_ExecuteIndirect\Random.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\04_ExecuteIndirect\simplexnoise1234.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\04_ExecuteIndirect\TextureGen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\Middleware_3\PaniniProjection\Panini.h">
+      <Filter>Panini</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\04_ExecuteIndirect\AsteroidSim.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\04_ExecuteIndirect\NoiseOctaves.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\04_ExecuteIndirect\simplexnoise1234.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\04_ExecuteIndirect\TextureGen.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\basic.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\basic.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\ComputeUpdate.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\ExecuteIndirect.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\ExecuteIndirect.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\skybox.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\Quest\skybox.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+</Project>

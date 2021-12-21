@@ -22,7 +22,7 @@
 * under the License.
 */
 
-#include "resources.h"
+#include "resources.h.fsl"
 
 #define THREAD_SIZE_X 1024
 #define THREAD_SIZE_Y 1

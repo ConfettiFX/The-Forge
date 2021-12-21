@@ -14,10 +14,10 @@
 
 // USERMACRO: CLOTH_ID [0]
 
-#include "shader_defs.h"
-#include "vb_rsm_resources.h"
-#include "packing.h"
-#include "wind.h"
+#include "shader_defs.h.fsl"
+#include "vb_rsm_resources.h.fsl"
+#include "packing.h.fsl"
+#include "wind.h.fsl"
 
 STRUCT(VsIn)
 {

@@ -817,6 +817,51 @@ API_INTERFACE void FORGE_CALLCONV gl_compileShader(Renderer* pRenderer, ShaderTa
 /************************************************************************/
 // Internal init functions
 /************************************************************************/
+#if defined(VULKAN) && defined(ANDROID)
+#include "../../../Common_3/ThirdParty/OpenSource/volk/volk.h"
+
+extern VkAllocationCallbacks gVkAllocationCallbacks;
+
+// temporarily initializes vulkan to verify that gpu is whitelisted
+static bool verifyGPU()
+{
+	if (volkInitialize() != VK_SUCCESS)
+		return false;
+
+	VkInstanceCreateInfo instanceInfo = {};
+	instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	instanceInfo.pApplicationInfo = NULL;
+
+	VkInstance instance;
+	if (vkCreateInstance(&instanceInfo, &gVkAllocationCallbacks, &instance) != VK_SUCCESS)
+		return false;
+	volkLoadInstanceOnly(instance);
+
+	// We pick first available device for android
+	uint32_t deviceCount = 1;
+	VkPhysicalDevice device;
+	if (vkEnumeratePhysicalDevices(instance, &deviceCount, &device) != VK_SUCCESS || deviceCount != 1)
+	{
+		vkDestroyInstance(instance, &gVkAllocationCallbacks);
+	}
+
+	VkPhysicalDeviceProperties properties;
+
+	vkGetPhysicalDeviceProperties(device, &properties);
+	char vendorID[11];
+	char deviceID[11];
+
+	snprintf(vendorID, 11, "0x%x", properties.vendorID);
+	snprintf(deviceID, 11, "0x%x", properties.deviceID);
+
+	
+	bool result = isGPUWhitelisted(vendorID, deviceID, properties.deviceName);
+	vkDestroyInstance(instance, &gVkAllocationCallbacks);
+	return result;
+}
+#endif
+
+
 static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 {
 	const char* glVendor = (const char*)glGetString(GL_VENDOR);
@@ -828,8 +873,11 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	const char* glVendorId = util_get_vendor_id(glVendor);
 	if (isGPUWhitelisted(glVendorId, NULL, glRenderer))
 	{
-		LOGF(LogLevel::eINFO, "Device supports Vulkan. switching API...");
-		return false;
+		if (verifyGPU())
+		{
+			LOGF(LogLevel::eINFO, "Device supports Vulkan. switching API...");
+			return false;
+		}
 	}
 #endif
 	LOGF(LogLevel::eINFO, "GPU detected. Vendor: %s, GPU Name: %s, GL Version: %s, GLSL Version: %s", glVendor, glRenderer, glVersion, glslVersion);
@@ -1814,6 +1862,9 @@ void gl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 	}
 
 	TinyImageFormat format = pDesc->mFormat;
+	// Only OpenGL ES 2.1 supports SRGB textures, but we use OpenGL ES 2.0
+	if (TinyImageFormat_IsSRGB(format))
+		format = TinyImageFormat_ToUNORM(format);
 	// Check image support
 	if (!pRenderer->pCapBits->canShaderReadFrom[format])
 	{
@@ -2179,7 +2230,7 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 		pDesc->mGLES.mGlType = pRes->set; // Not available for GLSL 100 we used it for glType
 		pDesc->pName = pRes->name;
 		pDesc->mHandleIndex = i;
-		pDesc->mRootDescriptor = false;
+		pDesc->mRootDescriptor = isDescriptorRootCbv(pRes->name);
 		for (uint32_t sh = 0; sh < pRootSignature->mGLES.mProgramCount; ++sh)
 		{
 			uint32_t index = i + sh * pRootSignature->mDescriptorCount;
@@ -2193,14 +2244,13 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 
 		if(pDesc->mType == DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			pDesc->mIndexInParent = variableIndex; // Set start location of variables in this UBO
+			pDesc->mGLES.mVariableStart = variableIndex; // Set start location of variables in this UBO
 			uint32_t uboSize = 0;
 			for (uint32_t var = variableIndex; var < variableIndex + uboVariableSizes[i]; ++var)
 			{
 				pRootSignature->mGLES.pVariables[var].mIndexInParent = i;
 				uboSize += pRootSignature->mGLES.pVariables[var].mSize;
 			}
-			pDesc->mRootDescriptor = true;
 			pDesc->mGLES.mUBOSize = uboSize;
 
 			variableIndex += uboVariableSizes[i];
@@ -2587,13 +2637,13 @@ void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* 
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam = pParams + i;
-		uint32_t paramIndex = pParam->mIndex;
-		VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != -1), "DescriptorData has NULL name and invalid index");
+		uint32_t paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
+		VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != UINT32_MAX), "DescriptorData has NULL name and invalid index");
 
-		const DescriptorInfo* pDesc = (paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		const DescriptorInfo* pDesc = (paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
 		paramIndex = pDesc->mHandleIndex;
 
-		if (paramIndex != -1)
+		if (paramIndex != UINT32_MAX)
 		{
 			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
 		}
@@ -2603,6 +2653,7 @@ void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* 
 		}
 
 		const DescriptorType type = (DescriptorType)pDesc->mType;
+		const uint32_t arrayStart = pParam->mArrayOffset;
 		const uint32_t arrayCount = max(1U, pParam->mCount);
 
 		switch (type)
@@ -2615,7 +2666,7 @@ void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* 
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
-					pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pTextures[arr] = { pParam->ppTextures[arr]->mMipLevels > 1, pParam->ppTextures[arr]->mGLES.mStateModified, pParam->ppTextures[arr]->mGLES.mTexture };
+					pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pTextures[arrayStart + arr] = { pParam->ppTextures[arr]->mMipLevels > 1, pParam->ppTextures[arr]->mGLES.mStateModified, pParam->ppTextures[arr]->mGLES.mTexture };
 				}
 				break;
 			}
@@ -2627,7 +2678,7 @@ void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* 
 				ASSERT(arrayCount == 1 && "OpenGL ES 2.0 does not support arrays of buffers i.e. uniform float name[][]");
 
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
-				pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pBufferHandles[0] = { pParam->ppBuffers[0]->mGLES.pGLCpuMappedAddress, pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0 };
+				pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pBufferHandles[0] = { pParam->ppBuffers[0]->mGLES.pGLCpuMappedAddress, pParam->pRanges ? pParam->pRanges[0].mOffset : 0 };
 				break;
 			}
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -2636,7 +2687,7 @@ void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* 
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, arr);
-					pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pBufferHandles[arr] = { pParam->ppBuffers[arr]->mGLES.pGLCpuMappedAddress, pParam->pOffsets ? (uint32_t)pParam->pOffsets[arr] : 0 };
+					pDescriptorSet->mGLES.pHandles[index].pData[paramIndex].pBufferHandles[arrayStart + arr] = { pParam->ppBuffers[arr]->mGLES.pGLCpuMappedAddress, pParam->pRanges ? pParam->pRanges[0].mOffset : 0 };
 				}
 				break;
 			}
@@ -3104,6 +3155,10 @@ void gl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescript
 					textureIndex += descInfo->mSize;
 				continue;
 			}
+			if (descInfo->mRootDescriptor)
+			{
+				continue;
+			}
 
 			switch (descInfo->mType)
 			{
@@ -3185,7 +3240,7 @@ void gl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescript
 							continue;
 
 						data += handle->mOffset;
-						for (uint32_t varIndex = descInfo->mIndexInParent; varIndex < pRootSignature->mGLES.mVariableCount; ++varIndex)
+						for (uint32_t varIndex = descInfo->mGLES.mVariableStart; varIndex < pRootSignature->mGLES.mVariableCount; ++varIndex)
 						{
 							GlVariable* variable = &pRootSignature->mGLES.pVariables[varIndex];
 							if (variable->mIndexInParent != i)
@@ -3238,7 +3293,7 @@ void util_gl_set_constant(const Cmd* pCmd, const RootSignature* pRootSignature, 
 			util_gl_set_uniform(location, cpuBuffer, pDesc->mGLES.mGlType, pDesc->mSize);
 			break;
 		case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-			for (uint32_t varIndex = pDesc->mIndexInParent; varIndex < pRootSignature->mGLES.mVariableCount; ++varIndex)
+			for (uint32_t varIndex = pDesc->mGLES.mVariableStart; varIndex < pRootSignature->mGLES.mVariableCount; ++varIndex)
 			{
 				GlVariable* variable = &pRootSignature->mGLES.pVariables[varIndex];
 				if (variable->mIndexInParent != pDesc->mHandleIndex)
@@ -3259,20 +3314,7 @@ void util_gl_set_constant(const Cmd* pCmd, const RootSignature* pRootSignature, 
 	}
 }
 
-void gl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
-{
-	ASSERT(pCmd);
-	ASSERT(pName);
-	ASSERT(pConstants);
-	ASSERT(pRootSignature);
-	ASSERT(pCmd->mGLES.pCmdPool->pCmdCache->isStarted);
-
-	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
-	ASSERT(pDesc);
-	util_gl_set_constant(pCmd, pRootSignature, pDesc, pConstants);
-}
-
-void gl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void gl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -3284,6 +3326,87 @@ void gl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, ui
 	ASSERT(pDesc);
 
 	util_gl_set_constant(pCmd, pRootSignature, pDesc, pConstants);
+}
+
+void gl_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
+	gl_cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
+
+	const RootSignature* pRootSignature = pDescriptorSet->mGLES.pRootSignature;
+	CmdCache* cmdCache = pCmd->mGLES.pCmdPool->pCmdCache;
+	ASSERT(cmdCache->isStarted);
+	uint32_t currentGlProgram = cmdCache->mPipeline;
+
+	for (uint32_t sh = 0; sh < pRootSignature->mGLES.mProgramCount; ++sh)
+	{
+		uint32_t glProgram = pRootSignature->mGLES.pProgramTargets[sh];
+
+		if (cmdCache->mPipeline != glProgram)
+		{
+			CHECK_GLRESULT(glUseProgram(glProgram));
+			cmdCache->mPipeline = glProgram;
+		}
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			const DescriptorData* pParam = pParams + i;
+			uint32_t paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
+			VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != UINT32_MAX), "DescriptorData has NULL name and invalid index");
+
+			const DescriptorInfo* pDesc = (paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+			paramIndex = pDesc->mHandleIndex;
+
+			if (paramIndex != UINT32_MAX)
+			{
+				VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
+			}
+			else
+			{
+				VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName);
+			}
+
+			BufferDescriptorHandle handle = { pParam->ppBuffers[0]->mGLES.pGLCpuMappedAddress, pParam->pRanges[0].mOffset };
+
+			switch (pDesc->mType)
+			{
+			case DESCRIPTOR_TYPE_BUFFER:
+			case DESCRIPTOR_TYPE_RW_BUFFER:
+			case DESCRIPTOR_TYPE_BUFFER_RAW:
+			case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+			{
+				uint32_t locationIndex = (uint32_t)(pDesc - pRootSignature->pDescriptors) + sh * pRootSignature->mDescriptorCount;
+				GLint location = pRootSignature->mGLES.pDescriptorGlLocations[locationIndex];
+				util_gl_set_uniform(location, (uint8_t*)handle.pBuffer + handle.mOffset, pDesc->mGLES.mGlType, pDesc->mSize);
+				break;
+			}
+			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+			{
+				uint8_t* data = (uint8_t*)handle.pBuffer;
+				if (!data)
+					continue;
+
+				data += handle.mOffset;
+				for (uint32_t varIndex = pDesc->mGLES.mVariableStart; varIndex < pRootSignature->mGLES.mVariableCount; ++varIndex)
+				{
+					GlVariable* variable = &pRootSignature->mGLES.pVariables[varIndex];
+					if (variable->mIndexInParent != i)
+						break;
+
+					util_gl_set_uniform(variable->pGlLocations[sh], data, variable->mType, variable->mSize);
+					uint32_t typeSize = gl_type_byte_size(variable->mType);
+					data += typeSize * variable->mSize;
+				}
+
+				break;
+			}
+			}
+		}
+	}
+
+	if (cmdCache->mPipeline != currentGlProgram)
+	{
+		CHECK_GLRESULT(glUseProgram(currentGlProgram));
+		cmdCache->mPipeline = currentGlProgram;
+	}
 }
 
 void gl_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint64_t offset)
@@ -3888,7 +4011,7 @@ void gl_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat gl_getRecommendedSwapchainFormat(bool hintHDR)
+TinyImageFormat gl_getRecommendedSwapchainFormat(bool hintHDR, bool hintSRGB)
 {
 	return TinyImageFormat_R8G8B8A8_UNORM;
 }
@@ -4214,7 +4337,7 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	cmdBindPipeline = gl_cmdBindPipeline;
 	cmdBindDescriptorSet = gl_cmdBindDescriptorSet;
 	cmdBindPushConstants = gl_cmdBindPushConstants;
-	cmdBindPushConstantsByIndex = gl_cmdBindPushConstantsByIndex;
+	cmdBindDescriptorSetWithRootCbvs = gl_cmdBindDescriptorSetWithRootCbvs;
 	cmdBindIndexBuffer = gl_cmdBindIndexBuffer;
 	cmdBindVertexBuffer = gl_cmdBindVertexBuffer;
 	cmdDraw = gl_cmdDraw;

@@ -232,10 +232,10 @@ struct ScanExclusiveArgs_##type##4 {\
 device type##4 const* inputArray;\
 device type##4* outputArray;\
 };\
-kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCountRootConstant [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint simdLaneId [[ thread_index_in_simdgroup ]], uint threadsPerSIMDGroup [[ threads_per_simdgroup ]], uint simdGroupId [[ simdgroup_index_in_threadgroup ]]) {\
+kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& rootConstants [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint simdLaneId [[ thread_index_in_simdgroup ]], uint threadsPerSIMDGroup [[ threads_per_simdgroup ]], uint simdGroupId [[ simdgroup_index_in_threadgroup ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, rootConstants);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, rootConstants);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -250,8 +250,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, rootConstants);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, rootConstants);\
 }
 #else
 #define DEFINE_SCAN_EXCLUSIVE_4(type)\
@@ -259,10 +259,10 @@ struct ScanExclusiveArgs_##type##4 {\
 device type##4 const* inputArray;\
 device type##4* outputArray;\
 };\
-kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCountRootConstant [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]]) {\
+kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& rootConstants [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, rootConstants);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, rootConstants);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -277,8 +277,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, rootConstants);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, rootConstants);\
 }
 #endif // USE_SIMD
 
@@ -291,10 +291,10 @@ device type##4 const* inputArray;\
 device type##4* outputArray;\
 device type* outputSums;\
 };\
-kernel void scan_exclusive_part_##type##4(constant ScanExclusivePartArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCountRootConstant [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint groupId [[ threadgroup_position_in_grid ]]) {\
+kernel void scan_exclusive_part_##type##4(constant ScanExclusivePartArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& rootConstants [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint groupId [[ threadgroup_position_in_grid ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, rootConstants);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, rootConstants);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -310,8 +310,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, rootConstants);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, rootConstants);\
 }
 
 DEFINE_SCAN_EXCLUSIVE_PART_4(int)
@@ -336,12 +336,12 @@ struct DistributePartSumArgs_##type##4 {\
 device type const* inputSums;\
 device type##4* inoutArray;\
 };\
-kernel void distribute_part_sum_##type##4(constant DistributePartSumArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCountRootConstant [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint groupId [[ threadgroup_position_in_grid ]])\
+kernel void distribute_part_sum_##type##4(constant DistributePartSumArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& rootConstants [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint groupId [[ threadgroup_position_in_grid ]])\
 {\
-type##4 v1 = safe_load_4(arguments.inoutArray, globalId, elementCountRootConstant);\
+type##4 v1 = safe_load_4(arguments.inoutArray, globalId, rootConstants);\
 type    sum = arguments.inputSums[groupId >> 1];\
 v1.xyzw += sum;\
-safe_store_4(v1, arguments.inoutArray, globalId, elementCountRootConstant);\
+safe_store_4(v1, arguments.inoutArray, globalId, rootConstants);\
 }
 
 DEFINE_DISTRIBUTE_PART_SUM_4(int)
@@ -644,7 +644,7 @@ void safe_store_int(int val, device int* dest, uint idx, uint sizeInInts)
 }
 
 // Split kernel launcher
-kernel void split4way(constant int& bitShift, device uint4* inputArray, constant uint& elementCountRootConstant, device int* outputHistograms, device uint4* outputArray,
+kernel void split4way(constant int& bitShift, device uint4* inputArray, constant uint& rootConstants, device int* outputHistograms, device uint4* outputArray,
                       device int* out_local_histograms,
                       device uint4* out_debug_offset,
                       threadgroup short* shmem,
@@ -655,7 +655,7 @@ kernel void split4way(constant int& bitShift, device uint4* inputArray, constant
                       uint numGroups [[ threadgroups_per_grid ]])
 {
     /// Load single uint4 value
-    uint4 val = safe_load_uint4_intmax(inputArray, globalId, elementCountRootConstant);
+    uint4 val = safe_load_uint4_intmax(inputArray, globalId, rootConstants);
     
     uint4 localOffset;
     short4 localHistogram;
@@ -675,16 +675,16 @@ kernel void split4way(constant int& bitShift, device uint4* inputArray, constant
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
     // Now store to memory
-    if (((globalId + 1) << 2) <= elementCountRootConstant)
+    if (((globalId + 1) << 2) <= rootConstants)
     {
         outputArray[globalId] = sharedData4[localId];
         out_debug_offset[globalId] = localOffset;
     }
     else
     {
-        if ((globalId << 2) < elementCountRootConstant) outputArray[globalId].x = sharedData4[localId].x;
-        if ((globalId << 2) + 1 < elementCountRootConstant) outputArray[globalId].y = sharedData4[localId].y;
-        if ((globalId << 2) + 2 < elementCountRootConstant) outputArray[globalId].z = sharedData4[localId].z;
+        if ((globalId << 2) < rootConstants) outputArray[globalId].x = sharedData4[localId].x;
+        if ((globalId << 2) + 1 < rootConstants) outputArray[globalId].y = sharedData4[localId].y;
+        if ((globalId << 2) + 2 < rootConstants) outputArray[globalId].z = sharedData4[localId].z;
     }
     
     if (localId == 0)
@@ -1862,7 +1862,7 @@ void group_segmented_scan_exclusive_int_nocut_part(
 
 kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
                                                device int const* in_segment_heads_array,
-                                               constant uint& elementCountRootConstant,
+                                               constant uint& rootConstants,
                                                device int* outputArray,
                                                threadgroup int* shmem,
                                                uint globalId [[ thread_position_in_grid ]],
@@ -1874,8 +1874,8 @@ kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < rootConstants ? inputArray[globalId] : 0;
+    flags[localId] = globalId < rootConstants ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1886,7 +1886,7 @@ kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int(device int const* inputArray,
                                          device int const* in_segment_heads_array,
-                                         constant uint& elementCountRootConstant,
+                                         constant uint& rootConstants,
                                          device int* outputArray,
                                          threadgroup int* shmem,
                                          uint globalId [[ thread_position_in_grid ]],
@@ -1898,8 +1898,8 @@ kernel void segmented_scan_exclusive_int(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < rootConstants ? inputArray[globalId] : 0;
+    flags[localId] = globalId < rootConstants ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1910,7 +1910,7 @@ kernel void segmented_scan_exclusive_int(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
                                               device int const* in_segment_heads_array,
-                                              constant uint& elementCountRootConstant,
+                                              constant uint& rootConstants,
                                               device int* outputArray,
                                               device int* out_part_sums,
                                               device int* out_part_flags,
@@ -1924,8 +1924,8 @@ kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < rootConstants ? inputArray[globalId] : 0;
+    flags[localId] = globalId < rootConstants ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1936,7 +1936,7 @@ kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray,
                                                     device int const* in_segment_heads_array,
-                                                    constant uint& elementCountRootConstant,
+                                                    constant uint& rootConstants,
                                                     device int* outputArray,
                                                     device int* out_part_sums,
                                                     device int* out_part_flags,
@@ -1951,8 +1951,8 @@ kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < rootConstants ? inputArray[globalId] : 0;
+    flags[localId] = globalId < rootConstants ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1965,7 +1965,7 @@ kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray
 kernel void segmented_distribute_part_sum_int(
                                               device int* inoutArray,
                                               device int* in_flags,
-                                              constant uint& elementCountRootConstant,
+                                              constant uint& rootConstants,
                                               device int* inputSums,
                                               uint globalId [[ thread_position_in_grid ]],
                                               uint localId [[ thread_position_in_threadgroup ]],
@@ -1981,7 +1981,7 @@ kernel void segmented_distribute_part_sum_int(
     {
         for (uint i = 0; in_flags[globalId + i] == 0 && i < groupSize; ++i)
         {
-            if (globalId + i < elementCountRootConstant)
+            if (globalId + i < rootConstants)
             {
                 inoutArray[globalId + i] += sum;
             }
@@ -1992,7 +1992,7 @@ kernel void segmented_distribute_part_sum_int(
 kernel void segmented_distribute_part_sum_int_nocut(
                                                     device int* inoutArray,
                                                     device int* in_flags,
-                                                    constant uint& elementCountRootConstant,
+                                                    constant uint& rootConstants,
                                                     device int* inputSums,
                                                     uint globalId [[ thread_position_in_grid ]],
                                                     uint localId [[ thread_position_in_threadgroup ]],
@@ -2009,7 +2009,7 @@ kernel void segmented_distribute_part_sum_int_nocut(
     {
         for (uint i = 0; i < groupSize; ++i)
         {
-            if (globalId + i < elementCountRootConstant)
+            if (globalId + i < rootConstants)
             {
                 if (in_flags[globalId + i] == 0)
                 {

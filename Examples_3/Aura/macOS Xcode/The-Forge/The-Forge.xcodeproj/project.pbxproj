@@ -158,15 +158,6 @@
 		B231A25323F40207006D7450 /* ProfilerHTML.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24723F40207006D7450 /* ProfilerHTML.h */; };
 		B245106E24CEEA5300FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
 		B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
-		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
-		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
-		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
-		B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
-		B274041F22BC66AD00F7660D /* EntityManager.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041822BC66AD00F7660D /* EntityManager.h */; };
-		B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
-		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
-		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
-		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 		B2B2F1C32472F7BF00B483FF /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */; };
 		B2B2F1C42472F7BF00B483FF /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */; };
 		B2B2F1C62472F7D200B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */; };
@@ -440,12 +431,6 @@
 		B231A24423F40207006D7450 /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ProfilerBase.cpp; sourceTree = "<group>"; };
 		B231A24723F40207006D7450 /* ProfilerHTML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerHTML.h; sourceTree = "<group>"; };
 		B245106D24CEEA5300FCDD20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
-		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
-		B274041622BC66AD00F7660D /* ComponentRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ComponentRepresentation.h; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.h; sourceTree = "<group>"; };
-		B274041722BC66AD00F7660D /* BaseComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BaseComponent.cpp; path = ../../../../../Middleware_3/ECS/BaseComponent.cpp; sourceTree = "<group>"; };
-		B274041822BC66AD00F7660D /* EntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EntityManager.h; path = ../../../../../Middleware_3/ECS/EntityManager.h; sourceTree = "<group>"; };
-		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
-		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
 		B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
 		B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
 		B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
@@ -748,7 +733,6 @@
 			isa = PBXGroup;
 			children = (
 				5C32AEDC246453E50066E921 /* ParallelPrimitives */,
-				B2A3551222BC5B4C00E1844E /* ECS */,
 				654D978521E922C800113964 /* Animation */,
 			);
 			name = Middleware_3;
@@ -764,19 +748,6 @@
 				B231A24723F40207006D7450 /* ProfilerHTML.h */,
 			);
 			path = Profiler;
-			sourceTree = "<group>";
-		};
-		B2A3551222BC5B4C00E1844E /* ECS */ = {
-			isa = PBXGroup;
-			children = (
-				B274041722BC66AD00F7660D /* BaseComponent.cpp */,
-				B274041522BC66AD00F7660D /* BaseComponent.h */,
-				B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */,
-				B274041622BC66AD00F7660D /* ComponentRepresentation.h */,
-				B274041A22BC66AD00F7660D /* EntityManager.cpp */,
-				B274041822BC66AD00F7660D /* EntityManager.h */,
-			);
-			path = ECS;
 			sourceTree = "<group>";
 		};
 		B2B2F1C02472F79300B483FF /* rmem */ = {
@@ -1179,7 +1150,6 @@
 				B2D8BF5826963988009EE13D /* lprefix.h in Headers */,
 				654D979421E922F400113964 /* ClipController.h in Headers */,
 				5557BB40268CB3AA00B7ACF4 /* aestab.h in Headers */,
-				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				B2D8BF1726963987009EE13D /* lua.h in Headers */,
 				B231A24823F40207006D7450 /* ProfilerBase.h in Headers */,
 				B2D8BF3A26963988009EE13D /* lctype.h in Headers */,
@@ -1195,13 +1165,11 @@
 				5557BB52268CB3C400B7ACF4 /* mz_os.h in Headers */,
 				5557BB60268CB3C400B7ACF4 /* mz.h in Headers */,
 				5557BB54268CB3C400B7ACF4 /* mz_zip.h in Headers */,
-				B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */,
 				B2D8BF8526963A4D009EE13D /* resources.h in Headers */,
 				B2D8BF5A26963988009EE13D /* lopcodes.h in Headers */,
 				B2D8BF4226963988009EE13D /* llimits.h in Headers */,
 				B2D8BF2F26963987009EE13D /* lualib.h in Headers */,
 				B2D8BF1026963987009EE13D /* lzio.h in Headers */,
-				B274041F22BC66AD00F7660D /* EntityManager.h in Headers */,
 				B2D8BF4526963988009EE13D /* ltm.h in Headers */,
 				5557BB3A268CB3AA00B7ACF4 /* sha1.h in Headers */,
 				5C172F50214148840074EE71 /* IRenderer.h in Headers */,
@@ -1393,7 +1361,6 @@
 				B2D8BF5126963988009EE13D /* lmathlib.c in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
 				B2D8BF5326963988009EE13D /* lfunc.c in Sources */,
-				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				B2D8BF1B26963987009EE13D /* lzio.c in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTracking.c in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
@@ -1423,7 +1390,6 @@
 				B2D8BF5726963988009EE13D /* liolib.c in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
 				B2D8BF1626963987009EE13D /* luac.c in Sources */,
-				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
 				B2D8BF1F26963987009EE13D /* lgc.c in Sources */,
@@ -1455,7 +1421,6 @@
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
 				B2D8BF2126963987009EE13D /* lvm.c in Sources */,
 				5557BB37268CB3AA00B7ACF4 /* sha1.c in Sources */,
-				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				5557BB64268CB3C400B7ACF4 /* mz_crypt_brg.c in Sources */,
 				B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* Log.h in Sources */,
@@ -1494,7 +1459,6 @@
 				B2D8BF3B26963988009EE13D /* linit.c in Sources */,
 				5557BB58268CB3C400B7ACF4 /* mz_strm_wzaes.c in Sources */,
 				B2D8BEFD26963987009EE13D /* loadlib.c in Sources */,
-				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				B2D8BF2726963987009EE13D /* ldo.c in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				B2D8BF3626963988009EE13D /* lauxlib.c in Sources */,
@@ -1502,7 +1466,6 @@
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				B2D8BF9926963A8F009EE13D /* FontSystem.cpp in Sources */,
-				B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5557BB36268CB3AA00B7ACF4 /* sha1.c in Sources */,
 				B2D8BF1C26963987009EE13D /* lcode.c in Sources */,
 				5C5582F621413D550019960B /* MemoryTracking.c in Sources */,
@@ -1571,7 +1534,6 @@
 				B2D8BF6C269639DA009EE13D /* imgui_draw.cpp in Sources */,
 				B2D8BF1526963987009EE13D /* luac.c in Sources */,
 				5557BB32268CB3AA00B7ACF4 /* aeskey.c in Sources */,
-				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,
 				B2D8BF0C26963987009EE13D /* lstring.c in Sources */,

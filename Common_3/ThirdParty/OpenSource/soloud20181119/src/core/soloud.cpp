@@ -46,7 +46,8 @@ freely, subject to the following restrictions:
    !defined(WITH_OPENAL) && !defined(WITH_XAUDIO2) && !defined(WITH_WINMM) && \
    !defined(WITH_WASAPI) && !defined(WITH_OSS) && !defined(WITH_SDL1_STATIC) && \
    !defined(WITH_SDL2_STATIC) && !defined(WITH_ALSA) && !defined(WITH_OPENSLES) && \
-   !defined(WITH_NULL) && !defined(WITH_COREAUDIO) && !defined(WITH_VITA_HOMEBREW)
+   !defined(WITH_NULL) && !defined(WITH_COREAUDIO) && !defined(WITH_VITA_HOMEBREW) && \
+   !defined(WITH_ORBIS) && !defined(WITH_PROSPERO)
 #error It appears you haven't enabled any of the back-ends. Please #define one or more of the WITH_ defines (or use premake) '
 #endif
 
@@ -486,6 +487,42 @@ namespace SoLoud
 
 			if (ret != 0 && aBackend != Soloud::AUTO)
 				return ret;
+		}
+#endif
+
+#if defined(WITH_ORBIS)
+		if (!inited &&
+			(aBackend == Soloud::ORBIS_AU ||
+				aBackend == Soloud::AUTO))
+		{
+			result ret = orbis_init(this, aFlags, samplerate, buffersize, aChannels);
+			if (ret == 0)
+			{
+				inited = 1;
+				mBackendID = Soloud::ORBIS_AU;
+			}
+
+			if (ret != 0 && aBackend != Soloud::AUTO)
+				return ret;
+
+		}
+#endif
+
+#if defined(WITH_PROSPERO)
+		if (!inited &&
+			(aBackend == Soloud::PROSPERO_AU || 
+				aBackend == Soloud::AUTO))
+		{
+			result ret = prospero_init(this, aFlags, samplerate, buffersize, aChannels);
+			if (ret == 0)
+			{
+				inited = 1;
+				mBackendID = Soloud::PROSPERO_AU;
+			}
+
+			if (ret != 0 && aBackend != Soloud::AUTO)
+				return ret;
+
 		}
 #endif
 

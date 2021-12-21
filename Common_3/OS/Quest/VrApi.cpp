@@ -25,7 +25,6 @@
 #include "VrApi.h"
 
 #include "VrApi.h"
-#include "../../ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0/VrApi/Include/VrApi_Helpers.h"
 #include <android_native_app_glue.h>
 
 #include "../Interfaces/IApp.h"
@@ -37,22 +36,12 @@
 
 #include "../Interfaces/IMemory.h"
 
-struct QuestVR
-{
-    ovrMobile* pOvr;
-    ovrJava mJava;
-    double mPredictedDisplayTime;
-    unsigned long long mFrameIndex;
-    ovrTracking2 mHeadsetTracking;
-    uint mEyeTextureWidth;
-    uint mEyeTextureHeight;
-    mat4 mViewMatrix;
-    bool mFoveatedRenderingEnabled;
-};
-
 QuestVR* pQuest = NULL;
 
 #if defined(QUEST_VR)
+
+extern Queue* pSynchronisationQueue;
+
 bool initVrApi(android_app* pAndroidApp, JNIEnv* pJavaEnv)
 {
     ovrJava java = {};
@@ -112,11 +101,6 @@ void updateVrApi()
     }
 }
 
-bool isHeadsetReady()
-{
-    return pQuest->pOvr != NULL;
-}
-
 void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWindow)
 {
     if (appResumed && windowReady)
@@ -124,9 +108,11 @@ void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWi
         if (!pQuest->pOvr)
         {
             ovrModeParmsVulkan parms =
-                vrapi_DefaultModeParmsVulkan(&pQuest->mJava, (unsigned long long)getSynchronisationQueue()->mVulkan.pVkQueue);
+                vrapi_DefaultModeParmsVulkan(&pQuest->mJava, (unsigned long long)pSynchronisationQueue->mVulkan.pVkQueue);
             parms.ModeParms.Flags &= ~VRAPI_MODE_FLAG_RESET_WINDOW_FULLSCREEN;
             parms.ModeParms.Flags |= VRAPI_MODE_FLAG_NATIVE_WINDOW;
+			if(pQuest->isSrgb)
+				parms.ModeParms.Flags |= VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB;
             parms.ModeParms.WindowSurface = (unsigned long long)nativeWindow;
             // Leave explicit egl objects defaulted.
             parms.ModeParms.Display = 0;
@@ -147,75 +133,4 @@ void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWi
     }
 }
 
-ovrMobile* getOvrContext()
-{
-    ASSERT(pQuest);
-    ASSERT(pQuest->pOvr);
-    return pQuest->pOvr;
-}
-
-ovrTracking2* getHeadsetPose()
-{
-    ASSERT(pQuest);
-    return &pQuest->mHeadsetTracking;
-}
-
-uint getVrApiFrameIndex()
-{
-    ASSERT(pQuest);
-    return pQuest->mFrameIndex;
-}
-
-double getPredictedDisplayTime()
-{
-    ASSERT(pQuest);
-    return pQuest->mPredictedDisplayTime;
-}
-
-uint hook_window_width()
-{
-    ASSERT(pQuest);
-    return pQuest->mEyeTextureWidth;
-}
-
-uint hook_window_height()
-{
-    ASSERT(pQuest);
-    return pQuest->mEyeTextureHeight;
-}
-
-mat4 getHeadsetViewMatrix()
-{
-    ASSERT(pQuest);
-    return pQuest->mViewMatrix;
-}
-
-mat4 getHeadsetLeftEyeProjectionMatrix(float zNear, float zFar)
-{
-    ASSERT(pQuest);
-    float4 fov;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_LEFT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    return mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
-}
-
-mat4 getHeadsetRightEyeProjectionMatrix(float zNear, float zFar)
-{
-    ASSERT(pQuest);
-    float4 fov;
-    ovrMatrix4f_ExtractFov(&pQuest->mHeadsetTracking.Eye[VRAPI_EYE_RIGHT].ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
-    return mat4::perspectiveAsymmetricFov(fov.x, fov.y, fov.z, fov.w, zNear, zFar);
-}
-
-void setFoveatedRendering(bool enabled)
-{
-    ASSERT(pQuest);
-    vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_DYNAMIC_FOVEATION_ENABLED, enabled);
-    vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_FOVEATION_LEVEL, 4);
-    pQuest->mFoveatedRenderingEnabled = enabled;
-}
-
-bool isFoveatedRenderingEnabled()
-{
-    return pQuest->mFoveatedRenderingEnabled;
-}
 #endif

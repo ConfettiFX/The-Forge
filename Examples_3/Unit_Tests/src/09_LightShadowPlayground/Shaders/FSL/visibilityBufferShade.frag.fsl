@@ -26,10 +26,10 @@
 #define SAMPLE_COUNT 4
 #endif
 
-#include "Packing.h"
-#include "Shader_Defs.h"
-#include "shading.h"
-#include "ASMShader_Defs.h"
+#include "Packing.h.fsl"
+#include "Shader_Defs.h.fsl"
+#include "shading.h.fsl"
+#include "ASMShader_Defs.h.fsl"
 
 #define SHADOW_TYPE_ESM				0
 #define SHADOW_TYPE_ASM				1
@@ -728,7 +728,7 @@ PsOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i )
 
 	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL;
 
-	float ambientIntencity = 0.2f;
+	float ambientIntencity = 0.05f;
     float3 ambient = diffuseColor.xyz * ambientIntencity;
 
 	shadedColor += ambient;

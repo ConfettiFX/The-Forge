@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "renderSceneBRDF_resources.h"
+#include "renderSceneBRDF_resources.h.fsl"
 
 #define PI      3.14159265359
 #define PI_DIV2 1.57079632679

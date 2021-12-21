@@ -14,26 +14,6 @@
     <File Name="../../src/17_EntityComponentSystem/Shaders/FSL/basic.frag.fsl"/>
     <File Name="../../src/17_EntityComponentSystem/Shaders/FSL/basic.vert.fsl"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="Components">
-    <File Name="../../src/17_EntityComponentSystem/Components/MoveComponent.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/MoveComponent.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/PositionComponent.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/PositionComponent.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/SpriteComponent.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/SpriteComponent.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="Representations">
-    <File Name="../../src/17_EntityComponentSystem/Representations/MoveRepresentation.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/MoveRepresentation.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/PositionRepresentation.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/PositionRepresentation.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.h"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.cpp"/>
-    <File Name="../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h"/>
-  </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="Renderer"/>
@@ -114,7 +94,7 @@
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
@@ -184,7 +164,7 @@ shaders:&#xD;
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
@@ -198,4 +178,8 @@ shaders:&#xD;
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="flecs">
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.c"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.h"/>
+  </VirtualDirectory>
 </CodeLite_Project>

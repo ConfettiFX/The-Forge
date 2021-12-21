@@ -223,7 +223,15 @@ def vulkan(fsl, dst):
     input_assignments = []
     return_assignments = []
 
+    shader_src += ['#line 1 \"'+fsl.replace(os.sep, '/')+'\"\n']
+    line_index = 0
+
     for line in shader.lines:
+
+        line_index += 1
+        shader_src_len = len(shader_src)
+        if line.startswith('#line'):
+            line_index = int(line.split()[1]) - 1
 
         def get_uid(name):
             return '_' + name + '_' + str(len(shader_src))
@@ -255,9 +263,11 @@ def vulkan(fsl, dst):
             shader_src += [line]
 
             for macro, struct_declaration in struct_declarations:
-                shader_src += ['#ifdef ', macro, '\n']
-                shader_src += [*struct_declaration, '\n']
+                shader_src += ['#ifdef ' + macro + '\n']
+                shader_src += [''.join(struct_declaration) + '\n']
                 shader_src += ['#endif\n']
+            shader_src += ['#line {}\n'.format(line_index + 1)]
+
             struct_declarations = []
 
             parsing_struct = None
@@ -467,9 +477,6 @@ def vulkan(fsl, dst):
             shader_src += ['} ', push_constant[0], ';\n']
             for dt, dn, _ in shader.pushConstant[push_constant]:
                 dn = getArrayBaseName(dn)
-                # shader_src += ['#define ', n, ' ', pc, '.', n, '\n']
-                # since arrays of push constants are not possible, we can declare globals for each element
-                # shader_src += [dt, ' ', dn, ' = ', push_constant[0], '.', dn, ';\n']
             push_constant = None
             continue
 
@@ -525,6 +532,7 @@ def vulkan(fsl, dst):
                 shader_src += ['layout(vertices = ', patch_size, ') out;\n']
 
             shader_src += ['void main()\n']
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             parsed_entry = True
             continue
 
@@ -538,15 +546,16 @@ def vulkan(fsl, dst):
                 else:
                     output_statement += [ws+'\t'+shader.returnType+' out_'+shader.returnType+' = '+output_value+';\n']
             for macro, assignment in return_assignments:
-                output_statement += ['#ifdef ', macro, '\n']
-                output_statement += [ws+'\t', *assignment, ';\n']
+                output_statement += ['#ifdef ' + macro + '\n']
+                output_statement += [ws+'\t' + ''.join(assignment) + ';\n']
                 output_statement += ['#endif\n']
 
             if shader.stage == Stages.TESC:
-                output_statement += ['\t\t', shader.pcf, '();\n']
+                output_statement += ['\t\t' + shader.pcf + '();\n']
 
             output_statement += [ws+'\treturn;\n'+ws+'}\n']
             shader_src += output_statement
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
         if 'INIT_MAIN' in line:
@@ -555,24 +564,24 @@ def vulkan(fsl, dst):
             for dtype, var in shader.struct_args:
                 if shader.input_patch_arg and dtype in shader.input_patch_arg[0]:
                     dtype, dim, var = shader.input_patch_arg
-                    shader_src += ['\t', dtype, ' ', var, '[', dim, '];\n']
+                    shader_src += ['\t' + dtype + ' ' + var + '[' + dim + '];\n']
                     continue
                 if shader.output_patch_arg and dtype in shader.output_patch_arg[0]:
                     dtype, dim, var = shader.output_patch_arg
-                    shader_src += ['\t', dtype, ' ', var, '[', dim, '];\n']
+                    shader_src += ['\t' + dtype + ' ' + var + '[' + dim + '];\n']
                     continue
-                shader_src += ['\t', dtype, ' ', var, ';\n']
+                shader_src += ['\t' + dtype + ' ' + var + ';\n']
                 
             for macro, assignment in input_assignments:
-                shader_src += ['#ifdef ', macro, '\n']
-                shader_src += ['\t', *assignment, ';\n']
+                shader_src += ['#ifdef ' + macro + '\n']
+                shader_src += ['\t' + ''.join(assignment) + ';\n']
                 shader_src += ['#endif\n']
             
             ''' additional inputs '''
             for dtype, dvar in shader.flat_args:
                 innertype = getMacro(dtype)
                 semtype = getMacroName(dtype)
-                shader_src += ['\tconst '+innertype+' '+dvar+' = '+innertype+'('+semtype.upper()+');\n']
+                shader_src += ['\tconst ' + innertype + ' ' + dvar + ' = ' + innertype + '(' + semtype.upper() + ');\n']
 
             ''' generate a statement for each vertex attribute
                 this should not be necessary, but it influences
@@ -583,6 +592,7 @@ def vulkan(fsl, dst):
             #         for _, n, s in shader.structs[dtype]:
             #             if s.upper() == 'SV_VERTEXID': continue
             #             shader_src += ['\t', s ,';\n']
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
         # tesselation
@@ -592,7 +602,7 @@ def vulkan(fsl, dst):
             pcf_arguments = getMacro(line[loc:])
             _pcf_arguments = [arg for arg in pcf_arguments if 'INPUT_PATCH' in arg]
             ws = line[:len(line)-len(line.lstrip())]
-            shader_src += [ws, 'void ', shader.pcf, '()\n']
+            shader_src += [ws + 'void ' + shader.pcf + '()\n']
             continue
 
         if pcf_returnType and 'PCF_INIT' in line:
@@ -603,14 +613,15 @@ def vulkan(fsl, dst):
                 innertype = getMacro(dtype)
                 print(innertype, sem, dvar)
                 if 'INPUT_PATCH' in sem:
-                    shader_src += [ws+dtype+' '+dvar+';\n']
+                    shader_src += [ws + dtype + ' ' + dvar + ';\n']
                 else:
-                    shader_src += [ws+innertype+' '+dvar+' = '+sem.upper()+';\n']
+                    shader_src += [ws + innertype + ' ' + dvar + ' = ' + sem.upper() + ';\n']
 
             for macro, assignment in input_assignments:
-                shader_src += ['#ifdef ', macro, '\n']
-                shader_src += ['\t', *assignment, ';\n']
+                shader_src += ['#ifdef ' + macro + '\n']
+                shader_src += ['\t' + ''.join(assignment) + ';\n']
                 shader_src += ['#endif\n']
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
         if pcf_returnType and 'PCF_RETURN' in line:
@@ -621,17 +632,20 @@ def vulkan(fsl, dst):
             
             output_statement += [ws+'\t'+pcf_returnType+' out_'+pcf_returnType+' = '+output_value+';\n']
             for macro, assignment in pcf_return_assignments:
-                output_statement += ['#ifdef ', macro, '\n']
-                output_statement += [ws+'\t', *assignment, '\n']
+                output_statement += ['#ifdef ' + macro + '\n']
+                output_statement += [ws+'\t' + ''.join(assignment) + '\n']
                 output_statement += ['#endif\n']
             output_statement += [
                 ws+'\treturn;\n',
                 ws+'}\n'
             ]
             shader_src += output_statement
+            shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
-        
+        if shader_src_len != len(shader_src):
+            shader_src += ['#line {}\n'.format(line_index)]
+
         shader_src += [line]
 
     open(dst, 'w').writelines(shader_src)

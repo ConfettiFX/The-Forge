@@ -1,41 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Components\MoveComponent.cpp">
-      <Filter>Source Files\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Components\PositionComponent.cpp">
-      <Filter>Source Files\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.cpp">
-      <Filter>Source Files\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.cpp">
-      <Filter>Source Files\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.cpp">
-      <Filter>Source Files\Representations</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.cpp">
-      <Filter>Source Files\Representations</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.cpp">
-      <Filter>Source Files\Representations</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.cpp">
-      <Filter>Source Files\Representations</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Middleware_3\ECS\BaseComponent.cpp">
-      <Filter>Source Files\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
-      <Filter>Source Files\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Middleware_3\ECS\EntityManager.cpp">
-      <Filter>Source Files\ECS</Filter>
+    <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c">
+      <Filter>Source Files\flecs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -45,52 +13,16 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{0725dc1d-fa02-4795-a646-9c3ddc7f0c8d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Representations">
-      <UniqueIdentifier>{be2b7103-3d84-494b-ad3b-48b047e8ba67}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Components">
-      <UniqueIdentifier>{e6bf42dd-b348-4c11-9bdb-5fb2f819c7fa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\ECS">
-      <UniqueIdentifier>{1ef6ad02-0685-4b8a-bbb4-6da528d343fd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shaders\FSL">
       <UniqueIdentifier>{09d176c7-79d0-4a73-8185-30415c056c61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\flecs">
+      <UniqueIdentifier>{ef1258a2-5079-4838-8730-0c12a9b05440}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Components\MoveComponent.h">
-      <Filter>Source Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Components\PositionComponent.h">
-      <Filter>Source Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.h">
-      <Filter>Source Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.h">
-      <Filter>Source Files\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.h">
-      <Filter>Source Files\Representations</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.h">
-      <Filter>Source Files\Representations</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.h">
-      <Filter>Source Files\Representations</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h">
-      <Filter>Source Files\Representations</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\ECS\EntityManager.h">
-      <Filter>Source Files\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\ECS\BaseComponent.h">
-      <Filter>Source Files\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
-      <Filter>Source Files\ECS</Filter>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h">
+      <Filter>Source Files\flecs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
