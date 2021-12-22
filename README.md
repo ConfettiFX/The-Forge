@@ -35,7 +35,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
-- Fast Entity Component System based on our internally developed ECS
+- Fast Entity Component System based on [flecs](https://github.com/SanderMertens/flecs) 
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
 - Shader Translator using a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
