@@ -3399,6 +3399,7 @@ class MaterialPlayground: public IApp
 		loadDesc.pFileName = pStagingData->mModelList[i];
 		loadDesc.ppGeometry = &gMeshes[i];
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_OVERDRAW;
 		addResource(&loadDesc, NULL);
 	}
 

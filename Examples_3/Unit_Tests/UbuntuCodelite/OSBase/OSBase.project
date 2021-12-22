@@ -137,6 +137,24 @@
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
     </VirtualDirectory>
+    <VirtualDirectory Name="meshoptimizer">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/clusterizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexcodec.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/simplifier.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/spatialorder.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/stripifier.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vertexcodec.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vertexfilter.cpp"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="LUA">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.h"/>

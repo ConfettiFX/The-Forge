@@ -144,6 +144,20 @@ typedef enum GeometryLoadFlags
 } GeometryLoadFlags;
 MAKE_ENUM_FLAG(uint32_t, GeometryLoadFlags)
 
+typedef enum MeshOptimizerFlags
+{
+	MESH_OPTIMIZATION_FLAG_OFF = 0x0,
+	/// Vertex cache optimization
+	MESH_OPTIMIZATION_FLAG_VERTEXCACHE = 0x1,
+	/// Overdraw optimization
+	MESH_OPTIMIZATION_FLAG_OVERDRAW = 0x2,
+	/// Vertex fetch optimization
+	MESH_OPTIMIZATION_FLAG_VERTEXFETCH = 0x4,
+	/// All
+	MESH_OPTIMIZATION_FLAG_ALL = 0x7,
+} MeshOptimizerFlags;
+MAKE_ENUM_FLAG(uint32_t, MeshOptimizerFlags)
+
 typedef struct GeometryLoadDesc
 {
 	/// Output geometry
@@ -154,6 +168,8 @@ typedef struct GeometryLoadDesc
 	const char* pFilePassword;
 	/// Loading flags
 	GeometryLoadFlags mFlags;
+	/// Optimization flags
+	MeshOptimizerFlags mOptimizationFlags;
 	/// Linked gpu node / Unlinked Renderer index
 	uint32_t mNodeIndex;
 	/// Specifies how to arrange the vertex data loaded from the file into GPU memory

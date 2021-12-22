@@ -923,6 +923,7 @@ Scene* loadScene(const char* fileName, SyncToken* token, float scale, float offs
 	loadDesc.ppGeometry = &scene->geom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
+	loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_VERTEXCACHE | MESH_OPTIMIZATION_FLAG_VERTEXFETCH;
 	addResource(&loadDesc, token);
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;

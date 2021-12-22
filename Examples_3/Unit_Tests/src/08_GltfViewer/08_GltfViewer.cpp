@@ -1366,6 +1366,7 @@ public:
 		loadDesc.ppGeometry = &gCurrentAsset.pGeom;
 		loadDesc.pFileName = modelFileName;
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 		addResource(&loadDesc, NULL);
 
 		uint32_t res = gltfLoadContainer(modelFileName, NULL, GLTF_FLAG_CALCULATE_BOUNDS, &gCurrentAsset.pData);

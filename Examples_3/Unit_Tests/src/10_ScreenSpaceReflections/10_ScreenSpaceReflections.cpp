@@ -2113,6 +2113,7 @@ class ScreenSpaceReflections: public IApp
 		loadDesc.pFileName = gModelNames[index];
 		loadDesc.ppGeometry = &gModels[index];
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 		addResource(&loadDesc, &gResourceSyncToken);
 	}
 

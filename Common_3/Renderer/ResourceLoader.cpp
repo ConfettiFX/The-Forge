@@ -32,6 +32,8 @@
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_bits.h"
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
+#include "../ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"
+
 #define TINYKTX_IMPLEMENTATION
 #include "../ThirdParty/OpenSource/tinyktx/tinyktx.h"
 
@@ -1080,7 +1082,15 @@ static UploadFunctionResult
 
 static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateRequest& pGeometryLoad)
 {
+	Geometry* geom = NULL;
 	GeometryLoadDesc* pDesc = &pGeometryLoad.geomLoadDesc;
+
+	BufferUpdateDesc indexUpdateDesc = {};
+	BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS] = {};
+	
+	//data for overdraw optimization
+	uint32_t positionBinding = 0;
+	void* positionPointer = NULL;
 
 	char iext[FS_MAX_PATH] = { 0 };
 	fsGetPathExtension(pDesc->pFileName, iext);
@@ -1284,7 +1294,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		totalSize += round_up(jointCount * sizeof(mat4), 16);
 		totalSize += round_up(jointCount * sizeof(uint32_t), 16);
 
-		Geometry* geom = (Geometry*)tf_calloc(1, totalSize);
+		geom = (Geometry*)tf_calloc(1, totalSize);
 		ASSERT(geom);
 
 		geom->pDrawArgs = (IndirectDrawIndexArguments*)(geom + 1);    //-V1027
@@ -1302,7 +1312,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			geom->pShadow->pIndices = geom->pShadow + 1;
 			geom->pShadow->pAttributes[SEMANTIC_POSITION] = (uint8_t*)geom->pShadow->pIndices + (indexCount * indexStride);
 			geom->pShadow->pAttributes[SEMANTIC_NORMAL] = (uint8_t*)geom->pShadow->pAttributes[SEMANTIC_POSITION] +
-														  ((uint32_t)vertexAttribs[SEMANTIC_POSITION]->data->stride * vertexCount);
+				((uint32_t)vertexAttribs[SEMANTIC_POSITION]->data->stride * vertexCount);
 			// #TODO: Add more if needed
 		}
 
@@ -1320,7 +1330,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		BufferDesc indexBufferDesc = {};
 		indexBufferDesc.mDescriptors =
 			DESCRIPTOR_TYPE_INDEX_BUFFER | (structuredBuffers ? (DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER)
-															  : (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
+				: (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
 		indexBufferDesc.mSize = indexStride * indexCount;
 		indexBufferDesc.mElementCount = indexBufferDesc.mSize / (structuredBuffers ? indexStride : sizeof(uint32_t));
 		indexBufferDesc.mStructStride = indexStride;
@@ -1329,9 +1339,6 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		indexBufferDesc.mStartState = RESOURCE_STATE_INDEX_BUFFER;
 #endif
 		addBuffer(pRenderer, &indexBufferDesc, &geom->pIndexBuffer);
-
-		BufferUpdateDesc indexUpdateDesc = {};
-		BufferUpdateDesc vertexUpdateDesc[MAX_VERTEX_BINDINGS] = {};
 
 		indexUpdateDesc.mSize = indexCount * indexStride;
 		indexUpdateDesc.pBuffer = geom->pIndexBuffer;
@@ -1351,7 +1358,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			BufferDesc vertexBufferDesc = {};
 			vertexBufferDesc.mDescriptors =
 				DESCRIPTOR_TYPE_VERTEX_BUFFER | (structuredBuffers ? (DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER)
-																   : (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
+					: (DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
 			vertexBufferDesc.mSize = vertexStrides[i] * vertexCount;
 			vertexBufferDesc.mElementCount = vertexBufferDesc.mSize / (structuredBuffers ? vertexStrides[i] : sizeof(uint32_t));
 			vertexBufferDesc.mStructStride = vertexStrides[i];
@@ -1471,19 +1478,6 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			}
 		}
 
-		UploadFunctionResult uploadResult = UPLOAD_FUNCTION_RESULT_COMPLETED;
-#if !UMA
-		uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, indexUpdateDesc);
-
-		for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
-		{
-			if (vertexUpdateDesc[i].pMappedData)
-			{
-				uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, vertexUpdateDesc[i]);
-			}
-		}
-#endif
-
 		// Load the remap joint indices generated in the offline process
 		uint32_t remapCount = 0;
 		for (uint32_t i = 0; i < data->skins_count; ++i)
@@ -1572,17 +1566,162 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			}
 		}
 
+		//fill the vertexPointer only if the final layout is a float
+		for (size_t i = 0; i < pDesc->pVertexLayout->mAttribCount; i++)
+		{
+			TinyImageFormat v = pDesc->pVertexLayout->mAttribs[i].mFormat;
+
+			if (pDesc->pVertexLayout->mAttribs[i].mSemantic == SEMANTIC_POSITION &&
+				(v == TinyImageFormat_R32G32B32_SFLOAT || v == TinyImageFormat_R32G32B32A32_SFLOAT))
+			{
+				positionBinding = vertexBindings[SEMANTIC_POSITION];
+				positionPointer = (char*)vertexUpdateDesc[positionBinding].pMappedData + vertexOffsets[SEMANTIC_POSITION];
+			}
+		}
+
 		data->file_data = fileData;
 		cgltf_free(data);
 
 		tf_free(pDesc->pVertexLayout);
 
 		*pDesc->ppGeometry = geom;
-
-		return uploadResult;
 	}
 
-	return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
+	// Optmize mesh
+	if (pDesc->mOptimizationFlags && geom)
+	{
+		size_t optimizerScratchSize = 128 * 1024 * 1024;
+		size_t remapSize = (geom->mVertexCount * sizeof(uint32_t));
+		size_t totalScratchSize = remapSize + optimizerScratchSize;
+
+		//ramap + optimizer scratch
+		uint32_t* scratchMemory = (uint32_t*)tf_malloc(totalScratchSize);
+
+		uint32_t* remap = scratchMemory;
+		
+		void* optimizerScratch = &scratchMemory[geom->mVertexCount];
+		meshopt_SetScratchMemory(optimizerScratchSize, optimizerScratch);
+
+		meshopt_Stream streams[MAX_VERTEX_BINDINGS];
+		for (size_t i = 0; i < MAX_VERTEX_BINDINGS; i++)
+		{
+			if (!geom->mVertexStrides[i])
+				continue;
+
+			streams[i].data = vertexUpdateDesc[i].pMappedData;
+			streams[i].size = geom->mVertexStrides[i];
+			streams[i].stride = geom->mVertexStrides[i];
+		}
+
+		//generating remap & new vertex/index sets
+		if (geom->mIndexType == INDEX_TYPE_UINT16)
+		{
+			meshopt_generateVertexRemapMulti(remap, (uint16_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount, streams, geom->mVertexBufferCount);
+			meshopt_remapIndexBuffer((uint16_t*)indexUpdateDesc.pMappedData, (uint16_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, remap);
+		}
+		else
+		{
+			meshopt_generateVertexRemapMulti(remap, (uint32_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount, streams, geom->mVertexBufferCount);
+			meshopt_remapIndexBuffer((uint32_t*)indexUpdateDesc.pMappedData, (uint32_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, remap);
+		}
+
+		for (size_t i = 0; i < MAX_VERTEX_BINDINGS; i++)
+		{
+			if (!geom->mVertexStrides[i])
+				continue;
+
+			meshopt_remapVertexBuffer(vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].pMappedData, geom->mVertexCount, geom->mVertexStrides[i], remap);
+		}
+
+		//optimize
+		//do we need to optmize per primitive ? 
+		///optmizations like overdraw clearly can alter across primitives. but can vertex cache & vertex fetch do it ?
+		if (geom->mIndexType == INDEX_TYPE_UINT16)
+		{
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_VERTEXCACHE)
+			{
+				meshopt_optimizeVertexCache((uint16_t*)indexUpdateDesc.pMappedData, (uint16_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount);
+			}
+
+			//we can only run this if position data is not packed
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_OVERDRAW && positionPointer)
+			{
+				for (size_t i = 0; i < geom->mDrawArgCount; i++)
+				{
+					uint16_t* src = &((uint16_t*)indexUpdateDesc.pMappedData)[geom->pDrawArgs[i].mStartIndex];
+
+					const float kThreshold = 1.01f;
+					meshopt_optimizeOverdraw(src, src, geom->pDrawArgs[i].mIndexCount, (float*)positionPointer, geom->mVertexCount, geom->mVertexStrides[positionBinding], kThreshold);
+				}
+			}
+
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_VERTEXFETCH)
+			{
+				meshopt_optimizeVertexFetchRemap(remap, (uint16_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount);
+				meshopt_remapIndexBuffer((uint16_t*)indexUpdateDesc.pMappedData, (uint16_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, remap);
+
+				for (size_t i = 0; i < MAX_VERTEX_BINDINGS; i++)
+				{
+					if (!geom->mVertexStrides[i])
+						continue;
+
+					meshopt_remapVertexBuffer(vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].pMappedData, geom->mVertexCount, geom->mVertexStrides[i], remap);
+				}
+			}
+		}
+		else
+		{
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_VERTEXCACHE)
+			{
+				meshopt_optimizeVertexCache((uint32_t*)indexUpdateDesc.pMappedData, (uint32_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount);
+			}
+
+			//we can only run this if position data is not packed
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_OVERDRAW && positionPointer)
+			{
+				for (size_t i = 0; i < geom->mDrawArgCount; i++)
+				{
+					uint32_t* src = &((uint32_t*)indexUpdateDesc.pMappedData)[geom->pDrawArgs[i].mStartIndex];
+
+					const float kThreshold = 1.01f;
+					meshopt_optimizeOverdraw(src, src, geom->pDrawArgs[i].mIndexCount, (float*)positionPointer, geom->mVertexCount, geom->mVertexStrides[positionBinding], kThreshold);
+				}
+			}
+
+			if (pDesc->mOptimizationFlags & MESH_OPTIMIZATION_FLAG_VERTEXFETCH)
+			{
+				meshopt_optimizeVertexFetchRemap(remap, (uint32_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, geom->mVertexCount);
+				meshopt_remapIndexBuffer((uint32_t*)indexUpdateDesc.pMappedData, (uint32_t*)indexUpdateDesc.pMappedData, geom->mIndexCount, remap);
+
+				for (size_t i = 0; i < MAX_VERTEX_BINDINGS; i++)
+				{
+					if (!geom->mVertexStrides[i])
+						continue;
+
+					meshopt_remapVertexBuffer(vertexUpdateDesc[i].pMappedData, vertexUpdateDesc[i].pMappedData, geom->mVertexCount, geom->mVertexStrides[i], remap);
+				}
+			}
+		}
+
+		tf_free(scratchMemory);
+	}
+
+	// Upload mesh
+	UploadFunctionResult uploadResult = UPLOAD_FUNCTION_RESULT_COMPLETED;
+#if !UMA
+		uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, indexUpdateDesc);
+
+		for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
+		{
+			if (vertexUpdateDesc[i].pMappedData)
+			{
+				uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, vertexUpdateDesc[i]);
+			}
+		}
+#endif
+
+	
+	return uploadResult;
 }
 
 static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, TextureCopyDesc& pTextureCopy)

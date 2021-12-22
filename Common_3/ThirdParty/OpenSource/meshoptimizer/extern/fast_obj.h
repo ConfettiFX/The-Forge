@@ -1,8 +1,11 @@
 /*
+ * fast_obj
+ *
+ * Version 1.1
  *
  * MIT License
  *
- * Copyright (c) 2018 Richard Knight
+ * Copyright (c) 2018-2020 Richard Knight
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +29,12 @@
 
 #ifndef FAST_OBJ_HDR
 #define FAST_OBJ_HDR
+
+#define FAST_OBJ_VERSION_MAJOR  1
+#define FAST_OBJ_VERSION_MINOR  1
+#define FAST_OBJ_VERSION        ((FAST_OBJ_VERSION_MAJOR << 8) | FAST_OBJ_VERSION_MINOR)
+
+#include <stdlib.h>
 
 
 typedef struct
@@ -66,16 +75,21 @@ typedef struct
     fastObjTexture              map_Ni;
     fastObjTexture              map_d;
     fastObjTexture              map_bump;
-    
 
 } fastObjMaterial;
 
+/* Allows user override to bigger indexable array */
+#ifndef FAST_OBJ_UINT_TYPE
+#define FAST_OBJ_UINT_TYPE unsigned int
+#endif
+
+typedef FAST_OBJ_UINT_TYPE fastObjUInt;
 
 typedef struct
 {
-    unsigned int                p;
-    unsigned int                t;
-    unsigned int                n;
+    fastObjUInt                 p;
+    fastObjUInt                 t;
+    fastObjUInt                 n;
 
 } fastObjIndex;
 
@@ -127,9 +141,25 @@ typedef struct
 
 } fastObjMesh;
 
+typedef struct
+{
+    void*                       (*file_open)(const char* path, void* user_data);
+    void                        (*file_close)(void* file, void* user_data);
+    size_t                      (*file_read)(void* file, void* dst, size_t bytes, void* user_data);
+    unsigned long               (*file_size)(void* file, void* user_data);
+} fastObjCallbacks;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 fastObjMesh*                    fast_obj_read(const char* path);
+fastObjMesh*                    fast_obj_read_with_callbacks(const char* path, const fastObjCallbacks* callbacks, void* user_data);
 void                            fast_obj_destroy(fastObjMesh* mesh);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
@@ -137,7 +167,6 @@ void                            fast_obj_destroy(fastObjMesh* mesh);
 #ifdef FAST_OBJ_IMPLEMENTATION
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #ifndef FAST_OBJ_REALLOC
@@ -198,8 +227,7 @@ double POWER_10_NEG[MAX_POWER] =
 };
 
 
-static
-void* memory_realloc(void* ptr, size_t bytes)
+static void* memory_realloc(void* ptr, size_t bytes)
 {
     return FAST_OBJ_REALLOC(ptr, bytes);
 }
@@ -218,7 +246,7 @@ void memory_dealloc(void* ptr)
 #define array_capacity(_arr)    ((_arr) ? _array_capacity(_arr) : 0)
 #define array_empty(_arr)       (array_size(_arr) == 0)
 
-#define _array_header(_arr)     ((unsigned int*)(_arr) - 2)
+#define _array_header(_arr)     ((fastObjUInt*)(_arr)-2)
 #define _array_size(_arr)       (_array_header(_arr)[0])
 #define _array_capacity(_arr)   (_array_header(_arr)[1])
 #define _array_ngrow(_arr, _n)  ((_arr) == 0 || (_array_size(_arr) + (_n) >= _array_capacity(_arr)))
@@ -226,21 +254,20 @@ void memory_dealloc(void* ptr)
 #define _array_grow(_arr, _n)   (*((void**)&(_arr)) = array_realloc(_arr, _n, sizeof(*(_arr))))
 
 
-static
-void* array_realloc(void* ptr, unsigned int n, unsigned int b)
+static void* array_realloc(void* ptr, fastObjUInt n, fastObjUInt b)
 {
-    unsigned int  sz   = array_size(ptr);
-    unsigned int  nsz  = sz + n;
-    unsigned int  cap  = array_capacity(ptr);
-    unsigned int  ncap = 3 * cap / 2;
-    unsigned int* r;
+    fastObjUInt sz = array_size(ptr);
+    fastObjUInt nsz = sz + n;
+    fastObjUInt cap = array_capacity(ptr);
+    fastObjUInt ncap = 3 * cap / 2;
+    fastObjUInt* r;
 
 
     if (ncap < nsz)
         ncap = nsz;
     ncap = (ncap + 15) & ~15u;
 
-    r = (unsigned int*)(memory_realloc(ptr ? _array_header(ptr) : 0, b * ncap + 2 * sizeof(unsigned int)));
+    r = (fastObjUInt*)(memory_realloc(ptr ? _array_header(ptr) : 0, b * ncap + 2 * sizeof(fastObjUInt)));
     if (!r)
         return 0;
 
@@ -252,16 +279,18 @@ void* array_realloc(void* ptr, unsigned int n, unsigned int b)
 
 
 static
-void* file_open(const char* path)
+void* file_open(const char* path, void* user_data)
 {
+    (void)(user_data);
     return fopen(path, "rb");
 }
 
 
 static
-void file_close(void* file)
+void file_close(void* file, void* user_data)
 {
     FILE* f;
+    (void)(user_data);
     
     f = (FILE*)(file);
     fclose(f);
@@ -269,9 +298,10 @@ void file_close(void* file)
 
 
 static
-size_t file_read(void* file, void* dst, size_t bytes)
+size_t file_read(void* file, void* dst, size_t bytes, void* user_data)
 {
     FILE* f;
+    (void)(user_data);
     
     f = (FILE*)(file);
     return fread(dst, 1, bytes, f);
@@ -279,11 +309,12 @@ size_t file_read(void* file, void* dst, size_t bytes)
 
 
 static
-unsigned long file_size(void* file)
+unsigned long file_size(void* file, void* user_data)
 {
     FILE* f;
     long p;
     long n;
+    (void)(user_data);
     
     f = (FILE*)(file);
 
@@ -349,31 +380,10 @@ char* string_concat(const char* a, const char* s, const char* e)
 static
 int string_equal(const char* a, const char* s, const char* e)
 {
-    while (*a++ == *s++ && s != e)
-        ;
+    size_t an = strlen(a);
+    size_t sn = (size_t)(e - s);
 
-    return (*a == '\0' && s == e);
-}
-
-
-static
-int string_find_last(const char* s, char c, size_t* p)
-{
-    const char* e;
-
-    e = s + strlen(s);
-    while (e > s)
-    {
-        e--;
-
-        if (*e == c)
-        {
-            *p = (size_t)(e - s);
-            return 1;
-        }
-    }
-
-    return 0;
+    return an == sn && memcmp(a, s, an) == 0;
 }
 
 
@@ -395,6 +405,11 @@ int is_whitespace(char c)
     return (c == ' ' || c == '\t' || c == '\r');
 }
 
+static
+int is_end_of_name(char c)
+{
+    return (c == '\t' || c == '\r' || c == '\n');
+}
 
 static
 int is_newline(char c)
@@ -669,21 +684,21 @@ const char* parse_face(fastObjData* data, const char* ptr)
         }
 
         if (v < 0)
-            vn.p = (array_size(data->mesh->positions) / 3) - (unsigned int)(-v);
+            vn.p = (array_size(data->mesh->positions) / 3) - (fastObjUInt)(-v);
         else
-            vn.p = (unsigned int)(v);
+            vn.p = (fastObjUInt)(v);
 
         if (t < 0)
-            vn.t = (array_size(data->mesh->texcoords) / 2) - (unsigned int)(-t);
+            vn.t = (array_size(data->mesh->texcoords) / 2) - (fastObjUInt)(-t);
         else if (t > 0)
-            vn.t = (unsigned int)(t);
+            vn.t = (fastObjUInt)(t);
         else
             vn.t = 0;
 
         if (n < 0)
-            vn.n = (array_size(data->mesh->normals) / 3) - (unsigned int)(-n);
+            vn.n = (array_size(data->mesh->normals) / 3) - (fastObjUInt)(-n);
         else if (n > 0)
-            vn.n = (unsigned int)(n);
+            vn.n = (fastObjUInt)(n);
         else
             vn.n = 0;
 
@@ -712,7 +727,7 @@ const char* parse_group(fastObjData* data, const char* ptr)
     ptr = skip_whitespace(ptr);
 
     s = ptr;
-    while (!is_whitespace(*ptr) && !is_newline(*ptr))
+    while (!is_end_of_name(*ptr))
         ptr++;
 
     e = ptr;
@@ -793,16 +808,10 @@ const char* parse_usemtl(fastObjData* data, const char* ptr)
 
     /* Parse the material name */
     s = ptr;
-    while (!is_whitespace(*ptr) && !is_newline(*ptr))
+    while (!is_end_of_name(*ptr))
         ptr++;
 
     e = ptr;
-
-
-    /* If there are no materials yet, add a dummy invalid material at index 0 */
-    if (array_empty(data->mesh->materials))
-        array_push(data->mesh->materials, mtl_default());
-
 
     /* Find an existing material with the same name */
     idx = 0;
@@ -815,8 +824,14 @@ const char* parse_usemtl(fastObjData* data, const char* ptr)
         idx++;
     }
 
+    /* If doesn't exists, create a default one with this name
+    Note: this case happens when OBJ doesn't have its MTL */
     if (idx == array_size(data->mesh->materials))
-        idx = 0;
+    {
+        fastObjMaterial new_mtl = mtl_default();
+        new_mtl.name = string_copy(s, e);
+        array_push(data->mesh->materials, new_mtl);
+    }
 
     data->material = idx;
 
@@ -891,7 +906,7 @@ const char* read_map(fastObjData* data, const char* ptr, fastObjTexture* map)
 
     /* Read name */
     s = ptr;
-    while (!is_whitespace(*ptr) && !is_newline(*ptr))
+    while (!is_end_of_name(*ptr))
         ptr++;
 
     e = ptr;
@@ -909,7 +924,7 @@ const char* read_map(fastObjData* data, const char* ptr, fastObjTexture* map)
 
 
 static
-int read_mtllib(fastObjData* data, void* file)
+int read_mtllib(fastObjData* data, void* file, const fastObjCallbacks* callbacks, void* user_data)
 {
     unsigned long   n;
     const char*     s;
@@ -922,13 +937,13 @@ int read_mtllib(fastObjData* data, void* file)
 
 
     /* Read entire file */
-    n = file_size(file);
+    n = callbacks->file_size(file, user_data);
 
     contents = (char*)(memory_realloc(0, n + 1));
     if (!contents)
         return 0;
 
-    l = file_read(file, contents, n);
+    l = callbacks->file_read(file, contents, n, user_data);
     contents[l] = '\n';
 
     mtl = mtl_default();
@@ -967,7 +982,7 @@ int read_mtllib(fastObjData* data, void* file)
                     p++;
 
                 s = p;
-                while (!is_whitespace(*p) && !is_newline(*p))
+                while (!is_end_of_name(*p))
                     p++;
 
                 mtl.name = string_copy(s, p);
@@ -1070,13 +1085,13 @@ int read_mtllib(fastObjData* data, void* file)
                     if (is_whitespace(*p))
                         p = read_map(data, p, &mtl.map_d);
                 }
-                else if (p[0] == 'b' &&
+                else if ((p[0] == 'b' || p[0] == 'B') &&
                          p[1] == 'u' &&
                          p[2] == 'm' &&
                          p[3] == 'p' &&
                          is_whitespace(p[4]))
                 {
-                    p = read_map(data, p + 4, &mtl.map_d);
+                    p = read_map(data, p + 4, &mtl.map_bump);
                 }
             }
             break;
@@ -1099,7 +1114,7 @@ int read_mtllib(fastObjData* data, void* file)
 
 
 static
-const char* parse_mtllib(fastObjData* data, const char* ptr)
+const char* parse_mtllib(fastObjData* data, const char* ptr, const fastObjCallbacks* callbacks, void* user_data)
 {
     const char* s;
     const char* e;
@@ -1110,7 +1125,7 @@ const char* parse_mtllib(fastObjData* data, const char* ptr)
     ptr = skip_whitespace(ptr);
 
     s = ptr;
-    while (!is_whitespace(*ptr) && !is_newline(*ptr))
+    while (!is_end_of_name(*ptr))
         ptr++;
 
     e = ptr;
@@ -1120,11 +1135,11 @@ const char* parse_mtllib(fastObjData* data, const char* ptr)
     {
         string_fix_separators(lib);
 
-        file = file_open(lib);
+        file = callbacks->file_open(lib, user_data);
         if (file)
         {
-            read_mtllib(data, file);
-            file_close(file);
+            read_mtllib(data, file, callbacks, user_data);
+            callbacks->file_close(file, user_data);
         }
 
         memory_dealloc(lib);
@@ -1135,7 +1150,7 @@ const char* parse_mtllib(fastObjData* data, const char* ptr)
 
 
 static
-void parse_buffer(fastObjData* data, const char* ptr, const char* end)
+void parse_buffer(fastObjData* data, const char* ptr, const char* end, const fastObjCallbacks* callbacks, void* user_data)
 {
     const char* p;
     
@@ -1208,7 +1223,7 @@ void parse_buffer(fastObjData* data, const char* ptr, const char* end)
                 p[3] == 'i' &&
                 p[4] == 'b' &&
                 is_whitespace(p[5]))
-                p = parse_mtllib(data, p + 5);
+                p = parse_mtllib(data, p + 5, callbacks, user_data);
             break;
 
         case 'u':
@@ -1259,6 +1274,18 @@ void fast_obj_destroy(fastObjMesh* m)
 
 fastObjMesh* fast_obj_read(const char* path)
 {
+    fastObjCallbacks callbacks;
+    callbacks.file_open = file_open;
+    callbacks.file_close = file_close;
+    callbacks.file_read = file_read;
+    callbacks.file_size = file_size;
+
+    return fast_obj_read_with_callbacks(path, &callbacks, 0);
+}
+
+
+fastObjMesh* fast_obj_read_with_callbacks(const char* path, const fastObjCallbacks* callbacks, void* user_data)
+{
     fastObjData  data;
     fastObjMesh* m;
     void*        file;
@@ -1266,13 +1293,16 @@ fastObjMesh* fast_obj_read(const char* path)
     char*        start;
     char*        end;
     char*        last;
-    unsigned int read;
-    size_t       sep;
-    unsigned int bytes;
+    fastObjUInt  read;
+    fastObjUInt  bytes;
+
+    /* Check if callbacks are valid */
+    if(!callbacks)
+        return 0;
 
 
     /* Open file */
-    file = file_open(path);
+    file = callbacks->file_open(path, user_data);
     if (!file)
         return 0;
 
@@ -1314,8 +1344,16 @@ fastObjMesh* fast_obj_read(const char* path)
 
 
     /* Find base path for materials/textures */
-    if (string_find_last(path, FAST_OBJ_SEPARATOR, &sep))
-        data.base = string_substr(path, 0, sep + 1);
+    {
+        const char* sep1 = strrchr(path, FAST_OBJ_SEPARATOR);
+        const char* sep2 = strrchr(path, FAST_OBJ_OTHER_SEP);
+
+        /* Use the last separator in the path */
+        const char* sep = sep2 && (!sep1 || sep1 < sep2) ? sep2 : sep1;
+
+        if (sep)
+            data.base = string_substr(path, 0, sep - path + 1);
+    }
 
 
     /* Create buffer for reading file */
@@ -1327,7 +1365,7 @@ fastObjMesh* fast_obj_read(const char* path)
     for (;;)
     {
         /* Read another buffer's worth from file */
-        read = (unsigned int)(file_read(file, start, BUFFER_SIZE));
+        read = (fastObjUInt)(callbacks->file_read(file, start, BUFFER_SIZE, user_data));
         if (read == 0 && start == buffer)
             break;
 
@@ -1362,12 +1400,12 @@ fastObjMesh* fast_obj_read(const char* path)
 
 
         /* Process buffer */
-        parse_buffer(&data, buffer, last);
+        parse_buffer(&data, buffer, last, callbacks, user_data);
 
 
         /* Copy overflow for next buffer */
-        bytes = (unsigned int)(end - last);
-        memcpy(buffer, last, bytes);
+        bytes = (fastObjUInt)(end - last);
+        memmove(buffer, last, bytes);
         start = buffer + bytes;
     }
 
@@ -1388,10 +1426,9 @@ fastObjMesh* fast_obj_read(const char* path)
     memory_dealloc(buffer);
     memory_dealloc(data.base);
 
-    file_close(file);
+    callbacks->file_close(file, user_data);
 
     return m;
 }
 
 #endif
-

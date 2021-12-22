@@ -1440,6 +1440,7 @@ public:
 		loadDesc.ppGeometry = &SponzaProp.Geom;
 		loadDesc.pVertexLayout = &gVertexLayoutGPrepass;
 		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_VERTEXCACHE | MESH_OPTIMIZATION_FLAG_VERTEXFETCH;
 		addResource(&loadDesc, token);
 
 		//set constant buffer for sponza
