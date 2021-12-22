@@ -73,7 +73,7 @@ We wish you and your loved ones all the best for the Holidays and a Happy New Ye
 
 This update is again a mixture of things we learned while integrating The Forge and feedback and contributions from our users. Thanks for all the support!
 
-In one of the next updates we will remove EASTL and offer dedicated containers compatbile with C99. Over time EASTL was a huge productivity burner. The inefficient memory access patterns hugged too much CPU time in games where we integrated TF and we always had to go back and fix those later manually.
+In one of the next updates we will remove EASTL and offer dedicated containers compatible with C99. Over time EASTL was a huge productivity burner. The inefficient memory access patterns hugged too much CPU time in games where we integrated TF and we always had to go back and fix those later manually.
 We know this is a breaking change but considering that STL was a good idea on CPUs 20+ years ago, we would like to align more with what modern CPUs are expecting. 
 
 - We keep moving towards C99 usage. We replaced the old ECS code with Flecs:
