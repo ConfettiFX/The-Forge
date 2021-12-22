@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "vb_resources.h"
+#include "vb_resources.h.fsl"
 
 #ifdef VULKAN
 	#extension GL_ARB_shader_draw_parameters : enable

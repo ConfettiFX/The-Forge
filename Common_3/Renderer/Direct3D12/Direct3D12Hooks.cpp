@@ -102,9 +102,12 @@ HRESULT hook_create_special_resource(
 	return E_NOINTERFACE;
 }
 
-TinyImageFormat hook_get_recommended_swapchain_format(bool)
+TinyImageFormat hook_get_recommended_swapchain_format(bool hintHDR, bool hintSRGB)
 {
-	return TinyImageFormat_B8G8R8A8_UNORM;
+	if (hintSRGB)
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	else
+		return TinyImageFormat_B8G8R8A8_UNORM;
 }
 
 uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain)

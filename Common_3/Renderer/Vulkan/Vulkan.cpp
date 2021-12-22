@@ -79,7 +79,11 @@
 #include "../../ThirdParty/OpenSource/nvapi/NvApiHelper.h"
 
 #if defined(QUEST_VR)
+#include "../../OS/Quest/VrApi.h"
 #include "../Quest/VrApiHooks.h"
+
+extern QuestVR* pQuest; 
+extern RenderTarget* pFragmentDensityMask;
 #endif
 
 #include "../../OS/Interfaces/IMemory.h"
@@ -90,7 +94,7 @@ extern void
 
 #ifdef ENABLE_RAYTRACING
 extern void vk_addRaytracingPipeline(const PipelineDesc*, Pipeline**);
-extern void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, void* pWriteNV);
+extern void vk_FillRaytracingDescriptorData(uint32_t count, AccelerationStructure** const ppAccelerationStructures, VkAccelerationStructureKHR* pOutHandles);
 #endif
 
 // clang-format off
@@ -276,14 +280,18 @@ const char* gVkWantedDeviceExtensions[] =
         VK_KHR_MAINTENANCE3_EXTENSION_NAME,
 #endif
 	/************************************************************************/
-	// Descriptor Update Template Extension for efficient descriptor set updates
-	/************************************************************************/
-	VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_EXTENSION_NAME,
-	/************************************************************************/
 	// Raytracing
 	/************************************************************************/
 #ifdef ENABLE_RAYTRACING
-	VK_NV_RAY_TRACING_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, 
+
+	VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+
+	VK_KHR_RAY_QUERY_EXTENSION_NAME,
 #endif
 	/************************************************************************/
 	// YCbCr format support
@@ -355,7 +363,7 @@ VkAllocationCallbacks gVkAllocationCallbacks =
 	gVkInternalFree
 };
 
-#if defined(VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME)
+#if VK_KHR_draw_indirect_count
 PFN_vkCmdDrawIndirectCountKHR        pfnVkCmdDrawIndirectCountKHR = NULL;
 PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 #else
@@ -405,48 +413,14 @@ DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDe
 DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
 DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
 DECLARE_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRenderer, VirtualTexture* pTexture)
-
-//+1 for Acceleration Structure
-#define FORGE_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 2)
-static uint32_t gDescriptorTypeRangeSize = (FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1);
-
 /************************************************************************/
-// DescriptorInfo Heap Structures
-/************************************************************************/
-/// CPU Visible Heap to store all the resources needing CPU read / write operations - Textures/Buffers/RTV
-typedef struct DescriptorPool
-{
-	VkDevice                        pDevice;
-	VkDescriptorPool                pCurrentPool;
-	VkDescriptorPoolSize*           pPoolSizes;
-	eastl::vector<VkDescriptorPool> mDescriptorPools;
-	uint32_t                        mPoolSizeCount;
-	uint32_t                        mNumDescriptorSets;
-	uint32_t                        mUsedDescriptorSetCount;
-	VkDescriptorPoolCreateFlags     mFlags;
-	Mutex*                          pMutex;
-} DescriptorPool;
-
-/************************************************************************/
-// Static DescriptorInfo Heap Implementation
+// Descriptor Pool Functions
 /************************************************************************/
 static void add_descriptor_pool(
-	Renderer* pRenderer, uint32_t numDescriptorSets, VkDescriptorPoolCreateFlags flags, VkDescriptorPoolSize* pPoolSizes,
-	uint32_t numPoolSizes, DescriptorPool** ppPool)
+	Renderer* pRenderer, uint32_t numDescriptorSets, VkDescriptorPoolCreateFlags flags,
+	const VkDescriptorPoolSize* pPoolSizes, uint32_t numPoolSizes,
+	VkDescriptorPool* pPool)
 {
-	DescriptorPool* pPool = (DescriptorPool*)tf_calloc(1, sizeof(*pPool));
-	pPool->mFlags = flags;
-	pPool->mNumDescriptorSets = numDescriptorSets;
-	pPool->mUsedDescriptorSetCount = 0;
-	pPool->pDevice = pRenderer->mVulkan.pVkDevice;
-	pPool->pMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
-	initMutex(pPool->pMutex);
-
-	pPool->mPoolSizeCount = numPoolSizes;
-	pPool->pPoolSizes = (VkDescriptorPoolSize*)tf_calloc(numPoolSizes, sizeof(VkDescriptorPoolSize));
-	for (uint32_t i = 0; i < numPoolSizes; ++i)
-		pPool->pPoolSizes[i] = pPoolSizes[i];
-
 	VkDescriptorPoolCreateInfo poolCreateInfo = {};
 	poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolCreateInfo.pNext = NULL;
@@ -455,81 +429,18 @@ static void add_descriptor_pool(
 	poolCreateInfo.flags = flags;
 	poolCreateInfo.maxSets = numDescriptorSets;
 
-	CHECK_VKRESULT(vkCreateDescriptorPool(pPool->pDevice, &poolCreateInfo, &gVkAllocationCallbacks, &pPool->pCurrentPool));
-
-	pPool->mDescriptorPools.emplace_back(pPool->pCurrentPool);
-
-	*ppPool = pPool;
+	CHECK_VKRESULT(vkCreateDescriptorPool(pRenderer->mVulkan.pVkDevice, &poolCreateInfo, &gVkAllocationCallbacks, pPool));
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
-static void reset_descriptor_pool(DescriptorPool* pPool)
+static void consume_descriptor_sets(VkDevice pDevice, VkDescriptorPool pPool, const VkDescriptorSetLayout* pLayouts, uint32_t numDescriptorSets, VkDescriptorSet** pSets)
 {
-	CHECK_VKRESULT(vkResetDescriptorPool(pPool->pDevice, pPool->pCurrentPool, pPool->mFlags));
-	pPool->mUsedDescriptorSetCount = 0;
-}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-static void remove_descriptor_pool(Renderer* pRenderer, DescriptorPool* pPool)
-{
-	for (uint32_t i = 0; i < (uint32_t)pPool->mDescriptorPools.size(); ++i)
-		vkDestroyDescriptorPool(pRenderer->mVulkan.pVkDevice, pPool->mDescriptorPools[i], &gVkAllocationCallbacks);
-
-	pPool->mDescriptorPools.~vector();
-
-	destroyMutex(pPool->pMutex);
-	tf_free(pPool->pMutex);
-	SAFE_FREE(pPool->pPoolSizes);
-	SAFE_FREE(pPool);
-}
-
-static void consume_descriptor_sets(
-	DescriptorPool* pPool, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet** pSets, uint32_t numDescriptorSets)
-{
-	// Need a lock since vkAllocateDescriptorSets needs to be externally synchronized
-	// This is fine since this will only happen during Init time
-	MutexLock lock(*pPool->pMutex);
-
 	DECLARE_ZERO(VkDescriptorSetAllocateInfo, alloc_info);
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	alloc_info.pNext = NULL;
-	alloc_info.descriptorPool = pPool->pCurrentPool;
+	alloc_info.descriptorPool = pPool;
 	alloc_info.descriptorSetCount = numDescriptorSets;
 	alloc_info.pSetLayouts = pLayouts;
-
-	VkResult vk_res = vkAllocateDescriptorSets(pPool->pDevice, &alloc_info, *pSets);
-	if (VK_SUCCESS != vk_res)
-	{
-		VkDescriptorPool pDescriptorPool = VK_NULL_HANDLE;
-
-		VkDescriptorPoolCreateInfo poolCreateInfo = {};
-		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolCreateInfo.pNext = NULL;
-		poolCreateInfo.poolSizeCount = pPool->mPoolSizeCount;
-		poolCreateInfo.pPoolSizes = pPool->pPoolSizes;
-		poolCreateInfo.flags = pPool->mFlags;
-		poolCreateInfo.maxSets = pPool->mNumDescriptorSets;
-
-		VkResult res = vkCreateDescriptorPool(pPool->pDevice, &poolCreateInfo, &gVkAllocationCallbacks, &pDescriptorPool);
-		ASSERT(VK_SUCCESS == res);
-
-		pPool->mDescriptorPools.emplace_back(pDescriptorPool);
-
-		pPool->pCurrentPool = pDescriptorPool;
-		pPool->mUsedDescriptorSetCount = 0;
-
-		alloc_info.descriptorPool = pPool->pCurrentPool;
-		vk_res = vkAllocateDescriptorSets(pPool->pDevice, &alloc_info, *pSets);
-	}
-
-	ASSERT(VK_SUCCESS == vk_res);
-
-	pPool->mUsedDescriptorSetCount += numDescriptorSets;
+	CHECK_VKRESULT(vkAllocateDescriptorSets(pDevice, &alloc_info, *pSets));
 }
 
 /************************************************************************/
@@ -537,23 +448,17 @@ static void consume_descriptor_sets(
 VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = { VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_PIPELINE_BIND_POINT_COMPUTE,
 																VK_PIPELINE_BIND_POINT_GRAPHICS,
 #ifdef ENABLE_RAYTRACING
-																VK_PIPELINE_BIND_POINT_RAY_TRACING_NV
+																VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR
 #endif
 };
 
 using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
 
-union DescriptorUpdateData
+struct DynamicUniformData
 {
-	VkDescriptorImageInfo  mImageInfo;
-	VkDescriptorBufferInfo mBufferInfo;
-	VkBufferView           mBuferView;
-};
-
-struct SizeOffset
-{
-	uint32_t mSize;
+	VkBuffer pBuffer;
 	uint32_t mOffset;
+	uint32_t mSize;
 };
 /************************************************************************/
 // Descriptor Set Structure
@@ -700,7 +605,7 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
     void* render_pass_next = NULL;
 #if defined(QUEST_VR)
     DECLARE_ZERO(VkRenderPassFragmentDensityMapCreateInfoEXT, frag_density_create_info);
-    if (pDesc->mVRFoveatedRendering && isFFRFragmentDensityMaskAvailable())
+    if (pDesc->mVRFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
     {
         uint32_t idx = colorAttachmentCount + depthAttachmentCount;
         attachments[idx].flags = 0;
@@ -824,7 +729,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	attachment_count += depthAttachmentCount;
 
 #if defined(QUEST_VR)
-    if (pDesc->mVRFoveatedRendering && isFFRFragmentDensityMaskAvailable())
+    if (pDesc->mVRFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
         ++attachment_count;
 #endif
 
@@ -886,9 +791,9 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	}
 
 #if defined(QUEST_VR)
-    if (pDesc->mVRFoveatedRendering && isFFRFragmentDensityMaskAvailable())
+    if (pDesc->mVRFoveatedRendering && pQuest->mFoveatedRenderingEnabled)
     {
-        *iter_attachments = getFFRFragmentDensityMask();
+        *iter_attachments = pFragmentDensityMask->mVulkan.pVkDescriptor;
         ++iter_attachments;
     }
 #endif
@@ -1513,9 +1418,21 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed)
 		result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
 #ifdef ENABLE_RAYTRACING
-	if (usage & DESCRIPTOR_TYPE_RAY_TRACING)
+	if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE)
 	{
-		result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+		result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+	}
+	if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT)
+	{
+		result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+	}
+	if (usage & DESCRIPTOR_TYPE_SHADER_DEVICE_ADDRESS)
+	{
+		result |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+	}
+	if (usage & DESCRIPTOR_TYPE_SHADER_BINDING_TABLE)
+	{
+		result |= VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
 	}
 #endif
 	return result;
@@ -1584,7 +1501,7 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state)
 #ifdef ENABLE_RAYTRACING
 	if (state & RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
 	{
-		ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
+		ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
 	}
 #endif
 
@@ -1714,9 +1631,9 @@ VkPipelineStageFlags util_determine_pipeline_stage_flags(Renderer* pRenderer, Vk
 				}
 				flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 #ifdef ENABLE_RAYTRACING
-				if (pRenderer->mVulkan.mRaytracingExtension)
+				if (pRenderer->mVulkan.mRaytracingSupported)
 				{
-					flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+					flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
 				}
 #endif
 			}
@@ -1847,7 +1764,7 @@ VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
 		case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
 		case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 #ifdef ENABLE_RAYTRACING
-		case DESCRIPTOR_TYPE_RAY_TRACING: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+		case DESCRIPTOR_TYPE_RAY_TRACING: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 #endif
 		default:
 			ASSERT("Invalid DescriptorInfo Type");
@@ -1875,8 +1792,8 @@ VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages)
 #ifdef ENABLE_RAYTRACING
 	if (stages & SHADER_STAGE_RAYTRACING)
 		res |=
-			(VK_SHADER_STAGE_RAYGEN_BIT_NV | VK_SHADER_STAGE_ANY_HIT_BIT_NV | VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV |
-			 VK_SHADER_STAGE_MISS_BIT_NV | VK_SHADER_STAGE_INTERSECTION_BIT_NV | VK_SHADER_STAGE_CALLABLE_BIT_NV);
+			(VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+			 VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_CALLABLE_BIT_KHR);
 #endif
 
 	ASSERT(res != 0);
@@ -2025,7 +1942,11 @@ void util_query_gpu_settings(VkPhysicalDevice gpu, VkPhysicalDeviceProperties2* 
 	};
 	gpuFeatures->pNext = &fragmentShaderInterlockFeatures;
 #endif
+#ifndef NX64
 	vkGetPhysicalDeviceFeatures2KHR(gpu, gpuFeatures);
+#else
+	vkGetPhysicalDeviceFeatures2(gpu, gpuFeatures);
+#endif
 
 	// Get device properties
 	VkPhysicalDeviceSubgroupProperties subgroupProperties = {};
@@ -2674,8 +2595,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	bool     dedicatedAllocationExtension = false;
 	bool     memoryReq2Extension = false;
 	bool     externalMemoryExtension = false;
+#if VK_EXT_fragment_shader_interlock
+	bool     fragmentShaderInterlockExtension = false;
+#endif
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-	bool externalMemoryWin32Extension = false;
+	bool     externalMemoryWin32Extension = false;
 #endif
 	// Standalone extensions
 	{
@@ -2721,7 +2645,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
 							externalMemoryWin32Extension = true;
 #endif
-#ifdef VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME
+#if VK_KHR_draw_indirect_count
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME) == 0)
 							pRenderer->mVulkan.mDrawIndirectCountExtension = true;
 #endif
@@ -2729,20 +2653,54 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 							pRenderer->mVulkan.mAMDDrawIndirectCountExtension = true;
 						if (strcmp(wantedDeviceExtensions[k], VK_AMD_GCN_SHADER_EXTENSION_NAME) == 0)
 							pRenderer->mVulkan.mAMDGCNShaderExtension = true;
+#if VK_EXT_descriptor_indexing
 						if (strcmp(wantedDeviceExtensions[k], VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
 							pRenderer->mVulkan.mDescriptorIndexingExtension = true;
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-						if (strcmp(wantedDeviceExtensions[k], VK_NV_RAY_TRACING_EXTENSION_NAME) == 0)
-						{
-							pRenderer->mVulkan.mRaytracingExtension = 1;
-							pRenderer->mVulkan.mNVRayTracingExtension = true;
-							gDescriptorTypeRangeSize = FORGE_DESCRIPTOR_TYPE_RANGE_SIZE;
-						}
 #endif
-#ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
+#ifdef ENABLE_RAYTRACING
+						// KHRONOS VULKAN RAY TRACING
+						uint32_t khrRaytracingSupported = 1; 
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mShaderFloatControlsExtension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mShaderFloatControlsExtension;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mBufferDeviceAddressExtension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mBufferDeviceAddressExtension;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mDeferredHostOperationsExtension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mDeferredHostOperationsExtension;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mKHRAccelerationStructureExtension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mKHRAccelerationStructureExtension;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_SPIRV_1_4_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mKHRSpirv14Extension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mKHRSpirv14Extension;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mKHRRayTracingPipelineExtension = 1;
+						khrRaytracingSupported &= pRenderer->mVulkan.mKHRRayTracingPipelineExtension;
+
+						if (khrRaytracingSupported)
+							pRenderer->mVulkan.mRaytracingSupported = 1;
+
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_RAY_QUERY_EXTENSION_NAME) == 0)
+							pRenderer->mVulkan.mKHRRayQueryExtension = 1;
+#endif
+#if VK_KHR_sampler_ycbcr_conversion
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) == 0)
 						{
 							pRenderer->mVulkan.mYCbCrExtension = true;
+						}
+#endif
+#if VK_EXT_fragment_shader_interlock
+						if (strcmp(wantedDeviceExtensions[k], VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME) == 0)
+						{
+							fragmentShaderInterlockExtension = true;
 						}
 #endif
 #ifdef ENABLE_NSIGHT_AFTERMATH
@@ -2764,30 +2722,63 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	}
 
 #if !defined(VK_USE_DISPATCH_TABLES)
-	// Add more extensions here
-#if VK_EXT_fragment_shader_interlock
-	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures = {
-		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT
-	};
-	VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptorIndexingFeatures = {
-		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, &fragmentShaderInterlockFeatures
-	};
-#else
-	VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptorIndexingFeatures = {
-		VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT
-	};
-#endif    // VK_EXT_fragment_shader_interlock
+#if defined(NX64)
+	// #NOTE: NX64 VK header does not have this type
+	typedef struct VkBaseOutStructure
+	{
+		VkStructureType               sType;
+		struct VkBaseOutStructure* pNext;
+	} VkBaseOutStructure;
+#endif
+
+	//-V:ADD_TO_NEXT_CHAIN:506, 1027
+#define ADD_TO_NEXT_CHAIN(condition, next)        \
+	if ((condition))                              \
+	{                                             \
+		base->pNext = (VkBaseOutStructure*)&next; \
+		base = (VkBaseOutStructure*)base->pNext;  \
+	}
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
-	gpuFeatures2.pNext = &descriptorIndexingFeatures;
+	VkBaseOutStructure* base = (VkBaseOutStructure*)&gpuFeatures2; //-V1027
 
-#ifdef VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME
-	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_features = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
-	if (pRenderer->mVulkan.mYCbCrExtension)
-	{
-		ycbcr_features.pNext = gpuFeatures2.pNext;
-		gpuFeatures2.pNext = &ycbcr_features;
-	}
+	// Add more extensions here
+#if VK_EXT_fragment_shader_interlock
+	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT };
+	ADD_TO_NEXT_CHAIN(fragmentShaderInterlockExtension, fragmentShaderInterlockFeatures);
+#endif
+#if VK_EXT_descriptor_indexing
+	VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptorIndexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mDescriptorIndexingExtension, descriptorIndexingFeatures);
+#endif
+#if VK_KHR_sampler_ycbcr_conversion
+	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcrFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mYCbCrExtension, ycbcrFeatures);
+#endif
+
+#if VK_KHR_buffer_device_address
+	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures = {};
+	enabledBufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+	enabledBufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mBufferDeviceAddressExtension, enabledBufferDeviceAddressFeatures);
+#endif
+#if VK_KHR_ray_tracing_pipeline
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures = {};
+	enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+	enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mKHRRayTracingPipelineExtension, enabledRayTracingPipelineFeatures); 
+#endif
+#if VK_KHR_acceleration_structure
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures = {};
+	enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mKHRAccelerationStructureExtension, enabledAccelerationStructureFeatures);
+#endif
+#if VK_KHR_ray_query
+	VkPhysicalDeviceRayQueryFeaturesKHR enabledRayQueryFeatures = {};
+	enabledRayQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR;
+	enabledRayQueryFeatures.rayQuery = VK_TRUE; 
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mKHRRayQueryExtension, enabledRayQueryFeatures); 
 #endif
 
 #ifndef NX64
@@ -2854,7 +2845,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
     hook_add_vk_device_extensions(deviceExtensionCache, &extension_count, MAX_DEVICE_EXTENSIONS, oculusVRDeviceExtensionBuffer, sizeof(oculusVRDeviceExtensionBuffer));
 #endif
 
-	DECLARE_ZERO(VkDeviceCreateInfo, create_info);
+	VkDeviceCreateInfo create_info = {};
 	create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	create_info.pNext = &gpuFeatures2;
 	create_info.flags = 0;
@@ -2892,10 +2883,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	// Add Device Group Extension if requested and available
 	/************************************************************************/
 #if VK_KHR_device_group_creation
-	if (pRenderer->mGpuMode == GPU_MODE_LINKED)
-	{
-		create_info.pNext = &deviceGroupInfo;
-	}
+	ADD_TO_NEXT_CHAIN(pRenderer->mGpuMode == GPU_MODE_LINKED, deviceGroupInfo);
 #endif
 	CHECK_VKRESULT(vkCreateDevice(pRenderer->mVulkan.pVkActiveGPU, &create_info, &gVkAllocationCallbacks, &pRenderer->mVulkan.pVkDevice));
 
@@ -2922,7 +2910,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		LOGF(LogLevel::eINFO, "Successfully loaded External Memory extension");
 	}
 
-#ifdef VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME
+#if VK_KHR_draw_indirect_count
 	if (pRenderer->mVulkan.mDrawIndirectCountExtension)
 	{
 		pfnVkCmdDrawIndirectCountKHR = vkCmdDrawIndirectCountKHR;
@@ -2947,9 +2935,9 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		LOGF(LogLevel::eINFO, "Successfully loaded Descriptor Indexing extension");
 	}
 
-	if (pRenderer->mVulkan.mNVRayTracingExtension)
+	if (pRenderer->mVulkan.mRaytracingSupported)
 	{
-		LOGF(LogLevel::eINFO, "Successfully loaded Nvidia Ray Tracing extension");
+		LOGF(LogLevel::eINFO, "Successfully loaded Khronos Ray Tracing extensions");
 	}
 
 #ifdef ENABLE_DEBUG_UTILS_EXTENSION
@@ -2964,6 +2952,8 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
+	vkDestroyDescriptorSetLayout(pRenderer->mVulkan.pVkDevice, pRenderer->mVulkan.pEmptyDescriptorSetLayout, &gVkAllocationCallbacks);
+	vkDestroyDescriptorPool(pRenderer->mVulkan.pVkDevice, pRenderer->mVulkan.pEmptyDescriptorPool, &gVkAllocationCallbacks);
 	vkDestroyDevice(pRenderer->mVulkan.pVkDevice, &gVkAllocationCallbacks);
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 	SAFE_FREE(pRenderer->mVulkan.pVkActiveGPUProperties);
@@ -3192,6 +3182,11 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 			createInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 		}
 
+		if (pRenderer->mVulkan.mBufferDeviceAddressExtension)
+		{
+			createInfo.flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+		}
+
 		VmaVulkanFunctions vulkanFunctions = {};
 		vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
 		vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
@@ -3218,35 +3213,27 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		vmaCreateAllocator(&createInfo, &pRenderer->mVulkan.pVmaAllocator);
 	}
 
-	VkDescriptorPoolSize descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE] = {
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 8192 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1024 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1024 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1024 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 8192 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 },
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1024 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1 },
-		{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 },
-	};
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-	if (pRenderer->mVulkan.mNVRayTracingExtension)
-	{
-		descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1] = { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1024 };
-	}
-#endif
-	add_descriptor_pool(
-		pRenderer, 8192, (VkDescriptorPoolCreateFlags)0, descriptorPoolSizes, gDescriptorTypeRangeSize,
-		&pRenderer->mVulkan.pDescriptorPool);
+	// Empty descriptor set for filling in gaps when example: set 1 is used but set 0 is not used in the shader.
+	// We still need to bind empty descriptor set here to keep some drivers happy
+	VkDescriptorPoolSize descriptorPoolSizes[1] = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1 } };
+	add_descriptor_pool(pRenderer, 1, 0, descriptorPoolSizes, 1, &pRenderer->mVulkan.pEmptyDescriptorPool);
+	VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+	VkDescriptorSet* emptySets[] = { &pRenderer->mVulkan.pEmptyDescriptorSet };
+	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	CHECK_VKRESULT(vkCreateDescriptorSetLayout(pRenderer->mVulkan.pVkDevice, &layoutCreateInfo, &gVkAllocationCallbacks, &pRenderer->mVulkan.pEmptyDescriptorSetLayout));
+	consume_descriptor_sets(pRenderer->mVulkan.pVkDevice, pRenderer->mVulkan.pEmptyDescriptorPool, &pRenderer->mVulkan.pEmptyDescriptorSetLayout, 1, emptySets);
+
 	pRenderPassMutex[pRenderer->mUnlinkedRendererIndex] = (Mutex*)tf_calloc(1, sizeof(Mutex));
 	initMutex(pRenderPassMutex[pRenderer->mUnlinkedRendererIndex]);
 	gRenderPassMap[pRenderer->mUnlinkedRendererIndex] = tf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(tf_malloc(sizeof(*gRenderPassMap[0])));
 	gFrameBufferMap[pRenderer->mUnlinkedRendererIndex] = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap[0])));
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
+#ifndef NX64
 	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
+#else
+	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
+#endif
 
 	// Set shader macro based on runtime information
 	static char descriptorIndexingMacroBuffer[2] = {};
@@ -3303,8 +3290,6 @@ void vk_exitRenderer(Renderer* pRenderer)
 	--gRendererCount;
 
 	remove_default_resources(pRenderer);
-
-	remove_descriptor_pool(pRenderer, pRenderer->mVulkan.pDescriptorPool);
 
 	// Remove the renderpasses
 	for (eastl::hash_map<ThreadID, RenderPassMap>::value_type& t : *gRenderPassMap[pRenderer->mUnlinkedRendererIndex])
@@ -4010,6 +3995,10 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
 	if (linkedMultiGpu)
 		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_DONT_BIND_BIT;
+	if (pDesc->mFlags & BUFFER_CREATION_FLAG_HOST_VISIBLE)
+		vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+	if (pDesc->mFlags & BUFFER_CREATION_FLAG_HOST_COHERENT)
+		vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
 	VmaAllocationInfo alloc_info = {};
 	CHECK_VKRESULT(vmaCreateBuffer(
@@ -4856,21 +4845,18 @@ void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, De
 	const RootSignature*            pRootSignature = pDesc->pRootSignature;
 	const DescriptorUpdateFrequency updateFreq = pDesc->mUpdateFrequency;
 	const uint32_t                  nodeIndex = pRenderer->mGpuMode == GPU_MODE_LINKED ? pDesc->mNodeIndex : 0;
-	const uint32_t                  descriptorCount = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[updateFreq];
 	const uint32_t                  dynamicOffsetCount = pRootSignature->mVulkan.mVkDynamicDescriptorCounts[updateFreq];
+	const uint32_t                  descriptorMemSize = pRootSignature->mVulkan.mCumulativeDescriptorSizes[updateFreq];
 
 	uint32_t totalSize = sizeof(DescriptorSet);
+
 	if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq])
 	{
 		totalSize += pDesc->mMaxSets * sizeof(VkDescriptorSet);
-		totalSize += pDesc->mMaxSets * sizeof(DescriptorUpdateData*);
-		totalSize += pDesc->mMaxSets * descriptorCount * sizeof(DescriptorUpdateData);
+		totalSize += descriptorMemSize;
 	}
-	if (dynamicOffsetCount)
-	{
-		ASSERT(1 == dynamicOffsetCount);
-		totalSize += pDesc->mMaxSets * sizeof(SizeOffset);
-	}
+
+	totalSize += pDesc->mMaxSets * dynamicOffsetCount * sizeof(DynamicUniformData);
 
 	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
 
@@ -4882,14 +4868,12 @@ void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, De
 
 	uint8_t* pMem = (uint8_t*)(pDescriptorSet + 1);
 	pDescriptorSet->mVulkan.pHandles = (VkDescriptorSet*)pMem;
+	pMem += pDesc->mMaxSets * sizeof(VkDescriptorSet);
+	pDescriptorSet->mVulkan.pDescriptorData = (uint8_t*)pMem;
+	pMem += descriptorMemSize;
 
 	if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq])
 	{
-		pMem += pDesc->mMaxSets * sizeof(VkDescriptorSet);
-
-		pDescriptorSet->mVulkan.ppUpdateData = (DescriptorUpdateData**)pMem;
-		pMem += pDesc->mMaxSets * sizeof(DescriptorUpdateData*);
-
 		VkDescriptorSetLayout* pLayouts = (VkDescriptorSetLayout*)alloca(pDesc->mMaxSets * sizeof(VkDescriptorSetLayout));
 		VkDescriptorSet**      pHandles = (VkDescriptorSet**)alloca(pDesc->mMaxSets * sizeof(VkDescriptorSet*));
 
@@ -4897,16 +4881,106 @@ void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, De
 		{
 			pLayouts[i] = pRootSignature->mVulkan.mVkDescriptorSetLayouts[updateFreq];
 			pHandles[i] = &pDescriptorSet->mVulkan.pHandles[i];
-
-			pDescriptorSet->mVulkan.ppUpdateData[i] = (DescriptorUpdateData*)pMem;
-			pMem += descriptorCount * sizeof(DescriptorUpdateData);
-			memcpy(
-				pDescriptorSet->mVulkan.ppUpdateData[i],
-				pRootSignature->mVulkan.pUpdateTemplateData[updateFreq][pDescriptorSet->mVulkan.mNodeIndex],
-				descriptorCount * sizeof(DescriptorUpdateData));
 		}
 
-		consume_descriptor_sets(pRenderer->mVulkan.pDescriptorPool, pLayouts, pHandles, pDesc->mMaxSets);
+		VkDescriptorPoolSize poolSizes[MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT] = {};
+		for (uint32_t i = 0; i < pRootSignature->mVulkan.mPoolSizeCount[updateFreq]; ++i)
+		{
+			poolSizes[i] = pRootSignature->mVulkan.mPoolSizes[updateFreq][i];
+			poolSizes[i].descriptorCount *= pDesc->mMaxSets;
+		}
+		add_descriptor_pool(pRenderer, pDesc->mMaxSets, 0,
+			poolSizes, pRootSignature->mVulkan.mPoolSizeCount[updateFreq],
+			&pDescriptorSet->mVulkan.pDescriptorPool);
+		consume_descriptor_sets(pRenderer->mVulkan.pVkDevice, pDescriptorSet->mVulkan.pDescriptorPool, pLayouts, pDesc->mMaxSets, pHandles);
+
+		for (uint32_t descIndex = 0; descIndex < pRootSignature->mDescriptorCount; ++descIndex)
+		{
+			const DescriptorInfo* descInfo = &pRootSignature->pDescriptors[descIndex];
+			if (descInfo->mUpdateFrequency != updateFreq || descInfo->mRootDescriptor || descInfo->mStaticSampler)
+			{
+				continue;
+			}
+
+			uint32_t count = descInfo->mSize;
+			DescriptorType type = (DescriptorType)descInfo->mType;
+
+			VkWriteDescriptorSet writeSet = {};
+			writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			writeSet.pNext = NULL;
+			writeSet.descriptorCount = count;
+			writeSet.descriptorType = (VkDescriptorType)descInfo->mVulkan.mVkType;
+			writeSet.dstArrayElement = 0;
+			writeSet.dstBinding = descInfo->mVulkan.mReg;
+
+			for (uint32_t index = 0; index < pDesc->mMaxSets; ++index)
+			{
+				writeSet.dstSet = pDescriptorSet->mVulkan.pHandles[index];
+
+				switch (type)
+				{
+				case DESCRIPTOR_TYPE_SAMPLER:
+				{
+					VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)pDescriptorSet->mVulkan.pDescriptorData;
+					writeSet.pImageInfo = updateData;
+					for (uint32_t arr = 0; arr < descInfo->mSize; ++arr)
+					{
+						updateData[arr] = { pRenderer->pNullDescriptors->pDefaultSampler->mVulkan.pVkSampler, VK_NULL_HANDLE };
+					}
+					vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, 1, &writeSet, 0, NULL);
+					break;
+				}
+				case DESCRIPTOR_TYPE_TEXTURE:
+				case DESCRIPTOR_TYPE_RW_TEXTURE:
+				{
+					VkImageView srcView = (type == DESCRIPTOR_TYPE_RW_TEXTURE) ?
+						pRenderer->pNullDescriptors->pDefaultTextureUAV[nodeIndex][descInfo->mDim]->mVulkan.pVkUAVDescriptors[0] :
+						pRenderer->pNullDescriptors->pDefaultTextureSRV[nodeIndex][descInfo->mDim]->mVulkan.pVkSRVDescriptor;
+					VkImageLayout layout = (type == DESCRIPTOR_TYPE_RW_TEXTURE) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)pDescriptorSet->mVulkan.pDescriptorData;
+					writeSet.pImageInfo = updateData;
+					for (uint32_t arr = 0; arr < descInfo->mSize; ++arr)
+					{
+						updateData[arr] = { VK_NULL_HANDLE, srcView, layout };
+					}
+					vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, 1, &writeSet, 0, NULL);
+					break;
+				}
+				case DESCRIPTOR_TYPE_BUFFER:
+				case DESCRIPTOR_TYPE_BUFFER_RAW:
+				case DESCRIPTOR_TYPE_RW_BUFFER:
+				case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+				case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				{
+					VkDescriptorBufferInfo* updateData = (VkDescriptorBufferInfo*)pDescriptorSet->mVulkan.pDescriptorData;
+					writeSet.pBufferInfo = updateData;
+					for (uint32_t arr = 0; arr < descInfo->mSize; ++arr)
+					{
+						updateData[arr] = { pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkBuffer, 0, VK_WHOLE_SIZE };
+					}
+					vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, 1, &writeSet, 0, NULL);
+					break;
+				}
+				case DESCRIPTOR_TYPE_TEXEL_BUFFER:
+				case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
+				{
+					VkBufferView srcView = (type == DESCRIPTOR_TYPE_RW_TEXEL_BUFFER) ?
+						pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.pVkStorageTexelView :
+						pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkUniformTexelView;
+					VkBufferView* updateData = (VkBufferView*)pDescriptorSet->mVulkan.pDescriptorData;
+					writeSet.pTexelBufferView = updateData;
+					for (uint32_t arr = 0; arr < descInfo->mSize; ++arr)
+					{
+						updateData[arr] = srcView;
+					}
+					vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, 1, &writeSet, 0, NULL);
+					break;
+				}
+				default:
+					break;
+				}
+			}
+		}
 	}
 	else
 	{
@@ -4916,9 +4990,8 @@ void vk_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, De
 
 	if (pDescriptorSet->mVulkan.mDynamicOffsetCount)
 	{
-		ASSERT(1 == pDescriptorSet->mVulkan.mDynamicOffsetCount);
-		pDescriptorSet->mVulkan.pDynamicSizeOffsets = (SizeOffset*)pMem;
-		pMem += pDescriptorSet->mVulkan.mMaxSets * sizeof(SizeOffset);
+		pDescriptorSet->mVulkan.pDynamicUniformData = (DynamicUniformData*)pMem;
+		pMem += pDescriptorSet->mVulkan.mMaxSets * pDescriptorSet->mVulkan.mDynamicOffsetCount * sizeof(DynamicUniformData);
 	}
 
 	*ppDescriptorSet = pDescriptorSet;
@@ -4929,12 +5002,10 @@ void vk_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
 
+	vkDestroyDescriptorPool(pRenderer->mVulkan.pVkDevice, pDescriptorSet->mVulkan.pDescriptorPool, &gVkAllocationCallbacks);
 	SAFE_FREE(pDescriptorSet);
 }
 
-void vk_updateDescriptorSet(
-	Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
-{
 #if defined(ENABLE_GRAPHICS_DEBUG)
 #define VALIDATE_DESCRIPTOR(descriptor, ...)                                                            \
 	if (!(descriptor))                                                                                  \
@@ -4948,40 +5019,36 @@ void vk_updateDescriptorSet(
 #define VALIDATE_DESCRIPTOR(descriptor, ...)
 #endif
 
+void vk_updateDescriptorSet(
+	Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
 	ASSERT(pRenderer);
 	ASSERT(pDescriptorSet);
 	ASSERT(pDescriptorSet->mVulkan.pHandles);
 	ASSERT(index < pDescriptorSet->mVulkan.mMaxSets);
 
+	const uint32_t maxWriteSets = 256;
 	const RootSignature*      pRootSignature = pDescriptorSet->mVulkan.pRootSignature;
-	DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)pDescriptorSet->mVulkan.mUpdateFrequency;
-	DescriptorUpdateData*     pUpdateData = pDescriptorSet->mVulkan.ppUpdateData[index];
-	bool                      update = false;
-
+	VkWriteDescriptorSet      writeSetArray[maxWriteSets] = {};
+	uint32_t                  writeSetCount = 0;
 #ifdef ENABLE_RAYTRACING
-	VkWriteDescriptorSet*                        raytracingWrites = NULL;
-	VkWriteDescriptorSetAccelerationStructureNV* raytracingWritesNV = NULL;
+	const uint32_t maxRaytracingWrites = 32;
+	VkWriteDescriptorSetAccelerationStructureKHR raytracingWrites[maxRaytracingWrites] = {};
 	uint32_t                                     raytracingWriteCount = 0;
-
-	if (pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq])
-	{
-		raytracingWrites =
-			(VkWriteDescriptorSet*)alloca(pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSet));
-		raytracingWritesNV = (VkWriteDescriptorSetAccelerationStructureNV*)alloca(
-			pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[updateFreq] * sizeof(VkWriteDescriptorSetAccelerationStructureNV));
-	}
 #endif
+
+	uint8_t* descriptorUpdateData = pDescriptorSet->mVulkan.pDescriptorData;
 
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam = pParams + i;
-		uint32_t              paramIndex = pParam->mIndex;
+		uint32_t              paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
 
-		VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != -1), "DescriptorData has NULL name and invalid index");
+		VALIDATE_DESCRIPTOR(pParam->pName || (paramIndex != UINT32_MAX), "DescriptorData has NULL name and invalid index");
 
 		const DescriptorInfo* pDesc =
-			(paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
-		if (paramIndex != -1)
+			(paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		if (paramIndex != UINT32_MAX)
 		{
 			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
 		}
@@ -4991,10 +5058,35 @@ void vk_updateDescriptorSet(
 		}
 
 		const DescriptorType type = (DescriptorType)pDesc->mType;    //-V522
+		const uint32_t       arrayStart = pParam->mArrayOffset;
 		const uint32_t       arrayCount = max(1U, pParam->mCount);
 
+		// #NOTE - Flush the update if we go above the max write set limit
+		if (writeSetCount >= maxWriteSets
+#ifdef ENABLE_RAYTRACING
+			|| raytracingWriteCount >= maxRaytracingWrites
+#endif
+			)
+		{
+			vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, writeSetCount, writeSetArray, 0, NULL);
+			writeSetCount = 0;
+			descriptorUpdateData = pDescriptorSet->mVulkan.pDescriptorData;
+#ifdef ENABLE_RAYTRACING
+			raytracingWriteCount = 0;
+#endif
+		}
+
+		VkWriteDescriptorSet* writeSet = &writeSetArray[writeSetCount++];
+		writeSet->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeSet->pNext = NULL;
+		writeSet->descriptorCount = arrayCount;
+		writeSet->descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
+		writeSet->dstArrayElement = arrayStart;
+		writeSet->dstBinding = pDesc->mVulkan.mReg;
+		writeSet->dstSet = pDescriptorSet->mVulkan.pHandles[index];
+
 		VALIDATE_DESCRIPTOR(
-			pDesc->mUpdateFrequency == updateFreq, "Descriptor (%s) - Mismatching update frequency and set index", pDesc->pName);
+			pDesc->mUpdateFrequency == pDescriptorSet->mVulkan.mUpdateFrequency, "Descriptor (%s) - Mismatching update frequency and set index", pDesc->pName);
 
 		switch (type)
 		{
@@ -5002,19 +5094,22 @@ void vk_updateDescriptorSet(
 			{
 				// Index is invalid when descriptor is a static sampler
 				VALIDATE_DESCRIPTOR(
-					pDesc->mIndexInParent != -1,
+					!pDesc->mStaticSampler,
 					"Trying to update a static sampler (%s). All static samplers must be set in addRootSignature and cannot be updated "
 					"later",
 					pDesc->pName);
 
 				VALIDATE_DESCRIPTOR(pParam->ppSamplers, "NULL Sampler (%s)", pDesc->pName);
 
+				VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkDescriptorImageInfo);
+				writeSet->pImageInfo = updateData;
+
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->pName, arr);
 
-					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = { pParam->ppSamplers[arr]->mVulkan.pVkSampler, VK_NULL_HANDLE };
-					update = true;
+					updateData[arr] = { pParam->ppSamplers[arr]->mVulkan.pVkSampler, VK_NULL_HANDLE };
 				}
 				break;
 			}
@@ -5029,17 +5124,20 @@ void vk_updateDescriptorSet(
 					ASSERT(false);
 				}
 
+				VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkDescriptorImageInfo);
+				writeSet->pImageInfo = updateData;
+
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
 
-					pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+					updateData[arr] =
+					{
 						NULL,                                                 // Sampler
 						pParam->ppTextures[arr]->mVulkan.pVkSRVDescriptor,    // Image View
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL              // Image Layout
 					};
-
-					update = true;
 				}
 				break;
 			}
@@ -5047,19 +5145,22 @@ void vk_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->pName);
 
+				VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkDescriptorImageInfo);
+				writeSet->pImageInfo = updateData;
+
 				if (!pParam->mBindStencilResource)
 				{
 					for (uint32_t arr = 0; arr < arrayCount; ++arr)
 					{
 						VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
 
-						pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						updateData[arr] =
+						{
 							VK_NULL_HANDLE,                                       // Sampler
 							pParam->ppTextures[arr]->mVulkan.pVkSRVDescriptor,    // Image View
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL              // Image Layout
 						};
-
-						update = true;
 					}
 				}
 				else
@@ -5068,13 +5169,12 @@ void vk_updateDescriptorSet(
 					{
 						VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->pName, arr);
 
-						pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						updateData[arr] =
+						{
 							VK_NULL_HANDLE,                                              // Sampler
 							pParam->ppTextures[arr]->mVulkan.pVkSRVStencilDescriptor,    // Image View
 							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL                     // Image Layout
 						};
-
-						update = true;
 					}
 				}
 				break;
@@ -5083,19 +5183,22 @@ void vk_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->pName);
 
+				VkDescriptorImageInfo* updateData = (VkDescriptorImageInfo*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkDescriptorImageInfo);
+				writeSet->pImageInfo = updateData;
+
 				if (pParam->mBindMipChain)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppTextures[0], "NULL RW Texture (%s)", pDesc->pName);
 
 					for (uint32_t arr = 0; arr < pParam->ppTextures[0]->mMipLevels; ++arr)
 					{
-						pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						updateData[arr] =
+						{
 							VK_NULL_HANDLE,                                           // Sampler
 							pParam->ppTextures[0]->mVulkan.pVkUAVDescriptors[arr],    // Image View
 							VK_IMAGE_LAYOUT_GENERAL                                   // Image Layout
 						};
-
-						update = true;
 					}
 				}
 				else
@@ -5110,45 +5213,24 @@ void vk_updateDescriptorSet(
 							"Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)", pDesc->pName, arr, mipSlice,
 							pParam->ppTextures[arr]->mMipLevels);
 
-						pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
+						updateData[arr] =
+						{
 							VK_NULL_HANDLE,                                                  // Sampler
 							pParam->ppTextures[arr]->mVulkan.pVkUAVDescriptors[mipSlice],    // Image View
 							VK_IMAGE_LAYOUT_GENERAL                                          // Image Layout
 						};
-
-						update = true;
 					}
 				}
 				break;
 			}
 			case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 			{
-				if (pDesc->mVulkan.mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+				if (pDesc->mRootDescriptor)
 				{
-					VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->pName);
-					VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->pName, 0);
 					VALIDATE_DESCRIPTOR(
-						arrayCount == 1, "Descriptor (%s) : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC does not support arrays",
+						false,
+						"Descriptor (%s) - Trying to update a root cbv through updateDescriptorSet. All root cbvs must be updated through cmdBindDescriptorSetWithRootCbvs",
 						pDesc->pName);
-					VALIDATE_DESCRIPTOR(
-						pParam->pSizes, "Descriptor (%s) : Must provide pSizes for VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC",
-						pDesc->pName);
-					VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, 0);
-					VALIDATE_DESCRIPTOR(
-						pParam->pSizes[0] <= pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
-						"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, 0, pParam->pSizes[0],
-						pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
-
-					pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mOffset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
-					pUpdateData[pDesc->mHandleIndex + 0].mBufferInfo = { pParam->ppBuffers[0]->mVulkan.pVkBuffer,
-																		 pParam->ppBuffers[0]->mVulkan.mOffset, pParam->pSizes[0] };
-
-					// If this is a different size we have to update the VkDescriptorBufferInfo::range so a call to vkUpdateDescriptorSet is necessary
-					if (pParam->pSizes[0] != (uint32_t)pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mSize)
-					{
-						pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mSize = (uint32_t)pParam->pSizes[0];
-						update = true;
-					}
 
 					break;
 				}
@@ -5159,26 +5241,39 @@ void vk_updateDescriptorSet(
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->pName);
 
+					VkDescriptorBufferInfo* updateData = (VkDescriptorBufferInfo*)descriptorUpdateData;
+					descriptorUpdateData += arrayCount * sizeof(VkDescriptorBufferInfo);
+					writeSet->pBufferInfo = updateData;
+
 					for (uint32_t arr = 0; arr < arrayCount; ++arr)
 					{
 						VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->pName, arr);
 
-						pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo = { pParam->ppBuffers[arr]->mVulkan.pVkBuffer,
-																			   pParam->ppBuffers[arr]->mVulkan.mOffset, VK_WHOLE_SIZE };
-						if (pParam->pOffsets)
+						updateData[arr] =
 						{
-							VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->pName);
-							VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->pName, arr);
+							pParam->ppBuffers[arr]->mVulkan.pVkBuffer,
+							pParam->ppBuffers[arr]->mVulkan.mOffset,
+							VK_WHOLE_SIZE
+						};
+
+						if (pParam->pRanges)
+						{
+							DescriptorDataRange range = pParam->pRanges[arr];
+#if defined(ENABLE_GRAPHICS_DEBUG)
+							uint32_t maxRange = DESCRIPTOR_TYPE_UNIFORM_BUFFER == type ?
+								pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange :
+								pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxStorageBufferRange;
+#endif
+
+							VALIDATE_DESCRIPTOR(range.mSize, "Descriptor (%s) - pRanges[%u].mSize is zero", pDesc->pName, arr);
 							VALIDATE_DESCRIPTOR(
-								pParam->pSizes[arr] <= pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange,
-								"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->pName, arr, pParam->pSizes[arr],
-								pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange);
+								range.mSize <= maxRange,
+								"Descriptor (%s) - pRanges[%u].mSize is %ull which exceeds max size %u", pDesc->pName, arr, range.mSize,
+								maxRange);
 
-							pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo.offset = pParam->pOffsets[arr];
-							pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo.range = pParam->pSizes[arr];
+							updateData[arr].offset = range.mOffset;
+							updateData[arr].range = range.mSize;
 						}
-
-						update = true;
 					}
 				}
 				break;
@@ -5187,11 +5282,14 @@ void vk_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Texel Buffer (%s)", pDesc->pName);
 
+				VkBufferView* updateData = (VkBufferView*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkBufferView);
+				writeSet->pTexelBufferView = updateData;
+
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Texel Buffer (%s [%u] )", pDesc->pName, arr);
-					pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->mVulkan.pVkUniformTexelView;
-					update = true;
+					updateData[arr] = pParam->ppBuffers[arr]->mVulkan.pVkUniformTexelView;
 				}
 
 				break;
@@ -5200,11 +5298,14 @@ void vk_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL RW Texel Buffer (%s)", pDesc->pName);
 
+				VkBufferView* updateData = (VkBufferView*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkBufferView);
+				writeSet->pTexelBufferView = updateData;
+
 				for (uint32_t arr = 0; arr < arrayCount; ++arr)
 				{
 					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL RW Texel Buffer (%s [%u] )", pDesc->pName, arr);
-					pUpdateData[pDesc->mHandleIndex + arr].mBuferView = pParam->ppBuffers[arr]->mVulkan.pVkStorageTexelView;
-					update = true;
+					updateData[arr] = pParam->ppBuffers[arr]->mVulkan.pVkStorageTexelView;
 				}
 
 				break;
@@ -5214,26 +5315,15 @@ void vk_updateDescriptorSet(
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppAccelerationStructures, "NULL Acceleration Structure (%s)", pDesc->pName);
 
-				for (uint32_t arr = 0; arr < arrayCount; ++arr)
-				{
-					VALIDATE_DESCRIPTOR(pParam->ppAccelerationStructures[arr], "Acceleration Structure (%s [%u] )", pDesc->pName, arr);
-
-					ASSERT(raytracingWrites && raytracingWritesNV);
-					VkWriteDescriptorSet*                        pWrite = raytracingWrites + raytracingWriteCount;        //-V769
-					VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = raytracingWritesNV + raytracingWriteCount;    //-V769
-
-					pWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;    //-V522
-					pWrite->pNext = pWriteNV;
-					pWrite->dstSet = pDescriptorSet->mVulkan.pHandles[index];
-					pWrite->descriptorCount = 1;
-					pWrite->descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
-					pWrite->dstArrayElement = arr;
-					pWrite->dstBinding = pDesc->mVulkan.mReg;
-
-					vk_FillRaytracingDescriptorData(pParam->ppAccelerationStructures[arr], pWriteNV);
-
-					++raytracingWriteCount;
-				}
+				VkWriteDescriptorSetAccelerationStructureKHR* writeSetKHR = &raytracingWrites[raytracingWriteCount++];
+				VkAccelerationStructureKHR* updateDataKHR = (VkAccelerationStructureKHR*)descriptorUpdateData;
+				descriptorUpdateData += arrayCount * sizeof(VkAccelerationStructureKHR);
+				writeSet->pNext = writeSetKHR;
+				writeSetKHR->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+				writeSetKHR->pNext = NULL;
+				writeSetKHR->accelerationStructureCount = arrayCount;
+				writeSetKHR->pAccelerationStructures = updateDataKHR;
+				vk_FillRaytracingDescriptorData(arrayCount, pParam->ppAccelerationStructures, updateDataKHR);
 				break;
 			}
 #endif
@@ -5241,18 +5331,10 @@ void vk_updateDescriptorSet(
 		}
 	}
 
-	// If this was called to just update a dynamic offset skip the update
-	if (update)
-		vkUpdateDescriptorSetWithTemplateKHR(
-			pRenderer->mVulkan.pVkDevice, pDescriptorSet->mVulkan.pHandles[index], pRootSignature->mVulkan.mUpdateTemplates[updateFreq],
-			pUpdateData);
-
-#ifdef ENABLE_RAYTRACING
-	// Raytracing Update Descriptor Set since it does not support update template
-	if (raytracingWriteCount)
-		vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, raytracingWriteCount, raytracingWrites, 0, NULL);
-#endif
+	vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, writeSetCount, writeSetArray, 0, NULL);
 }
+
+static const uint32_t VK_MAX_ROOT_DESCRIPTORS = 32;
 
 void vk_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
@@ -5271,37 +5353,24 @@ void vk_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescript
 		// Example: If shader uses only set 2, we still have to bind empty sets for set=0 and set=1
 		for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; ++setIndex)
 		{
-			if (pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex] != VK_NULL_HANDLE)
+			if (pRootSignature->mVulkan.pEmptyDescriptorSet[setIndex] != VK_NULL_HANDLE)
 			{
 				vkCmdBindDescriptorSets(
 					pCmd->mVulkan.pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->mVulkan.pPipelineLayout,
-					setIndex, 1, &pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex], 0, NULL);
+					setIndex, 1, &pRootSignature->mVulkan.pEmptyDescriptorSet[setIndex], 0, NULL);
 			}
 		}
 	}
 
+	static uint32_t offsets[VK_MAX_ROOT_DESCRIPTORS] = {};
+
 	vkCmdBindDescriptorSets(
 		pCmd->mVulkan.pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->mVulkan.pPipelineLayout,
-		pDescriptorSet->mVulkan.mUpdateFrequency, 1, &pDescriptorSet->mVulkan.pHandles[index], pDescriptorSet->mVulkan.mDynamicOffsetCount,
-		pDescriptorSet->mVulkan.mDynamicOffsetCount ? &pDescriptorSet->mVulkan.pDynamicSizeOffsets[index].mOffset : NULL);
+		pDescriptorSet->mVulkan.mUpdateFrequency, 1, &pDescriptorSet->mVulkan.pHandles[index],
+		pDescriptorSet->mVulkan.mDynamicOffsetCount, offsets);
 }
 
-void vk_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
-{
-	ASSERT(pCmd);
-	ASSERT(pConstants);
-	ASSERT(pRootSignature);
-	ASSERT(pName);
-
-	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
-	ASSERT(pDesc);
-	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);    //-V522
-
-	vkCmdPushConstants(
-		pCmd->mVulkan.pVkCmdBuf, pRootSignature->mVulkan.pPipelineLayout, pDesc->mVulkan.mVkStages, 0, pDesc->mSize, pConstants);
-}
-
-void vk_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+void vk_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pConstants);
@@ -5314,6 +5383,74 @@ void vk_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, ui
 
 	vkCmdPushConstants(
 		pCmd->mVulkan.pVkCmdBuf, pRootSignature->mVulkan.pPipelineLayout, pDesc->mVulkan.mVkStages, 0, pDesc->mSize, pConstants);
+}
+
+void vk_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
+	ASSERT(pCmd);
+	ASSERT(pDescriptorSet);
+	ASSERT(pParams);
+
+	const RootSignature* pRootSignature = pDescriptorSet->mVulkan.pRootSignature;
+	uint32_t offsets[VK_MAX_ROOT_DESCRIPTORS] = {};
+
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		const DescriptorData* pParam = pParams + i;
+		uint32_t              paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
+
+		const DescriptorInfo* pDesc =
+			(paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		if (paramIndex != UINT32_MAX)
+		{
+			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
+		}
+		else
+		{
+			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName);
+		}
+
+#if defined(ENABLE_GRAPHICS_DEBUG)
+		const uint32_t maxRange = DESCRIPTOR_TYPE_UNIFORM_BUFFER == pDesc->mType ?    //-V522
+			pCmd->pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxUniformBufferRange :
+			pCmd->pRenderer->mVulkan.pVkActiveGPUProperties->properties.limits.maxStorageBufferRange;
+#endif
+
+		VALIDATE_DESCRIPTOR(pDesc->mRootDescriptor, "Descriptor (%s) - must be a root cbv", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->mCount <= 1, "Descriptor (%s) - cmdBindDescriptorSetWithRootCbvs does not support arrays", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->pRanges, "Descriptor (%s) - pRanges must be provided for cmdBindDescriptorSetWithRootCbvs", pDesc->pName);
+
+		DescriptorDataRange range = pParam->pRanges[0];
+		VALIDATE_DESCRIPTOR(range.mSize, "Descriptor (%s) - pRanges->mSize is zero", pDesc->pName);
+		VALIDATE_DESCRIPTOR(
+			range.mSize <= maxRange,
+			"Descriptor (%s) - pRanges->mSize is %ull which exceeds max size %u", pDesc->pName, range.mSize,
+			maxRange);
+
+		offsets[pDesc->mHandleIndex] = range.mOffset; //-V522
+		DynamicUniformData* pData = &pDescriptorSet->mVulkan.pDynamicUniformData[index * pDescriptorSet->mVulkan.mDynamicOffsetCount + pDesc->mHandleIndex];
+		if (pData->pBuffer != pParam->ppBuffers[0]->mVulkan.pVkBuffer || range.mSize != pData->mSize)
+		{
+			*pData = { pParam->ppBuffers[0]->mVulkan.pVkBuffer, 0, range.mSize };
+
+			VkDescriptorBufferInfo bufferInfo = { pData->pBuffer, 0, (VkDeviceSize)pData->mSize };
+			VkWriteDescriptorSet writeSet = {};
+			writeSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			writeSet.pNext = NULL;
+			writeSet.descriptorCount = 1;
+			writeSet.descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
+			writeSet.dstArrayElement = 0;
+			writeSet.dstBinding = pDesc->mVulkan.mReg;
+			writeSet.dstSet = pDescriptorSet->mVulkan.pHandles[index];
+			writeSet.pBufferInfo = &bufferInfo;
+			vkUpdateDescriptorSets(pCmd->pRenderer->mVulkan.pVkDevice, 1, &writeSet, 0, NULL);
+		}
+	}
+
+	vkCmdBindDescriptorSets(
+		pCmd->mVulkan.pVkCmdBuf, gPipelineBindPoint[pRootSignature->mPipelineType], pRootSignature->mVulkan.pPipelineLayout,
+		pDescriptorSet->mVulkan.mUpdateFrequency, 1, &pDescriptorSet->mVulkan.pHandles[index],
+		pDescriptorSet->mVulkan.mDynamicOffsetCount, offsets);
 }
 /************************************************************************/
 // Shader Functions
@@ -5754,12 +5891,9 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 			binding.descriptorCount = pDesc->mSize;
 			binding.descriptorType = util_to_vk_descriptor_type((DescriptorType)pDesc->mType);
 
-			eastl::string name = pRes->name;
-			name.make_lower();
-
 			// If a user specified a uniform buffer to be used as a dynamic uniform buffer change its type to VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
 			// Also log a message for debugging purpose
-			if (name.find("rootcbv") != eastl::string::npos)
+			if (isDescriptorRootCbv(pRes->name))
 			{
 				if (pDesc->mSize == 1)
 				{
@@ -5781,11 +5915,6 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 			pDesc->mVulkan.mVkStages = binding.stageFlags;
 			pDesc->mUpdateFrequency = updateFreq;
 
-			if (binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-			{
-				layouts[setIndex].mDynamicDescriptors.emplace_back(pDesc);
-			}
-
 			// Find if the given descriptor is a static sampler
 			decltype(staticSamplerMap)::iterator it = staticSamplerMap.find(pDesc->pName);
 			bool                                 hasStaticSampler = it != staticSamplerMap.end();
@@ -5800,42 +5929,65 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 			// because we do not to introduce new ways to update the descriptor in the Interface
 			if (hasStaticSampler && pDesc->mType != DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
 			{
-				pDesc->mIndexInParent = -1;
+				pDesc->mStaticSampler = true;
 			}
 			else
 			{
 				layouts[setIndex].mDescriptors.emplace_back(pDesc);
 			}
 
+			if (binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+			{
+				layouts[setIndex].mDynamicDescriptors.emplace_back(pDesc);
+				pDesc->mRootDescriptor = true;
+			}
+
 			layouts[setIndex].mBindings.push_back(binding);
+
+			// Update descriptor pool size for this descriptor type
+			VkDescriptorPoolSize* poolSize = NULL;
+			for (uint32_t i = 0; i < MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT; ++i)
+			{
+				if (binding.descriptorType == pRootSignature->mVulkan.mPoolSizes[setIndex][i].type && pRootSignature->mVulkan.mPoolSizes[setIndex][i].descriptorCount)
+				{
+					poolSize = &pRootSignature->mVulkan.mPoolSizes[setIndex][i];
+					break;
+				}
+			}
+			if (!poolSize)
+			{
+				poolSize = &pRootSignature->mVulkan.mPoolSizes[setIndex][pRootSignature->mVulkan.mPoolSizeCount[setIndex]++];
+				poolSize->type = binding.descriptorType;
+			}
+
+			poolSize->descriptorCount += binding.descriptorCount;
 		}
 		// If descriptor is a root constant, add it to the root constant array
 		else
 		{
 			LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Push Constant", pDesc->pName);
 
+			pDesc->mRootDescriptor = true;
 			pDesc->mVulkan.mVkStages = util_to_vk_shader_stage_flags(pRes->used_stages);
 			setIndex = 0;
-			pDesc->mIndexInParent = pushConstantCount++;
+			pDesc->mHandleIndex = pushConstantCount++;
 
-			pushConstants[pDesc->mIndexInParent] = {};
-			pushConstants[pDesc->mIndexInParent].offset = 0;
-			pushConstants[pDesc->mIndexInParent].size = pDesc->mSize;
-			pushConstants[pDesc->mIndexInParent].stageFlags = pDesc->mVulkan.mVkStages;
+			pushConstants[pDesc->mHandleIndex] = {};
+			pushConstants[pDesc->mHandleIndex].offset = 0;
+			pushConstants[pDesc->mHandleIndex].size = pDesc->mSize;
+			pushConstants[pDesc->mHandleIndex].stageFlags = pDesc->mVulkan.mVkStages;
 		}
 
 		layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 	}
 
-	pRootSignature->mVulkan.mVkPushConstantCount = pushConstantCount;
-
 	// Create descriptor layouts
-	// Put most frequently changed params first
-	for (uint32_t i = kMaxLayoutCount; i-- > 0U;)
+	// Put least frequently changed params first
+	for (uint32_t layoutIndex = kMaxLayoutCount; layoutIndex-- > 0U;)
 	{
-		UpdateFrequencyLayoutInfo& layout = layouts[i];
+		UpdateFrequencyLayoutInfo& layout = layouts[layoutIndex];
 
-		if (layouts[i].mBindings.size())
+		if (layouts[layoutIndex].mBindings.size())
 		{
 			// sort table by type (CBV/SRV/UAV) by register
 			eastl::stable_sort(
@@ -5851,45 +6003,99 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 		bool createLayout = layout.mBindings.size() > 0;
 		// Check if we need to create an empty layout in case there is an empty set between two used sets
 		// Example: set = 0 is used, set = 2 is used. In this case, set = 1 needs to exist even if it is empty
-		if (!createLayout && i < kMaxLayoutCount - 1)
+		if (!createLayout && layoutIndex < kMaxLayoutCount - 1)
 		{
-			createLayout = pRootSignature->mVulkan.mVkDescriptorSetLayouts[i + 1] != VK_NULL_HANDLE;
+			createLayout = pRootSignature->mVulkan.mVkDescriptorSetLayouts[layoutIndex + 1] != VK_NULL_HANDLE;
 		}
 
 		if (createLayout)
 		{
-			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-			layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutInfo.pNext = NULL;
-			layoutInfo.bindingCount = (uint32_t)layout.mBindings.size();
-			layoutInfo.pBindings = layout.mBindings.data();
-			layoutInfo.flags = 0;
+			if (layout.mBindings.size())
+			{
+				VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+				layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+				layoutInfo.pNext = NULL;
+				layoutInfo.bindingCount = (uint32_t)layout.mBindings.size();
+				layoutInfo.pBindings = layout.mBindings.data();
+				layoutInfo.flags = 0;
 
-			CHECK_VKRESULT(vkCreateDescriptorSetLayout(
-				pRenderer->mVulkan.pVkDevice, &layoutInfo, &gVkAllocationCallbacks, &pRootSignature->mVulkan.mVkDescriptorSetLayouts[i]));
+				CHECK_VKRESULT(vkCreateDescriptorSetLayout(
+					pRenderer->mVulkan.pVkDevice, &layoutInfo, &gVkAllocationCallbacks, &pRootSignature->mVulkan.mVkDescriptorSetLayouts[layoutIndex]));
+			}
+			else
+			{
+				pRootSignature->mVulkan.mVkDescriptorSetLayouts[layoutIndex] = pRenderer->mVulkan.pEmptyDescriptorSetLayout;
+			}
 		}
 
-		if (!layouts[i].mBindings.size())
+		if (!layout.mBindings.size())
 		{
 			continue;
 		}
 
-		pRootSignature->mVulkan.mVkDescriptorCounts[i] = (uint32_t)layout.mDescriptors.size();
-
 		// Loop through descriptors belonging to this update frequency and increment the cumulative descriptor count
+		uint32_t descriptorMemSize = 0;
+
 		for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mDescriptors.size(); ++descIndex)
 		{
 			DescriptorInfo* pDesc = layout.mDescriptors[descIndex];
-			pDesc->mIndexInParent = descIndex;
-			pDesc->mHandleIndex = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[i];
-			pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[i] += pDesc->mSize;
+			if (!pDesc->mRootDescriptor)
+			{
+				pDesc->mHandleIndex = pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[layoutIndex];
+				pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[layoutIndex] += pDesc->mSize;
+
+				if (!pDesc->mStaticSampler)
+				{
+					DescriptorType type = (DescriptorType)pDesc->mType;
+
+					switch (type)
+					{
+					case DESCRIPTOR_TYPE_SAMPLER:
+					case DESCRIPTOR_TYPE_TEXTURE:
+					case DESCRIPTOR_TYPE_RW_TEXTURE:
+					case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+						descriptorMemSize += pDesc->mSize * sizeof(VkDescriptorImageInfo);
+						break;
+					case DESCRIPTOR_TYPE_BUFFER:
+					case DESCRIPTOR_TYPE_BUFFER_RAW:
+					case DESCRIPTOR_TYPE_RW_BUFFER:
+					case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+					case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+						descriptorMemSize += pDesc->mSize * sizeof(VkDescriptorBufferInfo);
+						break;
+#ifdef ENABLE_RAYTRACING
+					case DESCRIPTOR_TYPE_RAY_TRACING:
+						descriptorMemSize += pDesc->mSize * sizeof(VkAccelerationStructureKHR);
+						break;
+#endif
+					case DESCRIPTOR_TYPE_TEXEL_BUFFER:
+					case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
+						descriptorMemSize += pDesc->mSize * sizeof(VkBufferView);
+						break;
+					default:
+						break;
+					}
+				}
+			}
 		}
 
-		pRootSignature->mVulkan.mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
-		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVulkan.mVkDynamicDescriptorCounts[i]; ++descIndex)
+		pRootSignature->mVulkan.mCumulativeDescriptorSizes[layoutIndex] = descriptorMemSize;
+
+		if (layout.mDynamicDescriptors.size())
 		{
-			DescriptorInfo* pDesc = layout.mDynamicDescriptors[descIndex];
-			pDesc->mVulkan.mRootDescriptorIndex = descIndex;
+			// vkCmdBindDescriptorSets - pDynamicOffsets - entries are ordered by the binding numbers in the descriptor set layouts
+			eastl::stable_sort(
+				layout.mDynamicDescriptors.begin(), layout.mDynamicDescriptors.end(),
+				[](const DescriptorInfo* lhs, const DescriptorInfo* rhs) {
+					return lhs->mVulkan.mReg < rhs->mVulkan.mReg;
+				});
+
+			pRootSignature->mVulkan.mVkDynamicDescriptorCounts[layoutIndex] = (uint32_t)layout.mDynamicDescriptors.size();
+			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mDynamicDescriptors.size(); ++descIndex)
+			{
+				DescriptorInfo* pDesc = layout.mDynamicDescriptors[descIndex];
+				pDesc->mHandleIndex = descIndex;
+			}
 		}
 	}
 	/************************************************************************/
@@ -5911,7 +6117,7 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 	add_info.flags = 0;
 	add_info.setLayoutCount = descriptorSetLayoutCount;
 	add_info.pSetLayouts = descriptorSetLayouts;
-	add_info.pushConstantRangeCount = pRootSignature->mVulkan.mVkPushConstantCount;
+	add_info.pushConstantRangeCount = pushConstantCount;
 	add_info.pPushConstantRanges = pushConstants;
 	CHECK_VKRESULT(vkCreatePipelineLayout(
 		pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pRootSignature->mVulkan.pPipelineLayout)));
@@ -5920,145 +6126,21 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 	/************************************************************************/
 	for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; ++setIndex)
 	{
-		if (pRootSignature->mVulkan.mVkDescriptorCounts[setIndex])
+		const UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
+
+		if (!layout.mDescriptors.size() && pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex] != VK_NULL_HANDLE)
 		{
-			pRootSignature->mVulkan.pUpdateTemplateData[setIndex] =
-				(void**)tf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
-
-			const UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
-			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)tf_malloc(
-				pRootSignature->mVulkan.mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
-			uint32_t entryCount = 0;
-
-			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
+			pRootSignature->mVulkan.pEmptyDescriptorSet[setIndex] = pRenderer->mVulkan.pEmptyDescriptorSet;
+			if (pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex] != pRenderer->mVulkan.pEmptyDescriptorSetLayout)
 			{
-				pRootSignature->mVulkan.pUpdateTemplateData[setIndex][nodeIndex] =
-					tf_calloc(pRootSignature->mVulkan.mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
+				add_descriptor_pool(pRenderer, 1, 0,
+					pRootSignature->mVulkan.mPoolSizes[setIndex], pRootSignature->mVulkan.mPoolSizeCount[setIndex],
+					&pRootSignature->mVulkan.pEmptyDescriptorPool[setIndex]);
+				VkDescriptorSet* emptySet[] = { &pRootSignature->mVulkan.pEmptyDescriptorSet[setIndex] };
+				consume_descriptor_sets(pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.pEmptyDescriptorPool[setIndex],
+					&pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex],
+					1, emptySet);
 			}
-
-			// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
-			for (uint32_t i = 0; i < (uint32_t)layout.mDescriptors.size(); ++i)
-			{
-				const DescriptorInfo* pDesc = layout.mDescriptors[i];
-				const uint64_t        offset = pDesc->mHandleIndex * sizeof(DescriptorUpdateData);
-
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-				// Raytracing descriptors dont support update template so we ignore them
-				if (pDesc->mType == DESCRIPTOR_TYPE_RAY_TRACING)
-				{
-					pRootSignature->mVulkan.mVkRaytracingDescriptorCounts[setIndex] += pDesc->mSize;
-					continue;
-				}
-#endif
-
-				pEntries[entryCount].descriptorCount = pDesc->mSize;
-				pEntries[entryCount].descriptorType = (VkDescriptorType)pDesc->mVulkan.mVkType;
-				pEntries[entryCount].dstArrayElement = 0;
-				pEntries[entryCount].dstBinding = pDesc->mVulkan.mReg;
-				pEntries[entryCount].offset = offset;
-				pEntries[entryCount].stride = sizeof(DescriptorUpdateData);
-
-				for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
-				{
-					DescriptorUpdateData* pUpdateData =
-						(DescriptorUpdateData*)pRootSignature->mVulkan.pUpdateTemplateData[setIndex][nodeIndex];
-
-					const DescriptorType type = (DescriptorType)pDesc->mType;
-					const uint32_t       arrayCount = pDesc->mSize;
-
-					switch (type)
-					{
-						case DESCRIPTOR_TYPE_SAMPLER:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
-									pRenderer->pNullDescriptors->pDefaultSampler->mVulkan.pVkSampler, VK_NULL_HANDLE
-								};
-							break;
-						}
-						case DESCRIPTOR_TYPE_TEXTURE:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
-									VK_NULL_HANDLE,
-									pRenderer->pNullDescriptors->pDefaultTextureSRV[nodeIndex][pDesc->mDim]->mVulkan.pVkSRVDescriptor,
-									VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-								};
-							break;
-						}
-						case DESCRIPTOR_TYPE_RW_TEXTURE:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mImageInfo = {
-									VK_NULL_HANDLE,
-									pRenderer->pNullDescriptors->pDefaultTextureUAV[nodeIndex][pDesc->mDim]->mVulkan.pVkUAVDescriptors[0],
-									VK_IMAGE_LAYOUT_GENERAL
-								};
-							break;
-						}
-						case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-						case DESCRIPTOR_TYPE_BUFFER:
-						case DESCRIPTOR_TYPE_BUFFER_RAW:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo = {
-									pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkBuffer,
-									pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.mOffset, VK_WHOLE_SIZE
-								};
-							break;
-						}
-						case DESCRIPTOR_TYPE_RW_BUFFER:
-						case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mBufferInfo = {
-									pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.pVkBuffer,
-									pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.mOffset, VK_WHOLE_SIZE
-								};
-							break;
-						}
-						case DESCRIPTOR_TYPE_TEXEL_BUFFER:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mBuferView =
-									pRenderer->pNullDescriptors->pDefaultBufferSRV[nodeIndex]->mVulkan.pVkUniformTexelView;
-							break;
-						}
-						case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER:
-						{
-							for (uint32_t arr = 0; arr < arrayCount; ++arr)
-								pUpdateData[pDesc->mHandleIndex + arr].mBuferView =
-									pRenderer->pNullDescriptors->pDefaultBufferUAV[nodeIndex]->mVulkan.pVkStorageTexelView;
-							break;
-						}
-						default: break;
-					}
-				}
-
-				++entryCount;
-			}
-
-			VkDescriptorUpdateTemplateCreateInfoKHR createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR;
-			createInfo.pNext = NULL;
-			createInfo.descriptorSetLayout = pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex];
-			createInfo.descriptorUpdateEntryCount = entryCount;
-			createInfo.pDescriptorUpdateEntries = pEntries;
-			createInfo.pipelineBindPoint = gPipelineBindPoint[pRootSignature->mPipelineType];
-			createInfo.pipelineLayout = pRootSignature->mVulkan.pPipelineLayout;
-			createInfo.set = setIndex;
-			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
-			CHECK_VKRESULT(vkCreateDescriptorUpdateTemplateKHR(
-				pRenderer->mVulkan.pVkDevice, &createInfo, &gVkAllocationCallbacks, &pRootSignature->mVulkan.mUpdateTemplates[setIndex]));
-
-			tf_free(pEntries);
-		}
-		else if (VK_NULL_HANDLE != pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex])
-		{
-			// Consume empty descriptor sets from empty descriptor set pool
-			VkDescriptorSet* pSets[] = { &pRootSignature->mVulkan.mVkEmptyDescriptorSets[setIndex] };
-			consume_descriptor_sets(
-				pRenderer->mVulkan.pDescriptorPool, &pRootSignature->mVulkan.mVkDescriptorSetLayouts[setIndex], pSets, 1);
 		}
 	}
 
@@ -6069,17 +6151,16 @@ void vk_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 	{
-		vkDestroyDescriptorSetLayout(
-			pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.mVkDescriptorSetLayouts[i], &gVkAllocationCallbacks);
-		if (VK_NULL_HANDLE != pRootSignature->mVulkan.mUpdateTemplates[i])
-			vkDestroyDescriptorUpdateTemplateKHR(
-				pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.mUpdateTemplates[i], &gVkAllocationCallbacks);
-
-		if (pRootSignature->mVulkan.mVkDescriptorCounts[i])
-			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
-				SAFE_FREE(pRootSignature->mVulkan.pUpdateTemplateData[i][nodeIndex]);
-
-		SAFE_FREE(pRootSignature->mVulkan.pUpdateTemplateData[i]);
+		if (pRootSignature->mVulkan.mVkDescriptorSetLayouts[i] != pRenderer->mVulkan.pEmptyDescriptorSetLayout)
+		{
+			vkDestroyDescriptorSetLayout(
+				pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.mVkDescriptorSetLayouts[i], &gVkAllocationCallbacks);
+		}
+		if (VK_NULL_HANDLE != pRootSignature->mVulkan.pEmptyDescriptorPool[i])
+		{
+			vkDestroyDescriptorPool(
+				pRenderer->mVulkan.pVkDevice, pRootSignature->mVulkan.pEmptyDescriptorPool[i], &gVkAllocationCallbacks);
+		}
 	}
 
 	// Need delete since the destructor frees allocated memory
@@ -7510,13 +7591,19 @@ void vk_getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceSt
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat vk_getRecommendedSwapchainFormat(bool hintHDR)
+TinyImageFormat vk_getRecommendedSwapchainFormat(bool hintHDR, bool hintSRGB)
 {
 	//TODO: figure out this properly. BGRA not supported on android
 #if !defined(VK_USE_PLATFORM_ANDROID_KHR) && !defined(VK_USE_PLATFORM_VI_NN)
-	return TinyImageFormat_B8G8R8A8_UNORM;
+	if (hintSRGB)
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	else
+		return TinyImageFormat_B8G8R8A8_UNORM;
 #else
-	return TinyImageFormat_R8G8B8A8_UNORM;
+	if (hintSRGB)
+		return TinyImageFormat_R8G8B8A8_SRGB;
+	else
+		return TinyImageFormat_R8G8B8A8_UNORM;
 #endif
 }
 
@@ -8244,6 +8331,7 @@ void vk_addVirtualTexture(Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTextu
 	ASSERT(pTexture->mFormat == pDesc->mFormat);
 
 	VkFormat format = (VkFormat)TinyImageFormat_ToVkFormat((TinyImageFormat)pTexture->mFormat);
+	ASSERT(VK_FORMAT_UNDEFINED != format);
 	pTexture->mOwnsImage = true;
 
 	VkImageCreateInfo add_info = {};
@@ -8635,7 +8723,7 @@ void initVulkanRenderer(const char* appName, const RendererDesc* pSettings, Rend
 	cmdBindPipeline = vk_cmdBindPipeline;
 	cmdBindDescriptorSet = vk_cmdBindDescriptorSet;
 	cmdBindPushConstants = vk_cmdBindPushConstants;
-	cmdBindPushConstantsByIndex = vk_cmdBindPushConstantsByIndex;
+	cmdBindDescriptorSetWithRootCbvs = vk_cmdBindDescriptorSetWithRootCbvs;
 	cmdBindIndexBuffer = vk_cmdBindIndexBuffer;
 	cmdBindVertexBuffer = vk_cmdBindVertexBuffer;
 	cmdDraw = vk_cmdDraw;

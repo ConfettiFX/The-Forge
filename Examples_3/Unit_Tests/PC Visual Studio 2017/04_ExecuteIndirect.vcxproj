@@ -22,7 +22,6 @@
     <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\AsteroidSim.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\NoiseOctaves.h" />
-    <ClInclude Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\simplexnoise1234.h" />
     <ClInclude Include="..\src\04_ExecuteIndirect\TextureGen.h" />
   </ItemGroup>
@@ -37,6 +36,7 @@
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ComputeUpdate.comp.fsl" />
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ExecuteIndirect.frag.fsl" />
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ExecuteIndirect.vert.fsl" />
+    <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl" />
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>

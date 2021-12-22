@@ -1142,12 +1142,7 @@ DEFINE_ENUM_FLAG_OPERATORS(D3D12MA::ALLOCATOR_FLAGS);
 #endif
 #endif
 
-#include <mutex>
-#include <atomic>
-#include <algorithm>
-#include <utility>
-#include <cstdlib>
-#include <malloc.h> // for _aligned_malloc, _aligned_free
+#include "../../../OS/Core/Atomics.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -1158,8 +1153,8 @@ DEFINE_ENUM_FLAG_OPERATORS(D3D12MA::ALLOCATOR_FLAGS);
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifndef D3D12MA_ASSERT
-#include <cassert>
-#define D3D12MA_ASSERT(cond) assert(cond)
+#include "../../../OS/Interfaces/ILog.h"
+#define D3D12MA_ASSERT(cond) ASSERT(cond)
 #endif
 
 // Assert that will be called very often, like inside data structures e.g. operator[].
@@ -1216,11 +1211,11 @@ namespace D3D12MA
 
 	static void* DefaultAllocate(size_t Size, size_t Alignment, void* /*pUserData*/)
 	{
-		return _aligned_malloc(Size, Alignment);
+        return tf_memalign(Alignment, Size);
 	}
 	static void DefaultFree(void* pMemory, void* /*pUserData*/)
 	{
-		return _aligned_free(pMemory);
+		return tf_free(pMemory);
 	}
 
 	static void* Malloc(const ALLOCATION_CALLBACKS& allocs, size_t size, size_t alignment)
@@ -1315,15 +1310,17 @@ namespace D3D12MA
 	}
 
 #ifndef D3D12MA_MUTEX
-	class Mutex
+	class D3D12MAMutex
 	{
 	public:
-		void Lock() { m_Mutex.lock(); }
-		void Unlock() { m_Mutex.unlock(); }
+        D3D12MAMutex() { initMutex(&m_Mutex); }
+        ~D3D12MAMutex() { destroyMutex(&m_Mutex); }
+		void Lock() { acquireMutex(&m_Mutex); }
+		void Unlock() { releaseMutex(&m_Mutex); }
 	private:
-		std::mutex m_Mutex;
+		Mutex m_Mutex;
 	};
-#define D3D12MA_MUTEX Mutex
+#define D3D12MA_MUTEX D3D12MAMutex
 #endif
 
 #if !defined(_WIN32) || !defined(WINVER) || WINVER < 0x0600
@@ -1349,11 +1346,11 @@ namespace D3D12MA
 	If providing your own implementation, you need to implement a subset of std::atomic.
 	*/
 #ifndef D3D12MA_ATOMIC_UINT32
-#define D3D12MA_ATOMIC_UINT32 std::atomic<UINT>
+#define D3D12MA_ATOMIC_UINT32 tfrg_atomic32_t
 #endif
 
 #ifndef D3D12MA_ATOMIC_UINT64
-#define D3D12MA_ATOMIC_UINT64 std::atomic<UINT64>
+#define D3D12MA_ATOMIC_UINT64 tfrg_atomic64_t
 #endif
 
 	// Aligns given value up to nearest multiply of align value. For example: AlignUp(11, 8) = 16.
@@ -3545,8 +3542,8 @@ namespace D3D12MA
 		{
 			for (UINT i = 0; i < HEAP_TYPE_COUNT; ++i)
 			{
-				m_BlockBytes[i] = 0;
-				m_AllocationBytes[i] = 0;
+                tfrg_atomic64_store_relaxed(&m_BlockBytes[i], 0);
+                tfrg_atomic64_store_relaxed(&m_AllocationBytes[i], 0);
 				m_BlockBytesAtBudgetFetch[i] = 0;
 			}
 
@@ -3554,19 +3551,19 @@ namespace D3D12MA
 			m_D3D12UsageNonLocal = 0;
 			m_D3D12BudgetLocal = 0;
 			m_D3D12BudgetNonLocal = 0;
-			m_OperationsSinceBudgetFetch = 0;
+            tfrg_atomic32_store_relaxed(&m_OperationsSinceBudgetFetch, 0);
 		}
 
 		void AddAllocation(UINT heapTypeIndex, UINT64 allocationSize)
 		{
-			m_AllocationBytes[heapTypeIndex] += allocationSize;
-			++m_OperationsSinceBudgetFetch;
+            tfrg_atomic64_add_relaxed(&m_AllocationBytes[heapTypeIndex], allocationSize);
+            tfrg_atomic32_add_relaxed(&m_OperationsSinceBudgetFetch, 1);
 		}
 
 		void RemoveAllocation(UINT heapTypeIndex, UINT64 allocationSize)
 		{
-			m_AllocationBytes[heapTypeIndex] -= allocationSize;
-			++m_OperationsSinceBudgetFetch;
+            tfrg_atomic64_add_relaxed(&m_AllocationBytes[heapTypeIndex], -(LONG)allocationSize);
+            tfrg_atomic32_add_relaxed(&m_OperationsSinceBudgetFetch, 1);
 		}
 	};
 
@@ -3628,7 +3625,7 @@ namespace D3D12MA
 
 		void SetCurrentFrameIndex(UINT frameIndex);
 
-		UINT GetCurrentFrameIndex() const { return m_CurrentFrameIndex.load(); }
+		UINT GetCurrentFrameIndex() const { return tfrg_atomic32_load_relaxed(&m_CurrentFrameIndex); }
 
 		void CalculateStats(Stats& outStats);
 
@@ -4394,7 +4391,7 @@ namespace D3D12MA
 	{
 		if (m_Heap)
 		{
-			m_Allocator->m_Budget.m_BlockBytes[HeapTypeToIndex(m_HeapType)] -= m_Size;
+			tfrg_atomic64_add_relaxed(&m_Allocator->m_Budget.m_BlockBytes[HeapTypeToIndex(m_HeapType)], -(LONG)m_Size);
 			m_Heap->Release();
 		}
 	}
@@ -4416,7 +4413,7 @@ namespace D3D12MA
 		HRESULT hr = m_Allocator->GetDevice()->CreateHeap(&heapDesc, __uuidof(*m_Heap), (void**)&m_Heap);
 		if (SUCCEEDED(hr))
 		{
-			m_Allocator->m_Budget.m_BlockBytes[HeapTypeToIndex(m_HeapType)] += m_Size;
+            tfrg_atomic64_add_relaxed(&m_Allocator->m_Budget.m_BlockBytes[HeapTypeToIndex(m_HeapType)], m_Size);
 		}
 		return hr;
 	}
@@ -5329,6 +5326,17 @@ namespace D3D12MA
 		// CONFFX_END
 
 		D3D12_RESOURCE_DESC finalResourceDesc = *pResourceDesc;
+
+		// CONFFX_BEGIN - Xbox alignment fix
+#if defined(XBOX)
+		if (finalResourceDesc.Alignment != 0)
+		{
+			finalResourceDesc.Alignment = pResourceDesc->SampleDesc.Count > 1 ?
+				D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+		}
+#endif
+		// CONFFX_END
+
 		D3D12_RESOURCE_ALLOCATION_INFO resAllocInfo = GetResourceAllocationInfo(finalResourceDesc);
 		resAllocInfo.Alignment = D3D12MA_MAX<UINT64>(resAllocInfo.Alignment, D3D12MA_DEBUG_ALIGNMENT);
 
@@ -5672,7 +5680,7 @@ namespace D3D12MA
 
 			const UINT heapTypeIndex = HeapTypeToIndex(pAllocDesc->HeapType);
 			m_Budget.AddAllocation(heapTypeIndex, resAllocInfo.SizeInBytes);
-			m_Budget.m_BlockBytes[heapTypeIndex] += resAllocInfo.SizeInBytes;
+            tfrg_atomic64_add_relaxed(&m_Budget.m_BlockBytes[heapTypeIndex], resAllocInfo.SizeInBytes);
 		}
 		return hr;
 	}
@@ -5722,7 +5730,7 @@ namespace D3D12MA
 
 			const UINT heapTypeIndex = HeapTypeToIndex(pAllocDesc->HeapType);
 			m_Budget.AddAllocation(heapTypeIndex, allocInfo.SizeInBytes);
-			m_Budget.m_BlockBytes[heapTypeIndex] += allocInfo.SizeInBytes;
+            tfrg_atomic64_add_relaxed(&m_Budget.m_BlockBytes[heapTypeIndex], allocInfo.SizeInBytes);
 		}
 		return hr;
 	}
@@ -5907,7 +5915,7 @@ namespace D3D12MA
 		const UINT64 allocationSize = allocation->GetSize();
 		const UINT heapTypeIndex = HeapTypeToIndex(allocation->m_Committed.heapType);
 		m_Budget.RemoveAllocation(heapTypeIndex, allocationSize);
-		m_Budget.m_BlockBytes[heapTypeIndex] -= allocationSize;
+        tfrg_atomic64_add_relaxed(&m_Budget.m_BlockBytes[heapTypeIndex], -(LONG)allocationSize);
 	}
 
 	void AllocatorPimpl::FreePlacedMemory(Allocation* allocation)
@@ -5930,13 +5938,13 @@ namespace D3D12MA
 
 		const UINT heapTypeIndex = HeapTypeToIndex(allocation->m_Heap.heapType);
 		const UINT64 allocationSize = allocation->GetSize();
-		m_Budget.m_BlockBytes[heapTypeIndex] -= allocationSize;
+        tfrg_atomic64_add_relaxed(&m_Budget.m_BlockBytes[heapTypeIndex], -(LONG)allocationSize);
 		m_Budget.RemoveAllocation(heapTypeIndex, allocationSize);
 	}
 
 	void AllocatorPimpl::SetCurrentFrameIndex(UINT frameIndex)
 	{
-		m_CurrentFrameIndex.store(frameIndex);
+        tfrg_atomic32_store_relaxed(&m_CurrentFrameIndex, frameIndex);
 
 #if D3D12MA_DXGI_1_4
 		if (m_Adapter3)
@@ -6015,20 +6023,22 @@ namespace D3D12MA
 		if (outGpuBudget)
 		{
 			// Taking DEFAULT.
-			outGpuBudget->BlockBytes = m_Budget.m_BlockBytes[0];
-			outGpuBudget->AllocationBytes = m_Budget.m_AllocationBytes[0];
+			outGpuBudget->BlockBytes = tfrg_atomic64_load_relaxed(&m_Budget.m_BlockBytes[0]);
+			outGpuBudget->AllocationBytes = tfrg_atomic64_load_relaxed(&m_Budget.m_AllocationBytes[0]);
 		}
 		if (outCpuBudget)
 		{
 			// Taking UPLOAD + READBACK.
-			outCpuBudget->BlockBytes = m_Budget.m_BlockBytes[1] + m_Budget.m_BlockBytes[2];
-			outCpuBudget->AllocationBytes = m_Budget.m_AllocationBytes[1] + m_Budget.m_AllocationBytes[2];
+            outCpuBudget->BlockBytes = tfrg_atomic64_load_relaxed(&m_Budget.m_BlockBytes[1]);
+            outCpuBudget->BlockBytes = tfrg_atomic64_add_relaxed(&m_Budget.m_BlockBytes[2], outCpuBudget->BlockBytes);
+            outCpuBudget->AllocationBytes = tfrg_atomic64_load_relaxed(&m_Budget.m_AllocationBytes[1]);
+            outCpuBudget->AllocationBytes = tfrg_atomic64_add_relaxed(&m_Budget.m_AllocationBytes[2], outCpuBudget->AllocationBytes);
 		}
 
 #if D3D12MA_DXGI_1_4
 		if (m_Adapter3)
 		{
-			if (m_Budget.m_OperationsSinceBudgetFetch < 30)
+			if (tfrg_atomic64_load_relaxed(&m_Budget.m_OperationsSinceBudgetFetch) < 30)
 			{
 				MutexLockRead lockRead(m_Budget.m_BudgetMutex, m_UseMutex);
 				if (outGpuBudget)
@@ -6290,10 +6300,10 @@ namespace D3D12MA
 
 			for (UINT i = 0; i < HEAP_TYPE_COUNT; ++i)
 			{
-				m_Budget.m_BlockBytesAtBudgetFetch[i] = m_Budget.m_BlockBytes[i].load();
+				m_Budget.m_BlockBytesAtBudgetFetch[i] = tfrg_atomic64_load_relaxed(&m_Budget.m_BlockBytes[i]);
 			}
 
-			m_Budget.m_OperationsSinceBudgetFetch = 0;
+            tfrg_atomic64_store_relaxed(&m_Budget.m_OperationsSinceBudgetFetch, 0);
 		}
 
 		return FAILED(hrLocal) ? hrLocal : hrNonLocal;

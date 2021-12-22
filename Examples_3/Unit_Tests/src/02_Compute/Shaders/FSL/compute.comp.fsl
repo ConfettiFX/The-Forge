@@ -321,7 +321,7 @@ float4 QJulia(float3 rO,                // ray origin
 	bool renderShadows)           // flag for turning self-shadowing on/off
 {
 
-	const float4 backgroundColor = float4(0.3, 0.3, 0.3, 0);  //define the background color of the image
+	const float4 backgroundColor = float4(0.1, 0.1, 0.1, 0);  //define the background color of the image
 
 	float4 color;  // This color is the final output of our program.
 

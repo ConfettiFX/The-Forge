@@ -36,7 +36,7 @@ RES(RWTex2D(float), g_ray_lengths, UPDATE_FREQ_NONE, u6, binding = 8);
 RES(RWTex2D(float), g_temporal_variance, UPDATE_FREQ_NONE, u7, binding = 2);
 RES(RWTex2D(float4), g_denoised_reflections, UPDATE_FREQ_NONE, u8, binding = 10);
 
-#include "SSSR_Common.h"
+#include "SSSR_Common.h.fsl"
 
 GroupShared(uint, g_ray_count);
 GroupShared(uint, g_ray_base_index);

@@ -157,7 +157,7 @@ void FpsCameraController::update(float deltaTime)
 	//create rotation matrix
     mat4 vrRotation = mat4::identity();
 #if defined(QUEST_VR)
-        vrRotation.setUpper3x3(inverse(getHeadsetViewMatrix().getUpper3x3()));
+        vrRotation.setUpper3x3(inverse(pQuest->mViewMatrix.getUpper3x3()));
         viewRotation.setX(0.0f); // No rotation around the x axis when using vr
 #endif
 	mat4 rot = mat4::rotationYX(viewRotation.getY(), viewRotation.getX()) * vrRotation;
@@ -178,7 +178,7 @@ mat4 FpsCameraController::getViewMatrix() const
 {
 	mat4 r = mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY());
 #if defined(QUEST_VR)
-    mat4 vrViewMat = getHeadsetViewMatrix();
+    mat4 vrViewMat = pQuest->mViewMatrix;
     vrViewMat.setTranslation(vec3(0.0f));
     r = vrViewMat * r;
 #endif

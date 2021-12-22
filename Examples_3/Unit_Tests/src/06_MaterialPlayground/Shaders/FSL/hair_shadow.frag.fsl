@@ -46,7 +46,7 @@
 
 #define HAIR_SHADOW
 
-#include "hair.h"
+#include "hair.h.fsl"
 
 EARLY_FRAGMENT_TESTS
 void PS_MAIN( SV_SampleIndex(uint) _ )

@@ -127,9 +127,7 @@ struct GodrayInfo
 	float decay;
 	float density;
 	float weight;
-
 	float2 lightPosInSS;
-
 	uint NUM_SAMPLES;
 };
 
@@ -489,6 +487,7 @@ Shader*           pShaderAO[4 * MSAA_LEVELS_COUNT] = { nullptr };
 Pipeline*         pPipelineAO[4] = { nullptr };
 RootSignature*    pRootSignatureAO = nullptr;
 DescriptorSet*    pDescriptorSetAO = { NULL };
+uint32_t          gHDAORootConstantIndex = 0;
 /************************************************************************/
 // Resolve pipeline
 /************************************************************************/
@@ -524,9 +523,7 @@ Shader*           pGodRayPass = nullptr;
 Pipeline*         pPipelineGodRayPass = nullptr;
 RootSignature*    pRootSigGodRayPass = nullptr;
 DescriptorSet*    pDescriptorSetGodRayPass = NULL;
-#if defined(METAL)
-DescriptorSet*    pDescriptorSetGodRayPassSampler = NULL;
-#endif
+uint32_t          gGodRayRootConstantIndex = 0;
 Geometry*         pSun = NULL;
 /************************************************************************/
 // Curve Conversion pipeline
@@ -548,6 +545,7 @@ Shader*           pShaderPresentPass = nullptr;
 Pipeline*         pPipelinePresentPass = nullptr;
 RootSignature*    pRootSigPresentPass = nullptr;
 DescriptorSet*    pDescriptorSetPresentPass = { NULL };
+uint32_t          gSCurveRootConstantIndex = 0;
 /************************************************************************/
 // Render targets
 /************************************************************************/
@@ -624,6 +622,7 @@ Buffer*       pIndirectCommandBufferShadow[gImageCount] = { NULL };
 Buffer*       pIndirectCommandBufferCamera[gImageCount] = { NULL };
 Buffer*       pDrawIDBuffer = { NULL }; // temporary DrawId buffer to pass to ICB
 CommandSignature* pCmdSignatureICBOptimize = NULL;
+uint32_t gMaxDrawsRootConstantIndex = 0;
 #endif
 /************************************************************************/
 // Triangle filtering data
@@ -979,10 +978,16 @@ public:
 			TextureLoadDesc desc = {};
 			desc.pFileName = pScene->textures[i];
 			desc.ppTexture = &gDiffuseMapsStorage[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&desc, NULL);
+			desc = {};
+
 			desc.pFileName = pScene->normalMaps[i];
 			desc.ppTexture = &gNormalMapsStorage[i];
 			addResource(&desc, NULL);
+			desc = {};
+
 			desc.pFileName = pScene->specularMaps[i];
 			desc.ppTexture = &gSpecularMapsStorage[i];
 			addResource(&desc, NULL);
@@ -1052,6 +1057,7 @@ public:
 		aoRootDesc.ppStaticSamplers = &pSamplerPointClamp;
 		aoRootDesc.mStaticSamplerCount = 1;
 		addRootSignature(pRenderer, &aoRootDesc, &pRootSignatureAO);
+		gHDAORootConstantIndex = getDescriptorIndexFromName(pRootSignatureAO, "HDAORootConstants");
 
 		RootSignatureDesc resolveRootDesc = { pShaderResolve, MSAA_LEVELS_COUNT };
 		addRootSignature(pRenderer, &resolveRootDesc, &pRootSignatureResolve);
@@ -1085,6 +1091,7 @@ public:
 		godrayPassShaderRootSigDesc.ppStaticSamplerNames = pGodRayStaticSamplerNames;
 		godrayPassShaderRootSigDesc.ppStaticSamplers = &pSamplerBilinearClamp;
 		addRootSignature(pRenderer, &godrayPassShaderRootSigDesc, &pRootSigGodRayPass);
+		gGodRayRootConstantIndex = getDescriptorIndexFromName(pRootSigGodRayPass, "RootConstantGodrayInfo");
 
 		const char* pPresentStaticSamplerNames[] = { "uSampler0" };
 		RootSignatureDesc finalShaderRootSigDesc = { &pShaderPresentPass, 1 };
@@ -1092,6 +1099,7 @@ public:
 		finalShaderRootSigDesc.ppStaticSamplerNames = pPresentStaticSamplerNames;
 		finalShaderRootSigDesc.ppStaticSamplers = &pSamplerBilinear;
 		addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSigPresentPass);
+		gSCurveRootConstantIndex = getDescriptorIndexFromName(pRootSigPresentPass, "RootConstantSCurveInfo");
 
 		const char*       pSkyboxSamplerName = "skyboxSampler";
 		RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
@@ -1123,7 +1131,7 @@ public:
 #else
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].pName = "indirectRootConstant";
+		indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
 		indirectArgs[0].mByteSize = sizeof(uint32_t);
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 
@@ -1139,6 +1147,8 @@ public:
 		indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER_OPTIMIZE;
 		CommandSignatureDesc icbOptimizationPassDesc = { NULL, indirectArgs, 1 };
 		addIndirectCommandSignature(pRenderer, &icbOptimizationPassDesc, &pCmdSignatureICBOptimize);
+
+		gMaxDrawsRootConstantIndex = getDescriptorIndexFromName(pRootSignatureTriangleFiltering, "maxDrawsRootConstant");
 #endif
 
 		// Create geometry for light rendering
@@ -2814,10 +2824,6 @@ public:
 		setDesc = { pRootSigSunPass, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSunPass);
 		// God Ray
-#if defined(METAL)
-		setDesc = { pRootSigGodRayPass, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGodRayPassSampler);
-#endif
 		setDesc = { pRootSigGodRayPass, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 3 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGodRayPass);
 		// Curve Conversion
@@ -2861,20 +2867,16 @@ public:
 		removeDescriptorSet(pRenderer, pDescriptorSetLightClusters[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetTriangleFiltering[1]);
-#if defined(METAL)
-		removeDescriptorSet(pRenderer, pDescriptorSetGodRayPassSampler);
-#endif
 	}
 
 	void prepareDescriptorSets()
 	{
 		// Triangle Filtering
 		{
-			uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
 #if defined(METAL)
-            const uint32_t paramsCount = 10;
+            const uint32_t paramsCount = 9;
 #else
-            const uint32_t paramsCount = 5;
+            const uint32_t paramsCount = 4;
 #endif
 			DescriptorData filterParams[paramsCount] = {};
 			filterParams[0].pName = "vertexDataBuffer";
@@ -2885,23 +2887,20 @@ public:
 			filterParams[2].ppBuffers = &pMeshConstantsBuffer;
 			filterParams[3].pName = "materialProps";
 			filterParams[3].ppBuffers = &pMaterialPropertyBuffer;
-			filterParams[4].pName = "batchData_rootcbv";
-			filterParams[4].ppBuffers = &pFilterBatchDataBuffer->pBuffer;
-			filterParams[4].pSizes = &size;
 #if defined(METAL)
             // icb data
-            filterParams[5].pName = "vertexTexCoord";
-            filterParams[5].ppBuffers = &pGeom->pVertexBuffers[1];
-            filterParams[6].pName = "vertexTangent";
-            filterParams[6].ppBuffers = &pGeom->pVertexBuffers[3];
-            filterParams[7].pName = "vertexNormal";
-            filterParams[7].ppBuffers = &pGeom->pVertexBuffers[2];
-            filterParams[8].pName = "drawIDs";
-            filterParams[8].ppBuffers = &pDrawIDBuffer;
-            filterParams[9].pName = "texturesArgBuffer";
-            filterParams[9].mExtractBuffer = true;
-            filterParams[9].ppDescriptorSet = &pDescriptorSetDeferredPass[0];
-            filterParams[9].mDescriptorSetBufferIndex = 0;
+            filterParams[4].pName = "vertexTexCoord";
+            filterParams[4].ppBuffers = &pGeom->pVertexBuffers[1];
+            filterParams[5].pName = "vertexTangent";
+            filterParams[5].ppBuffers = &pGeom->pVertexBuffers[3];
+            filterParams[6].pName = "vertexNormal";
+            filterParams[6].ppBuffers = &pGeom->pVertexBuffers[2];
+            filterParams[7].pName = "drawIDs";
+            filterParams[7].ppBuffers = &pDrawIDBuffer;
+            filterParams[8].pName = "texturesArgBuffer";
+            filterParams[8].mExtractBuffer = true;
+            filterParams[8].ppDescriptorSet = &pDescriptorSetDeferredPass[0];
+            filterParams[8].mDescriptorSetBufferIndex = 0;
 #endif
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount, filterParams);
             
@@ -3260,7 +3259,7 @@ public:
 		if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 			swapChainDesc.mColorFormat = TinyImageFormat_R10G10B10A2_UNORM;
 		else
-			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(false, true);
 
 		swapChainDesc.mColorClearValue = {{1, 1, 1, 1}};
 		swapChainDesc.mEnableVsync = false;
@@ -3346,10 +3345,13 @@ public:
 		deferredRTDesc.mSampleQuality = 0;
 		deferredRTDesc.mWidth = width;
 		deferredRTDesc.pName = "G-Buffer RTs";
+
+		const size_t maxNameBufferLength = 64;
+		static char namebuffers[DEFERRED_RT_COUNT][maxNameBufferLength];
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
-			char namebuf[64];
-			snprintf(namebuf, sizeof(namebuf), "G-Buffer RT %u of %u", i + 1, DEFERRED_RT_COUNT);
+			char * namebuf = namebuffers[i];
+			snprintf(namebuf, maxNameBufferLength, "G-Buffer RT %u of %u", i + 1, DEFERRED_RT_COUNT);
 			deferredRTDesc.pName = namebuf;
 			addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[i]);
 		}
@@ -3361,7 +3363,7 @@ public:
 		msaaRTDesc.mClearValue = optimizedColorClearBlack;
 		msaaRTDesc.mDepth = 1;
 		msaaRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		msaaRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		msaaRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? getRecommendedSwapchainFormat(false, true) : TinyImageFormat_R10G10B10A2_UNORM;
 		msaaRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = gAppSettings.mMsaaLevel;
@@ -3401,7 +3403,7 @@ public:
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		postProcRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		postProcRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? getRecommendedSwapchainFormat(false, true) : TinyImageFormat_R10G10B10A2_UNORM;
 		postProcRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
@@ -3440,7 +3442,7 @@ public:
 		GRRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 1.0f}};
 		GRRTDesc.mDepth = 1;
 		GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		GRRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		GRRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? getRecommendedSwapchainFormat(false, true) : TinyImageFormat_R10G10B10A2_UNORM;
 		GRRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		GRRTDesc.mHeight = mSettings.mHeight;
 		GRRTDesc.mWidth = mSettings.mWidth;
@@ -4720,7 +4722,7 @@ public:
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetAO, NULL, NULL, NULL, NULL, -1, -1);
 		cmdBindPipeline(cmd, pPipelineAO[gAppSettings.mAOQuality - 1]);
-		cmdBindPushConstants(cmd, pRootSignatureAO, "HDAORootConstants", &data);
+		cmdBindPushConstants(cmd, pRootSignatureAO, gHDAORootConstantIndex, &data);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetAO);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -4794,15 +4796,12 @@ public:
 		if (batchChunk->currentBatchCount == 0)
 			return;
 
-		uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
-		
+		DescriptorDataRange range = { (uint32_t)offset, BATCH_COUNT * sizeof(SmallBatchData) };
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData_rootcbv";
-		params[0].pOffsets = &offset;
-		params[0].pSizes = &size;
+		params[0].pRanges = &range;
 		params[0].ppBuffers = &pBuffer;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 1, params);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
+		cmdBindDescriptorSetWithRootCbvs(cmd, 0, pDescriptorSetTriangleFiltering[0], 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
 		// Reset batch chunk to start adding triangles to it
@@ -4948,7 +4947,7 @@ public:
         
         cmdBindDescriptorSet(cmd, frameIdx * gNumStages + x, pDescriptorSetTriangleFiltering[1]);
 
-		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, "maxDrawsRootConstant", &gPerFrame[frameIdx].gDrawCount[0]);
+		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, gMaxDrawsRootConstantIndex, &gPerFrame[frameIdx].gDrawCount[0]);
         cmdDispatch(cmd, 1, 1, 1);
         
         // optimization pass for ICB, remove all empty commands from buffers
@@ -5441,10 +5440,12 @@ public:
 			uint textureSize;
 		} data = { 0, gSkyboxSize };
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pPanoToCubeRootSignature, "RootConstant");
+
 		for (uint32_t i = 0; i < gSkyboxMips; i++)
 		{
 			data.mip = i;
-			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, "RootConstant", &data);
+			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, rootConstantIndex, &data);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pSkybox;
 			params[0].mUAVMipSlice = i;
@@ -5568,11 +5569,8 @@ public:
 		cmdSetScissor(cmd, 0, 0, pRenderTargetGodRay[0]->mWidth, pRenderTargetGodRay[0]->mHeight);
 
 		cmdBindPipeline(cmd, pPipelineGodRayPass);
-		cmdBindPushConstants(cmd, pRootSigGodRayPass, "RootConstantGodrayInfo", &gPerFrame[frameIdx].gGodrayInfo);
+		cmdBindPushConstants(cmd, pRootSigGodRayPass, gGodRayRootConstantIndex, &gPerFrame[frameIdx].gGodrayInfo);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetGodRayPass);
-#if defined(METAL)
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetGodRayPassSampler);
-#endif
 		cmdDraw(cmd, 3, 0);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -5597,8 +5595,7 @@ public:
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 			cmdBindPipeline(cmd, pPipelineGodRayPass);
 #if defined(METAL)
-			cmdBindPushConstants(cmd, pRootSigGodRayPass, "RootConstantGodrayInfo", &gPerFrame[frameIdx].gGodrayInfo);
-			cmdBindDescriptorSet(cmd, 0, pDescriptorSetGodRayPassSampler);
+			cmdBindPushConstants(cmd, pRootSigGodRayPass, gGodRayRootConstantIndex, &gPerFrame[frameIdx].gGodrayInfo);
 #endif
 #endif
 			cmdBindDescriptorSet(cmd, 1 + (loop & 0x1), pDescriptorSetGodRayPass);
@@ -5657,7 +5654,7 @@ public:
 		cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
 		cmdBindPipeline(cmd, pPipelinePresentPass);
-		cmdBindPushConstants(cmd, pRootSigPresentPass, "RootConstantSCurveInfo", &gSCurveInfomation);
+		cmdBindPushConstants(cmd, pRootSigPresentPass, gSCurveRootConstantIndex, &gSCurveInfomation);
 		cmdBindDescriptorSet(cmd, gAppSettings.mEnableGodray ? 1 : 0, pDescriptorSetPresentPass);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);

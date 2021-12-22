@@ -220,7 +220,7 @@ typedef struct CheckboxWidget
 typedef struct OneLineCheckboxWidget
 {
 	bool*	 pData	 = NULL;
-	uint32_t mColor  = 0;
+	float4   mColor  = float4(0.f, 0.f, 0.f, 0.f);
 }OneLineCheckboxWidget;
 
 typedef struct CursorLocationWidget
@@ -249,7 +249,7 @@ typedef struct ProgressBarWidget
 
 typedef struct ColorSliderWidget
 {
-	uint32_t* pData = NULL;
+	float4* pData = NULL;
 }ColorSliderWidget;
 
 typedef struct HistogramWidget
@@ -274,7 +274,7 @@ typedef struct PlotLinesWidget
 
 typedef struct ColorPickerWidget
 {
-	uint32_t* pData = NULL;
+	float4* pData = NULL;
 }ColorPickerWidget;
 
 typedef struct TextboxWidget
@@ -295,13 +295,13 @@ typedef struct FilledRectWidget
 {
 	float2	 mPos	 = float2(0.f, 0.f);
 	float2	 mScale	 = float2(0.f, 0.f);
-	uint32_t mColor  = 0;
+	float4   mColor  = float4(0.f, 0.f, 0.f, 0.f);
 }FilledRectWidget;
 
 typedef struct DrawTextWidget
 {
 	float2	 mPos	 = float2(0.f, 0.f);
-	uint32_t mColor	 = 0;
+	float4   mColor	 = float4(0.f, 0.f, 0.f, 0.f);
 }DrawTextWidget;
 
 typedef struct DrawTooltipWidget
@@ -314,7 +314,7 @@ typedef struct DrawLineWidget
 {
 	float2	 mPos1		= float2(0.f, 0.f);
 	float2	 mPos2		= float2(0.f, 0.f);
-	uint32_t mColor		= 0;
+	float4   mColor		= float4(0.f, 0.f, 0.f, 0.f);
 	bool	 mAddItem	= false;
 }DrawLineWidget;
 
@@ -323,7 +323,7 @@ typedef struct DrawCurveWidget
 	float2*  mPos		 = NULL;
 	uint32_t mNumPoints  = 0;
 	float	 mThickness	 = 0.f;
-	uint32_t mColor		 = 0;
+	float4	 mColor		 = float4(0.f, 0.f, 0.f, 0.f);
 }DrawCurveWidget;
 
 /****************************************************************************/

@@ -25,6 +25,8 @@ freely, subject to the following restrictions:
 #ifndef SOLOUD_H
 #define SOLOUD_H
 
+#include "../../../../OS/Core/Config.h"
+
 // Define backends depending on target platform //
 #ifdef _WIN32
 #if defined(XBOX)
@@ -38,6 +40,10 @@ freely, subject to the following restrictions:
 #define WITH_OPENSLES
 #elif __linux__
 #define WITH_ALSA
+#elif defined(ORBIS)
+#define WITH_ORBIS
+#elif defined(PROSPERO)
+#define WITH_PROSPERO
 #endif
 //////////////////////////////////////////////////
 
@@ -191,6 +197,8 @@ namespace SoLoud
 			OPENSLES,
 			VITA_HOMEBREW,
 			NULLDRIVER,
+			ORBIS_AU,
+			PROSPERO_AU,
 			BACKEND_MAX,
 		};
 

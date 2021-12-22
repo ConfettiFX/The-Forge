@@ -67,7 +67,7 @@ extern HRESULT hook_create_special_resource(
 	ID3D12Resource** ppOutResource);
 //HRESULT create_swap_chain(struct Renderer* pRenderer, struct SwapChain* pSwapChain, DXGI_SWAP_CHAIN_DESC1* desc, IDXGISwapChain1** swapchain);
 
-extern TinyImageFormat hook_get_recommended_swapchain_format(bool hintHDR);
+extern TinyImageFormat hook_get_recommended_swapchain_format(bool hintHDR, bool hintSRGB);
 extern uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain);
 extern HRESULT hook_acquire_next_image(ID3D12Device* pDevice, SwapChain* pSwapChain);
 extern HRESULT hook_queue_present(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex);

@@ -245,7 +245,7 @@ def setUBOConversion(elem_dtype, ubo_name, float_offset, float_stride, is_array,
 
 def gles(fsl, dst):
 
-    shader = getShader(fsl, dst)
+    shader = getShader(fsl, dst, line_directives=False)
 
     #Only vertex and fragment shaders are valid for OpenGL ES 2.0
     if shader.stage != Stages.VERT and shader.stage != Stages.FRAG:
@@ -257,10 +257,9 @@ def gles(fsl, dst):
     shader_src += ['#define STAGE_', shader.stage.name, '\n']
     shader_src += ['#define GLES\n']
 
-    incPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'gles.h')
-    glesInclude = open(incPath)
-    shader_src += glesInclude.read()
-    glesInclude.close()
+    header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'gles.h')
+    header_lines = open(header_path).readlines()
+    shader_src += header_lines + ['\n']
 
     if True or not os.path.exists(dst):
         os.makedirs(os.path.dirname(dst), exist_ok=True)

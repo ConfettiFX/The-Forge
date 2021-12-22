@@ -412,6 +412,7 @@ Shader*        pGenerateMipShader = NULL;
 RootSignature* pGenerateMipRootSignature = NULL;
 Pipeline*      pGenerateMipPipeline = NULL;
 DescriptorSet* pDescriptorGenerateMip = NULL;
+uint32_t       gMipSizeRootConstantIndex = 0;
 
 Shader*        pSPDShader = NULL;
 RootSignature* pSPDRootSignature = NULL;
@@ -489,6 +490,7 @@ Shader*        pShaderGbuffers = NULL;
 Pipeline*      pPipelineGbuffers = NULL;
 RootSignature* pRootSigGbuffers = NULL;
 DescriptorSet* pDescriptorSetGbuffers[3] = { NULL };
+uint32_t       gMapIDRootConstantIndex = 0;
 
 Texture* pSkybox = NULL;
 Texture* pBRDFIntegrationMap = NULL;
@@ -747,6 +749,7 @@ class ScreenSpaceReflections: public IApp
 			gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
 		}
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
+		gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSigGbuffers, "cbTextureRootConstants");
 
 		ShaderLoadDesc skyboxShaderDesc = {};
 		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
@@ -839,6 +842,7 @@ class ScreenSpaceReflections: public IApp
 
 			RootSignatureDesc GenerateMipShaderDescRootDesc = { &pGenerateMipShader, 1 };
 			addRootSignature(pRenderer, &GenerateMipShaderDescRootDesc, &pGenerateMipRootSignature);
+			gMipSizeRootConstantIndex = getDescriptorIndexFromName(pGenerateMipRootSignature, "RootConstant");
 
 			// SSSR
 			ShaderLoadDesc SSSR_ClassifyTilesShaderDesc = {};
@@ -1349,7 +1353,7 @@ class ScreenSpaceReflections: public IApp
 #if !defined(TARGET_IOS)
 		OneLineCheckboxWidget vSyncCheckbox;
 		vSyncCheckbox.pData = &gToggleVSync;
-		vSyncCheckbox.mColor = 0xFFFFFFFF;
+		vSyncCheckbox.mColor = float4(1.f);
 		luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
 #endif
 		DropdownWidget ddRenderMode;
@@ -1406,11 +1410,11 @@ class ScreenSpaceReflections: public IApp
 		{
 			OneLineCheckboxWidget olCheckbox;
 			olCheckbox.pData = &gUseSPD;
-			olCheckbox.mColor = 0xFFFFFFFF;
+			olCheckbox.mColor = float4(1.f);
 			luaRegisterWidget(uiCreateDynamicWidgets(&SSSR_Widgets, "Use Singlepass Downsampler", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
 
 			olCheckbox.pData = &gSSSR_SkipDenoiser;
-			olCheckbox.mColor = 0xFFFFFFFF;
+			olCheckbox.mColor = float4(1.f);
 			luaRegisterWidget(uiCreateDynamicWidgets(&SSSR_Widgets, "Show Intersection Results", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
 
 			SliderUintWidget uintSlider;
@@ -1446,7 +1450,7 @@ class ScreenSpaceReflections: public IApp
 			luaRegisterWidget(uiCreateDynamicWidgets(&SSSR_Widgets, "Temporal Stability", &floatSlider, WIDGET_TYPE_SLIDER_FLOAT));
 
 			olCheckbox.pData = &gSSSR_TemporalVarianceEnabled;
-			olCheckbox.mColor = 0xFFFFFFFF;
+			olCheckbox.mColor = float4(1.f);
 			luaRegisterWidget(uiCreateDynamicWidgets(&SSSR_Widgets, "Enable Variance Guided Tracing", &olCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
 
 			RadioButtonWidget radiobutton;
@@ -2002,7 +2006,7 @@ class ScreenSpaceReflections: public IApp
 		for (uint32_t i = 0; i < gSkyboxMips; ++i)
 		{
 			rootConstantData.mip = i;
-			cmdBindPushConstants(pCmd, pPanoToCubeRootSignature, "RootConstant", &rootConstantData);
+			cmdBindPushConstants(pCmd, pPanoToCubeRootSignature, getDescriptorIndexFromName(pPanoToCubeRootSignature, "RootConstant"), &rootConstantData);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pSkybox;
 			params[0].mUAVMipSlice = i;
@@ -2052,7 +2056,7 @@ class ScreenSpaceReflections: public IApp
 			PrecomputeSkySpecularData data = {};
 			data.roughness = (float)i / (float)(gSpecularMips - 1);
 			data.mipSize = gSpecularSize >> i;
-			cmdBindPushConstants(pCmd, pSpecularRootSignature, "RootConstant", &data);
+			cmdBindPushConstants(pCmd, pSpecularRootSignature, getDescriptorIndexFromName(pSpecularRootSignature, "RootConstant"), &data);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pSpecularMap;
 			params[0].mUAVMipSlice = i;
@@ -2109,6 +2113,7 @@ class ScreenSpaceReflections: public IApp
 		loadDesc.pFileName = gModelNames[index];
 		loadDesc.ppGeometry = &gModels[index];
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 		addResource(&loadDesc, &gResourceSyncToken);
 	}
 
@@ -2117,6 +2122,11 @@ class ScreenSpaceReflections: public IApp
 		TextureLoadDesc textureDesc = {};
 		textureDesc.pFileName = pMaterialImageFileNames[index];
 		textureDesc.ppTexture = &pMaterialTextures[index];
+		if (strstr(pMaterialImageFileNames[index], "Albedo") || strstr(pMaterialImageFileNames[index], "diffuse"))
+		{
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+		}
 		addResource(&textureDesc, &gResourceSyncToken);
 	}
 
@@ -2789,7 +2799,7 @@ class ScreenSpaceReflections: public IApp
 									   ((gSponzaTextureIndexforMaterial[materialID + 2] & 0xFF) << 16) |
 									   ((gSponzaTextureIndexforMaterial[materialID + 3] & 0xFF) << 24);
 
-					cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
+					cmdBindPushConstants(cmd, pRootSigGbuffers, gMapIDRootConstantIndex, &data);
 					IndirectDrawIndexArguments& cmdData = sponzaMesh.pDrawArgs[i];
 					cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
 				}
@@ -2824,7 +2834,7 @@ class ScreenSpaceReflections: public IApp
 			{
 				data.textureMaps = ((81 & 0xFF) << 0) | ((83 & 0xFF) << 8) | ((6 & 0xFF) << 16) | ((6 & 0xFF) << 24);
 
-				cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
+				cmdBindPushConstants(cmd, pRootSigGbuffers, gMapIDRootConstantIndex, &data);
 			}
 
 			cmdBindDescriptorSet(cmd, 1, pDescriptorSetGbuffers[2]);
@@ -2955,7 +2965,7 @@ class ScreenSpaceReflections: public IApp
 					mipSizeX >>= 1;
 					mipSizeY >>= 1;
 					uint mipSize[2] = { mipSizeX, mipSizeY };
-					cmdBindPushConstants(cmd, pGenerateMipRootSignature, "RootConstant", mipSize);
+					cmdBindPushConstants(cmd, pGenerateMipRootSignature, gMipSizeRootConstantIndex, mipSize);
 					cmdBindDescriptorSet(cmd, i - 1, pDescriptorGenerateMip);
 					textureBarriers[0] = { pSSSR_DepthHierarchy, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
@@ -3542,7 +3552,7 @@ class ScreenSpaceReflections: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
@@ -3622,7 +3632,7 @@ class ScreenSpaceReflections: public IApp
 			else if (i == 3)
 				deferredRTDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
 			else
-				deferredRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+				deferredRTDesc.mFormat = getRecommendedSwapchainFormat(true, true);
 
 			if (i == 2)
 				deferredRTDesc.mClearValue = { { 1.0f, 0.0f, 0.0f, 0.0f } };

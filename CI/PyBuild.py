@@ -1723,9 +1723,7 @@ def TestAndroidProjects(benchmarkFrames, quest):
 		apkName = proj.split(os.sep)[-1]
 		filenameNoExt = apkName.split('.')[0]
 		fullAppName = "com.forge.unittest." + filenameNoExt
-		nativeActivity = "/android.app.NativeActivity"
-		if filenameNoExt in lowEndExamples:
-			nativeActivity = "/.NativeDebug"
+		nativeActivity = "/com.forge.unittest.ForgeBaseActivity"
 		#change working directory to sln file
 		os.chdir(rootPath)
 		#origFilename = filename
@@ -1825,7 +1823,7 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 	androidConfigurations = ["Debug", "Release"]
-	androidPlatform = ["ARM64"] # We don't test ARM platform
+	androidPlatform = ["Android-arm64-v8a"] # We don't test ARM platform
 
 	if skipDebug:
 		androidConfigurations.remove("Debug")
@@ -2655,7 +2653,7 @@ def MainLogic():
 		if arguments.clean == True:
 			print("Cleaning the repo")
 			os.environ["GIT_ASK_YESNO"] = "false"
-			ExecuteCommand(["git", "clean" , "--exclude=Art","--exclude=/**/OpenSource/*", "-fdx"],sys.stdout)
+			ExecuteCommand(["git", "clean" , "--exclude=Art","--exclude=/**/OpenSource/*", "--exclude=/**/Android-arm64-v8a/**", "-fdx"],sys.stdout)
 			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git clean -fdfx"], sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":

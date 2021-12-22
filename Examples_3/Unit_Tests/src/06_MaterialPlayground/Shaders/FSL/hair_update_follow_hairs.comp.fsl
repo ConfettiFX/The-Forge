@@ -44,7 +44,7 @@
 *THE SOFTWARE.
 */
 
-#include "hair.comp.h"
+#include "hair.comp.h.fsl"
 
 NUM_THREADS(THREAD_GROUP_SIZE, 1, 1)
 void CS_MAIN( SV_GroupIndex(uint) groupIndex, SV_GroupID(uint3) groupID )

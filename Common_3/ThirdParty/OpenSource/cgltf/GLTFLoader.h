@@ -136,9 +136,22 @@ typedef struct GLTFMesh
 	void*    pAttributes[GLTF_ATTRIBUTE_TYPE_COUNT];
 } GLTFMesh;
 
+typedef enum GLTFImageUsage
+{
+	GLTF_IMAGE_USAGE_NONE = 0u,
+	GLTF_IMAGE_USAGE_BASE_COLOR = 1u << 0u,
+	GLTF_IMAGE_USAGE_METALLIC_ROUGHNESS = 1u << 1u,
+	GLTF_IMAGE_USAGE_DIFFUSE = 1u << 2u,
+	GLTF_IMAGE_USAGE_SPECULAR_GLOSSINESS = 1u << 3u,
+	GLTF_IMAGE_USAGE_NORMAL = 1u << 4u,
+	GLTF_IMAGE_USAGE_OCCLUSION = 1u << 5u,
+	GLTF_IMAGE_USAGE_EMISSIVE = 1u << 6u,
+}GLTFImageUsage;
+
 typedef struct GLTFContainer
 {
 	cgltf_data*                 pHandle;
+	GLTFImageUsage*				pImageUsage;     // image usage flags for each image in pHandle->images
 	GLTFMaterial*               pMaterials;
 	uint32_t*                   pMaterialIndices;
 	SamplerDesc*                pSamplers;
@@ -153,11 +166,28 @@ typedef struct GLTFContainer
 	uint32_t                    mIndexCount;
 	uint32_t                    mVertexCount;
 	uint32_t                    mPadA;
-	uint32_t                    mPadB;
 } GLTFContainer;
 static_assert(sizeof(GLTFContainer) % 16 == 0, "GLTFContainer size must be a multiple of 16");
 
-static void gltfGetTextureView(const cgltf_data* scene, GLTFTextureView* textureView, cgltf_texture_view* sourceView)
+// Adds image usage flag for given image
+static void addImageUsage(const cgltf_data* pScene, const cgltf_texture_view* pTextureView, GLTFImageUsage flag, GLTFImageUsage* pOut)
+{
+	ASSERT(pScene);
+	if (!pTextureView || !pTextureView->texture || !pTextureView->texture->image)
+		return;
+
+	ASSERT(pOut);
+
+	const cgltf_image* pImage = pTextureView->texture->image;
+
+	ptrdiff_t imageId = pImage - pScene->images;
+	ASSERT(imageId >= 0 && (size_t)imageId < pScene->images_count);
+
+	pOut[imageId] = (GLTFImageUsage)(pOut[imageId] | flag);
+	
+}
+
+static void gltfGetTextureView(const cgltf_data* scene, GLTFTextureView* textureView, const cgltf_texture_view* sourceView)
 {
 	if (sourceView->texture)
 	{
@@ -376,6 +406,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 	uint32_t drawCount = 0;
 	uint32_t nodeCount = (uint32_t)data->nodes_count;
 	uint32_t skinCount = (uint32_t)data->skins_count;
+	uint32_t imageCount = (uint32_t)data->images_count;
 	uint32_t materialCount = (uint32_t)data->materials_count;
 	uint32_t samplerCount = (uint32_t)data->samplers_count;
 	uint32_t strides[cgltf_attribute_type_weights + 1] = {};
@@ -407,6 +438,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 #define ALIGN_16(s)(round_up((s), 16))
 
 	totalSize += ALIGN_16(sizeof(GLTFContainer)); // GLTFContainer
+	totalSize += ALIGN_16(imageCount * sizeof(GLTFImageUsage));  // Image usage
 	totalSize += ALIGN_16(materialCount * sizeof(GLTFMaterial)); // Materials
 	totalSize += ALIGN_16(drawCount * sizeof(uint32_t));         // Material indices
 	totalSize += ALIGN_16(samplerCount * sizeof(SamplerDesc));
@@ -442,7 +474,8 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 	ASSERT(pGLTF);
 
 	pGLTF->pHandle = data;
-	pGLTF->pMaterials = (GLTFMaterial*)(pGLTF + 1);
+	pGLTF->pImageUsage = (GLTFImageUsage*)(pGLTF + 1);
+	pGLTF->pMaterials = (GLTFMaterial*)((uint8_t*)pGLTF->pImageUsage + ALIGN_16(imageCount * sizeof(GLTFImageUsage)));
 	pGLTF->pMaterialIndices = (uint32_t*)((uint8_t*)pGLTF->pMaterials + ALIGN_16(materialCount * sizeof(GLTFMaterial)));
 	pGLTF->pSamplers = (SamplerDesc*)((uint8_t*)pGLTF->pMaterialIndices + ALIGN_16(drawCount * sizeof(uint32_t)));
 	pGLTF->pMeshes = (GLTFMesh*)((uint8_t*)pGLTF->pSamplers + ALIGN_16(samplerCount * sizeof(SamplerDesc)));
@@ -663,7 +696,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 		pGLTF->pSamplers[i] = convertCGLTFSamplerToSamplerDesc(*sourceSampler);
 	}
 
-	// Collect materials
+	// Collect materials and image usage
 	for (uint32_t i = 0; i < data->materials_count; ++i)
 	{
 		cgltf_material* sourceMaterial = &data->materials[i];
@@ -678,6 +711,9 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 
 			gltfGetTextureView(data, &pOutMaterial->mSpecularGlossiness.mDiffuseTexture, &sourceMaterial->pbr_specular_glossiness.diffuse_texture);
 			gltfGetTextureView(data, &pOutMaterial->mSpecularGlossiness.mSpecularGlossinessTexture, &sourceMaterial->pbr_specular_glossiness.specular_glossiness_texture);
+			
+			addImageUsage(data, &sourceMaterial->pbr_specular_glossiness.diffuse_texture, GLTF_IMAGE_USAGE_DIFFUSE, pGLTF->pImageUsage);
+			addImageUsage(data, &sourceMaterial->pbr_specular_glossiness.specular_glossiness_texture, GLTF_IMAGE_USAGE_SPECULAR_GLOSSINESS, pGLTF->pImageUsage);
 
 			pOutMaterial->mSpecularGlossiness.mDiffuseFactor = float4(sourceMaterial->pbr_specular_glossiness.diffuse_factor);
 			pOutMaterial->mSpecularGlossiness.mSpecularFactor = float3(sourceMaterial->pbr_specular_glossiness.specular_factor);
@@ -689,6 +725,9 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 
 			gltfGetTextureView(data, &pOutMaterial->mMetallicRoughness.mBaseColorTexture, &sourceMaterial->pbr_metallic_roughness.base_color_texture);
 			gltfGetTextureView(data, &pOutMaterial->mMetallicRoughness.mMetallicRoughnessTexture, &sourceMaterial->pbr_metallic_roughness.metallic_roughness_texture);
+			
+			addImageUsage(data, &sourceMaterial->pbr_metallic_roughness.base_color_texture, GLTF_IMAGE_USAGE_BASE_COLOR, pGLTF->pImageUsage);
+			addImageUsage(data, &sourceMaterial->pbr_metallic_roughness.metallic_roughness_texture, GLTF_IMAGE_USAGE_METALLIC_ROUGHNESS, pGLTF->pImageUsage);
 
 			pOutMaterial->mMetallicRoughness.mBaseColorFactor = float4(sourceMaterial->pbr_metallic_roughness.base_color_factor);
 			pOutMaterial->mMetallicRoughness.mMetallicFactor = sourceMaterial->pbr_metallic_roughness.metallic_factor;
@@ -698,6 +737,10 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 		gltfGetTextureView(data, &pOutMaterial->mNormalTexture, &sourceMaterial->normal_texture);
 		gltfGetTextureView(data, &pOutMaterial->mOcclusionTexture, &sourceMaterial->occlusion_texture);
 		gltfGetTextureView(data, &pOutMaterial->mEmissiveTexture, &sourceMaterial->emissive_texture);
+
+		addImageUsage(data, &sourceMaterial->normal_texture, GLTF_IMAGE_USAGE_NORMAL, pGLTF->pImageUsage);
+		addImageUsage(data, &sourceMaterial->occlusion_texture, GLTF_IMAGE_USAGE_OCCLUSION, pGLTF->pImageUsage);
+		addImageUsage(data, &sourceMaterial->emissive_texture, GLTF_IMAGE_USAGE_EMISSIVE, pGLTF->pImageUsage);
 
 		pOutMaterial->mEmissiveFactor = float3(sourceMaterial->emissive_factor);
 

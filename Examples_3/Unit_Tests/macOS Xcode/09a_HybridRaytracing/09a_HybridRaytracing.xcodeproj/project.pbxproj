@@ -53,7 +53,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97E9420B25BF45BF009F2F2B /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -66,7 +66,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -116,14 +116,14 @@
 		650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		97E9420C25BF45F4009F2F2B /* gbufferPass.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = gbufferPass.frag.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.frag.fsl; sourceTree = "<group>"; };
-		97E9420D25BF45F4009F2F2B /* raytracingCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = raytracingCommon.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/raytracingCommon.h; sourceTree = "<group>"; };
-		97E9420E25BF45F4009F2F2B /* gbuffer_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gbuffer_resources.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbuffer_resources.h; sourceTree = "<group>"; };
+		97E9420D25BF45F4009F2F2B /* raytracingCommon.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = raytracingCommon.h.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/raytracingCommon.h.fsl; sourceTree = "<group>"; };
+		97E9420E25BF45F4009F2F2B /* gbuffer_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gbuffer_resources.h.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbuffer_resources.h.fsl; sourceTree = "<group>"; };
 		97E9420F25BF45F4009F2F2B /* display.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.frag.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/display.frag.fsl; sourceTree = "<group>"; };
 		97E9421025BF45F4009F2F2B /* compositePass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = compositePass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/compositePass.comp.fsl; sourceTree = "<group>"; };
 		97E9421125BF45F4009F2F2B /* gbufferPass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = gbufferPass.vert.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/gbufferPass.vert.fsl; sourceTree = "<group>"; };
 		97E9421225BF45F4009F2F2B /* lightingPass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lightingPass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/lightingPass.comp.fsl; sourceTree = "<group>"; };
 		97E9421325BF45F4009F2F2B /* display.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.vert.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/display.vert.fsl; sourceTree = "<group>"; };
-		97E9421425BF45F4009F2F2B /* compute_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = compute_resources.h; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/compute_resources.h; sourceTree = "<group>"; };
+		97E9421425BF45F4009F2F2B /* compute_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = compute_resources.h.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/compute_resources.h.fsl; sourceTree = "<group>"; };
 		97E9421525BF45F4009F2F2B /* raytracedShadowsPass.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = raytracedShadowsPass.comp.fsl; path = ../../../src/09a_HybridRaytracing/Shaders/FSL/raytracedShadowsPass.comp.fsl; sourceTree = "<group>"; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };

@@ -41,9 +41,12 @@
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\computeIrradianceMap.comp.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\computeSpecularMap.comp.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\fullscreen.vert.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\hair.comp.h.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\hair.h.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\panoToCube.comp.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF.frag.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF.vert.fsl" />
+    <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF_resources.h.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.frag.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.vert.fsl" />
     <FSLShader Include="..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.frag.fsl" />

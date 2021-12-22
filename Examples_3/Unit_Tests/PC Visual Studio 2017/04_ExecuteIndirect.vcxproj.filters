@@ -50,9 +50,6 @@
     <ClInclude Include="..\..\..\Middleware_3\PaniniProjection\Panini.h">
       <Filter>Panini</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h">
-      <Filter>Shaders\FSL</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ExecuteIndirect.frag.fsl">
@@ -74,6 +71,9 @@
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ComputeUpdate.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

@@ -20,9 +20,7 @@
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl" />
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\03_MultiThread\Shaders\FSL\resources.h" />
+    <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{50434FC0-BDB1-4AC6-9A49-ABB92E7CBB13}</ProjectGuid>

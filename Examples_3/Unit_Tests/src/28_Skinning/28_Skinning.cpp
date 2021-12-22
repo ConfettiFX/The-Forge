@@ -480,6 +480,8 @@ class Skinning: public IApp
 		TextureLoadDesc diffuseTextureDesc = {};
 		diffuseTextureDesc.pFileName = gDiffuseTexture;
 		diffuseTextureDesc.ppTexture = &pTextureDiffuse;
+		// Textures representing color should be stored in SRGB or HDR format
+		diffuseTextureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&diffuseTextureDesc, NULL);
 		/************************************************************************/
 
@@ -1078,8 +1080,8 @@ class Skinning: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mColorClearValue = { { 0.39f, 0.41f, 0.37f, 1.0f } };
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
+		swapChainDesc.mColorClearValue = { { 0.15f, 0.15f, 0.15f, 1.0f } };
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

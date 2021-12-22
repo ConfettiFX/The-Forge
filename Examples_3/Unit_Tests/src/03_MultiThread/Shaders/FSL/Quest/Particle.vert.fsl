@@ -23,7 +23,7 @@
 */
 
 #define PARTICLE
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSInput)
 {

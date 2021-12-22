@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "shaderDefs.h"
+#include "shaderDefs.h.fsl"
 
 RES(Tex2DArray(float4), uTex0, UPDATE_FREQ_NONE, t3, binding = 3);
 RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s4, binding = 4);

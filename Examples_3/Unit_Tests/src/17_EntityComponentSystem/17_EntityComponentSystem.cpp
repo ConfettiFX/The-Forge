@@ -23,20 +23,7 @@
 */
 
 // ECS
-#include "../../../../Middleware_3/ECS/EntityManager.h"
-#include "../../../../Middleware_3/ECS/ComponentRepresentation.h"
-
-// REPRESENTATIONS
-#include "../17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h"
-#include "../17_EntityComponentSystem/Representations/PositionRepresentation.h"
-#include "../17_EntityComponentSystem/Representations/SpriteRepresentation.h"
-#include "../17_EntityComponentSystem/Representations/MoveRepresentation.h"
-
-// COMPONENTS
-#include "../17_EntityComponentSystem/Components/WorldBoundsComponent.h"
-#include "../17_EntityComponentSystem/Components/PositionComponent.h"
-#include "../17_EntityComponentSystem/Components/SpriteComponent.h"
-#include "../17_EntityComponentSystem/Components/MoveComponent.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -71,6 +58,34 @@ struct SpriteData
 	float sprite;
 };
 
+// COMPONENTS
+struct WorldBoundsComponent 
+{
+	float xMin, xMax, yMin, yMax;
+};
+
+struct PositionComponent
+{
+	float x, y;
+};
+
+struct SpriteComponent
+{
+	float colorR, colorG, colorB;
+	int   spriteIndex;
+	float scale;
+};
+
+struct MoveComponent
+{
+	float velx, vely;
+};
+
+ECS_COMPONENT_DECLARE(WorldBoundsComponent);
+ECS_COMPONENT_DECLARE(PositionComponent);
+ECS_COMPONENT_DECLARE(SpriteComponent);
+ECS_COMPONENT_DECLARE(MoveComponent);
+
 const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
 
@@ -95,6 +110,7 @@ RootSignature* pRootSignature = NULL;
 DescriptorSet* pDescriptorSetTexture = NULL;
 DescriptorSet* pDescriptorSetUniforms = NULL;
 Sampler*       pLinearClampSampler = NULL;
+uint32_t       gAspectRootConstantIndex = 0;
 
 Texture* pSpriteTexture = NULL;
 
@@ -102,6 +118,11 @@ uint32_t gFrameIndex = 0;
 
 SpriteData* gSpriteData = NULL;
 uint        gDrawSpriteCount = 0;
+
+ecs_world_t *gECSWorld = NULL;
+
+ecs_query_t *gECSSpriteQuery = NULL;
+ecs_query_t *gECSAvoidQuery = NULL;
 
 // Based on: https://github.com/aras-p/dod-playground
 static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
@@ -116,123 +137,73 @@ const uint SpriteEntityCount = 10000;
 #endif
 const uint AvoidCount = 20;
 
-static Entity* worldBoundsEntity;
-static Entity* spriteEntities[SpriteEntityCount];
-static Entity* avoidEntities[AvoidCount];
-
-EntityManager* pEntityManager = nullptr;
-
 ThreadSystem* pThreadSystem = nullptr;
-bool          multiThread = true;
+bool          gMultiThread = true;
 
-UIComponent* GUIWindow = nullptr;
+UIComponent* pGUIWindow = nullptr;
 
-uint32_t gFontID = 0; 
+uint32_t gFontID = 0;
 
-void MoveEntities(PositionComponent& position, MoveComponent& move, float deltaTime, const WorldBoundsComponent& bounds)
+MoveComponent createMoveComponent(float minSpeed, float maxSpeed)
 {
-	// update position based on movement velocity & delta time
-	position.x += move.velx * deltaTime;
-	position.y += move.vely * deltaTime;
+	MoveComponent move;
 
-	// check against world bounds; put back onto bounds and mirror the velocity component to "bounce" back
-	if (position.x < bounds.xMin)
-	{
-		move.velx = -move.velx;
-		position.x = bounds.xMin;
-	}
-	if (position.x > bounds.xMax)
-	{
-		move.velx = -move.velx;
-		position.x = bounds.xMax;
-	}
-	if (position.y < bounds.yMin)
-	{
-		move.vely = -move.vely;
-		position.y = bounds.yMin;
-	}
-	if (position.y > bounds.yMax)
-	{
-		move.vely = -move.vely;
-		position.y = bounds.yMax;
-	}
+	// random angle
+	float angle = RandomFloat01() * 3.1415926f * 2;
+	// random movement speed between given min & max
+	float speed = RandomFloat(minSpeed, maxSpeed);
+	// velocity x & y components
+	move.velx = cosf(angle) * speed;
+	move.vely = sinf(angle) * speed;
+
+	return move;
 }
 
-struct timeAndBounds
+struct AvoidComponent
 {
-	Entity**                    entities;
-	float                       deltaTime;
-	const WorldBoundsComponent* bounds;
+	float distanceSq;
 };
+ECS_COMPONENT_DECLARE(AvoidComponent);
 
-struct MoveSystem
+void MoveSystem(ecs_iter_t *it)
 {
-	struct Task
+	PositionComponent *positions = ecs_term(it, PositionComponent, 1);
+	MoveComponent *moves = ecs_term(it, MoveComponent, 2);
+
+	const WorldBoundsComponent *bounds = ecs_singleton_get(it->world, WorldBoundsComponent);
+
+	for (int i = 0; i < it->count; i++) 
 	{
-		size_t        start;
-		size_t        end;
-		timeAndBounds data;
-	};
+		PositionComponent &pos = positions[i];
+		MoveComponent &move = moves[i];
 
-	Task tasks[MAX_LOAD_THREADS + 2] = {};
+		// update position based on movement velocity & delta time
+		pos.x += move.velx * it->delta_time;
+		pos.y += move.vely * it->delta_time;
 
-	void Update(float deltaTime)
-	{
-		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
-
-		timeAndBounds moveData = { spriteEntities, deltaTime, &bounds };
-		timeAndBounds avoidData = { avoidEntities, deltaTime, &bounds };
-
-		// 1 thread used by resource loader
-		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
-		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
-
-		// Make sure there is enough workload for parallel processing
-		if (multiThread && entitiesPerThread < SpriteEntityCount / 2)
+		// check against world bounds; put back onto bounds and mirror the velocity component to "bounce" back
+		if (pos.x < bounds->xMin)
 		{
-			uint32_t taskCount = 0;
-
-			for (taskCount = 0; taskCount < numThreads; ++taskCount)
-			{
-				Task* task = &tasks[taskCount];
-				task->start = taskCount * entitiesPerThread;
-				task->end = min((size_t)SpriteEntityCount, task->start + entitiesPerThread);
-				task->data = moveData;
-				addThreadSystemTask(pThreadSystem, &memberTaskFunc<MoveSystem, &MoveSystem::threadedUpdate>, this, taskCount);
-			}
-
-			// Remaining entities on main thread
-			tasks[taskCount] = { tasks[taskCount - 1].end, SpriteEntityCount, moveData };
-			threadedUpdate(taskCount++);
-
-			tasks[taskCount] = { 0, AvoidCount, avoidData };
-			threadedUpdate(taskCount++);
-
-			waitThreadSystemIdle(pThreadSystem);
+			move.velx = -move.velx;
+			pos.x = bounds->xMin;
 		}
-		else
+		if (pos.x > bounds->xMax)
 		{
-			tasks[0] = { 0, SpriteEntityCount, moveData };
-			threadedUpdate(0);
-
-			tasks[1] = { 0, AvoidCount, avoidData };
-			threadedUpdate(1);
+			move.velx = -move.velx;
+			pos.x = bounds->xMax;
+		}
+		if (pos.y < bounds->yMin)
+		{
+			move.vely = -move.vely;
+			pos.y = bounds->yMin;
+		}
+		if (pos.y > bounds->yMax)
+		{
+			move.vely = -move.vely;
+			pos.y = bounds->yMax;
 		}
 	}
-
-	void threadedUpdate(uintptr_t id)
-	{
-		const Task* task = &tasks[id];
-		for (uintptr_t i = task->start; i < task->end; ++i)
-		{
-			Entity*            pEntity = (task->data.entities)[i];
-			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			MoveComponent&     move = *(pEntity->getComponent<MoveComponent>());
-
-			MoveEntities(position, move, task->data.deltaTime, *task->data.bounds);
-		}
-	}
-};
+}
 
 static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 {
@@ -241,188 +212,94 @@ static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 	return dx * dx + dy * dy;
 }
 
-struct AvoidanceSystem
+void AvoidanceSystem(ecs_iter_t *it)
 {
-	struct Task
+	PositionComponent *positions = ecs_term(it, PositionComponent, 1);
+	MoveComponent *moves = ecs_term(it, MoveComponent, 2);
+	SpriteComponent *sprites = ecs_term(it, SpriteComponent, 3);
+
+	for (int i = 0; i < it->count; i++)
 	{
-		size_t        start;
-		size_t        end;
-		timeAndBounds data;
-	};
+		PositionComponent &pos = positions[i];
+		MoveComponent &move = moves[i];
+		SpriteComponent &sprite = sprites[i];
 
-	Task tasks[MAX_LOAD_THREADS + 1] = {};
-
-	static eastl::vector<float> avoidDistanceList;
-
-	Mutex emplaceMutex = {};
-
-	bool init() { return initMutex(&emplaceMutex); }
-
-	void exit() { destroyMutex(&emplaceMutex); }
-
-	void addAvoidThisObjectToSystem(Entity* entity, float distance)
-	{
+		ecs_iter_t avoidIter = ecs_query_iter(gECSAvoidQuery);
+		while (ecs_query_next(&avoidIter))
 		{
-			MutexLock lock(emplaceMutex);
-			avoidDistanceList.emplace_back(distance * distance);
-		}
-	}
+			PositionComponent *avoidPositions = ecs_term(&avoidIter, PositionComponent, 1);
+			SpriteComponent *avoidSprites = ecs_term(&avoidIter, SpriteComponent, 3);
+			AvoidComponent *avoidDistances = ecs_term(&avoidIter, AvoidComponent, 4);
 
-	static void removeAllObjects() { avoidDistanceList.set_capacity(0); }
-
-	static void resolveCollision(Entity* pEntity, float deltaTime)
-	{
-		PositionComponent& pos = *(pEntity->getComponent<PositionComponent>());
-		MoveComponent&     move = *(pEntity->getComponent<MoveComponent>());
-
-		// flip velocity
-		move.velx = -move.velx;
-		move.vely = -move.vely;
-
-		// move us out of collision, by moving just a tiny bit more than we'd normally move during a frame
-		pos.x += move.velx * deltaTime * 1.1f;
-		pos.y += move.vely * deltaTime * 1.1f;
-	}
-
-	void Update(float deltaTime)
-	{
-		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
-
-		timeAndBounds data = { spriteEntities, deltaTime, &bounds };
-
-		// 1 thread used by resource loader
-		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
-		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
-
-		// Make sure there is enough workload for parallel processing
-		if (multiThread && entitiesPerThread < SpriteEntityCount / 2)
-		{
-			uint32_t taskCount = 0;
-
-			for (taskCount = 0; taskCount < numThreads; ++taskCount)
+			for (int i = 0; i < avoidIter.count; i++)
 			{
-				Task* task = &tasks[taskCount];
-				task->start = taskCount * entitiesPerThread;
-				task->end = min((size_t)SpriteEntityCount, task->start + entitiesPerThread);
-				task->data = data;
-				addThreadSystemTask(pThreadSystem, &memberTaskFunc<AvoidanceSystem, &AvoidanceSystem::threadedUpdate>, this, taskCount);
-			}
+				const PositionComponent &avoidPosition = avoidPositions[i];
+				const SpriteComponent &avoidSprite = avoidSprites[i];
+				const AvoidComponent &avoidDistance = avoidDistances[i];
 
-			// Remaining entities on main thread
-			tasks[taskCount] = { tasks[taskCount - 1].end, SpriteEntityCount, data };
-			threadedUpdate(taskCount++);
-
-			waitThreadSystemIdle(pThreadSystem);
-		}
-		else
-		{
-			tasks[0] = { 0, SpriteEntityCount, data };
-			threadedUpdate(0);
-		}
-	}
-
-	void threadedUpdate(uintptr_t id)
-	{
-		const Task*          task = &tasks[id];
-		const timeAndBounds& data = task->data;
-
-		for (uintptr_t i = task->start; i < task->end; ++i)
-		{
-			Entity*            pEntity = spriteEntities[i];
-			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-
-			for (size_t j = 0; j < AvoidCount; ++j)
-			{
-				Entity*            pAvoidEntity = avoidEntities[j];
-				float              avDistance = avoidDistanceList[j];
-				PositionComponent& avoidPosition = *(pAvoidEntity->getComponent<PositionComponent>());
-
-				// is our position closer to "thing to avoid" position than the avoid distance?
-				if (DistanceSq(position, avoidPosition) < avDistance)
+				if (DistanceSq(pos, avoidPosition) < avoidDistance.distanceSq)
 				{
-					resolveCollision(pEntity, data.deltaTime);
-					// also make our sprite take the color of the thing we just bumped into
-					SpriteComponent& avoidSprite = *(pAvoidEntity->getComponent<SpriteComponent>());
-					SpriteComponent& mySprite = *(pEntity->getComponent<SpriteComponent>());
-					mySprite.colorR = avoidSprite.colorR;
-					mySprite.colorG = avoidSprite.colorG;
-					mySprite.colorB = avoidSprite.colorB;
+					// flip velocity
+					move.velx = -move.velx;
+					move.vely = -move.vely;
+
+					// move us out of collision, by moving just a tiny bit more than we'd normally move during a frame
+					pos.x += move.velx * it->delta_time * 1.1f;
+					pos.y += move.vely * it->delta_time * 1.1f;
+
+					sprite.colorR = avoidSprite.colorR;
+					sprite.colorG = avoidSprite.colorG;
+					sprite.colorB = avoidSprite.colorB;
 				}
 			}
 		}
 	}
-};
-
-eastl::vector<float> AvoidanceSystem::avoidDistanceList;
-
-static MoveSystem*      pMoveSystem;
-static AvoidanceSystem* pAvoidanceSystem;
+}
 
 struct CreationData
 {
-	Entity**              entities;
 	WorldBoundsComponent* bounds;
 	const char*           entityTypeName;
 };
 
 static void createEntities(void* pData, uintptr_t i)
 {
-	// NOT DESERIALIZED WAY TO CREATE ENTITIES
-	//spriteEntities[i] = pEntityManager->createEntity();
-
 	CreationData data = *(CreationData*)pData;
 
-	// DESERIALIZED WAY
-	EntityId entityId = pEntityManager->createEntity();
-	(data.entities)[i] = pEntityManager->getEntityById(entityId);
+	ecs_entity_t entityId = ecs_new_id(gECSWorld);
 
 	float x = RandomFloat(data.bounds->xMin, data.bounds->xMax);
 	float y = RandomFloat(data.bounds->yMin, data.bounds->yMax);
 
-	PositionComponent* position = (data.entities)[i]->getComponent<PositionComponent>();
-	if (!position)
-	{
-		position = pEntityManager->addComponentToEntity<PositionComponent>(entityId);    // ADD CUSTOM COMPONENTS
-		ASSERT(position);
-	}
-	position->x = x;
-	position->y = y;
+	PositionComponent position = { x, y };
+	MoveComponent move = createMoveComponent(0.3f, 0.6f);
+	SpriteComponent sprite = {};
 
-	MoveComponent* move = (data.entities)[i]->getComponent<MoveComponent>();
-	if (!move)
+	if (!strcmp(data.entityTypeName, "avoid"))
 	{
-		move = pEntityManager->addComponentToEntity<MoveComponent>(entityId);
-		ASSERT(move);
-	}
-	move->Initialize(0.3f, 0.6f);
+		AvoidComponent avoid = { 1.3f * 1.3f };
+		ecs_set(gECSWorld, entityId, AvoidComponent, avoid);
 
-	SpriteComponent* sprite = (data.entities)[i]->getComponent<SpriteComponent>();
-	if (!sprite)
-	{
-		sprite = pEntityManager->addComponentToEntity<SpriteComponent>(entityId);
-		ASSERT(sprite);
-	}
-
-	if (strcmp(data.entityTypeName, "avoid"))    //-V526 : "Fixing" this conditional significantly changes this unit test
-	{
-		pAvoidanceSystem->addAvoidThisObjectToSystem((data.entities)[i], 1.3f);
-
-		sprite->colorR = 1.0f;
-		sprite->colorG = 1.0f;
-		sprite->colorB = 1.0f;
-		sprite->scale = 1.0f;
-		sprite->spriteIndex = rand() % 5;
+		position.x *= 0.2f;
+		position.y *= 0.2f;
+		sprite.colorR = RandomFloat(0.5f, 1.0f);
+		sprite.colorG = RandomFloat(0.5f, 1.0f);
+		sprite.colorB = RandomFloat(0.5f, 1.0f);
+		sprite.scale = 2.0f;
+		sprite.spriteIndex = 5;
 	}
 	else
 	{
-		position->x *= 0.2f;
-		position->y *= 0.2f;
-		sprite->colorR = RandomFloat(0.5f, 1.0f);
-		sprite->colorG = RandomFloat(0.5f, 1.0f);
-		sprite->colorB = RandomFloat(0.5f, 1.0f);
-		sprite->scale = 2.0f;
-		sprite->spriteIndex = 5;
+		sprite.colorR = 1.0f;
+		sprite.colorG = 1.0f;
+		sprite.colorB = 1.0f;
+		sprite.scale = 1.0f;
+		sprite.spriteIndex = rand() % 5;
 	}
+
+	ecs_set(gECSWorld, entityId, PositionComponent, position);
+	ecs_set(gECSWorld, entityId, MoveComponent, move);
+	ecs_set(gECSWorld, entityId, SpriteComponent, sprite);
 }
 
 class EntityComponentSystem: public IApp
@@ -514,6 +391,7 @@ class EntityComponentSystem: public IApp
 		rootDesc.ppStaticSamplerNames = pStaticSamplers;
 		rootDesc.ppStaticSamplers = &pLinearClampSampler;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+		gAspectRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "RootConstant");
 
 		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
@@ -568,6 +446,8 @@ class EntityComponentSystem: public IApp
 		// Sprites texture
 		TextureLoadDesc textureDesc = {};
 		textureDesc.ppTexture = &pSpriteTexture;
+		// Textures representing color should be stored in SRGB or HDR format
+		textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		textureDesc.pFileName = "sprites";
 		addResource(&textureDesc, NULL);
 
@@ -576,11 +456,11 @@ class EntityComponentSystem: public IApp
 		/************************************************************************/
 		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.1f);
-		uiCreateComponent("MT", &guiDesc, &GUIWindow);
+		uiCreateComponent("MT", &guiDesc, &pGUIWindow);
 
 		CheckboxWidget Checkbox;
-		Checkbox.pData = &multiThread;
-		luaRegisterWidget(uiCreateComponentWidget(GUIWindow, "Threading", &Checkbox, WIDGET_TYPE_CHECKBOX));
+		Checkbox.pData = &gMultiThread;
+		luaRegisterWidget(uiCreateComponentWidget(pGUIWindow, "Threading", &Checkbox, WIDGET_TYPE_CHECKBOX));
 
 		waitForAllResourceLoads();
 
@@ -596,35 +476,46 @@ class EntityComponentSystem: public IApp
 			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
 		}
 
-		SpriteComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
-		MoveComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
-		PositionComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
-		WorldBoundsComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
+		initEntityComponentSystem();
+		ecs_tracing_enable(3);
+		ecs_tracing_color_enable(false);
+
+		gECSWorld = ecs_init();
+
+		ECS_COMPONENT_DEFINE(gECSWorld, SpriteComponent);
+		ECS_COMPONENT_DEFINE(gECSWorld, MoveComponent);
+		ECS_COMPONENT_DEFINE(gECSWorld, PositionComponent);
+		ECS_COMPONENT_DEFINE(gECSWorld, WorldBoundsComponent);
+
+		ECS_COMPONENT_DEFINE(gECSWorld, AvoidComponent);
+
+		ECS_SYSTEM(gECSWorld, MoveSystem, EcsOnUpdate, PositionComponent, MoveComponent);
+		ECS_SYSTEM(gECSWorld, AvoidanceSystem, EcsOnUpdate, PositionComponent, MoveComponent, SpriteComponent, !AvoidComponent);
+
+		ecs_query_desc_t queryDesc = {};
+		queryDesc.filter.terms[0].id = { ecs_id(PositionComponent) };
+		queryDesc.filter.terms[1].id = { ecs_id(MoveComponent) };
+		queryDesc.filter.terms[2].id = { ecs_id(SpriteComponent) };
+		queryDesc.filter.terms[3].id = { ecs_id(AvoidComponent) };
+		queryDesc.filter.terms[3].oper = EcsNot;
+
+		gECSSpriteQuery = ecs_query_init(gECSWorld, &queryDesc);
+		
+		queryDesc.filter.terms[3].oper = EcsAnd;
+		gECSAvoidQuery = ecs_query_init(gECSWorld, &queryDesc);
 
 		initThreadSystem(&pThreadSystem);
 
-		pEntityManager = tf_new(EntityManager);
-
-		// Create entities
-		pAvoidanceSystem = tf_new(AvoidanceSystem);
-		pAvoidanceSystem->init();
-
-		pMoveSystem = tf_new(MoveSystem);
-
-		EntityId worldBoundsEntityId = pEntityManager->createEntity();
-		worldBoundsEntity = pEntityManager->getEntityById(worldBoundsEntityId);
-		WorldBoundsComponent* bounds = pEntityManager->addComponentToEntity<WorldBoundsComponent>(worldBoundsEntityId);
+		WorldBoundsComponent* bounds = ecs_singleton_get_mut(gECSWorld, WorldBoundsComponent);
 		ASSERT(bounds);
 		bounds->xMin = -80.0f;
 		bounds->xMax = 80.0f;
 		bounds->yMin = -50.0f;
 		bounds->yMax = 50.0f;
+		ecs_singleton_modified(gECSWorld, WorldBoundsComponent);
 
-		// THIS IS HOW YOU SERIALIZE AN ENTITY
-		//pSerializer->SerializeEntity(worldBoundsEntityId, "serializedWorldBounds", "../../../src/17_EntityComponentSystem/Entities/");
-
-		CreationData data = { spriteEntities, bounds, "sprite" };
-		CreationData avoidData = { avoidEntities, bounds, "avoid" };
+		CreationData data = { bounds, "sprite" };
+		CreationData avoidData = { bounds, "avoid" };
 
 		for (size_t i = 0; i < SpriteEntityCount; ++i)
 		{
@@ -672,6 +563,10 @@ class EntityComponentSystem: public IApp
 
 	void Exit()
 	{
+		ecs_query_fini(gECSAvoidQuery);
+		ecs_query_fini(gECSSpriteQuery);
+		ecs_fini(gECSWorld);
+
 		waitThreadSystemIdle(pThreadSystem);
 
 		exitProfiler();
@@ -711,17 +606,7 @@ class EntityComponentSystem: public IApp
 
 		exitInputSystem();
 		exitThreadSystem(pThreadSystem);
-		pAvoidanceSystem->exit();
-		tf_delete(pAvoidanceSystem);
-		tf_delete(pMoveSystem);
-		tf_delete(pEntityManager);
 		gSpriteData = NULL;
-
-		AvoidanceSystem::removeAllObjects();
-		SpriteComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
-		MoveComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
-		PositionComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
-		WorldBoundsComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
 
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
@@ -805,49 +690,63 @@ class EntityComponentSystem: public IApp
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		
+		static bool oldMultiThread = gMultiThread;
+		if (oldMultiThread != gMultiThread)
+		{
+			oldMultiThread = gMultiThread;
+			ecs_set_threads(gECSWorld, gMultiThread ? 8 : 1);
+		}
 
 		// Scene Update
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
 
-		// update object systems
-		pMoveSystem->Update(deltaTime * 3.0f);
-		pAvoidanceSystem->Update(deltaTime * 3.0f);
+		ecs_progress(gECSWorld, deltaTime * 3.0f);
 
 		// Iterate all entities with transform and plane component
 		gDrawSpriteCount = 0;
 		float globalScale = 0.05f;
 
-		for (size_t i = 0; i < SpriteEntityCount; ++i)
+		ecs_iter_t spriteIter = ecs_query_iter(gECSSpriteQuery);
+		while (ecs_query_next(&spriteIter))
 		{
-			Entity*            pEntity = spriteEntities[i];
-			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			SpriteComponent&   sprite = *(pEntity->getComponent<SpriteComponent>());
-
-			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
-			spriteData.posX = position.x * globalScale;
-			spriteData.posY = position.y * globalScale;
-			spriteData.scale = sprite.scale * globalScale;
-			spriteData.colR = sprite.colorR;
-			spriteData.colG = sprite.colorG;
-			spriteData.colB = sprite.colorB;
-			spriteData.sprite = (float)sprite.spriteIndex;
+			PositionComponent *positions = ecs_term(&spriteIter, PositionComponent, 1);
+			SpriteComponent *sprites = ecs_term(&spriteIter, SpriteComponent, 3);
+			for (int i = 0; i < spriteIter.count; i++)
+			{
+				const PositionComponent &position = positions[i];
+				const SpriteComponent &sprite = sprites[i];
+				SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
+ 				spriteData.posX = position.x * globalScale;
+ 				spriteData.posY = position.y * globalScale;
+ 				spriteData.scale = sprite.scale * globalScale;
+ 				spriteData.colR = sprite.colorR;
+ 				spriteData.colG = sprite.colorG;
+ 				spriteData.colB = sprite.colorB;
+				spriteData.sprite = (float)sprite.spriteIndex;
+			}
 		}
 
-		for (size_t i = 0; i < AvoidCount; ++i)
+		ecs_iter_t avoidIter = ecs_query_iter(gECSAvoidQuery);
+		while (ecs_query_next(&avoidIter))
 		{
-			Entity*            pEntity = avoidEntities[i];
-			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-			SpriteComponent&   sprite = *(pEntity->getComponent<SpriteComponent>());
+			PositionComponent *positions = ecs_term(&avoidIter, PositionComponent, 1);
+			SpriteComponent *sprites = ecs_term(&avoidIter, SpriteComponent, 3);
+			for (int i = 0; i < avoidIter.count; i++)
+			{
+				const PositionComponent &position = positions[i];
+				const SpriteComponent &sprite = sprites[i];
 
-			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
-			spriteData.posX = position.x * globalScale;
-			spriteData.posY = position.y * globalScale;
-			spriteData.scale = sprite.scale * globalScale;
-			spriteData.colR = sprite.colorR;
-			spriteData.colG = sprite.colorG;
-			spriteData.colB = sprite.colorB;
-			spriteData.sprite = (float)sprite.spriteIndex;
+				SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
+			 	spriteData.posX = position.x * globalScale;
+			 	spriteData.posY = position.y * globalScale;
+			 	spriteData.scale = sprite.scale * globalScale;
+			 	spriteData.colR = sprite.colorR;
+			 	spriteData.colG = sprite.colorG;
+			 	spriteData.colB = sprite.colorB;
+			 	spriteData.sprite = (float)sprite.spriteIndex;
+			}
 		}
 	}
 
@@ -908,7 +807,7 @@ class EntityComponentSystem: public IApp
 		{
 			cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Sprites");
 			cmdBindPipeline(cmd, pSpritePipeline);
-			cmdBindPushConstants(cmd, pRootSignature, "RootConstant", &aspect);
+			cmdBindPushConstants(cmd, pRootSignature, gAspectRootConstantIndex, &aspect);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 			uint32_t vertexStride = sizeof(float);
@@ -971,8 +870,8 @@ class EntityComponentSystem: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mColorClearValue = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
+		swapChainDesc.mColorClearValue = { { 0.02f, 0.02f, 0.02f, 1.0f } };
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

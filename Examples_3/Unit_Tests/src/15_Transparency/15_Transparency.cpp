@@ -22,26 +22,6 @@
 * under the License.
 */
 
-#define MAX_NUM_OBJECTS 128
-#define MAX_NUM_PARTICLES 2048    // Per system
-#define CUBES_EACH_ROW 5
-#define CUBES_EACH_COL 5
-#define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
-#define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
-#if (defined(DIRECT3D12) || defined(VULKAN) || defined(PROSPERO)) && !(defined(XBOX) || defined(QUEST_VR))
-#define AOIT_ENABLE 1
-#endif
-#define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
-#if AOIT_NODE_COUNT == 2
-#define AOIT_RT_COUNT 1
-#else
-#define AOIT_RT_COUNT (AOIT_NODE_COUNT / 4)
-#endif
-#define USE_SHADOWS 1
-#define PT_USE_REFRACTION 1
-#define PT_USE_DIFFUSION 1
-#define PT_USE_CAUSTICS (0 & USE_SHADOWS)
-
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/sort.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
@@ -67,6 +47,26 @@
 
 //input
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
+
+#define MAX_NUM_OBJECTS 128
+#define MAX_NUM_PARTICLES 2048    // Per system
+#define CUBES_EACH_ROW 5
+#define CUBES_EACH_COL 5
+#define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
+#define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
+#if (defined(DIRECT3D12) || defined(VULKAN) || defined(PROSPERO)) && !(defined(XBOX) || defined(QUEST_VR))
+#define AOIT_ENABLE 1
+#endif
+#define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
+#if AOIT_NODE_COUNT == 2
+#define AOIT_RT_COUNT 1
+#else
+#define AOIT_RT_COUNT (AOIT_NODE_COUNT / 4)
+#endif
+#define USE_SHADOWS 1
+#define PT_USE_REFRACTION 1
+#define PT_USE_DIFFUSION 1
+#define PT_USE_CAUSTICS (0 & USE_SHADOWS)
 
 namespace eastl
 {
@@ -289,6 +289,7 @@ Shader* pShaderAOITClear = NULL;
 RootSignature* pRootSignatureSkybox = NULL;
 #if USE_SHADOWS != 0
 RootSignature* pRootSignatureGaussianBlur = NULL;
+uint32_t       gBlurAxisRootConstantIndex = 0;
 #if PT_USE_CAUSTICS != 0
 RootSignature* pRootSignaturePTDownsample = NULL;
 RootSignature* pRootSignaturePTCopyShadowDepth = NULL;
@@ -300,6 +301,7 @@ RootSignature* pRootSignaturePTComposite = NULL;
 #if PT_USE_DIFFUSION != 0
 RootSignature* pRootSignaturePTCopyDepth = NULL;
 RootSignature* pRootSignaturePTGenMips = NULL;
+uint32_t       gMipSizeRootConstantIndex = 0;
 #endif
 #if AOIT_ENABLE
 RootSignature* pRootSignatureAOITShade = NULL;
@@ -1280,7 +1282,7 @@ public:
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[1], NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
-			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, "RootConstant", &axis);
+			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, gBlurAxisRootConstantIndex, &axis);
 			cmdBindDescriptorSet(pCmd, 0, pDescriptorSetGaussianBlur);
 			cmdDraw(pCmd, 3, 0);
 
@@ -1298,7 +1300,7 @@ public:
 			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
 
 			axis = 1.0f;
-			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, "RootConstant", &axis);
+			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, gBlurAxisRootConstantIndex, &axis);
 			cmdBindDescriptorSet(pCmd, 1, pDescriptorSetGaussianBlur);
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1405,6 +1407,8 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pRootSignatureGaussianBlur, "RootConstant");
+
 		for (uint32_t w = 0; w < 3; ++w)
 		{
 			float axis = 0.0f;
@@ -1422,7 +1426,7 @@ public:
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowFinal[1][w], NULL, &loadActions, NULL, NULL, -1, -1);
 
 			cmdBindPipeline(pCmd, pPipelinePTGaussianBlur);
-			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, "RootConstant", &axis);
+			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, gBlurAxisRootConstantIndex, &axis);
 			cmdBindDescriptorSet(pCmd, 2 + (w * 2 + 0), pDescriptorSetGaussianBlur);
 			cmdDraw(pCmd, 3, 0);
 
@@ -1440,7 +1444,7 @@ public:
 			cmdBindPipeline(pCmd, pPipelinePTGaussianBlur);
 
 			axis = 1.0f;
-			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, "RootConstant", &axis);
+			cmdBindPushConstants(pCmd, pRootSignatureGaussianBlur, gBlurAxisRootConstantIndex, &axis);
 			cmdBindDescriptorSet(pCmd, 2 + (w * 2 + 1), pDescriptorSetGaussianBlur);
 			cmdDraw(pCmd, 3, 0);
 		}
@@ -1466,10 +1470,12 @@ public:
 		static uint         vertexCount = 0;
 		static uint         indexCount = 0;
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pRootSignature, "DrawInfoRootConstant");
+
 		for (size_t i = 0; i < pDrawCalls->size(); ++i)
 		{
 			DrawCall* dc = &(*pDrawCalls)[i];
-			cmdBindPushConstants(pCmd, pRootSignature, "DrawInfoRootConstant", &dc->mInstanceOffset);
+			cmdBindPushConstants(pCmd, pRootSignature, rootConstantIndex, &dc->mInstanceOffset);
 
 			if (dc->mMesh != boundMesh || dc->mMesh > MESH_COUNT)
 			{
@@ -1532,13 +1538,14 @@ public:
 
 			uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)rt->mWidth));
 			uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)rt->mHeight));
+
 			cmdBindPipeline(pCmd, pPipelinePTGenMips);
 			for (uint32_t i = 1; i < rt->mMipLevels; ++i)
 			{
 				mipSizeX >>= 1;
 				mipSizeY >>= 1;
 				uint mipSize[2] = { mipSizeX, mipSizeY };
-				cmdBindPushConstants(pCmd, pRootSignaturePTGenMips, "RootConstant", mipSize);
+				cmdBindPushConstants(pCmd, pRootSignaturePTGenMips, gMipSizeRootConstantIndex, mipSize);
 				cmdBindDescriptorSet(pCmd, i - 1, pDescriptorSetPTGenMips);
 
 				uint32_t groupCountX = mipSizeX / 16;
@@ -2197,19 +2204,19 @@ public:
 			// AOIT shade shader
 			ShaderLoadDesc aoitShadeShaderDesc = {};
 			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitShadeShaderDesc.mStages[1] = { "AdaptiveOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
 
 			// AOIT composite shader
 			ShaderLoadDesc aoitCompositeShaderDesc = {};
 			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitCompositeShaderDesc.mStages[1] = { "AdaptiveOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
 
 			// AOIT clear shader
 			ShaderLoadDesc aoitClearShaderDesc = {};
 			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitClearShaderDesc.mStages[1] = { "AdaptiveOITClear.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
 		}
 #endif
@@ -2280,6 +2287,7 @@ public:
 		blurRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
 		blurRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
 		addRootSignature(pRenderer, &blurRootSignatureDesc, &pRootSignatureGaussianBlur);
+		gBlurAxisRootConstantIndex = getDescriptorIndexFromName(pRootSignatureGaussianBlur, "RootConstant");
 
 #if PT_USE_CAUSTICS != 0
 		// Shadow downsample root signature
@@ -2362,6 +2370,7 @@ public:
 		ptGenMipsRootSignatureDesc.ppStaticSamplerNames = staticSamplerNames;
 		ptGenMipsRootSignatureDesc.mMaxBindlessTextures = TEXTURE_COUNT;
 		addRootSignature(pRenderer, &ptGenMipsRootSignatureDesc, &pRootSignaturePTGenMips);
+		gMipSizeRootConstantIndex = getDescriptorIndexFromName(pRootSignaturePTGenMips, "RootConstant");
 #endif
 #if AOIT_ENABLE
 		if (pRenderer->pActiveGpuSettings->mROVsSupported)
@@ -2917,6 +2926,8 @@ public:
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = textureNames[i];
 			textureDesc.ppTexture = &pTextures[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureDesc, NULL);
 		}
 	}
@@ -3081,7 +3092,9 @@ public:
 			swapChainDesc.mWidth = width;
 			swapChainDesc.mHeight = height;
 			swapChainDesc.mImageCount = gImageCount;
-			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+			// This unit test doesn't support SRGB swapchain
+			// TODO: Add tone mapping as a separate pass
+			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, false);
 			swapChainDesc.mColorClearValue = {{1, 0, 1, 1}};
 
 			swapChainDesc.mEnableVsync = false;

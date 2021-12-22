@@ -75,7 +75,7 @@
 //// Availability macros
 //////////////////////////////////////////////
 
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#if defined(VK_KHR_ray_tracing_pipeline) && defined(VK_KHR_acceleration_structure)
 #define RAYTRACING_AVAILABLE
 #endif
 

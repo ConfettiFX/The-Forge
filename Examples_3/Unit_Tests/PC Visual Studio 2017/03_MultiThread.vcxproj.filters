@@ -30,11 +30,9 @@
     <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\03_MultiThread\Shaders\FSL\resources.h">
+    <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl">
       <Filter>Shaders\FSL</Filter>
-    </ClInclude>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp">

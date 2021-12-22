@@ -85,7 +85,6 @@ typedef struct UserInterface
 	eastl::vector<UIComponent*>    mComponents;
 	bool                            mUpdated = false;
 
-	Shader*				pCustomShader = NULL;
 	PipelineCache*		pPipelineCache = NULL;
 	ImGuiContext*           context = NULL;
 	eastl::vector<Texture*>  mFontTextures;
@@ -110,7 +109,6 @@ typedef struct UserInterface
 	float2           mLastUpdateMin[64] = {};
 	float2           mLastUpdateMax[64] = {};
 	bool             mActive = false;
-	bool             mCustomShader = false;
 	bool             mPostUpdateKeyDownStates[512] = { false };
 
 	// Since gestures events always come first, we want to dismiss any other inputs after that
@@ -196,23 +194,6 @@ namespace ImGui {
 /****************************************************************************/
 // MARK: - Static Function Declarations
 /****************************************************************************/
-
-static float4 ToFloat4Color(uint color)
-{
-	float4 col;    // Translate colours back by bit shifting
-	col.x = (float)((color & 0xFF000000) >> 24);
-	col.y = (float)((color & 0x00FF0000) >> 16);
-	col.z = (float)((color & 0x0000FF00) >> 8);
-	col.w = (float)(color & 0x000000FF);
-	return col;
-}
-
-static uint ToUintColor(const float4& color)
-{
-	uint c = (((uint)color.x << 24) & 0xFF000000) | (((uint)color.y << 16) & 0x00FF0000) | (((uint)color.z << 8) & 0x0000FF00) |
-		(((uint)color.w) & 0x000000FF);
-	return c;
-}
 
 static void* alloc_func(size_t size, void* user_data) 
 { 
@@ -1262,7 +1243,7 @@ void drawOneLineCheckboxWidget(UIWidget* pWidget)
 
 	ImGui::Checkbox(label, pOriginalWidget->pData);
 	ImGui::SameLine();
-	ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(pOriginalWidget->mColor), "%s", pWidget->mLabel);
+	ImGui::TextColored(pOriginalWidget->mColor, "%s", pWidget->mLabel);
 	processWidgetCallbacks(pWidget);
 }
 
@@ -1347,17 +1328,15 @@ void drawColorSliderWidget(UIWidget* pWidget)
 	char label[MAX_LABEL_LENGTH];
 	LABELID1(pOriginalWidget->pData, label);
 
-	uint& colorPick = *((uint*)pOriginalWidget->pData);
-	float4 combo_color = ToFloat4Color(colorPick) / 255.0f;
+	float4* combo_color = pOriginalWidget->pData;
 
-	float col[4] = { combo_color.x, combo_color.y, combo_color.z, combo_color.w };
+	float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
 	ImGui::Text("%s", pWidget->mLabel);
 	if (ImGui::ColorEdit4(label, col, ImGuiColorEditFlags_AlphaPreview))
 	{
-		if (col[0] != combo_color.x || col[1] != combo_color.y || col[2] != combo_color.z || col[3] != combo_color.w)
+		if (col[0] != combo_color->x || col[1] != combo_color->y || col[2] != combo_color->z || col[3] != combo_color->w)
 		{
-			combo_color = col;
-			colorPick = ToUintColor(combo_color * 255.0f);
+			*combo_color = col;
 		}
 	}
 	processWidgetCallbacks(pWidget);
@@ -1393,17 +1372,15 @@ void drawColorPickerWidget(UIWidget* pWidget)
 	char label[MAX_LABEL_LENGTH];
 	LABELID1(pOriginalWidget->pData, label);
 
-	uint& colorPick = *((uint*)pOriginalWidget->pData);
-	float4 combo_color = ToFloat4Color(colorPick) / 255.0f;
+	float4* combo_color = pOriginalWidget->pData;
 
-	float col[4] = { combo_color.x, combo_color.y, combo_color.z, combo_color.w };
+	float col[4] = { combo_color->x, combo_color->y, combo_color->z, combo_color->w };
 	ImGui::Text("%s", pWidget->mLabel);
-	if (ImGui::ColorPicker4(label, col, ImGuiColorEditFlags_AlphaPreview))
+	if (ImGui::ColorPicker4(label, col, ImGuiColorEditFlags_AlphaPreview | ImGuiColorEditFlags_Float))
 	{
-		if (col[0] != combo_color.x || col[1] != combo_color.y || col[2] != combo_color.z || col[3] != combo_color.w)
+		if (col[0] != combo_color->x || col[1] != combo_color->y || col[2] != combo_color->z || col[3] != combo_color->w)
 		{
-			combo_color = col;
-			colorPick = ToUintColor(combo_color * 255.0f);
+			*combo_color = col;
 		}
 	}
 	processWidgetCallbacks(pWidget);
@@ -2201,12 +2178,6 @@ bool platformInitUserInterface()
 
 	pAppUI->mShowDemoUiWindow = false;
 
-	if (pAppUI->pCustomShader)
-	{
-		pAppUI->pShaderTextured = pAppUI->pCustomShader;
-		pAppUI->mCustomShader = true;
-	}
-
 	pAppUI->mHandledGestures = false;
 	pAppUI->mActive = true;
 	memset(pAppUI->mPostUpdateKeyDownStates, 0, sizeof(pAppUI->mPostUpdateKeyDownStates));
@@ -2469,25 +2440,22 @@ void initUserInterface(UserInterfaceDesc* pDesc)
 								ADDRESS_MODE_CLAMP_TO_EDGE };
 	addSampler(pUserInterface->pRenderer, &samplerDesc, &pUserInterface->pDefaultSampler);
 
-	if (!pUserInterface->mCustomShader)
-	{
 #ifdef ENABLE_UI_PRECOMPILED_SHADERS
-		BinaryShaderDesc binaryShaderDesc = {};
-		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
-		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderImguiVert);
-		binaryShaderDesc.mVert.pByteCode = (char*)gShaderImguiVert;
-		binaryShaderDesc.mVert.pEntryPoint = "main";
-		binaryShaderDesc.mFrag.mByteCodeSize = sizeof(gShaderImguiFrag);
-		binaryShaderDesc.mFrag.pByteCode = (char*)gShaderImguiFrag;
-		binaryShaderDesc.mFrag.pEntryPoint = "main";
-		addShaderBinary(pRenderer, &binaryShaderDesc, &pShaderTextured);
+	BinaryShaderDesc binaryShaderDesc = {};
+	binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
+	binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderImguiVert);
+	binaryShaderDesc.mVert.pByteCode = (char*)gShaderImguiVert;
+	binaryShaderDesc.mVert.pEntryPoint = "main";
+	binaryShaderDesc.mFrag.mByteCodeSize = sizeof(gShaderImguiFrag);
+	binaryShaderDesc.mFrag.pByteCode = (char*)gShaderImguiFrag;
+	binaryShaderDesc.mFrag.pEntryPoint = "main";
+	addShaderBinary(pRenderer, &binaryShaderDesc, &pShaderTextured);
 #else
-		ShaderLoadDesc texturedShaderDesc = {};
-		texturedShaderDesc.mStages[0] = { "imgui.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		texturedShaderDesc.mStages[1] = { "imgui.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		addShader(pUserInterface->pRenderer, &texturedShaderDesc, &pUserInterface->pShaderTextured);
+	ShaderLoadDesc texturedShaderDesc = {};
+	texturedShaderDesc.mStages[0] = { "imgui.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+	texturedShaderDesc.mStages[1] = { "imgui.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+	addShader(pUserInterface->pRenderer, &texturedShaderDesc, &pUserInterface->pShaderTextured);
 #endif
-	}
 
 	const char*       pStaticSamplerNames[] = { "uSampler" };
 	RootSignatureDesc textureRootDesc = { &pUserInterface->pShaderTextured, 1 };
@@ -2558,8 +2526,7 @@ void exitUserInterface()
 {
 #ifdef ENABLE_FORGE_UI
 	removeSampler(pUserInterface->pRenderer, pUserInterface->pDefaultSampler);
-	if (!pUserInterface->mCustomShader)
-		removeShader(pUserInterface->pRenderer, pUserInterface->pShaderTextured);
+	removeShader(pUserInterface->pRenderer, pUserInterface->pShaderTextured);	
 	removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetTexture);
 	removeDescriptorSet(pUserInterface->pRenderer, pUserInterface->pDescriptorSetUniforms);
 	removeRootSignature(pUserInterface->pRenderer, pUserInterface->pRootSignatureTextured);

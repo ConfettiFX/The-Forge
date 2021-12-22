@@ -40,7 +40,7 @@
 		973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093625BF40B6003C978D /* hair.frag.fsl */; };
 		973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091B25BF40B4003C978D /* hair.vert.fsl */; };
 		973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */; };
-		973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */; };
+		973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */; };
 		973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */; };
 		973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */; };
 		973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */; };
@@ -104,7 +104,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97C9095925BF40C2003C978D /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -117,7 +117,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -249,7 +249,7 @@
 		97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_length_constraints.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_length_constraints.comp.fsl; sourceTree = "<group>"; };
 		97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_pre_warm.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_pre_warm.comp.fsl; sourceTree = "<group>"; };
 		97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_clear.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_clear.frag.fsl; sourceTree = "<group>"; };
-		97C9092725BF40B5003C978D /* hair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.h; sourceTree = "<group>"; };
+		97C9092725BF40B5003C978D /* hair.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.h.fsl; sourceTree = "<group>"; };
 		97C9092825BF40B5003C978D /* skeleton.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.frag.fsl; sourceTree = "<group>"; };
 		97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_integrate.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_integrate.comp.fsl; sourceTree = "<group>"; };
 		97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.vert.fsl; sourceTree = "<group>"; };
@@ -257,13 +257,13 @@
 		97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeIrradianceMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeIrradianceMap.comp.fsl; sourceTree = "<group>"; };
 		97C9092D25BF40B5003C978D /* skeleton.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.vert.fsl; sourceTree = "<group>"; };
 		97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_depth_peeling.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_depth_peeling.frag.fsl; sourceTree = "<group>"; };
-		97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = renderSceneBRDF_resources.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF_resources.h; sourceTree = "<group>"; };
+		97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = renderSceneBRDF_resources.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF_resources.h.fsl; sourceTree = "<group>"; };
 		97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.frag.fsl; sourceTree = "<group>"; };
 		97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneBRDF.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.vert.fsl; sourceTree = "<group>"; };
 		97C9093225BF40B5003C978D /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
 		97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = BRDFIntegration.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/BRDFIntegration.comp.fsl; sourceTree = "<group>"; };
 		97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_update_follow_hairs.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_update_follow_hairs.comp.fsl; sourceTree = "<group>"; };
-		97C9093525BF40B5003C978D /* hair.comp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.comp.h; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.comp.h; sourceTree = "<group>"; };
+		97C9093525BF40B5003C978D /* hair.comp.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.comp.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.comp.h.fsl; sourceTree = "<group>"; };
 		97C9093625BF40B6003C978D /* hair.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.frag.fsl; sourceTree = "<group>"; };
 		97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeSpecularMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeSpecularMap.comp.fsl; sourceTree = "<group>"; };
 		97C9093825BF40B6003C978D /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
@@ -358,7 +358,7 @@
 				97C9092725BF40B5003C978D /* hair.h */,
 				97C9091B25BF40B4003C978D /* hair.vert.fsl */,
 				97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */,
-				97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h */,
+				97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */,
 				97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */,
 				97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */,
 				97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */,
@@ -635,7 +635,7 @@
 				973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */,
 				973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */,
 				973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */,
-				973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h in Resources */,
+				973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h.fsl in Resources */,
 				973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */,
 				973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */,
 				973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */,

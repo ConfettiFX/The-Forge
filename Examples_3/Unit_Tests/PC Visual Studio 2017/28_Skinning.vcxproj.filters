@@ -36,10 +36,8 @@
     <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\28_Skinning\Shaders\FSL\skinning.h">
+    <FSLShader Include="..\src\28_Skinning\Shaders\FSL\skinning.h.fsl">
       <Filter>Shaders\FSL</Filter>
-    </ClInclude>
+    </FSLShader>
   </ItemGroup>
 </Project>

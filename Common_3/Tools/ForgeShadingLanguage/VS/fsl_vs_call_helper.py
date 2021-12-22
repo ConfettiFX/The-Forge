@@ -30,6 +30,7 @@ sys.argv = [
     '-d', dst,
     '-b', binary_dst,
     '-l', lang,
+    '--incremental',
 ]
 if verbose=='true': sys.argv += ['--verbose']
 if compile=='true': sys.argv += ['--compile']

@@ -268,15 +268,35 @@
 		B26D70AD2696323700E24E41 /* imgui_demo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26D70A62696323700E24E41 /* imgui_demo.cpp */; };
 		B26D70AE2696323700E24E41 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26D70A72696323700E24E41 /* imgui.cpp */; };
 		B26D70AF2696323700E24E41 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26D70A72696323700E24E41 /* imgui.cpp */; };
-		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
-		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
-		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
-		B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
-		B274041F22BC66AD00F7660D /* EntityManager.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041822BC66AD00F7660D /* EntityManager.h */; };
-		B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
-		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
-		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
-		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		B285F88D276D047800D015CE /* stripifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F87E276D047700D015CE /* stripifier.cpp */; };
+		B285F88E276D047800D015CE /* stripifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F87E276D047700D015CE /* stripifier.cpp */; };
+		B285F88F276D047800D015CE /* vfetchanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F87F276D047700D015CE /* vfetchanalyzer.cpp */; };
+		B285F890276D047800D015CE /* vfetchanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F87F276D047700D015CE /* vfetchanalyzer.cpp */; };
+		B285F891276D047800D015CE /* vfetchoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F880276D047700D015CE /* vfetchoptimizer.cpp */; };
+		B285F892276D047800D015CE /* vfetchoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F880276D047700D015CE /* vfetchoptimizer.cpp */; };
+		B285F893276D047800D015CE /* allocator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F881276D047700D015CE /* allocator.cpp */; };
+		B285F894276D047800D015CE /* allocator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F881276D047700D015CE /* allocator.cpp */; };
+		B285F895276D047800D015CE /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F882276D047700D015CE /* indexcodec.cpp */; };
+		B285F896276D047800D015CE /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F882276D047700D015CE /* indexcodec.cpp */; };
+		B285F897276D047800D015CE /* simplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F883276D047700D015CE /* simplifier.cpp */; };
+		B285F898276D047800D015CE /* simplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F883276D047700D015CE /* simplifier.cpp */; };
+		B285F899276D047800D015CE /* vcacheanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F884276D047700D015CE /* vcacheanalyzer.cpp */; };
+		B285F89A276D047800D015CE /* vcacheanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F884276D047700D015CE /* vcacheanalyzer.cpp */; };
+		B285F89B276D047800D015CE /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F885276D047700D015CE /* vcacheoptimizer.cpp */; };
+		B285F89C276D047800D015CE /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F885276D047700D015CE /* vcacheoptimizer.cpp */; };
+		B285F89D276D047800D015CE /* indexgenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F886276D047700D015CE /* indexgenerator.cpp */; };
+		B285F89E276D047800D015CE /* indexgenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F886276D047700D015CE /* indexgenerator.cpp */; };
+		B285F89F276D047800D015CE /* meshoptimizer.h in Headers */ = {isa = PBXBuildFile; fileRef = B285F887276D047700D015CE /* meshoptimizer.h */; };
+		B285F8A0276D047800D015CE /* overdrawoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F888276D047700D015CE /* overdrawoptimizer.cpp */; };
+		B285F8A1276D047800D015CE /* overdrawoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F888276D047700D015CE /* overdrawoptimizer.cpp */; };
+		B285F8A2276D047800D015CE /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F889276D047700D015CE /* spatialorder.cpp */; };
+		B285F8A3276D047800D015CE /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F889276D047700D015CE /* spatialorder.cpp */; };
+		B285F8A4276D047800D015CE /* overdrawanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88A276D047700D015CE /* overdrawanalyzer.cpp */; };
+		B285F8A5276D047800D015CE /* overdrawanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88A276D047700D015CE /* overdrawanalyzer.cpp */; };
+		B285F8A6276D047800D015CE /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88B276D047700D015CE /* clusterizer.cpp */; };
+		B285F8A7276D047800D015CE /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88B276D047700D015CE /* clusterizer.cpp */; };
+		B285F8A8276D047800D015CE /* vertexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88C276D047700D015CE /* vertexcodec.cpp */; };
+		B285F8A9276D047800D015CE /* vertexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F88C276D047700D015CE /* vertexcodec.cpp */; };
 		B29ADA4F25DAB32C0036F86B /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B29ADA4E25DAB32C0036F86B /* Renderer.cpp */; };
 		B29ADA5025DAB32C0036F86B /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B29ADA4E25DAB32C0036F86B /* Renderer.cpp */; };
 		B29ADA5725DAB3B60036F86B /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B29ADA5525DAB3B60036F86B /* GPUConfig.h */; };
@@ -512,12 +532,21 @@
 		B26D70A52696323700E24E41 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_draw.cpp; path = OpenSource/imgui/imgui_draw.cpp; sourceTree = "<group>"; };
 		B26D70A62696323700E24E41 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_demo.cpp; path = OpenSource/imgui/imgui_demo.cpp; sourceTree = "<group>"; };
 		B26D70A72696323700E24E41 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui.cpp; path = OpenSource/imgui/imgui.cpp; sourceTree = "<group>"; };
-		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
-		B274041622BC66AD00F7660D /* ComponentRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ComponentRepresentation.h; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.h; sourceTree = "<group>"; };
-		B274041722BC66AD00F7660D /* BaseComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BaseComponent.cpp; path = ../../../../../Middleware_3/ECS/BaseComponent.cpp; sourceTree = "<group>"; };
-		B274041822BC66AD00F7660D /* EntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EntityManager.h; path = ../../../../../Middleware_3/ECS/EntityManager.h; sourceTree = "<group>"; };
-		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
-		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
+		B285F87E276D047700D015CE /* stripifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = stripifier.cpp; path = ../OpenSource/meshoptimizer/src/stripifier.cpp; sourceTree = "<group>"; };
+		B285F87F276D047700D015CE /* vfetchanalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vfetchanalyzer.cpp; path = ../OpenSource/meshoptimizer/src/vfetchanalyzer.cpp; sourceTree = "<group>"; };
+		B285F880276D047700D015CE /* vfetchoptimizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vfetchoptimizer.cpp; path = ../OpenSource/meshoptimizer/src/vfetchoptimizer.cpp; sourceTree = "<group>"; };
+		B285F881276D047700D015CE /* allocator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = allocator.cpp; path = ../OpenSource/meshoptimizer/src/allocator.cpp; sourceTree = "<group>"; };
+		B285F882276D047700D015CE /* indexcodec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = indexcodec.cpp; path = ../OpenSource/meshoptimizer/src/indexcodec.cpp; sourceTree = "<group>"; };
+		B285F883276D047700D015CE /* simplifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = simplifier.cpp; path = ../OpenSource/meshoptimizer/src/simplifier.cpp; sourceTree = "<group>"; };
+		B285F884276D047700D015CE /* vcacheanalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vcacheanalyzer.cpp; path = ../OpenSource/meshoptimizer/src/vcacheanalyzer.cpp; sourceTree = "<group>"; };
+		B285F885276D047700D015CE /* vcacheoptimizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vcacheoptimizer.cpp; path = ../OpenSource/meshoptimizer/src/vcacheoptimizer.cpp; sourceTree = "<group>"; };
+		B285F886276D047700D015CE /* indexgenerator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = indexgenerator.cpp; path = ../OpenSource/meshoptimizer/src/indexgenerator.cpp; sourceTree = "<group>"; };
+		B285F887276D047700D015CE /* meshoptimizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = meshoptimizer.h; path = ../OpenSource/meshoptimizer/src/meshoptimizer.h; sourceTree = "<group>"; };
+		B285F888276D047700D015CE /* overdrawoptimizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = overdrawoptimizer.cpp; path = ../OpenSource/meshoptimizer/src/overdrawoptimizer.cpp; sourceTree = "<group>"; };
+		B285F889276D047700D015CE /* spatialorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = spatialorder.cpp; path = ../OpenSource/meshoptimizer/src/spatialorder.cpp; sourceTree = "<group>"; };
+		B285F88A276D047700D015CE /* overdrawanalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = overdrawanalyzer.cpp; path = ../OpenSource/meshoptimizer/src/overdrawanalyzer.cpp; sourceTree = "<group>"; };
+		B285F88B276D047700D015CE /* clusterizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = clusterizer.cpp; path = ../OpenSource/meshoptimizer/src/clusterizer.cpp; sourceTree = "<group>"; };
+		B285F88C276D047700D015CE /* vertexcodec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vertexcodec.cpp; path = ../OpenSource/meshoptimizer/src/vertexcodec.cpp; sourceTree = "<group>"; };
 		B29ADA4E25DAB32C0036F86B /* Renderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Renderer.cpp; sourceTree = "<group>"; };
 		B29ADA5525DAB3B60036F86B /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../../../../Common_3/OS/Core/GPUConfig.h; sourceTree = SOURCE_ROOT; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
@@ -752,7 +781,6 @@
 			isa = PBXGroup;
 			children = (
 				E952EB092370F5E50093E1BA /* ParallelPrimitives */,
-				B2A3551222BC5B4C00E1844E /* ECS */,
 				654D978521E922C800113964 /* Animation */,
 			);
 			name = Middleware_3;
@@ -912,17 +940,26 @@
 			name = LUA;
 			sourceTree = "<group>";
 		};
-		B2A3551222BC5B4C00E1844E /* ECS */ = {
+		B285F87D276D02F500D015CE /* meshoptimizer */ = {
 			isa = PBXGroup;
 			children = (
-				B274041722BC66AD00F7660D /* BaseComponent.cpp */,
-				B274041522BC66AD00F7660D /* BaseComponent.h */,
-				B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */,
-				B274041622BC66AD00F7660D /* ComponentRepresentation.h */,
-				B274041A22BC66AD00F7660D /* EntityManager.cpp */,
-				B274041822BC66AD00F7660D /* EntityManager.h */,
+				B285F881276D047700D015CE /* allocator.cpp */,
+				B285F88B276D047700D015CE /* clusterizer.cpp */,
+				B285F882276D047700D015CE /* indexcodec.cpp */,
+				B285F886276D047700D015CE /* indexgenerator.cpp */,
+				B285F887276D047700D015CE /* meshoptimizer.h */,
+				B285F88A276D047700D015CE /* overdrawanalyzer.cpp */,
+				B285F888276D047700D015CE /* overdrawoptimizer.cpp */,
+				B285F883276D047700D015CE /* simplifier.cpp */,
+				B285F889276D047700D015CE /* spatialorder.cpp */,
+				B285F87E276D047700D015CE /* stripifier.cpp */,
+				B285F884276D047700D015CE /* vcacheanalyzer.cpp */,
+				B285F885276D047700D015CE /* vcacheoptimizer.cpp */,
+				B285F88C276D047700D015CE /* vertexcodec.cpp */,
+				B285F87F276D047700D015CE /* vfetchanalyzer.cpp */,
+				B285F880276D047700D015CE /* vfetchoptimizer.cpp */,
 			);
-			path = ECS;
+			path = meshoptimizer;
 			sourceTree = "<group>";
 		};
 		B2D1CEA420EAD15F001BB8C4 /* Products */ = {
@@ -1067,6 +1104,7 @@
 		EA463CE41EF81FC5005AC8C7 /* OpenSource */ = {
 			isa = PBXGroup;
 			children = (
+				B285F87D276D02F500D015CE /* meshoptimizer */,
 				B26D70042696321500E24E41 /* LUA */,
 				B26D70032696320F00E24E41 /* imgui */,
 				5557BB75268CBC1F00B7ACF4 /* minizip */,
@@ -1147,6 +1185,7 @@
 				654D97A121E922F400113964 /* Clip.h in Headers */,
 				5557BBB4268CBC7900B7ACF4 /* mz_strm_wzaes.h in Headers */,
 				B26D70882696322E00E24E41 /* lua.h in Headers */,
+				B285F89F276D047800D015CE /* meshoptimizer.h in Headers */,
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
 				5557BBC0268CBC7900B7ACF4 /* mz_strm_zlib.h in Headers */,
@@ -1155,7 +1194,6 @@
 				B26D70802696322E00E24E41 /* lmem.h in Headers */,
 				B26D704F2696322D00E24E41 /* lauxlib.h in Headers */,
 				5557BB92268CBC6000B7ACF4 /* brg_types.h in Headers */,
-				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				5557BB98268CBC6000B7ACF4 /* aestab.h in Headers */,
 				B26D708D2696322E00E24E41 /* lzio.h in Headers */,
 				B21B9D4523F561A9003EBFAC /* ProfilerBase.h in Headers */,
@@ -1176,7 +1214,6 @@
 				5557BBAE268CBC7900B7ACF4 /* mz_zip.h in Headers */,
 				B29ADA5725DAB3B60036F86B /* GPUConfig.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
-				B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */,
 				B26D705D2696322D00E24E41 /* lstring.h in Headers */,
 				B26D70492696322D00E24E41 /* llimits.h in Headers */,
 				5557BBBB268CBC7900B7ACF4 /* zip.h in Headers */,
@@ -1185,7 +1222,6 @@
 				B26D70792696322E00E24E41 /* lstate.h in Headers */,
 				B26D708E2696322E00E24E41 /* ldo.h in Headers */,
 				B26D709C2696322E00E24E41 /* lopcodes.h in Headers */,
-				B274041F22BC66AD00F7660D /* EntityManager.h in Headers */,
 				5C172F50214148840074EE71 /* IRenderer.h in Headers */,
 				B26D705C2696322D00E24E41 /* ltm.h in Headers */,
 				B26D70902696322E00E24E41 /* lfunc.h in Headers */,
@@ -1322,33 +1358,39 @@
 				5CEE004924A9C4BD003A183A /* SystemRun.cpp in Sources */,
 				B26D706A2696322E00E24E41 /* ltablib.c in Sources */,
 				B26D70642696322D00E24E41 /* lvm.c in Sources */,
+				B285F8A9276D047800D015CE /* vertexcodec.cpp in Sources */,
 				B26D70842696322E00E24E41 /* lstring.c in Sources */,
+				B285F8A3276D047800D015CE /* spatialorder.cpp in Sources */,
 				B26D70002696320500E24E41 /* LuaManagerImpl.cpp in Sources */,
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.c in Sources */,
 				B26D70A92696323700E24E41 /* imgui_widgets.cpp in Sources */,
 				B26D704E2696322D00E24E41 /* lutf8lib.c in Sources */,
 				B26D705B2696322D00E24E41 /* lzio.c in Sources */,
 				B26D70822696322E00E24E41 /* lmathlib.c in Sources */,
+				B285F89E276D047800D015CE /* indexgenerator.cpp in Sources */,
 				B26D709B2696322E00E24E41 /* lbaselib.c in Sources */,
 				81856EF6229D725000F3A92B /* EAMemory.cpp in Sources */,
 				B26D707F2696322E00E24E41 /* liolib.c in Sources */,
 				B26D70992696322E00E24E41 /* ldo.c in Sources */,
 				5C172FE321414CC60074EE71 /* RingBuffer.h in Sources */,
 				B26D70572696322D00E24E41 /* linit.c in Sources */,
+				B285F89C276D047800D015CE /* vcacheoptimizer.cpp in Sources */,
+				B285F894276D047800D015CE /* allocator.cpp in Sources */,
 				5557BB97268CBC6000B7ACF4 /* aeskey.c in Sources */,
 				B26D6FF5269631F300E24E41 /* FontSystem.cpp in Sources */,
 				654D97B821E92F8300113964 /* Animation.cpp in Sources */,
 				B26D70762696322E00E24E41 /* lobject.c in Sources */,
 				81856F01229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				81856F14229D72EF00F3A92B /* assert.cpp in Sources */,
+				B285F8A5276D047800D015CE /* overdrawanalyzer.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
-				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTracking.c in Sources */,
 				B26D70942696322E00E24E41 /* loadlib.c in Sources */,
 				B26D708C2696322E00E24E41 /* lapi.c in Sources */,
 				B29ADA5025DAB32C0036F86B /* Renderer.cpp in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */,
+				B285F89A276D047800D015CE /* vcacheanalyzer.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
 				B26D70782696322E00E24E41 /* loslib.c in Sources */,
@@ -1364,10 +1406,12 @@
 				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
 				B26D70592696322D00E24E41 /* lmem.c in Sources */,
 				B26D70462696322D00E24E41 /* ldblib.c in Sources */,
+				B285F890276D047800D015CE /* vfetchanalyzer.cpp in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				5557BB89268CBC6000B7ACF4 /* aescrypt.c in Sources */,
 				81856F05229D729000F3A92B /* red_black_tree.cpp in Sources */,
+				B285F898276D047800D015CE /* simplifier.cpp in Sources */,
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */,
 				654D97B721E92F8100113964 /* AnimatedObject.cpp in Sources */,
@@ -1380,10 +1424,10 @@
 				5557BBAC268CBC7900B7ACF4 /* mz_strm_wzaes.c in Sources */,
 				B26D6FFC2696320400E24E41 /* LuaManager.cpp in Sources */,
 				B26D6FFE2696320500E24E41 /* LuaSystem.cpp in Sources */,
-				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				B26D70972696322E00E24E41 /* lundump.c in Sources */,
 				B245107F24CF128300FCDD20 /* FileSystem.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
+				B285F8A7276D047800D015CE /* clusterizer.cpp in Sources */,
 				5C172FF021414CC60074EE71 /* MetalMemoryAllocator.h in Sources */,
 				B26D707D2696322E00E24E41 /* lctype.c in Sources */,
 				5C172FF121414CC60074EE71 /* MetalRenderer.mm in Sources */,
@@ -1393,9 +1437,12 @@
 				B26D70482696322D00E24E41 /* lparser.c in Sources */,
 				654D97BC21E92F9100113964 /* Rig.cpp in Sources */,
 				5C172FF421414CC60074EE71 /* IResourceLoader.h in Sources */,
+				B285F8A1276D047800D015CE /* overdrawoptimizer.cpp in Sources */,
 				5557BB9B268CBC6000B7ACF4 /* hmac.c in Sources */,
 				B26D706C2696322E00E24E41 /* llex.c in Sources */,
 				81856F07229D729000F3A92B /* string.cpp in Sources */,
+				B285F896276D047800D015CE /* indexcodec.cpp in Sources */,
+				B285F88E276D047800D015CE /* stripifier.cpp in Sources */,
 				B26D709F2696322E00E24E41 /* ltable.c in Sources */,
 				B26D706F2696322E00E24E41 /* lstate.c in Sources */,
 				B26D70922696322E00E24E41 /* lcorolib.c in Sources */,
@@ -1419,11 +1466,11 @@
 				B26D70552696322D00E24E41 /* ldebug.c in Sources */,
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
 				5557BBB3268CBC7900B7ACF4 /* mz_crypt_brg.c in Sources */,
-				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* Log.h in Sources */,
 				B21B9D4923F561A9003EBFAC /* GpuProfiler.cpp in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
+				B285F892276D047800D015CE /* vfetchoptimizer.cpp in Sources */,
 				81856EF4229D725000F3A92B /* EASprintf.cpp in Sources */,
 				5C172FFD21414CC60074EE71 /* Timer.c in Sources */,
 				E967DE41233B0A520032E4BA /* CocoaFileSystem.mm in Sources */,
@@ -1435,6 +1482,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5557BB8D268CBC6000B7ACF4 /* sha1.c in Sources */,
+				B285F89B276D047800D015CE /* vcacheoptimizer.cpp in Sources */,
 				B26D70712696322E00E24E41 /* lopcodes.c in Sources */,
 				B26D70432696322D00E24E41 /* lstrlib.c in Sources */,
 				81856F08229D729000F3A92B /* thread_support.cpp in Sources */,
@@ -1445,9 +1493,11 @@
 				B26D70A02696322E00E24E41 /* lbitlib.c in Sources */,
 				5557BBB8268CBC7900B7ACF4 /* mz_strm_raw.c in Sources */,
 				B26D6FFF2696320500E24E41 /* LuaManagerImpl.cpp in Sources */,
+				B285F895276D047800D015CE /* indexcodec.cpp in Sources */,
 				B26D708B2696322E00E24E41 /* lapi.c in Sources */,
 				B26D704B2696322D00E24E41 /* lfunc.c in Sources */,
 				5557BB8B268CBC6000B7ACF4 /* sha2.c in Sources */,
+				B285F897276D047800D015CE /* simplifier.cpp in Sources */,
 				B26D709E2696322E00E24E41 /* ltable.c in Sources */,
 				5557BBB2268CBC7900B7ACF4 /* mz_crypt_brg.c in Sources */,
 				B26D6FF4269631F300E24E41 /* FontSystem.cpp in Sources */,
@@ -1457,7 +1507,6 @@
 				81856F13229D72EF00F3A92B /* assert.cpp in Sources */,
 				B236BE0B246B510E000AAC0A /* rmem_lib.cpp in Sources */,
 				5557BBBC268CBC7900B7ACF4 /* mz_strm_zlib.c in Sources */,
-				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				5557BBB0268CBC7900B7ACF4 /* mz_os.cpp in Sources */,
 				B26D70612696322D00E24E41 /* ldump.c in Sources */,
 				5557BB73268CBC1500B7ACF4 /* ZipFileSystem.c in Sources */,
@@ -1466,10 +1515,10 @@
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				B245107E24CF128300FCDD20 /* FileSystem.cpp in Sources */,
 				B26D70502696322D00E24E41 /* lauxlib.c in Sources */,
+				B285F8A8276D047800D015CE /* vertexcodec.cpp in Sources */,
 				B26D707A2696322E00E24E41 /* lcode.c in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				B26D707C2696322E00E24E41 /* lctype.c in Sources */,
-				B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				B26D70582696322D00E24E41 /* lmem.c in Sources */,
 				5C5582F621413D550019960B /* MemoryTracking.c in Sources */,
 				B26D70932696322E00E24E41 /* loadlib.c in Sources */,
@@ -1484,6 +1533,7 @@
 				B29ADA4F25DAB32C0036F86B /* Renderer.cpp in Sources */,
 				5557BB9A268CBC6000B7ACF4 /* hmac.c in Sources */,
 				5CEE004824A9C4BD003A183A /* SystemRun.cpp in Sources */,
+				B285F8A0276D047800D015CE /* overdrawoptimizer.cpp in Sources */,
 				B21B9D4823F561A9003EBFAC /* GpuProfiler.cpp in Sources */,
 				B26D70732696322E00E24E41 /* lgc.c in Sources */,
 				B26D70AE2696323700E24E41 /* imgui.cpp in Sources */,
@@ -1501,12 +1551,16 @@
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				B26D707E2696322E00E24E41 /* liolib.c in Sources */,
+				B285F88F276D047800D015CE /* vfetchanalyzer.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
+				B285F88D276D047800D015CE /* stripifier.cpp in Sources */,
 				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B26D70832696322E00E24E41 /* lstring.c in Sources */,
+				B285F89D276D047800D015CE /* indexgenerator.cpp in Sources */,
 				5C55830B21413D550019960B /* Log.c in Sources */,
 				B26D70472696322D00E24E41 /* lparser.c in Sources */,
 				B26D70962696322E00E24E41 /* lundump.c in Sources */,
+				B285F8A2276D047800D015CE /* spatialorder.cpp in Sources */,
 				B26D6FFD2696320400E24E41 /* LuaSystem.cpp in Sources */,
 				B21B9D4B23F561A9003EBFAC /* ProfilerBase.cpp in Sources */,
 				81856EF5229D725000F3A92B /* EAMemory.cpp in Sources */,
@@ -1518,12 +1572,12 @@
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				5557BB96268CBC6000B7ACF4 /* aeskey.c in Sources */,
 				E967DE3A233B0A2C0032E4BA /* DarwinThread.c in Sources */,
-				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				5557BB93268CBC6000B7ACF4 /* aestab.c in Sources */,
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				B26D709A2696322E00E24E41 /* lbaselib.c in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,
 				E967DE3C233B0A2C0032E4BA /* DarwinLog.c in Sources */,
+				B285F899276D047800D015CE /* vcacheanalyzer.cpp in Sources */,
 				B26D70982696322E00E24E41 /* ldo.c in Sources */,
 				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,
 				B26D70812696322E00E24E41 /* lmathlib.c in Sources */,
@@ -1531,10 +1585,14 @@
 				B26D70562696322D00E24E41 /* linit.c in Sources */,
 				B26D70692696322E00E24E41 /* ltablib.c in Sources */,
 				B26D70752696322E00E24E41 /* lobject.c in Sources */,
+				B285F891276D047800D015CE /* vfetchoptimizer.cpp in Sources */,
 				B26D70AC2696323700E24E41 /* imgui_demo.cpp in Sources */,
 				5C55831021413D550019960B /* ThreadSystem.cpp in Sources */,
+				B285F8A6276D047800D015CE /* clusterizer.cpp in Sources */,
+				B285F893276D047800D015CE /* allocator.cpp in Sources */,
 				B26D70AA2696323700E24E41 /* imgui_draw.cpp in Sources */,
 				E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */,
+				B285F8A4276D047800D015CE /* overdrawanalyzer.cpp in Sources */,
 				B26D70892696322E00E24E41 /* luac.c in Sources */,
 				5557BB88268CBC6000B7ACF4 /* aescrypt.c in Sources */,
 				B26D705F2696322D00E24E41 /* ltm.c in Sources */,

@@ -24,7 +24,7 @@ if not 'FSL_COMPILER_METAL' in os.environ:
 from utils import *
 import generators, compilers
 
-def initArgs():
+def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--destination', help='output directory', required=True)
     parser.add_argument('-b', '--binaryDestination', help='output directory', required=True)
@@ -33,22 +33,19 @@ def initArgs():
     parser.add_argument('--verbose', default=False, action='store_true')
     parser.add_argument('--compile', default=False, action='store_true')
     parser.add_argument('--rootSignature', default=None)
+    parser.add_argument('--incremental', default=False, action='store_true')
     args = parser.parse_args()
     args.language = args.language.split()
     return args
 
 def main():
-    args = initArgs()
+    args = get_args()
 
     ''' collect shader languages '''
     languages = []
     for language in args.language:
         fsl_assert(language in [l.name for l in Languages], filename=args.fsl_input, message='Invalid target language {}'.format(language))
         languages += [Languages[language]]
-        
-
-    if args.verbose:
-        print('FSL: Generating {}, from {}'.format(' '.join([l.name for l in languages]), args.fsl_input))
 
     class Gen:
         def __init__(self, g,c):
@@ -67,6 +64,9 @@ def main():
         Languages.SCARLETT :   Gen(generators.scarlett,   compilers.scarlett),
         Languages.GLES :       Gen(generators.gles,   compilers.gles),
     }
+
+    if args.fsl_input.endswith('.h.fsl'):
+        return 0
 
     if not os.path.exists(args.fsl_input):
         print(__file__+'('+str(currentframe().f_lineno)+'): error FSL: Cannot open source file \''+args.fsl_input+'\'')
@@ -89,6 +89,12 @@ def main():
         os.makedirs(dst_dir, exist_ok=True)
         out_filepath = os.path.normpath(os.path.join(dst_dir, out_filename)).replace(os.sep, '/')
 
+        if args.incremental and (max_timestamp(args.fsl_input) < max_timestamp(out_filepath) and os.path.exists(out_filepath) ):
+            continue
+
+        if args.verbose:
+            print('FSL: Generating {}, from {}'.format(language.name, args.fsl_input))
+
         rootSignature = None
         if args.rootSignature and args.rootSignature != 'None':
             assert os.path.exists(args.rootSignature)
@@ -99,7 +105,7 @@ def main():
         if status != 0: return 1
 
         if args.compile:
-            fsl_assert(dst_dir, filename=args.fsl_input, message='Missing destionation binary directory')
+            fsl_assert(dst_dir, filename=args.fsl_input, message='Missing destination binary directory')
             if not os.path.exists(args.binaryDestination): os.makedirs(args.binaryDestination)
             bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
             status = gen_map[language].compile(out_filepath, bin_filepath)

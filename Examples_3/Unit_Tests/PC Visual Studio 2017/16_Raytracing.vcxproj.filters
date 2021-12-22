@@ -42,12 +42,6 @@
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHit.rchit">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHitPlane.rchit">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHitShadow.rchit">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\DisplayTexture.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>

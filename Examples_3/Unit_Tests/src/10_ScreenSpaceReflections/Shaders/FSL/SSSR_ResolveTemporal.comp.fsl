@@ -38,7 +38,7 @@ RES(RWTex2D(float4), g_temporally_denoised_reflections_history, UPDATE_FREQ_NONE
 RES(RWTex2D(float), g_ray_lengths, UPDATE_FREQ_NONE, u4, binding = 7);
 RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u5, binding = 12);
 
-#include "SSSR_Common.h"
+#include "SSSR_Common.h.fsl"
 
 // From "Temporal Reprojection Anti-Aliasing"
 // https://github.com/playdeadgames/temporal

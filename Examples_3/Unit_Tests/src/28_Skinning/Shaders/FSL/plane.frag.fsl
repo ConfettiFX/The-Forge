@@ -38,7 +38,7 @@ float4 PS_MAIN(VSOutput In)
     float res = 0.05f;
 
     float4 backgroundColor = float4(0.49f, 0.64f, 0.68f, 1.0f); // blue
-    float4 lineColor = float4(0.39f, 0.41f, 0.37f, 1.0f); // grey
+    float4 lineColor = float4( 0.15f, 0.15f, 0.15f, 1.0f ); // grey
     float4 originColor = float4(0.0f, 0.0f, 0.0f, 1.0f); //black
 
     if ((abs(In.TexCoord.x - 0.5f) <= tol) && (abs(In.TexCoord.y - 0.5f) <= tol))

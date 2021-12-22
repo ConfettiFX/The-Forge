@@ -194,8 +194,13 @@ struct Raytracing
 	id <MTLArgumentEncoder>      mClassificationArgumentEncoder API_AVAILABLE(macos(10.13), ios(11.0));
 #endif
 #ifdef VULKAN
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-	VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
+#if defined(VK_KHR_RAY_TRACING_PIPELINE_SPEC_VERSION) && defined(VK_KHR_ACCELERATION_STRUCTURE_SPEC_VERSION)
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  mRayTracingPipelineProperties;
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR mAccelerationStructureFeatures;
+
+	VkPhysicalDeviceBufferDeviceAddressFeatures mEnabledBufferDeviceAddressFeatures;
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR mEnabledRayTracingPipelineFeatures;
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR mEnabledAccelerationStructureFeatures;
 #endif
 #endif
 };

@@ -463,7 +463,8 @@ struct ActiveFingers
 @interface GainputTapGestureRecognizer : UITapGestureRecognizer {}
 @property(nonnull, retain) GainputGestureRecognizerImpl* inputManager;
 @property unsigned gestureID;
-@property(nonnull) ActiveFingers * activeGestures;
+@property ActiveFingers activeGestures;
+- (void)clearActiveGestures;
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
@@ -499,9 +500,6 @@ struct ActiveFingers
 
 -(void) dealloc
 {
-	if(_activeGestures)
-		tf_free(_activeGestures);
-	
 	[super dealloc];
 }
 
@@ -509,10 +507,10 @@ struct ActiveFingers
 {
 	for(int i = 0 ; i < gainput::TouchPointCount; i++)
 	{
-		if(_activeGestures->downTouches[i] == NULL)
+		if(_activeGestures.downTouches[i] == NULL)
 		{
-			_activeGestures->downTouches[i] = static_cast<void*>(touch);
-			_activeGestures->downLocations[i] = loc;
+			_activeGestures.downTouches[i] = static_cast<void*>(touch);
+			_activeGestures.downLocations[i] = loc;
 			return i;
 		}
 	}
@@ -523,7 +521,7 @@ struct ActiveFingers
 {
 	for(unsigned i = 0 ; i < gainput::TouchPointCount; i++)
 	{
-		if(_activeGestures->downTouches[i] == static_cast<void*>(touch))
+		if(_activeGestures.downTouches[i] == static_cast<void*>(touch))
 		{
 			return i;
 		}
@@ -534,7 +532,7 @@ struct ActiveFingers
 
 -(void) RemoveTap:(int) tapIndex
 {
-	_activeGestures->downTouches[tapIndex] = NULL;
+	_activeGestures.downTouches[tapIndex] = NULL;
 }
 
 -(void) handleCustomTap:(NSSet *)touches
@@ -572,7 +570,7 @@ struct ActiveFingers
 			
 			if(gestureData.phase == gainput::GesturePhaseEnded || gestureData.phase== gainput::GesturePhaseCanceled)
 			{
-				CGPoint prevPoint = _activeGestures->downLocations[tapIndex];
+				CGPoint prevPoint = _activeGestures.downLocations[tapIndex];
 				
 				if(prevPoint.x != point.x || prevPoint.y != point.y)
 				{
@@ -587,6 +585,11 @@ struct ActiveFingers
 			deviceImpl->HandleGesture([self gestureID], gestureData);
 		}
 	}
+}
+
+- (void)clearActiveGestures
+{
+    memset(&_activeGestures, 0, sizeof(ActiveFingers));
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
@@ -613,7 +616,8 @@ struct ActiveFingers
 @interface GainputCustomPanGestureRecognizer : UIPanGestureRecognizer {}
 @property(nonnull, retain) GainputGestureRecognizerImpl* inputManager;
 @property unsigned gestureID;
-@property(nonnull) ActiveFingers * activeGestures;
+@property ActiveFingers activeGestures;
+- (void)clearActiveGestures;
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
@@ -648,9 +652,6 @@ struct ActiveFingers
 
 -(void) dealloc
 {
-	if(_activeGestures)
-		tf_free(_activeGestures);
-	
 	[super dealloc];
 }
 
@@ -658,10 +659,10 @@ struct ActiveFingers
 {
 	for(int i = 0 ; i < gainput::TouchPointCount; i++)
 	{
-		if(_activeGestures->downTouches[i] == NULL)
+		if(_activeGestures.downTouches[i] == NULL)
 		{
-			_activeGestures->downTouches[i] = static_cast<void*>(touch);
-			_activeGestures->downLocations[i] = loc;
+			_activeGestures.downTouches[i] = static_cast<void*>(touch);
+			_activeGestures.downLocations[i] = loc;
 			return i;
 		}
 	}
@@ -672,7 +673,7 @@ struct ActiveFingers
 {
 	for(unsigned i = 0 ; i < gainput::TouchPointCount; i++)
 	{
-		if(_activeGestures->downTouches[i] == static_cast<void*>(touch))
+		if(_activeGestures.downTouches[i] == static_cast<void*>(touch))
 		{
 			return i;
 		}
@@ -683,7 +684,7 @@ struct ActiveFingers
 
 -(void) RemovePan:(int) panIndex
 {
-	_activeGestures->downTouches[panIndex] = NULL;
+	_activeGestures.downTouches[panIndex] = NULL;
 }
 
 -(void) handleCustomPan:(NSSet *)touches
@@ -718,8 +719,8 @@ struct ActiveFingers
 			gestureData.position[0] = point.x;
 			gestureData.position[1] = point.y;
 			
-			gestureData.translation[0] = point.x - _activeGestures->downLocations[panIndex].x;
-			gestureData.translation[1] = point.y - _activeGestures->downLocations[panIndex].y;
+			gestureData.translation[0] = point.x - _activeGestures.downLocations[panIndex].x;
+			gestureData.translation[1] = point.y - _activeGestures.downLocations[panIndex].y;
 
 			if(gestureData.phase == gainput::GesturePhaseEnded || gestureData.phase == gainput::GesturePhaseCanceled)
 			{
@@ -729,6 +730,11 @@ struct ActiveFingers
 			deviceImpl->HandleGesture([self gestureID], gestureData);
 		}
 	}
+}
+
+- (void)clearActiveGestures
+{
+    memset(&_activeGestures, 0, sizeof(ActiveFingers));
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
@@ -948,7 +954,7 @@ withConfig:(gainput::GestureConfig&)gestureConfig
 		uiTap.delegate = gestureRecognizerDelegate;
 		uiTap.inputManager = gestureRecognizerImpl;
 		uiTap.gestureID = gestureId;
-		uiTap.activeGestures = (ActiveFingers*)tf_calloc(1, sizeof(ActiveFingers));
+		[uiTap clearActiveGestures];
 		if (gestureConfig.mNumberOfTapsRequired)
 			uiTap.numberOfTapsRequired = gestureConfig.mNumberOfTapsRequired;
 		[self addGestureRecognizer:uiTap];
@@ -963,7 +969,7 @@ withConfig:(gainput::GestureConfig&)gestureConfig
 		uiPan.delegate = gestureRecognizerDelegate;
 		uiPan.inputManager = gestureRecognizerImpl;
 		uiPan.gestureID = gestureId;
-		uiPan.activeGestures = (ActiveFingers*)tf_calloc(1, sizeof(ActiveFingers));
+		[uiPan clearActiveGestures];
 		[self addGestureRecognizer:uiPan];
 	}
 	if (gestureType == gainput::GesturePinch)

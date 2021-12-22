@@ -52,9 +52,6 @@
     <Filter Include="OS\Profiler">
       <UniqueIdentifier>{0e969667-faa3-46dc-a14d-4ec572491ebc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Middleware_3\ECS">
-      <UniqueIdentifier>{4d66c6ba-8149-42cf-99ea-23159b0fd8b0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dependencies\basisu">
       <UniqueIdentifier>{1b9bb678-230b-4300-af74-61eedf39a98e}</UniqueIdentifier>
     </Filter>
@@ -100,8 +97,8 @@
     <Filter Include="Dependencies\minizip\brg">
       <UniqueIdentifier>{246c7e19-aed8-4b0d-8e80-38d3629d88d8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Quest">
-      <UniqueIdentifier>{473194b9-17e9-4497-996d-61f015c0aaf5}</UniqueIdentifier>
+    <Filter Include="OS\VR">
+      <UniqueIdentifier>{0dadd2f0-95c1-4429-a129-6312c70cad2c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +146,27 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp">
       <Filter>OS\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp">
       <Filter>OS\FileSystem</Filter>
@@ -360,38 +378,8 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Quest\VrApi.cpp">
-      <Filter>OS\Quest</Filter>
+      <Filter>OS\VR</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -440,6 +428,27 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h">
       <Filter>OS\Math</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
@@ -469,9 +478,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>Dependencies\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\resources.h">
-      <Filter>OS\Fonts\Shaders\FSL</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFont.h">
       <Filter>OS\Interfaces</Filter>
@@ -533,38 +539,12 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\miniz.h">
       <Filter>Dependencies\minizip\libzip%28zip%29</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Config.h">
+      <Filter>OS</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
-      <Filter>OS\Middleware_3\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\resources.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Quest\VrApi.h">
-      <Filter>OS\Quest</Filter>
+      <Filter>OS\VR</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -573,14 +553,11 @@
     </Natvis>
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash.frag.fsl">
-      <Filter>OS\Fonts\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash2D.vert.fsl">
-      <Filter>OS\Fonts\Shaders\FSL</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash3D.vert.fsl">
-      <Filter>OS\Fonts\Shaders\FSL</Filter>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
+      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\imgui.frag.fsl">
       <Filter>OS\UI\Shaders\FSL</Filter>
@@ -594,11 +571,8 @@
     <FSLShader Include="..\..\..\..\..\Common_3\OS\UI\Shaders\FSL\textured_mesh.vert.fsl">
       <Filter>OS\UI\Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
-      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
-    </FSLShader>
-    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
-      <Filter>OS\Middleware_3\PaniniProjection\Shaders</Filter>
-    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash.frag.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash2D.vert.fsl" />
+    <FSLShader Include="..\..\..\..\..\Common_3\OS\Fonts\Shaders\FSL\Quest\fontstash3D.vert.fsl" />
   </ItemGroup>
 </Project>

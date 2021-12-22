@@ -45,7 +45,7 @@
 */
 
 #define SHORT_CUT_FILL_COLOR
-#include "hair.h"
+#include "hair.h.fsl"
 
 float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tangentDir)
 {

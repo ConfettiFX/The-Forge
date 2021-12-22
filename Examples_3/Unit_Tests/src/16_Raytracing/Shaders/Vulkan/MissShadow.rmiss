@@ -23,9 +23,9 @@
 */
 
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : enable
 
-layout(location = 2) rayPayloadInNV bool shadowMiss;
+layout(location = 2) rayPayloadInEXT bool shadowMiss;
 
 void main()
 {

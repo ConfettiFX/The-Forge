@@ -1,5 +1,6 @@
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 
 #define TOTAL_IMGS 84
 #define M_PI_F 3.141592653589793
@@ -23,7 +24,7 @@ struct RayPayload
 	uint recursionDepth;
 };
 
-layout(binding=0, set=0) uniform accelerationStructureNV gRtScene;
+layout(binding=0, set=0) uniform accelerationStructureEXT gRtScene;
 
 
 layout(binding=2, set=0) buffer indices
@@ -74,10 +75,10 @@ layout(binding=0, set=1) uniform gSettings
 	uint mFramesSinceCameraMove;
 };
 
-hitAttributeNV vec2 baryCoord;
-layout(location = 0) rayPayloadInNV RayPayload payload;
-layout(location = 1) rayPayloadNV RayPayload indirectRayPayload;
-layout(location = 2) rayPayloadNV bool shadowMiss;
+hitAttributeEXT vec2 baryCoord;
+layout(location = 0) rayPayloadInEXT RayPayload payload;
+layout(location = 1) rayPayloadEXT RayPayload indirectRayPayload;
+layout(location = 2) rayPayloadEXT bool shadowMiss;
 
 // Uses the inversion method to map two uniformly random numbers to a three dimensional
 // unit hemisphere where the probability of a given sample is proportional to the cosine
@@ -172,8 +173,8 @@ void main()
 		return;
 	}
 
-	uvec2 pixelPos = gl_LaunchIDNV.xy;
-	vec2 pixelUV = (vec2(pixelPos) + 0.5) / vec2(gl_LaunchSizeNV.xy);
+	uvec2 pixelPos = gl_LaunchIDEXT.xy;
+	vec2 pixelUV = (vec2(pixelPos) + 0.5) / vec2(gl_LaunchSizeEXT.xy);
 	
 	vec3 uvw;
 	uvw.yz = baryCoord;
@@ -197,13 +198,13 @@ void main()
 	vec3 rayOrigin = position + normal * 0.001;
 	vec3 lightDir = vec3(mLightDirectionXY, mLightDirectionZ);
 
-    uint rayFlags 	= gl_RayFlagsNoneNV;
+    uint rayFlags 	= gl_RayFlagsNoneEXT;
     uint cullMask 	= 0xff;
     float tMin = 0.0;
     float tMax = 10000.0;
 
 	shadowMiss = false;
- 	traceNV(gRtScene, rayFlags, cullMask, 1, 0, 1, rayOrigin, tMin, lightDir, tMax, 2);
+ 	traceRayEXT(gRtScene, rayFlags, cullMask, 1, 0, 1, rayOrigin, tMin, lightDir, tMax, 2);
 
 	if (shadowMiss)
 	{
@@ -219,7 +220,7 @@ void main()
 	{
 		indirectRayPayload.recursionDepth = payload.recursionDepth + 1;
 		indirectRayPayload.radiance = vec3(0.0);
-		traceNV(gRtScene, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, sampleDir, tMax, 1);
+		traceRayEXT(gRtScene, rayFlags, cullMask, 0, 0, 0, rayOrigin, tMin, sampleDir, tMax, 1);
 
 		// The indirect sample has a PDF of cos(theta) / pi, so we only need to multiply 
 		// by the albedo for Lambertian diffuse.

@@ -138,20 +138,16 @@ public:
 		textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
+		mRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "uRootConstants");
 
 		addUniformGPURingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
 
-		uint64_t          size = sizeof(mat4);
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSets);
-		DescriptorData setParams[2] = {};
-		setParams[0].pName = "uniformBlock_rootcbv";
-		setParams[0].ppBuffers = &pUniformRingBuffer->pBuffer;
-		setParams[0].pSizes = &size;
-		setParams[1].pName = "uTex0";
-		setParams[1].ppTextures = &pCurrentTexture;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSets, 2, setParams);
-		updateDescriptorSet(pRenderer, 1, pDescriptorSets, 2, setParams);
+		DescriptorData setParams[1] = {};
+		setParams[0].pName = "uTex0";
+		setParams[0].ppTextures = &pCurrentTexture;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSets, 1, setParams);
 
 		BufferDesc vbDesc = {};
 		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -237,7 +233,6 @@ public:
 		pipelineDesc.mGraphicsDesc.mSampleQuality = pRts[0]->mSampleQuality;
 		pipelineDesc.mGraphicsDesc.pColorFormats = &pRts[0]->mFormat;
 		for (uint32_t i = 0; i < min(count, 2U); ++i)
-
 		{
 			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? pRts[1]->mFormat : TinyImageFormat_UNDEFINED;
 			pipelineDesc.mGraphicsDesc.pShaderProgram = pShaders[i];
@@ -298,6 +293,7 @@ public:
 	GPURingBuffer* pMeshRingBuffer;
 	float2         mDpiScale;
 	float          mDpiScaleMin;
+	uint32_t       mRootConstantIndex;
 	bool           mText3D;
 };
 
@@ -646,10 +642,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	endUpdateResource(&update, NULL);
 
 	// extract color
-	uint8_t* colorByte = (uint8_t*)colors;
-	float4   color;
-	for (int i = 0; i < 4; i++)
-		color[i] = ((float)colorByte[i]) / 255.0f;
+	float4 color = unpackA8B8G8R8_SRGB(*colors);
 
 	uint32_t  pipelineIndex = ctx->mText3D ? 1 : 0;
 	Pipeline* pPipeline = ctx->pPipelines[pipelineIndex];
@@ -672,35 +665,34 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 	if (ctx->mText3D)
 	{
-        CameraMatrix mvp = ctx->mProjView * ctx->mWorldMat;
+        mat4 mvp = (ctx->mProjView * ctx->mWorldMat).getPrimaryMatrix();
 		data.color = color;
 		data.scaleBias.x = -data.scaleBias.x;
 
 		GPURingBufferOffset uniformBlock = getGPURingBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
 		BufferUpdateDesc    updateDesc = { uniformBlock.pBuffer, uniformBlock.mOffset };
 		beginUpdateResource(&updateDesc);
-		*((CameraMatrix*)updateDesc.pMappedData) = mvp;
+		*((mat4*)updateDesc.pMappedData) = mvp;
 		endUpdateResource(&updateDesc, NULL);
 
-		const uint64_t size = sizeof(mvp);
+		const uint32_t size = sizeof(mvp);
 		const uint32_t stride = sizeof(float4);
 
+		DescriptorDataRange range = { (uint32_t)uniformBlock.mOffset, size };
 		DescriptorData params[1] = {};
 		params[0].pName = "uniformBlock_rootcbv";
 		params[0].ppBuffers = &uniformBlock.pBuffer;
-		params[0].pOffsets = &uniformBlock.mOffset;
-		params[0].pSizes = &size;
-		updateDescriptorSet(ctx->pRenderer, pipelineIndex, ctx->pDescriptorSets, 1, params);
-		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
-		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
+		params[0].pRanges = &range;
+		cmdBindDescriptorSetWithRootCbvs(pCmd, 0, ctx->pDescriptorSets, 1, params);
+		cmdBindPushConstants(pCmd, ctx->pRootSignature, ctx->mRootConstantIndex, &data);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
 	else
 	{
 		const uint32_t stride = sizeof(float4);
-		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
-		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
+		cmdBindDescriptorSet(pCmd, 0, ctx->pDescriptorSets);
+		cmdBindPushConstants(pCmd, ctx->pRootSignature, ctx->mRootConstantIndex, &data);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}

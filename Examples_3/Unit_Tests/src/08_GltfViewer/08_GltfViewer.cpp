@@ -207,6 +207,7 @@ struct GLTFAsset
 			{
 				case GLTF_MATERIAL_TYPE_METALLIC_ROUGHNESS:
 				{
+					// Textures representing color should be stored in SRGB or HDR format
 					updateTextureCreationFlags(textureCreationFlags, material.mMetallicRoughness.mBaseColorTexture, TEXTURE_CREATION_FLAG_SRGB);
 					updateTextureCreationFlags(textureCreationFlags, material.mMetallicRoughness.mMetallicRoughnessTexture, TEXTURE_CREATION_FLAG_NONE);
 				}
@@ -214,6 +215,7 @@ struct GLTFAsset
 
 				case GLTF_MATERIAL_TYPE_SPECULAR_GLOSSINESS:
 				{
+					// Textures representing color should be stored in SRGB or HDR format
 					updateTextureCreationFlags(textureCreationFlags, material.mSpecularGlossiness.mDiffuseTexture, TEXTURE_CREATION_FLAG_SRGB);
 					updateTextureCreationFlags(textureCreationFlags, material.mSpecularGlossiness.mSpecularGlossinessTexture, TEXTURE_CREATION_FLAG_SRGB);
 				} break;
@@ -387,7 +389,7 @@ struct GLTFAsset
 	
 	void createMaterialResources(RootSignature* pRootSignature, DescriptorSet* pBindlessTexturesSamplersSet = NULL) // if pBindlessTexturesSamplersSet is non-NULL, means that textures are bindless and the material data is accessed through a storage rather than uniform buffer.
 	{
-		uint64_t materialDataStride = pBindlessTexturesSamplersSet ? sizeof(GLTFMaterialData) : round_up_64(sizeof(GLTFMaterialData), 256);
+		uint32_t materialDataStride = pBindlessTexturesSamplersSet ? sizeof(GLTFMaterialData) : round_up(sizeof(GLTFMaterialData), 256);
 
 		BufferLoadDesc materialBufferLoadDesc = {};
 		materialBufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -435,11 +437,10 @@ struct GLTFAsset
 		
 		SyncToken token = {};
 		
-		size_t i = 0;
 		for (uint32_t m = 0; m < pData->mMaterialCount; ++m)
 		{
 			const GLTFMaterial& material = pData->pMaterials[m];
-			uint64_t materialBufferOffset = i * materialDataStride;
+			uint32_t materialBufferOffset = m * materialDataStride;
 			
 			BufferUpdateDesc updateDesc = {};
 			updateDesc.pBuffer = pMaterialBuffer;
@@ -489,11 +490,11 @@ struct GLTFAsset
 			}
 			endUpdateResource(&updateDesc, &token);
 			
+			DescriptorDataRange range = { materialBufferOffset, materialDataStride };
 			DescriptorData params[11] = {};
 			params[0].pName = "cbMaterialData";
 			params[0].ppBuffers = &pMaterialBuffer;
-			params[0].pOffsets = &materialBufferOffset;
-			params[0].pSizes = &materialDataStride;
+			params[0].pRanges = &range;
 			uint32_t paramIdx = 1;
 			
 			switch (material.mMaterialType)
@@ -520,10 +521,8 @@ struct GLTFAsset
 			
 			if (!pBindlessTexturesSamplersSet)
 			{
-				updateDescriptorSet(pRenderer, (uint32_t)i, pMaterialSet, paramIdx, params);
+				updateDescriptorSet(pRenderer, m, pMaterialSet, paramIdx, params);
 			}
-			
-			i += 1;
 		}
 		
 		waitForToken(&token);
@@ -627,6 +626,10 @@ RootSignature*		pRootSignatureSkybox				= NULL;
 RootSignature*		pRootSignatureFinalPostProcess		= NULL;
 RootSignature*		pRootSignatureTemporalAA			= NULL;
 
+uint32_t            gShadowRootConstantIndex = 0;
+uint32_t            gShadedRootConstantIndex = 0;
+uint32_t            gPostProcessRootConstantIndex = 0;
+
 DescriptorSet*      pDescriptorSetWatermark;
 DescriptorSet*      pDescriptorSetSkybox;
 DescriptorSet*      pDescriptorSetsFinalPostProcess[3];
@@ -675,7 +678,7 @@ const char*		gMissingTextureString				= "MissingTexture";
 const char*					    gModelFile;
 uint32_t						gPreviousLoadedModel = mModelSelected;
 
-static uint			gLightColor[gTotalLightCount] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffff66 };
+static float4		gLightColor[gTotalLightCount] = { float4(1.f), float4(1.f), float4(1.f), float4(1.f, 1.f, 1.f, 0.25f) };
 static float		gLightColorIntensity[gTotalLightCount] = { 0.1f, 0.2f, 0.2f, 0.25f };
 static float2		gLightDirection = { -122.0f, 222.0f };
 
@@ -767,6 +770,7 @@ public:
 		rootDesc.ppShaders = shaders;
 		
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureShadow);
+		gShadowRootConstantIndex = getDescriptorIndexFromName(pRootSignatureShadow, "cbRootConstants");
 		
 		Shader*  demoShaders[] = { pMeshOptDemoShader, pFloorShader };
 		
@@ -774,6 +778,7 @@ public:
 		rootDesc.ppShaders = demoShaders;
 		
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureShaded);
+		gShadedRootConstantIndex = getDescriptorIndexFromName(pRootSignatureShaded, "cbRootConstants");
 
 		Shader* postShaders[] = { pWaterMarkShader };
 		rootDesc.mShaderCount = 1;
@@ -785,6 +790,7 @@ public:
 		rootDesc.ppShaders = &pFinalPostProcessShader;
 
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureFinalPostProcess);
+		gPostProcessRootConstantIndex = getDescriptorIndexFromName(pRootSignatureFinalPostProcess, "PostProcessRootConstant");
 
 		rootDesc.mShaderCount = 1;
 		rootDesc.ppShaders = &pTemporalAAShader;
@@ -905,7 +911,7 @@ public:
 			GLTFNode& node = gCurrentAsset.pData->pNodes[n];
 			if (node.mMeshIndex != UINT_MAX)
 			{
-				cmdBindPushConstants(cmd, pRootSignatureShadow, "cbRootConstants", &pushConstants);
+				cmdBindPushConstants(cmd, pRootSignatureShadow, gShadowRootConstantIndex, &pushConstants);
 				for (uint32_t i = 0; i < node.mMeshCount; ++i)
 				{
 					GLTFMesh& mesh = gCurrentAsset.pData->pMeshes[node.mMeshIndex + i];
@@ -1360,6 +1366,7 @@ public:
 		loadDesc.ppGeometry = &gCurrentAsset.pGeom;
 		loadDesc.pFileName = modelFileName;
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 		addResource(&loadDesc, NULL);
 
 		uint32_t res = gltfLoadContainer(modelFileName, NULL, GLTF_FLAG_CALCULATE_BOUNDS, &gCurrentAsset.pData);
@@ -1967,10 +1974,7 @@ public:
 		
 		for (uint i = 0; i < gTotalLightCount; ++i)
 		{
-			gUniformData.mLightColor[i] = vec4(float((gLightColor[i] >> 24) & 0xff),
-											   float((gLightColor[i] >> 16) & 0xff),
-											   float((gLightColor[i] >> 8) & 0xff),
-											   float((gLightColor[i] >> 0) & 0xff)) / 255.0f;
+			gUniformData.mLightColor[i] = gLightColor[i].toVec4();
 			
 			gUniformData.mLightColor[i].setW(gLightColorIntensity[i]);
 		}
@@ -2158,7 +2162,7 @@ public:
 				GLTFNode& node = gCurrentAsset.pData->pNodes[n];
 				if (node.mMeshIndex != UINT_MAX)
 				{
-					cmdBindPushConstants(cmd, pRootSignatureShaded, "cbRootConstants", &pushConstants);
+					cmdBindPushConstants(cmd, pRootSignatureShaded, gShadedRootConstantIndex, &pushConstants);
 					for (uint32_t i = 0; i < node.mMeshCount; ++i)
 					{
 						GLTFMesh& mesh = gCurrentAsset.pData->pMeshes[node.mMeshIndex + i];
@@ -2274,7 +2278,7 @@ public:
 
 			cmdBindPipeline(cmd, pFinalPostProcessPipeline);
 			cmdBindDescriptorSet(cmd, 0, postProcessDescriptorSet);
-			cmdBindPushConstants(cmd, pRootSignatureFinalPostProcess, "PostProcessRootConstant", &rootConstant);
+			cmdBindPushConstants(cmd, pRootSignatureFinalPostProcess, gPostProcessRootConstantIndex, &rootConstant);
 			cmdDraw(cmd, 3, 0);
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -2364,7 +2368,8 @@ public:
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		// This unit test does manual tone mapping
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, false);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		

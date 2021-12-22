@@ -22,9 +22,9 @@
  * under the License.
 */
 
-#include "packing.h"
-#include "shader_defs.h"
-#include "vb_resources.h"
+#include "packing.h.fsl"
+#include "shader_defs.h.fsl"
+#include "vb_resources.h.fsl"
 
 #ifdef VULKAN
 	#extension GL_ARB_shader_draw_parameters : enable

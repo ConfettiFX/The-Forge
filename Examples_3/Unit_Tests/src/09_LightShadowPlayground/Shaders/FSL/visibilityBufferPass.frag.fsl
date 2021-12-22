@@ -22,9 +22,9 @@
  * under the License.
 */
 
-#include "Shader_Defs.h"
-#include "Packing.h"
-#include "vb_resources.h"
+#include "Shader_Defs.h.fsl"
+#include "Packing.h.fsl"
+#include "vb_resources.h.fsl"
 
 STRUCT(PsIn)
 {

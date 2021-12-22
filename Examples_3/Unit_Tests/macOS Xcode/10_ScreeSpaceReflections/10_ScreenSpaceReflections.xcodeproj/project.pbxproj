@@ -90,7 +90,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97E9421D25BF463D009F2F2B /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -103,7 +103,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -148,7 +148,7 @@
 		650CCC682223CC61003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC6A2223CC6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		97E9421E25BF46CA009F2F2B /* BRDFIntegration.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = BRDFIntegration.comp.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/BRDFIntegration.comp.fsl; sourceTree = "<group>"; };
-		97E9421F25BF46CA009F2F2B /* SSSR_Common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SSSR_Common.h; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/SSSR_Common.h; sourceTree = "<group>"; };
+		97E9421F25BF46CA009F2F2B /* SSSR_Common.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SSSR_Common.h.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/SSSR_Common.h.fsl; sourceTree = "<group>"; };
 		97E9422025BF46CA009F2F2B /* PPR_Holepatching.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = PPR_Holepatching.frag.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/PPR_Holepatching.frag.fsl; sourceTree = "<group>"; };
 		97E9422125BF46CA009F2F2B /* DepthDownsample.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = DepthDownsample.comp.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/DepthDownsample.comp.fsl; sourceTree = "<group>"; };
 		97E9422225BF46CA009F2F2B /* SSSR_PrepareIndirectArgs.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = SSSR_PrepareIndirectArgs.comp.fsl; path = ../../../src/10_ScreenSpaceReflections/Shaders/FSL/SSSR_PrepareIndirectArgs.comp.fsl; sourceTree = "<group>"; };

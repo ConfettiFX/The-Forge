@@ -50,7 +50,7 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
         shader_src += ['#define DIRECT3D12\n']
 
         
-    shader_src += ['#define STAGE_', shader.stage.name, '\n']
+    shader_src += ['#define STAGE_' + shader.stage.name + '\n']
     if shader.enable_waveops:
         shader_src += ['#define ENABLE_WAVEOPS()\n']
 
@@ -81,13 +81,19 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
     srt_free_resources = []
     srt_references = []
 
-    defineLoc = len(shader_src)
+    shader_src += ['#line 1 \"'+fsl.replace(os.sep, '/')+'\"\n']
+    line_index = 0
 
     parsing_struct = None
     skip_semantics = False
     struct_elements = []
     srt_redirections = set()
     for line in shader.lines:
+
+        line_index += 1
+        shader_src_len = len(shader_src)
+        if line.startswith('#line'):
+            line_index = int(line.split()[1]) - 1
 
         def get_uid(name):
             return name + '_' + str(len(shader_src))
@@ -120,14 +126,14 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             if pssl and 'PUSH_CONSTANT' in line:
                 skip_semantics = True
                 macro = get_uid(struct_name)
-                shader_src += ['#define ', macro, '\n']
+                shader_src += ['#define ' + macro + '\n']
                 srt_free_resources += [(macro, pssl.declare_rootconstant(struct_name))]
 
             if pssl and 'CBUFFER' in line:
                 skip_semantics = True
                 res_freq = parsing_struct[1]
                 macro = get_uid(struct_name)
-                shader_src += ['#define ', macro, '\n']
+                shader_src += ['#define ' + macro + '\n']
                 if 'rootcbv' in struct_name:
                     srt_free_resources += [(macro, pssl.declare_cbuffer(struct_name))]
                 else:
@@ -141,13 +147,15 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             if pssl and type(parsing_struct) is not str:
                 basename = getArrayBaseName(data_decl[1])
                 macro = 'REF_' + get_uid(basename)
-                shader_src += ['#define ', macro, '\n']
+                shader_src += ['#define ' + macro + '\n']
                 init, ref = pssl.declare_element_reference(shader, parsing_struct, data_decl)
                 shader_src += [*init, '\n']
                 srt_redirections.add(basename)
                 struct_elements += [(macro, ref)]
                 srt_references += [(macro, (init, ref))]
-                shader_src += [line]
+                if len(parsing_struct) > 2: # only pad cbuffers
+                     line = pssl.apply_cpad(data_decl)
+                shader_src += ['#line {}\n'.format(line_index), line]
                 continue
 
         if parsing_struct and '};' in line:
@@ -156,7 +164,7 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             if passthrough_gs and shader.struct_args[0][0] == parsing_struct:
                 shader_src += ['\tDATA(FLAT(uint), PrimitiveID, TEXCOORD8);\n']
 
-            shader_src += [line]
+            shader_src += ['#line {}\n'.format(line_index), line]
 
             skip_semantics = False
             if type(parsing_struct) is not str:
@@ -170,17 +178,13 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             last_res_decl = len(shader_src)+1
 
         if pssl and resource_decl:
-            # shader_src += ['// ', line.strip(), '\n']
             _, res_name, res_freq, _, _ = resource_decl
             basename = getArrayBaseName(res_name)
             macro = get_uid(basename)
 
-            # shader_src += ['#define ', macro, ' //', line.strip(), '\n']
             shader_src += ['#define ', macro, '\n']
             srt_resources[res_freq] += [(macro, pssl.declare_resource(resource_decl))]
 
-            # macro = 'REF_' + macro
-            # shader_src += ['#define ', macro, '\n']
             init, ref = pssl.declare_reference(shader, resource_decl)
             shader_src += [*init, '\n']
             srt_references += [(macro, (init, ref))]
@@ -250,12 +254,8 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             srt_name = rootSignature[l0: l1].split()[-1]
 
             res_sig = 'RootSignature' if xbox else 'SrtSignature'
-            shader_src += ['[', res_sig, '(', srt_name, ')]\n', line]
+            shader_src += ['[' + res_sig + '(' + srt_name + ')]\n' + line]
             continue
-
-        # if 'INIT_MAIN' in line:
-        #     if pssl:
-        #         shader_src += ['\tinit_global_references();\n']
 
         if 'INIT_MAIN' in line and shader.returnType:
             # mName = getMacroName(shader.returnType)
@@ -268,7 +268,7 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             if passthrough_gs:
                 for dtype, dvar in shader.flat_args:
                     if 'SV_PRIMITIVEID' in dtype.upper():
-                        shader_src += ['uint ', dvar, ' = ', shader.struct_args[0][1], '.PrimitiveID;\n']
+                        shader_src += ['uint ' + dvar + ' = ' + shader.struct_args[0][1] + '.PrimitiveID;\n']
 
         if 'BeginNonUniformResourceIndex(' in line:
             index, max_index = getMacro(line), None
@@ -301,19 +301,16 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
         if shader.pcf and shader.pcf in line and not pcf_returnType:
             loc = line.find(shader.pcf)
             pcf_returnType = line[:loc].strip()
-            # line = getMacroName(pcf_returnType) + ' ' + line[loc:]
             for dtype, dvar in shader.pcf_arguments:
                 if not 'INPUT_PATCH' in dtype and not 'OUTPUT_PATCH' in dtype:
                     line = line.replace(dtype, getMacro(dtype))
                     line = line.replace(dvar, dvar+': '+getMacroName(dtype))
 
         if pcf_returnType and re.match('\s*PCF_INIT', line):
-            # line = line.replace('PCF_INIT', getMacroName(pcf_returnType) + ' ' + getMacro(pcf_returnType))
             line = line.replace('PCF_INIT', '')
 
         if pcf_returnType and 'PCF_RETURN' in line:
             line = line.replace('PCF_RETURN', 'return ')
-            # line = line.replace('PCF_RETURN', '{ return ' + getMacro(pcf_returnType) + ';}')
 
         if 'INDIRECT_DRAW(' in line:
             if pssl:
@@ -329,6 +326,9 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             if xbox:
                 shader_src += xbox.set_ps_zorder_earlyz()
             line = '//' + line
+
+        if shader_src_len != len(shader_src):
+            shader_src += ['#line {}\n'.format(line_index)]
 
         shader_src += [line]
 

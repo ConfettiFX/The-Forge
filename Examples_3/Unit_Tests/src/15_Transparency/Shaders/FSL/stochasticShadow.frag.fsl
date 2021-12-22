@@ -22,8 +22,8 @@
 * under the License.
 */
 
-#include "shaderDefs.h"
-#include "shading.h"
+#include "shaderDefs.h.fsl"
+#include "shading.h.fsl"
 
 // source: https://www.shadertoy.com/view/4sfGzS
 float hash(float3 p)

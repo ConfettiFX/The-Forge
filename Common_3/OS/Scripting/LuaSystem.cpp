@@ -359,7 +359,7 @@ void registerColorSliderWidgetLua(const UIWidget* pWidget)
 {
 	const ColorSliderWidget* pOriginalWidget = (const ColorSliderWidget*)(pWidget->pWidget);
 
-	uint32_t* data = pOriginalWidget->pData;
+	float4* data = pOriginalWidget->pData;
 	char functionName[MAX_LABEL_STR_LENGTH + 3];
 	sprintf(functionName, "Set");
 	strcat(functionName, pWidget->mLabel);
@@ -367,14 +367,20 @@ void registerColorSliderWidgetLua(const UIWidget* pWidget)
 	TrimString(functionName);
 
 	pLuaManager->SetFunction(functionName, [data](ILuaStateWrap* state) -> int {
-		*data = (uint32_t)state->GetIntegerArg(1);
+		data->x = (float)state->GetNumberArg(1);
+		data->y = (float)state->GetNumberArg(2);
+		data->z = (float)state->GetNumberArg(3);
+		data->w = (float)state->GetNumberArg(4);
 		return 0;
 	});
 
 	functionName[0] = 'G';
 	pLuaManager->SetFunction(functionName, [data](ILuaStateWrap* state) -> int {
-		state->PushResultInteger((int)*data);
-		return 1;
+		state->PushResultNumber((double)data->x);
+		state->PushResultNumber((double)data->y);
+		state->PushResultNumber((double)data->z);
+		state->PushResultNumber((double)data->w);
+		return 4;
 	});
 }
 
@@ -382,7 +388,7 @@ void registerColorPickerWidgetLua(const UIWidget* pWidget)
 {
 	const ColorPickerWidget* pOriginalWidget = (const ColorPickerWidget*)(pWidget->pWidget);
 
-	uint32_t* data = pOriginalWidget->pData;
+	float4* data = pOriginalWidget->pData;
 	char functionName[MAX_LABEL_STR_LENGTH + 3];
 	sprintf(functionName, "Set");
 	strcat(functionName, pWidget->mLabel);
@@ -390,14 +396,20 @@ void registerColorPickerWidgetLua(const UIWidget* pWidget)
 	TrimString(functionName);
 
 	pLuaManager->SetFunction(functionName, [data](ILuaStateWrap* state) -> int {
-		*data = (uint32_t)state->GetIntegerArg(1);
+		data->x = (float)state->GetNumberArg(1);
+		data->y = (float)state->GetNumberArg(2);
+		data->z = (float)state->GetNumberArg(3);
+		data->w = (float)state->GetNumberArg(4);
 		return 0;
 	});
 
 	functionName[0] = 'G';
 	pLuaManager->SetFunction(functionName, [data](ILuaStateWrap* state) -> int {
-		state->PushResultInteger((int)*data);
-		return 1;
+		state->PushResultNumber((double)data->x);
+		state->PushResultNumber((double)data->y);
+		state->PushResultNumber((double)data->z);
+		state->PushResultNumber((double)data->w);
+		return 4;
 	});
 }
 

@@ -62,7 +62,7 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 
     float lightIntensity = 1.0f;
     float quadraticCoeff = 1.2;
-    float ambientCoeff = 0.4;
+    float ambientCoeff = 0.1;
 
     float3 lightDir;
 

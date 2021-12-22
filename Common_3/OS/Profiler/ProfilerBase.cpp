@@ -490,11 +490,11 @@ void profileDrawDetailedModeGrid(
 	for (uint32_t i = 0; i < totalLines; ++i)
 	{
 		// Alternate between dark lines as whole numbers and light lines decimal mid.
-		uint32_t color = 0x64646464;
+		float4 color = float4(0.25f);
 
 		if (i % 2 != 0)
 		{
-			color = 0x32323232;
+			color = float4(0.125f);
 		}
 
 		DrawLineWidget lineWidget;
@@ -760,7 +760,7 @@ void profileDrawDetailedMode(Profile& S)
 
 			float2   pos = float2(startWidthPixels + startTime * msToPixels, height);
 			float2   scale = float2(max((endTime - startTime), 0.05f) * msToPixels, timerHeight);
-			uint32_t color = (timerInfo.nColor | 0x7D000000);
+			float4 color = unpackA8B8G8R8(timerInfo.nColor | 0x7D000000);
 
 			// Draw the timer bar and text.
 			FilledRectWidget rectWidget;
@@ -773,7 +773,7 @@ void profileDrawDetailedMode(Profile& S)
 			// Add data to draw a tooltip for this timer.
 			DrawTextWidget textWidget;
 			textWidget.mPos = pos + float2(scale.x, 0.f);
-			textWidget.mColor = 0xFFFFFFFF;
+			textWidget.mColor = float4(1.f);
 			gDetailedModeTooltips.push_back(
 				ProfileDetailedModeTooltip(timer, uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT)));
 			luaRegisterWidget(gDetailedModeTooltips.back().mWidget);
@@ -791,7 +791,7 @@ void profileDrawDetailedMode(Profile& S)
 
 		DrawTextWidget textWidget;
 		textWidget.mPos = float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f);
-		textWidget.mColor = 0xFFFFFFFF;
+		textWidget.mColor = float4(1.f);
 		gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT));
 		luaRegisterWidget(gDetailedModeWidgets.back());
 	}
@@ -803,7 +803,7 @@ void profileDrawDetailedMode(Profile& S)
 	DrawLineWidget topLine;
 	topLine.mPos1 = float2(startWidthPixels, startHeightPixels);
 	topLine.mPos2 = float2(ceilf(frameTime) * msToPixels, startHeightPixels);
-	topLine.mColor = 0x64646464;
+	topLine.mColor = unpackA8B8G8R8(0x64646464);
 	topLine.mAddItem = true;
 	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE));
 	luaRegisterWidget(gDetailedModeWidgets.back());
@@ -811,7 +811,7 @@ void profileDrawDetailedMode(Profile& S)
 	DrawLineWidget bottomLine;
 	bottomLine.mPos1 = float2(startWidthPixels, frameHeight);
 	bottomLine.mPos2 = float2(ceilf(frameTime) * msToPixels, frameHeight);
-	bottomLine.mColor = 0x64646464;
+	bottomLine.mColor = unpackA8B8G8R8(0x64646464);
 	bottomLine.mAddItem = true;
 	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE));
 	luaRegisterWidget(gDetailedModeWidgets.back());
@@ -889,7 +889,7 @@ void profileDrawPlotMode(Profile& S)
 	DrawLineWidget lineSeparator;
 	lineSeparator.mPos1 = float2(baseWidthOffset, timeHeightStart);
 	lineSeparator.mPos2 = float2(baseWidthOffset, timeHeightEnd);
-	lineSeparator.mColor = 0x64646464;
+	lineSeparator.mColor = unpackA8B8G8R8(0x64646464);
 	lineSeparator.mAddItem = false;
 	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
 	luaRegisterWidget(gPlotModeWidgets.back());
@@ -919,13 +919,13 @@ void profileDrawPlotMode(Profile& S)
 
 		lineSeparator.mPos1 = float2(xStart, y);
 		lineSeparator.mPos2 = float2(xEnd, y);
-		lineSeparator.mColor = 0x32323232;
+		lineSeparator.mColor = unpackA8B8G8R8(0x32323232);
 		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE));
 		luaRegisterWidget(gPlotModeWidgets.back());
 
 		DrawTextWidget text;
 		text.mPos = float2(baseWidthOffset, y);
-		text.mColor = 0xFFFFFFFF;
+		text.mColor = float4(1.f);
 		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT));
 		luaRegisterWidget(gPlotModeWidgets.back());
 	}
@@ -940,7 +940,7 @@ void profileDrawPlotMode(Profile& S)
 	for (uint32_t i = 0; i < (uint32_t)gPlotModeData.size(); ++i)
 	{
 		ProfileTimerInfo& timerInfo = S.TimerInfo[gPlotModeData[i].mTimerInfo];
-		uint32_t          color = (timerInfo.nColor | 0xFF000000);
+		float4            color = unpackA8B8G8R8(timerInfo.nColor | 0xFF000000);
 
 		OneLineCheckboxWidget oneLineCheckbox;
 		oneLineCheckbox.pData = &gPlotModeData[i].mEnabled;
@@ -1501,7 +1501,7 @@ void profileLoadWidgetUI(Profile& S)
 					graphTimer.mTimerInfo = timerIndex;
 					graphTimer.mTimeData = (float2*)tf_malloc(FRAME_HISTORY_LEN * sizeof(float2));
 					graphTimer.mEnabled = false;
-					uint32_t color = (S.TimerInfo[timerIndex].nColor | 0x7D000000);
+					float4 color = unpackA8B8G8R8(S.TimerInfo[timerIndex].nColor | 0x7D000000);
 
 					DrawCurveWidget curve;
 					curve.mPos = graphTimer.mTimeData;

@@ -23,7 +23,7 @@
 */
 
 #define MESH_PASS
-#include "vb_resources.h"
+#include "vb_resources.h.fsl"
 
 STRUCT(VsIn)
 {

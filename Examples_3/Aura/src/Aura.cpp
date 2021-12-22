@@ -47,7 +47,7 @@
 #include "../../../Common_3/OS/Interfaces/IMemory.h"
 
 #define NO_FSL_DEFINITIONS
-#include "Shaders/FSL/wind.h"
+#include "Shaders/FSL/wind.h.fsl"
 
 ThreadSystem* pThreadSystem;
 
@@ -176,7 +176,6 @@ const uint32_t gImageCount = 3;
 const uint32_t gRSMResolution = 256;
 const uint32_t gShadowMapSize = 1024;
 
-const uint32_t gShadowMapResolution = 2048;
 const uint32_t gNumViews = NUM_CULLING_VIEWPORTS;
 #ifdef METAL
 const uint32_t gNumStages = 5;
@@ -340,6 +339,7 @@ Pipeline*         pPipelineVisibilityBufferPass[gNumGeomSets] = {};
 RootSignature*    pRootSignatureVBPass = nullptr;
 CommandSignature* pCmdSignatureVBPass = nullptr;
 DescriptorSet*    pDescriptorSetVBPass[2] = { NULL };
+uint32_t          gVBPassRootConstantIndex = 0;
 /************************************************************************/
 // VB shade pipeline
 /************************************************************************/
@@ -454,6 +454,7 @@ UIComponent* pAuraRSMTexturesWindow = nullptr;
 Buffer* pIndirectCommandBuffers[gImageCount][gNumViews];
 Buffer* pDrawIDBuffer = { NULL }; // temporary DrawId buffer to pass to ICB
 CommandSignature* pCmdSignatureICBOptimize = NULL;
+uint32_t gMaxDrawsRootConstantIndex = 0;
 #endif
 
 /************************************************************************/
@@ -785,7 +786,10 @@ public:
 			TextureLoadDesc desc = {};
 			desc.pFileName = pScene->textures[i];
 			desc.ppTexture = &gDiffuseMapsStorage[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&desc, NULL);
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_NONE;
 			desc.pFileName = pScene->normalMaps[i];
 			desc.ppTexture = &gNormalMapsStorage[i];
 			addResource(&desc, NULL);
@@ -832,6 +836,7 @@ public:
 		vbRootDesc.ppStaticSamplers = pTextureSamplers;
 		vbRootDesc.mStaticSamplerCount = 4;
 		addRootSignature(pRenderer, &vbRootDesc, &pRootSignatureVBPass);
+		gVBPassRootConstantIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "materialRootConstant");
 
 		RootSignatureDesc shadeRootDesc = { pShaderVisibilityBufferShade, gVbShadeConfigCount };
 		// Set max number of bindless textures in the root signature
@@ -880,7 +885,7 @@ public:
 #else
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].pName = "indirectRootConstant";
+		indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
 		indirectArgs[0].mByteSize = sizeof(uint32_t);
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 2 };
@@ -891,6 +896,8 @@ public:
 		indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER_OPTIMIZE;
 		CommandSignatureDesc icbOptimizationPassDesc = { NULL, indirectArgs, 1 };
 		addIndirectCommandSignature(pRenderer, &icbOptimizationPassDesc, &pCmdSignatureICBOptimize);
+
+		gMaxDrawsRootConstantIndex = getDescriptorIndexFromName(pRootSignatureTriangleFiltering, "maxDrawsRootConstant");
 #endif
 
 		// Create geometry for light rendering
@@ -2133,11 +2140,10 @@ public:
 	{
 		// Triangle Filtering
 		{
-			uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
 #if defined(METAL)
-			const uint32_t paramsCount = 10;
+			const uint32_t paramsCount = 9;
 #else
-			const uint32_t paramsCount = 5;
+			const uint32_t paramsCount = 4;
 #endif
 			DescriptorData filterParams[paramsCount] = {};
 			filterParams[0].pName = "vertexDataBuffer";
@@ -2148,23 +2154,20 @@ public:
 			filterParams[2].ppBuffers = &pMeshConstantsBuffer;
 			filterParams[3].pName = "materialProps";
 			filterParams[3].ppBuffers = &pMaterialPropertyBuffer;
-			filterParams[4].pName = "batchData_rootcbv";
-			filterParams[4].ppBuffers = &pFilterBatchDataBuffer->pBuffer;
-			filterParams[4].pSizes = &size;
 #if defined(METAL)
 			// icb data
-			filterParams[5].pName = "vertexTexCoord";
-			filterParams[5].ppBuffers = &pGeom->pVertexBuffers[1];
-			filterParams[6].pName = "vertexTangent";
-			filterParams[6].ppBuffers = &pGeom->pVertexBuffers[3];
-			filterParams[7].pName = "vertexNormal";
-			filterParams[7].ppBuffers = &pGeom->pVertexBuffers[2];
-			filterParams[8].pName = "drawIDs";
-			filterParams[8].ppBuffers = &pDrawIDBuffer;
-			filterParams[9].pName = "texturesArgBuffer";
-			filterParams[9].mExtractBuffer = true;
-			filterParams[9].ppDescriptorSet = &pDescriptorSetVBPass[0];
-			filterParams[9].mDescriptorSetBufferIndex = 0;
+			filterParams[4].pName = "vertexTexCoord";
+			filterParams[4].ppBuffers = &pGeom->pVertexBuffers[1];
+			filterParams[5].pName = "vertexTangent";
+			filterParams[5].ppBuffers = &pGeom->pVertexBuffers[3];
+			filterParams[6].pName = "vertexNormal";
+			filterParams[6].ppBuffers = &pGeom->pVertexBuffers[2];
+			filterParams[7].pName = "drawIDs";
+			filterParams[7].ppBuffers = &pDrawIDBuffer;
+			filterParams[8].pName = "texturesArgBuffer";
+			filterParams[8].mExtractBuffer = true;
+			filterParams[8].ppDescriptorSet = &pDescriptorSetVBPass[0];
+			filterParams[8].mDescriptorSetBufferIndex = 0;
 #endif
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount, filterParams);
 
@@ -2405,7 +2408,7 @@ public:
 		swapChainDesc.mWidth = width;
 		swapChainDesc.mHeight = height;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 
 		swapChainDesc.mColorClearValue = {{1, 1, 1, 1}};
 		swapChainDesc.mEnableVsync = false;
@@ -3584,7 +3587,6 @@ public:
 #ifdef METAL
 		cmdBindPipeline(cmd, pPipelineFillRSM[1]);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
-		
 		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBuffers[frameIdx][viewId], 0, NULL, 0);
 #else
 		struct RSMConstants
@@ -3601,7 +3603,7 @@ public:
 			cmdBindDescriptorSet(cmd, frameIdx * 2 + (uint32_t)!gAppSettings.mFilterTriangles, pDescriptorSetVBPass[1]);
 			
 			RSMConstants constantData = { viewId, gAppSettings.useColorMaps };
-			cmdBindPushConstants(cmd, pRootSignatureVBPass, "materialRootConstant", &constantData);
+			cmdBindPushConstants(cmd, pRootSignatureVBPass, gVBPassRootConstantIndex, &constantData);
 
 			Buffer* pIndirectBuffer = gAppSettings.mFilterTriangles ? pFilteredIndirectDrawArgumentsBuffer[frameIdx][i][viewId]
 				: pIndirectDrawArgumentsBufferAll[i];
@@ -3647,15 +3649,12 @@ public:
 		if (batchChunk->currentBatchCount == 0)
 			return;
 
-		uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
-
+		DescriptorDataRange range = { (uint32_t)offset, BATCH_COUNT * sizeof(SmallBatchData) };
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData_rootcbv";
-		params[0].pOffsets = &offset;
-		params[0].pSizes = &size;
+		params[0].pRanges = &range;
 		params[0].ppBuffers = &pBuffer;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 1, params);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
+		cmdBindDescriptorSetWithRootCbvs(cmd, 0, pDescriptorSetTriangleFiltering[0], 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
 
 		// Reset batch chunk to start adding triangles to it
@@ -3800,7 +3799,7 @@ public:
 		uint32_t x = (gAppSettings.mFilterTriangles ? 4 : 3);
 
 		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + x, pDescriptorSetTriangleFiltering[1]);
-		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, "maxDrawsRootConstant", &gPerFrame[frameIdx].gDrawCount[0]);
+		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, gMaxDrawsRootConstantIndex, &gPerFrame[frameIdx].gDrawCount[0]);
 		
 		cmdDispatch(cmd, 1, 1, 1);
 
@@ -4236,10 +4235,12 @@ public:
 			uint textureSize;
 		} data = { 0, gSkyboxSize };
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pPanoToCubeRootSignature, "RootConstant");
+
 		for (uint32_t i = 0; i < gSkyboxMips; i++)
 		{
 			data.mip = i;
-			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, "RootConstant", &data);
+			cmdBindPushConstants(cmd, pPanoToCubeRootSignature, rootConstantIndex, &data);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pSkybox;
 			params[0].mUAVMipSlice = i;

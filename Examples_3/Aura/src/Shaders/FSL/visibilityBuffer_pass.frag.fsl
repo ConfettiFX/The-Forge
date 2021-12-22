@@ -13,9 +13,9 @@
 */
 
 #define PS_DRAW_ID
-#include "shader_defs.h"
-#include "vb_rsm_resources.h"
-#include "packing.h"
+#include "shader_defs.h.fsl"
+#include "vb_rsm_resources.h.fsl"
+#include "packing.h.fsl"
 
 STRUCT(PsIn)
 {

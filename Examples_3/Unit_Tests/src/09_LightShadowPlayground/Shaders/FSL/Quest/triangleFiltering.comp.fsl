@@ -48,8 +48,8 @@
 // Small primitive culling now supports MSAA
 // Multi-viewport culling
 
-#include "Shader_Defs.h"
-#include "cull_resources.h"
+#include "Shader_Defs.h.fsl"
+#include "cull_resources.h.fsl"
 
 GroupShared(atomic_uint, workGroupOutputSlot[NUM_CULLING_VIEWPORTS]);
 GroupShared(atomic_uint, workGroupIndexCount[NUM_CULLING_VIEWPORTS]);

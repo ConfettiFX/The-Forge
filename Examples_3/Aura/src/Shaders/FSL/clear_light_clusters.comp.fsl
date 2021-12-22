@@ -12,8 +12,8 @@
  * You may not use the material for commercial purposes.
 */
 
-#include "shader_defs.h"
-#include "light_cull_resources.h"
+#include "shader_defs.h.fsl"
+#include "light_cull_resources.h.fsl"
 
 NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)
 void CS_MAIN(SV_DispatchThreadID(uint3) threadID)

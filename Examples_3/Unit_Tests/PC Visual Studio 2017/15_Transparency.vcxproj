@@ -14,15 +14,10 @@
     <ClCompile Include="..\src\15_Transparency\15_Transparency.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\AOIT.h" />
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\shaderDefs.h" />
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\shading.h" />
-    <ClInclude Include="..\src\15_Transparency\Shaders\FSL\varianceShadowMapping.h" />
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AdaptiveOIT.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AdaptiveOITClear.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AdaptiveOITComposite.frag.fsl" />
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\AOIT.h.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\copy.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\downsample.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\forward.frag.fsl" />
@@ -32,11 +27,14 @@
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\generateMips.comp.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\phenomenologicalTransparency.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\phenomenologicalTransparencyComposite.frag.fsl" />
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shaderDefs.h.fsl" />
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shading.h.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shadow.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\shadow.vert.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\stochasticShadow.frag.fsl" />
+    <FSLShader Include="..\src\15_Transparency\Shaders\FSL\varianceShadowMapping.h.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\weightedBlendedOIT.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\weightedBlendedOITComposite.frag.fsl" />
     <FSLShader Include="..\src\15_Transparency\Shaders\FSL\weightedBlendedOITVolition.frag.fsl" />

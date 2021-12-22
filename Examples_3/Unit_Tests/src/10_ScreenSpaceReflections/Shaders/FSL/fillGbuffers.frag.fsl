@@ -140,8 +140,9 @@ PSOut PS_MAIN( PsIn In )
 	
 
 	//this means pbr materials is set for these so sample from textures
-	if(Get(pbrMaterials) !=- 1) {
-		albedo = pow(albedoAndAlpha.rgb, f3(2.2));
+	if(Get(pbrMaterials) !=- 1) 
+	{
+		albedo = albedoAndAlpha.rgb;
 #if defined(USE_TEXTURES_FALLBACK)
 		N          = getNormalFromMap(Get(normalMap), In.pos, In.normal, In.uv);
 		_metalness = SampleTex2D(Get(metallicMap),  Get(defaultSampler),In.uv).r;

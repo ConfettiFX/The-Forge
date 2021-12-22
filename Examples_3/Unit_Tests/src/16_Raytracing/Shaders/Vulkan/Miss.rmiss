@@ -23,7 +23,7 @@
 */
 
 #version 460
-#extension GL_NV_ray_tracing : require
+#extension GL_EXT_ray_tracing : enable
 
 struct RayPayload
 {
@@ -31,7 +31,7 @@ struct RayPayload
 	uint recursionDepth;
 };
 
-layout(location = 0) rayPayloadInNV RayPayload payload;
+layout(location = 0) rayPayloadInEXT RayPayload payload;
 
 void main()
 {

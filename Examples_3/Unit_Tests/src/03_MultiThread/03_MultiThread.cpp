@@ -197,6 +197,7 @@ ThreadData*  pThreadData;
 CameraMatrix gProjectView;
 CameraMatrix gSkyboxProjectView;
 ParticleData gParticleData;
+uint32_t     gParticleRootConstantIndex;
 uint32_t     gSeed;
 float        gPaletteFactor;
 uint         gTextureIndex;
@@ -363,6 +364,8 @@ class MultiThread: public IApp
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = pImageFileNames[i];
 			textureDesc.ppTexture = &pTextures[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureDesc, NULL);
 		}
 
@@ -371,6 +374,8 @@ class MultiThread: public IApp
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
+			// Textures representing color should be stored in SRGB or HDR format
+			textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 			addResource(&textureDesc, NULL);
 		}
 
@@ -412,6 +417,7 @@ class MultiThread: public IApp
 		skyBoxRootDesc.ppShaders = shaders;
 		skyBoxRootDesc.mMaxBindlessTextures = 5;
 		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
+		gParticleRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "particleRootConstant");
 
 		RootSignatureDesc graphRootDesc = {};
 		graphRootDesc.mShaderCount = 1;
@@ -1154,7 +1160,7 @@ class MultiThread: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
@@ -1565,7 +1571,7 @@ class MultiThread: public IApp
 		cmdBindPipeline(cmd, pPipeline);
 		cmdBindDescriptorSet(cmd, 1, pDescriptorSet);
 		cmdBindDescriptorSet(cmd, data.mFrameIndex * 2 + 1, pDescriptorSetUniforms);
-		cmdBindPushConstants(cmd, pRootSignature, "particleRootConstant", &gParticleData);
+		cmdBindPushConstants(cmd, pRootSignature, gParticleRootConstantIndex, &gParticleData);
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, &parDataStride, NULL);
 
 		cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);

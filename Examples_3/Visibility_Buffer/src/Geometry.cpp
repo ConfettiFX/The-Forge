@@ -918,6 +918,7 @@ Scene* loadScene(const char* pFileName, float scale, float offsetX, float offset
 	loadDesc.ppGeometry = &scene->geom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
+	loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 	SyncToken token = {};
 	addResource(&loadDesc, &token);
 

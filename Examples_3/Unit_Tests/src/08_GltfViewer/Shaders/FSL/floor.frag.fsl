@@ -21,9 +21,9 @@
  * under the License.
 */
 
-#include "shadowSamples.h"
+#include "shadowSamples.h.fsl"
 #define FLOOR
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSOutput)
 {
@@ -123,7 +123,7 @@ float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	float3 color = float3(1.0, 1.0, 1.0);
+	float3 color = float3( 0.6, 0.6, 0.6);
 
 	color *= CalcPCFShadowFactor(In.WorldPos);
 

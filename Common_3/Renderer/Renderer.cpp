@@ -26,6 +26,8 @@
 #include "IRenderer.h"
 #include "IRay.h"
 
+#include "../ThirdParty/OpenSource/EASTL/string_hash_map.h"
+
 // API functions
 addFenceFn						addFence;
 removeFenceFn					removeFence;
@@ -83,7 +85,7 @@ cmdSetStencilReferenceValueFn	cmdSetStencilReferenceValue;
 cmdBindPipelineFn				cmdBindPipeline;
 cmdBindDescriptorSetFn			cmdBindDescriptorSet;
 cmdBindPushConstantsFn			cmdBindPushConstants;
-cmdBindPushConstantsByIndexFn	cmdBindPushConstantsByIndex;
+cmdBindDescriptorSetWithRootCbvsFn	cmdBindDescriptorSetWithRootCbvs;
 cmdBindIndexBufferFn			cmdBindIndexBuffer;
 cmdBindVertexBufferFn			cmdBindVertexBuffer;
 cmdDrawFn						cmdDraw;
@@ -471,4 +473,17 @@ void exitRenderer(Renderer* pRenderer)
 
 	gD3D11Unsupported = false;
 	gGLESUnsupported = false;
+}
+
+uint32_t getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
+{
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+	{
+		if (!strcmp(pName, pRootSignature->pDescriptors[i].pName))
+		{
+			return i;
+		}
+	}
+
+	return UINT32_MAX;
 }

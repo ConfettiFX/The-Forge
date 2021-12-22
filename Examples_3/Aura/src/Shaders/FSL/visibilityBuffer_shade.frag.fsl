@@ -12,10 +12,10 @@
  * You may not use the material for commercial purposes.
 */
 
-#include "packing.h"
-#include "shading.h"
-#include "lpvCommon_example.h"
-#include "wind.h"
+#include "packing.h.fsl"
+#include "shading.h.fsl"
+#include "lpvCommon_example.h.fsl"
+#include "wind.h.fsl"
 
 // USERMACRO: USE_LPV [0,1]
 // USERMACRO: ENABLE_SUN [0,1]
@@ -127,7 +127,7 @@ CBUFFER(auraApplyLightData, UPDATE_FREQ_PER_FRAME, b1, binding = 7)
 	DATA(LightApplyData, lightApplyData, None);
 };
 
-#include "lpvLightApply.h"
+#include "lpvLightApply.h.fsl"
 
 float4 PS_MAIN(PsIn In)
 {

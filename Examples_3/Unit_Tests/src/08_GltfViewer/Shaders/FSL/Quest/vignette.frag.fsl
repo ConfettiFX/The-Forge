@@ -21,7 +21,7 @@
  * under the License.
 */
 
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VSOutput)
 {

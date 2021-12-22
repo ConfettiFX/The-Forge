@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "shader_defs.h"
-#include "light_cull_resources.h"
+#include "shader_defs.h.fsl"
+#include "light_cull_resources.h.fsl"
 
 
 NUM_THREADS(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)

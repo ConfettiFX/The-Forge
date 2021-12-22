@@ -81,11 +81,9 @@ vec3 RandomPointOnSphere(MyRandom& rng)
 
 #define NUM_COLOR_SCHEMES 6
 static int const COLOR_SCHEMES[] = {
-	156, 139, 113, 55,  49,  40,  156, 139, 113, 58, 38, 14, 156, 139, 113, 98,  101, 104,
-	156, 139, 113, 205, 197, 178, 153, 146, 136, 88, 88, 88, 189, 181, 164, 148, 108, 102,
+	84, 65, 42,   9,   7,   5, 84, 65, 42, 10,  4,  1,  84,  65, 42, 31, 33, 35, 
+	84, 65, 42, 155, 142, 113, 81, 73, 62, 24, 24, 24, 129, 117, 94, 75, 38, 33,
 };
-
-float sRGBToLinear(float c) { return (c <= 0.04045f) ? (c / 12.92f) : powf((c + 0.055f) / 1.055f, 2.4f); }
 
 void AsteroidSimulation::Init(
 	uint32_t rngSeed, uint32_t numAsteroids, uint32_t numMeshes, uint32_t vertexCountPerMesh, uint32_t textureCount)
@@ -95,7 +93,7 @@ void AsteroidSimulation::Init(
 
 	float linearColorSchemes[NUM_COLOR_SCHEMES * 6];
 	for (int i = 0; i < NUM_COLOR_SCHEMES * 6; ++i)
-		linearColorSchemes[i] = sRGBToLinear((float)COLOR_SCHEMES[i] / 255.0f);
+		linearColorSchemes[i] = srgbToLinearf((float)COLOR_SCHEMES[i] / 255.0f);
 
 	MyRandom rng(rngSeed);
 

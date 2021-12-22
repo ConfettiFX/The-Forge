@@ -643,7 +643,7 @@ FontDrawDesc gMaterialPropDraw; // = TextDrawDesc(0, 0xffaaaaaa, 32);
 
 // light
 const int gShadowMapDimensions = 2048;
-uint      gDirectionalLightColor = 0xffb475ff;
+float4    gDirectionalLightColor = unpackR8G8B8A8_SRGB(0xffb475ff);
 float     gDirectionalLightIntensity = 10.0f;
 float3    gDirectionalLightPosition = float3(-33.030f, 9.09f, 100.0f);
 float     gAmbientLightIntensity = 0.01f;
@@ -757,9 +757,14 @@ class MaterialPlayground: public IApp
 
 	struct StagingData
 	{
+		struct TextureData
+		{
+			const char* pFileName;
+			bool        mIsSrgb;
+		};
 		eastl::vector<char*>       mModelList;
-		eastl::vector<const char*> mMaterialNamesStorage;
-		eastl::vector<const char*> mGroundNamesStorage;
+		eastl::vector<TextureData> mMaterialNamesStorage;
+		eastl::vector<TextureData> mGroundNamesStorage;
 		float*                     pJointPoints;
 		float*                     pBonePoints;
 		~StagingData()
@@ -1213,7 +1218,7 @@ class MaterialPlayground: public IApp
 		gUniformDataDirectionalLights.mDirectionalLights[0].mDirection = v3ToF3(normalize(f3Tov3(gDirectionalLightPosition)));
 		gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMap = 0;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = gDirectionalLightIntensity;
-		gUniformDataDirectionalLights.mDirectionalLights[0].mColor = v3ToF3(unpackColorU32(gDirectionalLightColor).getXYZ());
+		gUniformDataDirectionalLights.mDirectionalLights[0].mColor = gDirectionalLightColor.getXYZ();
 		gUniformDataDirectionalLights.mDirectionalLights[0].mViewProj = projMat.getPrimaryMatrix() * viewMat;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mShadowMapDimensions = gShadowMapDimensions;
 		gUniformDataDirectionalLights.mNumDirectionalLights = 1;
@@ -2007,11 +2012,12 @@ class MaterialPlayground: public IApp
 				cmdBindIndexBuffer(cmd, gMeshes[MESH_CAPSULE]->pIndexBuffer, gMeshes[MESH_CAPSULE]->mIndexType, 0);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetShowCapsule);
 
+				uint32_t capsuleRootConstantIndex = getDescriptorIndexFromName(pRootSignatureShowCapsules, "CapsuleRootConstant");
 				for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 				{
 					for (size_t i = 0; i < gCapsules.size(); ++i)
 					{
-						cmdBindPushConstants(cmd, pRootSignatureShowCapsules, "CapsuleRootConstant", &gFinalCapsules[hairType][i]);
+						cmdBindPushConstants(cmd, pRootSignatureShowCapsules, capsuleRootConstantIndex, &gFinalCapsules[hairType][i]);
 						cmdDrawIndexed(cmd, gMeshes[MESH_CAPSULE]->mIndexCount, 0, 0);
 					}
 				}
@@ -2959,7 +2965,9 @@ class MaterialPlayground: public IApp
 			state->GetStringArrayArg(1, texturesNames);
 			for (const char* name : texturesNames)
 			{
-				this->pStagingData->mMaterialNamesStorage.push_back(name);
+				// Albedo textures use gamma corrected values
+				bool isAlbedo = strstr(name, "Albedo") != NULL;
+				this->pStagingData->mMaterialNamesStorage.push_back({name, isAlbedo});
 			}
 
 			return 0;
@@ -2992,7 +3000,12 @@ class MaterialPlayground: public IApp
 			state->GetStringArrayArg(1, texturesNames);
 			for (const char* name : texturesNames)
 			{
-				pStagingData->mGroundNamesStorage.push_back(name);
+				// Albedo textures are saved in SRGB color space
+				bool isAlbedo = false;
+				const char* last_slash = strrchr(name, '/');
+				if (last_slash && strcmp(last_slash, "/Albedo") == 0)
+					isAlbedo = true;
+				this->pStagingData->mGroundNamesStorage.push_back({ name, isAlbedo });
 			}
 
 			return 0;
@@ -3024,8 +3037,13 @@ class MaterialPlayground: public IApp
 	{
 		StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-		desc.pFileName = pTaskData->mMaterialNamesStorage[i];
+		desc.pFileName = pTaskData->mMaterialNamesStorage[i].pFileName;
 		desc.ppTexture = &gTextureMaterialMaps[i];
+		if (pTaskData->mMaterialNamesStorage[i].mIsSrgb)
+		{
+			// Textures representing color should be stored in SRGB or HDR format
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+		}
 		addResource(&desc, NULL);
 	}
 
@@ -3033,8 +3051,13 @@ class MaterialPlayground: public IApp
 	{
 		StagingData*    pTaskData = (StagingData*)data;
 		TextureLoadDesc desc = {};
-		desc.pFileName = pTaskData->mGroundNamesStorage[i];
+		desc.pFileName = pTaskData->mGroundNamesStorage[i].pFileName;
 		desc.ppTexture = &gTextureMaterialMapsGround[i];
+		if (pTaskData->mGroundNamesStorage[i].mIsSrgb)
+		{
+			// Textures representing color should be stored in SRGB or HDR format
+			desc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+		}
 		addResource(&desc, NULL);
 	}
 
@@ -3265,10 +3288,12 @@ class MaterialPlayground: public IApp
 			uint32_t textureSize;
 		} rootConstantData = { 0, gSkyboxSize };
 
+		uint32_t rootConstantIndex = getDescriptorIndexFromName(pPanoToCubeRootSignature, "RootConstant");
+
 		for (uint32_t i = 0; i < gSkyboxMips; ++i)
 		{
 			rootConstantData.mip = i;
-			cmdBindPushConstants(pCmd, pPanoToCubeRootSignature, "RootConstant", &rootConstantData);
+			cmdBindPushConstants(pCmd, pPanoToCubeRootSignature, rootConstantIndex, &rootConstantData);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pTextureSkybox;
 			params[0].mUAVMipSlice = i;
@@ -3312,12 +3337,14 @@ class MaterialPlayground: public IApp
 			float roughness;
 		};
 
+		rootConstantIndex = getDescriptorIndexFromName(pSpecularRootSignature, "RootConstant");
+
 		for (uint32_t i = 0; i < gSpecularMips; i++)
 		{
 			PrecomputeSkySpecularData data = {};
 			data.roughness = (float)i / (float)(gSpecularMips - 1);
 			data.mipSize = gSpecularSize >> i;
-			cmdBindPushConstants(pCmd, pSpecularRootSignature, "RootConstant", &data);
+			cmdBindPushConstants(pCmd, pSpecularRootSignature, rootConstantIndex, &data);
 			params[0].pName = "dstTexture";
 			params[0].ppTextures = &pTextureSpecularMap;
 			params[0].mUAVMipSlice = i;
@@ -3372,6 +3399,7 @@ class MaterialPlayground: public IApp
 		loadDesc.pFileName = pStagingData->mModelList[i];
 		loadDesc.ppGeometry = &gMeshes[i];
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_OVERDRAW;
 		addResource(&loadDesc, NULL);
 	}
 
@@ -4556,7 +4584,7 @@ class MaterialPlayground: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mColorClearValue.r = 0.0f;
 		swapChainDesc.mColorClearValue.g = 0.0f;
 		swapChainDesc.mColorClearValue.b = 0.0f;

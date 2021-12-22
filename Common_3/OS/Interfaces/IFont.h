@@ -61,6 +61,7 @@ typedef struct FontDrawDesc
 	const char*   pText = NULL; 
 
 	uint32_t      mFontID = 0;
+	// Provided color should be A8B8G8R8_SRGB
 	uint32_t      mFontColor = 0xffffffff;
 	float         mFontSize = 16.0f;
 	float         mFontSpacing = 0.0f;

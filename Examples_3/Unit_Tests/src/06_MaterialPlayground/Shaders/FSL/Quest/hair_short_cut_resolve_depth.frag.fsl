@@ -46,7 +46,7 @@
 
 #define SHORT_CUT_RESOLVE_DEPTH
 
-#include "hair.h"
+#include "hair.h.fsl"
 
 STRUCT(PSOutput)
 {

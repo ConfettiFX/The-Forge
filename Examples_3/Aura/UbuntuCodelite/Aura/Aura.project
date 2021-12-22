@@ -195,7 +195,7 @@ SRC_MID = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Shaders/
 SRC_EXM = $(WorkspacePath)/../src/Shaders/FSL/
 &#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_MID)/*.fsl), $(fsl) $(file);)
@@ -271,7 +271,7 @@ SRC_MID = $(WorkspacePath)/../../../../Custom-Middleware/$(ProjectName)/Shaders/
 SRC_EXM = $(WorkspacePath)/../src/Shaders/FSL/
 &#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_MID)/*.fsl), $(fsl) $(file);)

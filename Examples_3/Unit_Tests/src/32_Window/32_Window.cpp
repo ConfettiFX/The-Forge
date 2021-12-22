@@ -339,6 +339,8 @@ class WindowTest: public IApp
 		TextureLoadDesc textureDesc = {};
 		textureDesc.pFileName = "skybox/hw_sahara/sahara_bk";
 		textureDesc.ppTexture = &pTexture;
+		// Textures representing color should be stored in SRGB or HDR format
+		textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 		addResource(&textureDesc, NULL);
 
 		ShaderLoadDesc basicShader = {};
@@ -926,7 +928,7 @@ class WindowTest: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

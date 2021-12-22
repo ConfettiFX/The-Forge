@@ -41,8 +41,8 @@
 // Indirect draw argument buffer layout
 // [ Indirect Draw 0, Indirect Draw 1, Indirect Draw 2, ... Indirect Draw MAX_INDIRECT_DRAWS, Draw counter passed to the execute indirect call on CPU side ]
 
-#include "shader_defs.h"
-#include "cull_resources.h"
+#include "shader_defs.h.fsl"
+#include "cull_resources.h.fsl"
 
 NUM_THREADS(CLEAR_THREAD_COUNT, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )

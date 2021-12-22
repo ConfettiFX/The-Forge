@@ -178,36 +178,69 @@ f4x4(E00, E10, E20, E30, E01, E11, E21, E31, E02, E12, E22, E32, E03, E13, E23, 
 
 inline f4x4 Identity() { return f4x4(1.0f); }
 
+#define setElem(M, I, J, V) {M[I][J] = V;}
+#define getElem(M, I, J) (M[I][J])
+
+
 #define getCol(M, I) M[I]
 #define getCol0(M) getCol(M, 0)
 #define getCol1(M) getCol(M, 1)
 #define getCol2(M) getCol(M, 2)
 #define getCol3(M) getCol(M, 3)
 
-// #define elem(M, I, J) M[I][J]
-#define setElem(M, I, J, V) {M[I][J] = V;}
-#define getElem(M, I, J) (M[I][J])
+inline float4 getRow(const thread float4x4& M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float4 getRow(const thread float4x3& M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+inline float4 getRow(const thread float4x2& M, const uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
 
-inline float3 getRow(const thread float3x3& M, const uint i)
-{ return float3(M[0][i], M[1][i], M[2][i]); }
+inline float3 getRow(const thread float3x4& M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+inline float3 getRow(const thread float3x3& M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+inline float3 getRow(const thread float3x2& M, const uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
 
-inline float2 getRow(const thread float2x3& M, const uint i)
-{ return float2(M[0][i], M[1][i]); }
-
-inline float3 getRow(const thread float3x2& M, const uint i)
-{ return float3(M[0][i], M[1][i], M[2][i]); }
+inline float2 getRow(const thread float2x4& M, const uint i) { return float2(M[0][i], M[1][i]); }
+inline float2 getRow(const thread float2x3& M, const uint i) { return float2(M[0][i], M[1][i]); }
+inline float2 getRow(const thread float2x2& M, const uint i) { return float2(M[0][i], M[1][i]); }
 
 #define getRow0(M) getRow(M, 0)
 #define getRow1(M) getRow(M, 1)
 #define getRow2(M) getRow(M, 2)
 #define getRow3(M) getRow(M, 3)
 
-inline f4x4 setCol(inout(f4x4) M, in(float4) col, const uint i)
-{ M[i] = col; return M; }
+
+inline float4x4 setCol(inout(float4x4) M, in(float4) col, const uint i) { M[i] = col; return M; }
+inline float4x3 setCol(inout(float4x3) M, in(float3) col, const uint i) { M[i] = col; return M; }
+inline float4x2 setCol(inout(float4x2) M, in(float2) col, const uint i) { M[i] = col; return M; }
+
+inline float3x4 setCol(inout(float3x4) M, in(float4) col, const uint i) { M[i] = col; return M; }
+inline float3x3 setCol(inout(float3x3) M, in(float3) col, const uint i) { M[i] = col; return M; }
+inline float3x2 setCol(inout(float3x2) M, in(float2) col, const uint i) { M[i] = col; return M; }
+
+inline float2x4 setCol(inout(float2x4) M, in(float4) col, const uint i) { M[i] = col; return M; }
+inline float2x3 setCol(inout(float2x3) M, in(float3) col, const uint i) { M[i] = col; return M; }
+inline float2x2 setCol(inout(float2x2) M, in(float2) col, const uint i) { M[i] = col; return M; }
+
 #define setCol0(M, C) setCol(M, C, 0)
 #define setCol1(M, C) setCol(M, C, 1)
 #define setCol2(M, C) setCol(M, C, 2)
 #define setCol3(M, C) setCol(M, C, 3)
+
+
+inline float4x4 setRow(inout(float4x4) M, in(float4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+inline float4x3 setRow(inout(float4x3) M, in(float4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+inline float4x2 setRow(inout(float4x2) M, in(float4) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; M[3][i] = row[3]; return M; }
+
+inline float3x4 setRow(inout(float3x4) M, in(float3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+inline float3x3 setRow(inout(float3x3) M, in(float3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+inline float3x2 setRow(inout(float3x2) M, in(float3) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; M[2][i] = row[2]; return M; }
+
+inline float2x4 setRow(inout(float2x4) M, in(float2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+inline float2x3 setRow(inout(float2x3) M, in(float2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+inline float2x2 setRow(inout(float2x2) M, in(float2) row, const uint i) { M[0][i] = row[0]; M[1][i] = row[1]; return M; }
+
+#define setRow0(M, R) setRow(M, R, 0)
+#define setRow1(M, R) setRow(M, R, 1)
+#define setRow2(M, R) setRow(M, R, 2)
+#define setRow3(M, R) setRow(M, R, 3)
+
 
 void AtomicAdd(threadgroup atomic_uint& DEST, uint VALUE, thread uint& ORIGINAL_VALUE)
 { ORIGINAL_VALUE = atomic_fetch_add_explicit(&(DEST), VALUE, memory_order_relaxed); }

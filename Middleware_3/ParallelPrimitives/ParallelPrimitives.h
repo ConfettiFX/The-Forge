@@ -82,6 +82,7 @@ private:
 		Shader* pShader;
 		Pipeline* pPipeline;
 		RootSignature* pRootSignature;
+		uint32_t mRootConstantIndex;
 		
 		PipelineComponents();
 		~PipelineComponents();

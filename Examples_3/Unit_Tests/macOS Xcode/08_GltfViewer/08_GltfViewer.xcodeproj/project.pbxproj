@@ -67,7 +67,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		97C9097F25BF4416003C978D /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -80,7 +80,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -132,10 +132,10 @@
 		97C9096A25BF440B003C978D /* watermark.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = watermark.frag.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/watermark.frag.fsl; sourceTree = "<group>"; };
 		97C9096B25BF440B003C978D /* zPassFloor.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = zPassFloor.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/zPassFloor.vert.fsl; sourceTree = "<group>"; };
 		97C9096D25BF440C003C978D /* zPass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = zPass.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/zPass.vert.fsl; sourceTree = "<group>"; };
-		97C9096E25BF440C003C978D /* shadowSamples.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shadowSamples.h; path = ../../src/08_GltfViewer/Shaders/FSL/shadowSamples.h; sourceTree = "<group>"; };
+		97C9096E25BF440C003C978D /* shadowSamples.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = shadowSamples.h.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/shadowSamples.h.fsl; sourceTree = "<group>"; };
 		97C9096F25BF440C003C978D /* floor.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = floor.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/floor.vert.fsl; sourceTree = "<group>"; };
 		97C9097025BF440C003C978D /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/basic.vert.fsl; sourceTree = "<group>"; };
-		97C9097125BF440C003C978D /* resources.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = resources.h; path = ../../src/08_GltfViewer/Shaders/FSL/resources.h; sourceTree = "<group>"; };
+		97C9097125BF440C003C978D /* resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = resources.h.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/resources.h.fsl; sourceTree = "<group>"; };
 		97C9097225BF440C003C978D /* watermark.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = watermark.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/watermark.vert.fsl; sourceTree = "<group>"; };
 		97C9097325BF440C003C978D /* Triangular.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Triangular.vert.fsl; path = ../../src/08_GltfViewer/Shaders/FSL/Triangular.vert.fsl; sourceTree = "<group>"; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };

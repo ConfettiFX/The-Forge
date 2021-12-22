@@ -77,7 +77,7 @@ extern void SetWindow(void* pData);
 }
 #endif
 
-#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64) && !defined(QUEST_VR)
+#if (defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)) && !defined(QUEST_VR)
 #define TOUCH_INPUT 1
 #endif
 
@@ -116,7 +116,7 @@ typedef struct VirtualJoystickDesc
 
 typedef struct VirtualJoystick
 {
-#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
+#if TOUCH_INPUT
 	Renderer*      pRenderer = NULL;
 	Shader*        pShader = NULL;
 	RootSignature* pRootSignature = NULL;
@@ -130,6 +130,7 @@ typedef struct VirtualJoystick
 	//input related
 	float          mInsideRadius = 100.f;
 	float          mOutsideRadius = 200.f;
+	uint32_t       mRootConstantIndex;
 
 	struct StickInput
 	{
@@ -160,6 +161,8 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
 	SyncToken token = {};
 	loadDesc.pFileName = pDesc->pJoystickTexture;
 	loadDesc.ppTexture = &pVirtualJoystick->pTexture;
+	// Textures representing color should be stored in SRGB or HDR format
+	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
 	addResource(&loadDesc, &token);
 	waitForToken(&token);
 
@@ -194,6 +197,7 @@ void initVirtualJoystick(VirtualJoystickDesc* pDesc, VirtualJoystick** ppVirtual
 	textureRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 	textureRootDesc.ppStaticSamplers = &pVirtualJoystick->pSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pVirtualJoystick->pRootSignature);
+	pVirtualJoystick->mRootConstantIndex = getDescriptorIndexFromName(pVirtualJoystick->pRootSignature, "uRootConstants");
 
 	DescriptorSetDesc descriptorSetDesc = { pVirtualJoystick->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 	addDescriptorSet(pRenderer, &descriptorSetDesc, &pVirtualJoystick->pDescriptorSet);
@@ -328,7 +332,7 @@ void drawVirtualJoystick(Cmd* pCmd, const float4* color)
 	cmdBindDescriptorSet(pCmd, 0, pVirtualJoystick->pDescriptorSet);
 	data.color = *color;
 	data.scaleBias = { 2.0f / (float)pVirtualJoystick->mRenderSize[0], -2.0f / (float)pVirtualJoystick->mRenderSize[1] };
-	cmdBindPushConstants(pCmd, pVirtualJoystick->pRootSignature, "uRootConstants", &data);
+	cmdBindPushConstants(pCmd, pVirtualJoystick->pRootSignature, pVirtualJoystick->mRootConstantIndex, &data);
 
 	// Draw the camera controller's virtual joysticks.
 	float extSide = pVirtualJoystick->mOutsideRadius;

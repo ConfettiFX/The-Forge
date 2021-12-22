@@ -22,7 +22,7 @@
 */
 
 #define BASIC
-#include "resources.h"
+#include "resources.h.fsl"
 
 STRUCT(VsIn)
 {

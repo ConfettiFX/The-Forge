@@ -52,9 +52,6 @@
     <Filter Include="OS\Profiler">
       <UniqueIdentifier>{0e969667-faa3-46dc-a14d-4ec572491ebc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Middleware_3\ECS">
-      <UniqueIdentifier>{4d66c6ba-8149-42cf-99ea-23159b0fd8b0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dependencies\basisu">
       <UniqueIdentifier>{1b9bb678-230b-4300-af74-61eedf39a98e}</UniqueIdentifier>
     </Filter>
@@ -102,6 +99,9 @@
     </Filter>
     <Filter Include="OS\VR">
       <UniqueIdentifier>{0dadd2f0-95c1-4429-a129-6312c70cad2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\meshoptimizer">
+      <UniqueIdentifier>{eb07092e-b5dc-4bd2-9789-408ffcf01e28}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -185,15 +185,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp">
       <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>Dependencies\basisu</Filter>
@@ -390,6 +381,51 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
@@ -479,15 +515,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h">
       <Filter>Dependencies\imgui</Filter>
     </ClInclude>
@@ -562,6 +589,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Config.h">
       <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h">
+      <Filter>Dependencies\meshoptimizer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

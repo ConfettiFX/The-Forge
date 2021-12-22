@@ -58,9 +58,9 @@ float gZoom = 1;
 int   gRenderSoftShadows = 1;
 float gEpsilon = 0.003f;
 float gColorT = 0.0f;
-float gColorA[4] = { 0.25f, 0.45f, 1.0f, 1.0f };
-float gColorB[4] = { 0.25f, 0.45f, 1.0f, 1.0f };
-float gColorC[4] = { 0.25f, 0.45f, 1.0f, 1.0f };
+float gColorA[4] = { 0.05f, 0.17f, 1.0f, 1.0f };
+float gColorB[4] = { 0.05f, 0.17f, 1.0f, 1.0f };
+float gColorC[4] = { 0.05f, 0.17f, 1.0f, 1.0f };
 float gMuT = 0.0f;
 float gMuA[4] = { -.278f, -.479f, 0.0f, 0.0f };
 float gMuB[4] = { 0.278f, 0.479f, 0.0f, 0.0f };
@@ -592,7 +592,7 @@ class Compute: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

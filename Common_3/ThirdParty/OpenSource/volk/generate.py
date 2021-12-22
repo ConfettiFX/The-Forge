@@ -25,11 +25,16 @@ def patch_file(path, blocks):
 					block = None
 			else:
 				result.append(line)
+                                # C comment marker
 				if line.strip().startswith('/* VOLK_GENERATE_'):
 					block = line
 					result.append(blocks[line.strip()[17:-3]])
+                                # Shell/CMake comment marker
+				elif line.strip().startswith('# VOLK_GENERATE_'):
+					block = line
+					result.append(blocks[line.strip()[16:]])
 
-	with open(path, 'w') as file:
+	with open(path, 'w', newline='\n') as file:
 		for line in result:
 			file.write(line)
 
@@ -48,7 +53,7 @@ def defined(key):
 	return 'defined(' + key + ')'
 
 if __name__ == "__main__":
-	specpath = "https://raw.githubusercontent.com/KhronosGroup/Vulkan-Docs/master/xml/vk.xml"
+	specpath = "https://raw.githubusercontent.com/KhronosGroup/Vulkan-Docs/main/xml/vk.xml"
 
 	if len(sys.argv) > 1:
 		specpath = sys.argv[1]
@@ -60,9 +65,11 @@ if __name__ == "__main__":
 	blocks = {}
 
 	version = spec.find('types/type[name="VK_HEADER_VERSION"]')
-	blocks['VERSION'] = '#define VOLK_HEADER_VERSION ' + version.find('name').tail.strip() + '\n'
+	blocks['VERSION'] = version.find('name').tail.strip() + '\n'
+	blocks['VERSION_DEFINE'] = '#define VOLK_HEADER_VERSION ' + version.find('name').tail.strip() + '\n'
 
 	command_groups = OrderedDict()
+	instance_commands = set()
 
 	for feature in spec.findall('feature'):
 		key = defined(feature.get('name'))
@@ -74,6 +81,7 @@ if __name__ == "__main__":
 		if supported == 'disabled':
 			continue
 		name = ext.get('name')
+		type = ext.get('type')
 		for req in ext.findall('require'):
 			key = defined(name)
 			if req.get('feature'):
@@ -82,6 +90,9 @@ if __name__ == "__main__":
 				key += ' && ' + defined(req.get('extension'))
 			cmdrefs = req.findall('command')
 			command_groups.setdefault(key, []).extend([cmdref.get('name') for cmdref in cmdrefs])
+			if type == 'instance':
+				for cmdref in cmdrefs:
+					instance_commands.add(cmdref.get('name'))
 
 	commands_to_groups = OrderedDict()
 
@@ -135,7 +146,7 @@ if __name__ == "__main__":
 			if name == 'vkGetDeviceProcAddr':
 				type = 'VkInstance'
 
-			if is_descendant_type(types, type, 'VkDevice'):
+			if is_descendant_type(types, type, 'VkDevice') and name not in instance_commands:
 				blocks['LOAD_DEVICE'] += '\t' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
 				blocks['DEVICE_TABLE'] += '\tPFN_' + name + ' ' + name + ';\n'
 				blocks['LOAD_DEVICE_TABLE'] += '\ttable->' + name + ' = (PFN_' + name + ')load(context, "' + name + '");\n'
@@ -155,3 +166,4 @@ if __name__ == "__main__":
 
 	patch_file('volk.h', blocks)
 	patch_file('volk.c', blocks)
+	patch_file('CMakeLists.txt', blocks)

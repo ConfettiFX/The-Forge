@@ -130,6 +130,8 @@ Shader* pShader[RenderPassCount];
 RootSignature* pRootSignature;
 RootSignature* pRootSignatureComp;
 
+uint32_t gMapIDRootConstantIndex = 0;
+
 DescriptorSet* pDescriptorSetNonFreq;
 DescriptorSet* pDescriptorSetFreq;
 DescriptorSet* pDescriptorSetFreqPerDraw;
@@ -979,6 +981,7 @@ public:
 			rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
 #endif
 			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+			gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbTextureRootConstants");
 
 			Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
 
@@ -1398,6 +1401,11 @@ public:
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFileName = pMaterialImageFileNames[i];
 			textureDesc.ppTexture = &pMaterialTextures[i];
+			if (strstr(pMaterialImageFileNames[i], "diffuse") || strstr(pMaterialImageFileNames[i], "Albedo"))
+			{
+				// Textures representing color should be stored in SRGB or HDR format
+				textureDesc.mCreationFlag = TEXTURE_CREATION_FLAG_SRGB;
+			}
 			addResource(&textureDesc, NULL);
 		}
 
@@ -1432,6 +1440,7 @@ public:
 		loadDesc.ppGeometry = &SponzaProp.Geom;
 		loadDesc.pVertexLayout = &gVertexLayoutGPrepass;
 		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
+		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_VERTEXCACHE | MESH_OPTIMIZATION_FLAG_VERTEXFETCH;
 		addResource(&loadDesc, token);
 
 		//set constant buffer for sponza
@@ -1524,7 +1533,7 @@ public:
 				rtDesc.pName = "G-Buffer RTs";
 				
 				//Add albedo RT
-				rtDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+				rtDesc.mFormat = getRecommendedSwapchainFormat(true, true);
 				addRenderTarget(pRenderer, &rtDesc, &pRenderTargets[Albedo]);
 
 				//Add normals RT
@@ -1931,7 +1940,7 @@ public:
 					//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 					//descriptor param count.
 					//one descriptor param if using bindless textures
-					cmdBindPushConstants(cmd, pRootSignature, "cbTextureRootConstants", &data);
+					cmdBindPushConstants(cmd, pRootSignature, gMapIDRootConstantIndex, &data);
 #else
 					cmdBindDescriptorSet(cmd, i, pDescriptorSetFreqPerDraw);
 #endif
@@ -2199,7 +2208,7 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

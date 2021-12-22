@@ -45,7 +45,7 @@
 */
 
 #define SHORT_CUT_DEPTH_PEELING
-#include "hair.h"
+#include "hair.h.fsl"
 #if !defined(ORBIS)
 EARLY_FRAGMENT_TESTS
 #endif

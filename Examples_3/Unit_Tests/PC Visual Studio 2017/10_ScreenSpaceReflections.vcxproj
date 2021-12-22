@@ -14,9 +14,6 @@
     <ClCompile Include="..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h" />
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\BRDFIntegration.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeIrradianceMap.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\computeSpecularMap.comp.fsl" />
@@ -36,6 +33,7 @@
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ClassifyTiles.comp.fsl" />
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Intersect.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_PrepareIndirectArgs.comp.fsl" />
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveEaw.comp.fsl" />

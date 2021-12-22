@@ -25,7 +25,7 @@
 // USERMACRO: SAMPLE_COUNT [1,2,4]
 // USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
 
-#include "shading.h"
+#include "shading.h.fsl"
 
 STRUCT(VSOutput)
 {

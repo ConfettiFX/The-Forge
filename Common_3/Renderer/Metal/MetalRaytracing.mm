@@ -1529,6 +1529,13 @@ void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTe
 		
 		id<MTLTexture> resultTexture = [denoiser encodeToCommandBuffer:pCmd->mtlCommandBuffer sourceTexture:pSourceTexture->mtlTexture motionVectorTexture:pMotionVectorTexture->mtlTexture depthNormalTexture:pDepthNormalTexture->mtlTexture previousDepthNormalTexture:pPreviousDepthNormalTexture->mtlTexture];
 		
+		struct MetalNativeTextureHandle
+		{
+			id<MTLTexture>    pTexture;
+			CVPixelBufferRef  pPixelBuffer;
+		};
+		MetalNativeTextureHandle handle = { resultTexture };
+		
 		TextureDesc resultTextureDesc = {};
 		resultTextureDesc.mFlags = TEXTURE_CREATION_FLAG_NONE;
 		resultTextureDesc.mWidth = (uint32_t)resultTexture.width;
@@ -1542,7 +1549,7 @@ void mtl_cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTe
 		resultTextureDesc.mClearValue = {};
 		resultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		resultTextureDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		resultTextureDesc.pNativeHandle = CFBridgingRetain(resultTexture);
+		resultTextureDesc.pNativeHandle = &handle;
 
 		resultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 

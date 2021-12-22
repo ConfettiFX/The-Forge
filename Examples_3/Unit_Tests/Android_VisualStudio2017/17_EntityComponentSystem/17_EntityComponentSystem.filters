@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{34e31d51-b38e-4810-b67f-d256440fe5ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{79ac5505-fe40-4745-885f-ebd2f4a369ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{3157d25d-d92f-4c21-8c4a-911a4a62ebf9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{d47c8ba6-257b-49e3-aab5-97297d7c2578}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+      <CustomBuild Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag">
+        <Filter>Shaders\Vulkan</Filter>
+      </CustomBuild>
+      <CustomBuild Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert">
+        <Filter>Shaders\Vulkan</Filter>
+      </CustomBuild>
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.frag">
+        <Filter>Shaders\D3D12</Filter>
+      </None>
+      <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.vert">
+        <Filter>Shaders\D3D12</Filter>
+      </None>
+  </ItemGroup>
+</Project>

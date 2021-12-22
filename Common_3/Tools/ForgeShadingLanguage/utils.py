@@ -36,12 +36,21 @@ class DescriptorSets(Enum):
 
 def fsl_assert(condition, filename=None, _line_no=None, message=''):
     if not condition:
-        line_no = ''
-        if _line_no:
-            line_no = '({})'.format(str(_line_no))
-        if not filename:
-            filename = __file__
-        print(filename+line_no+': error FSL: '+message)
+
+        tmpfn = filename+'.del'
+        if os.path.exists(tmpfn): os.remove(tmpfn)
+        os.rename(filename, tmpfn)
+
+        if 'SPIR-V' in message:
+            for error in message.split('ERROR: '):
+                fne = error.find(':', 2)
+                if fne > 0:
+                    src = error[:fne]
+                    line, msg = error[fne+1:].split(':', 1)
+                    message = '{}({}): ERROR : {}\n'.format(src, line, msg )
+                    break
+
+        print(message)
         sys.exit(1)
 
 def getHeader(fsl_source):
@@ -288,11 +297,11 @@ def collect_resources(lines: list, ws: set):
     return cb, pc, st, rs, df
 
 
-def getShader(fsl, dst=None, genSRT=False, genRS=False) -> Shader:
+def getShader(fsl, dst=None, line_directives=True) -> Shader:
 
     # collect shader declarations
     incSet = set()
-    lines = preprocessed_from_file(fsl)
+    lines = preprocessed_from_file(fsl, line_directives)
 
     # print(dst)
     # open(dst, 'w').writelines(lines)
@@ -450,55 +459,62 @@ def getShader(fsl, dst=None, genSRT=False, genRS=False) -> Shader:
 
     return shader
 
-def preprocessed_from_file(filepath):
+def max_timestamp(filepath):
+    return max_timestamp_recursive(filepath, [])
+
+def max_timestamp_recursive(filepath, _files):
+    if filepath in _files:
+        return 0
+    if not os.path.exists(filepath):
+        return 0
+    _files += [filepath]
     dirname = os.path.dirname(filepath)
     lines = open(filepath).readlines()
+    mt = os.path.getmtime(filepath)
 
-    include_stack = [ [filepath, 1] ]
-
-    i = 0
-    while i != len(lines):
-        include_stack[-1][1] += 1
-        line = lines[i]
-
-        # when reaching the end of an included file, pop the include stack
-        # if '#line ' in line and not '#line 1' in line:
-        #     include_stack.pop()
-        if '#end include ' in line:
-            include_stack.pop()
-
-        if line.isspace() or line.strip().startswith('//'):
-            i += 1
-            continue
-
-
-        if '#include' in line:
-
+    for line in lines:
+        if line.lstrip().startswith('#include'):
             include_filename = line.lstrip('#include').strip().strip('\"').lstrip('<').rstrip('>')
             include_filepath = os.path.join(dirname, include_filename).replace('\\', '/')
+            mt = max(mt, max_timestamp_recursive(include_filepath, _files))
 
-            current_file = include_stack[-1][0]
-            current_line = include_stack[-1][1]-1
+    return mt
 
-            include_not_in_stack = len([inc for inc in include_stack if inc[0] == include_filepath])==0
-            fsl_assert(include_not_in_stack, current_file, current_line, 'Recursive include \''+include_filename+'\'')
-            fsl_assert(os.path.exists(include_filepath), current_file, current_line, 'Cannot open includded file \''+include_filename+'\'')
+def fixpath(rawpath):
+    return rawpath.replace(os.sep, '/')
 
-            include_lines = open(include_filepath, 'r').readlines()
+def preprocessed_from_file(filepath, line_directives, files_seen=None):
+    if files_seen is None: files_seen = []
+    if filepath in files_seen: return []
+    filepath = fixpath(filepath)
+    files_seen += [filepath]
+    
+    dirname = os.path.dirname(filepath)
+    lines = open(filepath).readlines()
+    result = []
 
-            # prefix = ['\n#line 1 \"' + include_filepath + '\"\n']
-            # postfix = ['\n#line ' + str(current_line+1) + ' \"' + include_stack[-1][0] + '\"\n']
-            prefix = [ '\n//#begin include ' + include_filepath + '\n']
-            postfix = [ '\n//#end include ' + include_filepath + '\n']
-            lines[i:i+1] = prefix + include_lines + postfix
+    working_directory = fixpath(os.getcwd()) + '/'
 
-            
+    line_index = 1
+    for line in lines:
+        uc_line = line[:line.find('//')]
+        if '#include' in uc_line:
+            include_filename = uc_line.lstrip('#include').strip().strip('\"').lstrip('<').rstrip('>')
+            include_filepath = fixpath(os.path.join(dirname, include_filename))
+            if line_directives:
+                result += ['#line 1 \"' + working_directory + include_filepath + '\"\n',
+                    *preprocessed_from_file(include_filepath, line_directives, files_seen), '\n',
+                    '#line {} \"'.format(line_index+1) + working_directory + filepath + '\"\n'
+                ]
+            else:
+                result += [*preprocessed_from_file(include_filepath, line_directives, files_seen), '\n']
+        else:
+            result += [line]
+            if line_directives and ('#else' in uc_line or '#elif' in uc_line or '#endif' in uc_line):
+                result += ['\n', '#line {} \"'.format(line_index+1) + working_directory + filepath + '\"\n']
+        line_index += 1
 
-            include_stack += [[include_filepath, 1]]
-
-        i += 1
-
-    return lines
+    return result
 
 def dictAppendList(d : dict, key, val):
     if key not in d:

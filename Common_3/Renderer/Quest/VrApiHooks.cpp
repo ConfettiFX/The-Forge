@@ -13,6 +13,8 @@
 Queue* pSynchronisationQueue = NULL;
 RenderTarget* pFragmentDensityMask = NULL;
 
+extern QuestVR* pQuest; 
+
 bool hook_add_vk_instance_extensions(const char** instanceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer, uint bufferSize)
 {
     if (vrapi_GetInstanceExtensionsVulkan(pBuffer, &bufferSize)) {
@@ -158,6 +160,16 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     ovrTextureSwapChain* swapChainTexture = vrapi_CreateTextureSwapChain4(&createInfo);
     ASSERT(swapChainTexture);
 
+	if (pDesc->mColorFormat == getRecommendedSwapchainFormat(true, true))
+	{
+		pQuest->isSrgb = true; 
+	}
+	else
+	{
+		pQuest->isSrgb = false;
+	}
+
+
     uint imageCount = vrapi_GetTextureSwapChainLength(swapChainTexture);
     
     ASSERT(imageCount >= pDesc->mImageCount);
@@ -196,7 +208,10 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     if (pDesc->mFlags & SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR)
     {
         descColor.mFlags |= TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING;
-        setFoveatedRendering(true);
+
+		vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_DYNAMIC_FOVEATION_ENABLED, true);
+		vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_FOVEATION_LEVEL, 4);
+		pQuest->mFoveatedRenderingEnabled = true;
     }
 
     RenderTargetDesc descFragDensity = {};
@@ -250,8 +265,8 @@ void hook_remove_swap_chain(Renderer* pRenderer, SwapChain* pSwapChain)
 
 void hook_acquire_next_image(SwapChain* pSwapChain, uint32_t* pImageIndex)
 {
-    ASSERT(vrapi_BeginFrame(getOvrContext(), getVrApiFrameIndex()) == ovrSuccess);
-    *pImageIndex = getVrApiFrameIndex() % pSwapChain->mImageCount;
+    ASSERT(vrapi_BeginFrame(pQuest->pOvr, pQuest->mFrameIndex) == ovrSuccess);
+    *pImageIndex = pQuest->mFrameIndex % pSwapChain->mImageCount;
     pFragmentDensityMask = pSwapChain->mVR.ppFragmentDensityMasks[*pImageIndex];
 }
 
@@ -293,7 +308,7 @@ void hook_queue_present(const QueuePresentDesc* pQueuePresentDesc)
     SwapChain* pSwapChain = pQueuePresentDesc->pSwapChain;
     ASSERT(pSwapChain);
 
-    ovrTracking2 headsetTracking = *getHeadsetPose();
+    ovrTracking2 headsetTracking = pQuest->mHeadsetTracking;
 
     ovrLayerProjection2 layer = vrapi_DefaultLayerProjection2();
     layer.HeadPose = headsetTracking.HeadPose;
@@ -307,30 +322,14 @@ void hook_queue_present(const QueuePresentDesc* pQueuePresentDesc)
     ovrSubmitFrameDescription2 frameDesc = {};
     frameDesc.Flags = 0;
     frameDesc.SwapInterval = 1; // TODO: VSync
-    frameDesc.FrameIndex = getVrApiFrameIndex();
-    frameDesc.DisplayTime = getPredictedDisplayTime();
+    frameDesc.FrameIndex = pQuest->mFrameIndex;
+    frameDesc.DisplayTime = pQuest->mPredictedDisplayTime;
     frameDesc.LayerCount = 1;
     const ovrLayerHeader2* layers[] = { &layer.Header };
     frameDesc.Layers = layers;
 
     // Hand over the eye images to the time warp.
-    vrapi_SubmitFrame2(getOvrContext(), &frameDesc);
+    vrapi_SubmitFrame2(pQuest->pOvr, &frameDesc);
 }
 
-Queue* getSynchronisationQueue()
-{
-    ASSERT(pSynchronisationQueue);
-    return pSynchronisationQueue;
-}
-
-VkImageView getFFRFragmentDensityMask()
-{
-    ASSERT(pFragmentDensityMask);
-    return pFragmentDensityMask->mVulkan.pVkDescriptor;
-}
-
-bool isFFRFragmentDensityMaskAvailable()
-{
-    return isFoveatedRenderingEnabled();
-}
 #endif

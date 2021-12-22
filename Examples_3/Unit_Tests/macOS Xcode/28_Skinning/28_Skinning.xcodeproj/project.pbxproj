@@ -56,7 +56,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
 		};
 		9732835C25C43DC00076E8FF /* PBXBuildRule */ = {
 			isa = PBXBuildRule;
@@ -69,7 +69,7 @@
 			outputFiles = (
 				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
 			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL\n";
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
 		};
 /* End PBXBuildRule section */
 
@@ -208,7 +208,7 @@
 		973283B625C43EC00076E8FF /* skinning.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skinning.vert.fsl; path = ../../src/28_Skinning/Shaders/FSL/skinning.vert.fsl; sourceTree = "<group>"; };
 		973283B725C43EC00076E8FF /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.frag.fsl; path = ../../src/28_Skinning/Shaders/FSL/basic.frag.fsl; sourceTree = "<group>"; };
 		973283B825C43EC00076E8FF /* plane.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = plane.vert.fsl; path = ../../src/28_Skinning/Shaders/FSL/plane.vert.fsl; sourceTree = "<group>"; };
-		973283B925C43EC00076E8FF /* skinning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = skinning.h; path = ../../src/28_Skinning/Shaders/FSL/skinning.h; sourceTree = "<group>"; };
+		973283B925C43EC00076E8FF /* skinning.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = skinning.h.fsl; path = ../../src/28_Skinning/Shaders/FSL/skinning.h.fsl; sourceTree = "<group>"; };
 		973283BA25C43EC00076E8FF /* skinning.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skinning.frag.fsl; path = ../../src/28_Skinning/Shaders/FSL/skinning.frag.fsl; sourceTree = "<group>"; };
 		973283BB25C43EC00076E8FF /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.vert.fsl; path = ../../src/28_Skinning/Shaders/FSL/basic.vert.fsl; sourceTree = "<group>"; };
 		973283BC25C43EC00076E8FF /* plane.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = plane.frag.fsl; path = ../../src/28_Skinning/Shaders/FSL/plane.frag.fsl; sourceTree = "<group>"; };

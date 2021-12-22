@@ -16,6 +16,7 @@
   <ItemGroup>
     <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl" />
     <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl" />
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\resources.h.fsl" />
     <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl" />
     <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl" />
   </ItemGroup>

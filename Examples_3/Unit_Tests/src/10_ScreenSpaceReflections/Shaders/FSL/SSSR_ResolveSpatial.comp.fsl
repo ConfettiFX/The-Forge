@@ -35,7 +35,7 @@ RES(RWTex2D(float4), g_intersection_result, UPDATE_FREQ_NONE, u2, binding = 2);
 RES(RWTex2D(float), g_has_ray, UPDATE_FREQ_NONE, u3, binding = 5);
 RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u4, binding = 8);
 
-#include "SSSR_Common.h"
+#include "SSSR_Common.h.fsl"
 
 
 // Only really need 16x16 but 17x17 avoids bank conflicts.

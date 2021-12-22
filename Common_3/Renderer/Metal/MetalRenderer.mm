@@ -74,7 +74,6 @@
 #define DESCRIPTOR_UPDATE_FREQ_PADDING 0
 #define BUILTIN_DRAW_ID_BINDING_INDEX (DESCRIPTOR_UPDATE_FREQ_COUNT)
 
-
 VkAllocationCallbacks gMtlAllocationCallbacks = {
 	// pUserData
 	NULL,
@@ -312,6 +311,7 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 void util_barrier_update(Cmd* pCmd, const QueueType& encoderType);
 void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void* pConstants);
+void util_bind_root_cbv(Cmd* pCmd, const RootDescriptorHandle* pHandle);
 
 void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
@@ -327,19 +327,7 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 		for (uint32_t i = 0; i < pRootSignature->mRootBufferCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pBuffers[i];
-
-			if (pHandle->mStage & SHADER_STAGE_VERT)
-			{
-				[pCmd->mtlRenderEncoder setVertexBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:pHandle->mBinding];
-			}
-			if (pData->pBuffers[i].mStage & SHADER_STAGE_FRAG)
-			{
-				[pCmd->mtlRenderEncoder setFragmentBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:pHandle->mBinding];
-			}
-			if (pData->pBuffers[i].mStage & SHADER_STAGE_COMP)
-			{
-				[pCmd->mtlComputeEncoder setBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:pHandle->mBinding];
-			}
+			util_bind_root_cbv(pCmd, pHandle);
 		}
 
 		for (uint32_t i = 0; i < pRootSignature->mRootTextureCount; ++i)
@@ -412,28 +400,68 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 //
 // Push Constants
 //
-void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+void mtl_cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
 {
 	ASSERT(pCmd);
 	ASSERT(pRootSignature);
-	ASSERT(pName);
-
-	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
-	ASSERT(pDesc);
-	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
-	util_bind_push_constant(pCmd, pDesc, pConstants);
-}
-
-void mtl_cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
-{
-	ASSERT(pCmd);
-	ASSERT(pRootSignature);
-	ASSERT(paramIndex != (uint32_t)-1);
+	ASSERT(paramIndex >= 0 && paramIndex < pRootSignature->mDescriptorCount);
 
 	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
 	ASSERT(pDesc);
 	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mType);
 	util_bind_push_constant(pCmd, pDesc, pConstants);
+}
+
+#if defined(ENABLE_GRAPHICS_DEBUG)
+#define VALIDATE_DESCRIPTOR(descriptor, ...)                                                            \
+	if (!(descriptor))                                                                                  \
+	{                                                                                                   \
+		eastl::string msg = __FUNCTION__ + eastl::string(" : ") + eastl::string().sprintf(__VA_ARGS__); \
+		LOGF(LogLevel::eERROR, msg.c_str());                                                            \
+		_FailedAssert(__FILE__, __LINE__, msg.c_str());                                                 \
+		continue;                                                                                       \
+	}
+#else
+#define VALIDATE_DESCRIPTOR(descriptor, ...)
+#endif
+
+void mtl_cmdBindDescriptorSetWithRootCbvs(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
+	mtl_cmdBindDescriptorSet(pCmd, index, pDescriptorSet);
+	
+	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+	
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		const DescriptorData* pParam = pParams + i;
+		uint32_t              paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
+
+		const DescriptorInfo* pDesc =
+			(paramIndex != UINT32_MAX) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		if (paramIndex != UINT32_MAX)
+		{
+			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param index (%u)", paramIndex);
+		}
+		else
+		{
+			VALIDATE_DESCRIPTOR(pDesc, "Invalid descriptor with param name (%s)", pParam->pName);
+		}
+
+		VALIDATE_DESCRIPTOR(pDesc->mRootDescriptor, "Descriptor (%s) - must be a root cbv", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->mCount <= 1, "Descriptor (%s) - cmdBindDescriptorSetWithRootCbvs does not support arrays", pDesc->pName);
+		VALIDATE_DESCRIPTOR(pParam->pRanges, "Descriptor (%s) - pRanges must be provided for cmdBindDescriptorSetWithRootCbvs", pDesc->pName);
+
+		DescriptorDataRange range = pParam->pRanges[0];
+
+		VALIDATE_DESCRIPTOR(range.mSize > 0, "Descriptor (%s) - pRanges->mSize is zero", pDesc->pName);
+		
+		RootDescriptorHandle handle = {};
+		handle.mBinding = pDesc->mReg;
+		handle.pResource = pParam->ppBuffers[0]->mtlBuffer;
+		handle.mStage = pDesc->mUsedStages;
+		handle.mOffset = (uint32_t)(pParam->ppBuffers[0]->mOffset + range.mOffset);
+		util_bind_root_cbv(pCmd, &handle);
+	}
 }
 
 //
@@ -629,11 +657,11 @@ void mtl_updateDescriptorSet(
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		const DescriptorData* pParam(pParams + i);
-		const uint32_t        paramIndex = pParam->mIndex;
+		const uint32_t        paramIndex = pParam->mBindByIndex ? pParam->mIndex : UINT32_MAX;
 
 		const DescriptorInfo* pDesc = NULL;
 
-		if (paramIndex != (uint32_t)-1)
+		if (paramIndex != UINT32_MAX)
 		{
 			pDesc = &pRootSignature->pDescriptors[paramIndex];
 		}
@@ -645,6 +673,7 @@ void mtl_updateDescriptorSet(
 		if (pDesc)
 		{
 			const DescriptorType type((DescriptorType)pDesc->mType);
+			const uint32_t       arrayStart = pParam->mArrayOffset;
 			const uint32_t       arrayCount(max(1U, pParam->mCount));
 
 			switch (type)
@@ -661,7 +690,7 @@ void mtl_updateDescriptorSet(
 							for (uint32_t j = 0; j < arrayCount; ++j)
 							{
 								[pDescriptorSet->mArgumentEncoder setSamplerState:pParam->ppSamplers[j]->mtlSamplerState
-																		  atIndex:pDesc->mHandleIndex + j];
+																		  atIndex:pDesc->mHandleIndex + arrayStart + j];
 							}
 						}
 					}
@@ -692,7 +721,7 @@ void mtl_updateDescriptorSet(
 								for (uint32_t j = 0; j < pParam->ppTextures[0]->mMipLevels; ++j)
 								{
 									[pDescriptorSet->mArgumentEncoder setTexture:pParam->ppTextures[0]->pMtlUAVDescriptors[j]
-																		 atIndex:pDesc->mHandleIndex + j];
+																		 atIndex:pDesc->mHandleIndex + arrayStart + j];
 								}
 							}
 							else
@@ -708,7 +737,7 @@ void mtl_updateDescriptorSet(
 									else
 									{
 										[pDescriptorSet->mArgumentEncoder setTexture:pParam->ppTextures[j]->mtlTexture
-																			 atIndex:pDesc->mHandleIndex + j];
+																			 atIndex:pDesc->mHandleIndex + arrayStart + j];
 									}
 								}
 							}
@@ -756,7 +785,7 @@ void mtl_updateDescriptorSet(
 									{
 										[pDescriptorSet->mArgumentEncoder
 											setIndirectCommandBuffer:pParam->ppBuffers[j]->mtlIndirectCommandBuffer
-															 atIndex:pDesc->mHandleIndex + j];
+															 atIndex:pDesc->mHandleIndex + arrayStart + j];
 									}
 								}
 #endif
@@ -784,7 +813,7 @@ void mtl_updateDescriptorSet(
 
 									[pDescriptorSet->mArgumentEncoder
 										setBuffer:(id<MTLBuffer>)buffer
-										   offset:offset + (pParam->pOffsets ? pParam->pOffsets[j] : 0)atIndex:pDesc->mHandleIndex + j];
+										   offset:offset + (pParam->pRanges ? pParam->pRanges[j].mOffset : 0) atIndex:pDesc->mHandleIndex + arrayStart + j];
 								}
 							}
 						}
@@ -797,7 +826,7 @@ void mtl_updateDescriptorSet(
 						pData->mBinding = pDesc->mReg;
 						pData->mStage = pDesc->mUsedStages;
 						pData->pResource = pParam->ppBuffers[0]->mtlBuffer;
-						pData->mOffset = (uint32_t)(pParam->ppBuffers[0]->mOffset + (pParam->pOffsets ? pParam->pOffsets[0] : 0));
+						pData->mOffset = (uint32_t)(pParam->ppBuffers[0]->mOffset + (pParam->pRanges ? pParam->pRanges[0].mOffset : 0));
 					}
 
 					break;
@@ -813,7 +842,7 @@ void mtl_updateDescriptorSet(
 						for (uint32_t j = 0; j < arrayCount; ++j)
 						{
 							[pDescriptorSet->mArgumentEncoder setRenderPipelineState:pParam->ppPipelines[j]->mtlRenderPipelineState
-																			 atIndex:pDesc->mHandleIndex + j];
+																			 atIndex:pDesc->mHandleIndex + arrayStart + j];
 						}
 					}
 					break;
@@ -1076,7 +1105,13 @@ void remove_default_resources(Renderer* pRenderer)
 // API functions
 // -------------------------------------------------------------------------------------------------
 
-TinyImageFormat mtl_getRecommendedSwapchainFormat(bool hintHDR) { return TinyImageFormat_B8G8R8A8_UNORM; }
+TinyImageFormat mtl_getRecommendedSwapchainFormat(bool hintHDR, bool hintSRGB) 
+{ 
+	if (hintSRGB)
+		return TinyImageFormat_B8G8R8A8_SRGB;
+	else
+		return TinyImageFormat_B8G8R8A8_UNORM;
+}
 
 #ifndef TARGET_IOS
 // Returns the CFDictionary that contains the system profiler data type described in inDataType.
@@ -3066,6 +3101,13 @@ void mtl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSig
 			}
 			else if (pDesc->mType != DESCRIPTOR_TYPE_ROOT_CONSTANT)
 			{
+				pDesc->mRootDescriptor = 1;
+				
+				if (isDescriptorRootCbv(pDesc->pName))
+				{
+					continue;
+				}
+				
 				switch (pDesc->mType)
 				{
 					case DESCRIPTOR_TYPE_SAMPLER: pDesc->mHandleIndex = pRootSignature->mRootSamplerCount++; break;
@@ -4872,6 +4914,24 @@ void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void*
 	}
 }
 
+void util_bind_root_cbv(Cmd* pCmd, const RootDescriptorHandle* pHandle)
+{
+	if (pHandle->mStage & SHADER_STAGE_VERT)
+	{
+		[pCmd->mtlRenderEncoder setVertexBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:	pHandle->mBinding];
+	}
+
+	if (pHandle->mStage & SHADER_STAGE_FRAG)
+	{
+		[pCmd->mtlRenderEncoder setFragmentBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:	pHandle->mBinding];
+	}
+
+	if (pHandle->mStage & SHADER_STAGE_COMP)
+	{
+		[pCmd->mtlComputeEncoder setBuffer:pHandle->pResource offset:pHandle->mOffset atIndex:	pHandle->mBinding];
+	}
+}
+
 void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource)
 {
 #if defined(ENABLE_ARGUMENT_BUFFERS)
@@ -5231,7 +5291,29 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	if (pDesc->pNativeHandle)
 	{
 		pTexture->mOwnsImage = false;
-		pTexture->mtlTexture = (__bridge id<MTLTexture>)(pDesc->pNativeHandle);
+		
+		struct MetalNativeTextureHandle
+		{
+			id<MTLTexture>    pTexture;
+			CVPixelBufferRef  pPixelBuffer;
+		};
+		MetalNativeTextureHandle* handle = (MetalNativeTextureHandle*)pDesc->pNativeHandle;
+		if (handle->pTexture)
+		{
+			pTexture->mtlTexture = handle->pTexture;
+		}
+		else if (handle->pPixelBuffer)
+		{
+			pTexture->mtlTexture = CVMetalTextureGetTexture(handle->pPixelBuffer);
+		}
+		else
+		{
+			ASSERT(false);
+			internal_log(eERROR, "Invalid pNativeHandle specified in TextureDesc", "addTexture");
+			return;
+		}
+		
+		
 	}
 	// Otherwise, we need to create a new texture.
 	else
@@ -5561,7 +5643,7 @@ void initMetalRenderer(const char* appName, const RendererDesc* pSettings, Rende
 	cmdBindPipeline = mtl_cmdBindPipeline;
 	cmdBindDescriptorSet = mtl_cmdBindDescriptorSet;
 	cmdBindPushConstants = mtl_cmdBindPushConstants;
-	cmdBindPushConstantsByIndex = mtl_cmdBindPushConstantsByIndex;
+	cmdBindDescriptorSetWithRootCbvs = mtl_cmdBindDescriptorSetWithRootCbvs;
 	cmdBindIndexBuffer = mtl_cmdBindIndexBuffer;
 	cmdBindVertexBuffer = mtl_cmdBindVertexBuffer;
 	cmdDraw = mtl_cmdDraw;

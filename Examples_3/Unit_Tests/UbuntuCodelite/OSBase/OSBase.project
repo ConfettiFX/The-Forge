@@ -22,14 +22,6 @@
       <File Name="../../../../Middleware_3/Animation/AnimatedObject.h"/>
       <File Name="../../../../Middleware_3/Animation/AnimatedObject.cpp"/>
     </VirtualDirectory>
-    <VirtualDirectory Name="ECS">
-      <File Name="../../../../Middleware_3/ECS/BaseComponent.cpp"/>
-      <File Name="../../../../Middleware_3/ECS/BaseComponent.h"/>
-      <File Name="../../../../Middleware_3/ECS/ComponentRepresentation.cpp"/>
-      <File Name="../../../../Middleware_3/ECS/ComponentRepresentation.h"/>
-      <File Name="../../../../Middleware_3/ECS/EntityManager.cpp"/>
-      <File Name="../../../../Middleware_3/ECS/EntityManager.h"/>
-    </VirtualDirectory>
     <VirtualDirectory Name="PaniniProjection">
       <VirtualDirectory Name="Shaders">
         <File Name="../../../../Middleware_3/PaniniProjection/Shaders/FSL/panini_projection.frag.fsl"/>
@@ -144,6 +136,24 @@
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="meshoptimizer">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/clusterizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexcodec.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/simplifier.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/spatialorder.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/stripifier.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vertexcodec.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchanalyzer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vertexfilter.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="LUA">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c"/>
@@ -292,7 +302,7 @@ SRC_UI = $(WorkspacePath)/../../../Common_3/OS/UI/Shaders/FSL/
 SRC_TEXT = $(WorkspacePath)/../../../Common_3/OS/Fonts/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
@@ -341,7 +351,7 @@ SRC_UI = $(WorkspacePath)/../../../Common_3/OS/UI/Shaders/FSL/
 SRC_TEXT = $(WorkspacePath)/../../../Common_3/OS/Fonts/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;

@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "skinning.h"
+#include "skinning.h.fsl"
 
 STRUCT(VSOutput)
 {
