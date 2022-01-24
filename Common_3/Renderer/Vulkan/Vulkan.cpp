@@ -3597,6 +3597,7 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 	ASSERT(pDesc);
 	ASSERT(ppSwapChain);
 	ASSERT(pDesc->mImageCount <= MAX_SWAPCHAIN_IMAGES);
+	ASSERT(pDesc->ppPresentQueues);
 
 #if defined(QUEST_VR)
     hook_add_swap_chain(pRenderer, pDesc, ppSwapChain);
