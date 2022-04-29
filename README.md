@@ -163,11 +163,11 @@ This library is the stepping stone of utilizing more CPU instrinsics on various 
 ![Material Playground Unit Test](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
 
 - Retired unit test: we are going to retire many unit tests now because our automated testing cycle takes too long and heats up the "engine" room (see above passage on us looking for an consultant to scale up our testing environment). Today we retire:
--- 02_Compute
--- 05_FontRendering
--- 13_UserInterface - we might create a much more advanced one for tools development in the future
--- 16a_SphereTracing
--- 32_Windows - not necessary anymore with every unit test now offering windows management
+  * 02_Compute
+  * 05_FontRendering
+  * 13_UserInterface - we might create a much more advanced one for tools development in the future  
+  * 16a_SphereTracing  
+  * 32_Windows - not necessary anymore with every unit test now offering windows management
 
 - Resolved GitHub Issues:
   * [Toggle for 'setupAPISwitchingUI' in WindowsBase.cpp #252](https://github.com/ConfettiFX/The-Forge/issues/252)
