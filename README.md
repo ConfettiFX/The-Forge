@@ -170,11 +170,11 @@ This library is the stepping stone of utilizing more CPU instrinsics on various 
 -- 32_Windows - not necessary anymore with every unit test now offering windows management
 
 - Resolved GitHub Issues:
--- [Toggle for 'setupAPISwitchingUI' in WindowsBase.cpp #252](https://github.com/ConfettiFX/The-Forge/issues/252)
--- [Windows 7 problems #249](https://github.com/ConfettiFX/The-Forge/issues/249)
--- [Asserts triggering in modified version of flecs when running with high uptime #245](https://github.com/ConfettiFX/The-Forge/issues/245)
--- [https://github.com/ConfettiFX/The-Forge/issues/220](https://github.com/ConfettiFX/The-Forge/issues/220)
--- [vk_removeBuffer takes a lot of CPU time when exit application #243](https://github.com/ConfettiFX/The-Forge/issues/243)
+  * [Toggle for 'setupAPISwitchingUI' in WindowsBase.cpp #252](https://github.com/ConfettiFX/The-Forge/issues/252)
+  * [Windows 7 problems #249](https://github.com/ConfettiFX/The-Forge/issues/249)
+  * [Asserts triggering in modified version of flecs when running with high uptime #245](https://github.com/ConfettiFX/The-Forge/issues/245)
+  * [https://github.com/ConfettiFX/The-Forge/issues/220](https://github.com/ConfettiFX/The-Forge/issues/220)
+  * [vk_removeBuffer takes a lot of CPU time when exit application #243](https://github.com/ConfettiFX/The-Forge/issues/243)
 
 
 ## Release 1.51 - December 21st, 2021 - ECS uses flecs | Better Borderless Window | Descriptor Management improvements | sRGB | Android Game Development Extensions | FSL Improvements | Ray Tracing | Meshoptimizer | Buildbox | Lethis
