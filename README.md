@@ -2,15 +2,15 @@
 
 The Forge is a cross-platform rendering framework supporting
 - PC 
-  * Windows 10 / 7
+  * Windows 10
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-     * DirectX 11 Fallback Layer for Windows 7 support
+     * DirectX 11 Fallback Layer for older Windows paltforms
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie or higher with 
   * Vulkan 1.1
   * OpenGL ES 2.0 fallback for large scale business application frameworks
-- macOS / iOS / iPad OS with Metal 2.2 and M1 support
+- macOS / iOS / iPad OS with Metal 2.2, Intel and Apple processor support
 - Quest 2 using Vulkan 1.1
 - XBOX One / XBOX One X / XBOX Series S/X *
 - PS4 / PS4 Pro *
@@ -27,9 +27,9 @@ Particularly, the graphics layer of The Forge supports cross-platform
 
 The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
 - Resource Loader as shown in 10_PixelProjectedReflections, capable to load textures, buffers and geometry data asynchronously
-- [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
+- [Lua Scripting System](https://www.lua.org/) - currently used for automatic testing and in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
-- Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms
+- Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms. It also supports now Double precision.
 - Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
 - Consistent Memory Managament: 
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
@@ -37,7 +37,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
 - Fast Entity Component System based on [flecs](https://github.com/SanderMertens/flecs) 
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
-- UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
+- UI system based on [Dear imGui](https://github.com/ocornut/imgui) extended for touch input devices
 - Shader Translator using a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
@@ -58,6 +58,123 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://app.travis-ci.com/ConfettiFX/The-Forge.svg?branch=master)](https://app.travis-ci.com/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.52 - April 29th, 2022 - C Code Hot Reloading Unit Test | Visibility Buffer OIT | Pre-Computed DLUT Test | Unified Window and Resolution control | Android Vulkan Validation Layer | CPU Features | Upgraded Vulkan and DX GPU allocator | macOS / iOS improvements | Double precision Math Library | Impoved Input System with HID support
+
+We are always looking for more graphics / engine programmers. We are also specifically looking for a consultant who can help us to scale up our hardware testing environment. 
+
+The following list of changes is not fully representative of all the improvements we made, so it is just a selection:
+
+- C Code Hot Reloading Unit Test - This unit test showcases an implementation of code hot reloading in C, we've used and adapted the following GitHub library
+
+[cr](https://github.com/fungos/cr)
+
+ for this. 
+ 
+ ![C Code Hot Reloading Unit test](Screenshots/19_CodeHotReload.PNG)
+ 
+ The test contains two projects:
+- 19_CodeHotReload_Main: generates the executable. All code in this project can't be hot-reloaded. This is the project you should set as startup project when running the program form an IDE.
+- 19a_CodeHotReload_Game: for development platforms Windows/MacOS/Linux generates a dynamic library that is loaded by the Main project in runtime, when the dynamic library changes the Main program reloads the new code. For Android/IOS/Quest/Consoles this project is compiled and linked statically.
+
+How to use it: While the Main project is running open 19_CodeHotReload_Game.cpp and perform some change, there are lines marked with `TRY_CODE_RELOAD` to make easy changes. Once the file is saved, you can rebuild the project and see the changes happen automatically.
+- Windows/Linux: Click on the UI "RebuildGame" button.
+- MacOS: Command+B on XCode to rebuild.
+
+Note: In this implementation we can't call any functions from The Forge from the HotReloadable project (19a_CodeHotReload_Game), this is because we are compiling OS and Renderer as static libraries and linking them directly to the exe. Ideally these projects should be compiled as dynamic libraries in order to expose their functionality to the exe and hot reloadable dll. The reason we didn't implement it in this way is because all our other projects are already setup to use static libraries.
+
+
+- Visibility Buffer Order-Independent Transparency - we added OIT by utilizing a per-pixel linked list to a Visibility Buffer (VB) rendering architecture. In case of Deferred Shading (DS), the per-pixel linked list holds per-pixel data. In case of VB it only holds the triangle index data. You can switch between DS and VB in this example. The VB version occupies substantially less memory and is faster. With memory bandwidth being the biggest challenge in graphics programming, this is not unexpected. Most people by now adopted the idea of VB in one or two ways but it doesn't hurt to show another advantage of the architecture.
+
+Linux 1080p resolution
+![Visibility Buffer OIT Linux](Screenshots/VisibilityBufferOIT/Linux_VisBufOIT.png)
+
+macOS 3200x1760 resolution
+![Visibility Buffer OIT macOS](Screenshots/VisibilityBufferOIT/MacOS_VisBufOIT.png)
+
+PS4 1080p resolution
+![Visibility Buffer OIT Orbis](Screenshots/VisibilityBufferOIT/Orbis_VisBufOIT.png)
+
+PS5 4k resolution
+![Visibility Buffer OIT Prospero](Screenshots/VisibilityBufferOIT/Prospero_VisBufOIT.png)
+
+Windows 10 1080p resolution
+![Visibility Buffer OIT Orbis](Screenshots/VisibilityBufferOIT/Orbis_VisBufOIT.png)
+
+XBOX One (original) 1080p resolution
+![Visibility Buffer OIT Orbis](Screenshots/VisibilityBufferOIT/XboxOne_VisBufOIT.png)
+
+- Pre-Computed DLUT Test - this test implements pre-computing volume transmittance in Blender or Houdini for 6 directions and shading clouds/smoke based on the following tweets:
+
+https://twitter.com/Vuthric/status/1286796950214307840
+
+A detailed description can be found here: https://realtimevfx.com/t/smoke-lighting-and-texture-re-usability-in-skull-bones/5339
+
+![DLUT Test Blender Support](Screenshots/37_DLUT_Blender.png)
+
+In this repository is a "dlut.blend" file that contains a minimal volumetric render setup. In order to generate DLUT image do the following steps:
+
+   - Set the viewport shading to "Rendered"
+   - Select the "Sun" object
+   - Set the X rotation to 0 degrees
+   - Press F12 to render the image and wait for a few minutes until it's done
+   - Save the rendered image to "dlut_0.png"
+   - Repeat steps 3-5 for 90, 180 and 270 degrees and save "dlut_90.png", "dlut_180.png" and "dlut_270.png"
+   - Run the "combine_dlut.py" Python script or manually combine rendered images in your image editor of choice, each color channel should contain the red channel from the corresponding "dlut_*.png" image multiplied by the alpha channel of the same image. For example, green channel should contain the red channel from "dlut_90.png" multiplied by the alpha channel of "dlut_90.png"
+   - Experiment and implement further ideas from the article above. Setting up a Mantaflow simulation in Blender and exporting animated smoke and simulation attributes like temperature can yield interesting results!
+
+Resulting DLUT image should look like this:
+
+![DLUT Test Blender Support](Screenshots/37_DLUT_Result.png)
+
+The example program running on Android:
+
+![DLUT Test running on Android](Screenshots/37_DLUT_Android.png)
+
+- Window Management - all the platforms that support the concept of having a windowed application have now a base file named {Platform}Window.cpp. There is now a common UI element that offers -if supported- multi-monitor support and various window settings. There are also LUA scripts that test the functionality in our Jenkins setup.
+
+- Android Vulkan Validation layers: we added the validation layer from Khronos GitHub repo as they have stopped shipping the layer in the NDK. 
+
+[Android Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
+
+You can find them in ThirdParty/OpenSource/AndroidVulkanValidationLayers
+
+- CPU / GPU Features - we integrated the following library to test CPU features during start-up. Now you will see a lot more information about the CPU in the upper left corner of a window.
+
+[CPU Features](https://github.com/google/cpu_features)
+
+This library is the stepping stone of utilizing more CPU instrinsics on various platforms. You can see its results in the screenshots above, showing the name of the CPU, the supported instruction set. We also show now the GPU name and the driver version that the GPU uses.
+
+- Upgraded Vulkan and DX Allocators: following the updates to these open-source libraries on GitHub we upgraded our code base accordingly.
+
+- macOS / iOS - while working with TF on various projects, we bring back improvements and lessons learned from those projects. You will find numerous macOS / iOS improvements in this release.
+
+- For one of the business applications we worked on, we needed double precision Math. We extended the math library now accordingly with support.
+
+- We also improved the input system with HID support, which is an on-going effort. So better controller support on more platforms ...
+
+[HIDAPI](https://github.com/libusb/hidapi)
+
+- Windows 7 - better Windows 7 support with DX11 and Vulkan ... still a bug in the Vulkan run-time with sRGB ...
+- We upgraded the 06_MaterialPlayground with shadows:
+
+![Material Playground Unit Test](Screenshots/MaterialPlayground/06_MaterialPlayground_Metal.png)
+
+![Material Playground Unit Test](Screenshots/MaterialPlayground/06_MaterialPlayground_Wood.png)
+
+- Retired unit test: we are going to retire many unit tests now because our automated testing cycle takes too long and heats up the "engine" room (see above passage on us looking for an consultant to scale up our testing environment). Today we retire:
+-- 02_Compute
+-- 05_FontRendering
+-- 13_UserInterface - we might create a much more advanced one for tools development in the future
+-- 16a_SphereTracing
+-- 32_Windows - not necessary anymore with every unit test now offering windows management
+
+- Resolved GitHub Issues:
+-- [Toggle for 'setupAPISwitchingUI' in WindowsBase.cpp #252](https://github.com/ConfettiFX/The-Forge/issues/252)
+-- [Windows 7 problems #249](https://github.com/ConfettiFX/The-Forge/issues/249)
+-- [Asserts triggering in modified version of flecs when running with high uptime #245](https://github.com/ConfettiFX/The-Forge/issues/245)
+-- [https://github.com/ConfettiFX/The-Forge/issues/220](https://github.com/ConfettiFX/The-Forge/issues/220)
+-- [vk_removeBuffer takes a lot of CPU time when exit application #243](https://github.com/ConfettiFX/The-Forge/issues/243)
 
 
 ## Release 1.51 - December 21st, 2021 - ECS uses flecs | Better Borderless Window | Descriptor Management improvements | sRGB | Android Game Development Extensions | FSL Improvements | Ray Tracing | Meshoptimizer | Buildbox | Lethis
@@ -150,190 +267,6 @@ The game Lethis Path of Progress uses The Forge now (click on image to go to the
 
 
 
-## Release 1.50 - October 13, 2021 - M²H uses The Forge  | Unlinked Multi GPU Support | Central Config.h | glTF Viewer improvements | Scalar High Precision Math 
-* M²H uses The Forge for Stroke Therapy - [M²H](https://msquarehealthcare.com/) is a medical technology company. They developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
-The Forge provides the rendering layer for their application.
-Here is a YouTube video on what they do:
-
-[![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
-
-
-* Unlinked multiple GPU Support: for professional visualization applications, we now support unlinked multiple GPU. 
-A new renderer API is added to enumerate available GPUs.
-Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list.
-Multiple Renderers can be created this way.
-The resource loader interface has been extended to support multiple Renderers.
-It is initialized with the list of all Renderers created.
-To select which Renderer (GPU) resources are loaded on, the NodeIndex used in linked GPU configurations is reused for the same purpose.
-Resources cannot be shared on multiple Renderers however, resources must be duplicated explicitly if needed.
-To retrieve generated content from one GPU to another (e.g. for presentation), a new resource loader operation is provided to schedule a transfer from a texture to a buffer. The target buffer should be mappable.
-This operation requires proper synchronization with the rendering work; a semaphore can be provided to the copy operation for that purpose.
-Available with Vulkan and D3D12.
-For other APIs, the enumeration API will not create a RendererContext which indicates lack of unlinked multi GPU support.
-
-* Config.h: We now have a central config.h file that can be used to configure TF.
-  * Created config files:
-```
-Common_3/OS/Core/Config.h
-Common_3/Renderer/RendererConfig.h
-Common_3/Renderer/{RenderingAPI}/{RenderingAPI}Config.h
-```
-        * Modified PyBuild.py
-            * Proper handling of config options.
-            * Every config option has --{option-name}/--no-{option-name} flag that uses define/undef directives to enable/disable macros. 
-            * Macros are guarded with ifndef/ifdef.
-            * Updated Android platform handling
-          * Deleted Common_3/Renderer/Compiler.h. It's functionality was moved into Config.h
-          * Moved all macro options to config files
-          * Renamed USE_{OPTON_NAME} to ENABLE_{OPTION_NAME}
-          * Changed some macros to be defined/not defined instead of having values of 0 or 1.
-          * Deleted all DISABLE_{OPTION_NAME} macros
-          * When detecting raytracing replaced ENABLE_RAYTRACING with RAYTRACING_AVAILABLE. This was done, because not all projects need raytracing even if it is available. RendererConfig.h defines ENABLE_RAYTRACING macro if it is available. So, it can be commented out in singular place instead of searching for it for every platform
-          * Removed most of the macro definitions from build systems. Some of the remaining macros are:
-            * Target platform macros: NX64, QUEST_VR
-            * Arm neon macro ANDROID_ARM_NEON.
-            * Windows suppression macros(like _CRT_SECURE_NO_WARNINGS)
-            * Macros specific to gainputstatic
-* glTF viewer improvements: 
-  * sRGB fixes
-  * IBL support now with prefiltered CCO/public domain cube maps
-  * TAA support on more platforms and fixes
-  * Vignette support
-
-
-glTF Viewer running on Android Galaxy Note 9
-![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
-
-glTF Viewer running on iPhone 7
-![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
-
-glTF Viewer running on Linux with NVIDIA RTX 2060
-![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
-
-glTF Viewer running on Mac Mini M1
-![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
-
-glTF Viewer running on PS5
-![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
-
-glTF Viewer running on Switch
-![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
-
-glTF Viewer running on XBOX One Original 
-![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
-
-
-* Specialization/Function constants support on Vulkan and Metal only - these constants get baked into the micro-code during pipeline creation time so the performance is identical to using a macro without any of the downsides of macros (too many shader variations increasing the size of the build).
-
-Good read on Specialization constants. Same things apply to function constants on Metal
-
-https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/specialization_constants/specialization_constants_tutorial.html
-
-Declared at global scope using SHADER_CONSTANT macro. Used as any regular variable after declaration
-
-Macro arguments:
-```
-#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE)
-```
-Example usage:
-```
-SHADER_CONSTANT(0, uint, gRenderMode, 0);
-// Vulkan - layout (constant_id = 0) const uint gRenderMode = 0;
-// Metal  - constant uint gRenderMode [[function_constant(0)]];
-// Others - const uint gRenderMode = 0;
-
-void main()
-{
-    // Can be used like regular variables in shader code
-    if (gRenderMode == 1)
-    {
-        // 
-    }
-}
-```
-
-* Resolved GitHub Issues
-  * #206 - Executing Unit Tests on Mac OS 10.14 gives a Bad Access error
-  * #209 - way to read texture back from GPU to CPU - this functionality is now in the resource loader
-  * #210 - memory allocation challenge - not an issue
-  * #212 - Question: updating partial uniform data on OpenGLES backend - not possible with OpenGL ES 2.0 run-time
-  * #219 - Question : way to support Vulkan SpecializationInfo? - support is now in the code base see above
-
-
-## Release 1.49 - September 09, 2021 - Quest 2 Support | Apple M1 support 
-<ul>
-
-<li>Quest 2 Support - after working now for the last 4 years on various Quest projects, we decided to add Quest 2 support to our framework. </li>
-
-
-Quest 2 running 01_Transformations
-![Quest 2 Running 01_Transformations](Screenshots/Quest/01_Transformations.png)
-
-Quest 2 running 09_ShadowPlayground
-![Quest 2 Running 09_ShadowPlayground](Screenshots/Quest/09_ShadowPlayground.png)
-
-<li>At this moment the following unit tests do not work:
-<ul>
-  <li> 07_Tessellation: Tesselation is not supported when using Multiview. Unit test has been removed from Quest solution file. </li>
-  <li>10_ScreenSpaceReflections: Lots of artifacts.</li> 
-  <li>14_WaveIntrinsics: Wave intrinsics are not supported.</li>
-</ul>
-</ul>
-
-<ul>
-<li> Apple M1 support - we are testing now on a M1 iMac and a M1 iPad Pro. Unfortunately we have crashes in one unit test and all the more complex examples and middleware. 
-</li>
-
-
-iMac with M1 chip running at 3840x2160 resolution
-![iMac with M1 Running 10_PerPixelProjectedReflections](Screenshots/10_Pixel-ProjectedReflections_iMacM1.png)
-
-iPad with M1 chip running with 1024x1366 resolution
-![iPad with M1 Running 10_PerPixelProjectedReflections](Screenshots/10_Pixel-ProjectedReflections_iPadM1.png)
-
-It is astonishing how well the iPad with M1 chip perform.
-Due to -what we consider driver bugs- M1 hardware crashes in 
- <ul>
- <li> Aura</li>
- <li>16_raytracing</li>
- <li>Visibility Buffer</li>
- <li>Ephemeris</li>
- </ul>
- </ul>
-
-
-<ul>
-<li>UI / Fonts / Lua interface refactor</li>
-<ul>
-<li>Moved Virtual Joystick to IInput.h / InputSystem.cpp</li>
-<li>Pulled current Lua implementation out of AppUI and gave it its own interface (IScripting.h)</li>
-<li>Pulled Fontstash implementation out of AppUI and gave it its own interface (IFont.h)</li>
-<li>IFont and IScripting are now initialized on the OS Layer, with user customization functions available on the App Layer</li>
-<li>Fonts and Lua can now be disabled via preprocessor defines and UI will still function (using default 'ProggyClean' font)</li>
-</ul>
-<li>Zip unit test refactor to support encryption and writes into archive</li>
-For one of our customer projects we need password encryption, so we replaced our old zip library with 
-
-[minizip ng](https://github.com/zlib-ng/minizip-ng)
-<li>Extended iOS Gesture / Android gesture support</li>
-For the same project we added more gesture support for mobile platforms.
-<li>Partial C99 rewrite of OS/Interfaces headers and implementation files</li>
-Our on-going effort to make TF easier to use is to rewrite parts in C99, so that teams can work with it more efficiently, the compile time goes down as well as the memory footprint is smaller.
-<li>OpenGL ES 2 - Unit test 17 is now working as well.</li>
-</ul>
-
-<ul>
-<li>GitHub fixes:</li>
-<ul>
-<li> Pull Request "Fix typo" #199 </li>
-<li> Pull Request "Fix iOS Xcode OpenGL ES Error breakpoint crash" #202 </li>
-<li> Pull Request "Reduce GL ES buffer allocation frequency" #204 </li>
-<li> Pull Request "Apple silicon m1 fixes" #208 </li>
-</ul>
-</ul>
-
-
-
 
 
 
@@ -362,8 +295,8 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec  [1.2.162](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on 
-* AMD 5x, VEGA GPUs (various)
-* NVIDIA GeForce 9x, 10x. 20x GPUs (various)
+* AMD 6500, 6700 XT and others (various)
+* NVIDIA GeForce 10x, 20x, 30x GPUs (various)
 
 
 # macOS Requirements:
@@ -455,6 +388,7 @@ At the moment, the Android run-time does not support the following unit tests du
     - Install Android NDK r21e (21.4.7075529)
     The versions might not be visible so be sure to check the "Show Package Details" option.
     - Set `ANDROID_SDK_ROOT` environment variable to point at the installed SDK
+    - Use Java SDK jdk-11.0.14
 
 ### Steps if You want to create a new Project
 
@@ -474,21 +408,18 @@ For link directories,
   - *NOTE* This can be avoided by adding our libs as references (Right-click project -> Add -> Reference -> Pick the ones you want to link -> Ok)
 
 Notes:
-- Add -lm to you project Linker Command Line options for if you get any undefined math operations error
+- Add -lm to your project Linker Command Line options for if you get any undefined math operations error
 - If you get error related to "cannot use 'throw' with exceptions disabled", Enable exceptions in C++ Project settings
 - If you get error related to multiple instances of ioctl add BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD in preprocessor definitions
 - If you get errors related to neon support not enabled -Enable Advance SIMD to Yes -Set floating point ABI to softfp
 
 # Quest 2 Requirements:
-1. Follow the Android setup instructions for Visual studio 2017 with "Mobile Development with C++" with the following notes:
-* It's recommended for Visual Studio 2017 to not install default Visual Studio Installer Android NDK
-* For compatibility with other components the best Android NDK to use is the 21.1.635 version from UE4 or the official 21e releases
-* The official (now unsupported) NDK can be downloaded here: https://github.com/android/ndk/wiki/Unsupported-Downloads#r21e
-2. Download OVR mobile sdk from oculus website. https://developer.oculus.com/downloads/package/oculus-mobile-sdk/
-3. Tested with ovr-mobile-sdk version 1.46
-4. Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0
-5. Download vulkan validation libs for android from https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases a) Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/Vulkan-ValidationLayer-1.2.182.0 b) Folder should contain the following: Vulkan-ValidationLayer-1.2.182.0/arm64-v8a/libVkLayer_khronos_validation.so
-6. Run examples from Examples_3/Unit_Tests/Quest_VisualStudio2017.
+1. Follow the Android setup instructions specified above
+2. Download OVR mobile sdk from oculus website.
+  - https://developer.oculus.com/downloads/package/oculus-mobile-sdk/
+  - Tested with ovr-mobile-sdk version 1.46
+3. Place unzipped sdk in `The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0`
+4. Run examples from `Examples_3/Unit_Tests/Quest_VisualStudio2017`. 
 As a side note the following examples may not be current compatible with the Quest:
 * 04_ExecuteIndirect
 * 05_FontRendering
@@ -514,11 +445,6 @@ This unit test just shows a simple solar system. It is our "3D game Hello World"
 
 ![Image of the Transformations Unit test](Screenshots/01_Transformations.PNG)
 
-## 2. Compute
-
-This unit test shows a Julia 4D fractal running in a compute shader. In the future this test will use several compute queues at once.
-
-![Image of the Compute Shader Unit test](Screenshots/02_Compute.PNG)
 
 ## 3. Multi-Threaded Rendering
 
@@ -539,12 +465,6 @@ Using ExecuteIndirect with CPU updates for the indirect argument buffers
 
 ![Image of the ExecuteIndirect Unit test](Screenshots/04_ExecuteIndirect_3.PNG)
 Using Instanced Rendering
-
-## 5. Font Rendering
-
-This unit test shows the current state of our font rendering library that is based on several open-source libraries.
-
-![Image of the Font Rendering Unit test](Screenshots/05_FontRendering.PNG)
 
 ## 6. Material Playground
 
@@ -690,13 +610,8 @@ This unit test showcases a cross-platform FileSystem C API, supporting disk-base
    
 ![File System Unit Test](Screenshots/12_FileSystem.png)
 
-## 13. imGUI integration unit test
-This unit test shows how the integration of imGui is done with a wide range of functionality.
 
-![Image of the imGui Integration in The Forge](Screenshots/13_imGui.gif)
-
-
-## 14. Order-Independent Transparency unit test
+## 14. Order-Independent Transparency
 This unit test compares various Order-Indpendent Transparency Methods. In the moment it shows:
 - Alpha blended transparency
 - Weighted blended Order Independent Transparency [Morgan McGuire Blog Entry 2014](http://casual-effects.blogspot.com/2014/03/weighted-blended-order-independent.html) and [Morgan McGuire Blog Entry 2015](http://casual-effects.blogspot.com/2015/03/implemented-weighted-blended-order.html)
@@ -706,12 +621,12 @@ This unit test compares various Order-Indpendent Transparency Methods. In the mo
 ![Image of the Order-Indpendent Transparency unit test in The Forge](Screenshots/14_OIT.png)
 
 
-## 15. Wave Intrinsics unit test
+## 15. Wave Intrinsics
 This unit test shows how to use the new wave intrinsics. Supporting Windows with DirectX 12 / Vulkan, Linux with Vulkan and macOS / iOS.
 
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
-## 16. Path Tracer - Ray Tracing Unit Test
+## 16. Path Tracer - Ray Tracing
 The new 16_Raytracing unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
 To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
 
@@ -735,10 +650,6 @@ Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
 
 ![Path Tracer running on Linux RTX](Screenshots/16_Path_Tracer_Linux_RTX.png)
 
-## 16a. Sphere Tracing
-This unit test was originally posted on ShaderToy by [Inigo Quilez](https://www.shadertoy.com/view/Xds3zN) and [Sopyer](https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
-
-![Image of the Sphere Tracing  unit test in The Forge](Screenshots/16_RayMarching_Linux.png)
 
 ## 17. Entity Component System Test
 This unit test shows how to use the high-performance entity component system in The Forge. 
@@ -805,6 +716,26 @@ Windows 10 1080p NVIDIA 1080 Vulkan
 
 ![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080_CloseUP.png) 
 
+## 19. C Hot Reloading
+This unit test showcases an implementation of code hot reloading in C, we've used and adapted the following GitHub library
+
+[cr](https://github.com/fungos/cr)
+
+ for this. 
+ 
+ ![C Code Hot Reloading Unit test](Screenshots/19_CodeHotReload.PNG)
+ 
+ The test contains two projects:
+- 19_CodeHotReload_Main: generates the executable. All code in this project can't be hot-reloaded. This is the project you should set as startup project when running the program form an IDE.
+- 19a_CodeHotReload_Game: for development platforms Windows/MacOS/Linux generates a dynamic library that is loaded by the Main project in runtime, when the dynamic library changes the Main program reloads the new code. For Android/IOS/Quest/Consoles this project is compiled and linked statically.
+
+How to use it: While the Main project is running open 19_CodeHotReload_Game.cpp and perform some change, there are lines marked with `TRY_CODE_RELOAD` to make easy changes. Once the file is saved, you can rebuild the project and see the changes happen automatically.
+- Windows/Linux: Click on the UI "RebuildGame" button.
+- MacOS: Command+B on XCode to rebuild.
+
+Note: In this implementation we can't call any functions from The Forge from the HotReloadable project (19a_CodeHotReload_Game), this is because we are compiling OS and Renderer as static libraries and linking them directly to the exe. Ideally these projects should be compiled as dynamic libraries in order to expose their functionality to the exe and hot reloadable dll. The reason we didn't implement it in this way is because all our other projects are already setup to use static libraries.
+
+
 
 ## 21. Ozz Playback Animation
 This unit test shows how to playback a clip on a rig.
@@ -854,25 +785,6 @@ Aim IK
 
 Two Bone IK
 ![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
-
-## 32. Windows Management
-This test demonstrates windows management on Windows, Linux and macOS. 
-  * The window layout, position, and size are now driven by the client dimensions, meaning that
-the values that the client demands are the exact values the client area will be represented with, regardless of the window style. This allows for much greater flexibility
-and consistency, especially when working with a fullscreen window. 
-  * Multi-monitor support has also been improved significantly, offering smooth consistent transitions between client displays and guaranteeing correct window behavior and data retention. Media layer functionality has been expanded, allowing the client to control mouse positioning, mouse visibility, and mouse visual representation. 
-  * It is now possible to create independent mouse cursors to further customize the application.
-
-Here are the screenshots:
-
-Windows:
-![Windows Management for Windows](Screenshots/32_Window_Win.png)
-
-macOS:
-![Windows Management for macOS](Screenshots/32_Window_macOS.png)
-
-Linux:
-![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
 
 ## 33. YUV Support
 YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
@@ -1081,7 +993,7 @@ The Forge utilizes the following Open-Source libraries:
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 * [volk Metaloader for Vulkan](https://github.com/zeux/volk)
 * [gainput](https://github.com/jkuhlmann/gainput)
-* [imGui](https://github.com/ocornut/imgui)
+* [Dear ImGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 * [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 * [Lua Scripting System](https://www.lua.org/)
@@ -1094,3 +1006,10 @@ The Forge utilizes the following Open-Source libraries:
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
 * [minizip ng](https://github.com/zlib-ng/minizip-ng)
 * [flecs](https://github.com/SanderMertens/flecs)
+* [Android Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
+* [CPU Features](https://github.com/google/cpu_features)
+* [HIDAPI](https://github.com/libusb/hidapi)
+* [cf](https://github.com/fungos/cr)
+* [bstrlib](https://github.com/websnarf/bstrlib)
+* [stb_ds](https://github.com/nothings/stb/blob/master/stb_ds.h)
+* [cr](https://github.com/fungos/cr)
