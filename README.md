@@ -99,7 +99,7 @@ PS5 4k resolution
 ![Visibility Buffer OIT Prospero](Screenshots/VisibilityBufferOIT/Prospero_VisBufOIT.png)
 
 Windows 10 1080p resolution
-![Visibility Buffer OIT Orbis](Screenshots/VisibilityBufferOIT/Orbis_VisBufOIT.png)
+![Visibility Buffer OIT Windows](Screenshots/VisibilityBufferOIT/Win10_VisBufOIT.png)
 
 XBOX One (original) 1080p resolution
 ![Visibility Buffer OIT Orbis](Screenshots/VisibilityBufferOIT/XboxOne_VisBufOIT.png)
