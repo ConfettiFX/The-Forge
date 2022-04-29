@@ -35,7 +35,7 @@ STRUCT(PsIn)
 {    
     DATA(float3, pos, POSITION);
 	DATA(float3, normal, NORMAL);
-	DATA(float2, texCoord, TEXCOORD0);
+	DATA(float2, texCoord, TEXCOORD0);	
     DATA(float4, position, SV_Position);
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -54,7 +54,6 @@ UIComponent*			pGuiWindow;
 
 const uint32_t			gImageCount								= 3;
 uint32_t				gFrameIndex								= 0;
-bool					bToggleVSync							= false;
 bool					bToggleYCbCr							= true;
 bool					bYCbCrSupported							= false;
 
@@ -93,11 +92,6 @@ const char*				pSamplerName								= {"uYCbCrSampler"};
 class YUV : public IApp
 {
 public:
-	 YUV()
-	 {
-		bToggleVSync = mSettings.mDefaultVSyncEnabled;
-	 }
-
 	bool Init()
 	{
 		// File paths
@@ -115,8 +109,6 @@ public:
 		{
 			RendererDesc settings;
 			memset(&settings, 0, sizeof(settings));
-			settings.mD3D11Unsupported = true;
-			settings.mGLESUnsupported = true;
 			initRenderer(GetName(), &settings, &pRenderer);
 
 			// Check for init success
@@ -284,11 +276,6 @@ public:
 			guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 			uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
-#if !defined(TARGET_IOS)
-			CheckboxWidget vSyncToggle;
-			vSyncToggle.pData = &bToggleVSync;
-			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &vSyncToggle, WIDGET_TYPE_CHECKBOX));
-#endif
 			if (bYCbCrSupported)
 			{
 				CheckboxWidget yCbCrToggle;
@@ -317,13 +304,15 @@ public:
 			addInputAction(&actionDesc);
 			actionDesc = {InputBindings::BUTTON_EXIT, [](InputActionContext *ctx) { requestShutdown(); return true; }};
 			addInputAction(&actionDesc);
-			actionDesc = {
-				InputBindings::BUTTON_ANY, [](InputActionContext *ctx) {
-					bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-					setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-					return true;
-				}, this
+			InputActionCallback onUIInput = [](InputActionContext* ctx)
+			{
+				bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
 			};
+			actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+			addInputAction(&actionDesc);
+			actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 			addInputAction(&actionDesc);
 		}
 
@@ -465,19 +454,17 @@ public:
 
 	void Update(float deltaTime)
 	{
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != bToggleVSync)
-		{
-			 waitQueueIdle(pGraphicsQueue);
-			 gFrameIndex = 0;
-			 ::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 	}
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 		
@@ -558,7 +545,7 @@ cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 				gFrameTimeDraw.mFontSize = 18.0f;
 				gFrameTimeDraw.mFontID = gFontID;
 				float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(txtIndent, 15.f), &gFrameTimeDraw);
-				cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+				cmdDrawGpuProfile(cmd, float2(txtIndent, txtSizePx.y + 75.0f), gGpuProfileToken, &gFrameTimeDraw);
 
 				cmdDrawUserInterface(cmd);
 
@@ -610,7 +597,7 @@ cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		
 		return NULL != pSwapChain;

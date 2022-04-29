@@ -1,14 +1,13 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 meshopt_VertexCacheStatistics meshopt_analyzeVertexCache(const unsigned int* indices, size_t index_count, size_t vertex_count, unsigned int cache_size, unsigned int warp_size, unsigned int primgroup_size)
 {
-	assert(index_count % 3 == 0);
-	assert(cache_size >= 3);
-	assert(warp_size == 0 || warp_size >= 3);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(cache_size >= 3);
+	ASSERT(warp_size == 0 || warp_size >= 3);
 
 	meshopt_Allocator allocator;
 
@@ -25,7 +24,7 @@ meshopt_VertexCacheStatistics meshopt_analyzeVertexCache(const unsigned int* ind
 	for (size_t i = 0; i < index_count; i += 3)
 	{
 		unsigned int a = indices[i + 0], b = indices[i + 1], c = indices[i + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		bool ac = (timestamp - cache_timestamps[a]) > cache_size;
 		bool bc = (timestamp - cache_timestamps[b]) > cache_size;

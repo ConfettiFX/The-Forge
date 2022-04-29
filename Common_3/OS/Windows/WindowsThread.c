@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -122,8 +122,30 @@ bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 
 unsigned WINAPI ThreadFunctionStatic(void* data)
 {
-	ThreadDesc* pDesc = (ThreadDesc*)data;
-	pDesc->pFunc(pDesc->pData);
+	ThreadDesc item = *((ThreadDesc*)(data));
+	tf_free(data);
+
+	if (item.mThreadName[0] != 0)
+	{
+		// Local TheForge thread name, used for logging
+		setCurrentThreadName(item.mThreadName);
+
+#ifdef _WINDOWS
+		// OS Thread name, for debugging purposes
+		WCHAR windowsThreadName[sizeof(item.mThreadName)] = { 0 };
+		mbstowcs(windowsThreadName, item.mThreadName, strlen(item.mThreadName) + 1);
+		HRESULT res = SetThreadDescription(GetCurrentThread(), windowsThreadName);
+		ASSERT(!FAILED(res));
+#endif
+	}
+
+	if (item.mHasAffinityMask)
+	{
+		const DWORD_PTR res = SetThreadAffinityMask(GetCurrentThread(), (DWORD_PTR)item.mAffinityMask);
+		ASSERT(res != 0);
+	}
+
+	item.pFunc(item.pData);
 	return 0;
 }
 
@@ -140,19 +162,22 @@ unsigned int getNumCPUCores(void)
 void initThread(ThreadDesc* pDesc, ThreadHandle* pHandle)
 {
 	ASSERT(pHandle != NULL);
-	ThreadHandle handle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDesc, 0, 0);
+
+	// Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
+	ThreadDesc* pDescCopy = (ThreadDesc*)tf_malloc(sizeof(ThreadDesc));
+	*pDescCopy = *pDesc;
+
+	ThreadHandle handle = (ThreadHandle)_beginthreadex(0, 0, ThreadFunctionStatic, pDescCopy, 0, 0);
 	ASSERT(handle != NULL);
 	*pHandle = handle;
 }
 
-void destroyThread(ThreadHandle handle)
+void joinThread(ThreadHandle handle)
 {
 	ASSERT(handle != NULL);
 	WaitForSingleObject((HANDLE)handle, INFINITE);
 	CloseHandle((HANDLE)handle);
-	handle = 0;
+	handle = NULL;
 }
-
-void joinThread(ThreadHandle handle) { WaitForSingleObject((HANDLE)handle, INFINITE); }
 
 #endif

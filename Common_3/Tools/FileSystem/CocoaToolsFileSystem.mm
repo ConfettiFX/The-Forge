@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -130,7 +130,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 
 	NSString* beforeAnyRegex = nil;
 	NSString* afterAnyRegex = nil;
-	if (extension != nil)
+	if (extension != 0)
 	{
 		pathComponent = [NSString stringWithUTF8String:extension];
 
@@ -176,7 +176,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 		}
 		else
 		{
-			if (![lastPathComponent containsString:pathComponent])
+			if ([pathComponent length] && ![lastPathComponent containsString:pathComponent])
 			{
 				continue;
 			}
@@ -195,6 +195,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
     int filesFound = 0;
     for (NSURL* url in sortedEnumerator)
     {
+        (void)url;
         filesFound += 1;
     }
     

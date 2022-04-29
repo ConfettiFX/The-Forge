@@ -1,0 +1,66 @@
+# Note: Needs to be placed in /etc/udev/rules.d/ (or /lib/udev/rules.d/)
+# Note: If you add your user to the "plugdev" group you can restrict MODE further to 0660
+# Note: Device needs to be unpluged and pluged back in to update permissions
+
+# Note: Vendor id and product id for a given device can be found by running
+#   "udevadm info -a /dev/hidraw*" and looking at the middle two numbers of KERNELS.
+#   ATTRS{idVendor} and ATTRS{idProduct} also work but only for wired controllers.
+
+
+# Sony Playstation DS4, DS4 Dongle, DS4 Slim, and DS5
+#DS3: KERNEL=="hidraw*", KERNELS=="*054C:0268*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*054C:05C4*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*054C:0BA0*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*054C:09CC*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*054C:0CE6*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+
+
+# Microsoft Xbox
+# IF HAVING CONNECTIVITY ISSUES: Xbox controllers don't seem to play nice with Enhanced
+#   Re-Transmission Mode, so you may need to set:
+#   /sys/module/bluetooth/parameters/disable_ertm
+#   to Y for it to work (create it if it doesn't already exist)
+# Xbox One Adaptive BT, BT Low Energy
+KERNEL=="hidraw*", KERNELS=="*045E:0B0C*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B21*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+# Xbox One Elite BT, BT Alternate, BT Low Energy
+KERNEL=="hidraw*", KERNELS=="*045E:0B02*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B05*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B22*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+# Xbox One S BT Rev 1, BT Rev 2, BT Rev 2 Low Energy
+KERNEL=="hidraw*", KERNELS=="*045E:02E0*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02FD*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B20*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+# Xbox One X BT Low Energy
+KERNEL=="hidraw*", KERNELS=="*045E:0B13*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+
+# Other Xbox Controllers:
+#   As these don't support HID this is moot, but it may help in the future
+# Xbox 360, 360 Wireless, 360 XUSB, One, One 2015, One Adaptive, One Elite Series 1,
+#   One Elite Series 2, One S, One Xbox GIP, Series X, Series X Victrix Gambit,
+#   Series X Pdp Blue, Series X Pdp Afterglow
+KERNEL=="hidraw*", KERNELS=="*045E:028E*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0719*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02A1*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02D1*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02DD*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B0A*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02E3*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B00*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02EA*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02FF*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:0B12*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02D6*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02D9*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*045E:02DA*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+
+
+# Nintendo Switch Pro, JoyCon Left, JoyCon Right, JoyCon Grip
+KERNEL=="hidraw*", KERNELS=="*057E:2009*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*057E:2006*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*057E:2007*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*057E:200E*", GROUP="plugdev", MODE="0666", TAG+="uaccess"
+
+
+# Google Stadia (doesn't support bluetooth)
+KERNEL=="hidraw*", KERNELS=="*18D1:9400*", GROUP="plugdev", MODE="0666", TAG+="uaccess"

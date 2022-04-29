@@ -45,6 +45,7 @@
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -60,15 +61,12 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=$(Configuration) /p:Platform=x64 /p:BuildInParallel=true /t:Build 
-"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
-
-xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
+      <Command>xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y  /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
@@ -97,15 +95,12 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
-      <Command>"$(MSBuildBinPath)\msbuild.exe" "$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln" /p:Configuration=$(Configuration) /p:Platform=x64 /p:BuildInParallel=true /t:Build 
-"$(SolutionDir)..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)\AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
-
-xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
+      <Command>xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y  /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d

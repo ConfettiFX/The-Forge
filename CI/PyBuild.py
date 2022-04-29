@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2018 The Forge Interactive Inc.
+# Copyright (c) 2017-2022 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -45,7 +45,7 @@ failedBuilds = [] #holds all failed builds
 successfulTests = [] #holds all successfull tests
 failedTests = [] #holds all failed tests
 
-maxIdleTime = 45  #10 seconds of max idle time with cpu usage null
+maxIdleTime = 120  #2 minutes of max idle time with cpu usage null
 benchmarkFiles = {}
 
 sanitizer_UTs = {
@@ -269,7 +269,7 @@ def ExecuteTimedCommand(cmdList, printStdout: bool):
 	except subprocess.TimeoutExpired as timeout:
 		print(timeout)
 		print("App hanged and was forcibly closed.")
-		return (-1, None, None) # error return code
+		return (-1, "Command killed due to Timeout".encode(encoding='utf8'), "".encode(encoding='utf8')) # error return code
 	except Exception as ex:
 		print("-------------------------------------")
 		if isinstance(cmdList, list): 
@@ -278,7 +278,7 @@ def ExecuteTimedCommand(cmdList, printStdout: bool):
 			print("Failed Executing Timed command: " + cmdList)	
 		print(ex)
 		print("-------------------------------------")
-		return (-1, None, None) # error return code
+		return (-1, f"{ex}".encode(encoding='utf8'), "".encode(encoding='utf8')) # error return code
 
 def ExecuteCommandWOutput(cmdList, printException = True):
 	try:
@@ -330,7 +330,7 @@ def ExecuteCommand(cmdList,outStream):
 			print("Failed Executing command: " + cmdList)		
 		print(ex)
 		print("-------------------------------------")
-		return (-1, None, None)  # error return code
+		return (-1, f"{ex}".encode(encoding='utf8'), "".encode(encoding='utf8')) # error return code
 	
 def ExecuteCommandErrorOnly(cmdList):
 	try:
@@ -359,7 +359,7 @@ def CheckTest(test, fileName, gpuLine, check_ub_error, is_iOS):
 	# Sanitizer errors on iOS crash the program but don't output the error.
 	# This checks that a runtime error is due to a sanitzer error and manually
 	# outputs the sanitizer error type and call stack.
-	if is_iOS and returnCode != 0:
+	if is_iOS and returnCode != 0 and stdStreams[1] != None:
 		out = stdStreams[1].decode('utf-8')
 		sanitizer_type = re.search("(AddressSanitizer|UndefinedBehavior)", out)
 		if sanitizer_type: # error due to sanitizer
@@ -377,6 +377,8 @@ def CheckTest(test, fileName, gpuLine, check_ub_error, is_iOS):
 	elif returnCode == 0 and check_ub_error:
 		sanitizer_error_pattern = re.compile("(\s.* runtime error: .*\s)")
 		for stdStream in stdStreams:
+			if stdStream == None:
+				continue
 			match = sanitizer_error_pattern.search(stdStream.decode('utf-8'))
 			if match:
 				err = match.group(1)
@@ -657,7 +659,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId, benchmarkFrames, sa
 			#if specific ios id was passed then run for that device
 			#otherwise run on first device available
 			#print iosDeviceId
-			command = ["ios-deploy","--uninstall","-b",filename + ".app","-I"]
+			command = ["ios-deploy","--uninstall","-b",filename + ".app","-I", "-v"]
 			if has_device_id:
 				command.append("--id")
 				command.append(iosDeviceId)
@@ -671,7 +673,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId, benchmarkFrames, sa
 			# force Metal validation layer for iOS
 			command.append("-s METAL_DEVICE_WRAPPER_TYPE=1")
 
-			retCode = ExecuteTest(command, filename, False, is_iOS=True)
+			retCode = ExecuteTest(command, filename, False,printStdout=True, is_iOS=True)
 
 			bundleID = GetBundleIDFromIOSApp(filename + ".app")
 
@@ -697,6 +699,10 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId, benchmarkFrames, sa
 					if benchmarkFrames > 0:
 						benchmarkData = RecordBenchmarkFilePath("IOS", filename.split(".")[0].split("_iOS")[0], "Library/Application Support/")
 						print(benchmarkData)
+				
+				#uninstall bundle if bundle id was found
+				command = ["ios-deploy","--uninstall_only","--bundle_id",bundleID]
+				ExecuteCommand(command, sys.stdout)
 			else:
 				print("[Error] Bundle ID NOT found:" + bundleID)
 				
@@ -950,24 +956,26 @@ def TestLinuxProjects(benchmarkFrames):
 		#change dir to workspace location
 		os.chdir(rootPath)
 		configurations = ["Release"]
-		for conf in configurations:					
-			#create command for xcodebuild
+		for conf in configurations:
 			filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
-			#filename = projectPath.split(os.sep)[-1]
 			
 			#need to parse xml configuration to get every project
 			xmlTree = ET.parse("./"+filename + ".workspace")
 			xmlRoot = xmlTree.getroot()
 
+			projsToIgnore = [ "OSBase", "EASTL", "OS", "Renderer", "SpirVTools", "PaniniProjection", "gainput", "ozz_base", "ozz_animation", "ozz_animation_offline", "Assimp", "zlib", "LuaManager", "AssetPipeline", "AssetPipelineCmd", "MeshOptimizer", "19a_CodeHotReload_Game" ]
+
 			ubuntuProjects = []
+			ubuntuProjectDirs = []
 			for child in xmlRoot:
-				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "EASTL" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and  child.attrib["Name"] != "MeshOptimizer" and child.attrib["Name"] != "ozz_animation_offline":
-						ubuntuProjects.append(child.attrib["Name"])
+				if child.tag == "Project" and child.attrib["Name"] not in projsToIgnore:
+					ubuntuProjects.append(child.attrib["Name"])
+					# get the directory where the project is stored, remove 'projectName.project' from the end
+					ubuntuProjectDirs.append(child.attrib["Path"][:-len(child.attrib["Name"] + ".project")])
 			
-			for proj in ubuntuProjects:
+			for projIndex, proj in enumerate(ubuntuProjects):
 				leaksDetected = False	
-				exePath = os.path.join(os.getcwd(),proj,conf,proj)
+				exePath = os.path.join(os.getcwd(),ubuntuProjectDirs[projIndex],conf,proj)
 				command = ["gdb", "-q", "-ex", "r", "-ex", "bt", "-ex", "print $_exitcode", "-batch", "-return-child-result", "--args", exePath] 
 				
 				#run with benchmarking mode if specified
@@ -1192,7 +1200,7 @@ def TestXboxProjects(benchmarkFrames):
 	filenameList = []
 	for proj in projects:
 		if "XBOX Visual Studio 2017" in proj:# and "Release" in proj:
-			if "Loose" in proj:
+			if "Loose" in proj and "Release" in proj:
 				fileList.append(os.path.dirname(proj))
 				filename = proj.split('\\')
 				filename = filename[len(filename)-1]
@@ -1830,9 +1838,6 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 	
 	if skipRelease:
 		androidConfigurations.remove("Release")
-	
-	if quest:
-		androidPlatform.remove("ARM")        
 
 	if msBuildPath == "":
 		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
@@ -1840,6 +1845,13 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 		
 	solutionPath = "./Examples_3/Unit_Tests/Android_VisualStudio2017" if not quest else "./Examples_3/Unit_Tests/Quest_VisualStudio2017"
 	platformName = "Android" if not quest else "Quest"
+	
+	if quest:
+		if os.path.isdir("C:\\ovr_sdk_mobile_1.46.0"):
+			copy_tree("C:\\ovr_sdk_mobile_1.46.0", "Common_3\\ThirdParty\\OpenSource\\ovr_sdk_mobile_1.46.0")
+		if os.path.isdir("C:\\Vulkan-ValidationLayer-1.2.182.0"):
+			copy_tree("C:\\Vulkan-ValidationLayer-1.2.182.0", "Common_3\\ThirdParty\\OpenSource\\Vulkan-ValidationLayer-1.2.182.0")
+		
 
 	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)
 	fileList = []

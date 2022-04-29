@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -75,12 +75,19 @@ int					gCurrentLod					= 0;
 int					gMaxLod						= 5;
 
 bool				bEnableVignette				= true;
-bool				bToggleVSync				= false;
 bool				bScreenShotMode				= false;
 
 static const uint32_t TEMPORAL_AA_JITTER_SAMPLES = 8;
 
+#if defined(QUEST_VR)
+// Off by default in VR.
+// Usually it's a bad idea to use TAA in VR.  It produces really bad results in VR and the effect is too costly.
+bool				bEnableTemporalAA = false;
+#else
 bool				bEnableTemporalAA = true;
+#endif
+
+
 bool				gCurrentTemporalAARenderTarget = 0;
 uint32_t			gCurrentTemporalAAJitterSample = 0;
 
@@ -95,8 +102,8 @@ vec2				gTemporalAAJitterSamples[TEMPORAL_AA_JITTER_SAMPLES] = {
 	vec2( 0.125F, -0.9259259F),
 };
 
-mat4	gTemporalAAPreviousViewProjection = mat4::identity();
-mat4	gTemporalAAReprojection = mat4::identity();
+CameraMatrix	gTemporalAAPreviousViewProjection = CameraMatrix::identity();
+CameraMatrix	gTemporalAAReprojection = CameraMatrix::identity();
 
 ProfileToken   gGpuProfileToken;
 Texture*			pTextureBlack = NULL;
@@ -117,7 +124,7 @@ Texture*			pTextureBlack = NULL;
 
 struct UniformBlock
 {
-	mat4 mProjectView;
+	CameraMatrix mProjectView;
 	mat4 mShadowLightViewProj;
 	vec4 mCameraPosition;
 	vec4 mLightColor[gTotalLightCount];
@@ -132,7 +139,7 @@ struct UniformBlock_Shadow
 struct UniformBlock_Floor
 {
 	mat4	worldMat;
-	mat4	projViewMat;
+	CameraMatrix	projViewMat;
 	vec4	screenSize;
 };
 
@@ -564,12 +571,12 @@ struct GLTFAsset
 
 struct TAAUniformBuffer
 {
-	mat4 ReprojectionMatrix;
+	CameraMatrix ReprojectionMatrix;
 };
 
 struct SkyboxUniformBuffer
 {
-	mat4 InverseViewProjection;
+	CameraMatrix InverseViewProjection;
 };
 
 struct PostProcessRootConstant
@@ -712,20 +719,22 @@ public:
 		
 		ShaderLoadDesc FloorShader = {};
 		
-		FloorShader.mStages[0] = { "floor.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		FloorShader.mStages[0] = {"floor.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_NONE};
 
 		addShader(pRenderer, &FloorShader, &pShaderZPass_NonOptimized);
 
+		FloorShader.mStages[0] = {"floor.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW};
 		FloorShader.mStages[1] = { "floor.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		
 		addShader(pRenderer, &FloorShader, &pFloorShader);
 		
 		ShaderLoadDesc MeshOptDemoShader = {};
 		
-		MeshOptDemoShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		MeshOptDemoShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_NONE};
 
 		addShader(pRenderer, &MeshOptDemoShader, &pShaderZPass);
 
+		MeshOptDemoShader.mStages[0] = {"basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW};
 		MeshOptDemoShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		
 		addShader(pRenderer, &MeshOptDemoShader, &pMeshOptDemoShader);
@@ -942,8 +951,6 @@ public:
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -1157,12 +1164,6 @@ public:
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget checkbox;
-		checkbox.pData = &bToggleVSync;
-		UIWidget* pCheckbox = uiCreateComponentWidget(pGuiWindow, "Toggle VSync", &checkbox, WIDGET_TYPE_CHECKBOX);
-		luaRegisterWidget(pCheckbox);
-#endif
 		SeparatorWidget separator;
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "", &separator, WIDGET_TYPE_SEPARATOR));
 
@@ -1325,22 +1326,24 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1938,14 +1941,6 @@ public:
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		
-#if !defined(__ANDROID__) && !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != bToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
-		
 		pCameraController->update(deltaTime);
 		/************************************************************************/
 		// Scene Update
@@ -1953,19 +1948,19 @@ public:
 		mat4 viewMat = pCameraController->getViewMatrix();
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 3.0f;
-		mat4 projMat = mat4::perspectiveReverseZ(horizontal_fov, aspectInverse, 0.001f, 1000.0f);
+		CameraMatrix projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, 0.001f, 1000.0f);
 
 		if (bEnableTemporalAA)
 		{
 			vec2 jitterSample = gTemporalAAJitterSamples[gCurrentTemporalAAJitterSample];
 
-			mat4 projMatNoJitter = projMat;
+			CameraMatrix projMatNoJitter = projMat;
 
-			projMat[2][0] += jitterSample.getX() / float(mSettings.mWidth);
-			projMat[2][1] += jitterSample.getY() / float(mSettings.mHeight);
+			projMat.applyProjectionSampleOffset(jitterSample.getX() / float(mSettings.mWidth), jitterSample.getY() / float(mSettings.mHeight));
 
-			mat4 projViewNoJitter = projMatNoJitter * viewMat;
-			gTemporalAAReprojection = gTemporalAAPreviousViewProjection * inverse(projViewNoJitter);
+			CameraMatrix projViewNoJitter = projMatNoJitter * viewMat;
+			CameraMatrix invProjViewNoJitter = CameraMatrix::inverse(projViewNoJitter);
+			gTemporalAAReprojection = gTemporalAAPreviousViewProjection * invProjViewNoJitter;
 			gTemporalAAPreviousViewProjection = projViewNoJitter;
 		}
 
@@ -2063,6 +2058,12 @@ public:
 	
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -2183,7 +2184,7 @@ public:
 
 			BufferUpdateDesc bufferUpdate = { pSkyboxUniformBuffer[gFrameIndex] };
 			beginUpdateResource(&bufferUpdate);
-			*(SkyboxUniformBuffer*)bufferUpdate.pMappedData = { inverse(gUniformData.mProjectView) };
+			*(SkyboxUniformBuffer*)bufferUpdate.pMappedData = { CameraMatrix::inverse(gUniformData.mProjectView) };
 			endUpdateResource(&bufferUpdate, NULL);
 
 			cmdBindPipeline(cmd, pSkyboxPipeline);
@@ -2318,7 +2319,7 @@ public:
 			gFrameTimeDraw.mFontSize = 18.0f;
 			gFrameTimeDraw.mFontID = 0;
 			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
 
 			cmdDrawUserInterface(cmd);
 
@@ -2370,7 +2371,7 @@ public:
 		
 		// This unit test does manual tone mapping
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, false);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		
 		return pSwapChain != NULL;
@@ -2384,6 +2385,7 @@ public:
 		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		RT.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
 		RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+		RT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 
 		RT.mClearValue.r = 0.0F;
 		RT.mClearValue.g = 0.0F;
@@ -2430,6 +2432,7 @@ public:
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_VR_MULTIVIEW;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 		/************************************************************************/
 		// Shadow Map Render Target
@@ -2446,7 +2449,7 @@ public:
 		shadowRTDesc.mHeight = SHADOWMAP_RES;
 		shadowRTDesc.mSampleCount = (SampleCount)SHADOWMAP_MSAA_SAMPLES;
 		shadowRTDesc.mSampleQuality = 0;    // don't need higher quality sample patterns as the texture will be blurred heavily
-		shadowRTDesc.pName = "Shadow Map RT";
+		shadowRTDesc.pName = "Shadow Map RT";		
 		addRenderTarget(pRenderer, &shadowRTDesc, &pShadowRT);
 		
 		return pDepthBuffer != NULL && pShadowRT != NULL;

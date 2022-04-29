@@ -81,27 +81,6 @@
 			remoteGlobalIDString = B28C6EDE21B209AA00FBA1BF;
 			remoteInfo = "ozz_animation offline";
 		};
-		B231A1A523F2E2AE006D7450 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B231A0E923F2DB2D006D7450;
-			remoteInfo = AssetPipelineCmd;
-		};
-		B231A1A723F2E2BF006D7450 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B231A0E823F2DB2D006D7450;
-			remoteInfo = AssetPipelineCmd;
-		};
-		B231A1A923F2E2C6006D7450 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B231A0E823F2DB2D006D7450;
-			remoteInfo = AssetPipelineCmd;
-		};
 		B23FA455211E24F70059929A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B23FA44B211E24F70059929A /* ozz.xcodeproj */;
@@ -216,7 +195,6 @@
 		B214AD3220E2DD620025F76B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B22D906820E2EDCE0036B88E /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = AssetPipelineCmd.xcodeproj; path = ../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipelineCmd.xcodeproj; sourceTree = "<group>"; };
 		B23FA44B211E24F70059929A /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
@@ -290,14 +268,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		B231A1A123F2E2AD006D7450 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B231A1A623F2E2AE006D7450 /* AssetPipelineCmd */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		B23FA44C211E24F70059929A /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -328,7 +298,7 @@
 				973283BC25C43EC00076E8FF /* plane.frag.fsl */,
 				973283B825C43EC00076E8FF /* plane.vert.fsl */,
 				973283BA25C43EC00076E8FF /* skinning.frag.fsl */,
-				973283B925C43EC00076E8FF /* skinning.h */,
+				973283B925C43EC00076E8FF /* skinning.h.fsl */,
 				973283B625C43EC00076E8FF /* skinning.vert.fsl */,
 			);
 			name = Shaders;
@@ -349,7 +319,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
 				B23FA44B211E24F70059929A /* ozz.xcodeproj */,
@@ -389,7 +358,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C95133082010E68A002E584B /* Build configuration list for PBXNativeTarget "28_Skinning_iOS" */;
 			buildPhases = (
-				654D957321CDBEBC00113964 /* ShellScript */,
 				C95132E92010E68A002E584B /* Sources */,
 				C95132EA2010E68A002E584B /* Frameworks */,
 				C95132EB2010E68A002E584B /* Resources */,
@@ -399,7 +367,6 @@
 				9732833D25C43CDD0076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
-				B231A1AA23F2E2C6006D7450 /* PBXTargetDependency */,
 				B2541D0221751B6F00F702BB /* PBXTargetDependency */,
 				D0796AE0211ED7950028AFFD /* PBXTargetDependency */,
 				D0796AE2211ED7950028AFFD /* PBXTargetDependency */,
@@ -416,14 +383,12 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
-				B231A1B123F2E639006D7450 /* ShellScript */,
 				5C13A4F324D1ACBB0023D339 /* ShellScript */,
 			);
 			buildRules = (
 				9732835C25C43DC00076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
-				B231A1A823F2E2BF006D7450 /* PBXTargetDependency */,
 				E958923323416EFA00B68D6A /* PBXTargetDependency */,
 				65AC216D21CC627600F7E103 /* PBXTargetDependency */,
 				B2C44070211E254B008F57D5 /* PBXTargetDependency */,
@@ -466,10 +431,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B231A1A123F2E2AD006D7450 /* Products */;
-					ProjectRef = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
-				},
-				{
 					ProductGroup = B23FA44C211E24F70059929A /* Products */;
 					ProjectRef = B23FA44B211E24F70059929A /* ozz.xcodeproj */;
 				},
@@ -487,13 +448,6 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		B231A1A623F2E2AE006D7450 /* AssetPipelineCmd */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = AssetPipelineCmd;
-			remoteRef = B231A1A523F2E2AE006D7450 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		B23FA456211E24F70059929A /* json_d.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -620,40 +574,6 @@
 			shellPath = /bin/sh;
 			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -r \"$ASSETS/Textures/Stormtrooper_D.ktx\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -rv --include '*/' --include '*.gltf' --include '*.bin' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Meshes/\"\n# Animations\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation/\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
-		654D957321CDBEBC00113964 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nCMD=\"$SRCROOT/../../../../Common_3/Tools/AssetPipeline/Apple/Bin/Debug/AssetPipelineCmd\"\necho $CMD\n\"$CMD\" -pa \"$SRCROOT/../../UnitTestResources/Animation\" \"$SRCROOT/../../UnitTestResources/Animation\"\n";
-		};
-		B231A1B123F2E639006D7450 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nCMD=\"$SRCROOT/../../../../Common_3/Tools/AssetPipeline/Apple/Bin/Debug/AssetPipelineCmd\"\necho $CMD\n\"$CMD\" -pa \"$SRCROOT/../../UnitTestResources/Animation\" \"$SRCROOT/../../UnitTestResources/Animation\"\n";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -682,16 +602,6 @@
 			isa = PBXTargetDependency;
 			name = "ozz_animation offline";
 			targetProxy = 65AC216C21CC627600F7E103 /* PBXContainerItemProxy */;
-		};
-		B231A1A823F2E2BF006D7450 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipelineCmd;
-			targetProxy = B231A1A723F2E2BF006D7450 /* PBXContainerItemProxy */;
-		};
-		B231A1AA23F2E2C6006D7450 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipelineCmd;
-			targetProxy = B231A1A923F2E2C6006D7450 /* PBXContainerItemProxy */;
 		};
 		B2541D0221751B6F00F702BB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -858,6 +768,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -912,6 +823,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -936,6 +848,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../../../",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
@@ -968,6 +881,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../../../",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",

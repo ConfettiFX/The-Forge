@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -2192,8 +2192,12 @@ bool platformInitUserInterface()
 	SetDefaultStyle();
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.NavActive = true;
-	io.WantCaptureMouse = false;
+
+	// TODO: Might be a good idea to considder adding these flags in some platforms:
+	//         - ImGuiConfigFlags_IsTouchScreen
+	//         - ImGuiConfigFlags_NavEnableKeyboard
+	io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad; 
+
 	io.KeyMap[ImGuiKey_Backspace] = InputBindings::BUTTON_BACK;
 	io.KeyMap[ImGuiKey_LeftArrow] = InputBindings::BUTTON_KEYLEFT;
 	io.KeyMap[ImGuiKey_RightArrow] = InputBindings::BUTTON_KEYRIGHT;
@@ -2697,7 +2701,7 @@ void cmdDrawUserInterface(void* pCmd)
 		for (int n = 0; n < draw_data->CmdListsCount; n++)
 		{
 			const ImDrawList* cmd_list = draw_data->CmdLists[n];
-			for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.size(); cmd_i++)
+			for (uint32_t cmd_i = 0; cmd_i < cmd_list->CmdBuffer.size(); cmd_i++)
 			{
 				const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
 				if (pcmd->UserCallback)
@@ -2876,6 +2880,59 @@ bool uiOnButton(uint32_t button, bool press, const float2* pVec)
 #endif
 }
 
+bool uiOnStick(uint32_t stick, const float2* pStick)
+{
+#ifdef ENABLE_FORGE_UI
+	ImGui::SetCurrentContext(pUserInterface->context);
+	
+	switch (stick)
+	{
+	case InputBindings::FLOAT_LEFTSTICK:
+	{
+		ASSERT(pStick);
+		const float2 vec = *pStick;
+		if (vec.x < 0.f)
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickLeft] = abs(vec.x);
+		else if (vec.x > 0.f)
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickRight] = vec.x;
+		else
+		{
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickLeft] = 0.f;
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickRight] = 0.f;
+		}
+
+		if (vec.y < 0.f)
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickDown] = abs(vec.y);
+		else if (vec.y > 0.f)
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickUp] = vec.y;
+		else
+		{
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickDown] = 0.f;
+			pUserInterface->mNavInputs[ImGuiNavInput_LStickUp] = 0.f;
+		}
+
+		break;
+	}
+	}
+
+	return false;
+#else
+	return true;
+#endif
+}
+
+bool uiOnInput(uint32_t binding, bool buttonPress, const float2* pMousePos, const float2* pStick)
+{
+#ifdef ENABLE_FORGE_UI
+	if (binding <= InputBindings::FLOAT_BINDINGS_END)
+		return uiOnStick(binding, pStick);
+	
+	return uiOnButton(binding, buttonPress, pMousePos);
+#else
+return true;
+#endif
+}
+
 uint8_t uiWantTextInput()
 {
 #ifdef ENABLE_FORGE_UI
@@ -2905,7 +2962,8 @@ bool uiIsFocused()
 {
 #ifdef ENABLE_FORGE_UI
 	ImGui::SetCurrentContext(pUserInterface->context);
-	return ImGui::GetIO().WantCaptureMouse;
+	ImGuiIO& io = ImGui::GetIO();
+	return io.WantCaptureMouse || io.WantCaptureKeyboard || io.NavActive || io.NavVisible;
 #else
 	return false; 
 #endif

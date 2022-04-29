@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -578,7 +578,7 @@ Buffer* pUniformBufferGroundPlane = NULL;
 Buffer* pUniformBufferMatBall[gImageCount][MATERIAL_INSTANCE_COUNT];
 Buffer* pUniformBufferNamePlates[MATERIAL_INSTANCE_COUNT];
 Buffer* pUniformBufferPointLights = NULL;
-Buffer* pUniformBufferDirectionalLights = NULL;
+Buffer* pUniformBufferDirectionalLights[gImageCount] = { NULL };
 Buffer* pUniformBufferHairGlobal = NULL;
 
 //--------------------------------------------------------------------------------------------
@@ -625,7 +625,6 @@ eastl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores the 
 //--------------------------------------------------------------------------------------------
 // UI & OTHER
 //--------------------------------------------------------------------------------------------
-bool                gVSyncEnabled = false;
 bool                gShowCapsules = false;
 uint                gHairType = 0;
 eastl::vector<uint> gHairTypeIndices[HAIR_TYPE_COUNT];
@@ -793,7 +792,7 @@ class MaterialPlayground: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mGLESUnsupported = true;
+		settings.mD3D11Supported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)
 			return false; 
@@ -1007,19 +1006,23 @@ class MaterialPlayground: public IApp
 						  return true;
 					  } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-					   [](InputActionContext* ctx) {
-						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-						   return true;
-					   },
-					   this };
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
+		{
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+			return true;
+		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool(*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1212,6 +1215,9 @@ class MaterialPlayground: public IApp
 		gUniformDataCameraSkybox = gUniformDataCamera;
 		gUniformDataCameraSkybox.mProjectView = projMat * viewMat;
 
+		// Ensure we have the correct light view in case the position changes (right now it can change through the UI)
+		pLightView->moveTo(f3Tov3(gDirectionalLightPosition));
+		pLightView->lookAt(vec3(0.f));
 		viewMat = pLightView->getViewMatrix();
 
 		// lights
@@ -1384,6 +1390,12 @@ class MaterialPlayground: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		// FRAME SYNC
 		//
 		// This will acquire the next swapchain image
@@ -1444,7 +1456,7 @@ class MaterialPlayground: public IApp
 			}
 		}
 
-		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights };
+		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights[gFrameIndex] };
 		beginUpdateResource(&directionalLightsBufferUpdateDesc);
 		*(UniformDataDirectionalLights*)directionalLightsBufferUpdateDesc.pMappedData = gUniformDataDirectionalLights;
 		endUpdateResource(&directionalLightsBufferUpdateDesc, NULL);
@@ -2084,7 +2096,7 @@ class MaterialPlayground: public IApp
 		gFrameTimeDraw.mFontSize = 18.0f;
 		float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
 
-		screenCoords = float2(8.0f, txtSize.y + 30.f);
+		screenCoords = float2(8.0f, txtSize.y + 75.f);
 		cmdDrawGpuProfile(cmd, screenCoords, gCurrentGpuProfileToken, &gFrameTimeDraw);
 
 		if (!gbLuaScriptingSystemLoadedSuccessfully)
@@ -2592,24 +2604,24 @@ class MaterialPlayground: public IApp
 			DescriptorData params[6] = {};
 			params[0].pName = "cbPointLights";
 			params[0].ppBuffers = &pUniformBufferPointLights;
-			params[1].pName = "cbDirectionalLights";
-			params[1].ppBuffers = &pUniformBufferDirectionalLights;
-			params[2].pName = "brdfIntegrationMap";
-			params[2].ppTextures = &pTextureBRDFIntegrationMap;
-			params[3].pName = "irradianceMap";
-			params[3].ppTextures = &pTextureIrradianceMap;
-			params[4].pName = "specularMap";
-			params[4].ppTextures = &pTextureSpecularMap;
-			params[5].pName = "shadowMap";
-			params[5].ppTextures = &pRenderTargetShadowMap->pTexture;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF[0], 6, params);
+			params[1].pName = "brdfIntegrationMap";
+			params[1].ppTextures = &pTextureBRDFIntegrationMap;
+			params[2].pName = "irradianceMap";
+			params[2].ppTextures = &pTextureIrradianceMap;
+			params[3].pName = "specularMap";
+			params[3].ppTextures = &pTextureSpecularMap;
+			params[4].pName = "shadowMap";
+			params[4].ppTextures = &pRenderTargetShadowMap->pTexture;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF[0], 5, params);
 
 			// Per Frame
 			for (uint32_t f = 0; f < gImageCount; ++f)
 			{
 				params[0].pName = "cbCamera";
 				params[0].ppBuffers = &pUniformBufferCamera[f];
-				updateDescriptorSet(pRenderer, f, pDescriptorSetBRDF[1], 1, params);
+				params[1].pName = "cbDirectionalLights";
+				params[1].ppBuffers = &pUniformBufferDirectionalLights[f];
+				updateDescriptorSet(pRenderer, f, pDescriptorSetBRDF[1], 2, params);
 
 				for (uint32_t m = 0; m < MATERIAL_BRDF_COUNT; ++m)
 				{
@@ -2828,7 +2840,10 @@ class MaterialPlayground: public IApp
 				hairParams[0].pName = "cbCamera";
 				hairParams[0].ppBuffers = &pUniformBufferCamera[f];
 				updateDescriptorSet(pRenderer, f, pDescriptorSetHairDepthPeeling[1], 1, hairParams);
-				updateDescriptorSet(pRenderer, f, pDescriptorSetHairFillColors[1], 1, hairParams);
+
+				hairParams[1].pName = "cbDirectionalLights";
+				hairParams[1].ppBuffers = &pUniformBufferDirectionalLights[f];
+				updateDescriptorSet(pRenderer, f, pDescriptorSetHairFillColors[1], 2, hairParams);
 			}
 
 			hairParams[0].pName = "DepthsTexture";
@@ -2849,11 +2864,9 @@ class MaterialPlayground: public IApp
 
 			hairParams[0].pName = "cbPointLights";
 			hairParams[0].ppBuffers = &pUniformBufferPointLights;
-			hairParams[1].pName = "cbDirectionalLights";
-			hairParams[1].ppBuffers = &pUniformBufferDirectionalLights;
-			hairParams[2].pName = "cbHairGlobal";
-			hairParams[2].ppBuffers = &pUniformBufferHairGlobal;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetHairFillColors[0], 3, hairParams);
+			hairParams[1].pName = "cbHairGlobal";
+			hairParams[1].ppBuffers = &pUniformBufferHairGlobal;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetHairFillColors[0], 2, hairParams);
 
 			hairParams[0].pName = "ColorsTexture";
 			hairParams[0].ppTextures = &pRenderTargetFillColors->pTexture;
@@ -3095,7 +3108,7 @@ class MaterialPlayground: public IApp
 		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
 
 		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, false, 0.0f, 0.0f, 16
 		};
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -3703,6 +3716,19 @@ class MaterialPlayground: public IApp
 			}
 		}
 
+		// Uniform buffer for directional light data
+		BufferLoadDesc directionalLightBufferDesc = {};
+		directionalLightBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		directionalLightBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		directionalLightBufferDesc.mDesc.mSize = sizeof(UniformDataDirectionalLights);
+		directionalLightBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		directionalLightBufferDesc.pData = NULL;
+		for (uint i = 0; i < gImageCount; ++i)
+		{
+			directionalLightBufferDesc.ppBuffer = &pUniformBufferDirectionalLights[i];
+			addResource(&directionalLightBufferDesc, NULL);
+		}
+
 		// Uniform buffer for light data
 		BufferLoadDesc lightsUBDesc = {};
 		lightsUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3712,16 +3738,6 @@ class MaterialPlayground: public IApp
 		lightsUBDesc.pData = NULL;
 		lightsUBDesc.ppBuffer = &pUniformBufferPointLights;
 		addResource(&lightsUBDesc, NULL);
-
-		// Uniform buffer for directional light data
-		BufferLoadDesc directionalLightBufferDesc = {};
-		directionalLightBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		directionalLightBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		directionalLightBufferDesc.mDesc.mSize = sizeof(UniformDataDirectionalLights);
-		directionalLightBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		directionalLightBufferDesc.pData = NULL;
-		directionalLightBufferDesc.ppBuffer = &pUniformBufferDirectionalLights;
-		addResource(&directionalLightBufferDesc, NULL);
 
 		// Uniform buffer for hair data
 		BufferLoadDesc hairGlobalBufferDesc = {};
@@ -3741,6 +3757,7 @@ class MaterialPlayground: public IApp
 			removeResource(pUniformBufferCameraSkybox[i]);
 			removeResource(pUniformBufferCamera[i]);
 			removeResource(pUniformBufferCameraShadowPass[i]);
+			removeResource(pUniformBufferDirectionalLights[i]);
 			for (uint32_t hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
 				for (uint32_t j = 0; j < MAX_NUM_DIRECTIONAL_LIGHTS; ++j)
@@ -3755,7 +3772,6 @@ class MaterialPlayground: public IApp
 			removeResource(pUniformBufferNamePlates[j]);
 
 		removeResource(pUniformBufferPointLights);
-		removeResource(pUniformBufferDirectionalLights);
 
 		removeResource(pUniformBufferHairGlobal);
 	}
@@ -3839,7 +3855,7 @@ class MaterialPlayground: public IApp
 		//gUniformDataDirectionalLights.mDirectionalLights[0].mColor = float3(255.0f, 0.5f, 0.5f) / 255.0f;
 		gUniformDataDirectionalLights.mDirectionalLights[0].mIntensity = 10.0f;
 		gUniformDataDirectionalLights.mNumDirectionalLights = 1;
-		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights };
+		BufferUpdateDesc directionalLightsBufferUpdateDesc = { pUniformBufferDirectionalLights[0] };
 		beginUpdateResource(&directionalLightsBufferUpdateDesc);
 		*(UniformDataDirectionalLights*)directionalLightsBufferUpdateDesc.pMappedData = gUniformDataDirectionalLights;
 		endUpdateResource(&directionalLightsBufferUpdateDesc, NULL);
@@ -4589,7 +4605,7 @@ class MaterialPlayground: public IApp
 		swapChainDesc.mColorClearValue.g = 0.0f;
 		swapChainDesc.mColorClearValue.b = 0.0f;
 		swapChainDesc.mColorClearValue.a = 0.0f;
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 	}
 
@@ -4662,14 +4678,6 @@ void GuiController::UpdateDynamicUI()
 		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairShading, pGuiWindowMain);
 		uiShowDynamicWidgets(&GuiController::hairDynamicWidgets[gHairType].hairSimulation, pGuiWindowHairSimulation);
 	}
-
-#if !defined(TARGET_IOS) && !defined(__ANDROID__)
-	if (pSwapChain->mEnableVsync != gVSyncEnabled)
-	{
-		waitQueueIdle(pGraphicsQueue);
-		::toggleVSync(pRenderer, &pSwapChain);
-	}
-#endif
 }
 
 void GuiController::AddGui()
@@ -4708,10 +4716,6 @@ void GuiController::AddGui()
 	SliderIntWidget  sliderInt;
 #endif
 
-#if !defined(TARGET_IOS) && !defined(__ANDROID__)
-	checkbox.pData = &gVSyncEnabled;
-	luaRegisterWidget(uiCreateComponentWidget(pGuiWindowMain, "V-Sync", &checkbox, WIDGET_TYPE_CHECKBOX));
-#endif
 	DropdownWidget ddMatType;
 	ddMatType.pData = &gMaterialType;
 	for (uint32_t i = 0; i < dropDownCount; ++i)

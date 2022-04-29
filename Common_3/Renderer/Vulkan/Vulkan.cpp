@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -56,13 +56,37 @@
 
 #include "../../OS/Math/MathTypes.h"
 
-#ifdef __clang__
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wswitch"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wswitch"
 #endif
+
+#if defined(NX64)
+// #NOTE: NX64 VK header does not have this type
+typedef struct VkBaseInStructure
+{
+	VkStructureType                    sType;
+	const struct VkBaseInStructure*    pNext;
+} VkBaseInStructure;
+
+typedef struct VkBaseOutStructure
+{
+	VkStructureType               sType;
+	struct VkBaseOutStructure*    pNext;
+} VkBaseOutStructure;
+#endif
+
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
-#ifdef __clang__
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
 
 #include "../../OS/Core/Atomics.h"
@@ -75,14 +99,10 @@
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volkForgeExt.h"
 #endif
 
-#include "../../ThirdParty/OpenSource/ags/AgsHelper.h"
-#include "../../ThirdParty/OpenSource/nvapi/NvApiHelper.h"
-
 #if defined(QUEST_VR)
 #include "../../OS/Quest/VrApi.h"
 #include "../Quest/VrApiHooks.h"
 
-extern QuestVR* pQuest; 
 extern RenderTarget* pFragmentDensityMask;
 #endif
 
@@ -92,10 +112,47 @@ extern RenderTarget* pFragmentDensityMask;
 extern void
 	vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 extern void vk_addRaytracingPipeline(const PipelineDesc*, Pipeline**);
 extern void vk_FillRaytracingDescriptorData(uint32_t count, AccelerationStructure** const ppAccelerationStructures, VkAccelerationStructureKHR* pOutHandles);
 #endif
+
+#define VENDOR_ID_NVIDIA 0x10DE
+#define VENDOR_ID_AMD 0x1002
+#define VENDOR_ID_AMD_1 0x1022
+#define VENDOR_ID_INTEL 0x163C
+#define VENDOR_ID_INTEL_1 0x8086
+#define VENDOR_ID_INTEL_2 0x8087
+
+typedef enum GpuVendor
+{
+	GPU_VENDOR_NVIDIA,
+	GPU_VENDOR_AMD,
+	GPU_VENDOR_INTEL,
+	GPU_VENDOR_UNKNOWN,
+	GPU_VENDOR_COUNT,
+} GpuVendor;
+
+#ifndef ARRAYSIZE
+#define ARRAYSIZE(a) \
+	(sizeof(a) / sizeof(a[0]))
+#endif
+
+#define VK_FORMAT_VERSION( version, outVersionString )                     \
+	ASSERT( VK_MAX_DESCRIPTION_SIZE == ARRAYSIZE( outVersionString ) ); \
+	sprintf( outVersionString, "%u.%u.%u", VK_VERSION_MAJOR( version ), VK_VERSION_MINOR( version ), VK_VERSION_PATCH( version ) );
+
+static GpuVendor util_to_internal_gpu_vendor( uint32_t vendorId )
+{
+	if ( vendorId == VENDOR_ID_NVIDIA )
+		return GPU_VENDOR_NVIDIA;
+	else if ( vendorId == VENDOR_ID_AMD || vendorId == VENDOR_ID_AMD_1 )
+		return GPU_VENDOR_AMD;
+	else if ( vendorId == VENDOR_ID_INTEL || vendorId == VENDOR_ID_INTEL_1 || vendorId == VENDOR_ID_INTEL_2 )
+		return GPU_VENDOR_INTEL;
+	else
+		return GPU_VENDOR_UNKNOWN;
+}
 
 // clang-format off
 VkBlendOp gVkBlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
@@ -174,6 +231,14 @@ VkAttachmentLoadOp gVkAttachmentLoadOpTranslator[LoadActionType::MAX_LOAD_ACTION
 	VK_ATTACHMENT_LOAD_OP_CLEAR,
 };
 
+VkAttachmentStoreOp gVkAttachmentStoreOpTranslator[StoreActionType::MAX_STORE_ACTION] =
+{
+	VK_ATTACHMENT_STORE_OP_STORE,
+	VK_ATTACHMENT_STORE_OP_DONT_CARE,
+	// Dont care is treated as store op none in most drivers
+	VK_ATTACHMENT_STORE_OP_DONT_CARE,
+};
+
 const char* gVkWantedInstanceExtensions[] =
 {
 	VK_KHR_SURFACE_EXTENSION_NAME,
@@ -210,7 +275,7 @@ const char* gVkWantedInstanceExtensions[] =
 #if VK_KHR_device_group_creation
 	  VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME,
 #endif
-#ifndef NX64 
+#ifndef NX64
 	  /************************************************************************/
 	// Property querying extensions
 	/************************************************************************/
@@ -282,7 +347,7 @@ const char* gVkWantedDeviceExtensions[] =
 	/************************************************************************/
 	// Raytracing
 	/************************************************************************/
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME, 
@@ -305,6 +370,12 @@ const char* gVkWantedDeviceExtensions[] =
     #if VK_KHR_bind_memory2 // ycbcr conversion depends on this
         VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
     #endif
+#endif
+	/************************************************************************/
+	// Multiview support
+	/************************************************************************/
+#ifdef QUEST_VR
+	VK_KHR_MULTIVIEW_EXTENSION_NAME,
 #endif
     /************************************************************************/
 	// Nsight Aftermath
@@ -447,7 +518,7 @@ static void consume_descriptor_sets(VkDevice pDevice, VkDescriptorPool pPool, co
 /************************************************************************/
 VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = { VK_PIPELINE_BIND_POINT_MAX_ENUM, VK_PIPELINE_BIND_POINT_COMPUTE,
 																VK_PIPELINE_BIND_POINT_GRAPHICS,
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 																VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR
 #endif
 };
@@ -484,18 +555,24 @@ static const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature,
 /************************************************************************/
 // Render Pass Implementation
 /************************************************************************/
+static const LoadActionType gDefaultLoadActions[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+static const StoreActionType gDefaultStoreActions[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+
 typedef struct RenderPassDesc
 {
-	TinyImageFormat*      pColorFormats;
-	const LoadActionType* pLoadActionsColor;
-	bool*                 pSrgbValues;
-	uint32_t              mRenderTargetCount;
-	SampleCount           mSampleCount;
-	TinyImageFormat       mDepthStencilFormat;
-	LoadActionType        mLoadActionDepth;
-	LoadActionType        mLoadActionStencil;
-    bool                  mVRMultiview;
-    bool                  mVRFoveatedRendering;
+	TinyImageFormat*       pColorFormats;
+	const LoadActionType*  pLoadActionsColor;
+	const StoreActionType* pStoreActionsColor;
+	bool*                  pSrgbValues;
+	uint32_t               mRenderTargetCount;
+	SampleCount            mSampleCount;
+	TinyImageFormat        mDepthStencilFormat;
+	LoadActionType         mLoadActionDepth;
+	LoadActionType         mLoadActionStencil;
+	StoreActionType        mStoreActionDepth;
+	StoreActionType        mStoreActionStencil;
+    bool                   mVRMultiview;
+    bool                   mVRFoveatedRendering;
 } RenderPassDesc;
 
 typedef struct RenderPass
@@ -568,9 +645,8 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 			attachments[ssidx].flags = 0;
 			attachments[ssidx].format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->pColorFormats[i]);
 			attachments[ssidx].samples = sample_count;
-			attachments[ssidx].loadOp =
-				pDesc->pLoadActionsColor ? gVkAttachmentLoadOpTranslator[pDesc->pLoadActionsColor[i]] : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachments[ssidx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[ssidx].loadOp = gVkAttachmentLoadOpTranslator[pDesc->pLoadActionsColor[i]];
+			attachments[ssidx].storeOp = gVkAttachmentStoreOpTranslator[pDesc->pStoreActionsColor[i]];
 			attachments[ssidx].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[ssidx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachments[ssidx].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -590,9 +666,9 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 		attachments[idx].format = (VkFormat)TinyImageFormat_ToVkFormat(pDesc->mDepthStencilFormat);
 		attachments[idx].samples = sample_count;
 		attachments[idx].loadOp = gVkAttachmentLoadOpTranslator[pDesc->mLoadActionDepth];
-		attachments[idx].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[idx].storeOp = gVkAttachmentStoreOpTranslator[pDesc->mStoreActionDepth];
 		attachments[idx].stencilLoadOp = gVkAttachmentLoadOpTranslator[pDesc->mLoadActionStencil];
-		attachments[idx].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[idx].stencilStoreOp = gVkAttachmentStoreOpTranslator[pDesc->mStoreActionStencil];
 		attachments[idx].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		attachments[idx].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depth_stencil_attachment_ref[0].attachment = idx;    //-V522
@@ -707,7 +783,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	{
 		pFrameBuffer->mWidth = pDesc->pDepthStencil->mWidth;
 		pFrameBuffer->mHeight = pDesc->pDepthStencil->mHeight;
-		if (pDesc->mDepthArraySlice != -1)
+		if (pDesc->mDepthArraySlice != (uint32_t)-1)
 			pFrameBuffer->mArraySize = 1;
 		else
 			pFrameBuffer->mArraySize = pDesc->pDepthStencil->mVRMultiview ? 1 : pDesc->pDepthStencil->mArraySize;
@@ -766,7 +842,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	// Depth/stencil
 	if (pDesc->pDepthStencil)
 	{
-		if (-1 == pDesc->mDepthMipSlice && -1 == pDesc->mDepthArraySlice)
+		if ((uint32_t)-1 == pDesc->mDepthMipSlice && (uint32_t)-1 == pDesc->mDepthArraySlice)
 		{
 			*iter_attachments = pDesc->pDepthStencil->mVulkan.pVkDescriptor;
 			++iter_attachments;
@@ -774,14 +850,14 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 		else
 		{
 			uint32_t handle = 0;
-			if (pDesc->mDepthMipSlice != -1)
+			if (pDesc->mDepthMipSlice != (uint32_t)-1)
 			{
-				if (pDesc->mDepthArraySlice != -1)
+				if (pDesc->mDepthArraySlice != (uint32_t)-1)
 					handle = pDesc->mDepthMipSlice * pDesc->pDepthStencil->mArraySize + pDesc->mDepthArraySlice;
 				else
 					handle = pDesc->mDepthMipSlice;
 			}
-			else if (pDesc->mDepthArraySlice != -1)
+			else if (pDesc->mDepthArraySlice != (uint32_t)-1)
 			{
 				handle = pDesc->mDepthArraySlice;
 			}
@@ -941,7 +1017,7 @@ static inline VkPipelineColorBlendStateCreateInfo
 	int blendDescIndex = 0;
 #if defined(ENABLE_GRAPHICS_DEBUG)
 
-	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+	for (uint32_t i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
 		if (pDesc->mRenderTargetMask & (1 << i))
 		{
@@ -960,7 +1036,7 @@ static inline VkPipelineColorBlendStateCreateInfo
 	blendDescIndex = 0;
 #endif
 
-	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+	for (uint32_t i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
 		if (pDesc->mRenderTargetMask & (1 << i))
 		{
@@ -1152,7 +1228,7 @@ static void add_default_resources(Renderer* pRenderer)
 
 		// 2D MS texture
 		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		textureDesc.mSampleCount = SAMPLE_COUNT_2;
+		textureDesc.mSampleCount = SAMPLE_COUNT_4;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureSRV[i][TEXTURE_DIM_2DMS]);
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
 
@@ -1164,7 +1240,7 @@ static void add_default_resources(Renderer* pRenderer)
 
 		// 2D MS texture array
 		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		textureDesc.mSampleCount = SAMPLE_COUNT_2;
+		textureDesc.mSampleCount = SAMPLE_COUNT_4;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureSRV[i][TEXTURE_DIM_2DMS_ARRAY]);
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
 
@@ -1417,7 +1493,7 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed)
 	{
 		result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	if (usage & DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE)
 	{
 		result |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
@@ -1498,7 +1574,7 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state)
     }
 #endif
 
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	if (state & RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
 	{
 		ret |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
@@ -1630,7 +1706,7 @@ VkPipelineStageFlags util_determine_pipeline_stage_flags(Renderer* pRenderer, Vk
 					flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
 				}
 				flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 				if (pRenderer->mVulkan.mRaytracingSupported)
 				{
 					flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
@@ -1752,7 +1828,7 @@ VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
 {
 	switch (type)
 	{
-		case DESCRIPTOR_TYPE_UNDEFINED: ASSERT("Invalid DescriptorInfo Type"); return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+		case DESCRIPTOR_TYPE_UNDEFINED: ASSERT(false && "Invalid DescriptorInfo Type"); return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 		case DESCRIPTOR_TYPE_SAMPLER: return VK_DESCRIPTOR_TYPE_SAMPLER;
 		case DESCRIPTOR_TYPE_TEXTURE: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 		case DESCRIPTOR_TYPE_UNIFORM_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1763,11 +1839,11 @@ VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
 		case DESCRIPTOR_TYPE_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
 		case DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 		case DESCRIPTOR_TYPE_RAY_TRACING: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
 #endif
 		default:
-			ASSERT("Invalid DescriptorInfo Type");
+			ASSERT(false && "Invalid DescriptorInfo Type");
 			return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 			break;
 	}
@@ -1789,7 +1865,7 @@ VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages)
 		res |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 	if (stages & SHADER_STAGE_COMP)
 		res |= VK_SHADER_STAGE_COMPUTE_BIT;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	if (stages & SHADER_STAGE_RAYTRACING)
 		res |=
 			(VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
@@ -1971,7 +2047,7 @@ void util_query_gpu_settings(VkPhysicalDevice gpu, VkPhysicalDeviceProperties2* 
 	gpuSettings->mUploadBufferTextureAlignment = (uint32_t)gpuProperties->properties.limits.optimalBufferCopyOffsetAlignment;
 	gpuSettings->mUploadBufferTextureRowAlignment = (uint32_t)gpuProperties->properties.limits.optimalBufferCopyRowPitchAlignment;
 	gpuSettings->mMaxVertexInputBindings = gpuProperties->properties.limits.maxVertexInputBindings;
-	gpuSettings->mMultiDrawIndirect = gpuProperties->properties.limits.maxDrawIndirectCount > 1;
+	gpuSettings->mMultiDrawIndirect = gpuFeatures->features.multiDrawIndirect;
 
 	gpuSettings->mWaveLaneCount = subgroupProperties.subgroupSize;
 	gpuSettings->mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
@@ -2010,6 +2086,23 @@ void util_query_gpu_settings(VkPhysicalDevice gpu, VkPhysicalDeviceProperties2* 
 	gpuSettings->mGpuVendorPreset.mPresetLevel = getGPUPresetLevel(
 		gpuSettings->mGpuVendorPreset.mVendorId, gpuSettings->mGpuVendorPreset.mModelId,
 		gpuSettings->mGpuVendorPreset.mRevisionId);
+
+	//fill in driver info
+    uint32_t major, minor, secondaryBranch, tertiaryBranch;
+	switch ( util_to_internal_gpu_vendor( gpuProperties->properties.vendorID ) )
+	{
+	case GPU_VENDOR_NVIDIA:
+        major = (gpuProperties->properties.driverVersion >> 22) & 0x3ff;
+        minor = (gpuProperties->properties.driverVersion >> 14) & 0x0ff;
+        secondaryBranch = (gpuProperties->properties.driverVersion >> 6) & 0x0ff;
+        tertiaryBranch = (gpuProperties->properties.driverVersion) & 0x003f;
+        
+        sprintf( gpuSettings->mGpuVendorPreset.mGpuDriverVersion, "%u.%u.%u.%u", major,minor,secondaryBranch,tertiaryBranch);
+		break;
+	default:
+		VK_FORMAT_VERSION(gpuProperties->properties.driverVersion, gpuSettings->mGpuVendorPreset.mGpuDriverVersion);
+		break;
+	}
 
 	gpuFeatures->pNext = NULL;
 	gpuProperties->pNext = NULL;
@@ -2268,19 +2361,6 @@ static void RemoveInstance(Renderer* pRenderer)
 
 static bool initCommon(const char* appName, const RendererDesc* pDesc, Renderer* pRenderer)
 {
-	AGSReturnCode agsRet = agsInit();
-	if (AGSReturnCode::AGS_SUCCESS == agsRet)
-	{
-		agsPrintDriverInfo();
-	}
-
-	// Display NVIDIA driver version using nvapi
-	NvAPI_Status nvStatus = nvapiInit();
-	if (NvAPI_Status::NVAPI_OK == nvStatus)
-	{
-		nvapiPrintDriverInfo();
-	}
-
 #if defined(VK_USE_DISPATCH_TABLES)
 	VkResult vkRes = volkInitializeWithDispatchTables(pRenderer);
 	if (vkRes != VK_SUCCESS)
@@ -2313,8 +2393,6 @@ static bool initCommon(const char* appName, const RendererDesc* pDesc, Renderer*
 	if (vkRes != VK_SUCCESS)
 	{
 		LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
-		nvapiExit();
-		agsExit();
 		return false;
 	}
 #endif
@@ -2323,6 +2401,7 @@ static bool initCommon(const char* appName, const RendererDesc* pDesc, Renderer*
 #endif
 
 	pRenderer->mUnlinkedRendererIndex = 0;
+	pRenderer->mVulkan.mOwnInstance = true;
 	return true;
 }
 
@@ -2332,9 +2411,6 @@ static void exitCommon(Renderer* pRenderer)
 #else
 	RemoveInstance(pRenderer);
 #endif
-
-	nvapiExit();
-	agsExit();
 }
 
 static bool SelectBestGpu(Renderer* pRenderer)
@@ -2343,8 +2419,7 @@ static bool SelectBestGpu(Renderer* pRenderer)
 
 	uint32_t gpuCount = 0;
 
-	VkResult vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, NULL);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, NULL));
 
 	if (gpuCount < 1)
 	{
@@ -2361,8 +2436,7 @@ static bool SelectBestGpu(Renderer* pRenderer)
 	VkQueueFamilyProperties**     queueFamilyProperties = (VkQueueFamilyProperties**)alloca(gpuCount * sizeof(VkQueueFamilyProperties*));
 	uint32_t*                     queueFamilyPropertyCount = (uint32_t*)alloca(gpuCount * sizeof(uint32_t));
 
-	vk_res = vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, gpus);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkEnumeratePhysicalDevices(pRenderer->mVulkan.pVkInstance, &gpuCount, gpus));
 	/************************************************************************/
 	// Select discrete gpus first
 	// If we have multiple discrete gpus prefer with bigger VRAM size
@@ -2505,7 +2579,6 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	// These are the extensions that we have loaded
 	const char* deviceExtensionCache[MAX_DEVICE_EXTENSIONS] = {};
-	VkResult    vk_res = VK_RESULT_MAX_ENUM;
 
 #if VK_KHR_device_group_creation
 	VkDeviceGroupDeviceCreateInfoKHR   deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
@@ -2526,8 +2599,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 			props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
 			props[i].pNext = NULL;
 		}
-		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, props);
-		ASSERT(VK_SUCCESS == vk_res);
+		CHECK_VKRESULT(vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->mVulkan.pVkInstance, &deviceGroupCount, props));
 
 		// If the first device group has more than one physical device. create
 		// a logical device using all of the physical devices.
@@ -2549,14 +2621,13 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		pRenderer->mGpuMode = GPU_MODE_SINGLE;
 	}
 
-	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+	if (!pDesc->pContext)
 	{
 		if (!SelectBestGpu(pRenderer))
 			return false;
 	}
 	else
 	{
-		ASSERT(pDesc->pContext);
 		ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
 
 		pRenderer->mVulkan.pVkActiveGPU = pDesc->pContext->pGpus[pDesc->mGpuIndex].mVulkan.pGPU;
@@ -2594,11 +2665,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	uint32_t extension_count = 0;
 	bool     dedicatedAllocationExtension = false;
 	bool     memoryReq2Extension = false;
-	bool     externalMemoryExtension = false;
 #if VK_EXT_fragment_shader_interlock
 	bool     fragmentShaderInterlockExtension = false;
 #endif
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
+	bool     externalMemoryExtension = false;
 	bool     externalMemoryWin32Extension = false;
 #endif
 	// Standalone extensions
@@ -2639,9 +2710,9 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 							dedicatedAllocationExtension = true;
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME) == 0)
 							memoryReq2Extension = true;
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME) == 0)
 							externalMemoryExtension = true;
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
 						if (strcmp(wantedDeviceExtensions[k], VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
 							externalMemoryWin32Extension = true;
 #endif
@@ -2657,7 +2728,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 						if (strcmp(wantedDeviceExtensions[k], VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
 							pRenderer->mVulkan.mDescriptorIndexingExtension = true;
 #endif
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 						// KHRONOS VULKAN RAY TRACING
 						uint32_t khrRaytracingSupported = 1; 
 
@@ -2703,6 +2774,12 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 							fragmentShaderInterlockExtension = true;
 						}
 #endif
+#if defined(QUEST_VR)
+						if (strcmp(wantedDeviceExtensions[k], VK_KHR_MULTIVIEW_EXTENSION_NAME) == 0)
+						{
+							pRenderer->mVulkan.mMultiviewExtension = true;
+						}
+#endif
 #ifdef ENABLE_NSIGHT_AFTERMATH
 						if (strcmp(wantedDeviceExtensions[k], VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME) == 0)
 						{
@@ -2722,15 +2799,6 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	}
 
 #if !defined(VK_USE_DISPATCH_TABLES)
-#if defined(NX64)
-	// #NOTE: NX64 VK header does not have this type
-	typedef struct VkBaseOutStructure
-	{
-		VkStructureType               sType;
-		struct VkBaseOutStructure* pNext;
-	} VkBaseOutStructure;
-#endif
-
 	//-V:ADD_TO_NEXT_CHAIN:506, 1027
 #define ADD_TO_NEXT_CHAIN(condition, next)        \
 	if ((condition))                              \
@@ -2755,6 +2823,11 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcrFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES };
 	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mYCbCrExtension, ycbcrFeatures);
 #endif
+#if defined(QUEST_VR)
+	VkPhysicalDeviceMultiviewFeatures multiviewFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES };
+	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mMultiviewExtension, multiviewFeatures);
+#endif
+
 
 #if VK_KHR_buffer_device_address
 	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddressFeatures = {};
@@ -2781,10 +2854,10 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	ADD_TO_NEXT_CHAIN(pRenderer->mVulkan.mKHRRayQueryExtension, enabledRayQueryFeatures); 
 #endif
 
-#ifndef NX64
-	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
-#else
+#ifdef NX64
 	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
+#else
+	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
 #endif
 
 	// Get queue family properties
@@ -3118,11 +3191,12 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 
 	// Initialize the Vulkan internal bits
 	{
-		if (pDesc->mGpuMode == GPU_MODE_UNLINKED)
+		ASSERT(pDesc->mGpuMode != GPU_MODE_UNLINKED || pDesc->pContext); // context required in unlinked mode
+		if (pDesc->pContext)
 		{
-			ASSERT(pDesc->pContext);
 			ASSERT(pDesc->mGpuIndex < pDesc->pContext->mGpuCount);
 			pRenderer->mVulkan.pVkInstance = pDesc->pContext->mVulkan.pVkInstance;
+			pRenderer->mVulkan.mOwnInstance = false;
 #ifdef ENABLE_DEBUG_UTILS_EXTENSION
 			pRenderer->mVulkan.pVkDebugUtilsMessenger = pDesc->pContext->mVulkan.pVkDebugUtilsMessenger;
 #else
@@ -3139,7 +3213,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 
 		if (!AddDevice(pDesc, pRenderer))
 		{
-			if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
+			if (pRenderer->mVulkan.mOwnInstance)
 				exitCommon(pRenderer);
 			SAFE_FREE(pRenderer->pName);
 			SAFE_FREE(pRenderer);
@@ -3158,7 +3232,7 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 			//remove device and any memory we allocated in just above as this is the first function called
 			//when initializing the forge
 			RemoveDevice(pRenderer);
-			if (pDesc->mGpuMode != GPU_MODE_UNLINKED)
+			if (pRenderer->mVulkan.mOwnInstance)
 				exitCommon(pRenderer);
 			SAFE_FREE(pRenderer);
 			LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
@@ -3188,6 +3262,8 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		}
 
 		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 		vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
 		vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
 		vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
@@ -3207,6 +3283,25 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
 		vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
 		vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+#if VMA_BIND_MEMORY2 || VMA_VULKAN_VERSION >= 1001000
+		/// Fetch "vkBindBufferMemory2" on Vulkan >= 1.1, fetch "vkBindBufferMemory2KHR" when using VK_KHR_bind_memory2 extension.
+		vulkanFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
+		/// Fetch "vkBindImageMemory2" on Vulkan >= 1.1, fetch "vkBindImageMemory2KHR" when using VK_KHR_bind_memory2 extension.
+		vulkanFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
+#endif
+#if VMA_MEMORY_BUDGET || VMA_VULKAN_VERSION >= 1001000
+#ifdef NX64
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
+#else
+		vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+#endif
+#endif
+#if VMA_VULKAN_VERSION >= 1003000
+		/// Fetch from "vkGetDeviceBufferMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceBufferMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+		vulkanFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;
+		/// Fetch from "vkGetDeviceImageMemoryRequirements" on Vulkan >= 1.3, but you can also fetch it from "vkGetDeviceImageMemoryRequirementsKHR" if you enabled extension VK_KHR_maintenance4.
+		vulkanFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;
+#endif
 
 		createInfo.pVulkanFunctions = &vulkanFunctions;
 		createInfo.pAllocationCallbacks = &gVkAllocationCallbacks;
@@ -3229,10 +3324,10 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 	gFrameBufferMap[pRenderer->mUnlinkedRendererIndex] = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap[0])));
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
-#ifndef NX64
-	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
-#else
+#ifdef NX64
 	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
+#else
+	vkGetPhysicalDeviceFeatures2KHR(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures);
 #endif
 
 	// Set shader macro based on runtime information
@@ -3311,7 +3406,7 @@ void vk_exitRenderer(Renderer* pRenderer)
 #else
 	RemoveDevice(pRenderer);
 #endif
-	if (pRenderer->mGpuMode != GPU_MODE_UNLINKED)
+	if (pRenderer->mVulkan.mOwnInstance)
 		exitCommon(pRenderer);
 
 	destroyMutex(pRenderPassMutex[pRenderer->mUnlinkedRendererIndex]);
@@ -3796,7 +3891,7 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 		}
 
 		// If there is no dedicated present queue, just find the first available queue which supports present
-		if (presentQueueFamilyIndex == -1)
+		if (presentQueueFamilyIndex == (uint32_t)-1)
 		{
 			for (uint32_t index = 0; index < queueFamilyPropertyCount; ++index)
 			{
@@ -3819,7 +3914,7 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 	// Find if gpu has a dedicated present queue
 	VkQueue  presentQueue;
 	uint32_t finalPresentQueueFamilyIndex;
-	if (presentQueueFamilyIndex != -1 && queue_family_indices[0] != presentQueueFamilyIndex)
+	if (presentQueueFamilyIndex != (uint32_t)-1 && queue_family_indices[0] != presentQueueFamilyIndex)
 	{
 		queue_family_indices[0] = presentQueueFamilyIndex;
 		vkGetDeviceQueue(pRenderer->mVulkan.pVkDevice, queue_family_indices[0], 0, &presentQueue);
@@ -3999,6 +4094,15 @@ void vk_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
 		vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 	if (pDesc->mFlags & BUFFER_CREATION_FLAG_HOST_COHERENT)
 		vma_mem_reqs.requiredFlags |= VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+#if defined(ANDROID) || defined(NX64)
+	// UMA for Android and NX64 devices
+	if (vma_mem_reqs.usage != VMA_MEMORY_USAGE_GPU_TO_CPU)
+	{
+		vma_mem_reqs.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		vma_mem_reqs.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+	}
+#endif
 
 	VmaAllocationInfo alloc_info = {};
 	CHECK_VKRESULT(vmaCreateBuffer(
@@ -4304,6 +4408,27 @@ void vk_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 			mem_reqs.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 		}
 
+
+		// If lazy allocation is requested, check that the hardware supports it
+		bool lazyAllocation = pDesc->mFlags & TEXTURE_CREATION_FLAG_ON_TILE;
+		if (lazyAllocation)
+		{
+			uint32_t memoryTypeIndex = 0;
+			VmaAllocationCreateInfo lazyMemReqs = mem_reqs;
+			lazyMemReqs.usage = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+			VkResult result = vmaFindMemoryTypeIndex(pRenderer->mVulkan.pVmaAllocator, UINT32_MAX, &lazyMemReqs, &memoryTypeIndex);
+			if (VK_SUCCESS == result)
+			{
+				mem_reqs = lazyMemReqs;
+				add_info.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+				// The Vulkan spec states: If usage includes VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+				// then bits other than VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				// and VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT must not be set
+				add_info.usage &= (VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+				pTexture->mLazilyAllocated = true;
+			}
+		}
+
 		VmaAllocationInfo alloc_info = {};
 		if (isSinglePlane)
 		{
@@ -4598,8 +4723,21 @@ void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 
 	// Set this by default to be able to sample the rendertarget in shader
 	textureDesc.mDescriptors = pDesc->mDescriptors;
-	// Create SRV by default for a render target
-	textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE;
+	// Create SRV by default for a render target unless this is on tile texture where SRV is not supported
+	if (!(pDesc->mFlags & TEXTURE_CREATION_FLAG_ON_TILE))
+	{
+		textureDesc.mDescriptors |= DESCRIPTOR_TYPE_TEXTURE;
+	}
+	else
+	{
+		if ((textureDesc.mDescriptors & DESCRIPTOR_TYPE_TEXTURE) || (textureDesc.mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE))
+		{
+			LOGF(eWARNING, "On tile textures do not support DESCRIPTOR_TYPE_TEXTURE or DESCRIPTOR_TYPE_RW_TEXTURE");
+		}
+		// On tile textures do not support SRV/UAV as there is no backing memory
+		// You can only read these textures as input attachments inside same render pass
+		textureDesc.mDescriptors &= (DescriptorType)(~(DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE));
+	}
 
 	if (isDepth)
 	{
@@ -4725,6 +4863,17 @@ void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
 	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
 
+	//default sampler lod values
+	//used if not overriden by mSetLodRange or not Linear mipmaps
+	float minSamplerLod = 0;
+	float maxSamplerLod = pDesc->mMipMapMode == MIPMAP_MODE_LINEAR ? VK_LOD_CLAMP_NONE : 0;
+	//user provided lods
+	if(pDesc->mSetLodRange)
+	{
+		minSamplerLod = pDesc->mMinLod;
+		maxSamplerLod = pDesc->mMaxLod;
+	}
+
 	DECLARE_ZERO(VkSamplerCreateInfo, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	add_info.pNext = NULL;
@@ -4740,8 +4889,8 @@ void vk_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSa
 	add_info.maxAnisotropy = pDesc->mMaxAnisotropy;
 	add_info.compareEnable = (gVkComparisonFuncTranslator[pDesc->mCompareFunc] != VK_COMPARE_OP_NEVER) ? VK_TRUE : VK_FALSE;
 	add_info.compareOp = gVkComparisonFuncTranslator[pDesc->mCompareFunc];
-	add_info.minLod = 0.0f;
-	add_info.maxLod = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? FLT_MAX : 0.0f);
+	add_info.minLod = minSamplerLod;
+	add_info.maxLod = maxSamplerLod;
 	add_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	add_info.unnormalizedCoordinates = VK_FALSE;
 
@@ -4817,8 +4966,7 @@ void vk_mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
 	ASSERT(pBuffer->mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to map non-cpu accessible resource");
 
-	VkResult vk_res = vmaMapMemory(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &pBuffer->pCpuMappedAddress);
-	ASSERT(vk_res == VK_SUCCESS);
+	CHECK_VKRESULT(vmaMapMemory(pRenderer->mVulkan.pVmaAllocator, pBuffer->mVulkan.pVkAllocation, &pBuffer->pCpuMappedAddress));
 
 	if (pRange)
 	{
@@ -5031,7 +5179,7 @@ void vk_updateDescriptorSet(
 	const RootSignature*      pRootSignature = pDescriptorSet->mVulkan.pRootSignature;
 	VkWriteDescriptorSet      writeSetArray[maxWriteSets] = {};
 	uint32_t                  writeSetCount = 0;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	const uint32_t maxRaytracingWrites = 32;
 	VkWriteDescriptorSetAccelerationStructureKHR raytracingWrites[maxRaytracingWrites] = {};
 	uint32_t                                     raytracingWriteCount = 0;
@@ -5063,7 +5211,7 @@ void vk_updateDescriptorSet(
 
 		// #NOTE - Flush the update if we go above the max write set limit
 		if (writeSetCount >= maxWriteSets
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 			|| raytracingWriteCount >= maxRaytracingWrites
 #endif
 			)
@@ -5071,7 +5219,7 @@ void vk_updateDescriptorSet(
 			vkUpdateDescriptorSets(pRenderer->mVulkan.pVkDevice, writeSetCount, writeSetArray, 0, NULL);
 			writeSetCount = 0;
 			descriptorUpdateData = pDescriptorSet->mVulkan.pDescriptorData;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 			raytracingWriteCount = 0;
 #endif
 		}
@@ -5310,7 +5458,7 @@ void vk_updateDescriptorSet(
 
 				break;
 			}
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 			case DESCRIPTOR_TYPE_RAY_TRACING:
 			{
 				VALIDATE_DESCRIPTOR(pParam->ppAccelerationStructures, "NULL Acceleration Structure (%s)", pDesc->pName);
@@ -5595,7 +5743,7 @@ void vk_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
 				}
 				break;
 				case SHADER_STAGE_COMP:
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 				case SHADER_STAGE_RAYTRACING:
 #endif
 				{
@@ -5711,7 +5859,7 @@ void vk_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	{
 		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[0], &gVkAllocationCallbacks);
 	}
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	if (pShaderProgram->mStages & SHADER_STAGE_RAYTRACING)
 	{
 		vkDestroyShaderModule(pRenderer->mVulkan.pVkDevice, pShaderProgram->mVulkan.pShaderModules[0], &gVkAllocationCallbacks);
@@ -5766,7 +5914,7 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 
 		if (pReflection->mShaderStages & SHADER_STAGE_COMP)
 			pipelineType = PIPELINE_TYPE_COMPUTE;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 		else if (pReflection->mShaderStages & SHADER_STAGE_RAYTRACING)
 			pipelineType = PIPELINE_TYPE_RAYTRACING;
 #endif
@@ -5776,10 +5924,10 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 		for (uint32_t i = 0; i < pReflection->mShaderResourceCount; ++i)
 		{
 			ShaderResource const* pRes = &pReflection->pShaderResources[i];
-			uint32_t              setIndex = pRes->set;
+			// uint32_t              setIndex = pRes->set;
 
-			if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
-				setIndex = 0;
+			// if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+			// 	setIndex = 0;
 
 			eastl::string_hash_map<uint32_t>::iterator it = indexMap.mMap.find(pRes->name);
 			if (it == indexMap.mMap.end())
@@ -6063,7 +6211,7 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 					case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 						descriptorMemSize += pDesc->mSize * sizeof(VkDescriptorBufferInfo);
 						break;
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 					case DESCRIPTOR_TYPE_RAY_TRACING:
 						descriptorMemSize += pDesc->mSize * sizeof(VkAccelerationStructureKHR);
 						break;
@@ -6202,6 +6350,12 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	renderPassDesc.mDepthStencilFormat = pDesc->mDepthStencilFormat;
     renderPassDesc.mVRMultiview = pDesc->pShaderProgram->mIsMultiviewVR;
     renderPassDesc.mVRFoveatedRendering = pDesc->mVRFoveatedRendering;
+	renderPassDesc.pLoadActionsColor = gDefaultLoadActions;
+	renderPassDesc.mLoadActionDepth = gDefaultLoadActions[0];
+	renderPassDesc.mLoadActionStencil = gDefaultLoadActions[1];
+	renderPassDesc.pStoreActionsColor = gDefaultStoreActions;
+	renderPassDesc.mStoreActionDepth = gDefaultStoreActions[0];
+	renderPassDesc.mStoreActionStencil = gDefaultStoreActions[1];
 	add_render_pass(pRenderer, &renderPassDesc, &pRenderPass);
 
 	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
@@ -6494,7 +6648,7 @@ void vk_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** p
 			addGraphicsPipeline(pRenderer, pDesc, ppPipeline);
 			break;
 		}
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 		case (PIPELINE_TYPE_RAYTRACING):
 		{
 			vk_addRaytracingPipeline(pDesc, ppPipeline);
@@ -6522,7 +6676,7 @@ void vk_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 	ASSERT(VK_NULL_HANDLE != pRenderer->mVulkan.pVkDevice);
 	ASSERT(VK_NULL_HANDLE != pPipeline->mVulkan.pVkPipeline);
 
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 	SAFE_FREE(pPipeline->mVulkan.ppShaderStageNames);
 #endif
 
@@ -6582,8 +6736,7 @@ void vk_resetCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 	ASSERT(pRenderer);
 	ASSERT(pCmdPool);
 
-	VkResult vk_res = vkResetCommandPool(pRenderer->mVulkan.pVkDevice, pCmdPool->pVkCmdPool, 0);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkResetCommandPool(pRenderer->mVulkan.pVkDevice, pCmdPool->pVkCmdPool, 0));
 }
 
 void vk_beginCmd(Cmd* pCmd)
@@ -6605,8 +6758,7 @@ void vk_beginCmd(Cmd* pCmd)
 		begin_info.pNext = &deviceGroupBeginInfo;
 	}
 
-	VkResult vk_res = vkBeginCommandBuffer(pCmd->mVulkan.pVkCmdBuf, &begin_info);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkBeginCommandBuffer(pCmd->mVulkan.pVkCmdBuf, &begin_info));
 
 	// Reset CPU side data
 	pCmd->mVulkan.pBoundPipelineLayout = NULL;
@@ -6624,8 +6776,7 @@ void vk_endCmd(Cmd* pCmd)
 
 	pCmd->mVulkan.pVkActiveRenderPass = VK_NULL_HANDLE;
 
-	VkResult vk_res = vkEndCommandBuffer(pCmd->mVulkan.pVkCmdBuf);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkEndCommandBuffer(pCmd->mVulkan.pVkCmdBuf));
 }
 
 void vk_cmdBindRenderTargets(
@@ -6647,7 +6798,10 @@ void vk_cmdBindRenderTargets(
 
 	size_t renderPassHash = 0;
 	size_t frameBufferHash = 0;
-    bool vrFoveatedRendering = false;
+	bool vrFoveatedRendering = false;
+	StoreActionType colorStoreAction[MAX_RENDER_TARGET_ATTACHMENTS] = {};
+	StoreActionType depthStoreAction = {};
+	StoreActionType stencilStoreAction = {};
 
 	// Generate hash for render pass and frame buffer
 	// NOTE:
@@ -6657,45 +6811,57 @@ void vk_cmdBindRenderTargets(
 	// We hash the texture id associated with the render target to generate frame buffer hash
 	for (uint32_t i = 0; i < renderTargetCount; ++i)
 	{
-		uint32_t hashValues[] = {
+		colorStoreAction[i] = ppRenderTargets[i]->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE :
+			(pLoadActions ? pLoadActions->mStoreActionsColor[i] : gDefaultStoreActions[i]);
+		uint32_t hashValues[] =
+		{
 			(uint32_t)ppRenderTargets[i]->mFormat,
 			(uint32_t)ppRenderTargets[i]->mSampleCount,
-			pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : 0,
+			pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : gDefaultLoadActions[i],
+			(uint32_t)colorStoreAction[i]
 		};
-		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 3, renderPassHash);
+		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 4, renderPassHash);
 		frameBufferHash = tf_mem_hash<uint32_t>(&ppRenderTargets[i]->mVulkan.mId, 1, frameBufferHash);
-        vrFoveatedRendering |= ppRenderTargets[i]->mVRFoveatedRendering;
+		vrFoveatedRendering |= ppRenderTargets[i]->mVRFoveatedRendering;
 	}
 	if (pDepthStencil)
 	{
-		uint32_t hashValues[] = {
+		depthStoreAction = pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE :
+			(pLoadActions ? pLoadActions->mStoreActionDepth : gDefaultStoreActions[0]);
+		stencilStoreAction = pDepthStencil->pTexture->mLazilyAllocated ? STORE_ACTION_DONTCARE :
+			(pLoadActions ? pLoadActions->mStoreActionStencil : gDefaultStoreActions[0]);
+
+		uint32_t hashValues[] =
+		{
 			(uint32_t)pDepthStencil->mFormat,
 			(uint32_t)pDepthStencil->mSampleCount,
-			pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : 0,
-			pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : 0,
+			pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : gDefaultLoadActions[0],
+			pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : gDefaultLoadActions[0],
+			(uint32_t)depthStoreAction,
+			(uint32_t)stencilStoreAction,
 		};
-		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 4, renderPassHash);
+		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 6, renderPassHash);
 		frameBufferHash = tf_mem_hash<uint32_t>(&pDepthStencil->mVulkan.mId, 1, frameBufferHash);
-        vrFoveatedRendering |= pDepthStencil->mVRFoveatedRendering;
+		vrFoveatedRendering |= pDepthStencil->mVRFoveatedRendering;
 	}
 	if (pColorArraySlices)
 		frameBufferHash = tf_mem_hash<uint32_t>(pColorArraySlices, renderTargetCount, frameBufferHash);
 	if (pColorMipSlices)
 		frameBufferHash = tf_mem_hash<uint32_t>(pColorMipSlices, renderTargetCount, frameBufferHash);
-	if (depthArraySlice != -1)
+	if (depthArraySlice != (uint32_t)-1)
 		frameBufferHash = tf_mem_hash<uint32_t>(&depthArraySlice, 1, frameBufferHash);
-	if (depthMipSlice != -1)
+	if (depthMipSlice != (uint32_t)-1)
 		frameBufferHash = tf_mem_hash<uint32_t>(&depthMipSlice, 1, frameBufferHash);
 
 	SampleCount sampleCount = SAMPLE_COUNT_1;
 
-	RenderPassMap&  renderPassMap = get_render_pass_map(pCmd->pRenderer->mUnlinkedRendererIndex);
+	RenderPassMap& renderPassMap = get_render_pass_map(pCmd->pRenderer->mUnlinkedRendererIndex);
 	FrameBufferMap& frameBufferMap = get_frame_buffer_map(pCmd->pRenderer->mUnlinkedRendererIndex);
 
 	const RenderPassMapIt  pNode = renderPassMap.find(renderPassHash);
 	const FrameBufferMapIt pFrameBufferNode = frameBufferMap.find(frameBufferHash);
 
-	RenderPass*  pRenderPass = NULL;
+	RenderPass* pRenderPass = NULL;
 	FrameBuffer* pFrameBuffer = NULL;
 
 	// If a render pass of this combination already exists just use it or create a new one
@@ -6707,17 +6873,17 @@ void vk_cmdBindRenderTargets(
 	{
 		TinyImageFormat colorFormats[MAX_RENDER_TARGET_ATTACHMENTS] = {};
 		TinyImageFormat depthStencilFormat = TinyImageFormat_UNDEFINED;
-        bool vrMultiview = false;
+		bool vrMultiview = false;
 		for (uint32_t i = 0; i < renderTargetCount; ++i)
 		{
 			colorFormats[i] = ppRenderTargets[i]->mFormat;
-            vrMultiview |= ppRenderTargets[i]->mVRMultiview;
+			vrMultiview |= ppRenderTargets[i]->mVRMultiview;
 		}
 		if (pDepthStencil)
 		{
 			depthStencilFormat = pDepthStencil->mFormat;
 			sampleCount = pDepthStencil->mSampleCount;
-            vrMultiview |= pDepthStencil->mVRMultiview;
+			vrMultiview |= pDepthStencil->mVRMultiview;
 		}
 		else if (renderTargetCount)
 		{
@@ -6729,11 +6895,15 @@ void vk_cmdBindRenderTargets(
 		renderPassDesc.mSampleCount = sampleCount;
 		renderPassDesc.pColorFormats = colorFormats;
 		renderPassDesc.mDepthStencilFormat = depthStencilFormat;
-		renderPassDesc.pLoadActionsColor = pLoadActions ? pLoadActions->mLoadActionsColor : NULL;
-		renderPassDesc.mLoadActionDepth = pLoadActions ? pLoadActions->mLoadActionDepth : LOAD_ACTION_DONTCARE;
-		renderPassDesc.mLoadActionStencil = pLoadActions ? pLoadActions->mLoadActionStencil : LOAD_ACTION_DONTCARE;
-        renderPassDesc.mVRMultiview = vrMultiview;
-        renderPassDesc.mVRFoveatedRendering = vrFoveatedRendering;
+		renderPassDesc.pLoadActionsColor = pLoadActions ? pLoadActions->mLoadActionsColor : gDefaultLoadActions;
+		renderPassDesc.mLoadActionDepth = pLoadActions ? pLoadActions->mLoadActionDepth : gDefaultLoadActions[0];
+		renderPassDesc.mLoadActionStencil = pLoadActions ? pLoadActions->mLoadActionStencil : gDefaultLoadActions[0];
+		// #TODO: Add to LoadActionsDesc and rename to LoadActionsDesc
+		renderPassDesc.pStoreActionsColor = colorStoreAction;
+		renderPassDesc.mStoreActionDepth = depthStoreAction;
+		renderPassDesc.mStoreActionStencil = stencilStoreAction;
+		renderPassDesc.mVRMultiview = vrMultiview;
+		renderPassDesc.mVRFoveatedRendering = vrFoveatedRendering;
 		add_render_pass(pCmd->pRenderer, &renderPassDesc, &pRenderPass);
 
 		// No need of a lock here since this map is per thread
@@ -6756,7 +6926,7 @@ void vk_cmdBindRenderTargets(
 		desc.pColorMipSlices = pColorMipSlices;
 		desc.mDepthArraySlice = depthArraySlice;
 		desc.mDepthMipSlice = depthMipSlice;
-        desc.mVRFoveatedRendering = vrFoveatedRendering;
+		desc.mVRFoveatedRendering = vrFoveatedRendering;
 		add_framebuffer(pCmd->pRenderer, &desc, &pFrameBuffer);
 
 		// No need of a lock here since this map is per thread
@@ -7335,7 +7505,17 @@ void vk_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* 
 			return;
 		}
 
-		ASSERT(VK_SUCCESS == vk_res);
+		// Commonly returned immediately following swapchain resize. 
+		// Vulkan spec states that this return value constitutes a successful call to vkAcquireNextImageKHR
+		// https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/vkAcquireNextImageKHR.html
+		if (vk_res == VK_SUBOPTIMAL_KHR)
+		{
+			LOGF(LogLevel::eINFO, "vkAcquireNextImageKHR returned VK_SUBOPTIMAL_KHR. If window was just resized, ignore this message."); 
+			pSignalSemaphore->mVulkan.mSignaled = true;
+			return; 
+		}
+
+		CHECK_VKRESULT(vk_res);
 		pSignalSemaphore->mVulkan.mSignaled = true;
 	}
 }
@@ -7449,8 +7629,7 @@ void vk_queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 	// Many setups have just one queue family and one queue. In this case, async compute, async transfer doesn't exist and we end up using
 	// the same queue for all three operations
 	MutexLock lock(*pQueue->mVulkan.pSubmitMutex);
-	VkResult  vk_res = vkQueueSubmit(pQueue->mVulkan.pVkQueue, 1, &submit_info, pFence ? pFence->mVulkan.pVkFence : VK_NULL_HANDLE);
-	ASSERT(VK_SUCCESS == vk_res);
+	CHECK_VKRESULT(vkQueueSubmit(pQueue->mVulkan.pVkQueue, 1, &submit_info, pFence ? pFence->mVulkan.pVkFence : VK_NULL_HANDLE));
 
 	if (pFence)
 		pFence->mVulkan.mSubmitted = true;
@@ -7557,9 +7736,9 @@ void vk_waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences
 			}
 		}
 #else
-		vkWaitForFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX);
+		CHECK_VKRESULT(vkWaitForFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences, VK_TRUE, UINT64_MAX));
 #endif
-		vkResetFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences);
+		CHECK_VKRESULT(vkResetFences(pRenderer->mVulkan.pVkDevice, numValidFences, fences));
 	}
 
 	for (uint32_t i = 0; i < fenceCount; ++i)
@@ -7674,33 +7853,47 @@ void vk_cmdExecuteIndirect(
 		IndirectArgument* pIndirectArgument = &pCommandSignature->pIndirectArguments[i];
 		uint64_t          offset = bufferOffset + pIndirectArgument->mOffset;
 
-		if (pIndirectArgument->mType == INDIRECT_DRAW)
-		{
+		PFN_vkCmdDrawIndirect drawIndirect = (pIndirectArgument->mType == INDIRECT_DRAW) ? vkCmdDrawIndirect : vkCmdDrawIndexedIndirect;
 #ifndef NX64
-			if (pCounterBuffer && pfnVkCmdDrawIndirectCountKHR)
-				pfnVkCmdDrawIndirectCountKHR(
-					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, pCounterBuffer->mVulkan.pVkBuffer,
-					counterBufferOffset, maxCommandCount, pCommandSignature->mStride);
-			else
+		decltype(pfnVkCmdDrawIndirectCountKHR) drawIndirectCount = (pIndirectArgument->mType == INDIRECT_DRAW) ? pfnVkCmdDrawIndirectCountKHR : pfnVkCmdDrawIndexedIndirectCountKHR;
 #endif
-				vkCmdDrawIndirect(
-					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, maxCommandCount, pCommandSignature->mStride);
-		}
-		else if (pIndirectArgument->mType == INDIRECT_DRAW_INDEX)
+
+		if (pIndirectArgument->mType == INDIRECT_DRAW || pIndirectArgument->mType == INDIRECT_DRAW_INDEX)
 		{
+			if (pCmd->pRenderer->pActiveGpuSettings->mMultiDrawIndirect)
+			{
 #ifndef NX64
-			if (pCounterBuffer && pfnVkCmdDrawIndexedIndirectCountKHR)
-				pfnVkCmdDrawIndexedIndirectCountKHR(
-					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, pCounterBuffer->mVulkan.pVkBuffer,
-					counterBufferOffset, maxCommandCount, pCommandSignature->mStride);
-			else
+				if (pCounterBuffer && drawIndirectCount)
+				{
+					drawIndirectCount(
+						pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, pCounterBuffer->mVulkan.pVkBuffer,
+						counterBufferOffset, maxCommandCount, pCommandSignature->mStride);
+				}
+				else
 #endif
-				vkCmdDrawIndexedIndirect(
-					pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, maxCommandCount, pCommandSignature->mStride);
+				{
+					drawIndirect(
+						pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset, maxCommandCount, pCommandSignature->mStride);
+				}
+			}
+			else
+			{
+				// Cannot use counter buffer when MDI is not supported. We will blindly loop through maxCommandCount
+				ASSERT(!pCounterBuffer);
+
+				for (uint32_t cmd = 0; cmd < maxCommandCount; ++cmd)
+				{
+					drawIndirect(
+						pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset + cmd * pCommandSignature->mStride, 1, pCommandSignature->mStride);
+				}
+			}
 		}
 		else if (pIndirectArgument->mType == INDIRECT_DISPATCH)
 		{
-			vkCmdDispatchIndirect(pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset);
+			for (uint32_t i = 0; i < maxCommandCount; ++i)
+			{
+				vkCmdDispatchIndirect(pCmd->mVulkan.pVkCmdBuf, pIndirectBuffer->mVulkan.pVkBuffer, offset + i * pCommandSignature->mStride);
+			}
 		}
 	}
 }
@@ -7777,7 +7970,7 @@ void vk_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 	{
 		case VK_QUERY_TYPE_TIMESTAMP:
 			vkCmdWriteTimestamp(
-				pCmd->mVulkan.pVkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pQueryPool->mVulkan.pVkQueryPool, pQuery->mIndex);
+				pCmd->mVulkan.pVkCmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, pQueryPool->mVulkan.pVkQueryPool, pQuery->mIndex);
 			break;
 		case VK_QUERY_TYPE_PIPELINE_STATISTICS: break;
 		case VK_QUERY_TYPE_OCCLUSION: break;
@@ -7785,16 +7978,24 @@ void vk_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 	}
 }
 
-void vk_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery) { cmdBeginQuery(pCmd, pQueryPool, pQuery); }
+void vk_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
+{
+	VkQueryType type = pQueryPool->mVulkan.mType;
+	switch (type)
+	{
+	case VK_QUERY_TYPE_TIMESTAMP:
+		vkCmdWriteTimestamp(
+			pCmd->mVulkan.pVkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pQueryPool->mVulkan.pVkQueryPool, pQuery->mIndex);
+		break;
+	case VK_QUERY_TYPE_PIPELINE_STATISTICS: break;
+	case VK_QUERY_TYPE_OCCLUSION: break;
+	default: break;
+	}
+}
 
 void vk_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
 	VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT;
-#ifdef ANDROID
-	flags |= VK_QUERY_RESULT_WITH_AVAILABILITY_BIT;
-#else
-	flags |= VK_QUERY_RESULT_WAIT_BIT;
-#endif
 	vkCmdCopyQueryPoolResults(
 		pCmd->mVulkan.pVkCmdBuf, pQueryPool->mVulkan.pVkQueryPool, startQuery, queryCount, pReadbackBuffer->mVulkan.pVkBuffer, 0,
 		sizeof(uint64_t), flags);
@@ -7802,17 +8003,23 @@ void vk_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffe
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
-void vk_calculateMemoryStats(Renderer* pRenderer, char** stats) { vmaBuildStatsString(pRenderer->mVulkan.pVmaAllocator, stats, VK_TRUE); }
+void vk_calculateMemoryStats(Renderer* pRenderer, char** stats)
+{
+	vmaBuildStatsString(pRenderer->mVulkan.pVmaAllocator, stats, VK_TRUE);
+}
+
+void vk_freeMemoryStats(Renderer* pRenderer, char* stats)
+{
+	vmaFreeStatsString(pRenderer->mVulkan.pVmaAllocator, stats);
+}
 
 void vk_calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
 {
-	VmaStats stats;
-	pRenderer->mVulkan.pVmaAllocator->CalculateStats(&stats);
-	*usedBytes = stats.total.usedBytes;
-	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
+	VmaTotalStatistics stats = {};
+	vmaCalculateStatistics(pRenderer->mVulkan.pVmaAllocator, &stats);
+	*usedBytes = stats.total.statistics.allocationBytes;
+	*totalAllocatedBytes = stats.total.statistics.blockBytes;
 }
-
-void vk_freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRenderer->mVulkan.pVmaAllocator, stats); }
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
@@ -8177,7 +8384,7 @@ void vk_releasePage(Cmd* pCmd, Texture* pTexture, uint32_t currentImage)
 
 	// Schedule release of newly unneeded pages
 	uint pageUnbindCount = 0;
-	for (uint removePageIndex = 0; removePageIndex < (int)removePageCount; ++removePageIndex)
+	for (uint removePageIndex = 0; removePageIndex < removePageCount; ++removePageIndex)
 	{
 		uint32_t RemoveIndex = RemovePageTable[removePageIndex];
 		VirtualTexturePage& removePage = pPageTable[RemoveIndex];
@@ -8294,7 +8501,7 @@ void vk_fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel,
 	//Bind data
 	uint32_t imageMemoryCount = 0;
 
-	for (int i = 0; i < (int)pTexture->pSvt->mVirtualPageTotalCount; i++)
+	for (uint32_t i = 0; i < pTexture->pSvt->mVirtualPageTotalCount; i++)
 	{
 		VirtualTexturePage* pPage = &pTexture->pSvt->pPages[i];
 		ASSERT(pPage->index == i);
@@ -8592,6 +8799,13 @@ void vk_addVirtualTexture(Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTextu
 	pTexture->mWidth = pDesc->mWidth;
 	pTexture->mHeight = pDesc->mHeight;
 	pTexture->mDepth = pDesc->mDepth;
+
+#if defined(ENABLE_GRAPHICS_DEBUG)
+	if (pDesc->pName)
+	{
+		setTextureName(pRenderer, pTexture, pDesc->pName);
+	}
+#endif
 
 	*ppTexture = pTexture;
 }

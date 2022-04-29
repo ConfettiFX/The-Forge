@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -466,8 +466,8 @@ int LuaManagerImpl::FunctionDispatch(int functionIndex, lua_State* state)
 {
 	LuaStateWrap stateWrap;
 	stateWrap.luaState = state;
-	ASSERT(m_Functions.size() > functionIndex);
-	if (m_Functions.size() > functionIndex)
+	ASSERT(m_Functions.size() > (uint32_t)functionIndex);
+	if (m_Functions.size() > (uint32_t)functionIndex)
 	{
 		return m_Functions[functionIndex]->ExecuteFunction(&stateWrap);
 	}

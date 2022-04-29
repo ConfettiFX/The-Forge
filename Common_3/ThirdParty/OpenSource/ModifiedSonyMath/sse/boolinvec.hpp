@@ -36,8 +36,10 @@ namespace SSE
 {
 
 class FloatInVec;
+class DoubleInVec;
 typedef __m128i Vector4Int;
 
+#include "internal.hpp"
 // ========================================================
 // BoolInVec
 // ========================================================
@@ -47,17 +49,18 @@ VECTORMATH_ALIGNED_TYPE_PRE class BoolInVec
 {
     __m128 mData;
 
-    inline BoolInVec(__m128 vec);
-
+	inline BoolInVec(__m128 vec);
+	inline BoolInVec(DSSEVec4 vec);
+	
 public:
     
-    // Default constructor; does no initialization
-    //
     inline BoolInVec() { } //-V730
 
     // matches standard type conversions
     //
     inline BoolInVec(const FloatInVec & vec);
+
+	inline BoolInVec(const DoubleInVec & vec);
 
     // explicit cast from bool
     //
@@ -88,17 +91,25 @@ public:
     //
     friend inline const BoolInVec operator == (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const BoolInVec operator != (const BoolInVec  & vec0, const BoolInVec  & vec1);
-    friend inline const BoolInVec operator <  (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const BoolInVec operator <= (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const BoolInVec operator >  (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const BoolInVec operator >= (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const BoolInVec operator == (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const BoolInVec operator != (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const BoolInVec operator &  (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const Vector4Int operator & (const BoolInVec  & vec0, const Vector4Int & vec1);
     friend inline const BoolInVec operator ^  (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const BoolInVec operator |  (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const BoolInVec select(const BoolInVec & vec0, const BoolInVec & vec1, const BoolInVec & select_vec1);
+
+	friend inline const BoolInVec operator <  (const FloatInVec & vec0, const FloatInVec & vec1);
+	friend inline const BoolInVec operator <= (const FloatInVec & vec0, const FloatInVec & vec1);
+	friend inline const BoolInVec operator >  (const FloatInVec & vec0, const FloatInVec & vec1);
+	friend inline const BoolInVec operator >= (const FloatInVec & vec0, const FloatInVec & vec1);
+	friend inline const BoolInVec operator == (const FloatInVec & vec0, const FloatInVec & vec1);
+	friend inline const BoolInVec operator != (const FloatInVec & vec0, const FloatInVec & vec1);
+
+	friend inline const BoolInVec operator <  (const DoubleInVec & vec0, const DoubleInVec & vec1);
+	friend inline const BoolInVec operator <= (const DoubleInVec & vec0, const DoubleInVec & vec1);
+	friend inline const BoolInVec operator >  (const DoubleInVec & vec0, const DoubleInVec & vec1);
+	friend inline const BoolInVec operator >= (const DoubleInVec & vec0, const DoubleInVec & vec1);
+	friend inline const BoolInVec operator == (const DoubleInVec & vec0, const DoubleInVec & vec1);
+	friend inline const BoolInVec operator != (const DoubleInVec & vec0, const DoubleInVec & vec1);
 
 } VECTORMATH_ALIGNED_TYPE_POST;
 
@@ -127,7 +138,9 @@ inline const BoolInVec select(const BoolInVec & vec0, const BoolInVec & vec1, co
 // BoolInVec implementation
 // ========================================================
 
+#include <emmintrin.h>
 #include "floatinvec.hpp"
+#include "doubleinvec.hpp"
 
 namespace Vectormath
 {
@@ -139,9 +152,23 @@ inline BoolInVec::BoolInVec(__m128 vec)
     mData = vec;
 }
 
+inline BoolInVec::BoolInVec(DSSEVec4 vec)
+{
+	int x = (int)vec.l[0];
+	int y = (int)vec.l[1];
+	int z = (int)vec.l[2];
+	int w = (int)vec.l[3];
+	mData = _mm_castsi128_ps(_mm_setr_epi32(x, y, z, w));
+}
+
 inline BoolInVec::BoolInVec(const FloatInVec & vec)
 {
     *this = (vec != FloatInVec(0.0f));
+}
+
+inline BoolInVec::BoolInVec(const DoubleInVec & vec)
+{
+	*this = (vec != DoubleInVec(0.0f));
 }
 
 inline BoolInVec::BoolInVec(bool scalar)

@@ -25,6 +25,7 @@
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/GPUConfig.h"/>
+    <File Name="../../../../Common_3/OS/Core/CPUConfig.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Input">
     <File Name="../../../../Common_3/OS/Input/InputSystem.cpp"/>
@@ -62,6 +63,7 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxBase.cpp"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxFileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxThread.c"/>
+    <File Name="../../../../Common_3/OS/Linux/LinuxWindow.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
     <VirtualDirectory Name="minizip">
@@ -113,23 +115,6 @@
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_demo.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
-    </VirtualDirectory>
-    <VirtualDirectory Name="meshoptimizer">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/clusterizer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexcodec.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawanalyzer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/simplifier.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/spatialorder.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/stripifier.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheanalyzer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vertexcodec.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchanalyzer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="LUA">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c"/>
@@ -192,6 +177,10 @@
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.c"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.h"/>
     </VirtualDirectory>
+    <VirtualDirectory Name="cpu_features">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_x86_linux_or_android.c"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_aarch64_linux_or_android.c"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="Profiler">
     <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
@@ -216,6 +205,7 @@
       </VirtualDirectory>
     </VirtualDirectory>
     <File Name="../../../../Common_3/OS/Fonts/FontSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/Fonts/stbtt.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Scripting">
     <File Name="../../../../Common_3/OS/Scripting/LuaManager.cpp"/>
@@ -244,7 +234,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g; -std=c++14;$(shell pkg-config --cflags gtk+-3.0)" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g; -std=c++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -294,7 +284,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-std=c++14;$(shell pkg-config --cflags gtk+-3.0)" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-std=c++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -343,4 +333,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="WindowSystem">
+    <File Name="../../../../Common_3/OS/WindowSystem/WindowSystem.cpp"/>
+  </VirtualDirectory>
 </CodeLite_Project>

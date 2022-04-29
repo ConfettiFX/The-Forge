@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,6 +24,52 @@
 
 #pragma once
 
+inline uint32_t getFamilyTier(Renderer* pRenderer)
+{
+	uint32_t familyTier = 0;
+	
+#if !defined(TARGET_IOS) //macOS
+	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v1] ? 1 : familyTier;
+	#if defined(ENABLE_GPU_FAMILY_1_V2)
+		if (@available(macOS 10.12, *))
+		{
+			familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v2] ? 2 : familyTier;
+		}
+	#endif
+	#if defined(ENABLE_GPU_FAMILY_1_V3)
+		if (@available(macOS 10.13, *))
+		{
+			familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v3] ? 3 : familyTier;
+		}
+	#endif
+	#if defined(ENABLE_GPU_FAMILY_1_V4)
+		if (@available(macOS 10.14, *))
+		{
+			familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v4] ? 4 : familyTier;
+		}
+	#endif
+#else //IOS
+familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v1] ? 1 : familyTier;
+
+familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v1] ? 2 : familyTier;
+
+#if defined(ENABLE_GPU_FAMILY_3)
+if (@available(iOS 9.0, *))
+{
+	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v1] ? 3 : familyTier;
+}
+#endif
+#if defined(ENABLE_GPU_FAMILY_4)
+if (@available(iOS 11.0, *))
+{
+	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1] ? 4 : familyTier;
+}
+#endif
+
+#endif
+	
+	return familyTier;
+}
 
 inline void utils_caps_builder(Renderer* pRenderer)
 {

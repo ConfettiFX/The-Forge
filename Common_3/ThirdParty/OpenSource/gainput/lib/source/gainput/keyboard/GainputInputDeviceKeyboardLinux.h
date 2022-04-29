@@ -21,12 +21,12 @@ public:
 		manager_(manager),
 		device_(device),
 		textInputEnabled_(true),
+		textCount_(0),
 		dialect_(manager_.GetAllocator()),
 		state_(&state),
 		previousState_(&previousState),
 		nextState_(manager.GetAllocator(), KeyCount_),
-		delta_(0),
-		textCount_(0)
+		delta_(0)
 	{
 		// Cf. <X11/keysymdef.h>
 		dialect_[XK_Escape] = KeyEscape;

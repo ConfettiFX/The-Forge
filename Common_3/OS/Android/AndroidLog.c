@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -55,12 +55,12 @@ void _FailedAssert(const char* file, int line, const char* statement)
 {
 #ifdef FORGE_DEBUG
 	__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Assertion failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-	// raise(SIGTRAP);
+	 raise(SIGTRAP);
 #endif
 }
 
-void _PrintUnicode(const char* str, bool error) { 
-
+void _PrintUnicode(const char* str, bool error)
+{
 	__android_log_write(error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "The-Forge", str);
 }
 #endif    // ifdef __ANDROID__

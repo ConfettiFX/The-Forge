@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,7 +36,7 @@
 
 // PREPROCESSOR DEFINES
 #define MAX_LUA_STR_LEN 256
-#define MAX_NUM_SCRIPTS   8
+#define MAX_NUM_SCRIPTS  16
 
 typedef struct ScriptInfo
 {
@@ -97,7 +97,7 @@ void registerCollapsingHeaderWidgetLua(const UIWidget* pWidget)
 	const CollapsingHeaderWidget* pOriginalWidget = (const CollapsingHeaderWidget*)(pWidget->pWidget);
 	for (UIWidget* widget : pOriginalWidget->mGroupedWidgets)
 	{
-		luaRegisterWidget(widget);
+		REGISTER_LUA_WIDGET(widget);
 	}
 }
 

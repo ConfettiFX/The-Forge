@@ -74,7 +74,7 @@
     </Manifest>
     <FSLShader>
       <Language>VULKAN</Language>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
     </FSLShader>
     <PreLinkEvent>
@@ -108,7 +108,7 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
     </Manifest>
     <FSLShader>
       <Language>VULKAN</Language>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
     </FSLShader>
     <PreLinkEvent>

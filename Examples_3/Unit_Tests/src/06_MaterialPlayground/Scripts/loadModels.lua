@@ -1,5 +1,5 @@
 --[[
-Copyright (c) 2018-2021 The Forge Interactive Inc.
+Copyright (c) 2017-2022 The Forge Interactive Inc.
 ]]--
 
 loader.LoadModel("matBall.gltf") --here model for materials showcase is loaded

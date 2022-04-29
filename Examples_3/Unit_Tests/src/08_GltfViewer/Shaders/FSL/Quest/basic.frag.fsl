@@ -125,7 +125,7 @@ float3 reconstructNormal(in(float4) sampleNormal)
 	return normalize(tangentNormal);
 }
 
-float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
+float3 getNormalFromMap(float3 normal, float3 viewDirection, float2 uv)
 {
 	uint textureIndex = Get(materialData).mNormalTextureProperties.mTextureSamplerIndex & 0xFFFF;
 	if (textureIndex == 0xFFFF) 
@@ -135,24 +135,21 @@ float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
 
 	float3 tangentNormal = reconstructNormal(SampleTex2D(Get(normalMap), Get(normalMapSampler), uv));
 
-	float3 Q1 = ddx(pos);
-	float3 Q2 = ddy(pos);
-	float2 st1 = ddx(uv);
-	float2 st2 = ddy(uv);
+	float3 dPdx = ddx(viewDirection);
+	float3 dPdy = ddy(viewDirection);
+	float2 dUVdx = ddx(uv);
+	float2 dUVdy = ddy(uv);
 
 	float3 N = normalize(normal);
-	float3 T = Q1*st2.g - Q2 * st1.g;
-	T = normalize(T);
+	float3 crossPdyN = cross(dPdy, N);
+	float3 crossNPdx = cross(N, dPdx); 
 
-	if(isnan(T.x) ||isnan(T.y) || isnan(T.z))
-	{
-		float3 UpVec = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
-		T = normalize(cross(N, UpVec));
-	}
+	float3 T = crossPdyN * dUVdx.x + crossNPdx * dUVdy.x;
+	float3 B = crossPdyN * dUVdx.y + crossNPdx * dUVdy.y;
 
-	float3 B = normalize(cross(T, N));
-	float3x3 TBN = make_f3x3_rows(T, B, N);
+	float invScale = rsqrt(max(dot(T, T), dot(B, B)));
 
+	float3x3 TBN = make_f3x3_rows(T * invScale, B * invScale, N);
 	return normalize(mul(tangentNormal, TBN));
 }
 
@@ -177,31 +174,6 @@ float3 N, float3 L, float3 V, float3 H, float NoL, float NoV)
 	float3 result = (diffuse + specular) * NoL * irradiance;
 
 	return result;
-}
-
-float CalcESMShadowFactor(float3 worldPos)
-{
-	float4 posLS = mul(Get(shadowLightViewProj), float4(worldPos.xyz, 1.0));
-	posLS /= posLS.w;
-	posLS.y *= -1;
-	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
-
-
-	float2 HalfGaps = float2(0.00048828125, 0.00048828125);
-	// float2 Gaps = float2(0.0009765625, 0.0009765625);
-
-	posLS.xy += HalfGaps;
-
-	float shadowFactor = 1.0;
-
-	float4 shadowDepthSample = float4(0, 0, 0, 0);
-	shadowDepthSample.x = SampleLvlTex2D(Get(ShadowTexture), Get(clampMiplessLinearSampler), posLS.xy, 0).r;
-	shadowDepthSample.y = SampleLvlOffsetTex2D(Get(ShadowTexture), Get(clampMiplessLinearSampler), posLS.xy, 0, int2(1, 0)).r;
-	shadowDepthSample.z = SampleLvlOffsetTex2D(Get(ShadowTexture), Get(clampMiplessLinearSampler), posLS.xy, 0, int2(0, 1)).r;
-	shadowDepthSample.w = SampleLvlOffsetTex2D(Get(ShadowTexture), Get(clampMiplessLinearSampler), posLS.xy, 0, int2(1, 1)).r;
-	float avgShadowDepthSample = (shadowDepthSample.x + shadowDepthSample.y + shadowDepthSample.z + shadowDepthSample.w) * 0.25f;
-	shadowFactor = saturate(2.0 - exp((posLS.z - avgShadowDepthSample) * 100.0f ));
-	return shadowFactor;
 }
 
 float random(float3 seed, float3 freq)
@@ -244,25 +216,29 @@ float CalcPCFShadowFactor(float3 worldPos)
 	return shadowFactor;
 }
 
-float CalculateShadow(float3 worldPos)
+float3 ComputeIBL(float3 albedo, float metalness, float roughness,
+	float NoV, float3 N, float3 V)
 {
-	float4 NDC = mul(Get(shadowLightViewProj), float4(worldPos, 1.0));
-	NDC /= NDC.w;
-	float Depth = NDC.z;
-	float2 ShadowCoord = float2((NDC.x + 1.0)*0.5, (1.0 - NDC.y)*0.5);
-	float ShadowDepth = SampleTex2D(Get(ShadowTexture), Get(clampMiplessLinearSampler), ShadowCoord).r;
-	
+	float3 F0 = float3(0.04f, 0.04f, 0.04f);
 
-	if(ShadowDepth - 0.002f > Depth)
-		return 0.0f;
-	else
-		return 1.0f;
+	float3 diffuse = (1.0 - metalness) * albedo;
+	float3 specular = lerp(F0, albedo, metalness);
+
+	float3 R = normalize(reflect(-V, N));
+
+	float3 irradiance = SampleTexCube(Get(iemCubemap), Get(cubemapSampler), N).rgb;
+	float3 radiance = SampleLvlTexCube(Get(pmremCubemap), Get(cubemapSampler), R, roughness * 10.0).rgb;
+	float2 brdf = SampleTex2D(Get(environmentBRDF), Get(cubemapSampler), float2(NoV, roughness)).rg;
+
+	return irradiance * diffuse + radiance * (specular * brdf.x + brdf.y);
 }
 
 PSOut PS_MAIN( PsIn In )
 {	
 	INIT_MAIN;
 	PSOut Out;
+
+	float3 V = normalize(Get(camPos).xyz - In.pos);
 
 	// TODO: multiply factors (e.g. mBaseColorFactor) by vertex colours.
 	float4 baseColor = sampleTexture(Get(materialData).mBaseColorProperties, 
@@ -287,7 +263,7 @@ PSOut PS_MAIN( PsIn In )
 	emissive *= Get(materialData).mEmissiveTextureProperties.mValueScale;
 	emissive.gb *= Get(materialData).mEmissiveGBScale;
 
-	float3 normal = getNormalFromMap(In.normal, In.pos, In.texCoord);
+	float3 normal = getNormalFromMap(In.normal, -V, In.texCoord);
 
 	// Apply alpha mask
 #if TARGET_ANDROID
@@ -305,11 +281,10 @@ PSOut PS_MAIN( PsIn In )
 	roughness = clamp(0.02f, 1.0f, roughness);
 
 	// Compute Direction light
-	float3 N = normal;	
-	float3 V = normalize(Get(camPos).xyz - In.pos);
+	float3 N = normal;
 	float NoV = max(dot(N,V), 0.0);	
 
-	float3 result = float3(0.0, 0.0, 0.0);
+	float3 result = ComputeIBL(baseColor.rgb, metalness.r, roughness, NoV, N, V);
 
 	UNROLL
 	for(uint i=0; i<1; ++i)

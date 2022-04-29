@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -70,7 +70,7 @@ enum
 	MAX_DEBUG_NAME_LENGTH = 128,
 	MAX_MIP_LEVELS = 0xFFFFFFFF,
 	MAX_SWAPCHAIN_IMAGES = 3,
-	MAX_GPU_VENDOR_STRING_LENGTH = 64,    //max size for GPUVendorPreset strings
+	MAX_GPU_VENDOR_STRING_LENGTH = 256,    //max size for GPUVendorPreset strings
 #if defined(VULKAN)
 	MAX_PLANE_COUNT = 3,
 	MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 1,
@@ -81,10 +81,13 @@ enum
 
 #ifdef DIRECT3D12
 // Forward declare memory allocator classes
-namespace D3D12MA {
+namespace D3D12MA
+{
 	class Allocator;
 	class Allocation;
-};    // namespace D3D12MA
+} // namespace D3D12MA
+
+typedef int32_t DxDescriptorID;
 #endif
 
 #if defined(ORBIS)
@@ -152,6 +155,15 @@ typedef enum LoadActionType
 	LOAD_ACTION_CLEAR,
 	MAX_LOAD_ACTION
 } LoadActionType;
+
+typedef enum StoreActionType
+{
+	// Store is the most common use case so keep that as default
+	STORE_ACTION_STORE,
+	STORE_ACTION_DONTCARE,
+	STORE_ACTION_NONE,
+	MAX_STORE_ACTION
+} StoreActionType;
 
 typedef void (*LogFn)(LogLevel, const char*, const char*);
 
@@ -863,11 +875,11 @@ typedef struct DEFINE_ALIGNED(Buffer, 64)
 			/// GPU Address - Cache to avoid calls to ID3D12Resource::GetGpuVirtualAddress
 			D3D12_GPU_VIRTUAL_ADDRESS mDxGpuAddress;
 			/// Descriptor handle of the CBV in a CPU visible descriptor heap (applicable to BUFFER_USAGE_UNIFORM)
-			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptorHandles;
+			DxDescriptorID mDescriptors;
 			/// Offset from mDxDescriptors for srv descriptor handle
-			uint64_t mDxSrvOffset : 8;
+			uint8_t mSrvDescriptorOffset;
 			/// Offset from mDxDescriptors for uav descriptor handle
-			uint64_t mDxUavOffset : 8;
+			uint8_t mUavDescriptorOffset;
 			/// Native handle of the underlying resource
 			ID3D12Resource* pDxResource;
 			/// Contains resource allocation info such as parent heap, offset in heap
@@ -1090,14 +1102,13 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 		struct
 		{
 			/// Descriptor handle of the SRV in a CPU visible descriptor heap (applicable to TEXTURE_USAGE_SAMPLED_IMAGE)
-			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptorHandles;
+			DxDescriptorID                mDescriptors;
 			/// Native handle of the underlying resource
-			ID3D12Resource* pDxResource;
+			ID3D12Resource*             pDxResource;
 			/// Contains resource allocation info such as parent heap, offset in heap
-			D3D12MA::Allocation* pDxAllocation;
-			uint64_t             mHandleCount : 24;
-			uint64_t             mUavStartIndex : 1;
-			uint32_t             mDescriptorSize;
+			D3D12MA::Allocation*        pDxAllocation;
+			uint32_t                    mHandleCount : 24;
+			uint32_t                    mUavStartIndex;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
@@ -1128,7 +1139,6 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 			id<MTLTexture> __strong* pMtlUAVDescriptors;
 			id                       mpsTextureAllocator;
 			uint32_t                 mtlPixelFormat;
-			uint32_t                 mFlags : 31;
 			uint32_t                 mIsColorAttachment : 1;
 		};
 #endif
@@ -1175,6 +1185,8 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 	uint32_t mUav : 1;
 	/// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
 	uint32_t mOwnsImage : 1;
+	// Only applies to Vulkan but kept here as adding it inside mVulkan block increases the size of the struct and triggers assert below
+	uint32_t mLazilyAllocated : 1;
 } Texture;
 // One cache line
 COMPILE_ASSERT(sizeof(Texture) == 8 * sizeof(uint64_t));
@@ -1224,8 +1236,7 @@ typedef struct DEFINE_ALIGNED(RenderTarget, 64)
 #if defined(DIRECT3D12)
 		struct
 		{
-			D3D12_CPU_DESCRIPTOR_HANDLE mDxDescriptors;
-			uint32_t                    mDxDescriptorSize;
+			DxDescriptorID                mDescriptors;
 			uint32_t                    mPadA;
 			uint64_t                    mPadB;
 			uint64_t                    mPadC;
@@ -1304,11 +1315,14 @@ COMPILE_ASSERT(sizeof(RenderTarget) <= 32 * sizeof(uint64_t));
 
 typedef struct LoadActionsDesc
 {
-	ClearValue     mClearColorValues[MAX_RENDER_TARGET_ATTACHMENTS];
-	LoadActionType mLoadActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
-	ClearValue     mClearDepth;
-	LoadActionType mLoadActionDepth;
-	LoadActionType mLoadActionStencil;
+	LoadActionType  mLoadActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
+	LoadActionType  mLoadActionDepth;
+	LoadActionType  mLoadActionStencil;
+	ClearValue      mClearColorValues[MAX_RENDER_TARGET_ATTACHMENTS];
+	ClearValue      mClearDepth;
+	StoreActionType mStoreActionsColor[MAX_RENDER_TARGET_ATTACHMENTS];
+	StoreActionType mStoreActionDepth;
+	StoreActionType mStoreActionStencil;
 } LoadActionsDesc;
 
 typedef struct SamplerDesc
@@ -1320,6 +1334,9 @@ typedef struct SamplerDesc
 	AddressMode mAddressV;
 	AddressMode mAddressW;
 	float       mMipLodBias;
+	bool		mSetLodRange;
+	float       mMinLod;
+	float       mMaxLod;
 	float       mMaxAnisotropy;
 	CompareMode mCompareFunc;
 
@@ -1345,9 +1362,9 @@ typedef struct DEFINE_ALIGNED(Sampler, 16)
 		struct
 		{
 			/// Description for creating the Sampler descriptor for this sampler
-			D3D12_SAMPLER_DESC mDxDesc;
+			D3D12_SAMPLER_DESC mDesc;
 			/// Descriptor handle of the Sampler in a CPU visible descriptor heap
-			D3D12_CPU_DESCRIPTOR_HANDLE mDxHandle;
+			DxDescriptorID     mDescriptor;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
@@ -1661,20 +1678,20 @@ typedef struct DEFINE_ALIGNED(DescriptorSet, 64)
 		struct
 		{
 			/// Start handle to cbv srv uav descriptor table
-			uint64_t                   mCbvSrvUavHandle;
+			DxDescriptorID               mCbvSrvUavHandle;
 			/// Start handle to sampler descriptor table
-			uint64_t                   mSamplerHandle;
+			DxDescriptorID               mSamplerHandle;
 			/// Stride of the cbv srv uav descriptor table (number of descriptors * descriptor size)
 			uint32_t                   mCbvSrvUavStride;
 			/// Stride of the sampler descriptor table (number of descriptors * descriptor size)
 			uint32_t                   mSamplerStride;
 			const RootSignature*       pRootSignature;
-			uint64_t                   mMaxSets : 16;
-			uint64_t                   mUpdateFrequency : 3;
-			uint64_t                   mNodeIndex : 4;
-			uint64_t                   mCbvSrvUavRootIndex : 4;
-			uint64_t                   mSamplerRootIndex : 4;
-			uint64_t                   mPipelineType : 3;
+			uint32_t                   mMaxSets : 16;
+			uint32_t                   mUpdateFrequency : 3;
+			uint32_t                   mNodeIndex : 4;
+			uint32_t                   mCbvSrvUavRootIndex : 4;
+			uint32_t                   mSamplerRootIndex : 4;
+			uint32_t                   mPipelineType : 3;
 		} mD3D12;
 #endif
 #if defined(VULKAN)
@@ -1703,6 +1720,9 @@ typedef struct DEFINE_ALIGNED(DescriptorSet, 64)
 			struct RootDescriptorData* pRootDescriptorData;
 			uint32_t                   mChunkSize;
 			uint32_t                   mMaxSets;
+			uint32_t                   mRootBufferCount : 10;
+			uint32_t                   mRootTextureCount : 10;
+			uint32_t                   mRootSamplerCount : 10;
 			uint8_t                    mUpdateFrequency;
 			uint8_t                    mNodeIndex;
 			uint8_t                    mStages;
@@ -2287,6 +2307,7 @@ typedef struct VertexLayout
 {
 	uint32_t     mAttribCount;
 	VertexAttrib mAttribs[MAX_VERTEX_ATTRIBS];
+	uint32_t     mStrides[MAX_VERTEX_BINDINGS];
 } VertexLayout;
 
 /************************************************************************/
@@ -2703,7 +2724,7 @@ typedef struct RendererDesc
 	ShaderTarget mShaderTarget;
 	GpuMode      mGpuMode;
 
-	/// Required when creating unlinked multiple renderers. Ignored otherwise.
+	/// Required when creating unlinked multiple renderers. Optional otherwise, can be used for explicit GPU selection.
 	RendererContext* pContext;
 	uint32_t         mGpuIndex;
 
@@ -2711,8 +2732,8 @@ typedef struct RendererDesc
 	/// However, it can slow things down a lot, especially for applications with numerous PSOs. Time to see the first render frame may take several minutes
 	bool mEnableGPUBasedValidation;
 
-	bool mD3D11Unsupported; 
-	bool mGLESUnsupported; 
+	bool mD3D11Supported;
+	bool mGLESSupported;
 } RendererDesc;
 
 typedef struct GPUVendorPreset
@@ -2860,6 +2881,10 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 			uint32_t               mDedicatedAllocationExtension : 1;
 			uint32_t               mExternalMemoryExtension : 1;
 			uint32_t               mDebugMarkerSupport : 1;
+			uint32_t               mOwnInstance : 1;
+#if defined(QUEST_VR)
+			uint32_t               mMultiviewExtension : 1;
+#endif
 			union
 			{
 				struct
@@ -3069,7 +3094,6 @@ typedef struct CommandSignature
 		{
 			struct IndirectArgument* pIndirectArguments;
 			uint32_t                 mIndirectArgumentCount;
-			uint32_t                 mStride;
 		};
 #endif
 #if defined(METAL)
@@ -3077,26 +3101,24 @@ typedef struct CommandSignature
 		{
 			struct IndirectArgument* pIndirectArguments;
 			uint32_t                 mIndirectArgumentCount;
-			uint32_t                 mStride;
 		};
 #endif
 #if defined(ORBIS)
 		struct
 		{
 			IndirectArgumentType mDrawType;
-			uint32_t             mStride;
 		};
 #endif
 #if defined(PROSPERO)
 		struct
 		{
 			IndirectArgumentType mDrawType;
-			uint32_t             mStride;
 		};
 #endif
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	};
 #endif
+	uint32_t                mStride;
 } CommandSignature;
 
 typedef struct DescriptorSetDesc
@@ -3128,9 +3150,18 @@ typedef struct QueuePresentDesc
 	bool        mSubmitDone;
 } QueuePresentDesc;
 
+#ifdef __INTELLISENSE__
+// IntelliSense is the code completion engine in Visual Studio. When it parses the source files, __INTELLISENSE__ macro is defined.
+// Here we trick IntelliSense into thinking that the renderer functions are not function pointers, but just regular functions.
+// What this achieves is filtering out duplicated function names from code completion results and improving the code completion for function parameters.
+// This dramatically improves the quality of life for Visual Studio users.
+#define DECLARE_RENDERER_FUNCTION(ret, name, ...)                     \
+	ret name(__VA_ARGS__);
+#else
 #define DECLARE_RENDERER_FUNCTION(ret, name, ...)                     \
 	typedef API_INTERFACE ret(FORGE_CALLCONV* name##Fn)(__VA_ARGS__); \
 	extern name##Fn       name;
+#endif
 
 // clang-format off
 // API functions

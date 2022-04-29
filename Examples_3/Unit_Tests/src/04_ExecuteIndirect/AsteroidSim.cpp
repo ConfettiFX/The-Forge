@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,16 +37,6 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 ///////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 The Forge Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from The Forge Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 
 #include "../../../../Common_3/OS/Interfaces/IOperatingSystem.h"
 #include "AsteroidSim.h"
@@ -140,6 +130,8 @@ void AsteroidSimulation::Init(
 		mat4            translate = mat4::translation(vec3(orbitRadius, height, 0));
 		mat4            orbit = mat4::rotation(orbitAngle, vec3(0, 1, 0));
 		dynamicAsteroid.transform = orbit * translate * scaleMat;
+        dynamicAsteroid.indexCount = 0;
+        dynamicAsteroid.indexStart = 0;
 		asteroidsDynamic.push_back(dynamicAsteroid);
 	}
 }

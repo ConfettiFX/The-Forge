@@ -100,8 +100,11 @@
     <Filter Include="OS\VR">
       <UniqueIdentifier>{0dadd2f0-95c1-4429-a129-6312c70cad2c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dependencies\meshoptimizer">
-      <UniqueIdentifier>{eb07092e-b5dc-4bd2-9789-408ffcf01e28}</UniqueIdentifier>
+    <Filter Include="Dependencies\cpu_features">
+      <UniqueIdentifier>{fd83ff81-c5e4-496e-a0af-93c52d9dcc3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\WindowSystem">
+      <UniqueIdentifier>{ce1a1af6-9a40-4f89-9625-5df3c8fb115c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -381,50 +384,26 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\hwcaps.c">
+      <Filter>Dependencies\cpu_features</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c">
+      <Filter>Dependencies\cpu_features</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\CPUConfig.cpp">
+      <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_x86_linux_or_android.c">
+      <Filter>Dependencies\cpu_features</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\stbtt.cpp">
+      <Filter>OS\Fonts</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
+      <Filter>OS\WindowSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidWindow.cpp">
+      <Filter>OS\Android</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -589,9 +568,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Config.h">
       <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h">
-      <Filter>Dependencies\meshoptimizer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

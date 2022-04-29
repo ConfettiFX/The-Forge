@@ -396,6 +396,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
             'SV_OUTPUTCONTROLPOINTID',
             'SV_DOMAINLOCATION',
             'SV_SHADINGRATE',
+            'SV_ISFRONTFACE',
         ]
         is_builtin = False
         for flat_arg_dtype in flat_arg_dtypes:

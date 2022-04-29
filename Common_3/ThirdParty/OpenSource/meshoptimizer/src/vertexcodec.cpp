@@ -1,8 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // The block below auto-detects SIMD ISA that can be used on the target platform
 #ifndef MESHOPTIMIZER_NO_SIMD
@@ -138,7 +137,7 @@ static bool encodeBytesGroupZero(const unsigned char* buffer)
 
 static size_t encodeBytesGroupMeasure(const unsigned char* buffer, int bits)
 {
-	assert(bits >= 1 && bits <= 8);
+	ASSERT(bits >= 1 && bits <= 8);
 
 	if (bits == 1)
 		return encodeBytesGroupZero(buffer) ? 0 : size_t(-1);
@@ -158,7 +157,7 @@ static size_t encodeBytesGroupMeasure(const unsigned char* buffer, int bits)
 
 static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char* buffer, int bits)
 {
-	assert(bits >= 1 && bits <= 8);
+	ASSERT(bits >= 1 && bits <= 8);
 
 	if (bits == 1)
 		return data;
@@ -170,7 +169,7 @@ static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char*
 	}
 
 	size_t byte_size = 8 / bits;
-	assert(kByteGroupSize % byte_size == 0);
+	ASSERT(kByteGroupSize % byte_size == 0);
 
 	// fixed portion: bits bits for each value
 	// variable portion: full byte for each out-of-range value (using 1...1 as sentinel)
@@ -204,7 +203,7 @@ static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char*
 
 static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, const unsigned char* buffer, size_t buffer_size)
 {
-	assert(buffer_size % kByteGroupSize == 0);
+	ASSERT(buffer_size % kByteGroupSize == 0);
 
 	unsigned char* header = data;
 
@@ -238,7 +237,7 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 		}
 
 		int bitslog2 = (best_bits == 1) ? 0 : (best_bits == 2) ? 1 : (best_bits == 4) ? 2 : 3;
-		assert((1 << bitslog2) == best_bits);
+		ASSERT((1 << bitslog2) == best_bits);
 
 		size_t header_offset = i / kByteGroupSize;
 
@@ -246,7 +245,7 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 
 		unsigned char* next = encodeBytesGroup(data, buffer + i, best_bits);
 
-		assert(data + best_size == next);
+		ASSERT(data + best_size == next);
 		data = next;
 	}
 
@@ -255,10 +254,10 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 
 static unsigned char* encodeVertexBlock(unsigned char* data, unsigned char* data_end, const unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize];
-	assert(sizeof(buffer) % kByteGroupSize == 0);
+	ASSERT(sizeof(buffer) % kByteGroupSize == 0);
 
 	// we sometimes encode elements we didn't fill when rounding to kByteGroupSize
 	memset(buffer, 0, sizeof(buffer));
@@ -330,7 +329,7 @@ static const unsigned char* decodeBytesGroup(const unsigned char* data, unsigned
 		memcpy(buffer, data, kByteGroupSize);
 		return data + kByteGroupSize;
 	default:
-		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		ASSERT(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 
@@ -340,7 +339,7 @@ static const unsigned char* decodeBytesGroup(const unsigned char* data, unsigned
 
 static const unsigned char* decodeBytes(const unsigned char* data, const unsigned char* data_end, unsigned char* buffer, size_t buffer_size)
 {
-	assert(buffer_size % kByteGroupSize == 0);
+	ASSERT(buffer_size % kByteGroupSize == 0);
 
 	const unsigned char* header = data;
 
@@ -369,7 +368,7 @@ static const unsigned char* decodeBytes(const unsigned char* data, const unsigne
 
 static const unsigned char* decodeVertexBlock(const unsigned char* data, const unsigned char* data_end, unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize];
 	unsigned char transposed[kVertexBlockSizeBytes];
@@ -525,7 +524,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		ASSERT(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
@@ -584,7 +583,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		ASSERT(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
@@ -688,7 +687,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		ASSERT(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
@@ -792,7 +791,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		ASSERT(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
@@ -876,8 +875,8 @@ static v128_t unzigzag8(v128_t v)
 SIMD_TARGET
 static const unsigned char* decodeBytesSimd(const unsigned char* data, const unsigned char* data_end, unsigned char* buffer, size_t buffer_size)
 {
-	assert(buffer_size % kByteGroupSize == 0);
-	assert(kByteGroupSize == 16);
+	ASSERT(buffer_size % kByteGroupSize == 0);
+	ASSERT(kByteGroupSize == 16);
 
 	const unsigned char* header = data;
 
@@ -922,7 +921,7 @@ static const unsigned char* decodeBytesSimd(const unsigned char* data, const uns
 SIMD_TARGET
 static const unsigned char* decodeVertexBlockSimd(const unsigned char* data, const unsigned char* data_end, unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize * 4];
 	unsigned char transposed[kVertexBlockSizeBytes];
@@ -1039,8 +1038,8 @@ size_t meshopt_encodeVertexBuffer(unsigned char* buffer, size_t buffer_size, con
 {
 	using namespace meshopt;
 
-	assert(vertex_size > 0 && vertex_size <= 256);
-	assert(vertex_size % 4 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(vertex_size % 4 == 0);
 
 	const unsigned char* vertex_data = static_cast<const unsigned char*>(vertices);
 
@@ -1091,8 +1090,8 @@ size_t meshopt_encodeVertexBuffer(unsigned char* buffer, size_t buffer_size, con
 	memcpy(data, first_vertex, vertex_size);
 	data += vertex_size;
 
-	assert(data >= buffer + tail_size);
-	assert(data <= buffer + buffer_size);
+	ASSERT(data >= buffer + tail_size);
+	ASSERT(data <= buffer + buffer_size);
 
 	return data - buffer;
 }
@@ -1101,8 +1100,8 @@ size_t meshopt_encodeVertexBufferBound(size_t vertex_count, size_t vertex_size)
 {
 	using namespace meshopt;
 
-	assert(vertex_size > 0 && vertex_size <= 256);
-	assert(vertex_size % 4 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(vertex_size % 4 == 0);
 
 	size_t vertex_block_size = getVertexBlockSize(vertex_size);
 	size_t vertex_block_count = (vertex_count + vertex_block_size - 1) / vertex_block_size;
@@ -1117,7 +1116,7 @@ size_t meshopt_encodeVertexBufferBound(size_t vertex_count, size_t vertex_size)
 
 void meshopt_encodeVertexVersion(int version)
 {
-	assert(unsigned(version) <= 0);
+	ASSERT(unsigned(version) <= 0);
 
 	meshopt::gEncodeVertexVersion = version;
 }
@@ -1126,8 +1125,8 @@ int meshopt_decodeVertexBuffer(void* destination, size_t vertex_count, size_t ve
 {
 	using namespace meshopt;
 
-	assert(vertex_size > 0 && vertex_size <= 256);
-	assert(vertex_size % 4 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(vertex_size % 4 == 0);
 
 	const unsigned char* (*decode)(const unsigned char*, const unsigned char*, unsigned char*, size_t, size_t, unsigned char[256]) = 0;
 
@@ -1140,7 +1139,7 @@ int meshopt_decodeVertexBuffer(void* destination, size_t vertex_count, size_t ve
 #endif
 
 #if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
-	assert(gDecodeBytesGroupInitialized);
+	ASSERT(gDecodeBytesGroupInitialized);
 	(void)gDecodeBytesGroupInitialized;
 #endif
 

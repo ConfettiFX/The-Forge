@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -131,13 +131,13 @@ inline bool parseConfigLine(
 	};
 
 	// Initialize all to empty string
-	for (int i = 0; i < sizeof(tokens)/sizeof(tokens[0]); ++i)
+	for (uint32_t i = 0; i < sizeof(tokens)/sizeof(tokens[0]); ++i)
 	{
 		tokens[i][0] = '\0';
 	}
 
 	// Tokenize line
-	for (int i = 0; pLine != pLineEnd && i < sizeof(tokens) / sizeof(tokens[0]); ++i)
+	for (uint32_t i = 0; pLine != pLineEnd && i < sizeof(tokens) / sizeof(tokens[0]); ++i)
 	{
 		const char* begin = pLine;
 		const char* end = pLine + strcspn(pLine, ";");
@@ -379,7 +379,7 @@ static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 	return successFinal;
 }
 
-static void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gpuCount)
+inline void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gpuCount)
 {
 	GPUVendorPreset activeTestingPreset;
 	bool            activeTestingGpu = getActiveGpuConfig(activeTestingPreset);

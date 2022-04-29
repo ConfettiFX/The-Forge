@@ -224,7 +224,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 #endif
 
 /*
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -249,6 +249,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 
 //****************************************************************************
 // List of added functionalities:
+// - Random
 // - Vector2/3/4 comparison operators
 // - half float
 // - float2/3/4
@@ -272,6 +273,15 @@ namespace Vectormath
 #define PI 3.14159265358979323846f
 static const float piMulTwo = 6.283185307179586476925f;        //!< pi*2 constant
 static const float piDivTwo = 1.570796326794896619231f;        //!< pi/2 constant
+
+// Range [0.f, 1.f]
+inline float randomFloat01() { return rand() / (float)RAND_MAX; }
+
+// Range [mn, mx]
+inline float randomFloat(float mn, float mx) { return randomFloat01() * (mx - mn) + mn; }
+
+// Range [mn, mx)
+inline int randomInt(int mn, int mx) { return rand() % (mx - mn) + mn; }
 
 //----------------------------------------------------------------------------
 // Comparison operators for Vector2/3/

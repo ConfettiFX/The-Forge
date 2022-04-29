@@ -259,13 +259,17 @@ static int fons__tt_getGlyphKernAdvance(FONSttFontImpl *font, int glyph1, int gl
 
 #else
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#define STBTT_STATIC
-static void* fons__tmpalloc(size_t size, void* up);
-static void fons__tmpfree(void* ptr, void* up);
-#define STBTT_malloc(x,u)    fons__tmpalloc(x,u)
-#define STBTT_free(x,u)      fons__tmpfree(x,u)
-#include "stb_truetype.h"
+// Using a unified stbtt implementation for fontstash and imgui
+// All we need is the header for the function declarations since they're compiled in Core/stbtt.cpp
+#include "../../Nothings/stb_truetype.h"
+
+//Previous implementation:
+//#define STB_TRUETYPE_IMPLEMENTATION
+//#define STBTT_STATIC
+//static void* fons__tmpalloc(size_t size, void* up);
+//static void fons__tmpfree(void* ptr, void* up);
+//#define STBTT_malloc(x,u)    fons__tmpalloc(x,u)
+//#define STBTT_free(x,u)      fons__tmpfree(x,u)
 
 struct FONSttFontImpl {
 	stbtt_fontinfo font;

@@ -27,7 +27,7 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
     DATA(float2, TexCoord, TEXCOORD);
-    DATA(FLAT(uint), ViewID, TEXCOORD1);
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
 };
 
 float4 PS_MAIN( VSOutput In )

@@ -99,7 +99,7 @@ public:
     friend inline const FloatInVec operator / (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const FloatInVec operator + (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const FloatInVec operator - (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, BoolInVec select_vec1);
+    friend inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, const BoolInVec & select_vec1);
 
 } VECTORMATH_ALIGNED_TYPE_POST;
 
@@ -113,6 +113,7 @@ inline const FloatInVec operator *  (const FloatInVec & vec0, const FloatInVec &
 inline const FloatInVec operator /  (const FloatInVec & vec0, const FloatInVec & vec1);
 inline const FloatInVec operator +  (const FloatInVec & vec0, const FloatInVec & vec1);
 inline const FloatInVec operator -  (const FloatInVec & vec0, const FloatInVec & vec1);
+
 inline const BoolInVec  operator <  (const FloatInVec & vec0, const FloatInVec & vec1);
 inline const BoolInVec  operator <= (const FloatInVec & vec0, const FloatInVec & vec1);
 inline const BoolInVec  operator >  (const FloatInVec & vec0, const FloatInVec & vec1);

@@ -15,10 +15,6 @@
     <ClCompile Include="..\..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\Quest\basic.frag.fsl" />
-    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\Quest\basic.vert.fsl" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
       <Project>{30dd3d57-0026-48c8-bfd1-6392f319e23a}</Project>
     </ProjectReference>
@@ -34,6 +30,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.vert.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6E3EA66-19D5-46EE-B111-877DD965AB89}</ProjectGuid>
@@ -107,7 +107,7 @@
 
         xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
         xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />

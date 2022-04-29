@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -90,17 +90,22 @@ RES(SamplerState, occlusionMapSampler, UPDATE_FREQ_PER_DRAW, s3, binding = 9);
 RES(SamplerState, emissiveMapSampler, UPDATE_FREQ_PER_DRAW, s4, binding = 10);
 RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s7, binding = 7);
 
-// FFXA + watermark + vignette
+RES(TexCube(float4), iemCubemap, UPDATE_FREQ_NONE, t15, binding = 15);
+RES(TexCube(float4), pmremCubemap, UPDATE_FREQ_NONE, t16, binding = 16);
+RES(Tex2D(float4), environmentBRDF, UPDATE_FREQ_NONE, t17, binding = 17);
+RES(SamplerState, cubemapSampler, UPDATE_FREQ_NONE, t18, binding = 18);
 #else
 
 RES(Tex2DArray(float4), sceneTexture, UPDATE_FREQ_NONE, t6, binding = 6);
-RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s7, binding = 7);
+RES(Tex2DArray(float4), historyTexture, UPDATE_FREQ_NONE, t7, binding = 7);
+RES(Tex2DArray(float), depthTexture, UPDATE_FREQ_NONE, t8, binding = 8);
 
-PUSH_CONSTANT(FXAARootConstant, b0)
+RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s9, binding = 9);
+RES(SamplerState, clampMiplessPointSampler, UPDATE_FREQ_NONE, s10, binding = 10);
+
+CBUFFER(TAAUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0)
 {
-	DATA(float2, ScreenSize, None);
-	DATA(uint, Use, None);
-	DATA(uint, padding00, None);
+	DATA(float4x4, ReprojectionMatrix[VR_MULTIVIEW_COUNT], None);
 };
 
 #endif

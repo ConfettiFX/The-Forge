@@ -65,6 +65,19 @@ def main():
         Languages.GLES :       Gen(generators.gles,   compilers.gles),
     }
 
+    # Seperate folders per render API
+    folder_map = {
+        Languages.DIRECT3D11:       "DIRECT3D11",
+        Languages.DIRECT3D12:       "DIRECT3D12",
+        Languages.VULKAN:           "VULKAN",
+        Languages.METAL:            "",
+        Languages.ORBIS:            "",
+        Languages.PROSPERO:         "",
+        Languages.XBOX :            "DIRECT3D12",
+        Languages.SCARLETT :        "DIRECT3D12",
+        Languages.GLES :            "GLES",
+    }
+
     if args.fsl_input.endswith('.h.fsl'):
         return 0
 
@@ -82,10 +95,8 @@ def main():
             out_filename = out_filename.replace('.tese', '.tese.vert')
             out_filename += '.metal'
 
-        dst_dir = args.destination
-        # if generating multiple language in a single call, create per-language subdirectories
-        if len(languages) > 1:
-            dst_dir = os.path.join(dst_dir, language.name)
+        # Create per-language subdirectories
+        dst_dir = os.path.join(args.destination, folder_map[language])
         os.makedirs(dst_dir, exist_ok=True)
         out_filepath = os.path.normpath(os.path.join(dst_dir, out_filename)).replace(os.sep, '/')
 

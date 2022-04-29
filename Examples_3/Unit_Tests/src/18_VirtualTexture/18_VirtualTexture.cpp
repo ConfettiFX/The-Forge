@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -216,8 +216,6 @@ public:
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -426,6 +424,11 @@ public:
 			//vtInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			vtInfoDesc.pData = NULL;
 			vtInfoDesc.ppBuffer = &pVirtualTextureInfo[i];
+
+			char debugNameBuf[MAX_DEBUG_NAME_LENGTH]{};
+			snprintf(debugNameBuf, MAX_DEBUG_NAME_LENGTH, "%s - Sparse Texture Info buffer", gPlanetName[i]);
+			vtInfoDesc.mDesc.pName = debugNameBuf;
+
 			addResource(&vtInfoDesc, NULL);
 		}
 
@@ -520,6 +523,10 @@ public:
 				ptInfoDesc.mDesc.mSize = sizeof(data);
 				ptInfoDesc.pData = &data;
 				ptInfoDesc.ppBuffer = &pVirtualTextureBufferInfo[i][j];
+
+				char debugNameBuffer[MAX_DEBUG_NAME_LENGTH];
+				snprintf(debugNameBuffer, MAX_DEBUG_NAME_LENGTH, "%s - VT Buffer Info", gPlanetName[i]);
+				ptInfoDesc.mDesc.pName = debugNameBuffer;
 				addResource(&ptInfoDesc, NULL);
 
 				BufferLoadDesc visDesc = {};
@@ -531,8 +538,7 @@ public:
 				visDesc.mDesc.mSize = visDesc.mDesc.mStructStride * visDesc.mDesc.mElementCount;
 				visDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 
-				char debugNameBuffer[MAX_DEBUG_NAME_LENGTH];
-				snprintf(debugNameBuffer, MAX_DEBUG_NAME_LENGTH, "%s - Vis Buffer for Sparse Texture #%u/%u", gPlanetName[i], j, gImageCount);
+				snprintf(debugNameBuffer, MAX_DEBUG_NAME_LENGTH, "%s - Vis Buffer for Sparse Texture #%u/%u", gPlanetName[i], j+1, gImageCount);
 				visDesc.mDesc.pName = debugNameBuffer;
 
 				addResource(&visDesc, NULL);
@@ -755,22 +761,24 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1085,6 +1093,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -1233,7 +1247,7 @@ public:
 #if !defined(__ANDROID__)
 			sprintf(gUpdateVirtualTextureText, "Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken));
 
-			screenCoords = float2(8.f, txtSize.y + 30.f);
+			screenCoords = float2(8.f, txtSize.y + 75.0f);
 
 			gFrameTimeDraw.pText = gUpdateVirtualTextureText;
 			cmdDrawTextWithFont(cmd, screenCoords, &gFrameTimeDraw);

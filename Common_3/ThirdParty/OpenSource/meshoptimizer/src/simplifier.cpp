@@ -1,10 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <float.h>
-#include <math.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 #ifndef TRACE
 #define TRACE 0
@@ -59,7 +56,7 @@ static void updateEdgeAdjacency(EdgeAdjacency& adjacency, const unsigned int* in
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int v = remap ? remap[indices[i]] : indices[i];
-		assert(v < vertex_count);
+		ASSERT(v < vertex_count);
 
 		adjacency.counts[v]++;
 	}
@@ -73,7 +70,7 @@ static void updateEdgeAdjacency(EdgeAdjacency& adjacency, const unsigned int* in
 		offset += adjacency.counts[i];
 	}
 
-	assert(offset == index_count);
+	ASSERT(offset == index_count);
 
 	// fill edge data
 	for (size_t i = 0; i < face_count; ++i)
@@ -103,7 +100,7 @@ static void updateEdgeAdjacency(EdgeAdjacency& adjacency, const unsigned int* in
 	// fix offsets that have been disturbed by the previous pass
 	for (size_t i = 0; i < vertex_count; ++i)
 	{
-		assert(adjacency.offsets[i] >= adjacency.counts[i]);
+		ASSERT(adjacency.offsets[i] >= adjacency.counts[i]);
 
 		adjacency.offsets[i] -= adjacency.counts[i];
 	}
@@ -145,8 +142,8 @@ static size_t hashBuckets2(size_t count)
 template <typename T, typename Hash>
 static T* hashLookup2(T* table, size_t buckets, const Hash& hash, const T& key, const T& empty)
 {
-	assert(buckets > 0);
-	assert((buckets & (buckets - 1)) == 0);
+	ASSERT(buckets > 0);
+	ASSERT((buckets & (buckets - 1)) == 0);
 
 	size_t hashmod = buckets - 1;
 	size_t bucket = hash.hash(key) & hashmod;
@@ -165,7 +162,7 @@ static T* hashLookup2(T* table, size_t buckets, const Hash& hash, const T& key, 
 		bucket = (bucket + probe + 1) & hashmod;
 	}
 
-	assert(false && "Hash table is full"); // unreachable
+	ASSERT(false && "Hash table is full"); // unreachable
 	return 0;
 }
 
@@ -348,7 +345,7 @@ static void classifyVertices(unsigned char* result, unsigned int* loop, unsigned
 		}
 		else
 		{
-			assert(remap[i] < i);
+			ASSERT(remap[i] < i);
 
 			result[i] = result[remap[i]];
 		}
@@ -641,8 +638,8 @@ static bool hasTriangleFlip(const Vector3& a, const Vector3& b, const Vector3& c
 
 static bool hasTriangleFlips(const EdgeAdjacency& adjacency, const Vector3* vertex_positions, const unsigned int* collapse_remap, unsigned int i0, unsigned int i1)
 {
-	assert(collapse_remap[i0] == i0);
-	assert(collapse_remap[i1] == i1);
+	ASSERT(collapse_remap[i0] == i0);
+	ASSERT(collapse_remap[i1] == i1);
 
 	const Vector3& v0 = vertex_positions[i0];
 	const Vector3& v1 = vertex_positions[i1];
@@ -834,7 +831,7 @@ static void sortEdgeCollapses(unsigned int* sort_order, const Collapse* collapse
 		histogram_sum += count;
 	}
 
-	assert(histogram_sum == collapse_count);
+	ASSERT(histogram_sum == collapse_count);
 
 	// compute sort order based on offsets
 	for (size_t i = 0; i < collapse_count; ++i)
@@ -904,8 +901,8 @@ static size_t performEdgeCollapses(unsigned int* collapse_remap, unsigned char* 
 			continue;
 		}
 
-		assert(collapse_remap[r0] == r0);
-		assert(collapse_remap[r1] == r1);
+		ASSERT(collapse_remap[r0] == r0);
+		ASSERT(collapse_remap[r1] == r1);
 
 		quadricAdd(vertex_quadrics[r1], vertex_quadrics[r0]);
 
@@ -925,15 +922,15 @@ static size_t performEdgeCollapses(unsigned int* collapse_remap, unsigned char* 
 			unsigned int s0 = wedge[i0];
 			unsigned int s1 = wedge[i1];
 
-			assert(s0 != i0 && s1 != i1);
-			assert(wedge[s0] == i0 && wedge[s1] == i1);
+			ASSERT(s0 != i0 && s1 != i1);
+			ASSERT(wedge[s0] == i0 && wedge[s1] == i1);
 
 			collapse_remap[i0] = i1;
 			collapse_remap[s0] = s1;
 		}
 		else
 		{
-			assert(wedge[i0] == i0);
+			ASSERT(wedge[i0] == i0);
 
 			collapse_remap[i0] = i1;
 		}
@@ -970,9 +967,9 @@ static size_t remapIndexBuffer(unsigned int* indices, size_t index_count, const 
 		unsigned int v2 = collapse_remap[indices[i + 2]];
 
 		// we never move the vertex twice during a single pass
-		assert(collapse_remap[v0] == v0);
-		assert(collapse_remap[v1] == v1);
-		assert(collapse_remap[v2] == v2);
+		ASSERT(collapse_remap[v0] == v0);
+		ASSERT(collapse_remap[v1] == v1);
+		ASSERT(collapse_remap[v2] == v2);
 
 		if (v0 != v1 && v0 != v2 && v1 != v2)
 		{
@@ -1064,7 +1061,7 @@ struct TriangleHasher
 
 static void computeVertexIds(unsigned int* vertex_ids, const Vector3* vertex_positions, size_t vertex_count, int grid_size)
 {
-	assert(grid_size >= 1 && grid_size <= 1024);
+	ASSERT(grid_size >= 1 && grid_size <= 1024);
 	float cell_scale = float(grid_size - 1);
 
 	for (size_t i = 0; i < vertex_count; ++i)
@@ -1268,10 +1265,10 @@ size_t meshopt_simplify(unsigned int* destination, const unsigned int* indices, 
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
-	assert(target_index_count <= index_count);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(target_index_count <= index_count);
 
 	meshopt_Allocator allocator;
 
@@ -1375,7 +1372,7 @@ size_t meshopt_simplify(unsigned int* destination, const unsigned int* indices, 
 		remapEdgeLoops(loopback, vertex_count, collapse_remap);
 
 		size_t new_count = remapIndexBuffer(result, result_count, collapse_remap);
-		assert(new_count < result_count);
+		ASSERT(new_count < result_count);
 
 		result_count = new_count;
 	}
@@ -1410,10 +1407,10 @@ size_t meshopt_simplifySloppy(unsigned int* destination, const unsigned int* ind
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
-	assert(target_index_count <= index_count);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(target_index_count <= index_count);
 
 	// we expect to get ~2 triangles/vertex in the output
 	size_t target_cell_count = target_index_count / 6;
@@ -1542,9 +1539,9 @@ size_t meshopt_simplifyPoints(unsigned int* destination, const float* vertex_pos
 {
 	using namespace meshopt;
 
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
-	assert(target_vertex_count <= vertex_count);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(target_vertex_count <= vertex_count);
 
 	size_t target_cell_count = target_vertex_count;
 
@@ -1580,8 +1577,8 @@ size_t meshopt_simplifyPoints(unsigned int* destination, const float* vertex_pos
 
 	for (int pass = 0; pass < 10 + kInterpolationPasses; ++pass)
 	{
-		assert(min_vertices < target_vertex_count);
-		assert(max_grid - min_grid > 1);
+		ASSERT(min_vertices < target_vertex_count);
+		ASSERT(max_grid - min_grid > 1);
 
 		// we clamp the prediction of the grid size to make sure that the search converges
 		int grid_size = next_grid_size;
@@ -1640,7 +1637,7 @@ size_t meshopt_simplifyPoints(unsigned int* destination, const float* vertex_pos
 	fillCellRemap(cell_remap, cell_errors, cell_count, vertex_cells, cell_quadrics, vertex_positions, vertex_count);
 
 	// copy results to the output
-	assert(cell_count <= target_vertex_count);
+	ASSERT(cell_count <= target_vertex_count);
 	memcpy(destination, cell_remap, sizeof(unsigned int) * cell_count);
 
 #if TRACE
@@ -1654,8 +1651,8 @@ float meshopt_simplifyScale(const float* vertex_positions, size_t vertex_count, 
 {
 	using namespace meshopt;
 
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	float extent = rescalePositions(NULL, vertex_positions, vertex_count, vertex_positions_stride);
 

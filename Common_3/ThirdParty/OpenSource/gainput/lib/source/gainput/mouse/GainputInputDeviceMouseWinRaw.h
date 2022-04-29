@@ -95,7 +95,7 @@ public:
 			return;
 
 		// Must be x4.66 at minimum due to the size of gamepad events
-		static const UINT capacity = sizeof(RAWINPUT) * 8;
+		static const UINT capacity = sizeof(RAWINPUT) * 125;
 		static BYTE data[capacity];
 
 		GAINPUT_ASSERT(size <= capacity);

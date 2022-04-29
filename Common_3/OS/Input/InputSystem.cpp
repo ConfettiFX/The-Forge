@@ -1,6 +1,6 @@
 #ifndef DGA_INPUT
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -542,6 +542,10 @@ struct InputSystemImpl: public gainput::InputListener
 		{ InputBindings::BUTTON_KEYHOME, gainput::KeyHome },
 		{ InputBindings::BUTTON_KEYEND, gainput::KeyEnd },
 		{ InputBindings::BUTTON_KEYDELETE, gainput::KeyDelete },
+		// Following are needed for Fullscreen support
+		{ InputBindings::BUTTON_KEYALTL, gainput::KeyAltL },
+		{ InputBindings::BUTTON_KEYRETURN, gainput::KeyReturn },
+
 #else
 		{ InputBindings::BUTTON_KEYESCAPE, gainput::KeyEscape },
 		{ InputBindings::BUTTON_KEYF1, gainput::KeyF1 },
@@ -778,13 +782,13 @@ struct InputSystemImpl: public gainput::InputListener
 
 	/// Window pointer passed by the app
 	/// Input capture will be performed on this window
-	WindowsDesc*                             pWindow = NULL;
+	WindowDesc*                           pWindow = NULL;
 
 	/// Gainput Manager which lets us talk with the gainput backend
 	gainput::InputManager*                   pInputManager = NULL;
-#ifdef __APPLE__
+	// gainput view which is only used for apple.
+	// keep it declared for all platforms to avoid #defines in implementation
 	void*                                    pGainputView = NULL;
-#endif
 
 	InputDeviceType*                         pDeviceTypes = NULL;
 	gainput::DeviceId*                       pGamepadDeviceIDs = NULL;
@@ -797,7 +801,7 @@ struct InputSystemImpl: public gainput::InputListener
 	bool                                     mInputCaptured = false;
 	bool                                     mDefaultCapture = false;
 
-	bool Init(WindowsDesc* window)
+	bool Init(WindowDesc* window)
 	{
 		pWindow = window;
 
@@ -824,6 +828,8 @@ struct InputSystemImpl: public gainput::InputListener
 		// create input manager
 		pInputManager = tf_new(gainput::InputManager);
 		ASSERT(pInputManager);
+        pInputManager->Init((void*)pWindow->handle.window);
+		pGainputView = NULL;
 
 #if defined(_WINDOWS) || defined(XBOX)
 		pInputManager->SetWindowsInstance(window->handle.window);
@@ -861,6 +867,14 @@ struct InputSystemImpl: public gainput::InputListener
 		for (decltype(mKeyMap)::const_iterator it = mKeyMap.begin(); it != mKeyMap.end(); ++it)
 			mControlMapReverse[mKeyboardDeviceID][it->second] = it->first;
 
+#ifndef NO_DEFAULT_BINDINGS
+		for (decltype(mGamepadCompositeMap)::const_iterator it = mGamepadCompositeMap.begin(); it != mGamepadCompositeMap.end(); ++it)
+		{
+			for(uint32_t i = 0; i < it->second.mComposite; ++i)
+				mControlMapReverse[mKeyboardDeviceID][it->second.mControls[i]] = it->first;
+		}
+#endif
+
 		// Every touch can map to the same button
 		for (uint32_t i = 0; i < gainput::TouchCount_; ++i)
 			mControlMapReverse[mTouchDeviceID][i] = InputBindings::BUTTON_SOUTH;
@@ -895,6 +909,7 @@ struct InputSystemImpl: public gainput::InputListener
 		tf_free(pDeviceTypes);
 
 		ShutdownSubView();
+        pInputManager->Exit();
 		tf_delete(pInputManager);
 	}
 
@@ -993,6 +1008,7 @@ struct InputSystemImpl: public gainput::InputListener
 	InputAction* AddInputAction(const InputActionDesc* pDesc)
 	{
 		ASSERT(pDesc);
+		ASSERT(mActions.size() < MAX_INPUT_ACTIONS); // We are storing pointers to the actions in this array, if the array is resized all our IControl::pActions and other pointers to actions will point to garbage.
 
 		mActions.emplace_back(InputAction{});
 		InputAction* pAction = &mActions.back();
@@ -1247,7 +1263,8 @@ struct InputSystemImpl: public gainput::InputListener
 #else
 			NSView*              mainView = (__bridge NSView*)view;
 			float                retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
-			GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds
+			//Use view.window.contentLayoutRect instead of view.frame as a frame to avoid capturing inputs over title bar
+			GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.window.contentLayoutRect
 																			   window:mainView.window
 																		  retinaScale:retinScale
 																		 inputManager:*pInputManager];
@@ -1296,108 +1313,19 @@ struct InputSystemImpl: public gainput::InputListener
 	{
 		ASSERT(pWindow);
 
-#if defined(_WINDOWS) && !defined(XBOX)
-		static int32_t lastCursorPosX = 0;
-		static int32_t lastCursorPosY = 0;
-
 		if (enable != mInputCaptured)
 		{
-			if (enable)
-			{
-				POINT lastCursorPoint;
-				GetCursorPos(&lastCursorPoint);
-				lastCursorPosX = lastCursorPoint.x;
-				lastCursorPosY = lastCursorPoint.y;
-
-				HWND handle = (HWND)pWindow->handle.window;
-				SetCapture(handle);
-
-				RECT clientRect;
-				GetClientRect(handle, &clientRect);
-				//convert screen rect to client coordinates.
-				POINT ptClientUL = { clientRect.left, clientRect.top };
-				// Add one to the right and bottom sides, because the
-				// coordinates retrieved by GetClientRect do not
-				// include the far left and lowermost pixels.
-				POINT ptClientLR = { clientRect.right + 1, clientRect.bottom + 1 };
-				ClientToScreen(handle, &ptClientUL);
-				ClientToScreen(handle, &ptClientLR);
-
-				// Copy the client coordinates of the client area
-				// to the rcClient structure. Confine the mouse cursor
-				// to the client area by passing the rcClient structure
-				// to the ClipCursor function.
-				SetRect(&clientRect, ptClientUL.x, ptClientUL.y, ptClientLR.x, ptClientLR.y);
-				ClipCursor(&clientRect);
-				ShowCursor(FALSE);
-			}
-			else
-			{
-				ClipCursor(NULL);
-				ShowCursor(TRUE);
-				ReleaseCapture();
-				SetCursorPos(lastCursorPosX, lastCursorPosY);
-			}
-
+			captureCursor(pWindow, enable);
 			mInputCaptured = enable;
-			return true;
-		}
-#elif defined(__APPLE__)
-		if (mInputCaptured != enable)
-		{
-#if !defined(TARGET_IOS)
-			if (enable)
-			{
-				CGDisplayHideCursor(kCGDirectMainDisplay);
-				CGAssociateMouseAndMouseCursorPosition(false);
-			}
-			else
-			{
-				CGDisplayShowCursor(kCGDirectMainDisplay);
-				CGAssociateMouseAndMouseCursorPosition(true);
-			}
+			
+#if !defined(TARGET_IOS) && defined(__APPLE__)
+			GainputMacInputView* view = (__bridge GainputMacInputView*)(pGainputView);
+			[view SetMouseCapture:enable];
+			view = NULL;
 #endif
-			mInputCaptured = enable;
 
 			return true;
 		}
-#elif defined(__linux__) && !defined(__ANDROID__) && !defined(GAINPUT_PLATFORM_GGP)
-		if (mInputCaptured != enable)
-		{
-			if (enable)
-			{
-				// Create invisible cursor that will be used when mouse is captured
-				Cursor      invisibleCursor = {};
-				Pixmap      bitmapEmpty = {};
-				XColor      emptyColor = {};
-				static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-				emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-				bitmapEmpty = XCreateBitmapFromData(pWindow->handle.display, pWindow->handle.window, emptyData, 8, 8);
-				invisibleCursor = XCreatePixmapCursor(pWindow->handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
-				// Capture mouse
-				unsigned int masks = PointerMotionMask |    //Mouse movement
-									 ButtonPressMask |      //Mouse click
-									 ButtonReleaseMask;     // Mouse release
-				int XRes = XGrabPointer(
-					pWindow->handle.display, pWindow->handle.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
-					invisibleCursor, CurrentTime);
-			}
-			else
-			{
-				XUngrabPointer(pWindow->handle.display, CurrentTime);
-			}
-
-			mInputCaptured = enable;
-
-			return true;
-		}
-#elif defined(__ANDROID__)
-		if (mInputCaptured != enable)
-		{
-			mInputCaptured = enable;
-			return true;
-		}
-#endif
 
 		return false;
 	}
@@ -1501,6 +1429,7 @@ struct InputSystemImpl: public gainput::InputListener
 				const InputActionDesc* pDesc = &control->pAction->mDesc;
 				ctx.pUserData = pDesc->pUserData;
 				ctx.mBinding = mControlMapReverse[device][deviceButton];
+				ASSERT(ctx.mBinding != UINT_MAX);
 
 				switch (type)
 				{
@@ -1644,6 +1573,7 @@ struct InputSystemImpl: public gainput::InputListener
 									ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
 									ctx.mFloat2 = float2(0.0f);
 									ctx.pPosition = &pControl->mCurrPos;
+									ctx.mBinding = pControl->mArea == AREA_LEFT ? InputBindings::FLOAT_LEFTSTICK : InputBindings::FLOAT_RIGHTSTICK;
 									executeNext = pDesc->pFunction(&ctx) && executeNext;
 								}
 							}
@@ -1665,6 +1595,7 @@ struct InputSystemImpl: public gainput::InputListener
 								{
 									ctx.mFloat2 = float2(0.0f);
 									ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
+									ctx.mBinding = pControl->mArea == AREA_LEFT ? InputBindings::FLOAT_LEFTSTICK : InputBindings::FLOAT_RIGHTSTICK;
 									executeNext = pDesc->pFunction(&ctx) && executeNext;
 								}
 							}
@@ -1731,13 +1662,13 @@ struct InputSystemImpl: public gainput::InputListener
 				ctx.mDeviceType = pDeviceTypes[device];
 				ctx.pUserData = pDesc->pUserData;
 				ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
+				ctx.mBinding = pDesc->mBinding;
 
 				switch (type)
 				{
 					case CONTROL_FLOAT:
 					{
 						FloatControl*          pControl = (FloatControl*)control;
-						const InputActionDesc* pDesc = &pControl->pAction->mDesc;
 						const uint32_t         axis = (deviceButton - pControl->mStartButton);
 
 						if (pControl->mDelta & 0x1)
@@ -1784,7 +1715,6 @@ struct InputSystemImpl: public gainput::InputListener
 					case CONTROL_AXIS:
 					{
 						AxisControl* pControl = (AxisControl*)control;
-						const InputActionDesc* pDesc = &pControl->pAction->mDesc;
 
 						const uint32_t axis = (deviceButton - pControl->mStartButton);
 
@@ -1840,6 +1770,8 @@ struct InputSystemImpl: public gainput::InputListener
 							float2 dir = ((pControl->mCurrPos - pControl->mStartPos) / halfRad) * pControl->mScale;
 							ctx.mFloat2 = float2(dir[0], -dir[1]);
 							ctx.pPosition = &pControl->mCurrPos;
+							ctx.mBinding = pControl->mArea == AREA_LEFT ? InputBindings::FLOAT_LEFTSTICK : InputBindings::FLOAT_RIGHTSTICK;
+							ctx.mFingerIndices[0] = pControl->mTouchIndex;
 							if (pDesc->pFunction)
 								executeNext = pDesc->pFunction(&ctx) && executeNext;
 						}
@@ -1862,6 +1794,7 @@ struct InputSystemImpl: public gainput::InputListener
 		if (pDesc->pFunction)
 		{
 			InputActionContext ctx = {};
+			ctx.mBinding = pDesc->mBinding;
 			ctx.pUserData = pDesc->pUserData;
 			ctx.mDeviceType = pDeviceTypes[device];
 			ctx.pPosition = (float2*)gesture.position;
@@ -1984,7 +1917,7 @@ static void ResetInputStates()
 }
 #endif
 
-int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
+int32_t InputSystemHandleMessage(WindowDesc* pWindow, void* msg)
 {
 	if (pInputSystem == nullptr)
 	{
@@ -2009,10 +1942,9 @@ bool initInputSystem(InputSystemDesc* pDesc)
 {
 	ASSERT(pDesc); 
 	ASSERT(pDesc->pWindow); 
-	ASSERT(pDesc->pRenderer); 
 
 	pInputSystem = tf_new(InputSystemImpl);
-
+	
 	setCustomMessageProcessor(InputSystemHandleMessage);
 
 	bool success = pInputSystem->Init(pDesc->pWindow);
@@ -2020,6 +1952,7 @@ bool initInputSystem(InputSystemDesc* pDesc)
 #if TOUCH_INPUT
 	if (!pDesc->mDisableVirtualJoystick)
 	{
+		ASSERT(pDesc->pRenderer); 
 		VirtualJoystickDesc joystickDesc = {};
 		joystickDesc.pRenderer = (Renderer*)pDesc->pRenderer;
 		joystickDesc.pJoystickTexture = "circlepad";
@@ -2030,14 +1963,18 @@ bool initInputSystem(InputSystemDesc* pDesc)
 			typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 			static CameraInputHandler onJoystickInput = [](InputActionContext* ctx, uint32_t index)
 			{
-				if (!uiIsFocused() && *ctx->pCaptured)
+				if (*ctx->pCaptured
+#ifdef ENABLE_FORGE_UI
+					&& !uiIsFocused()
+#endif
+					)
 				{
 					virtualJoystickOnMove(pVirtualJoystick, index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				}
 				return true;
 			};
 
-			InputActionDesc actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onJoystickInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+			InputActionDesc actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onJoystickInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
 			addInputAction(&actionDesc);
 			actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onJoystickInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
 			addInputAction(&actionDesc);

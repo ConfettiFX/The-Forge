@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  *
@@ -138,8 +138,6 @@ typedef struct AppSettings
 	//Camera Walking
 	bool  cameraWalking = false;
 	float cameraWalkingSpeed = 1.0f;
-
-	bool mToggleVSync = false;
 
 	// Aura settings
 	bool  useCPUPropagation = false;
@@ -490,11 +488,6 @@ RenderTarget* pScreenRenderTarget = NULL;
 // Screen resolution UI data
 /************************************************************************/
 #if defined(_WINDOWS)
-UIWidget*                    gResolutionProperty = NULL;
-eastl::vector<Resolution>   gResolutions;
-uint32_t                    gResolutionIndex = 0;
-bool                        gResolutionChange = false;
-
 struct ResolutionData
 {
 	eastl::vector<eastl::string> resNameContainer;
@@ -596,8 +589,6 @@ public:
 		settings.mVulkan.mDeviceExtensionCount = 1;
 		settings.mVulkan.ppDeviceExtensions = &rtIndexVSExtension;
 #endif
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true; 
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -726,7 +717,7 @@ public:
 		/************************************************************************/
 		// Create sampler for VB render target
 		SamplerDesc trilinearDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, false, 0.0f, 0.0f, 8.0f
 		};
 		SamplerDesc bilinearDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
@@ -1000,12 +991,6 @@ public:
 		asyncCompute.pData = &gAppSettings.mAsyncCompute;
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Async Compute", &asyncCompute, WIDGET_TYPE_CHECKBOX));
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget vsyncProp;
-		vsyncProp.pData = &gAppSettings.mToggleVSync;
-		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync", &vsyncProp, WIDGET_TYPE_CHECKBOX));
-#endif
-
 		// Light Settings
 		//---------------------------------------------------------------------------------
 		// offset max angle for sun control so the light won't bleed with
@@ -1014,34 +999,6 @@ public:
 		CheckboxWidget localLight;
 		localLight.pData = &gAppSettings.mRenderLocalLights;
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Enable Random Point Lights", &localLight, WIDGET_TYPE_CHECKBOX));
-
-#if defined(_WINDOWS)
-		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
-		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
-		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
-		{
-			bool duplicate = false;
-			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
-			{
-				if (wantedResolutions[i].mWidth == gResolutions[j].mWidth && wantedResolutions[i].mHeight == gResolutions[j].mHeight)
-				{
-					duplicate = true;
-					break;
-				}
-			}
-			if (!duplicate && getResolutionSupport(getMonitor(0), &wantedResolutions[i]))
-			{
-				gResolutions.emplace_back(wantedResolutions[i]);
-			}
-		}
-		gResolutionProperty = addResolutionProperty(
-			pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
-#endif
-
-#if defined(_WINDOWS)
-		if (!pWindow->fullScreen)
-			uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
-#endif
 
 		/************************************************************************/
 		/************************************************************************/
@@ -1302,7 +1259,6 @@ public:
 
 		gPositionsDirections.set_capacity(0);
 #if defined(_WINDOWS)
-		gResolutions.set_capacity(0);
 		gGuiResolution.resNameContainer.set_capacity(0);
 		gGuiResolution.resNamePointers.set_capacity(0);
 		gGuiResolution.resValues.set_capacity(0);
@@ -1628,33 +1584,6 @@ public:
 		addPipeline(pRenderer, &pipelineDesc, &pSkyboxPipeline);
 
 		/************************************************************************/
-		// Setup Sun pipeline
-		/************************************************************************/
-
-		//layout and pipeline for skybox draw
-		VertexLayout vertexLayoutSun = {};
-		vertexLayoutSun.mAttribCount = 3;
-		vertexLayoutSun.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSun.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutSun.mAttribs[0].mBinding = 0;
-		vertexLayoutSun.mAttribs[0].mLocation = 0;
-		vertexLayoutSun.mAttribs[0].mOffset = 0;
-
-		vertexLayoutSun.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutSun.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutSun.mAttribs[1].mBinding = 0;
-		vertexLayoutSun.mAttribs[1].mLocation = 1;
-		vertexLayoutSun.mAttribs[1].mOffset = sizeof(float3);
-
-		vertexLayoutSun.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutSun.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayoutSun.mAttribs[2].mBinding = 0;
-		vertexLayoutSun.mAttribs[2].mLocation = 2;
-		vertexLayoutSun.mAttribs[2].mOffset = sizeof(float3) * 2;
-
-		VertexLayout vertexLayoutCopyShaders = {};
-		vertexLayoutCopyShaders.mAttribCount = 0;
-		/************************************************************************/
 		// Setup Fill RSM pipeline
 		/************************************************************************/
 #if TEST_RSM
@@ -1757,23 +1686,6 @@ public:
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 #if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gAppSettings.mToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#if defined(_WINDOWS)
-		if (gResolutionChange)
-		{
-			gResolutionChange = false;
-			setResolution(getMonitor(0), &gResolutions[gResolutionIndex]);
-			pAuraApp->Unload();
-			pAuraApp->Load();
-		}
-#endif
-#endif
-
-#if !defined(TARGET_IOS)
 		gActiveCamera->pCameraController->update(deltaTime);
 #endif
 
@@ -1808,6 +1720,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t presentIndex = 0;
 		uint32_t frameIdx = gFrameCount % gImageCount;
 
@@ -2928,12 +2846,12 @@ public:
 		// Setup lights uniform buffer
 		for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 		{
-			gLightData[i].position.setX(float(rand() % 2000) - 1000.0f);
+			gLightData[i].position.setX(randomFloat(-1000.f, 1000.0f));
 			gLightData[i].position.setY(100);
-			gLightData[i].position.setZ(float(rand() % 2000) - 1000.0f);
-			gLightData[i].color.setX(float(rand() % 255) / 255.0f);
-			gLightData[i].color.setY(float(rand() % 255) / 255.0f);
-			gLightData[i].color.setZ(float(rand() % 255) / 255.0f);
+			gLightData[i].position.setZ(randomFloat(-1000.f, 1000.0f));
+			gLightData[i].color.setX(randomFloat01());
+			gLightData[i].color.setY(randomFloat01());
+			gLightData[i].color.setZ(randomFloat01());
 		}
 		BufferLoadDesc batchUb = {};
 		batchUb.mDesc.mSize = sizeof(gLightData);
@@ -3239,22 +3157,6 @@ public:
 	/************************************************************************/
 	void updateDynamicUIElements()
 	{
-#if defined(_WINDOWS) && !defined(XBOX)
-		static bool wasFullscreen = pWindow->fullScreen;
-		if (pWindow->fullScreen != wasFullscreen)
-		{
-			wasFullscreen = pWindow->fullScreen;
-			if (wasFullscreen)
-			{
-				gResolutionProperty = addResolutionProperty(
-					pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
-			}
-			else
-			{
-				uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
-			}
-		}
-#endif
 		uiSetComponentActive(pAuraDebugTexturesWindow, gAppSettings.mDrawDebugTargets);
 		uiSetComponentActive(pShadowTexturesWindow, gAppSettings.mDrawShadowTargets);
 #if TEST_RSM
@@ -4155,7 +4057,7 @@ public:
 		Sampler* pSkyboxSampler = NULL;
 
 		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, false, 0.0f, 0.0f, 16
 		};
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -4316,17 +4218,17 @@ public:
         {
             if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[1], &gFrameTimeDraw);
-                cmdDrawGpuProfile(cmd, float2(8.0f, 275.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGpuProfileTokens[1], &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 425.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
             }
             else
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
             }
         }
         else
         {
-            cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
+            cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGpuProfileTokens[0], &gFrameTimeDraw);
         }
 
 #if TEST_RSM
@@ -4439,32 +4341,6 @@ public:
 		addCollapsingHeaderSubWidget(&CollapsingFlagSettings, "Rand F", &randF, WIDGET_TYPE_SLIDER_FLOAT);
 
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Flag Settings", &CollapsingFlagSettings, WIDGET_TYPE_COLLAPSING_HEADER));
-#endif
-
-#if defined(_WINDOWS)
-		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
-		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
-		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
-		{
-			bool duplicate = false;
-			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
-			{
-				if (wantedResolutions[i].mWidth == gResolutions[j].mWidth && wantedResolutions[i].mHeight == gResolutions[j].mHeight)
-				{
-					duplicate = true;
-					break;
-				}
-			}
-			if (!duplicate && getResolutionSupport(getMonitor(0), &wantedResolutions[i]))
-			{
-				gResolutions.emplace_back(wantedResolutions[i]);
-			}
-		}
-		gResolutionProperty = addResolutionProperty(
-			pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
-
-		if (!pWindow->fullScreen)
-			uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
 #endif
 	}
 

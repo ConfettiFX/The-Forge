@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <assert.h>
+#include "../../../../OS/Interfaces/ILog.h"
 #include <stddef.h>
 
 /* Version macro; major * 1000 + minor * 10 + patch */
@@ -719,7 +719,7 @@ public:
 
 	template <typename T> T* allocate(size_t size)
 	{
-		assert(count < sizeof(blocks) / sizeof(blocks[0]));
+		ASSERT(count < sizeof(blocks) / sizeof(blocks[0]));
 		T* result = static_cast<T*>(Storage::allocate(size > size_t(-1) / sizeof(T) ? size_t(-1) : size * sizeof(T)));
 		blocks[count++] = result;
 		return result;

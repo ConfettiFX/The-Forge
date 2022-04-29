@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -125,20 +125,19 @@ public:
 		bool	 mDefaultAutomatedTesting = true;
 		/// if benchmarking mode is enabled
 		bool	 mBenchmarking = false;
-		
 		/// if the window is positioned in the center of the screen
 		bool     mCentered = true;
-
 		/// if the window is focused or in foreground
 		bool     mFocused = false;
-
 		/// Force lowDPI settings for this window
 		bool     mForceLowDPI = false;
+		/// if the platform user interface is visible
+		bool     mShowPlatformUI = true; 
 
-#ifdef VK_USE_PLATFORM_ANDROID_KHR
-		bool		mDefaultVSyncEnabled = true;
+#ifdef __ANDROID__
+		bool		mVSyncEnabled = true;
 #else
-		bool		mDefaultVSyncEnabled = false;
+		bool		mVSyncEnabled = false;
 #endif
 
 #if defined(TARGET_IOS)
@@ -147,8 +146,8 @@ public:
 #endif
 	} mSettings;
 
-	WindowsDesc*    pWindow;
-	const char*     pCommandLine;
+	WindowDesc* pWindow;
+	const char*    pCommandLine;
 
 	static int          argc;
 	static const char** argv;

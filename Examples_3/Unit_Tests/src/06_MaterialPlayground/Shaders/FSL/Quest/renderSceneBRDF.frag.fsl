@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -54,19 +54,25 @@ float3 ReconstructNormal(float4 sampleNormal, float intensity)
 	return tangentNormal;
 }
 
-INLINE float3 UnpackNormals(float2 uv, float3 pos, Tex2D(float4) _normalMap, SamplerState samplerState, float3 normal, float intensity)
+INLINE float3 UnpackNormals(float2 uv, float3 viewDirection, Tex2D(float4) _normalMap, SamplerState samplerState, float3 normal, float intensity)
 {
 	float3 tangentNormal = ReconstructNormal(SampleTex2D(_normalMap, samplerState, uv), intensity);
 
-	float3 Q1 = ddx(pos);
-	float3 Q2 = ddy(pos);
-	float2 st1 = ddx(uv);
-	float2 st2 = ddy(uv);
+	float3 dPdx = ddx(viewDirection);
+	float3 dPdy = ddy(viewDirection);
+	float2 dUVdx = ddx(uv);
+	float2 dUVdy = ddy(uv);
 
 	float3 N = normalize(normal);
-	float3 T = normalize(Q1*st2.g - Q2 * st1.g);
-	float3 B = normalize(cross(T, N));
-	float3x3 TBN = make_f3x3_rows(T, B, N);
+	float3 crossPdyN = cross(dPdy, N);
+	float3 crossNPdx = cross(N, dPdx); 
+
+	float3 T = crossPdyN * dUVdx.x + crossNPdx * dUVdy.x;
+	float3 B = crossPdyN * dUVdx.y + crossNPdx * dUVdy.y;
+
+	float invScale = rsqrt(max(dot(T, T), dot(B, B)));
+
+	float3x3 TBN = make_f3x3_rows(T * invScale, B * invScale, N);
 	return normalize(mul(tangentNormal, TBN));
 }
 
@@ -273,7 +279,10 @@ float4 PS_MAIN(VSOutput In)
 	float4 Out;
 	// Read material surface properties
 	//
+	const float3 P = In.pos.xyz;
+	const float3 V = normalize(Get(camPos).xyz - P);
 	const float2 uv = In.uv * Get(tiling);
+
 	float3 _albedo = HasDiffuseTexture(Get(textureConfig))
 		? SampleTex2D(Get(albedoMap), Get(bilinearSampler), uv).rgb
 		: Get(albedoAndRoughness).rgb;
@@ -292,18 +301,13 @@ float4 PS_MAIN(VSOutput In)
 		: 1.0f;
 
 	float3 N = HasNormalTexture(Get(textureConfig))
-		? UnpackNormals(uv, In.pos, Get(normalMap), Get(bilinearSampler), In.normal, Get(fNormalMapIntensity))
+		? UnpackNormals(uv, -V, Get(normalMap), Get(bilinearSampler), In.normal, Get(fNormalMapIntensity))
 		: normalize(In.normal);
 
 	_albedo = pow(_albedo, f3(2.2f));
 	
 	const int isOrenNayar = IsOrenNayarDiffuse(Get(textureConfig)) ? 1 : 0;
 
-	const float3 P = In.pos.xyz;
-	const float3 V = normalize(Get(camPos).xyz - P);
-
-
-	
 	float3 Lo = float3(0.0f, 0.0f, 0.0f);	// outgoing radiance
 
 	// Direct Lights

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,14 +22,12 @@
  * under the License.
 */
 
-// Socket is used in microprofile this header need to be included before d3d12 headers
-#include <WinSock2.h>
-
 #include "../RendererConfig.h"
 
 #ifdef DIRECT3D12
 
-
+// Socket is used in microprofile this header need to be included before d3d12 headers
+#include <WinSock2.h>
 
 #ifdef XBOX
 #include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
@@ -54,7 +52,7 @@
 #include "../../OS/Interfaces/IMemory.h"
 
 //check if WindowsSDK is used which supports raytracing
-#ifdef ENABLE_RAYTRACING
+#ifdef D3D12_RAYTRACING_AVAILABLE
 
 DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
@@ -325,13 +323,15 @@ HRESULT createTopAS(
 	Buffer* pTopASBuffer = {};
 	addBuffer(pRaytracing->pRenderer, &bufferDesc, &pTopASBuffer);
 
+	extern void add_srv(Renderer*, ID3D12Resource*, const D3D12_SHADER_RESOURCE_VIEW_DESC*, DxDescriptorID*);
+
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 	srvDesc.RaytracingAccelerationStructure.Location = pTopASBuffer->mD3D12.mDxGpuAddress;
-	pRaytracing->pRenderer->mD3D12.pDxDevice->CreateShaderResourceView(
-		NULL, &srvDesc, { pTopASBuffer->mD3D12.mDxDescriptorHandles.ptr + pTopASBuffer->mD3D12.mDxSrvOffset });
+	DxDescriptorID srv = pTopASBuffer->mD3D12.mDescriptors + pTopASBuffer->mD3D12.mSrvDescriptorOffset;
+	add_srv(pRaytracing->pRenderer, NULL, &srvDesc, &srv);
 
 	*pScratchBufferSize = (UINT)info.ScratchDataSizeInBytes;
 	*ppInstanceDescBuffer = pInstanceDescBuffer;
@@ -1023,10 +1023,9 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	*ppPipeline = pPipeline;
 }
 
-void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructure, D3D12_CPU_DESCRIPTOR_HANDLE* pHandle)
+void fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructure, DxDescriptorID* pOutId)
 {
-	*pHandle = { pAccelerationStructure->pASBuffer->mD3D12.mDxDescriptorHandles.ptr +
-				 pAccelerationStructure->pASBuffer->mD3D12.mDxSrvOffset };
+	*pOutId = pAccelerationStructure->pASBuffer->mD3D12.mDescriptors + pAccelerationStructure->pASBuffer->mD3D12.mSrvDescriptorOffset;
 }
 
 void cmdBindRaytracingPipeline(Cmd* pCmd, Pipeline* pPipeline)

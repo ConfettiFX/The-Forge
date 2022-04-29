@@ -1,0 +1,152 @@
+/*
+ * Copyright (c) 2018-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+// USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
+
+#include "shading.h.fsl"
+
+STRUCT(VSOutput)
+{
+    DATA(float4, Position, SV_Position);
+    DATA(float3, Color, TEXCOORD0);
+    DATA(float3, LightPos, TEXCOORD1);
+};
+
+STRUCT(FSOutput)
+{
+	DATA(float4, oColor, SV_Target);
+};
+
+RES(Buffer(LightData), lights, UPDATE_FREQ_NONE, t1, binding = 1);
+
+#if (SAMPLE_COUNT > 1)
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferColor,      UPDATE_FREQ_NONE, t2, binding = 2);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferNormal,     UPDATE_FREQ_NONE, t3, binding = 3);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferDepth,      UPDATE_FREQ_NONE, t4, binding = 4);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferSpecular,   UPDATE_FREQ_NONE, t5, binding = 5);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferSimulation, UPDATE_FREQ_NONE, t6, binding = 6);
+#else
+RES(Tex2D(float4), gBufferColor,      UPDATE_FREQ_NONE, t2, binding = 2);
+RES(Tex2D(float4), gBufferNormal,     UPDATE_FREQ_NONE, t3, binding = 3);
+RES(Tex2D(float4), gBufferDepth,      UPDATE_FREQ_NONE, t4, binding = 4);
+RES(Tex2D(float4), gBufferSpecular,   UPDATE_FREQ_NONE, t5, binding = 5);
+RES(Tex2D(float4), gBufferSimulation, UPDATE_FREQ_NONE, t6, binding = 6);
+#endif
+
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s0, binding = 7);
+
+FSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+{
+    INIT_MAIN;
+    FSOutput Out;
+#if (SAMPLE_COUNT > 1)
+    float4 normalData = LoadTex2DMS(Get(gBufferNormal), Get(depthSampler), uint2(In.Position.xy), i);
+#else
+    float4 normalData = LoadTex2D(Get(gBufferNormal),   Get(depthSampler), uint2(In.Position.xy), 0);
+#endif
+
+#if (SAMPLE_COUNT > 1)
+    float4 albedoData = LoadTex2DMS(Get(gBufferColor), Get(depthSampler), uint2(In.Position.xy), i);
+#else
+    float4 albedoData = LoadTex2D(Get(gBufferColor),   Get(depthSampler), uint2(In.Position.xy), 0);
+
+#endif
+
+	if (normalData.x == 0 && normalData.y == 0 && normalData.z == 0)
+	{
+		discard;
+	}
+
+#if (SAMPLE_COUNT > 1)
+    float  depth        = LoadTex2DMS(Get(gBufferDepth),      Get(depthSampler), uint2(In.Position.xy), i).r;
+    float4 specularData = LoadTex2DMS(Get(gBufferSpecular),   Get(depthSampler), uint2(In.Position.xy), i);
+    float4 simulation   = LoadTex2DMS(Get(gBufferSimulation), Get(depthSampler), uint2(In.Position.xy), i);
+#else
+    float  depth        = LoadTex2D(Get(gBufferDepth),        Get(depthSampler), uint2(In.Position.xy), 0).r;
+    float4 specularData = LoadTex2D(Get(gBufferSpecular),     Get(depthSampler), uint2(In.Position.xy), 0);
+    float4 simulation   = LoadTex2D(Get(gBufferSimulation),   Get(depthSampler), uint2(In.Position.xy), 0);
+#endif
+
+	float fLightingMode = saturate(float(Get(lightingMode)));
+    
+    float2 screenPos = ((In.Position.xy / Get(cullingViewports)[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
+    screenPos.y = -screenPos.y;
+    float3 normal = normalize(normalData.xyz*2.0 - 1.0);
+    float4 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(screenPos,depth,1));
+    float3 posWS = position.xyz/position.w;
+
+    bool isTwoSided = (albedoData.a > 0.5);
+	bool isBackFace = false;
+
+	float3 ViewVec = normalize(Get(camPos).xyz - posWS.xyz);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	float3 HalfVec = normalize(ViewVec - Get(lightDir).xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+
+	float NoL = dot(normal, -Get(lightDir).xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	float3 F0 = specularData.xyz;
+	float3 DiffuseColor = albedoData.xyz;
+
+	float Roughness = specularData.w;
+	float Metallic = normalData.w;
+
+	float3 color = pointLightShade(
+	normal,
+	ViewVec,
+	HalfVec,
+	ReflectVec,
+	NoL,
+	NoV,
+	In.LightPos,
+	In.Color,
+	Get(camPos).xyz + simulation.xyz,
+	Get(lightDir).xyz,
+	position,
+	posWS,
+	DiffuseColor,
+	F0,
+	Roughness,
+	Metallic,		
+	isBackFace,
+	fLightingMode);
+    
+    Out.oColor = float4(color, 1.0);
+    RETURN(Out);
+}

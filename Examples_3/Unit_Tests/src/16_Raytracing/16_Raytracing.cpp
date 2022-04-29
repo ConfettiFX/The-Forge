@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -631,8 +631,6 @@ public:
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		settings.mShaderTarget = shader_target_6_3;
 		initRenderer(GetName(), &settings, &pRenderer);
 		initResourceLoaderInterface(pRenderer);
@@ -956,22 +954,24 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1319,6 +1319,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		PROFILER_SET_CPU_SCOPE("Cpu Profile", "draw", 0xffffff);
 
 		uint32_t swapchainImageIndex;
@@ -1369,7 +1375,7 @@ public:
 			cb.mZ1PlaneSize = float2(1.0f / projMat.getElem(0, 0), 1.0f / projMat.getElem(1, 1));
 			cb.mLightDirection = v3ToF3(normalize(f3Tov3(mLightDirection)));
 			
-			cb.mRandomSeed = (float)sin((double)getUSec());
+			cb.mRandomSeed = (float)sin((double)getUSec(false));
 			
 			// Loop through the first 16 items in the Halton sequence.
             // The Halton sequence takes one-based indices.
@@ -1538,7 +1544,7 @@ public:
 		frameTimeDraw.mFontSize = 18.0f;
 		frameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &frameTimeDraw);
-        cmdDrawGpuProfile(pCmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &frameTimeDraw);
+        cmdDrawGpuProfile(pCmd, float2(8.f, txtSize.y + 75.f), gGpuProfileToken, &frameTimeDraw);
 		
 		cmdDrawUserInterface(pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -122,7 +122,7 @@ HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*)
 
 HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
 {
-	return pSwapChain->mD3D12.pDxSwapChain->Present(pSwapChain->mD3D12.mDxSyncInterval, 0);
+	return pSwapChain->mD3D12.pDxSwapChain->Present(pSwapChain->mD3D12.mDxSyncInterval, pSwapChain->mD3D12.mFlags);
 }
 
 void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

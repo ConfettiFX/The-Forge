@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 Confetti Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 

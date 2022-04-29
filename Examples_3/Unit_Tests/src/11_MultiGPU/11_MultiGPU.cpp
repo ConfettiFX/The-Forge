@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -81,7 +81,6 @@ struct UniformBlock
 const uint32_t gImageCount = 3;
 
 const uint32_t gViewCount = 2;
-bool           gToggleVSync = false;
 // Simulate heavy gpu workload by rendering high resolution spheres
 const int   gSphereResolution = 1024;    // Increase for higher resolution spheres
 const float gSphereDiameter = 0.5f;
@@ -296,8 +295,6 @@ public:
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -529,11 +526,6 @@ public:
 
 		waitForAllResourceLoads();
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget vSyncCheckbox;
-		vSyncCheckbox.pData = &gToggleVSync;
-		luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
-#endif
 		// Reset graphics with a button.
 
 // Show this checkbox only when multiple GPUs are present
@@ -643,21 +635,25 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			if (*ctx->pCaptured)
+			{
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+			}
 			return true;
 		};
 		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
@@ -859,13 +855,6 @@ public:
 	{
 		updateInputSystem(mSettings.mHeight, mSettings.mHeight);
 
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue[0]);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -920,6 +909,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue[0]);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -1013,7 +1008,7 @@ public:
 
 				cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 
-				const float txtIndentY = 12.f;
+				const float txtIndentY = 15.f;
 				float txtOrigY = txtIndentY;
 				float2 screenCoords = float2(8.0f, txtOrigY);
 
@@ -1022,7 +1017,7 @@ public:
 				gFrameTimeDraw.mFontID = gFontID;
 				float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
 
-				txtOrigY += txtSize.y + txtIndentY;
+				txtOrigY += txtSize.y + 4 * txtIndentY;
 				for (uint32_t j = 0; j < gViewCount; ++j)
 				{
 					screenCoords = float2(8.f, txtOrigY);

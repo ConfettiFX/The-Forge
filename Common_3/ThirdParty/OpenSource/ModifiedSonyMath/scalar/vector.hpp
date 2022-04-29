@@ -39,6 +39,36 @@ namespace Scalar
 static const float VECTORMATH_SLERP_TOL = 0.999f;
 static const double VECTORMATH_SLERP_TOL_D = 0.999;
 
+// Shuffle emulation
+static inline float scalarSelect4(float* src, uint8_t control)
+{
+	float result = 0.0f;
+	switch (control)
+	{
+	case 0:
+		result = src[0];
+		break;
+	case 1:
+		result = src[1];
+		break;
+	case 2:
+		result = src[2];
+		break;
+	case 3:
+		result = src[3];
+		break;
+	}
+	return result;
+}
+
+static inline void scalarShuffle(float* result, float* a, float* b, uint8_t flags)
+{
+	result[0] = scalarSelect4(a, (flags & 0b00000011) >> 0);
+	result[1] = scalarSelect4(a, (flags & 0b00001100) >> 2);
+	result[2] = scalarSelect4(b, (flags & 0b00110000) >> 4);
+	result[3] = scalarSelect4(b, (flags & 0b11000000) >> 6);
+}
+
 // ========================================================
 // Vector3
 // ========================================================
@@ -394,6 +424,22 @@ inline const Vector3 select(const Vector3 & vec0, const Vector3 & vec1, bool sel
 	return Vector3((select1) ? vec1.getX() : vec0.getX(),
 				   (select1) ? vec1.getY() : vec0.getY(),
 				   (select1) ? vec1.getZ() : vec0.getZ());
+}
+
+inline const Vector3 xorPerElem(const Vector3& a, const float b)
+{
+	VectorFI4 c{ Vector4(a) };
+	VectorFI4 d{ Vector4(b) };
+	VectorIF4 result = { c.i.x ^ d.i.x, c.i.y ^ d.i.y, c.i.z ^ d.i.z, c.i.w ^ d.i.w };
+	return result.f.getXYZ();
+}
+
+inline bool isNormalizedEst(const Vector3& v)
+{
+	float len = length(v);
+	const float min = 1 - 1e-6f;
+	const float max = 1 + 1e-6f;
+	return (len >= min && len <= max);
 }
 
 #ifdef VECTORMATH_DEBUG
@@ -786,78 +832,78 @@ do {                                               \
 } while (void(0), 0)
 
 inline const Vector4 rcpEst(const Vector4& v) {
-  Vector4 ret;
-  float vX = v.getX();
-  float vY = v.getY();
-  float vZ = v.getZ();
-  float vW = v.getW();
+	Vector4 ret;
+	float vX = v.getX();
+	float vY = v.getY();
+	float vZ = v.getZ();
+	float vW = v.getW();
   
-  float rX = ret.getX();
-  float rY = ret.getY();
-  float rZ = ret.getZ();
-  float rW = ret.getW();
+	float rX = ret.getX();
+	float rY = ret.getY();
+	float rZ = ret.getZ();
+	float rW = ret.getW();
 
-  RCP_EST(vX, rX);
-  RCP_EST(vY, rY);
-  RCP_EST(vZ, rZ);
-  RCP_EST(vW, rW);
+	RCP_EST(vX, rX);
+	RCP_EST(vY, rY);
+	RCP_EST(vZ, rZ);
+	RCP_EST(vW, rW);
 
-  ret.setX(rX);
-  ret.setY(rY);
-  ret.setZ(rZ);
-  ret.setW(rW);
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
 
-  return ret;
+	return ret;
 }
 
 inline const Vector4 rSqrtEst(const Vector4& v) {
-  Vector4 ret;
-  float vX = v.getX();
-  float vY = v.getY();
-  float vZ = v.getZ();
-  float vW = v.getW();
+	Vector4 ret;
+	float vX = v.getX();
+	float vY = v.getY();
+	float vZ = v.getZ();
+	float vW = v.getW();
   
-  float rX = ret.getX();
-  float rY = ret.getY();
-  float rZ = ret.getZ();
-  float rW = ret.getW();
+	float rX = ret.getX();
+	float rY = ret.getY();
+	float rZ = ret.getZ();
+	float rW = ret.getW();
 
-  RSQRT_EST(vX, rX);
-  RSQRT_EST(vY, rY);
-  RSQRT_EST(vZ, rZ);
-  RSQRT_EST(vW, rW);
+	RSQRT_EST(vX, rX);
+	RSQRT_EST(vY, rY);
+	RSQRT_EST(vZ, rZ);
+	RSQRT_EST(vW, rW);
 
-  ret.setX(rX);
-  ret.setY(rY);
-  ret.setZ(rZ);
-  ret.setW(rW);
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
 
-  return ret;
+	return ret;
 }
 
 inline const Vector4 rSqrtEstNR(const Vector4& v) {
-  Vector4 ret;
-  float vX = v.getX();
-  float vY = v.getY();
-  float vZ = v.getZ();
-  float vW = v.getW();
+	Vector4 ret;
+	float vX = v.getX();
+	float vY = v.getY();
+	float vZ = v.getZ();
+	float vW = v.getW();
   
-  float rX = ret.getX();
-  float rY = ret.getY();
-  float rZ = ret.getZ();
-  float rW = ret.getW();
+	float rX = ret.getX();
+	float rY = ret.getY();
+	float rZ = ret.getZ();
+	float rW = ret.getW();
 
-  RSQRT_EST_NR(vX, rX);
-  RSQRT_EST_NR(vY, rY);
-  RSQRT_EST_NR(vZ, rZ);
-  RSQRT_EST_NR(vW, rW);
+	RSQRT_EST_NR(vX, rX);
+	RSQRT_EST_NR(vY, rY);
+	RSQRT_EST_NR(vZ, rZ);
+	RSQRT_EST_NR(vW, rW);
 
-  ret.setX(rX);
-  ret.setY(rY);
-  ret.setZ(rZ);
-  ret.setW(rW);
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
 
-  return ret;
+	return ret;
 }
 
 //========================================= #TheForgeAnimationMathExtensionsEnd =======================================
@@ -1032,6 +1078,14 @@ inline const Vector4 xorPerElem(const Vector4& a, const Vector4Int& b) {
 	const VectorFI4 c = {a};
 	const VectorIF4 ret = {
 		{c.i.x ^ b.x, c.i.y ^ b.y, c.i.z ^ b.z, c.i.w ^ b.w}};
+	return ret.f;
+}
+
+inline const Vector4 xorPerElem(const Vector4& a, const Vector4& b) {
+	const VectorFI4 c = { a };
+	const VectorFI4 d = { b };
+	const VectorIF4 ret = {
+		{c.i.x ^ d.i.x, c.i.y ^ d.i.y, c.i.z ^ d.i.z, c.i.w ^ d.i.w} };
 	return ret.f;
 }
 	
@@ -1363,6 +1417,13 @@ inline const Vector3d Vector3d::operator - (const Vector3d & vec) const
 				   (mZ - vec.mZ));
 }
 
+inline const Point3 Vector3d::operator + (const Point3 & pnt) const
+{
+	return Point3(((float)mX + pnt.getX()),
+		((float)mY + pnt.getY()),
+		((float)mZ + pnt.getZ()));
+}
+
 inline const Vector3d Vector3d::operator * (double scalar) const
 {
 	return Vector3d((mX * scalar),
@@ -1545,6 +1606,22 @@ inline const Vector3d select(const Vector3d & vec0, const Vector3d & vec1, bool 
 				   (select1) ? vec1.getZ() : vec0.getZ());
 }
 
+inline const Vector3d xorPerElem(const Vector3d& a, const double b)
+{
+	VectorDI4 c{ Vector4d(a) };
+	VectorDI4 d{ Vector4d(b) };
+	VectorID4 result = { c.i.x ^ d.i.x, c.i.y ^ d.i.y, c.i.z ^ d.i.z, c.i.w ^ d.i.w };
+	return result.d.getXYZ();
+}
+
+inline bool isNormalizedEst(const Vector3d& v)
+{
+	double len = length(v);
+	const double min = 1 - 1e-14;
+	const double max = 1 + 1e-14;
+	return (len >= min && len <= max);
+}
+
 #ifdef VECTORMATH_DEBUG
 
 inline void print(const Vector3d & vec)
@@ -1561,7 +1638,7 @@ inline void print(const Vector3d & vec, const char * name)
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
 // ========================================================
-// Vector4
+// Vector4d
 // ========================================================
 
 inline Vector4d::Vector4d(const Vector4d & vec)
@@ -1925,81 +2002,128 @@ inline const Vector4d sqrtPerElem(const Vector4d & vec)
 //	RSQRT_EST(_in, fp2);                       \
 //	_out = fp2 * (1.5f - (_in * .5f * fp2 * fp2)); \
 //} while (void(0), 0)
-//
-//inline const Vector4d rcpEst(const Vector4d& v) {
-//  Vector4d ret;
-//  double vX = v.getX();
-//  double vY = v.getY();
-//  double vZ = v.getZ();
-//  double vW = v.getW();
-//  
-//  double rX = ret.getX();
-//  double rY = ret.getY();
-//  double rZ = ret.getZ();
-//  double rW = ret.getW();
-//
-//  RCP_EST(vX, rX);
-//  RCP_EST(vY, rY);
-//  RCP_EST(vZ, rZ);
-//  RCP_EST(vW, rW);
-//
-//  ret.setX(rX);
-//  ret.setY(rY);
-//  ret.setZ(rZ);
-//  ret.setW(rW);
-//
-//  return ret;
-//}
-//
-//inline const Vector4d rSqrtEst(const Vector4d& v) {
-//  Vector4d ret;
-//  double vX = v.getX();
-//  double vY = v.getY();
-//  double vZ = v.getZ();
-//  double vW = v.getW();
-//  
-//  double rX = ret.getX();
-//  double rY = ret.getY();
-//  double rZ = ret.getZ();
-//  double rW = ret.getW();
-//
-//  RSQRT_EST(vX, rX);
-//  RSQRT_EST(vY, rY);
-//  RSQRT_EST(vZ, rZ);
-//  RSQRT_EST(vW, rW);
-//
-//  ret.setX(rX);
-//  ret.setY(rY);
-//  ret.setZ(rZ);
-//  ret.setW(rW);
-//
-//  return ret;
-//}
-//
-//inline const Vector4d rSqrtEstNR(const Vector4d& v) {
-//  Vector4d ret;
-//  double vX = v.getX();
-//  double vY = v.getY();
-//  double vZ = v.getZ();
-//  double vW = v.getW();
-//  
-//  double rX = ret.getX();
-//  double rY = ret.getY();
-//  double rZ = ret.getZ();
-//  double rW = ret.getW();
-//
-//  RSQRT_EST_NR(vX, rX);
-//  RSQRT_EST_NR(vY, rY);
-//  RSQRT_EST_NR(vZ, rZ);
-//  RSQRT_EST_NR(vW, rW);
-//
-//  ret.setX(rX);
-//  ret.setY(rY);
-//  ret.setZ(rZ);
-//  ret.setW(rW);
-//
-//  return ret;
-//}
+
+inline const Vector4d rcpEst(const Vector4d& v) {
+	auto rcpEst = [](const double in)
+	{
+		const union {
+			double f;
+			int i;
+		} uf = { in };
+		const union {
+			int i;
+			double f;
+		} ui = { (0x3f800000 * 2) - uf.i };
+		const double fp = ui.f * (2.f - in * ui.f);
+		return fp * (2.f - in * fp);
+	};
+
+	Vector4d ret;
+
+	double vX = v.getX();
+	double vY = v.getY();
+	double vZ = v.getZ();
+	double vW = v.getW();
+  
+	double rX = ret.getX();
+	double rY = ret.getY();
+	double rZ = ret.getZ();
+	double rW = ret.getW();
+
+	rX = rcpEst(vX);
+	rY = rcpEst(vY);
+	rZ = rcpEst(vZ);
+	rW = rcpEst(vW);
+
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
+
+	return ret;
+}
+
+inline const Vector4d rSqrtEst(const Vector4d& v) {
+	auto rsqrtEst = [](const double in)
+	{
+		union {
+			double f;
+			int i;
+		} uf = { in };
+		union {
+			int i;
+			double f;
+		} ui = { 0x5f3759df - (uf.i / 2) };
+		const double fp = ui.f * (1.5f - (in * .5f * ui.f * ui.f));
+		return fp * (1.5f - (in * .5f * fp * fp));
+	};
+
+	Vector4d ret;
+
+	double vX = v.getX();
+	double vY = v.getY();
+	double vZ = v.getZ();
+	double vW = v.getW();
+  
+	double rX = ret.getX();
+	double rY = ret.getY();
+	double rZ = ret.getZ();
+	double rW = ret.getW();
+
+	rX = rsqrtEst(vX);
+	rY = rsqrtEst(vY);
+	rZ = rsqrtEst(vZ);
+	rW = rsqrtEst(vW);
+
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
+
+	return ret;
+}
+
+inline const Vector4d rSqrtEstNR(const Vector4d& v) {
+	auto rsqrtEstNr = [](const double in)
+	{
+		union {
+			double f;
+			int i;
+		} uf = { in };
+		union {
+			int i;
+			double f;
+		} ui = { 0x5f3759df - (uf.i / 2) };
+		const double fp = ui.f * (1.5f - (in * .5f * ui.f * ui.f));
+		const double fp2 = fp * (1.5f - (in * .5f * fp * fp));
+		return fp2 * (1.5f - (in * .5f * fp2 * fp2));
+	};
+
+	Vector4d ret;
+
+	double vX = v.getX();
+	double vY = v.getY();
+	double vZ = v.getZ();
+	double vW = v.getW();
+  
+	double rX = ret.getX();
+	double rY = ret.getY();
+	double rZ = ret.getZ();
+	double rW = ret.getW();
+
+	rX = rsqrtEstNr(vX);
+	rY = rsqrtEstNr(vY);
+	rZ = rsqrtEstNr(vZ);
+	rW = rsqrtEstNr(vW);
+
+	ret.setX(rX);
+	ret.setY(rY);
+	ret.setZ(rZ);
+	ret.setW(rW);
+
+	return ret;
+}
+
 //
 ////========================================= #TheForgeAnimationMathExtensionsEnd =======================================
 ////========================================= #TheForgeMathExtensionsEnd ================================================
@@ -2369,6 +2493,14 @@ inline Point3::Point3(const Vector3 & vec)
 	mX = vec.getX();
 	mY = vec.getY();
 	mZ = vec.getZ();
+}
+
+inline Point3::Point3(const Vector4 & vec)
+{
+	mX = vec.getX();
+	mY = vec.getY();
+	mZ = vec.getZ();
+	mW = vec.getW();
 }
 
 inline Point3::Point3(float scalar)
@@ -4061,6 +4193,7 @@ inline void print(const UVector4 & vec, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
+
 //========================================= #TheForgeMathExtensionsEnd ================================================
 
 

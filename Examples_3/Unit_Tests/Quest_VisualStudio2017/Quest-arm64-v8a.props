@@ -43,14 +43,13 @@
     <PreBuildEvent>
       <Command>
         RD /S /Q $(AndroidGradleBuildOutputDir) 
-        xcopy $(SolutionDir)..\..\..\Common_3\OS\Quest\Packaging $(IntDir) /s /y /d
       </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
     <Link>
       <LibraryDependencies>atomic;android;log;GLESv2;EGL;vrapi;shaderc_combined;VkLayer_khronos_validation</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Vulkan-ValidationLayer-1.2.182.0\$(PlatformTarget)\;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
@@ -59,4 +58,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
+
+  <Import Project="./TFQuestCommon.targets"/>
+
 </Project>

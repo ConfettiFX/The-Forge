@@ -1,0 +1,765 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		651017B522253A5E009A1174 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */; };
+		B235DC7D20EC387500592362 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7B20EC387500592362 /* Metal.framework */; };
+		B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7C20EC387500592362 /* MetalKit.framework */; };
+		B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B235DC7F20EC387C00592362 /* ModelIO.framework */; };
+		B2660C8B27B3435C00D6F447 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2C19CA627B340E4002A446D /* libThe-Forge.a */; };
+		B273DE1C280F2A83008E05BB /* deferred_pass_transparent.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE12280F2A82008E05BB /* deferred_pass_transparent.frag.fsl */; };
+		B273DE1D280F2A83008E05BB /* deferred_pass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE14280F2A82008E05BB /* deferred_pass.vert.fsl */; };
+		B273DE1E280F2A83008E05BB /* deferred_shade.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE15280F2A83008E05BB /* deferred_shade.frag.fsl */; };
+		B273DE1F280F2A83008E05BB /* deferred_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE16280F2A83008E05BB /* deferred_resources.h.fsl */; };
+		B273DE20280F2A83008E05BB /* deferred_shade_pointlight.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE17280F2A83008E05BB /* deferred_shade_pointlight.frag.fsl */; };
+		B273DE21280F2A83008E05BB /* deferred_shade_pointlight.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE18280F2A83008E05BB /* deferred_shade_pointlight.vert.fsl */; };
+		B273DE22280F2A83008E05BB /* deferred_pass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE19280F2A83008E05BB /* deferred_pass.frag.fsl */; };
+		B273DE23280F2A83008E05BB /* deferred_shade.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE1A280F2A83008E05BB /* deferred_shade.vert.fsl */; };
+		B273DE24280F2A83008E05BB /* deferred_pass_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B273DE1B280F2A83008E05BB /* deferred_pass_alpha.frag.fsl */; };
+		B2C19CD227B3418C002A446D /* CurveConversion.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAA27B3418B002A446D /* CurveConversion.frag.fsl */; };
+		B2C19CD327B3418C002A446D /* sun.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAB27B3418B002A446D /* sun.vert.fsl */; };
+		B2C19CD427B3418C002A446D /* visibilityBuffer_pass_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAC27B3418B002A446D /* visibilityBuffer_pass_alpha.frag.fsl */; };
+		B2C19CD527B3418C002A446D /* visibilityBuffer_pass_transparent_ret.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAD27B3418B002A446D /* visibilityBuffer_pass_transparent_ret.vert.fsl */; };
+		B2C19CD627B3418C002A446D /* shadow_pass_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAE27B3418B002A446D /* shadow_pass_alpha.frag.fsl */; };
+		B2C19CD727B3418C002A446D /* light_cull_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CAF27B3418B002A446D /* light_cull_resources.h.fsl */; };
+		B2C19CD827B3418C002A446D /* godray.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB027B3418B002A446D /* godray.frag.fsl */; };
+		B2C19CD927B3418C002A446D /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB127B3418B002A446D /* skybox.frag.fsl */; };
+		B2C19CDA27B3418C002A446D /* clear_buffers.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB227B3418B002A446D /* clear_buffers.comp.fsl */; };
+		B2C19CDB27B3418C002A446D /* shadow_pass_transparent.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB327B3418B002A446D /* shadow_pass_transparent.frag.fsl */; };
+		B2C19CDC27B3418C002A446D /* visibilityBuffer_pass_transparent_void.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB427B3418B002A446D /* visibilityBuffer_pass_transparent_void.frag.fsl */; };
+		B2C19CDD27B3418C002A446D /* shadow_pass_alpha.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB527B3418B002A446D /* shadow_pass_alpha.vert.fsl */; };
+		B2C19CDE27B3418C002A446D /* cull_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB627B3418B002A446D /* cull_resources.h.fsl */; };
+		B2C19CDF27B3418C002A446D /* HDAO.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB727B3418B002A446D /* HDAO.vert.fsl */; };
+		B2C19CE027B3418C002A446D /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB827B3418B002A446D /* panoToCube.comp.fsl */; };
+		B2C19CE127B3418C002A446D /* vb_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CB927B3418B002A446D /* vb_resources.h.fsl */; };
+		B2C19CE227B3418C002A446D /* visibilityBuffer_shade.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBA27B3418B002A446D /* visibilityBuffer_shade.vert.fsl */; };
+		B2C19CE327B3418C002A446D /* resolve.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBB27B3418B002A446D /* resolve.frag.fsl */; };
+		B2C19CE427B3418C002A446D /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBC27B3418B002A446D /* skybox.vert.fsl */; };
+		B2C19CE527B3418C002A446D /* visibilityBuffer_pass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBD27B3418B002A446D /* visibilityBuffer_pass.vert.fsl */; };
+		B2C19CE627B3418C002A446D /* display.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBE27B3418B002A446D /* display.vert.fsl */; };
+		B2C19CE727B3418C002A446D /* cluster_lights.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CBF27B3418B002A446D /* cluster_lights.comp.fsl */; };
+		B2C19CE827B3418C002A446D /* triangle_filtering.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC027B3418B002A446D /* triangle_filtering.comp.fsl */; };
+		B2C19CE927B3418C002A446D /* visibilityBuffer_shade.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC127B3418B002A446D /* visibilityBuffer_shade.frag.fsl */; };
+		B2C19CEA27B3418C002A446D /* clear_light_clusters.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC227B3418B002A446D /* clear_light_clusters.comp.fsl */; };
+		B2C19CEB27B3418C002A446D /* sun.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC327B3418B002A446D /* sun.frag.fsl */; };
+		B2C19CEC27B3418C002A446D /* shadow_pass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC427B3418B002A446D /* shadow_pass.vert.fsl */; };
+		B2C19CED27B3418C002A446D /* shadow_pass_transparent.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC527B3418B002A446D /* shadow_pass_transparent.vert.fsl */; };
+		B2C19CEE27B3418C002A446D /* packing.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC627B3418B002A446D /* packing.h.fsl */; };
+		B2C19CEF27B3418C002A446D /* resolve.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC727B3418B002A446D /* resolve.vert.fsl */; };
+		B2C19CF027B3418C002A446D /* icb.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC827B3418B002A446D /* icb.comp.fsl */; };
+		B2C19CF127B3418C002A446D /* visibilityBuffer_pass_alpha.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CC927B3418B002A446D /* visibilityBuffer_pass_alpha.vert.fsl */; };
+		B2C19CF227B3418C002A446D /* HDAO.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCA27B3418B002A446D /* HDAO.frag.fsl */; };
+		B2C19CF327B3418C002A446D /* batch_compaction.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCB27B3418B002A446D /* batch_compaction.comp.fsl */; };
+		B2C19CF427B3418C002A446D /* visibilityBuffer_pass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCC27B3418C002A446D /* visibilityBuffer_pass.frag.fsl */; };
+		B2C19CF527B3418C002A446D /* oitClear.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCD27B3418C002A446D /* oitClear.frag.fsl */; };
+		B2C19CF627B3418C002A446D /* resolveGodray.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCE27B3418C002A446D /* resolveGodray.frag.fsl */; };
+		B2C19CF727B3418C002A446D /* shader_defs.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CCF27B3418C002A446D /* shader_defs.h.fsl */; };
+		B2C19CF827B3418C002A446D /* display.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CD027B3418C002A446D /* display.frag.fsl */; };
+		B2C19CF927B3418C002A446D /* shading.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2C19CD127B3418C002A446D /* shading.h.fsl */; };
+		D2B157271F1CD2CA0037A8C8 /* 15a_VisibilityBufferOIT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* 15a_VisibilityBufferOIT.cpp */; };
+		D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
+		E94B94B5234C3589006EA1F3 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */; };
+		E9A43928233DD6B0005BF1C7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */; };
+		E9A4392A233DD6BE005BF1C7 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43929233DD6BE005BF1C7 /* IOKit.framework */; };
+		E9A4392C233DD6CC005BF1C7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4392B233DD6CC005BF1C7 /* AppKit.framework */; };
+		E9A4392D233DD6DE005BF1C7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */; };
+		E9A4392F233DD6FA005BF1C7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */; };
+		EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
+		EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXBuildRule section */
+		97E942D025BF4C5D009F2F2B /* PBXBuildRule */ = {
+			isa = PBXBuildRule;
+			compilerSpec = com.apple.compilers.proxy.script;
+			filePatterns = "*.fsl";
+			fileType = pattern.proxy;
+			inputFiles = (
+			);
+			isEditable = 1;
+			outputFiles = (
+				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
+			);
+			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
+		};
+/* End PBXBuildRule section */
+
+/* Begin PBXContainerItemProxy section */
+		B2C19CA527B340E4002A446D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		B2C19CA727B340E4002A446D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		B2C19D0127B341DF002A446D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		B235DC7B20EC387500592362 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B235DC7C20EC387500592362 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B235DC7F20EC387C00592362 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = System/Library/Frameworks/ModelIO.framework; sourceTree = SDKROOT; };
+		B273DE12280F2A82008E05BB /* deferred_pass_transparent.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_pass_transparent.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_pass_transparent.frag.fsl; sourceTree = "<group>"; };
+		B273DE14280F2A82008E05BB /* deferred_pass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_pass.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_pass.vert.fsl; sourceTree = "<group>"; };
+		B273DE15280F2A83008E05BB /* deferred_shade.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_shade.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_shade.frag.fsl; sourceTree = "<group>"; };
+		B273DE16280F2A83008E05BB /* deferred_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_resources.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_resources.h.fsl; sourceTree = "<group>"; };
+		B273DE17280F2A83008E05BB /* deferred_shade_pointlight.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_shade_pointlight.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_shade_pointlight.frag.fsl; sourceTree = "<group>"; };
+		B273DE18280F2A83008E05BB /* deferred_shade_pointlight.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_shade_pointlight.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_shade_pointlight.vert.fsl; sourceTree = "<group>"; };
+		B273DE19280F2A83008E05BB /* deferred_pass.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_pass.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_pass.frag.fsl; sourceTree = "<group>"; };
+		B273DE1A280F2A83008E05BB /* deferred_shade.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_shade.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_shade.vert.fsl; sourceTree = "<group>"; };
+		B273DE1B280F2A83008E05BB /* deferred_pass_alpha.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = deferred_pass_alpha.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/deferred_pass_alpha.frag.fsl; sourceTree = "<group>"; };
+		B2C19CAA27B3418B002A446D /* CurveConversion.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = CurveConversion.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/CurveConversion.frag.fsl; sourceTree = "<group>"; };
+		B2C19CAB27B3418B002A446D /* sun.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sun.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/sun.vert.fsl; sourceTree = "<group>"; };
+		B2C19CAC27B3418B002A446D /* visibilityBuffer_pass_alpha.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass_alpha.frag.fsl; sourceTree = "<group>"; };
+		B2C19CAD27B3418B002A446D /* visibilityBuffer_pass_transparent_ret.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass_transparent_ret.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass_transparent_ret.vert.fsl; sourceTree = "<group>"; };
+		B2C19CAE27B3418B002A446D /* shadow_pass_alpha.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass_alpha.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shadow_pass_alpha.frag.fsl; sourceTree = "<group>"; };
+		B2C19CAF27B3418B002A446D /* light_cull_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = light_cull_resources.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/light_cull_resources.h.fsl; sourceTree = "<group>"; };
+		B2C19CB027B3418B002A446D /* godray.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = godray.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/godray.frag.fsl; sourceTree = "<group>"; };
+		B2C19CB127B3418B002A446D /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
+		B2C19CB227B3418B002A446D /* clear_buffers.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_buffers.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/clear_buffers.comp.fsl; sourceTree = "<group>"; };
+		B2C19CB327B3418B002A446D /* shadow_pass_transparent.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass_transparent.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shadow_pass_transparent.frag.fsl; sourceTree = "<group>"; };
+		B2C19CB427B3418B002A446D /* visibilityBuffer_pass_transparent_void.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass_transparent_void.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass_transparent_void.frag.fsl; sourceTree = "<group>"; };
+		B2C19CB527B3418B002A446D /* shadow_pass_alpha.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass_alpha.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shadow_pass_alpha.vert.fsl; sourceTree = "<group>"; };
+		B2C19CB627B3418B002A446D /* cull_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cull_resources.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/cull_resources.h.fsl; sourceTree = "<group>"; };
+		B2C19CB727B3418B002A446D /* HDAO.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = HDAO.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/HDAO.vert.fsl; sourceTree = "<group>"; };
+		B2C19CB827B3418B002A446D /* panoToCube.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
+		B2C19CB927B3418B002A446D /* vb_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = vb_resources.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/vb_resources.h.fsl; sourceTree = "<group>"; };
+		B2C19CBA27B3418B002A446D /* visibilityBuffer_shade.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_shade.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_shade.vert.fsl; sourceTree = "<group>"; };
+		B2C19CBB27B3418B002A446D /* resolve.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = resolve.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/resolve.frag.fsl; sourceTree = "<group>"; };
+		B2C19CBC27B3418B002A446D /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
+		B2C19CBD27B3418B002A446D /* visibilityBuffer_pass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass.vert.fsl; sourceTree = "<group>"; };
+		B2C19CBE27B3418B002A446D /* display.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/display.vert.fsl; sourceTree = "<group>"; };
+		B2C19CBF27B3418B002A446D /* cluster_lights.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cluster_lights.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/cluster_lights.comp.fsl; sourceTree = "<group>"; };
+		B2C19CC027B3418B002A446D /* triangle_filtering.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = triangle_filtering.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/triangle_filtering.comp.fsl; sourceTree = "<group>"; };
+		B2C19CC127B3418B002A446D /* visibilityBuffer_shade.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_shade.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_shade.frag.fsl; sourceTree = "<group>"; };
+		B2C19CC227B3418B002A446D /* clear_light_clusters.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_light_clusters.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/clear_light_clusters.comp.fsl; sourceTree = "<group>"; };
+		B2C19CC327B3418B002A446D /* sun.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sun.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/sun.frag.fsl; sourceTree = "<group>"; };
+		B2C19CC427B3418B002A446D /* shadow_pass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shadow_pass.vert.fsl; sourceTree = "<group>"; };
+		B2C19CC527B3418B002A446D /* shadow_pass_transparent.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass_transparent.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shadow_pass_transparent.vert.fsl; sourceTree = "<group>"; };
+		B2C19CC627B3418B002A446D /* packing.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = packing.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/packing.h.fsl; sourceTree = "<group>"; };
+		B2C19CC727B3418B002A446D /* resolve.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = resolve.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/resolve.vert.fsl; sourceTree = "<group>"; };
+		B2C19CC827B3418B002A446D /* icb.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = icb.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/icb.comp.fsl; sourceTree = "<group>"; };
+		B2C19CC927B3418B002A446D /* visibilityBuffer_pass_alpha.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.vert.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass_alpha.vert.fsl; sourceTree = "<group>"; };
+		B2C19CCA27B3418B002A446D /* HDAO.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = HDAO.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/HDAO.frag.fsl; sourceTree = "<group>"; };
+		B2C19CCB27B3418B002A446D /* batch_compaction.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = batch_compaction.comp.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/batch_compaction.comp.fsl; sourceTree = "<group>"; };
+		B2C19CCC27B3418C002A446D /* visibilityBuffer_pass.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = visibilityBuffer_pass.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/visibilityBuffer_pass.frag.fsl; sourceTree = "<group>"; };
+		B2C19CCD27B3418C002A446D /* oitClear.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = oitClear.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/oitClear.frag.fsl; sourceTree = "<group>"; };
+		B2C19CCE27B3418C002A446D /* resolveGodray.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = resolveGodray.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/resolveGodray.frag.fsl; sourceTree = "<group>"; };
+		B2C19CCF27B3418C002A446D /* shader_defs.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shader_defs.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shader_defs.h.fsl; sourceTree = "<group>"; };
+		B2C19CD027B3418C002A446D /* display.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = display.frag.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/display.frag.fsl; sourceTree = "<group>"; };
+		B2C19CD127B3418C002A446D /* shading.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shading.h.fsl; path = ../../src/15a_VisibilityBufferOIT/Shaders/FSL/shading.h.fsl; sourceTree = "<group>"; };
+		C97EC02E2010BED00044D188 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/ModelIO.framework; sourceTree = DEVELOPER_DIR; };
+		C97EC0302010BED90044D188 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
+		C97EC0322010BEE80044D188 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		D018D75C20CB9AF9000BEB0D /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		D018D75D20CB9AF9000BEB0D /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
+		D018D75E20CB9AF9000BEB0D /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		D26E80601F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D26E80621F471B2300C043F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D26E80651F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D26E80671F471B2300C043F1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D2C8A3CA1F138C410099B68D /* 15a_VisibilityBufferOIT.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 15a_VisibilityBufferOIT.cpp; path = ../../src/15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.cpp; sourceTree = SOURCE_ROOT; };
+		D2C8A3CC1F1394F10099B68D /* Geometry.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp.preprocessed; fileEncoding = 4; name = Geometry.cpp; path = ../../../src/15a_VisibilityBufferOIT/Geometry.cpp; sourceTree = "<group>"; };
+		D2C8A3CD1F1394F10099B68D /* Geometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Geometry.h; path = ../../../src/15a_VisibilityBufferOIT/Geometry.h; sourceTree = "<group>"; };
+		E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		E94B94B8234C35BC006EA1F3 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		E9A43925233DD6A5005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		E9A43929233DD6BE005BF1C7 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		E9A4392B233DD6CC005BF1C7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		EA463C8B1EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 15a_VisibilityBufferOIT.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA463C951EF81E8F005AC8C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EA463CA71EF81E8F005AC8C7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		EA463CA91EF81E8F005AC8C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2660C8B27B3435C00D6F447 /* libThe-Forge.a in Frameworks */,
+				651017B522253A5E009A1174 /* MetalPerformanceShaders.framework in Frameworks */,
+				B235DC8020EC387C00592362 /* ModelIO.framework in Frameworks */,
+				B235DC7D20EC387500592362 /* Metal.framework in Frameworks */,
+				E9A4392F233DD6FA005BF1C7 /* QuartzCore.framework in Frameworks */,
+				E9A4392A233DD6BE005BF1C7 /* IOKit.framework in Frameworks */,
+				E9A43928233DD6B0005BF1C7 /* CoreGraphics.framework in Frameworks */,
+				E9A4392C233DD6CC005BF1C7 /* AppKit.framework in Frameworks */,
+				B235DC7E20EC387500592362 /* MetalKit.framework in Frameworks */,
+				E9A4392D233DD6DE005BF1C7 /* CoreGraphics.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B2C19CA127B340E4002A446D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B2C19CA627B340E4002A446D /* libThe-Forge.a */,
+				B2C19CA827B340E4002A446D /* libThe-Forge_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D26E80521F471B2300C043F1 /* 15a_VisibilityBufferOIT_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				E94B94B8234C35BC006EA1F3 /* iOSAppDelegate.m */,
+				D26E805F1F471B2300C043F1 /* Main.storyboard */,
+				D26E80621F471B2300C043F1 /* Assets.xcassets */,
+				D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */,
+				D26E80671F471B2300C043F1 /* Info.plist */,
+			);
+			path = 15a_VisibilityBufferOIT_iOS;
+			sourceTree = "<group>";
+		};
+		D2C8A3D21F13CD650099B68D /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				B273DE1B280F2A83008E05BB /* deferred_pass_alpha.frag.fsl */,
+				B273DE12280F2A82008E05BB /* deferred_pass_transparent.frag.fsl */,
+				B273DE19280F2A83008E05BB /* deferred_pass.frag.fsl */,
+				B273DE14280F2A82008E05BB /* deferred_pass.vert.fsl */,
+				B273DE16280F2A83008E05BB /* deferred_resources.h.fsl */,
+				B273DE17280F2A83008E05BB /* deferred_shade_pointlight.frag.fsl */,
+				B273DE18280F2A83008E05BB /* deferred_shade_pointlight.vert.fsl */,
+				B273DE15280F2A83008E05BB /* deferred_shade.frag.fsl */,
+				B273DE1A280F2A83008E05BB /* deferred_shade.vert.fsl */,
+				B2C19CCB27B3418B002A446D /* batch_compaction.comp.fsl */,
+				B2C19CB227B3418B002A446D /* clear_buffers.comp.fsl */,
+				B2C19CC227B3418B002A446D /* clear_light_clusters.comp.fsl */,
+				B2C19CBF27B3418B002A446D /* cluster_lights.comp.fsl */,
+				B2C19CB627B3418B002A446D /* cull_resources.h.fsl */,
+				B2C19CAA27B3418B002A446D /* CurveConversion.frag.fsl */,
+				B2C19CD027B3418C002A446D /* display.frag.fsl */,
+				B2C19CBE27B3418B002A446D /* display.vert.fsl */,
+				B2C19CB027B3418B002A446D /* godray.frag.fsl */,
+				B2C19CCA27B3418B002A446D /* HDAO.frag.fsl */,
+				B2C19CB727B3418B002A446D /* HDAO.vert.fsl */,
+				B2C19CC827B3418B002A446D /* icb.comp.fsl */,
+				B2C19CAF27B3418B002A446D /* light_cull_resources.h.fsl */,
+				B2C19CCD27B3418C002A446D /* oitClear.frag.fsl */,
+				B2C19CC627B3418B002A446D /* packing.h.fsl */,
+				B2C19CB827B3418B002A446D /* panoToCube.comp.fsl */,
+				B2C19CBB27B3418B002A446D /* resolve.frag.fsl */,
+				B2C19CC727B3418B002A446D /* resolve.vert.fsl */,
+				B2C19CCE27B3418C002A446D /* resolveGodray.frag.fsl */,
+				B2C19CCF27B3418C002A446D /* shader_defs.h.fsl */,
+				B2C19CD127B3418C002A446D /* shading.h.fsl */,
+				B2C19CAE27B3418B002A446D /* shadow_pass_alpha.frag.fsl */,
+				B2C19CB527B3418B002A446D /* shadow_pass_alpha.vert.fsl */,
+				B2C19CB327B3418B002A446D /* shadow_pass_transparent.frag.fsl */,
+				B2C19CC527B3418B002A446D /* shadow_pass_transparent.vert.fsl */,
+				B2C19CC427B3418B002A446D /* shadow_pass.vert.fsl */,
+				B2C19CB127B3418B002A446D /* skybox.frag.fsl */,
+				B2C19CBC27B3418B002A446D /* skybox.vert.fsl */,
+				B2C19CC327B3418B002A446D /* sun.frag.fsl */,
+				B2C19CAB27B3418B002A446D /* sun.vert.fsl */,
+				B2C19CC027B3418B002A446D /* triangle_filtering.comp.fsl */,
+				B2C19CB927B3418B002A446D /* vb_resources.h.fsl */,
+				B2C19CAC27B3418B002A446D /* visibilityBuffer_pass_alpha.frag.fsl */,
+				B2C19CC927B3418B002A446D /* visibilityBuffer_pass_alpha.vert.fsl */,
+				B2C19CB427B3418B002A446D /* visibilityBuffer_pass_transparent_void.frag.fsl */,
+				B2C19CAD27B3418B002A446D /* visibilityBuffer_pass_transparent_ret.vert.fsl */,
+				B2C19CCC27B3418C002A446D /* visibilityBuffer_pass.frag.fsl */,
+				B2C19CBD27B3418B002A446D /* visibilityBuffer_pass.vert.fsl */,
+				B2C19CC127B3418B002A446D /* visibilityBuffer_shade.frag.fsl */,
+				B2C19CBA27B3418B002A446D /* visibilityBuffer_shade.vert.fsl */,
+			);
+			name = Shaders;
+			sourceTree = SOURCE_ROOT;
+		};
+		D2D307F01F475F720086ED2E /* Meshes */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Meshes;
+			sourceTree = "<group>";
+		};
+		D2D30A171F4772740086ED2E /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Fonts;
+			sourceTree = "<group>";
+		};
+		EA463C821EF81E8F005AC8C7 = {
+			isa = PBXGroup;
+			children = (
+				D2D30A171F4772740086ED2E /* Fonts */,
+				D2D307F01F475F720086ED2E /* Meshes */,
+				D2C8A3D21F13CD650099B68D /* Shaders */,
+				E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */,
+				EA463C941EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT */,
+				D26E80521F471B2300C043F1 /* 15a_VisibilityBufferOIT_iOS */,
+				EA463C8D1EF81E8F005AC8C7 /* Frameworks */,
+				EA463C8C1EF81E8F005AC8C7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		EA463C8C1EF81E8F005AC8C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA463C8B1EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA463C8D1EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E9A4392E233DD6FA005BF1C7 /* QuartzCore.framework */,
+				E9A4392B233DD6CC005BF1C7 /* AppKit.framework */,
+				E9A43929233DD6BE005BF1C7 /* IOKit.framework */,
+				E9A43927233DD6B0005BF1C7 /* CoreGraphics.framework */,
+				E9A43925233DD6A5005BF1C7 /* libbz2.tbd */,
+				651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */,
+				B235DC7F20EC387C00592362 /* ModelIO.framework */,
+				B235DC7B20EC387500592362 /* Metal.framework */,
+				B235DC7C20EC387500592362 /* MetalKit.framework */,
+				D018D75D20CB9AF9000BEB0D /* assimp.a */,
+				D018D75C20CB9AF9000BEB0D /* IrrXML.a */,
+				D018D75E20CB9AF9000BEB0D /* zlibstatic.a */,
+				C97EC0322010BEE80044D188 /* Metal.framework */,
+				C97EC0302010BED90044D188 /* MetalKit.framework */,
+				C97EC02E2010BED00044D188 /* ModelIO.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		EA463C941EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT */ = {
+			isa = PBXGroup;
+			children = (
+				E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */,
+				D2C8A3CA1F138C410099B68D /* 15a_VisibilityBufferOIT.cpp */,
+				EA463C951EF81E8F005AC8C7 /* Assets.xcassets */,
+				EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */,
+				EA463CA91EF81E8F005AC8C7 /* Info.plist */,
+				D2C8A3CC1F1394F10099B68D /* Geometry.cpp */,
+				D2C8A3CD1F1394F10099B68D /* Geometry.h */,
+			);
+			path = 15a_VisibilityBufferOIT;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EA463C8A1EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "15a_VisibilityBufferOIT" */;
+			buildPhases = (
+				EA463C871EF81E8F005AC8C7 /* Sources */,
+				EA463C881EF81E8F005AC8C7 /* Frameworks */,
+				EA463C891EF81E8F005AC8C7 /* Resources */,
+				5C13A50524D1F7490023D339 /* ShellScript */,
+			);
+			buildRules = (
+				97E942D025BF4C5D009F2F2B /* PBXBuildRule */,
+			);
+			dependencies = (
+				B2C19D0227B341DF002A446D /* PBXTargetDependency */,
+			);
+			name = 15a_VisibilityBufferOIT;
+			productName = 02_Texture;
+			productReference = EA463C8B1EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA463C831EF81E8F005AC8C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = Confetti;
+				TargetAttributes = {
+					EA463C8A1EF81E8F005AC8C7 = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "15a_VisibilityBufferOIT" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA463C821EF81E8F005AC8C7;
+			productRefGroup = EA463C8C1EF81E8F005AC8C7 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = B2C19CA127B340E4002A446D /* Products */;
+					ProjectRef = E9A43919233DD588005BF1C7 /* The-Forge.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				EA463C8A1EF81E8F005AC8C7 /* 15a_VisibilityBufferOIT */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		B2C19CA627B340E4002A446D /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = B2C19CA527B340E4002A446D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B2C19CA827B340E4002A446D /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = B2C19CA727B340E4002A446D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EA463C891EF81E8F005AC8C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2C19CD927B3418C002A446D /* skybox.frag.fsl in Resources */,
+				B2C19CD327B3418C002A446D /* sun.vert.fsl in Resources */,
+				B273DE21280F2A83008E05BB /* deferred_shade_pointlight.vert.fsl in Resources */,
+				B2C19CEC27B3418C002A446D /* shadow_pass.vert.fsl in Resources */,
+				B2C19CD427B3418C002A446D /* visibilityBuffer_pass_alpha.frag.fsl in Resources */,
+				B2C19CE827B3418C002A446D /* triangle_filtering.comp.fsl in Resources */,
+				EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */,
+				B2C19CE527B3418C002A446D /* visibilityBuffer_pass.vert.fsl in Resources */,
+				B273DE22280F2A83008E05BB /* deferred_pass.frag.fsl in Resources */,
+				B2C19CF327B3418C002A446D /* batch_compaction.comp.fsl in Resources */,
+				B2C19CDE27B3418C002A446D /* cull_resources.h.fsl in Resources */,
+				B2C19CF227B3418C002A446D /* HDAO.frag.fsl in Resources */,
+				B2C19CE127B3418C002A446D /* vb_resources.h.fsl in Resources */,
+				B2C19CD527B3418C002A446D /* visibilityBuffer_pass_transparent_ret.vert.fsl in Resources */,
+				B2C19CDA27B3418C002A446D /* clear_buffers.comp.fsl in Resources */,
+				B2C19CD727B3418C002A446D /* light_cull_resources.h.fsl in Resources */,
+				B273DE24280F2A83008E05BB /* deferred_pass_alpha.frag.fsl in Resources */,
+				B2C19CE627B3418C002A446D /* display.vert.fsl in Resources */,
+				B2C19CE727B3418C002A446D /* cluster_lights.comp.fsl in Resources */,
+				B2C19CF627B3418C002A446D /* resolveGodray.frag.fsl in Resources */,
+				B2C19CED27B3418C002A446D /* shadow_pass_transparent.vert.fsl in Resources */,
+				B273DE1C280F2A83008E05BB /* deferred_pass_transparent.frag.fsl in Resources */,
+				B273DE20280F2A83008E05BB /* deferred_shade_pointlight.frag.fsl in Resources */,
+				B2C19CE327B3418C002A446D /* resolve.frag.fsl in Resources */,
+				B2C19CEA27B3418C002A446D /* clear_light_clusters.comp.fsl in Resources */,
+				B273DE1E280F2A83008E05BB /* deferred_shade.frag.fsl in Resources */,
+				EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */,
+				B2C19CEF27B3418C002A446D /* resolve.vert.fsl in Resources */,
+				B273DE1F280F2A83008E05BB /* deferred_resources.h.fsl in Resources */,
+				B2C19CF427B3418C002A446D /* visibilityBuffer_pass.frag.fsl in Resources */,
+				B2C19CDB27B3418C002A446D /* shadow_pass_transparent.frag.fsl in Resources */,
+				B2C19CDC27B3418C002A446D /* visibilityBuffer_pass_transparent_void.frag.fsl in Resources */,
+				B2C19CDF27B3418C002A446D /* HDAO.vert.fsl in Resources */,
+				B2C19CF727B3418C002A446D /* shader_defs.h.fsl in Resources */,
+				B2C19CEB27B3418C002A446D /* sun.frag.fsl in Resources */,
+				B273DE23280F2A83008E05BB /* deferred_shade.vert.fsl in Resources */,
+				B2C19CE927B3418C002A446D /* visibilityBuffer_shade.frag.fsl in Resources */,
+				B2C19CD627B3418C002A446D /* shadow_pass_alpha.frag.fsl in Resources */,
+				B2C19CF127B3418C002A446D /* visibilityBuffer_pass_alpha.vert.fsl in Resources */,
+				B2C19CD827B3418C002A446D /* godray.frag.fsl in Resources */,
+				B2C19CD227B3418C002A446D /* CurveConversion.frag.fsl in Resources */,
+				B2C19CDD27B3418C002A446D /* shadow_pass_alpha.vert.fsl in Resources */,
+				B2C19CF827B3418C002A446D /* display.frag.fsl in Resources */,
+				B2C19CE427B3418C002A446D /* skybox.vert.fsl in Resources */,
+				B2C19CF927B3418C002A446D /* shading.h.fsl in Resources */,
+				B2C19CE227B3418C002A446D /* visibilityBuffer_shade.vert.fsl in Resources */,
+				B273DE1D280F2A83008E05BB /* deferred_pass.vert.fsl in Resources */,
+				B2C19CF027B3418C002A446D /* icb.comp.fsl in Resources */,
+				B2C19CF527B3418C002A446D /* oitClear.frag.fsl in Resources */,
+				B2C19CE027B3418C002A446D /* panoToCube.comp.fsl in Resources */,
+				B2C19CEE27B3418C002A446D /* packing.h.fsl in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5C13A50524D1F7490023D339 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nART=\"$SRCROOT/../../../../Art/SanMiguel_3\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/15a_VisibilityBufferOIT\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../../../Unit_Tests/macOS Xcode/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/../../UnitTestResources/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\n# Camera Path\nrsync -u -r \"$ASSETS/cameraPath.bin\" \"$DST\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EA463C871EF81E8F005AC8C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E94B94B5234C3589006EA1F3 /* macOSAppDelegate.m in Sources */,
+				D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */,
+				D2B157271F1CD2CA0037A8C8 /* 15a_VisibilityBufferOIT.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B2C19D0227B341DF002A446D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = B2C19D0127B341DF002A446D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D26E805F1F471B2300C043F1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D26E80601F471B2300C043F1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		D26E80641F471B2300C043F1 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D26E80651F471B2300C043F1 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				EA463CA71EF81E8F005AC8C7 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
+					"$(PROJECT_DIR)/../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/15a_VisibilityBufferOIT/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Examples.15a-VisibilityBufferOIT";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
+					"$(PROJECT_DIR)/../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/15a_VisibilityBufferOIT/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Examples.15a-VisibilityBufferOIT";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "15a_VisibilityBufferOIT" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAA1EF81E8F005AC8C7 /* Debug */,
+				EA463CAB1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "15a_VisibilityBufferOIT" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAD1EF81E8F005AC8C7 /* Debug */,
+				EA463CAE1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA463C831EF81E8F005AC8C7 /* Project object */;
+}

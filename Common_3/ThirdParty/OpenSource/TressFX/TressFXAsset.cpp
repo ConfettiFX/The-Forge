@@ -64,8 +64,6 @@ static void GetTangentVectors(const vec3& n, vec3& t0, vec3& t1)
 	}
 }
 
-static float GetRandom(float Min, float Max) { return ((float(rand()) / float(RAND_MAX)) * (Max - Min)) + Min; }
-
 TressFXAsset::TressFXAsset():
 	m_positions(NULL),
 	m_strandUV(NULL),
@@ -420,8 +418,8 @@ bool TressFXAsset::GenerateFollowHairs(int numFollowHairsPerGuideHair, float tip
 			m_strandUV[indexStrandFollow] = m_strandUV[indexGuideStrand];
 
 			// offset vector from the guide strand's root vertex position
-			vec3 offset = GetRandom(-maxRadiusAroundGuideHair, maxRadiusAroundGuideHair) * t0 +
-						  GetRandom(-maxRadiusAroundGuideHair, maxRadiusAroundGuideHair) * t1;
+			vec3 offset = randomFloat(-maxRadiusAroundGuideHair, maxRadiusAroundGuideHair) * t0 +
+						  randomFloat(-maxRadiusAroundGuideHair, maxRadiusAroundGuideHair) * t1;
 			followOffset[indexStrandFollow] = vec4(offset);
 			followOffset[indexStrandFollow].setW((float)indexGuideStrand);
 
@@ -654,7 +652,7 @@ void TressFXAsset::ComputeTransforms()
 			vecZ = normalize(vecZ);
 			vec3 vecY = normalize(cross(vecZ, vecX));
 
-			mat3 rotL2W = {};
+			mat3 rotL2W(0.0f);
 
 			rotL2W[0][0] = vecX.getX();
 			rotL2W[1][0] = vecY.getX();

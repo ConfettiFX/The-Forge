@@ -1,10 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <float.h>
-#include <math.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Graham Wihlidal. Optimizing the Graphics Pipeline with Compute. 2016
@@ -40,7 +37,7 @@ static void buildTriangleAdjacency(TriangleAdjacency2& adjacency, const unsigned
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
-		assert(indices[i] < vertex_count);
+		ASSERT(indices[i] < vertex_count);
 
 		adjacency.counts[indices[i]]++;
 	}
@@ -54,7 +51,7 @@ static void buildTriangleAdjacency(TriangleAdjacency2& adjacency, const unsigned
 		offset += adjacency.counts[i];
 	}
 
-	assert(offset == index_count);
+	ASSERT(offset == index_count);
 
 	// fill triangle data
 	for (size_t i = 0; i < face_count; ++i)
@@ -69,7 +66,7 @@ static void buildTriangleAdjacency(TriangleAdjacency2& adjacency, const unsigned
 	// fix offsets that have been disturbed by the previous pass
 	for (size_t i = 0; i < vertex_count; ++i)
 	{
-		assert(adjacency.offsets[i] >= adjacency.counts[i]);
+		ASSERT(adjacency.offsets[i] >= adjacency.counts[i]);
 
 		adjacency.offsets[i] -= adjacency.counts[i];
 	}
@@ -77,7 +74,7 @@ static void buildTriangleAdjacency(TriangleAdjacency2& adjacency, const unsigned
 
 static void computeBoundingSphere(float result[4], const float points[][3], size_t count)
 {
-	assert(count > 0);
+	ASSERT(count > 0);
 
 	// find extremum points along all 3 axes; for each axis we get a pair of points with min/max coordinates
 	size_t pmin[3] = {0, 0, 0};
@@ -128,7 +125,7 @@ static void computeBoundingSphere(float result[4], const float points[][3], size
 		if (d2 > radius * radius)
 		{
 			float d = sqrtf(d2);
-			assert(d > 0);
+			ASSERT(d > 0);
 
 			float k = 0.5f + (radius / d) / 2;
 
@@ -191,7 +188,7 @@ static float computeTriangleCones(Cone* triangles, const unsigned int* indices, 
 	for (size_t i = 0; i < face_count; ++i)
 	{
 		unsigned int a = indices[i * 3 + 0], b = indices[i * 3 + 1], c = indices[i * 3 + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		const float* p0 = vertex_positions + vertex_stride_float * a;
 		const float* p1 = vertex_positions + vertex_stride_float * b;
@@ -320,7 +317,7 @@ static size_t kdtreePartition(unsigned int* indices, size_t count, const float* 
 
 static size_t kdtreeBuildLeaf(size_t offset, KDNode* nodes, size_t node_count, unsigned int* indices, size_t count)
 {
-	assert(offset + count <= node_count);
+	ASSERT(offset + count <= node_count);
 	(void)node_count;
 
 	KDNode& result = nodes[offset];
@@ -344,8 +341,8 @@ static size_t kdtreeBuildLeaf(size_t offset, KDNode* nodes, size_t node_count, u
 
 static size_t kdtreeBuild(size_t offset, KDNode* nodes, size_t node_count, const float* points, size_t stride, unsigned int* indices, size_t count, size_t leaf_size)
 {
-	assert(count > 0);
-	assert(offset < node_count);
+	ASSERT(count > 0);
+	ASSERT(offset < node_count);
 
 	if (count <= leaf_size)
 		return kdtreeBuildLeaf(offset, nodes, node_count, indices, count);
@@ -441,10 +438,10 @@ size_t meshopt_buildMeshletsBound(size_t index_count, size_t max_vertices, size_
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
-	assert(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
-	assert(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
+	ASSERT(index_count % 3 == 0);
+	ASSERT(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
+	ASSERT(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
+	ASSERT(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
 
 	(void)kMeshletMaxVertices;
 	(void)kMeshletMaxTriangles;
@@ -463,13 +460,13 @@ size_t meshopt_buildMeshlets(meshopt_Meshlet* meshlets, unsigned int* meshlet_ve
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
-	assert(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
-	assert(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
-	assert(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
+	ASSERT(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
+	ASSERT(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
+	ASSERT(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
 
 	meshopt_Allocator allocator;
 
@@ -527,10 +524,10 @@ size_t meshopt_buildMeshlets(meshopt_Meshlet* meshlets, unsigned int* meshlet_ve
 			for (size_t j = 0; j < neighbours_size; ++j)
 			{
 				unsigned int triangle = neighbours[j];
-				assert(!emitted_flags[triangle]);
+				ASSERT(!emitted_flags[triangle]);
 
 				unsigned int a = indices[triangle * 3 + 0], b = indices[triangle * 3 + 1], c = indices[triangle * 3 + 2];
-				assert(a < vertex_count && b < vertex_count && c < vertex_count);
+				ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 				unsigned int extra = (used[a] == 0xff) + (used[b] == 0xff) + (used[c] == 0xff);
 
@@ -585,7 +582,7 @@ size_t meshopt_buildMeshlets(meshopt_Meshlet* meshlets, unsigned int* meshlet_ve
 			break;
 
 		unsigned int a = indices[best_triangle * 3 + 0], b = indices[best_triangle * 3 + 1], c = indices[best_triangle * 3 + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		// add meshlet to the output; when the current meshlet is full we reset the accumulated bounds
 		if (appendMeshlet(meshlet, a, b, c, used, meshlets, meshlet_vertices, meshlet_triangles, meshlet_offset, max_vertices, max_triangles))
@@ -638,7 +635,7 @@ size_t meshopt_buildMeshlets(meshopt_Meshlet* meshlets, unsigned int* meshlet_ve
 		meshlets[meshlet_offset++] = meshlet;
 	}
 
-	assert(meshlet_offset <= meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles));
+	ASSERT(meshlet_offset <= meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles));
 	return meshlet_offset;
 }
 
@@ -646,11 +643,11 @@ size_t meshopt_buildMeshletsScan(meshopt_Meshlet* meshlets, unsigned int* meshle
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
-	assert(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
-	assert(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
-	assert(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
+	ASSERT(max_vertices >= 3 && max_vertices <= kMeshletMaxVertices);
+	ASSERT(max_triangles >= 1 && max_triangles <= kMeshletMaxTriangles);
+	ASSERT(max_triangles % 4 == 0); // ensures the caller will compute output space properly as index data is 4b aligned
 
 	meshopt_Allocator allocator;
 
@@ -664,7 +661,7 @@ size_t meshopt_buildMeshletsScan(meshopt_Meshlet* meshlets, unsigned int* meshle
 	for (size_t i = 0; i < index_count; i += 3)
 	{
 		unsigned int a = indices[i + 0], b = indices[i + 1], c = indices[i + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		// appends triangle to the meshlet and writes previous meshlet to the output if full
 		meshlet_offset += appendMeshlet(meshlet, a, b, c, used, meshlets, meshlet_vertices, meshlet_triangles, meshlet_offset, max_vertices, max_triangles);
@@ -677,7 +674,7 @@ size_t meshopt_buildMeshletsScan(meshopt_Meshlet* meshlets, unsigned int* meshle
 		meshlets[meshlet_offset++] = meshlet;
 	}
 
-	assert(meshlet_offset <= meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles));
+	ASSERT(meshlet_offset <= meshopt_buildMeshletsBound(index_count, max_vertices, max_triangles));
 	return meshlet_offset;
 }
 
@@ -685,10 +682,10 @@ meshopt_Bounds meshopt_computeClusterBounds(const unsigned int* indices, size_t 
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(index_count / 3 <= kMeshletMaxTriangles);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(index_count / 3 <= kMeshletMaxTriangles);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	(void)vertex_count;
 
@@ -702,7 +699,7 @@ meshopt_Bounds meshopt_computeClusterBounds(const unsigned int* indices, size_t 
 	for (size_t i = 0; i < index_count; i += 3)
 	{
 		unsigned int a = indices[i + 0], b = indices[i + 1], c = indices[i + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		const float* p0 = vertex_positions + vertex_stride_float * a;
 		const float* p1 = vertex_positions + vertex_stride_float * b;
@@ -796,7 +793,7 @@ meshopt_Bounds meshopt_computeClusterBounds(const unsigned int* indices, size_t 
 		float dn = axis[0] * normals[i][0] + axis[1] * normals[i][1] + axis[2] * normals[i][2];
 
 		// dn should be larger than mindp cutoff above
-		assert(dn > 0.f);
+		ASSERT(dn > 0.f);
 		float t = dc / dn;
 
 		maxt = (t > maxt) ? t : maxt;
@@ -838,16 +835,16 @@ meshopt_Bounds meshopt_computeMeshletBounds(const unsigned int* meshlet_vertices
 {
 	using namespace meshopt;
 
-	assert(triangle_count <= kMeshletMaxTriangles);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(triangle_count <= kMeshletMaxTriangles);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	unsigned int indices[kMeshletMaxTriangles * 3];
 
 	for (size_t i = 0; i < triangle_count * 3; ++i)
 	{
 		unsigned int index = meshlet_vertices[meshlet_triangles[i]];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		indices[i] = index;
 	}

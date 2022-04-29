@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,7 +52,7 @@
 #include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Interfaces/IMemory.h"
 
-#if defined(ENABLE_RAYTRACING)
+#if defined(MTL_RAYTRACING_AVAILABLE)
 
 extern void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 

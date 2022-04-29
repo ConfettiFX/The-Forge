@@ -44,8 +44,8 @@
 
 typedef float32x2_t __m64;
 typedef float32x4_t __m128;
+typedef float64x2_t __m128d;
 typedef int32x4_t __m128i;
-
 
 // ******************************************
 // type-safe casting between types
@@ -174,6 +174,37 @@ typedef int32x4_t __m128i;
 #define vreinterpretq_u64_m128i(x) \
 	vreinterpretq_u64_s32(x)
 
+
+#define vreinterpretq_m128d_s32(x) \
+	vreinterpretq_f64_s32(x)
+
+#define vreinterpretq_m128d_s64(x) \
+	vreinterpretq_f64_s64(x)
+
+#define vreinterpretq_m128d_u64(x) \
+	vreinterpretq_f64_u64(x)
+
+#define vreinterpretq_m128d_f32(x) \
+	vreinterpretq_f64_f32(x)
+
+#define vreinterpretq_m128d_f64(x) \
+	(x)
+
+
+#define vreinterpretq_s64_m128d(x) \
+	vreinterpretq_s64_f64(x)
+
+#define vreinterpretq_u32_m128d(x) \
+	vreinterpretq_u32_f64(x)
+
+#define vreinterpretq_u64_m128d(x) \
+	vreinterpretq_u64_f64(x)
+
+#define vreinterpretq_f64_m128d(x) \
+	(x)
+
+#define vreinterpretq_f32_m128d(x) \
+	vreinterpretq_f32_f64(x)
 
 // union intended to allow direct access to an __m128 variable using the names that the MSVC
 // compiler provides.  This union should really only be used when trying to access the members
@@ -1724,6 +1755,354 @@ FORCE_INLINE __m128i _mm_min_epu32(__m128i a, __m128i b) {
 FORCE_INLINE void _mm_store1_ps(float* mem_addr, __m128 a) {
 	vst1q_lane_f32(mem_addr, a, 0);
 }
+
+// ******************************************
+// Double-Precision Forge Extensions
+// ******************************************
+
+// Compute the bitwise AND of packed double-precision (64-bit) floating-point
+// elements in a and b, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_and_pd
+FORCE_INLINE __m128d _mm_and_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_s64(
+		vandq_s64(vreinterpretq_s64_m128d(a), vreinterpretq_s64_m128d(b)));
+}
+
+// Compute the bitwise NOT of packed double-precision (64-bit) floating-point
+// elements in a and then AND with b, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_andnot_pd
+FORCE_INLINE __m128d _mm_andnot_pd(__m128d a, __m128d b)
+{
+	// *NOTE* argument swap
+	return vreinterpretq_m128d_s64(
+		vbicq_s64(vreinterpretq_s64_m128d(b), vreinterpretq_s64_m128d(a)));
+}
+
+// Compute the bitwise OR of packed double-precision (64-bit) floating-point
+// elements in a and b, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=mm_or_pd
+FORCE_INLINE __m128d _mm_or_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_s64(
+		vorrq_s64(vreinterpretq_s64_m128d(a), vreinterpretq_s64_m128d(b)));
+}
+
+// Compute the bitwise XOR of packed double-precision (64-bit) floating-point
+// elements in a and b, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_xor_pd
+FORCE_INLINE __m128d _mm_xor_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_s64(
+		veorq_s64(vreinterpretq_s64_m128d(a), vreinterpretq_s64_m128d(b)));
+}
+
+// Add packed double-precision (64-bit) floating-point elements in a and b, and
+// store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_add_pd
+FORCE_INLINE __m128d _mm_add_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vaddq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Subtract packed double-precision (64-bit) floating-point elements in b from
+// packed double-precision (64-bit) floating-point elements in a, and store the
+// results in dst.
+//  https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=mm_sub_pd
+FORCE_INLINE __m128d _mm_sub_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vsubq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Multiply packed double-precision (64-bit) floating-point elements in a and b,
+// and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_mul_pd
+FORCE_INLINE __m128d _mm_mul_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vmulq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Divide packed double-precision (64-bit) floating-point elements in a by
+// packed elements in b, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_div_pd
+FORCE_INLINE __m128d _mm_div_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vdivq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Return vector of type __m128d with all elements set to zero.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_setzero_pd
+FORCE_INLINE __m128d _mm_setzero_pd(void)
+{
+	return vreinterpretq_m128d_f64(vdupq_n_f64(0));
+}
+
+// Broadcast double-precision (64-bit) floating-point value a to all elements of
+// dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_set1_pd
+FORCE_INLINE __m128d _mm_set1_pd(double d)
+{
+	return vreinterpretq_m128d_f64(vdupq_n_f64(d));
+}
+
+// Set packed double-precision (64-bit) floating-point elements in dst with the
+// supplied values.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_set_pd
+FORCE_INLINE __m128d _mm_set_pd(double e1, double e0)
+{
+	double ALIGN_STRUCT(16) data[2] = { e0, e1 };
+	return vreinterpretq_m128d_f64(vld1q_f64((float64_t *)data));
+}
+
+// Set packed double-precision (64-bit) floating-point elements in dst with the
+// supplied values in reverse order.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_setr_pd
+FORCE_INLINE __m128d _mm_setr_pd(double e1, double e0)
+{
+	return _mm_set_pd(e0, e1);
+}
+
+// Loads two double-precision from 16-byte aligned memory, floating-point
+// values.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_load_pd
+FORCE_INLINE __m128d _mm_load_pd(const double *p)
+{
+	return vreinterpretq_m128d_f64(vld1q_f64(p));
+}
+
+// Loads two double-precision from unaligned memory, floating-point values.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_loadu_pd
+FORCE_INLINE __m128d _mm_loadu_pd(const double *p)
+{
+	return _mm_load_pd(p);
+}
+
+// Store 128-bits (composed of 2 packed double-precision (64-bit) floating-point
+// elements) from a into memory. mem_addr must be aligned on a 16-byte boundary
+// or a general-protection exception may be generated.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_store_pd
+FORCE_INLINE void _mm_store_pd(double *mem_addr, __m128d a)
+{
+	vst1q_f64((float64_t *)mem_addr, vreinterpretq_f64_m128d(a));
+}
+
+// Store 128-bits (composed of 2 packed double-precision (64-bit) floating-point
+// elements) from a into memory. mem_addr does not need to be aligned on any
+// particular boundary.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_storeu_pd
+FORCE_INLINE void _mm_storeu_pd(double *mem_addr, __m128d a)
+{
+	_mm_store_pd(mem_addr, a);
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b,
+// and store packed minimum values in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_min_pd
+FORCE_INLINE __m128d _mm_min_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vminq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b,
+// and store packed maximum values in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_max_pd
+FORCE_INLINE __m128d _mm_max_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f64(
+		vmaxq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Move the lower double-precision (64-bit) floating-point element from b to the
+// lower element of dst, and copy the upper element from a to the upper element
+// of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_move_sd
+FORCE_INLINE __m128d _mm_move_sd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_f32(
+		vcombine_f32(vget_low_f32(vreinterpretq_f32_m128d(b)),
+			vget_high_f32(vreinterpretq_f32_m128d(a))));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for less-than, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmplt_pd
+FORCE_INLINE __m128d _mm_cmplt_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_u64(
+		vcltq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Compare the lower double-precision (64-bit) floating-point elements in a and
+// b for less-than, store the result in the lower element of dst, and copy the
+// upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmplt_sd
+FORCE_INLINE __m128d _mm_cmplt_sd(__m128d a, __m128d b)
+{
+	return _mm_move_sd(a, _mm_cmplt_pd(a, b));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for greater-than, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpgt_pd
+FORCE_INLINE __m128d _mm_cmpgt_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_u64(
+		vcgtq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Compare the lower double-precision (64-bit) floating-point elements in a and
+// b for greater-than, store the result in the lower element of dst, and copy
+// the upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpgt_sd
+FORCE_INLINE __m128d _mm_cmpgt_sd(__m128d a, __m128d b)
+{
+	return _mm_move_sd(a, _mm_cmpgt_pd(a, b));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for greater-than-or-equal, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpge_pd
+FORCE_INLINE __m128d _mm_cmpge_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_u64(
+		vcgeq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for equality, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpeq_pd
+FORCE_INLINE __m128d _mm_cmpeq_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_u64(
+		vceqq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)));
+}
+
+// Compare packed double-precision (64-bit) floating-point elements in a and b
+// for not-equal, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cmpneq_pd
+FORCE_INLINE __m128d _mm_cmpneq_pd(__m128d a, __m128d b)
+{
+	return vreinterpretq_m128d_s32(vmvnq_s32(vreinterpretq_s32_u64(
+		vceqq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b)))));
+}
+
+// Compute the square root of packed double-precision (64-bit) floating-point
+// elements in a, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_sqrt_pd
+FORCE_INLINE __m128d _mm_sqrt_pd(__m128d a)
+{
+	return vreinterpretq_m128d_f64(vsqrtq_f64(vreinterpretq_f64_m128d(a)));
+}
+
+// Convert the signed 64-bit integer b to a double-precision (64-bit)
+// floating-point element, store the result in the lower element of dst, and
+// copy the upper element from a to the upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cvtsi64_sd
+FORCE_INLINE __m128d _mm_cvtsi64_sd(__m128d a, int64_t b)
+{
+	return vreinterpretq_m128d_f64(
+		vsetq_lane_f64((double)b, vreinterpretq_f64_m128d(a), 0));
+}
+
+// Convert the lower double-precision (64-bit) floating-point element in a to a
+// 64-bit integer, and store the result in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_cvtsd_si64
+FORCE_INLINE int64_t _mm_cvtsd_si64(__m128d a)
+{
+	return (int64_t)vgetq_lane_f64(vrndiq_f64(vreinterpretq_f64_m128d(a)), 0);
+}
+
+// Sets the 2 signed 64-bit integer values to i.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_set1_epi64x
+FORCE_INLINE __m128i _mm_set1_epi64x(int64_t _i)
+{
+	return vreinterpretq_m128i_s64(vdupq_n_s64(_i));
+}
+
+// Adds the 4 signed or unsigned 64-bit integers in a to the 4 signed or
+// unsigned 32-bit integers in b.
+// https://msdn.microsoft.com/en-us/library/vstudio/09xs4fkk(v=vs.100).aspx
+FORCE_INLINE __m128i _mm_add_epi64(__m128i a, __m128i b)
+{
+	return vreinterpretq_m128i_s64(
+		vaddq_s64(vreinterpretq_s64_m128i(a), vreinterpretq_s64_m128i(b)));
+}
+
+// Subtract the lower double-precision (64-bit) floating-point element in b from
+// the lower double-precision (64-bit) floating-point element in a, store the
+// result in the lower element of dst, and copy the upper element from a to the
+// upper element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_sub_sd
+FORCE_INLINE __m128d _mm_sub_sd(__m128d a, __m128d b)
+{
+	return _mm_move_sd(a, _mm_sub_pd(a, b));
+}
+
+// Divide the lower double-precision (64-bit) floating-point element in a by the
+// lower double-precision (64-bit) floating-point element in b, store the result
+// in the lower element of dst, and copy the upper element from a to the upper
+// element of dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_div_sd
+FORCE_INLINE __m128d _mm_div_sd(__m128d a, __m128d b)
+{
+	float64x2_t tmp =
+		vdivq_f64(vreinterpretq_f64_m128d(a), vreinterpretq_f64_m128d(b));
+	return vreinterpretq_m128d_f64(
+		vsetq_lane_f64(vgetq_lane_f64(vreinterpretq_f64_m128d(a), 1), tmp, 1));
+}
+
+// Copy double-precision (64-bit) floating-point element a to the lower element
+// of dst, and zero the upper element.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_set_sd
+FORCE_INLINE __m128d _mm_set_sd(double a)
+{
+	return _mm_set_pd(0, a);
+}
+
+// Set each bit of mask dst based on the most significant bit of the
+// corresponding packed double-precision (64-bit) floating-point element in a.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_movemask_pd
+FORCE_INLINE int _mm_movemask_pd(__m128d a)
+{
+	uint64x2_t input = vreinterpretq_u64_m128d(a);
+	uint64x2_t high_bits = vshrq_n_u64(input, 63);
+	return (int)(vgetq_lane_u64(high_bits, 0) | (vgetq_lane_u64(high_bits, 1) << 1));
+}
+
+// Add the lower double-precision (64-bit) floating-point element in a and b,
+// store the result in the lower element of dst, and copy the upper element from
+// a to the upper element of dst.
+//
+//   dst[63:0] := a[63:0] + b[63:0]
+//   dst[127:64] := a[127:64]
+//
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_add_sd
+FORCE_INLINE __m128d _mm_add_sd(__m128d a, __m128d b)
+{
+	return _mm_move_sd(a, _mm_add_pd(a, b));
+}
+
+// Load a double-precision (64-bit) floating-point element from memory into the
+// lower of dst, and zero the upper element. mem_addr does not need to be
+// aligned on any particular boundary.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_load_sd
+FORCE_INLINE __m128d _mm_load_sd(const double *p)
+{
+	return vreinterpretq_m128d_f64(vsetq_lane_f64(*p, vdupq_n_f64(0), 0));
+}
+
+// Shuffle double-precision (64-bit) floating-point elements using the control
+// in imm8, and store the results in dst.
+// https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_shuffle_pd
+#define _mm_shuffle_pd(a, b, imm8)                                          \
+    vreinterpretq_m128d_s64(__builtin_shufflevector(                        \
+        vreinterpretq_s64_m128d(a), vreinterpretq_s64_m128d(b), imm8 & 0x1, \
+        ((imm8 & 0x2) >> 1) + 2))
 
 #define CONST_TO_DYNAMIC32(foo) \
 FORCE_INLINE __m128i foo ## _dynamic(__m128i _v, int bits) { \

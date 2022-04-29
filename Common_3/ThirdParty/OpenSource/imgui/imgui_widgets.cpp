@@ -2872,11 +2872,11 @@ static bool STB_TEXTEDIT_INSERTCHARS(STB_TEXTEDIT_STRING* obj, int pos, const Im
         return false;
 
     // Grow internal buffer if needed
-    if (new_text_len + text_len + 1 > obj->TextW.size())
+    if ((uint)(new_text_len + text_len + 1) > obj->TextW.size())
     {
         if (!is_resizable)
             return false;
-        IM_ASSERT(text_len < obj->TextW.size());
+        IM_ASSERT((uint)text_len < obj->TextW.size());
         obj->TextW.resize(text_len + ImClamp(new_text_len * 4, 32, ImMax(256, new_text_len)) + 1);
     }
 

@@ -110,6 +110,80 @@ inline FloatInVec VecIdx::operator -= (const FloatInVec & scalar)
 }
 
 // ========================================================
+// VecIdxd
+// ========================================================
+
+#ifdef VECTORMATH_NO_SCALAR_CAST
+inline VecIdxd::operator DoubleInVec() const
+{
+	return DoubleInVec(ref, i);
+}
+inline double VecIdxd::getAsDouble() const
+#else
+inline VecIdxd::operator double() const
+#endif
+{
+	return ((double *)&ref)[i];
+}
+
+inline double VecIdxd::operator = (double scalar)
+{
+	dsseVecSetElement(ref, scalar, i);
+	return scalar;
+}
+
+inline DoubleInVec VecIdxd::operator = (const DoubleInVec & scalar)
+{
+	ref = dsseVecInsert(ref, scalar.get256(), i);
+	return scalar;
+}
+
+inline DoubleInVec VecIdxd::operator = (const VecIdxd & scalar)
+{
+	return *this = DoubleInVec(scalar.ref, scalar.i);
+}
+
+inline DoubleInVec VecIdxd::operator *= (double scalar)
+{
+	return *this *= DoubleInVec(scalar);
+}
+
+inline DoubleInVec VecIdxd::operator *= (const DoubleInVec & scalar)
+{
+	return *this = DoubleInVec(ref, i) * scalar;
+}
+
+inline DoubleInVec VecIdxd::operator /= (double scalar)
+{
+	return *this /= DoubleInVec(scalar);
+}
+
+inline DoubleInVec VecIdxd::operator /= (const DoubleInVec & scalar)
+{
+	return *this = DoubleInVec(ref, i) / scalar;
+}
+
+inline DoubleInVec VecIdxd::operator += (double scalar)
+{
+	return *this += DoubleInVec(scalar);
+}
+
+inline DoubleInVec VecIdxd::operator += (const DoubleInVec & scalar)
+{
+	return *this = DoubleInVec(ref, i) + scalar;
+}
+
+inline DoubleInVec VecIdxd::operator -= (double scalar)
+{
+	return *this -= DoubleInVec(scalar);
+}
+
+inline DoubleInVec VecIdxd::operator -= (const DoubleInVec & scalar)
+{
+	return *this = DoubleInVec(ref, i) - scalar;
+}
+
+// ========================================================
 // Vector3
 // ========================================================
 
@@ -546,6 +620,437 @@ inline void print(const Vector3 & vec, const char * name)
     SSEFloat tmp;
     tmp.m128 = vec.get128();
     std::printf("%s: ( %f %f %f )\n", name, tmp.f[0], tmp.f[1], tmp.f[2]);
+}
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
+// Vector3d
+// ========================================================
+
+inline Vector3d::Vector3d(double _x, double _y, double _z)
+{
+	mVec256 = dsseSetr(_x, _y, _z, 0.0);
+}
+
+inline Vector3d::Vector3d(const DoubleInVec & _x, const DoubleInVec & _y, const DoubleInVec & _z)
+{
+	const DSSEVec4 xz = dsseMergeH(_x.get256(), _z.get256());
+	mVec256 = dsseMergeH(xz, _y.get256());
+}
+
+inline Vector3d::Vector3d(const Point3 & pnt)
+{
+	mVec256 = dsseSetr((double)pnt.getX(), (double)pnt.getY(), (double)pnt.getZ(), (double)pnt.getW());
+}
+
+inline Vector3d::Vector3d(double scalar)
+{
+	mVec256 = dsseSet1(scalar);
+}
+
+inline Vector3d::Vector3d(const DoubleInVec & scalar)
+{
+	mVec256 = scalar.get256();
+}
+
+inline Vector3d::Vector3d(DSSEVec4 xyzw)
+{
+	mVec256 = xyzw;
+}
+
+inline const Vector3d Vector3d::xAxis()
+{
+	return Vector3d(dsseUnitVec1000());
+}
+
+inline const Vector3d Vector3d::yAxis()
+{
+	return Vector3d(dsseUnitVec0100());
+}
+
+inline const Vector3d Vector3d::zAxis()
+{
+	return Vector3d(dsseUnitVec0010());
+}
+
+inline const Vector3d lerp(double t, const Vector3d & vec0, const Vector3d & vec1)
+{
+	return lerp(DoubleInVec(t), vec0, vec1);
+}
+
+inline const Vector3d lerp(const DoubleInVec & t, const Vector3d & vec0, const Vector3d & vec1)
+{
+	return (vec0 + ((vec1 - vec0) * t));
+}
+
+inline const Vector3d slerp(double t, const Vector3d & unitVec0, const Vector3d & unitVec1)
+{
+	return slerp(DoubleInVec(t), unitVec0, unitVec1);
+}
+
+inline const Vector3d slerp(const DoubleInVec & t, const Vector3d & unitVec0, const Vector3d & unitVec1)
+{
+	DSSEVec4 scales, scale0, scale1, cosAngle, angle, tttt, oneMinusT, angles, sines;
+	cosAngle = dsseVecDot3(unitVec0.get256(), unitVec1.get256());
+	DSSEVec4 selectMask = dsseGt(dsseSet1(VECTORMATH_SLERP_TOL), cosAngle);
+	angle = dsseACosf(cosAngle);
+	tttt = t.get256();
+	oneMinusT = dsseSub(dsseSet1(1.0), tttt);
+	angles = dsseMergeH(dsseSet1(1.0), tttt); // angles = 1, t, 1, t
+	angles = dsseMergeH(angles, oneMinusT);   // angles = 1, 1-t, t, 1-t
+	angles = dsseMul(angles, angle);
+	sines = dsseSinf(angles);
+	scales = dsseDiv(sines, dsseSplat(sines, 0));
+	scale0 = dsseSelect(oneMinusT, dsseSplat(scales, 1), selectMask);
+	scale1 = dsseSelect(tttt, dsseSplat(scales, 2), selectMask);
+	return Vector3d(dsseMAdd(unitVec0.get256(), scale0, dsseMul(unitVec1.get256(), scale1)));
+}
+
+inline DSSEVec4 Vector3d::get256() const
+{
+	return mVec256;
+}
+
+inline void storeXYZ(const Vector3d & vec, DSSEVec4 * quad)
+{
+	DSSEVec4 dstVec = *quad;
+	VECTORMATH_ALIGNED(unsigned long long sw[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	dstVec = dsseSelect(vec.get256(), dstVec, sw);
+	*quad = dstVec;
+}
+
+inline void loadXYZArray(Vector3d & vec0, Vector3d & vec1, Vector3d & vec2, Vector3d & vec3, const DSSEVec4 * threeQuads)
+{
+	const double * quads = (const double *)threeQuads;
+	vec0 = Vector3d(dsseLoadu(quads + 0));
+	vec1 = Vector3d(dsseLoadu(quads + 3));
+	vec2 = Vector3d(dsseLoadu(quads + 6));
+	vec3 = Vector3d(dsseLoadu(quads + 9));
+}
+
+inline void storeXYZArray(const Vector3d & vec0, const Vector3d & vec1, const Vector3d & vec2, const Vector3d & vec3, DSSEVec4 * threeQuads)
+{
+	DSSEVec4 xxxx = dsseShuffle(vec1.get256(), vec1.get256(), _MM_SHUFFLE(0, 0, 0, 0));
+	DSSEVec4 zzzz = dsseShuffle(vec2.get256(), vec2.get256(), _MM_SHUFFLE(2, 2, 2, 2));
+	VECTORMATH_ALIGNED(unsigned long long xsw[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	VECTORMATH_ALIGNED(unsigned long long zsw[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	threeQuads[0] = dsseSelect(vec0.get256(), xxxx, xsw);
+	threeQuads[1] = dsseShuffle(vec1.get256(), vec2.get256(), _MM_SHUFFLE(1, 0, 2, 1));
+	threeQuads[2] = dsseSelect(dsseShuffle(vec3.get256(), vec3.get256(), _MM_SHUFFLE(2, 1, 0, 3)), zzzz, zsw);
+}
+
+inline Vector3d & Vector3d::operator = (const Vector3d & vec)
+{
+	mVec256 = vec.get256();
+	return *this;
+}
+
+inline Vector3d & Vector3d::setX(double _x)
+{
+	dsseVecSetElement(mVec256, _x, 0);
+	return *this;
+}
+
+inline Vector3d & Vector3d::setX(const DoubleInVec & _x)
+{
+	mVec256 = dsseVecInsert(mVec256, _x.get256(), 0);
+	return *this;
+}
+
+inline const DoubleInVec Vector3d::getX() const
+{
+	return DoubleInVec(mVec256, 0);
+}
+
+inline Vector3d & Vector3d::setY(double _y)
+{
+	dsseVecSetElement(mVec256, _y, 1);
+	return *this;
+}
+
+inline Vector3d & Vector3d::setY(const DoubleInVec & _y)
+{
+	mVec256 = dsseVecInsert(mVec256, _y.get256(), 1);
+	return *this;
+}
+
+inline const DoubleInVec Vector3d::getY() const
+{
+	return DoubleInVec(mVec256, 1);
+}
+
+inline Vector3d & Vector3d::setZ(double _z)
+{
+	dsseVecSetElement(mVec256, _z, 2);
+	return *this;
+}
+
+inline Vector3d & Vector3d::setZ(const DoubleInVec & _z)
+{
+	mVec256 = dsseVecInsert(mVec256, _z.get256(), 2);
+	return *this;
+}
+
+inline const DoubleInVec Vector3d::getZ() const
+{
+	return DoubleInVec(mVec256, 2);
+}
+
+inline Vector3d & Vector3d::setW(double _w)
+{
+	dsseVecSetElement(mVec256, _w, 3);
+	return *this;
+}
+
+inline Vector3d & Vector3d::setW(const DoubleInVec & _w)
+{
+	mVec256 = dsseVecInsert(mVec256, _w.get256(), 3);
+	return *this;
+}
+
+inline const DoubleInVec Vector3d::getW() const
+{
+	return DoubleInVec(mVec256, 3);
+}
+
+inline Vector3d & Vector3d::setElem(int idx, double value)
+{
+	dsseVecSetElement(mVec256, value, idx);
+	return *this;
+}
+
+inline Vector3d & Vector3d::setElem(int idx, const DoubleInVec & value)
+{
+	mVec256 = dsseVecInsert(mVec256, value.get256(), idx);
+	return *this;
+}
+
+inline const DoubleInVec Vector3d::getElem(int idx) const
+{
+	return DoubleInVec(mVec256, idx);
+}
+
+inline VecIdxd Vector3d::operator[](int idx)
+{
+	return VecIdxd(mVec256, idx);
+}
+
+inline const DoubleInVec Vector3d::operator[](int idx) const
+{
+	return DoubleInVec(mVec256, idx);
+}
+
+inline const Vector3d Vector3d::operator + (const Vector3d & vec) const
+{
+	return Vector3d(dsseAdd(mVec256, vec.mVec256));
+}
+
+inline const Vector3d Vector3d::operator - (const Vector3d & vec) const
+{
+	return Vector3d(dsseSub(mVec256, vec.mVec256));
+}
+
+inline const Point3 Vector3d::operator + (const Point3 & pnt) const
+{
+	return Point3((float)mVec256.d[0] + pnt.getX(), (float)mVec256.d[1] + pnt.getY(), (float)mVec256.d[2] + pnt.getZ());
+}
+
+inline const Vector3d Vector3d::operator * (double scalar) const
+{
+	return *this * DoubleInVec(scalar);
+}
+
+inline const Vector3d Vector3d::operator * (const DoubleInVec & scalar) const
+{
+	return Vector3d(dsseMul(mVec256, scalar.get256()));
+}
+
+inline Vector3d & Vector3d::operator += (const Vector3d & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator -= (const Vector3d & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator *= (double scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator *= (const DoubleInVec & scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Vector3d Vector3d::operator / (double scalar) const
+{
+	return *this / DoubleInVec(scalar);
+}
+
+inline const Vector3d Vector3d::operator / (const DoubleInVec & scalar) const
+{
+	return Vector3d(dsseDiv(mVec256, scalar.get256()));
+}
+
+inline Vector3d & Vector3d::operator /= (double scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline Vector3d & Vector3d::operator /= (const DoubleInVec & scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline const Vector3d Vector3d::operator - () const
+{
+	return Vector3d(dsseNegatef(mVec256));
+}
+
+inline const Vector3d operator * (double scalar, const Vector3d & vec)
+{
+	return DoubleInVec(scalar) * vec;
+}
+
+inline const Vector3d operator * (const DoubleInVec & scalar, const Vector3d & vec)
+{
+	return vec * scalar;
+}
+
+inline const Vector3d mulPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseMul(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector3d divPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseDiv(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector3d recipPerElem(const Vector3d & vec)
+{
+	return Vector3d(dsseRecipf(vec.get256()));
+}
+
+inline const Vector3d absPerElem(const Vector3d & vec)
+{
+	return Vector3d(dsseFabsf(vec.get256()));
+}
+
+inline const Vector3d copySignPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseCopySign(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector3d maxPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseMax(vec0.get256(), vec1.get256()));
+}
+
+inline const DoubleInVec maxElem(const Vector3d & vec)
+{
+	return DoubleInVec(dsseMax(dsseMax(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)), dsseSplat(vec.get256(), 2)));
+}
+
+inline const Vector3d minPerElem(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseMin(vec0.get256(), vec1.get256()));
+}
+
+inline const DoubleInVec minElem(const Vector3d & vec)
+{
+	return DoubleInVec(dsseMin(dsseMin(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)), dsseSplat(vec.get256(), 2)));
+}
+
+inline const DoubleInVec sum(const Vector3d & vec)
+{
+	return DoubleInVec(dsseAdd(dsseAdd(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)), dsseSplat(vec.get256(), 2)));
+}
+
+inline const DoubleInVec dot(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return DoubleInVec(dsseVecDot3(vec0.get256(), vec1.get256()), 0);
+}
+
+inline const DoubleInVec lengthSqr(const Vector3d & vec)
+{
+	return DoubleInVec(dsseVecDot3(vec.get256(), vec.get256()), 0);
+}
+
+inline const DoubleInVec length(const Vector3d & vec)
+{
+	return DoubleInVec(dsseSqrtf(dsseVecDot3(vec.get256(), vec.get256())), 0);
+}
+
+inline const Vector3d normalizeApprox(const Vector3d & vec)
+{
+	return Vector3d(dsseMul(vec.get256(), dsseRSqrtf(dsseVecDot3(vec.get256(), vec.get256()))));
+}
+
+inline const Vector3d normalize(const Vector3d & vec)
+{
+	return Vector3d(dsseMul(vec.get256(), dsseNewtonrapsonRSqrtf(dsseVecDot3(vec.get256(), vec.get256()))));
+}
+
+inline const Vector3d cross(const Vector3d & vec0, const Vector3d & vec1)
+{
+	return Vector3d(dsseVecCross(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector3d select(const Vector3d & vec0, const Vector3d & vec1, bool select1)
+{
+	return select(vec0, vec1, BoolInVec(select1));
+}
+
+inline const Vector3d select(const Vector3d & vec0, const Vector3d & vec1, const BoolInVec & select1)
+{
+	return Vector3d(dsseSelect(vec0.get256(), vec1.get256(), dsseFromBool(select1)));
+}
+
+inline const Vector3d xorPerElem(const Vector3d& a, const DoubleInVec b)
+{
+	return Vector3d(dsseXor(a.get256(), b.get256()));
+}
+
+inline const Vector3d sqrtPerElem(const Vector3d & vec)
+{
+	return Vector3d(dsseSqrtf(vec.get256()));
+}
+
+inline const Vector3d rSqrtEstNR(const Vector3d& v)
+{
+	return Vector3d(dsseNewtonrapsonRSqrtf(v.get256()));
+}
+
+inline bool isNormalizedEst(const Vector3d& v) {
+	const __m128d max = _mm_set_sd(1.0 + kdNormalizationToleranceEstSq);
+	const __m128d min = _mm_set_sd(1.0 - kdNormalizationToleranceEstSq);
+	const __m128d dot = dsseVecDot3(v.get256(), v.get256()).xy;
+	const __m128d dotx000 = _mm_move_sd(_mm_setzero_pd(), dot);
+	return (_mm_movemask_pd(
+		_mm_and_pd(_mm_cmplt_sd(dotx000, max), _mm_cmpgt_sd(dotx000, min))) & 0x1) == 0x1;
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Vector3d & vec)
+{
+	std::printf("( %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
+}
+
+inline void print(const Vector3d & vec, const char * name)
+{
+	std::printf("%s: ( %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2]);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -1188,6 +1693,642 @@ inline void print(const Vector4 & vec, const char * name)
 #endif // VECTORMATH_DEBUG
 
 // ========================================================
+// Vector4d
+// ========================================================
+
+inline Vector4d::Vector4d(double _x, double _y, double _z, double _w)
+{
+	mVec256 = dsseSetr(_x, _y, _z, _w);
+}
+
+inline Vector4d::Vector4d(const DoubleInVec & _x, const DoubleInVec & _y, const DoubleInVec & _z, const DoubleInVec & _w)
+{
+	mVec256 = dsseMergeH(
+		dsseMergeH(_x.get256(), _z.get256()),
+		dsseMergeH(_y.get256(), _w.get256())
+	);
+}
+
+inline Vector4d::Vector4d(const Vector3d & xyz, double _w)
+{
+	mVec256 = xyz.get256();
+	dsseVecSetElement(mVec256, _w, 3);
+}
+
+inline Vector4d::Vector4d(const Vector3d & xyz, const DoubleInVec & _w)
+{
+	mVec256 = xyz.get256();
+	mVec256 = dsseVecInsert(mVec256, _w.get256(), 3);
+}
+
+inline Vector4d::Vector4d(const Vector3d & vec)
+{
+	mVec256 = vec.get256();
+	dsseVecSetElement(mVec256, 0.0, 3);
+}
+
+inline Vector4d::Vector4d(const Point3 & pnt)
+{
+	mVec256 = dsseSetr((double)pnt.getX(), (double)pnt.getY(), (double)pnt.getZ(), 1.0);
+}
+
+inline Vector4d::Vector4d(const Quat & quat)
+{
+	mVec256 = dsseSetr((double)quat.getX(), (double)quat.getY(), (double)quat.getZ(), (double)quat.getW());
+}
+
+inline Vector4d::Vector4d(double scalar)
+{
+	mVec256 = dsseSet1(scalar);
+}
+
+inline Vector4d::Vector4d(const DoubleInVec & scalar)
+{
+	mVec256 = scalar.get256();
+}
+
+inline Vector4d::Vector4d(DSSEVec4 xyzw)
+{
+	mVec256 = xyzw;
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4d Vector4d::fromVector4Int(const Vector4Int vecInt)
+{
+	SSEInt i;
+	i.m128 = vecInt;
+	return Vector4d(dsseFromIVec4(i));
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+inline const Vector4d Vector4d::xAxis()
+{
+	return Vector4d(dsseUnitVec1000());
+}
+
+inline const Vector4d Vector4d::yAxis()
+{
+	return Vector4d(dsseUnitVec0100());
+}
+
+inline const Vector4d Vector4d::zAxis()
+{
+	return Vector4d(dsseUnitVec0010());
+}
+
+inline const Vector4d Vector4d::wAxis()
+{
+	return Vector4d(dsseUnitVec0001());
+}
+
+inline DSSEVec4 Vector4d::get256() const
+{
+	return mVec256;
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4d Vector4d::zero()
+{
+	return Vector4d(dsseSetZero());
+}
+
+inline const Vector4d Vector4d::one()
+{
+	return Vector4d(dsseSet1(1.0));
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+inline const Vector4d lerp(double t, const Vector4d & vec0, const Vector4d & vec1)
+{
+	return lerp(DoubleInVec(t), vec0, vec1);
+}
+
+inline const Vector4d lerp(const DoubleInVec & t, const Vector4d & vec0, const Vector4d & vec1)
+{
+	return (vec0 + ((vec1 - vec0) * t));
+}
+
+inline const Vector4d slerp(double t, const Vector4d & unitVec0, const Vector4d & unitVec1)
+{
+	return slerp(DoubleInVec(t), unitVec0, unitVec1);
+}
+
+inline const Vector4d slerp(const DoubleInVec & t, const Vector4d & unitVec0, const Vector4d & unitVec1)
+{
+	DSSEVec4 scales, scale0, scale1, cosAngle, angle, tttt, oneMinusT, angles, sines;
+	cosAngle = dsseVecDot4(unitVec0.get256(), unitVec1.get256());
+	DSSEVec4 selectMask = dsseGt(dsseSet1(VECTORMATH_SLERP_TOL), cosAngle);
+	angle = dsseACosf(cosAngle);
+	tttt = t.get256();
+	oneMinusT = dsseSub(dsseSet1(1.0), tttt);
+	angles = dsseMergeH(dsseSet1(1.0), tttt); // angles = 1, t, 1, t
+	angles = dsseMergeH(angles, oneMinusT);   // angles = 1, 1-t, t, 1-t
+	angles = dsseMul(angles, angle);
+	sines = dsseSinf(angles);
+	scales = dsseDiv(sines, dsseSplat(sines, 0));
+	scale0 = dsseSelect(oneMinusT, dsseSplat(scales, 1), selectMask);
+	scale1 = dsseSelect(tttt, dsseSplat(scales, 2), selectMask);
+	return Vector4d(dsseMAdd(unitVec0.get256(), scale0, dsseMul(unitVec1.get256(), scale1)));
+}
+
+inline Vector4d & Vector4d::operator = (const Vector4d & vec)
+{
+	mVec256 = vec.mVec256;
+	return *this;
+}
+
+inline Vector4d & Vector4d::setXYZ(const Vector3d & vec)
+{
+	VECTORMATH_ALIGNED(unsigned long long sw[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	mVec256 = dsseSelect(vec.get256(), mVec256, sw);
+	return *this;
+}
+
+inline const Vector3d Vector4d::getXYZ() const
+{
+	return Vector3d(mVec256);
+}
+
+inline Vector4d & Vector4d::setX(double _x)
+{
+	dsseVecSetElement(mVec256, _x, 0);
+	return *this;
+}
+
+inline Vector4d & Vector4d::setX(const DoubleInVec & _x)
+{
+	mVec256 = dsseVecInsert(mVec256, _x.get256(), 0);
+	return *this;
+}
+
+inline const DoubleInVec Vector4d::getX() const
+{
+	return DoubleInVec(mVec256, 0);
+}
+
+inline Vector4d & Vector4d::setY(double _y)
+{
+	dsseVecSetElement(mVec256, _y, 1);
+	return *this;
+}
+
+inline Vector4d & Vector4d::setY(const DoubleInVec & _y)
+{
+	mVec256 = dsseVecInsert(mVec256, _y.get256(), 1);
+	return *this;
+}
+
+inline const DoubleInVec Vector4d::getY() const
+{
+	return DoubleInVec(mVec256, 1);
+}
+
+inline Vector4d & Vector4d::setZ(double _z)
+{
+	dsseVecSetElement(mVec256, _z, 2);
+	return *this;
+}
+
+inline Vector4d & Vector4d::setZ(const DoubleInVec & _z)
+{
+	mVec256 = dsseVecInsert(mVec256, _z.get256(), 2);
+	return *this;
+}
+
+inline const DoubleInVec Vector4d::getZ() const
+{
+	return DoubleInVec(mVec256, 2);
+}
+
+inline Vector4d & Vector4d::setW(double _w)
+{
+	dsseVecSetElement(mVec256, _w, 3);
+	return *this;
+}
+
+inline Vector4d & Vector4d::setW(const DoubleInVec & _w)
+{
+	mVec256 = dsseVecInsert(mVec256, _w.get256(), 3);
+	return *this;
+}
+
+inline const DoubleInVec Vector4d::getW() const
+{
+	return DoubleInVec(mVec256, 3);
+}
+
+inline Vector4d & Vector4d::setElem(int idx, double value)
+{
+	dsseVecSetElement(mVec256, value, idx);
+	return *this;
+}
+
+inline Vector4d & Vector4d::setElem(int idx, const DoubleInVec & value)
+{
+	mVec256 = dsseVecInsert(mVec256, value.get256(), idx);
+	return *this;
+}
+
+inline const DoubleInVec Vector4d::getElem(int idx) const
+{
+	return DoubleInVec(mVec256, idx);
+}
+
+inline VecIdxd Vector4d::operator[](int idx)
+{
+	return VecIdxd(mVec256, idx);
+}
+
+inline const DoubleInVec Vector4d::operator[](int idx) const
+{
+	return DoubleInVec(mVec256, idx);
+}
+
+inline const Vector4d Vector4d::operator + (const Vector4d & vec) const
+{
+	return Vector4d(dsseAdd(mVec256, vec.mVec256));
+}
+
+inline const Vector4d Vector4d::operator - (const Vector4d & vec) const
+{
+	return Vector4d(dsseSub(mVec256, vec.mVec256));
+}
+
+inline const Vector4d Vector4d::operator * (double scalar) const
+{
+	return *this * DoubleInVec(scalar);
+}
+
+inline const Vector4d Vector4d::operator * (const DoubleInVec & scalar) const
+{
+	return Vector4d(dsseMul(mVec256, scalar.get256()));
+}
+
+inline Vector4d & Vector4d::operator += (const Vector4d & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator -= (const Vector4d & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator *= (double scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator *= (const DoubleInVec & scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Vector4d Vector4d::operator / (double scalar) const
+{
+	return *this / DoubleInVec(scalar);
+}
+
+inline const Vector4d Vector4d::operator / (const DoubleInVec & scalar) const
+{
+	return Vector4d(dsseDiv(mVec256, scalar.get256()));
+}
+
+inline Vector4d & Vector4d::operator /= (double scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline Vector4d & Vector4d::operator /= (const DoubleInVec & scalar)
+{
+	*this = *this / scalar;
+	return *this;
+}
+
+inline const Vector4d Vector4d::operator - () const
+{
+	return Vector4d(dsseNegatef(mVec256));
+}
+
+inline const Vector4d operator * (double scalar, const Vector4d & vec)
+{
+	return DoubleInVec(scalar) * vec;
+}
+
+inline const Vector4d operator * (const DoubleInVec & scalar, const Vector4d & vec)
+{
+	return vec * scalar;
+}
+
+inline const Vector4d mulPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d(dsseMul(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector4d divPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d(dsseDiv(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector4d recipPerElem(const Vector4d & vec)
+{
+	return Vector4d(dsseRecipf(vec.get256()));
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4d sqrtPerElem(const Vector4d & vec)
+{
+	return Vector4d(dsseSqrtf(vec.get256()));
+}
+
+inline const Vector4d rsqrtPerElem(const Vector4d & vec)
+{
+	return Vector4d(dsseRSqrtf(vec.get256()));
+}
+
+inline const Vector4d rcpEst(const Vector4d& v) {
+	return Vector4d(dsseRecipf(v.get256()));
+}
+
+inline const Vector4d rSqrtEst(const Vector4d& v) {
+	return Vector4d(dsseRecipf(v.get256()));
+}
+
+inline const Vector4d rSqrtEstNR(const Vector4d& v)
+{
+	return Vector4d(dsseNewtonrapsonRSqrtf(v.get256()));
+}
+
+inline const Vector4d aCos(const Vector4d& arg)
+{
+	return Vector4d(dsseACosf(arg.get256()));
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+inline const Vector4d absPerElem(const Vector4d & vec)
+{
+	return Vector4d(dsseFabsf(vec.get256()));
+}
+
+inline const Vector4d copySignPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d(dsseCopySign(vec0.get256(), vec1.get256()));
+}
+
+inline const Vector4d maxPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d(dsseMax(vec0.get256(), vec1.get256()));
+}
+
+inline const DoubleInVec maxElem(const Vector4d & vec)
+{
+	return DoubleInVec(dsseMax(
+		dsseMax(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)),
+		dsseMax(dsseSplat(vec.get256(), 2), dsseSplat(vec.get256(), 3)))
+	);
+}
+
+inline const Vector4d minPerElem(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return Vector4d(dsseMin(vec0.get256(), vec1.get256()));
+}
+
+inline const DoubleInVec minElem(const Vector4d & vec)
+{
+	return DoubleInVec(dsseMin(
+		dsseMin(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)),
+		dsseMin(dsseSplat(vec.get256(), 2), dsseSplat(vec.get256(), 3)))
+	);
+}
+
+inline const DoubleInVec sum(const Vector4d & vec)
+{
+	return DoubleInVec(dsseAdd(
+		dsseAdd(dsseSplat(vec.get256(), 0), dsseSplat(vec.get256(), 1)),
+		dsseAdd(dsseSplat(vec.get256(), 2), dsseSplat(vec.get256(), 3)))
+	);
+}
+
+inline const DoubleInVec dot(const Vector4d & vec0, const Vector4d & vec1)
+{
+	return DoubleInVec(dsseVecDot4(vec0.get256(), vec1.get256()), 0);
+}
+
+inline const DoubleInVec lengthSqr(const Vector4d & vec)
+{
+	return DoubleInVec(dsseVecDot4(vec.get256(), vec.get256()), 0);
+}
+
+inline const DoubleInVec length(const Vector4d & vec)
+{
+	return DoubleInVec(dsseSqrtf(dsseVecDot4(vec.get256(), vec.get256())), 0);
+}
+
+inline const Vector4d normalizeApprox(const Vector4d & vec)
+{
+	return Vector4d(dsseMul(vec.get256(), dsseRSqrtf(dsseVecDot4(vec.get256(), vec.get256()))));
+}
+
+inline const Vector4d normalize(const Vector4d & vec)
+{
+	return Vector4d(dsseMul(vec.get256(), dsseNewtonrapsonRSqrtf(dsseVecDot4(vec.get256(), vec.get256()))));
+}
+
+inline const Vector4d select(const Vector4d & vec0, const Vector4d & vec1, bool select1)
+{
+	return select(vec0, vec1, BoolInVec(select1));
+}
+
+inline const Vector4d select(const Vector4d & vec0, const Vector4d & vec1, const BoolInVec & select1)
+{
+	return Vector4d(dsseSelect(vec0.get256(), vec1.get256(), dsseFromBool(select1)));
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
+
+inline const Vector4Int cmpEq(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseEq(a.get256(), b.get256()));
+}
+
+inline const Vector4Int cmpNotEq(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseNe(a.get256(), b.get256()));
+}
+
+inline const Vector4Int cmpLt(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseLt(a.get256(), b.get256()));
+}
+
+inline const Vector4Int cmpLe(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseLe(a.get256(), b.get256()));
+}
+
+inline const Vector4Int cmpGt(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseGt(a.get256(), b.get256()));
+}
+
+inline const Vector4Int cmpGe(const Vector4d& a, const Vector4d& b) {
+	return dsseToIVec4(dsseGe(a.get256(), b.get256()));
+}
+
+inline const Vector4Int signBit(const Vector4d& v) {
+	__m128 fv = dsseToFVec4(v.get256());
+	return _mm_slli_epi32(_mm_srli_epi32(_mm_castps_si128(fv), 31), 31);
+}
+
+inline const Vector4d xorPerElem(const Vector4d& a, const Vector4Int b) {
+	SSEInt c;
+	c.m128 = _mm_xor_si128(dsseToIVec4(a.get256()), b);
+	return Vector4d(dsseFromIVec4(c));
+}
+
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4Int b) {
+	SSEInt c;
+	c.m128 = _mm_or_si128(dsseToIVec4(a.get256()), b);
+	return Vector4d(dsseFromIVec4(c));
+}
+
+inline const Vector4d orPerElem(const Vector4d& a, const Vector4d& b) {
+	return Vector4d(dsseOr(a.get256(), b.get256()));
+}
+
+inline const Vector4d andPerElem(const Vector4d& a, const Vector4Int b) {
+	SSEInt c;
+	c.m128 = _mm_and_si128(dsseToIVec4(a.get256()), b);
+	return Vector4d(dsseFromIVec4(c));
+}
+
+inline const Vector4d halfTodouble(const Vector4Int vecInt) {
+	const __m128i mask_nosign = _mm_set1_epi32(0x7fff);
+	const __m128 magic = _mm_castsi128_ps(_mm_set1_epi32((254 - 15) << 23));
+	const __m128i was_infnan = _mm_set1_epi32(0x7bff);
+	const __m128 exp_infnan = _mm_castsi128_ps(_mm_set1_epi32(255 << 23));
+
+	const __m128i expmant = _mm_and_si128(mask_nosign, vecInt);
+	const __m128i shifted = _mm_slli_epi32(expmant, 13);
+	const __m128 scaled = _mm_mul_ps(_mm_castsi128_ps(shifted), magic);
+	const __m128i b_wasinfnan = _mm_cmpgt_epi32(expmant, was_infnan);
+	const __m128i sign = _mm_slli_epi32(_mm_xor_si128(vecInt, expmant), 16);
+	const __m128 infnanexp =_mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
+	const __m128 sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
+	SSEFloat c;
+	c.m128 = _mm_or_ps(scaled, sign_inf);
+	return Vector4d(dsseFromFVec4(c));
+}
+
+inline void transpose3x4(const Vector4d in[3], Vector4d out[4]) {
+	const DSSEVec4 zero = dsseSetZero();
+	const DSSEVec4 temp0 = dsseMergeH(in[0].get256(), in[1].get256());
+	const DSSEVec4 temp1 = dsseMergeH(in[2].get256(), zero);
+	const DSSEVec4 temp2 = dsseMergeL(in[0].get256(), in[1].get256());
+	const DSSEVec4 temp3 = dsseMergeL(in[2].get256(), zero);
+	out[0] = Vector4d(dsseMoveLH(temp0, temp1));
+	out[1] = Vector4d(dsseMoveHL(temp1, temp0));
+	out[2] = Vector4d(dsseMoveLH(temp2, temp3));
+	out[3] = Vector4d(dsseMoveHL(temp3, temp2));
+}
+
+inline void transpose4x4(const Vector4d in[4], Vector4d out[4]) {
+	const DSSEVec4 tmp0 = dsseMergeH(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp1 = dsseMergeH(in[1].get256(), in[3].get256());
+	const DSSEVec4 tmp2 = dsseMergeL(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp3 = dsseMergeL(in[1].get256(), in[3].get256());
+	out[0] = Vector4d(dsseMergeH(tmp0, tmp1));
+	out[1] = Vector4d(dsseMergeL(tmp0, tmp1));
+	out[2] = Vector4d(dsseMergeH(tmp2, tmp3));
+	out[3] = Vector4d(dsseMergeL(tmp2, tmp3));
+}
+
+inline void transpose4x3(const Vector4d in[4], Vector4d out[4]) {
+	const DSSEVec4 tmp0 = dsseMergeH(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp1 = dsseMergeH(in[1].get256(), in[3].get256());
+	const DSSEVec4 tmp2 = dsseMergeL(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp3 = dsseMergeL(in[1].get256(), in[3].get256());
+	out[0] = Vector4d(dsseMergeH(tmp0, tmp1));
+	out[1] = Vector4d(dsseMergeL(tmp0, tmp1));
+	out[2] = Vector4d(dsseMergeH(tmp2, tmp3));
+}
+
+inline void transpose16x16(const Vector4d in[16], Vector4d out[16]) {
+	const DSSEVec4 tmp0 = dsseMergeH(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp1 = dsseMergeH(in[1].get256(), in[3].get256());
+	const DSSEVec4 tmp2 = dsseMergeL(in[0].get256(), in[2].get256());
+	const DSSEVec4 tmp3 = dsseMergeL(in[1].get256(), in[3].get256());
+	const DSSEVec4 tmp4 = dsseMergeH(in[4].get256(), in[6].get256());
+	const DSSEVec4 tmp5 = dsseMergeH(in[5].get256(), in[7].get256());
+	const DSSEVec4 tmp6 = dsseMergeL(in[4].get256(), in[6].get256());
+	const DSSEVec4 tmp7 = dsseMergeL(in[5].get256(), in[7].get256());
+	const DSSEVec4 tmp8 = dsseMergeH(in[8].get256(), in[10].get256());
+	const DSSEVec4 tmp9 = dsseMergeH(in[9].get256(), in[11].get256());
+	const DSSEVec4 tmp10 = dsseMergeL(in[8].get256(), in[10].get256());
+	const DSSEVec4 tmp11 = dsseMergeL(in[9].get256(), in[11].get256());
+	const DSSEVec4 tmp12 = dsseMergeH(in[12].get256(), in[14].get256());
+	const DSSEVec4 tmp13 = dsseMergeH(in[13].get256(), in[15].get256());
+	const DSSEVec4 tmp14 = dsseMergeL(in[12].get256(), in[14].get256());
+	const DSSEVec4 tmp15 = dsseMergeL(in[13].get256(), in[15].get256());
+	out[0] = Vector4d(dsseMergeH(tmp0, tmp1));
+	out[1] = Vector4d(dsseMergeH(tmp4, tmp5));
+	out[2] = Vector4d(dsseMergeH(tmp8, tmp9));
+	out[3] = Vector4d(dsseMergeH(tmp12, tmp13));
+	out[4] = Vector4d(dsseMergeL(tmp0, tmp1));
+	out[5] = Vector4d(dsseMergeL(tmp4, tmp5));
+	out[6] = Vector4d(dsseMergeL(tmp8, tmp9));
+	out[7] = Vector4d(dsseMergeL(tmp12, tmp13));
+	out[8] = Vector4d(dsseMergeH(tmp2, tmp3));
+	out[9] = Vector4d(dsseMergeH(tmp6, tmp7));
+	out[10] = Vector4d(dsseMergeH(tmp10, tmp11));
+	out[11] = Vector4d(dsseMergeH(tmp14, tmp15));
+	out[12] = Vector4d(dsseMergeL(tmp2, tmp3));
+	out[13] = Vector4d(dsseMergeL(tmp6, tmp7));
+	out[14] = Vector4d(dsseMergeL(tmp10, tmp11));
+	out[15] = Vector4d(dsseMergeL(tmp14, tmp15));
+}
+
+inline void storePtrU(const Vector4d& v, double* d) {
+	_mm_storeu_pd(d + 0, v.get256().xy);
+	_mm_storeu_pd(d + 2, v.get256().zw);
+}
+
+inline void store3PtrU(const Vector4d& v, double* d) {
+	_mm_storeu_pd(d, v.get256().xy);
+	d[2] = v.get256().d[2];
+}
+
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Vector4d & vec)
+{
+	std::printf("( %f %f %f %f )\n", vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
+}
+
+inline void print(const Vector4d & vec, const char * name)
+{
+	std::printf("%s: ( %f %f %f %f )\n", name, vec.get256().d[0], vec.get256().d[1], vec.get256().d[2], vec.get256().d[3]);
+}
+
+#endif // VECTORMATH_DEBUG*/
+
+// ========================================================
 // Point3
 // ========================================================
 
@@ -1204,6 +2345,11 @@ inline Point3::Point3(const FloatInVec & _x, const FloatInVec & _y, const FloatI
 inline Point3::Point3(const Vector3 & vec)
 {
     mVec128 = vec.get128();
+}
+
+inline Point3::Point3(const Vector4 & vec)
+{
+	mVec128 = vec.get128();
 }
 
 inline Point3::Point3(float scalar)
@@ -2977,7 +4123,7 @@ inline void print(const UVector4 & vec, const char * name)
 #endif // VECTORMATH_DEBUG
 //========================================= #TheForgeMathExtensionsEnd ================================================
 
-} // namespace Neone
+} // namespace Neon
 } // namespace Vectormath
 
 #endif // VECTORMATH_NEON_VECTOR_HPP

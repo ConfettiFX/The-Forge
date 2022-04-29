@@ -3941,40 +3941,6 @@ remove them if not needed.
    #define VMA_NULL   nullptr
 #endif
 
-#if defined(__ANDROID_API__) && (__ANDROID_API__ < 16)
-#include <cstdlib>
-void *aligned_alloc(size_t alignment, size_t size)
-{
-    // alignment must be >= sizeof(void*)
-    if(alignment < sizeof(void*))
-    {
-        alignment = sizeof(void*);
-    }
-
-    return memalign(alignment, size);
-}
-#elif defined(__APPLE__) || defined(__ANDROID__) || (defined(__linux__) && defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC))
-#include <cstdlib>
-void *aligned_alloc(size_t alignment, size_t size)
-{
-    // alignment must be >= sizeof(void*)
-    if(alignment < sizeof(void*))
-    {
-        alignment = sizeof(void*);
-    }
-
-    void *pointer;
-    if(posix_memalign(&pointer, alignment, size) == 0)
-        return pointer;
-    return VMA_NULL;
-}
-#endif
-
-// If your compiler is not compatible with C++11 and definition of
-// aligned_alloc() function is missing, uncommeting following line may help:
-
-//#include <malloc.h>
-
 // Normal assert to check for programmer's errors, especially in Debug configuration.
 #ifndef VMA_ASSERT
    #ifdef NDEBUG
@@ -3999,19 +3965,13 @@ void *aligned_alloc(size_t alignment, size_t size)
 #endif
 
 #ifndef VMA_SYSTEM_ALIGNED_MALLOC
-   #if defined(_WIN32)
-       #define VMA_SYSTEM_ALIGNED_MALLOC(size, alignment)   (_aligned_malloc((size), (alignment)))
-   #else
-       #define VMA_SYSTEM_ALIGNED_MALLOC(size, alignment)   (aligned_alloc((alignment), (size) ))
-   #endif
+    //This should never get called since we rely on allocation callbacks
+    //if this is getting called then trigger an assert
+   #define VMA_SYSTEM_ALIGNED_MALLOC(size, alignment)   VMA_ASSERT(false)
 #endif
 
 #ifndef VMA_SYSTEM_FREE
-   #if defined(_WIN32)
-       #define VMA_SYSTEM_FREE(ptr)   _aligned_free(ptr)
-   #else
-       #define VMA_SYSTEM_FREE(ptr)   free(ptr)
-   #endif
+       #define VMA_SYSTEM_FREE(ptr)   VMA_ASSERT(false)
 #endif
 
 #ifndef VMA_MIN
@@ -4643,10 +4603,6 @@ static void* VmaMalloc(const VkAllocationCallbacks* pAllocationCallbacks, size_t
             alignment,
             VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     }
-    else
-    {
-        result = VMA_SYSTEM_ALIGNED_MALLOC(size, alignment);
-    }
     VMA_ASSERT(result != VMA_NULL && "CPU memory allocation failed.");
     return result;
 }
@@ -4657,10 +4613,6 @@ static void VmaFree(const VkAllocationCallbacks* pAllocationCallbacks, void* ptr
         (pAllocationCallbacks->pfnFree != VMA_NULL))
     {
         (*pAllocationCallbacks->pfnFree)(pAllocationCallbacks->pUserData, ptr);
-    }
-    else
-    {
-        VMA_SYSTEM_FREE(ptr);
     }
 }
 

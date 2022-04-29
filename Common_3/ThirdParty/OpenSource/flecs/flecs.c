@@ -36,6 +36,10 @@
 #include "../../../OS/Core/Atomics.h"
 #include "../../../OS/Interfaces/IMemory.h"
 
+#ifndef _MSC_VER
+#pragma GCC diagnostic ignored "-Wunreachable-code"
+#endif
+
 
 /**
  * @file entity_index.h
@@ -2666,41 +2670,37 @@ void ecs_log_print(
     ecs_os_free(msg_nocolor);
 }
 
-typedef struct ecs_tf_thread
-{
-	ThreadDesc desc;
-	ThreadHandle handle;
-#if defined(NX64)
-	ThreadTypeNX threadType;
-#endif
-} ecs_tf_thread_t;
+static
+int32_t fast_strncpy(
+	char* dst,
+	const char* src,
+	int n_cpy,
+	int n);
 
 ecs_os_thread_t tf_flecs_thread_new(ecs_os_thread_callback_t callback, void *arg)
 {
-	ecs_tf_thread_t* thr = ecs_os_malloc(sizeof(ecs_tf_thread_t));
-	thr->desc = (ThreadDesc) {
-		.pFunc = callback,
-		.pData = arg
-	};
+    ThreadDesc desc;
+    memset(&desc, 0, sizeof(ThreadDesc));
+    desc.pFunc = callback;
+    desc.pData = arg;
+    fast_strncpy(desc.mThreadName, "ECSWorkerThread", sizeof(desc.mThreadName), INT_MAX);
 
 #if defined(NX64)
-	thr->desc.pThreadStack = tf_memalign(THREAD_STACK_ALIGNMENT_NX, ALIGNED_THREAD_STACK_SIZE_NX);
-	thr->desc.hThread = &thr->threadType;
-	thr->desc.preferredCore = 1;
-	thr->desc.pThreadName = "ECSWorkerThread";
+    desc.mHasAffinityMask = true;
+    desc.mAffinityMask = 2;
 #endif
 
-	initThread(&thr->desc, &thr->handle);
+    ThreadHandle thread;
+    initThread(&desc, &thread);
 
-	return (ecs_os_thread_t)thr;
+    COMPILE_ASSERT(sizeof(ThreadHandle) == sizeof(ecs_os_thread_t));
+	return (ecs_os_thread_t)thread;
 }
 
-void* tf_flecs_thread_join(ecs_os_thread_t thread)
+void* tf_flecs_thread_join(ecs_os_thread_t ecsThread)
 {
-	ecs_tf_thread_t *thr = (ecs_tf_thread_t *)thread;
-	joinThread(thr->handle);
-	ecs_os_free(thr);
-
+	ThreadHandle thread = (ThreadHandle)ecsThread;
+	joinThread(thread);
 	return NULL;
 }
 
@@ -3794,7 +3794,7 @@ void ecs_os_err(const char *fmt, ...) {
 static
 void ecs_os_gettime(ecs_time_t *time)
 {
-    uint64_t now_us = getUSec();
+    uint64_t now_us = getUSec(true);
     uint64_t sec = now_us / 1000000;
 
     assert(sec < UINT32_MAX);
@@ -6830,7 +6830,7 @@ ecs_entity_t ecs_new_component_id(
             ECS_INVALID_WHILE_ITERATING, NULL);
     }
 
-    ecs_entity_t id;
+    ecs_entity_t id = 0;
 
     if (unsafe_world->stats.last_component_id < ECS_HI_COMPONENT_ID) {
         do {

@@ -1251,12 +1251,12 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_BitSizeOfBlock(TinyImageFormat con
 		case TinyImageFormat_ETC2_R8G8B8_SRGB: return 64;
 		case TinyImageFormat_ETC2_R8G8B8A1_UNORM: return 64;
 		case TinyImageFormat_ETC2_R8G8B8A1_SRGB: return 64;
-		case TinyImageFormat_ETC2_R8G8B8A8_UNORM: return 64;
-		case TinyImageFormat_ETC2_R8G8B8A8_SRGB: return 64;
+		case TinyImageFormat_ETC2_R8G8B8A8_UNORM: return 128;
+		case TinyImageFormat_ETC2_R8G8B8A8_SRGB: return 128;
 		case TinyImageFormat_ETC2_EAC_R11_UNORM: return 64;
 		case TinyImageFormat_ETC2_EAC_R11_SNORM: return 64;
-		case TinyImageFormat_ETC2_EAC_R11G11_UNORM: return 64;
-		case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return 64;
+		case TinyImageFormat_ETC2_EAC_R11G11_UNORM: return 128;
+		case TinyImageFormat_ETC2_EAC_R11G11_SNORM: return 128;
 		case TinyImageFormat_ASTC_4x4_UNORM: return 128;
 		case TinyImageFormat_ASTC_4x4_SRGB: return 128;
 		case TinyImageFormat_ASTC_5x4_UNORM: return 128;

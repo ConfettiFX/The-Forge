@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -76,7 +76,7 @@
 //////////////////////////////////////////////
 
 #if defined(VK_KHR_ray_tracing_pipeline) && defined(VK_KHR_acceleration_structure)
-#define RAYTRACING_AVAILABLE
+#define VK_RAYTRACING_AVAILABLE
 #endif
 
 #if defined(_WINDOWS) || defined(__linux__)
@@ -88,7 +88,7 @@
 		VkResult vkres = (exp);                                                  \
 		if (VK_SUCCESS != vkres)                                                 \
 		{                                                                        \
-			LOGF(eERROR, "%s: FAILED with VkResult: %u", #exp, (uint32_t)vkres); \
+			LOGF(eERROR, "%s: FAILED with VkResult: %d", #exp, vkres); \
 			ASSERT(false);                                                       \
 		}                                                                        \
 	}

@@ -35,6 +35,7 @@ STRUCT(VSOutput)
 	DATA(float4, Position, SV_Position);
 	DATA(float3, WorldPos, POSITION);
     DATA(float2, TexCoord, TEXCOORD);
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
 };
 
 VSOutput VS_MAIN( VSInput In )
@@ -47,6 +48,7 @@ VSOutput VS_MAIN( VSInput In )
 	Out.Position = mul(Get(projView)[VR_VIEW_ID], worldPos);
 	Out.WorldPos = worldPos.xyz;
 	Out.TexCoord = In.TexCoord;
+	Out.ViewID = VR_VIEW_ID;
 
 	RETURN(Out);
 }

@@ -24,6 +24,16 @@
 	#pragma warning(disable: 4619)  // There is no warning number 'number'.
 	#pragma warning(disable: 4217)  // Member template functions cannot be used for copy-assignment or copy-construction.
 	#pragma warning(disable: 4512)  // 'class' : assignment operator could not be generated.  // This disabling would best be put elsewhere.
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #if defined(__gnu_linux__)
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #endif
+#elif defined(__clang__)    
+    #pragma clang diagnostic push
+    #if defined(__gnu_linux__)
+        #pragma clang diagnostic ignored "-Wmaybe-uninitialized"
+    #endif
 #endif
 
 #if defined(EA_PRAGMA_ONCE_SUPPORTED)
@@ -840,6 +850,10 @@ namespace eastl
 
 #ifdef _MSC_VER
 	#pragma warning(pop)
+#elif defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#elif defined(__clang__)
+    #pragma clang diagnostic pop
 #endif
 
 

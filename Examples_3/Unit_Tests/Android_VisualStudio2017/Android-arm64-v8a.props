@@ -31,19 +31,42 @@
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary/</BinaryOutDir>
       <Language>GLES VULKAN</Language>
     </FSLShader>
+
+    <ClCompile>
+      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+    </ClCompile>
+
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
+      <LibraryDependencies>atomic;android;log;GLESv2;EGL;shaderc_combined;VkLayer_khronos_validation</LibraryDependencies>
+    </Link>
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <Link>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
       <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
       <LibraryDependencies>atomic;android;log;GLESv2;EGL;shaderc_combined</LibraryDependencies>
     </Link>
-    <ClCompile>
-      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
-    </ClCompile>
     <PreBuildEvent>
       <Command>
-        RD /S /Q $(AndroidGradleBuildOutputDir) 
-        xcopy $(SolutionDir)..\..\..\Common_3\OS\Android\Packaging $(IntDir) /s /y /d</Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
+
+  <Import Project="./TFAndroidCommon.targets"/>
+
 </Project>

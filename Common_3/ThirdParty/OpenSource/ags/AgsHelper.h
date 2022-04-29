@@ -21,6 +21,7 @@ enum AGSReturnCode
 #endif
 
 #if defined(AMDAGS)
+static AGSReturnCode gAgsStatus = AGS_FAILURE;
 static AGSContext* pAgsContext = NULL;
 static AGSGPUInfo  gAgsGpuInfo = {};
 #endif
@@ -29,7 +30,8 @@ static AGSReturnCode agsInit()
 {
 #if defined(AMDAGS)
 	AGSConfiguration config = {};
-	return agsInit(&pAgsContext, &config, &gAgsGpuInfo);
+	gAgsStatus = agsInit(&pAgsContext, &config, &gAgsGpuInfo);
+	return gAgsStatus;
 #endif
 
 	return AGS_SUCCESS;

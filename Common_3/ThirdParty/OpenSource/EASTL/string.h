@@ -3988,6 +3988,7 @@ namespace eastl
 	///
 	#if EASTL_USER_LITERALS_ENABLED && EASTL_INLINE_NAMESPACES_ENABLED
 		EA_DISABLE_VC_WARNING(4455) // disable warning C4455: literal suffix identifiers that do not start with an underscore are reserved
+        EA_DISABLE_GCC_WARNING(-Wliteral-suffix)
 	    inline namespace literals
 	    {
 		    inline namespace string_literals
@@ -3998,6 +3999,7 @@ namespace eastl
 				inline wstring operator"" s(const wchar_t* str, size_t len) EA_NOEXCEPT { return {str, wstring::size_type(len)}; }
 		    }
 	    }
+        EA_RESTORE_GCC_WARNING()
 		EA_RESTORE_VC_WARNING()  // warning: 4455
 	#endif
 

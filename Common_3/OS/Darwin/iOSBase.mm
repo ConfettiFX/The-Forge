@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,8 @@
 #include "../Core/Config.h"
 
 #ifdef __APPLE__
+
+#include "../Core/CPUConfig.h"
 
 #import <UIKit/UIKit.h>
 #import "iOSAppDelegate.h"
@@ -61,24 +63,57 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static WindowsDesc                gCurrentWindow;
-static eastl::vector<MonitorDesc> gMonitors;
-static uint32_t                   gMonitorCount = 0;
-static int                        gCurrentTouchEvent = 0;
+static WindowDesc gCurrentWindow;
+static int              gCurrentTouchEvent = 0;
 
-static float2 gRetinaScale = { 1.0f, 1.0f };
-static int    gDeviceWidth;
-static int    gDeviceHeight;
+extern float2 gRetinaScale;
+extern int     gDeviceWidth;
+extern int     gDeviceHeight;
+
+extern eastl::vector<MonitorDesc> gMonitors;
+extern uint32_t                   gMonitorCount;
 
 static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static bool    gShowPlatformUI = true;
+
+/// CPU
+static CpuInfo gCpu;
 
 static eastl::vector<MonitorDesc> monitors;
 
-void requestShutdown() {}
-void toggleFullscreen(WindowsDesc* pWindow) {}
+static IApp* pApp = NULL;
+extern IApp* pWindowAppRef;
+
+@protocol ForgeViewDelegate<NSObject>
+@required
+- (void)drawRectResized:(CGSize)size;
+@end
+
+@interface ForgeMTLViewController: UIViewController
+- (id)initWithFrame:(CGRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
+@end
+
+@interface ForgeMTLView: UIView
++ (Class)layerClass;
+- (void)layoutSubviews;
+@property(nonatomic, weak) id<ForgeViewDelegate> delegate;
+
+@end
+
+// Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
+@protocol RenderDestinationProvider
+- (void)draw;
+@end
+
+//------------------------------------------------------------------------
+// MARK: TOUCH EVENT-RELATED FUNCTIONS
+//------------------------------------------------------------------------
 
 // Update the state of the keys based on state previous frame
-void updateTouchEvent(int numTaps) { gCurrentTouchEvent = numTaps; }
+void updateTouchEvent(int numTaps)
+{
+	gCurrentTouchEvent = numTaps;
+}
 
 int getTouchEvent()
 {
@@ -87,7 +122,14 @@ int getTouchEvent()
 	return prevTouchEvent;
 }
 
-void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, gDeviceWidth, gDeviceHeight }; }
+//------------------------------------------------------------------------
+// MARK: OPERATING SYSTEM INTERFACE FUNCTIONS
+//------------------------------------------------------------------------
+
+void requestShutdown()
+{
+	// NOT SUPPORTED ON THIS PLATFORM
+}
 
 void onRequestReload()
 {
@@ -104,9 +146,30 @@ void onAPISwitch()
 	// NOT SUPPORTED ON THIS PLATFORM
 }
 
-/************************************************************************/
-// Time Related Functions
-/************************************************************************/
+void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
+{
+#ifndef AUTOMATED_TESTING
+	UIAlertController* alert = [UIAlertController alertControllerWithTitle:[NSString stringWithUTF8String:title]
+																   message:[NSString stringWithUTF8String:msg]
+															preferredStyle:UIAlertControllerStyleAlert];
+
+	UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
+
+	[alert addAction:okAction];
+	UIViewController* vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+	[vc presentViewController:alert animated:YES completion:nil];
+#endif
+}
+
+void setCustomMessageProcessor(CustomMessageProcessor proc)
+{
+	// No-op
+}
+
+//------------------------------------------------------------------------
+// MARK: TIME RELATED FUNCTIONS (consider moving...)
+//------------------------------------------------------------------------
+
 #ifdef __IPHONE_10_0
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
 #define ENABLE_CLOCK_GETTIME
@@ -144,7 +207,7 @@ unsigned getSystemTime()
 	return (unsigned int)ms;
 }
 
-int64_t getUSec()
+int64_t getUSec(bool precise)
 {
 	timespec ts;
 
@@ -171,33 +234,125 @@ int64_t getUSec()
 	return us;
 }
 
-int64_t getTimerFrequency() { return 1; }
-
-unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
-
-MonitorDesc* getMonitor(uint32_t index)
+int64_t getTimerFrequency()
 {
-	ASSERT(gMonitorCount > index);
-	return &gMonitors[index];
+	return 1;
 }
 
-void getDpiScale(float array[2])
+unsigned getTimeSinceStart()
 {
-	array[0] = gRetinaScale.x;
-	array[1] = gRetinaScale.y;
+	return (unsigned)time(NULL);
 }
 
-void setCustomMessageProcessor(CustomMessageProcessor proc) {}
+CpuInfo* getCpuInfo() {
+	return &gCpu;
+}
+//-----//------------------------------------------------------------------------
+// MARK: PLATFORM LAYER CORE SUBSYSTEMS
+//------------------------------------------------------------------------
 
-/************************************************************************/
-// App Entrypoint
-/************************************************************************/
+bool initBaseSubsystems()
+{
+	// Not exposed in the interface files / app layer
+	extern bool platformInitFontSystem();
+	extern bool platformInitUserInterface();
+	extern void platformInitLuaScriptingSystem();
+	extern void platformInitWindowSystem(WindowDesc*);
 
-static IApp* pApp = NULL;
+	platformInitWindowSystem(&gCurrentWindow);
+	pApp->pWindow = &gCurrentWindow;
+
+#ifdef ENABLE_FORGE_FONTS
+	if (!platformInitFontSystem())
+		return false;
+#endif
+
+#ifdef ENABLE_FORGE_UI
+	if (!platformInitUserInterface())
+		return false;
+#endif
+
+#ifdef ENABLE_FORGE_SCRIPTING
+	platformInitLuaScriptingSystem();
+#endif
+
+	return true;
+}
+
+void updateBaseSubsystems(float deltaTime)
+{
+	// Not exposed in the interface files / app layer
+	extern void platformUpdateLuaScriptingSystem();
+	extern void platformUpdateUserInterface(float deltaTime);
+	extern void platformUpdateWindowSystem();
+
+	platformUpdateWindowSystem();
+
+#ifdef ENABLE_FORGE_SCRIPTING
+	platformUpdateLuaScriptingSystem();
+#endif
+
+#ifdef ENABLE_FORGE_UI
+	platformUpdateUserInterface(deltaTime);
+#endif
+}
+
+void exitBaseSubsystems()
+{
+	// Not exposed in the interface files / app layer
+	extern void platformExitFontSystem();
+	extern void platformExitUserInterface();
+	extern void platformExitLuaScriptingSystem();
+	extern void platformExitWindowSystem();
+
+	platformExitWindowSystem();
+
+#ifdef ENABLE_FORGE_UI
+	platformExitUserInterface();
+#endif
+
+#ifdef ENABLE_FORGE_FONTS
+	platformExitFontSystem();
+#endif
+
+#ifdef ENABLE_FORGE_SCRIPTING
+	platformExitLuaScriptingSystem();
+#endif
+}
+
+//------------------------------------------------------------------------
+// MARK: PLATFORM LAYER USER INTERFACE
+//------------------------------------------------------------------------
+
+void setupPlatformUI()
+{
+#ifdef ENABLE_FORGE_UI
+	
+	// WINDOW AND RESOLUTION CONTROL
+
+	extern void platformSetupWindowSystemUI(IApp*);
+	platformSetupWindowSystemUI(pApp);
+#endif
+}
+
+void togglePlatformUI()
+{
+	gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
+
+#ifdef ENABLE_FORGE_UI
+	extern void platformToggleWindowSystemUI(bool);
+	platformToggleWindowSystemUI(gShowPlatformUI); 
+#endif
+}
+
+//------------------------------------------------------------------------
+// MARK: APP ENTRY POINT
+//------------------------------------------------------------------------
 
 int iOSMain(int argc, char** argv, IApp* app)
 {
 	pApp = app;
+	pWindowAppRef = app;
 
 	NSDictionary*            info = [[NSBundle mainBundle] infoDictionary];
 	NSString*                minVersion = info[@"MinimumOSVersion"];
@@ -219,110 +374,9 @@ int iOSMain(int argc, char** argv, IApp* app)
 	}
 }
 
-@protocol ForgeViewDelegate<NSObject>
-@required
-- (void)drawRectResized:(CGSize)size;
-@end
-
-@interface ForgeMTLViewController: UIViewController
-- (id)initWithFrame:(CGRect)FrameRect device:(id<MTLDevice>)device display:(int)displayID hdr:(bool)hdr vsync:(bool)vsync;
-@end
-
-@interface ForgeMTLView: UIView
-+ (Class)layerClass;
-- (void)layoutSubviews;
-@property(nonatomic, weak) id<ForgeViewDelegate> delegate;
-
-@end
-
-@implementation ForgeMTLView
-
-+ (Class)layerClass
-{
-	return [CAMetalLayer class];
-}
-
-- (void)layoutSubviews
-{
-	[_delegate drawRectResized:self.bounds.size];
-	if (pApp->mSettings.mContentScaleFactor >= 1.f)
-	{
-		[self setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
-		for (UIView* subview in self.subviews)
-		{
-			[subview setContentScaleFactor:pApp->mSettings.mContentScaleFactor];
-		}
-		((CAMetalLayer*)(self.layer)).drawableSize = CGSizeMake(
-			self.frame.size.width * pApp->mSettings.mContentScaleFactor, self.frame.size.height * pApp->mSettings.mContentScaleFactor);
-	}
-	else
-	{
-		[self setContentScaleFactor:gRetinaScale.x];
-		for (UIView* subview in self.subviews)
-		{
-			[subview setContentScaleFactor:gRetinaScale.x];
-		}
-
-		((CAMetalLayer*)(self.layer)).drawableSize =
-			CGSizeMake(self.frame.size.width * gRetinaScale.x, self.frame.size.height * gRetinaScale.y);
-	}
-}
-@end
-
-@implementation ForgeMTLViewController
-
-- (id)initWithFrame:(CGRect)FrameRect device:(id<MTLDevice>)device display:(int)in_displayID hdr:(bool)hdr vsync:(bool)vsync
-{
-	self = [super init];
-	self.view = [[ForgeMTLView alloc] initWithFrame:FrameRect];
-	CAMetalLayer* metalLayer = (CAMetalLayer*)self.view.layer;
-
-	metalLayer.device = device;
-	metalLayer.framebufferOnly = YES;    //todo: optimized way
-	metalLayer.pixelFormat = hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
-	metalLayer.drawableSize = CGSizeMake(self.view.frame.size.width, self.view.frame.size.height);
-
-	return self;
-}
-
-- (BOOL)prefersStatusBarHidden
-{
-	return pApp->mSettings.mShowStatusBar ? NO : YES;
-}
-
-@end
-
-void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device)
-{
-	CGRect    ViewRect{ 0, 0, 1280, 720 };    //Initial default values
-	UIWindow* Window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-
-	[Window setOpaque:YES];
-	[Window makeKeyAndVisible];
-	winDesc->handle.window = (void*)CFBridgingRetain(Window);
-
-	// Adjust window size to match retina scaling.
-	CGFloat scale = UIScreen.mainScreen.scale;
-	if (pApp->mSettings.mContentScaleFactor >= 1.0f)
-		gRetinaScale = { (float)pApp->mSettings.mContentScaleFactor, (float)pApp->mSettings.mContentScaleFactor };
-	else
-		gRetinaScale = { (float)scale, (float)scale };
-
-	gDeviceWidth = UIScreen.mainScreen.bounds.size.width * gRetinaScale.x;
-	gDeviceHeight = UIScreen.mainScreen.bounds.size.height * gRetinaScale.y;
-
-	ForgeMTLViewController* ViewController = [[ForgeMTLViewController alloc] initWithFrame:ViewRect
-																					device:device
-																				   display:0
-																					   hdr:NO
-																					 vsync:NO];
-	[Window setRootViewController:ViewController];
-}
-
-// Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
-@protocol RenderDestinationProvider
-- (void)draw;
-@end
+//------------------------------------------------------------------------
+// MARK: METALKITAPPLICATION IMPLEMENTATION
+//------------------------------------------------------------------------
 
 // Interface that controls the main updating/rendering loop on Metal appplications.
 @interface MetalKitApplication: NSObject<ForgeViewDelegate>
@@ -342,6 +396,224 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
 
 @end
 
+extern void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device);
+
+// Timer used in the update function.
+Timer           deltaTimer;
+IApp::Settings* pSettings;
+#ifdef AUTOMATED_TESTING
+uint32_t frameCounter;
+uint32_t targetFrameCount = 240;
+char benchmarkOutput[1024] = { "\0" };
+#endif
+
+// Metal application implementation.
+@implementation MetalKitApplication
+
+- (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
+				  renderDestinationProvider:(nonnull id<RenderDestinationProvider, ForgeViewDelegate>)renderDestinationProvider
+{
+	initCpuInfo(&gCpu);
+	initTimer(&deltaTimer);
+	
+	self = [super init];
+	if (self)
+	{
+		if (!initMemAlloc(pApp->GetName()))
+		{
+			NSLog(@"Failed to initialize memory manager");
+			exit(1);
+		}
+
+		//#if TF_USE_MTUNER
+		//	rmemInit(0);
+		//#endif
+
+		FileSystemInitDesc fsDesc = {};
+		fsDesc.pAppName = pApp->GetName();
+		if (!initFileSystem(&fsDesc))
+		{
+			NSLog(@"Failed to initialize filesystem");
+			exit(1);
+		}
+
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+		initLog(pApp->GetName(), DEFAULT_LOG_LEVEL);
+
+		pSettings = &pApp->mSettings;
+
+		gCurrentWindow = {};
+		openWindow(pApp->GetName(), &gCurrentWindow, device);
+		UIApplication.sharedApplication.delegate.window = (__bridge UIWindow*)gCurrentWindow.handle.window;
+
+		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
+		{
+			RectDesc rect = {};
+			getRecommendedResolution(&rect);
+			pSettings->mWidth = getRectWidth(&rect);
+			pSettings->mHeight = getRectHeight(&rect);
+			pSettings->mFullScreen = true;
+		}
+
+		gCurrentWindow.fullscreenRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
+		gCurrentWindow.fullScreen = pSettings->mFullScreen;
+		gCurrentWindow.maximized = false;
+		gCurrentWindow.cursorCaptured = false;
+		
+		ForgeMTLView* forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle.window)).rootViewController.view;
+		forgeView.delegate = self;
+		gCurrentWindow.handle.window = (void*)CFBridgingRetain(forgeView);
+
+		pSettings->mWidth = getRectWidth(&gCurrentWindow.fullscreenRect);
+		pSettings->mHeight = getRectHeight(&gCurrentWindow.fullscreenRect);
+		//pApp->pWindow = &gCurrentWindow;
+
+#ifdef AUTOMATED_TESTING
+	//Check if benchmarking was given through command line
+	for (int i = 0; i < pApp->argc; i += 1)
+	{
+		if (strcmp(pApp->argv[i], "-b") == 0)
+		{
+			pSettings->mBenchmarking = true;
+			if (i + 1 < pApp->argc && isdigit(*(pApp->argv[i + 1])))
+				targetFrameCount = min(max(atoi(pApp->argv[i + 1]), 32), 512);
+		}
+		else if (strcmp(pApp->argv[i], "-o") == 0 && i + 1 < pApp->argc)
+		{
+			strcpy(benchmarkOutput, pApp->argv[i + 1]);
+		}
+	}
+#endif
+		
+		@autoreleasepool
+		{
+			if (!initBaseSubsystems())
+				exit(1);
+			
+			if (!pApp->Init())
+				exit(1);
+			
+			setupPlatformUI();
+			pApp->mSettings.mInitialized = true;
+
+			if (!pApp->Load())
+				exit(1);
+		}
+	}
+	
+#ifdef AUTOMATED_TESTING
+	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
+#endif
+
+	return self;
+}
+
+- (void)drawRectResized:(CGSize)size
+{
+	bool needToUpdateApp = false;
+	if (pApp->mSettings.mWidth != size.width * gRetinaScale.x)
+	{
+		pApp->mSettings.mWidth = size.width * gRetinaScale.x;
+		needToUpdateApp = true;
+	}
+	if (pApp->mSettings.mHeight != size.height * gRetinaScale.y)
+	{
+		pApp->mSettings.mHeight = size.height * gRetinaScale.y;
+		needToUpdateApp = true;
+	}
+
+	pApp->mSettings.mFullScreen = true;
+
+	if (needToUpdateApp)
+	{
+		onRequestReload();
+	}
+}
+
+- (void)onFocusChanged:(BOOL)focused
+{
+	if (pApp == nullptr || !pApp->mSettings.mInitialized)
+	{
+		return;
+	}
+
+	pApp->mSettings.mFocused = focused;
+}
+
+- (void)onActiveChanged:(BOOL)active
+{
+}
+
+- (void)update
+{
+	if (gResetScenario & RESET_SCENARIO_RELOAD)
+	{
+		pApp->Unload();
+		pApp->Load();
+
+		gResetScenario &= ~RESET_SCENARIO_RELOAD;
+		return;
+	}
+
+	float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
+	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+	if (deltaTime > 0.15f)
+		deltaTime = 0.05f;
+	
+	// UPDATE BASE INTERFACES
+	updateBaseSubsystems(deltaTime);
+
+	// UPDATE APP
+	pApp->Update(deltaTime);
+	pApp->Draw();
+
+	if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+	{
+		togglePlatformUI(); 
+	}
+
+#ifdef AUTOMATED_TESTING
+	frameCounter++;
+	if (frameCounter >= targetFrameCount)
+	{
+		[self shutdown];
+		exit(0);
+	}
+#endif
+}
+
+- (void)shutdown
+{
+#ifdef AUTOMATED_TESTING
+	if (pSettings->mBenchmarking)
+	{
+		dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+		dumpProfileData(benchmarkOutput, targetFrameCount);
+	}
+#endif
+	pApp->mSettings.mQuit = true;
+	pApp->Unload();
+	pApp->Exit();
+	pApp->mSettings.mInitialized = false;
+	
+	exitBaseSubsystems();
+	
+	exitLog();
+	exitFileSystem();
+
+	//#if TF_USE_MTUNER
+	//	rmemUnload();
+	//	rmemShutDown();
+	//#endif
+
+	exitMemAlloc();
+}
+@end
+
+//------------------------------------------------------------------------
+// MARK: GAMECONTROLLER IMPLEMENTATION
+//------------------------------------------------------------------------
+
 // Our view controller.  Implements the MTKViewDelegate protocol, which allows it to accept
 // per-frame update and drawable resize callbacks.  Also implements the RenderDestinationProvider
 // protocol, which allows our renderer object to get and set drawable properties such as pixel
@@ -351,9 +623,6 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
 @end
 
 GameController* pMainViewController;
-/************************************************************************/
-// GameController implementation
-/************************************************************************/
 
 @implementation GameController
 {
@@ -430,6 +699,7 @@ GameController* pMainViewController;
 - (void)onActiveChanged:(BOOL)active
 {
 	_active = active;
+	[_application onFocusChanged:active];
 }
 
 /*A notification named NSApplicationWillTerminateNotification.*/
@@ -445,8 +715,8 @@ GameController* pMainViewController;
 	bool focusChanged = false;
 	if (pApp)
 	{
-	    focusChanged = lastFocused != pApp->mSettings.mFocused;
-	    lastFocused = pApp->mSettings.mFocused;
+		focusChanged = lastFocused != pApp->mSettings.mFocused;
+		lastFocused = pApp->mSettings.mFocused;
 	}
 
 	// In case the application already resigned the active state,
@@ -458,283 +728,4 @@ GameController* pMainViewController;
 }
 @end
 
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
-{
-#ifndef AUTOMATED_TESTING
-	UIAlertController* alert = [UIAlertController alertControllerWithTitle:[NSString stringWithUTF8String:title]
-																   message:[NSString stringWithUTF8String:msg]
-															preferredStyle:UIAlertControllerStyleAlert];
-
-	UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil];
-
-	[alert addAction:okAction];
-	UIViewController* vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
-	[vc presentViewController:alert animated:YES completion:nil];
-#endif
-}
-
-bool initBaseSubsystems()
-{
-	// Not exposed in the interface files / app layer
-	extern bool platformInitFontSystem();
-	extern bool platformInitUserInterface();
-	extern void platformInitLuaScriptingSystem();
-
-#ifdef ENABLE_FORGE_FONTS
-	if (!platformInitFontSystem())
-		return false;
-#endif
-
-#ifdef ENABLE_FORGE_UI
-	if (!platformInitUserInterface())
-		return false;
-#endif
-
-#ifdef ENABLE_FORGE_SCRIPTING
-	platformInitLuaScriptingSystem();
-#endif
-
-	return true;
-}
-
-void updateBaseSubsystems(float deltaTime)
-{
-	// Not exposed in the interface files / app layer
-	extern void platformUpdateLuaScriptingSystem();
-	extern void platformUpdateUserInterface(float deltaTime);
-
-#ifdef ENABLE_FORGE_SCRIPTING
-	platformUpdateLuaScriptingSystem();
-#endif
-
-#ifdef ENABLE_FORGE_UI
-	platformUpdateUserInterface(deltaTime);
-#endif
-}
-
-void exitBaseSubsystems()
-{
-	// Not exposed in the interface files / app layer
-	extern void platformExitFontSystem();
-	extern void platformExitUserInterface();
-	extern void platformExitLuaScriptingSystem();
-
-#ifdef ENABLE_FORGE_UI
-	platformExitUserInterface();
-#endif
-
-#ifdef ENABLE_FORGE_FONTS
-	platformExitFontSystem();
-#endif
-
-#ifdef ENABLE_FORGE_SCRIPTING
-	platformExitLuaScriptingSystem();
-#endif
-}
-
-/************************************************************************/
-// MetalKitApplication implementation
-/************************************************************************/
-
-// Timer used in the update function.
-Timer           deltaTimer;
-IApp::Settings* pSettings;
-#ifdef AUTOMATED_TESTING
-uint32_t frameCounter;
-uint32_t targetFrameCount = 240;
-char benchmarkOutput[1024] = { "\0" };
-#endif
-
-// Metal application implementation.
-@implementation MetalKitApplication
-
-- (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
-				  renderDestinationProvider:(nonnull id<RenderDestinationProvider, ForgeViewDelegate>)renderDestinationProvider
-{
-	initTimer(&deltaTimer);
-	
-	self = [super init];
-	if (self)
-	{
-		if (!initMemAlloc(pApp->GetName()))
-		{
-			NSLog(@"Failed to initialize memory manager");
-			exit(1);
-		}
-
-		//#if TF_USE_MTUNER
-		//	rmemInit(0);
-		//#endif
-
-		FileSystemInitDesc fsDesc = {};
-		fsDesc.pAppName = pApp->GetName();
-		if (!initFileSystem(&fsDesc))
-		{
-			NSLog(@"Failed to initialize filesystem");
-			exit(1);
-		}
-
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-		initLog(pApp->GetName(), DEFAULT_LOG_LEVEL);
-
-		pSettings = &pApp->mSettings;
-
-		gCurrentWindow = {};
-		openWindow(pApp->GetName(), &gCurrentWindow, device);
-		UIApplication.sharedApplication.delegate.window = (__bridge UIWindow*)gCurrentWindow.handle.window;
-
-		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
-		{
-			RectDesc rect = {};
-			getRecommendedResolution(&rect);
-			pSettings->mWidth = getRectWidth(&rect);
-			pSettings->mHeight = getRectHeight(&rect);
-			pSettings->mFullScreen = true;
-		}
-
-		gCurrentWindow.fullscreenRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
-		gCurrentWindow.fullScreen = pSettings->mFullScreen;
-		gCurrentWindow.maximized = false;
-
-		ForgeMTLView* forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle.window)).rootViewController.view;
-		forgeView.delegate = self;
-		gCurrentWindow.handle.window = (void*)CFBridgingRetain(forgeView);
-
-		pSettings->mWidth = getRectWidth(&gCurrentWindow.fullscreenRect);
-		pSettings->mHeight = getRectHeight(&gCurrentWindow.fullscreenRect);
-		pApp->pWindow = &gCurrentWindow;
-
-#ifdef AUTOMATED_TESTING
-	//Check if benchmarking was given through command line
-	for (int i = 0; i < pApp->argc; i += 1)
-	{
-		if (strcmp(pApp->argv[i], "-b") == 0)
-		{
-			pSettings->mBenchmarking = true;
-			if (i + 1 < pApp->argc && isdigit(*(pApp->argv[i + 1])))
-				targetFrameCount = min(max(atoi(pApp->argv[i + 1]), 32), 512);
-		}
-		else if (strcmp(pApp->argv[i], "-o") == 0 && i + 1 < pApp->argc)
-		{
-			strcpy(benchmarkOutput, pApp->argv[i + 1]);
-		}
-	}
-#endif
-		
-		@autoreleasepool
-		{
-			if (!initBaseSubsystems())
-				exit(1);
-			
-			if (!pApp->Init())
-				exit(1);
-
-			pApp->mSettings.mInitialized = true;
-
-			if (!pApp->Load())
-				exit(1);
-		}
-	}
-	
-#ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
-#endif
-
-	return self;
-}
-
-- (void)drawRectResized:(CGSize)size
-{
-	bool needToUpdateApp = false;
-	if (pApp->mSettings.mWidth != size.width * gRetinaScale.x)
-	{
-		pApp->mSettings.mWidth = size.width * gRetinaScale.x;
-		needToUpdateApp = true;
-	}
-	if (pApp->mSettings.mHeight != size.height * gRetinaScale.y)
-	{
-		pApp->mSettings.mHeight = size.height * gRetinaScale.y;
-		needToUpdateApp = true;
-	}
-
-	pApp->mSettings.mFullScreen = true;
-
-	if (needToUpdateApp)
-	{
-		onRequestReload();
-	}
-}
-
-- (void)onFocusChanged:(BOOL)focused
-{
-	if (pApp == nullptr || !pApp->mSettings.mInitialized)
-	{
-		return;
-	}
-
-	pApp->mSettings.mFocused = focused;
-}
-
-- (void)update
-{
-	if (gResetScenario & RESET_SCENARIO_RELOAD)
-	{
-		pApp->Unload();
-		pApp->Load();
-
-		gResetScenario &= ~RESET_SCENARIO_RELOAD;
-		return;
-	}
-
-	float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
-	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
-	if (deltaTime > 0.15f)
-		deltaTime = 0.05f;
-	
-	// UPDATE BASE INTERFACES
-	updateBaseSubsystems(deltaTime);
-
-	// UPDATE APP
-	pApp->Update(deltaTime);
-	pApp->Draw();
-
-#ifdef AUTOMATED_TESTING
-	frameCounter++;
-	if (frameCounter >= targetFrameCount)
-	{
-		[self shutdown];
-		exit(0);
-	}
-#endif
-}
-
-- (void)shutdown
-{
-#ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking)
-	{
-		dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
-		dumpProfileData(benchmarkOutput, targetFrameCount);
-	}
-#endif
-	pApp->mSettings.mQuit = true;
-	pApp->Unload();
-	pApp->Exit();
-	pApp->mSettings.mInitialized = false;
-	
-	exitBaseSubsystems();
-	
-	exitLog();
-	exitFileSystem();
-
-	//#if TF_USE_MTUNER
-	//	rmemUnload();
-	//	rmemShutDown();
-	//#endif
-
-	exitMemAlloc();
-}
-@end
-/************************************************************************/
-/************************************************************************/
 #endif

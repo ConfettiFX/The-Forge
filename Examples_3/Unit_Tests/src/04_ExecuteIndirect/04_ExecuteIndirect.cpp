@@ -1,5 +1,21 @@
+///////////////////////////////////////////////////////////////////////////////
+// Copyright 2017 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+// License for the specific language governing permissions and limitations
+// under the License.
+///////////////////////////////////////////////////////////////////////////////
+
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,24 +37,6 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
-///////////////////////////////////////////////////////////////////////////////
-// Copyright 2017 Intel Corporation
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License.  You may obtain a copy
-// of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
-// License for the specific language governing permissions and limitations
-// under the License.
-///////////////////////////////////////////////////////////////////////////////
-
-// TODO : Add Confetti copyright statement here, as well as note that intel code is modified
 
 // Unit test headers
 #include "AsteroidSim.h"
@@ -188,7 +186,6 @@ eastl::vector<Subset>   gAsteroidSubsets;
 ThreadData              gThreadData[gNumSubsets];
 Texture*                pAsteroidTex = NULL;
 bool                    gUseThreads = true;
-bool                    gToggleVSync = false;
 uint32_t                gRenderingMode = RenderingMode_GPUUpdate;
 uint32_t                gPreviousRenderingMode = gRenderingMode;
 
@@ -222,7 +219,6 @@ RootSignature*    pIndirectRoot = NULL;
 Buffer*           pIndirectBuffer = NULL;
 Buffer*           pIndirectUniformBuffer[gImageCount] = { NULL };
 CommandSignature* pIndirectCommandSignature = NULL;
-CommandSignature* pIndirectSubsetCommandSignature = NULL;
 
 // Compute shader variables
 Shader*           pComputeShader = NULL;
@@ -324,7 +320,6 @@ class ExecuteIndirect: public IApp
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
-		gToggleVSync = mSettings.mDefaultVSyncEnabled;
 	}
 	
 	bool Init()
@@ -348,8 +343,6 @@ class ExecuteIndirect: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -492,7 +485,6 @@ class ExecuteIndirect: public IApp
 
 		CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]) };
 		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectCommandSignature);
-		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectSubsetCommandSignature);
 
 		// initialize argument data
 		IndirectArguments* indirectInit =
@@ -691,12 +683,6 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		/************************************************************************/
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget vSyncCheckbox;
-		vSyncCheckbox.pData = &gToggleVSync;
-		UIWidget* pVSyncCheckbox = uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX);
-		luaRegisterWidget(pVSyncCheckbox);
-#endif
 		DropdownWidget renderModeDropdown;
 		renderModeDropdown.pData = &gRenderingMode;
 		for (uint32_t i = 0; i < 3; ++i)
@@ -871,22 +857,24 @@ class ExecuteIndirect: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -981,7 +969,6 @@ class ExecuteIndirect: public IApp
 		}
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
-		removeIndirectCommandSignature(pRenderer, pIndirectSubsetCommandSignature);
 
 		removeShader(pRenderer, pBasicShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
@@ -1156,14 +1143,6 @@ class ExecuteIndirect: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
-
 		frameTime = deltaTime;
 
 		pCameraController->update(deltaTime);
@@ -1194,6 +1173,12 @@ class ExecuteIndirect: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		// Sync all frames in flight in case there is a change in the render modes
 		if (gPreviousRenderingMode != gRenderingMode)
 		{
@@ -1372,6 +1357,7 @@ class ExecuteIndirect: public IApp
 
 			LoadActionsDesc loadActionLoad = {};
 			loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+			loadActionLoad.mLoadActionDepth = LOAD_ACTION_LOAD;
 			// Execute indirect
 			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActionLoad, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1437,7 +1423,7 @@ class ExecuteIndirect: public IApp
 #endif
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
-		const float txtOffset = 8.f;
+		const float txtOffset = 15.f;
 		float txtOrigY = txtOffset;
 		float2 screenCoords = float2(txtOffset, txtOrigY);
 
@@ -1445,7 +1431,7 @@ class ExecuteIndirect: public IApp
 		gFrameTimeDraw.mFontSize = 18.0f;
 		float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
 		
-		screenCoords.y += txtSize.y + txtOffset;
+		screenCoords.y += txtSize.y + 5 * txtOffset;
 		cmdDrawGpuProfile(cmd, screenCoords, gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
@@ -1503,7 +1489,7 @@ class ExecuteIndirect: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -1805,6 +1791,7 @@ class ExecuteIndirect: public IApp
 	{
         LoadActionsDesc loadActionLoad = {};
         loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		loadActionLoad.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		uint32_t startIdx = index * gNumAsteroidsPerSubset;
 		uint32_t endIdx = min(startIdx + gNumAsteroidsPerSubset, gNumAsteroids);
@@ -1931,7 +1918,7 @@ class ExecuteIndirect: public IApp
 			const uint32_t asteroidStride = sizeof(Vertex);
             cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
-			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect[frameIdx], 0, NULL, 0);
+			cmdExecuteIndirect(cmd, pIndirectCommandSignature, numToDraw, subset.pSubsetIndirect[frameIdx], 0, NULL, 0);
 		}
 
 		endCmd(cmd);

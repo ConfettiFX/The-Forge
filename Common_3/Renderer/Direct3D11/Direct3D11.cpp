@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -1803,6 +1803,17 @@ void d3d11_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** p
 	// initialize to zero
 	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
+	
+	//default sampler lod values
+	//used if not overriden by mSetLodRange or not Linear mipmaps
+	float minSamplerLod = 0;
+	float maxSamplerLod = pDesc->mMipMapMode == MIPMAP_MODE_LINEAR ? D3D11_FLOAT32_MAX : 0;
+	//user provided lods
+	if(pDesc->mSetLodRange)
+	{
+		minSamplerLod = pDesc->mMinLod;
+		maxSamplerLod = pDesc->mMaxLod;
+	}
 
 	//add sampler to gpu
 	D3D11_SAMPLER_DESC desc;
@@ -1819,8 +1830,8 @@ void d3d11_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** p
 	desc.BorderColor[1] = 0.0f;
 	desc.BorderColor[2] = 0.0f;
 	desc.BorderColor[3] = 0.0f;
-	desc.MinLOD = 0.0f;
-	desc.MaxLOD = D3D11_FLOAT32_MAX;
+	desc.MinLOD = minSamplerLod;
+	desc.MaxLOD = maxSamplerLod;
 
 	if (FAILED(pRenderer->mD3D11.pDxDevice->CreateSamplerState(&desc, &pSampler->mD3D11.pSamplerState)))
 		LOGF(LogLevel::eERROR, "Failed to create sampler state.");

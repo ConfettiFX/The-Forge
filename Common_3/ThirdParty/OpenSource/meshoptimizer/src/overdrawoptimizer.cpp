@@ -1,9 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <math.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Pedro Sander, Diego Nehab and Joshua Barczak. Fast Triangle Reordering for Vertex Locality and Reduced Overdraw. 2007
@@ -33,7 +31,7 @@ static void calculateSortData(float* sort_data, const unsigned int* indices, siz
 	{
 		size_t cluster_begin = clusters[cluster] * 3;
 		size_t cluster_end = (cluster + 1 < cluster_count) ? clusters[cluster + 1] * 3 : index_count;
-		assert(cluster_begin < cluster_end);
+		ASSERT(cluster_begin < cluster_end);
 
 		float cluster_area = 0;
 		float cluster_centroid[3] = {};
@@ -123,7 +121,7 @@ static void calculateSortOrderRadix(unsigned int* sort_order, const float* sort_
 		histogram_sum += count;
 	}
 
-	assert(histogram_sum == cluster_count);
+	ASSERT(histogram_sum == cluster_count);
 
 	// compute sort order based on offsets
 	for (size_t i = 0; i < cluster_count; ++i)
@@ -182,7 +180,7 @@ static size_t generateHardBoundaries(unsigned int* destination, const unsigned i
 		}
 	}
 
-	assert(result <= index_count / 3);
+	ASSERT(result <= index_count / 3);
 
 	return result;
 }
@@ -199,7 +197,7 @@ static size_t generateSoftBoundaries(unsigned int* destination, const unsigned i
 	{
 		size_t start = clusters[it];
 		size_t end = (it + 1 < cluster_count) ? clusters[it + 1] : index_count / 3;
-		assert(start < end);
+		ASSERT(start < end);
 
 		// reset cache
 		timestamp += cache_size + 1;
@@ -259,8 +257,8 @@ static size_t generateSoftBoundaries(unsigned int* destination, const unsigned i
 		}
 	}
 
-	assert(result >= cluster_count);
-	assert(result <= index_count / 3);
+	ASSERT(result >= cluster_count);
+	ASSERT(result <= index_count / 3);
 
 	return result;
 }
@@ -271,9 +269,9 @@ void meshopt_optimizeOverdraw(unsigned int* destination, const unsigned int* ind
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -319,15 +317,15 @@ void meshopt_optimizeOverdraw(unsigned int* destination, const unsigned int* ind
 	for (size_t it = 0; it < cluster_count; ++it)
 	{
 		unsigned int cluster = sort_order[it];
-		assert(cluster < cluster_count);
+		ASSERT(cluster < cluster_count);
 
 		size_t cluster_begin = clusters[cluster] * 3;
 		size_t cluster_end = (cluster + 1 < cluster_count) ? clusters[cluster + 1] * 3 : index_count;
-		assert(cluster_begin < cluster_end);
+		ASSERT(cluster_begin < cluster_end);
 
 		memcpy(destination + offset, indices + cluster_begin, (cluster_end - cluster_begin) * sizeof(unsigned int));
 		offset += cluster_end - cluster_begin;
 	}
 
-	assert(offset == index_count);
+	ASSERT(offset == index_count);
 }

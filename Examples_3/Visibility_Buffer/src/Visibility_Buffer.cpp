@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -299,8 +299,6 @@ typedef struct AppSettings
 	//Camera Walking
 	bool  cameraWalking = false;
 	float cameraWalkingSpeed = 1.0f;
-
-	bool mToggleVSync = false;
 
 } AppSettings;
 
@@ -644,11 +642,6 @@ RenderTarget* pScreenRenderTarget = NULL;
 // Screen resolution UI data
 /************************************************************************/
 #if defined(_WINDOWS)
-UIWidget*                    gResolutionProperty = NULL;
-eastl::vector<Resolution>   gResolutions;
-uint32_t                    gResolutionIndex = 0;
-bool                        gResolutionChange = false;
-
 struct ResolutionData
 {
 	eastl::vector<eastl::string> resNameContainer;
@@ -661,9 +654,7 @@ static ResolutionData gGuiResolution;
 
 const char* pPipelineCacheName = "PipelineCache.cache";
 PipelineCache* pPipelineCache = NULL;
-/************************************************************************/
-/************************************************************************/
-class VisibilityBuffer* pVisibilityBuffer = NULL;
+
 /************************************************************************/
 // Culling intrinsic data
 /************************************************************************/
@@ -812,8 +803,6 @@ public:
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES,     "");
 
 		initThreadSystem(&pThreadSystem);
-
-		pVisibilityBuffer = this;
 		
 		// Camera Walking
 		FileStream fh = {};
@@ -833,8 +822,6 @@ public:
 		
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true; 
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -924,7 +911,7 @@ public:
 		/************************************************************************/
 		// Create sampler for VB render target
 		SamplerDesc trilinearDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, 8.0f
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0.0f, false, 0.0f, 0.0f, 8.0f
 		};
 		SamplerDesc bilinearDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
 			ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
@@ -1255,29 +1242,6 @@ public:
 		uiCreateComponent(GetName(), &UIComponentDesc, &pGuiWindow);
 		uiSetComponentFlags(pGuiWindow, GUI_COMPONENT_FLAGS_NO_RESIZE);
 
-#if defined(_WINDOWS)
-		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
-		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
-		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
-		{
-			bool duplicate = false;
-			for (uint32_t j = 0; j < (uint32_t)gResolutions.size(); ++j)
-			{
-				if (wantedResolutions[i].mWidth == gResolutions[j].mWidth && wantedResolutions[i].mHeight == gResolutions[j].mHeight)
-				{
-					duplicate = true;
-					break;
-				}
-			}
-			if (!duplicate && getResolutionSupport(getMonitor(0), &wantedResolutions[i]))
-			{
-				gResolutions.emplace_back(wantedResolutions[i]);
-			}
-		}
-		gResolutionProperty = addResolutionProperty(
-			pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
-#endif
-
 		const uint32_t numScripts = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
 		LuaScriptDesc scriptDescs[numScripts] = {};
 		for (uint32_t i = 0; i < numScripts; ++i)
@@ -1338,10 +1302,6 @@ public:
 		checkbox.pData = &gAppSettings.mAsyncCompute;
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Async Compute", &checkbox, WIDGET_TYPE_CHECKBOX));
 
-#if !defined(TARGET_IOS)
-		checkbox.pData = &gAppSettings.mToggleVSync;
-		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync", &checkbox, WIDGET_TYPE_CHECKBOX));
-#endif
 		checkbox.pData = &gAppSettings.mDrawDebugTargets;
 		luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Draw Debug Targets", &checkbox, WIDGET_TYPE_CHECKBOX));
 		/************************************************************************/
@@ -1610,11 +1570,6 @@ public:
 			gSCurveInfomation.UseSCurve = 1.0f;
 		}
 
-#if defined(_WINDOWS)
-		if (!pWindow->fullScreen && gResolutionProperty)
-			uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
-#endif
-
 		/************************************************************************/
 	/************************************************************************/
 	// Finish the resource loading process since the next code depends on the loaded resources
@@ -1824,7 +1779,6 @@ public:
 
 		gPositionsDirections.set_capacity(0);
 #if defined(_WINDOWS)
-		gResolutions.set_capacity(0);
 		gGuiResolution.resNameContainer.set_capacity(0);
 		gGuiResolution.resNamePointers.set_capacity(0);
 		gGuiResolution.resValues.set_capacity(0);
@@ -2418,30 +2372,12 @@ public:
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gAppSettings.mToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#if defined(_WINDOWS)
-		if (gResolutionChange)
-		{
-			gResolutionChange = false;
-			setResolution(getMonitor(0), &gResolutions[gResolutionIndex]);
-			pVisibilityBuffer->Unload();
-			pVisibilityBuffer->Load();
-		}
-#endif
-#endif
-
 		if (gWasColorSpace != gAppSettings.mCurrentSwapChainColorSpace || gWasDisplayColorRange != gAppSettings.mDisplayColorRange ||
 			gWasDisplaySignalRange != gAppSettings.mDisplaySignalRange)
 		{
 			if (gWasColorSpace != gAppSettings.mCurrentSwapChainColorSpace && gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 			{
-				pVisibilityBuffer->Unload();
-				pVisibilityBuffer->Load();
+				onRequestReload(); 
 			}
 
 			gWasColorSpace = gAppSettings.mCurrentSwapChainColorSpace;
@@ -2465,14 +2401,12 @@ public:
 				{
 					if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 					{
-						pVisibilityBuffer->Unload();
-						pVisibilityBuffer->Load();
+						onRequestReload(); 
 					}
 				}
 				else
 				{
-					pVisibilityBuffer->Unload();
-					pVisibilityBuffer->Load();
+					onRequestReload();
 				}
 
 				gWasOutputMode = gAppSettings.mOutputMode;
@@ -2515,6 +2449,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t presentIndex = 0;
 		uint32_t frameIdx = gFrameCount % gImageCount;
 
@@ -3640,15 +3580,15 @@ public:
 		}
 
 		// Triangle culling compute shader
-		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL };
+		triangleCulling.mStages[0] = { "triangle_filtering.comp", NULL, 0 };
 		// Batch compaction compute shader
-		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL };
+		batchCompaction.mStages[0] = { "batch_compaction.comp", NULL, 0 };
 		// Clear buffers compute shader
-		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL };
+		clearBuffer.mStages[0] = { "clear_buffers.comp", NULL, 0 };
 		// Clear light clusters compute shader
-		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL };
+		clearLights.mStages[0] = { "clear_light_clusters.comp", NULL, 0 };
 		// Cluster lights compute shader
-		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL };
+		clusterLights.mStages[0] = { "cluster_lights.comp", NULL, 0 };
 
 		ShaderLoadDesc sunShaderDesc = {};
 		sunShaderDesc.mStages[0] = { "sun.vert", NULL, 0 };
@@ -4003,12 +3943,12 @@ public:
 		// Setup lights uniform buffer
 		for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 		{
-			gLightData[i].position.setX(float(rand() % 2000) - 1000.0f);
+			gLightData[i].position.setX(randomFloat(-1000.f, 1000.0f));
 			gLightData[i].position.setY(100);
-			gLightData[i].position.setZ(float(rand() % 2000) - 1000.0f);
-			gLightData[i].color.setX(float(rand() % 255) / 255.0f);
-			gLightData[i].color.setY(float(rand() % 255) / 255.0f);
-			gLightData[i].color.setZ(float(rand() % 255) / 255.0f);
+			gLightData[i].position.setZ(randomFloat(-1000.f, 1000.0f));
+			gLightData[i].color.setX(randomFloat01());
+			gLightData[i].color.setY(randomFloat01());
+			gLightData[i].color.setZ(randomFloat01());
 		}
 		BufferLoadDesc batchUb = {};
 		batchUb.mDesc.mSize = sizeof(gLightData);
@@ -4385,23 +4325,6 @@ public:
 				uiHideDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR, pGuiWindow);
 			}
 		}
-
-#if defined(_WINDOWS)
-		static bool wasFullscreen = pWindow->fullScreen;
-		if (pWindow->fullScreen != wasFullscreen)
-		{
-			wasFullscreen = pWindow->fullScreen;
-			if (wasFullscreen)
-			{
-				gResolutionProperty = addResolutionProperty(
-					pGuiWindow, gResolutionIndex, (uint32_t)gResolutions.size(), gResolutions.data(), []() { gResolutionChange = true; });
-			}
-			else
-			{
-				uiDestroyComponentWidget(pGuiWindow, gResolutionProperty);
-			}
-		}
-#endif
 
 		// God Ray
 		{
@@ -5361,7 +5284,7 @@ public:
 		Sampler* pSkyboxSampler = NULL;
 
 		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, false, 0.0f, 0.0f, 16
 		};
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -5681,17 +5604,17 @@ public:
         {
             if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 90.0f), gComputeProfileToken, &gFrameTimeDraw);
-                cmdDrawGpuProfile(cmd, float2(8.0f, 325.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gComputeProfileToken, &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 425.0f), gGraphicsProfileToken, &gFrameTimeDraw);
             }
             else
             {
-                cmdDrawGpuProfile(cmd, float2(8.0f, 65.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+                cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
             }
         }
         else
         {
-            cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGraphicsProfileToken, &gFrameTimeDraw);
+            cmdDrawGpuProfile(cmd, float2(8.0f, 100.0f), gGraphicsProfileToken, &gFrameTimeDraw);
         }
 
         cmdDrawUserInterface(cmd);

@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -106,8 +106,7 @@ struct Light
 	vec4  mCol;
 	float mRadius;
 	float mIntensity;
-	float _pad0;
-	float _pad1;
+	char  _pad[8];
 };
 
 struct UniformLightData
@@ -356,7 +355,6 @@ const uint32_t gImageCount = 3;
 ProfileToken   gPPRGpuProfileToken;
 ProfileToken   gSSSRGpuProfileToken;
 ProfileToken   gCurrentGpuProfileToken;
-bool           gToggleVSync = false;
 
 Renderer* pRenderer = NULL;
 
@@ -624,8 +622,6 @@ class ScreenSpaceReflections: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		settings.mShaderTarget = shader_target_6_0;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -1350,12 +1346,6 @@ class ScreenSpaceReflections: public IApp
 
 		static const char* enumReflectionTypeNames[] = { "Pixel Projected Reflections", "Stochastic Screen Space Reflections", NULL };
 
-#if !defined(TARGET_IOS)
-		OneLineCheckboxWidget vSyncCheckbox;
-		vSyncCheckbox.pData = &gToggleVSync;
-		vSyncCheckbox.mColor = float4(1.f);
-		luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
-#endif
 		DropdownWidget ddRenderMode;
 		ddRenderMode.pData = &gRenderMode;
 		for (uint32_t i = 0; i < 4; ++i)
@@ -1580,20 +1570,23 @@ class ScreenSpaceReflections: public IApp
 			return true;
 		} };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-			[](InputActionContext* ctx) {
-			bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-			setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
+		{
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 			return true;
-			},
-			this 
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool(*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1809,7 +1802,7 @@ class ScreenSpaceReflections: public IApp
 		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
 
 		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, false, 0.0f, 0.0f, 16
 		};
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -2464,28 +2457,6 @@ class ScreenSpaceReflections: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gToggleVSync)
-		{
-			// To remove Validation errors related to deletion of imageView before commands are executed
-			// when toggling Vsync
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				Fence* pRenderCompleteFence = pRenderCompleteFences[i];
-
-				// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
-				FenceStatus fenceStatus;
-				getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
-				if (fenceStatus == FENCE_STATUS_INCOMPLETE)
-					waitForFences(pRenderer, 1, &pRenderCompleteFence);
-
-				resetCmdPool(pRenderer, pCmdPools[i]);
-			}
-
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
-
 		pCameraController->update(deltaTime);
 
 		// Update camera
@@ -2589,6 +2560,12 @@ class ScreenSpaceReflections: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		// This will acquire the next swapchain image
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
@@ -3146,7 +3123,7 @@ class ScreenSpaceReflections: public IApp
 		gFrameTimeDraw.mFontSize = 18.0f;
 		gFrameTimeDraw.mFontID = gFontID;
 		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f),gCurrentGpuProfileToken, &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.f),gCurrentGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
 		cmdEndDebugMarker(cmd);
@@ -3553,7 +3530,7 @@ class ScreenSpaceReflections: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;

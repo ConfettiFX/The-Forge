@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@
 
 #include "../IRay.h"
 
-#ifdef ENABLE_RAYTRACING
+#ifdef VK_RAYTRACING_AVAILABLE
 
 #include "../../OS/Interfaces/ILog.h"
 
@@ -190,7 +190,6 @@ VkResult util_create_bottom_as(
 	Renderer* pRenderer = pRaytracing->pRenderer;
 
 	uint32_t numTriangles = 0; 
-	uint32_t scratchBufferSize = 0;
 	AccelerationStructureBottom blas = {};
 
 	blas.mDescCount = pDesc->mBottomASDesc->mDescCount;
@@ -355,7 +354,6 @@ VkResult util_create_top_as(
 	ASSERT(pOut);
 
 	Renderer* pRenderer = pRaytracing->pRenderer; 
-	uint64_t scratchBufferSize = *pScratchBufferSize;
 
 	VkTransformMatrixKHR transformMatrix = {
 		1.0f, 0.0f, 0.0f, 0.0f,
@@ -665,7 +663,6 @@ void vk_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShader
 	const uint32_t raygenCount = 1; 
 	const uint32_t missCount = pDesc->mMissShaderCount;
 	const uint32_t hitCount = pDesc->mHitGroupCount;
-	const uint32_t callableCount = 0; // No callable shaders yet
 	uint64_t       maxShaderTableSize = 0;
 
 	/************************************************************************/
@@ -781,7 +778,6 @@ void vk_addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShader
 		shaderHandleStorage);
 
 	pTable->mHitMissLocalData.resize(pDesc->mMissShaderCount + pDesc->mHitGroupCount + 1);
-	uint64_t index = 0;
 	util_fill_shader_identifiers(
 		&pDesc->pRayGenShader, 1, maxShaderTableSize, pTable->pPipeline, pRaygenMap, pRaytracing, pTable->mHitMissLocalData.data(), shaderHandleStorage);
 

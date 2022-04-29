@@ -1,9 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <float.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Fabian Giesen. Decoding Morton codes. 2009
@@ -92,7 +90,7 @@ static void computeHistogram(unsigned int (&hist)[1024][3], const unsigned int* 
 		sumz += hz;
 	}
 
-	assert(sumx == count && sumy == count && sumz == count);
+	ASSERT(sumx == count && sumy == count && sumz == count);
 }
 
 static void radixPass(unsigned int* destination, const unsigned int* source, const unsigned int* keys, size_t count, unsigned int (&hist)[1024][3], int pass)
@@ -113,8 +111,8 @@ void meshopt_spatialSortRemap(unsigned int* destination, const float* vertex_pos
 {
 	using namespace meshopt;
 
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -143,9 +141,9 @@ void meshopt_spatialSortTriangles(unsigned int* destination, const unsigned int*
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	(void)vertex_count;
 
@@ -159,7 +157,7 @@ void meshopt_spatialSortTriangles(unsigned int* destination, const unsigned int*
 	for (size_t i = 0; i < face_count; ++i)
 	{
 		unsigned int a = indices[i * 3 + 0], b = indices[i * 3 + 1], c = indices[i * 3 + 2];
-		assert(a < vertex_count && b < vertex_count && c < vertex_count);
+		ASSERT(a < vertex_count && b < vertex_count && c < vertex_count);
 
 		const float* va = vertex_positions + a * vertex_stride_float;
 		const float* vb = vertex_positions + b * vertex_stride_float;

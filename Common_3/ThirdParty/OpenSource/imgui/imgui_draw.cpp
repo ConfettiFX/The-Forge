@@ -109,42 +109,48 @@ namespace IMGUI_STB_NAMESPACE
 #pragma GCC diagnostic ignored "-Wcast-qual"                // warning: cast from type 'const xxxx *' to type 'xxxx *' casts away qualifiers
 #endif
 
-#ifndef STB_RECT_PACK_IMPLEMENTATION                        // in case the user already have an implementation in the _same_ compilation unit (e.g. unity builds)
-#ifndef IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
-#define STBRP_STATIC
-#define STBRP_ASSERT(x)     IM_ASSERT(x)
-#define STBRP_SORT          ImQsort
-#define STB_RECT_PACK_IMPLEMENTATION
-#endif
-#ifdef IMGUI_STB_RECT_PACK_FILENAME
-#include IMGUI_STB_RECT_PACK_FILENAME
-#else
+// Using a unified stbtt implementation for fontstash and imgui
+// All we need is the header for the function declarations since they're compiled in Core/stbtt.cpp
 #include "../Nothings/stb_rect_pack.h"
-#endif
-#endif
-
-#ifndef STB_TRUETYPE_IMPLEMENTATION                         // in case the user already have an implementation in the _same_ compilation unit (e.g. unity builds)
-#ifndef IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
-#define STBTT_malloc(x,u)   ((void)(u), ImGui::MemAlloc(x))
-#define STBTT_free(x,u)     ((void)(u), ImGui::MemFree(x))
-#define STBTT_assert(x)     IM_ASSERT(x)
-#define STBTT_fmod(x,y)     ImFmod(x,y)
-#define STBTT_sqrt(x)       ImSqrt(x)
-#define STBTT_pow(x,y)      ImPow(x,y)
-#define STBTT_fabs(x)       ImFabs(x)
-#define STBTT_ifloor(x)     ((int)ImFloorStd(x))
-#define STBTT_iceil(x)      ((int)ImCeil(x))
-#define STBTT_STATIC
-#define STB_TRUETYPE_IMPLEMENTATION
-#else
-#define STBTT_DEF extern
-#endif
-#ifdef IMGUI_STB_TRUETYPE_FILENAME
-#include IMGUI_STB_TRUETYPE_FILENAME
-#else
 #include "../Nothings/stb_truetype.h"
-#endif
-#endif
+
+//Previous implementation:
+//#ifndef STB_RECT_PACK_IMPLEMENTATION                        // in case the user already have an implementation in the _same_ compilation unit (e.g. unity builds)
+//#ifndef IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
+//#define STBRP_STATIC
+//#define STBRP_ASSERT(x)     IM_ASSERT(x)
+//#define STBRP_SORT          ImQsort
+//#define STB_RECT_PACK_IMPLEMENTATION
+//#endif
+//#ifdef IMGUI_STB_RECT_PACK_FILENAME
+//#include IMGUI_STB_RECT_PACK_FILENAME
+//#else
+//#include "../Nothings/stb_rect_pack.h"
+//#endif
+//#endif
+
+//#ifndef STB_TRUETYPE_IMPLEMENTATION                         // in case the user already have an implementation in the _same_ compilation unit (e.g. unity builds)
+//#ifndef IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
+//#define STBTT_malloc(x,u)   ((void)(u), ImGui::MemAlloc(x)) 
+//#define STBTT_free(x,u)     ((void)(u), ImGui::MemFree(x))
+//#define STBTT_assert(x)     IM_ASSERT(x)
+//#define STBTT_fmod(x,y)     ImFmod(x,y)
+//#define STBTT_sqrt(x)       ImSqrt(x)
+//#define STBTT_pow(x,y)      ImPow(x,y)
+//#define STBTT_fabs(x)       ImFabs(x)
+//#define STBTT_ifloor(x)     ((int)ImFloorStd(x))
+//#define STBTT_iceil(x)      ((int)ImCeil(x))
+//#define STBTT_STATIC
+//#define STB_TRUETYPE_IMPLEMENTATION
+//#else
+//#define STBTT_DEF extern
+//#endif
+//#ifdef IMGUI_STB_TRUETYPE_FILENAME
+//#include IMGUI_STB_TRUETYPE_FILENAME
+//#else
+//#include "../Nothings/stb_truetype.h"
+//#endif
+//#endif
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -371,7 +377,7 @@ void ImDrawList::ClearFreeMemory()
     _Path.clear();
     _ChannelsCurrent = 0;
     _ChannelsCount = 1;
-    for (int i = 0; i < _Channels.size(); i++)
+    for (uint i = 0; i < _Channels.size(); i++)
     {
         if (i == 0) memset(&_Channels[0], 0, sizeof(_Channels[0]));  // channel 0 is a copy of CmdBuffer/IdxBuffer, don't destruct again
         _Channels[i].CmdBuffer.clear();
@@ -1245,7 +1251,7 @@ void ImDrawData::DeIndexAllBuffers()
         if (cmd_list->IdxBuffer.empty())
             continue;
         new_vtx_buffer.resize(cmd_list->IdxBuffer.size());
-        for (int j = 0; j < cmd_list->IdxBuffer.size(); j++)
+        for (uint j = 0; j < cmd_list->IdxBuffer.size(); j++)
             new_vtx_buffer[j] = cmd_list->VtxBuffer[cmd_list->IdxBuffer[j]];
         cmd_list->VtxBuffer.swap(new_vtx_buffer);
         cmd_list->IdxBuffer.resize(0);
@@ -1259,7 +1265,7 @@ void ImDrawData::ScaleClipRects(const float2& scale)
     for (int i = 0; i < CmdListsCount; i++)
     {
         ImDrawList* cmd_list = CmdLists[i];
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.size(); cmd_i++)
+        for (uint cmd_i = 0; cmd_i < cmd_list->CmdBuffer.size(); cmd_i++)
         {
             ImDrawCmd* cmd = &cmd_list->CmdBuffer[cmd_i];
             cmd->ClipRect = float4(cmd->ClipRect.x * scale.x, cmd->ClipRect.y * scale.y, cmd->ClipRect.z * scale.x, cmd->ClipRect.w * scale.y);
@@ -1419,7 +1425,7 @@ ImFontAtlas::~ImFontAtlas()
 void    ImFontAtlas::ClearInputData()
 {
     IM_ASSERT(!Locked && "Cannot modify a locked ImFontAtlas between NewFrame() and EndFrame/Render()!");
-    for (int i = 0; i < ConfigData.size(); i++)
+    for (uint i = 0; i < ConfigData.size(); i++)
         if (ConfigData[i].FontData && ConfigData[i].FontDataOwnedByAtlas)
         {
             ImGui::MemFree(ConfigData[i].FontData);
@@ -1427,7 +1433,7 @@ void    ImFontAtlas::ClearInputData()
         }
 
     // When clearing this we lose access to the font name and other information used to build the font.
-    for (int i = 0; i < Fonts.size(); i++)
+    for (uint i = 0; i < Fonts.size(); i++)
         if (Fonts[i]->ConfigData >= ConfigData.data() && Fonts[i]->ConfigData < ConfigData.data() + ConfigData.size())
         {
             Fonts[i]->ConfigData = NULL;
@@ -1453,7 +1459,7 @@ void    ImFontAtlas::ClearTexData()
 void    ImFontAtlas::ClearFonts()
 {
     IM_ASSERT(!Locked && "Cannot modify a locked ImFontAtlas between NewFrame() and EndFrame/Render()!");
-    for (int i = 0; i < Fonts.size(); i++)
+    for (uint i = 0; i < Fonts.size(); i++)
         IM_DELETE(Fonts[i]);
     Fonts.clear();
 }
@@ -1735,7 +1741,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     // Count glyphs/ranges
     int total_glyphs_count = 0;
     int total_ranges_count = 0;
-    for (int input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
+    for (uint input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
     {
         ImFontConfig& cfg = atlas->ConfigData[input_i];
         if (!cfg.GlyphRanges)
@@ -1769,7 +1775,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
         int                 RangesCount;
     };
     ImFontTempBuildData* tmp_array = (ImFontTempBuildData*)ImGui::MemAlloc((size_t)atlas->ConfigData.size() * sizeof(ImFontTempBuildData));
-    for (int input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
+    for (uint input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
     {
         ImFontConfig& cfg = atlas->ConfigData[input_i];
         ImFontTempBuildData& tmp = tmp_array[input_i];
@@ -1795,7 +1801,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     memset(buf_ranges, 0, total_ranges_count * sizeof(stbtt_pack_range));
 
     // First font pass: pack all glyphs (no rendering at this point, we are working with rectangles in an infinitely tall texture at this point)
-    for (int input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
+    for (uint input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
     {
         ImFontConfig& cfg = atlas->ConfigData[input_i];
         ImFontTempBuildData& tmp = tmp_array[input_i];
@@ -1861,7 +1867,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     spc.height = atlas->TexHeight;
 
     // Second pass: render font characters
-    for (int input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
+    for (uint input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
     {
         ImFontConfig& cfg = atlas->ConfigData[input_i];
         ImFontTempBuildData& tmp = tmp_array[input_i];
@@ -1884,7 +1890,7 @@ bool    ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     buf_rects = NULL;
 
     // Third pass: setup ImFont and glyphs for runtime
-    for (int input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
+    for (uint input_i = 0; input_i < atlas->ConfigData.size(); input_i++)
     {
         ImFontConfig& cfg = atlas->ConfigData[input_i];
         ImFontTempBuildData& tmp = tmp_array[input_i];
@@ -1973,13 +1979,13 @@ void ImFontAtlasBuildPackCustomRects(ImFontAtlas* atlas, void* pack_context_opaq
     eastl::vector<stbrp_rect> pack_rects;
     pack_rects.resize(user_rects.size());
     memset(pack_rects.data(), 0, sizeof(stbrp_rect) * user_rects.size());
-    for (int i = 0; i < user_rects.size(); i++)
+    for (uint i = 0; i < user_rects.size(); i++)
     {
         pack_rects[i].w = user_rects[i].Width;
         pack_rects[i].h = user_rects[i].Height;
     }
     stbrp_pack_rects(pack_context, &pack_rects[0], (int)pack_rects.size());
-    for (int i = 0; i < pack_rects.size(); i++)
+    for (uint i = 0; i < pack_rects.size(); i++)
         if (pack_rects[i].was_packed)
         {
             user_rects[i].X = pack_rects[i].x;
@@ -2026,7 +2032,7 @@ void ImFontAtlasBuildFinish(ImFontAtlas* atlas)
     ImFontAtlasBuildRenderDefaultTexData(atlas);
 
     // Register custom rectangle glyphs
-    for (int i = 0; i < atlas->CustomRects.size(); i++)
+    for (uint i = 0; i < atlas->CustomRects.size(); i++)
     {
         const ImFontAtlas::CustomRect& r = atlas->CustomRects[i];
         if (r.Font == NULL || r.ID > 0x10000)
@@ -2039,7 +2045,7 @@ void ImFontAtlasBuildFinish(ImFontAtlas* atlas)
     }
 
     // Build all fonts lookup tables
-    for (int i = 0; i < atlas->Fonts.size(); i++)
+    for (uint i = 0; i < atlas->Fonts.size(); i++)
         if (atlas->Fonts[i]->DirtyLookupTables)
             atlas->Fonts[i]->BuildLookupTable();
 }
@@ -2322,7 +2328,7 @@ void    ImFont::ClearOutputData()
 void ImFont::BuildLookupTable()
 {
     int max_codepoint = 0;
-    for (int i = 0; i != Glyphs.size(); i++)
+    for (uint i = 0; i != Glyphs.size(); i++)
         max_codepoint = ImMax(max_codepoint, (int)Glyphs[i].Codepoint);
 
     IM_ASSERT(Glyphs.size() < 0xFFFF); // -1 is reserved
@@ -2330,7 +2336,7 @@ void ImFont::BuildLookupTable()
     IndexLookup.clear();
     DirtyLookupTables = false;
     GrowIndex(max_codepoint + 1);
-    for (int i = 0; i < Glyphs.size(); i++)
+    for (uint i = 0; i < Glyphs.size(); i++)
     {
         int codepoint = (int)Glyphs[i].Codepoint;
         IndexAdvanceX[codepoint] = Glyphs[i].AdvanceX;
@@ -2367,7 +2373,7 @@ void ImFont::SetFallbackChar(ImWchar c)
 void ImFont::GrowIndex(int new_size)
 {
     IM_ASSERT(IndexAdvanceX.size() == IndexLookup.size());
-    if (new_size <= IndexLookup.size())
+    if ((uint)new_size <= IndexLookup.size())
         return;
     IndexAdvanceX.resize(new_size, -1.0f);
     IndexLookup.resize(new_size, (unsigned short)-1);
@@ -2487,7 +2493,7 @@ const char* ImFont::CalcWordWrapPositionA(float scale, const char* text, const c
             }
         }
 
-        const float char_width = ((int)c < IndexAdvanceX.size() ? IndexAdvanceX[(int)c] : FallbackAdvanceX);
+        const float char_width = (c < IndexAdvanceX.size() ? IndexAdvanceX[c] : FallbackAdvanceX);
         if (ImCharIsBlankW(c))
         {
             if (inside_word)
@@ -2604,7 +2610,7 @@ float2 ImFont::CalcTextSizeA(float size, float max_width, float wrap_width, cons
                 continue;
         }
 
-        const float char_width = ((int)c < IndexAdvanceX.size() ? IndexAdvanceX[(int)c] : FallbackAdvanceX) * scale;
+        const float char_width = (c < IndexAdvanceX.size() ? IndexAdvanceX[c] : FallbackAdvanceX) * scale;
         if (line_width + char_width >= max_width)
         {
             s = prev_s;

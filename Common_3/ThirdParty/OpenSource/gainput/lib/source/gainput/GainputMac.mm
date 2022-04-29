@@ -39,7 +39,7 @@ namespace gainput
 
 - (id)initWithFrame:(NSRect)frame window:(NSWindow *)window retinaScale:(float)retinaScale inputManager:(gainput::InputManager &)inputManager
 {
-	self = [super initWithFrame:window.contentView.frame];
+	self = [super initWithFrame:frame];
 	if(self)
 	{
 		parentWindow = window;
@@ -47,7 +47,7 @@ namespace gainput
 		pTrackingArea = nil;
 		inputManager_ = &inputManager;
 		mRetinaScale = retinaScale;
-		[self bounds] = parentView.bounds;
+		[self bounds] = frame;
 		[self updateTrackingAreas];
 	}
 	
@@ -70,7 +70,9 @@ namespace gainput
 	}
 
 	NSView * forgeView = (__bridge NSView*)parentView;
-	NSRect bounds = [forgeView bounds];
+	//use contentLayoutRect instead of bounds to restrict only
+	//to content excluding titlebar
+	NSRect bounds = [forgeView.window contentLayoutRect];
 	NSTrackingAreaOptions options =
 	(NSTrackingActiveAlways | NSTrackingInVisibleRect | NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved);
 	pTrackingArea = [[NSTrackingArea alloc] initWithRect: bounds
@@ -191,6 +193,9 @@ namespace gainput
 	
 	NSView * forgeView = (__bridge NSView*)parentView;
 	mRetinaScale = ((CAMetalLayer*)(forgeView.layer)).drawableSize.width / forgeView.frame.size.width;
+	// check also for delta being 0 in case of using remote desktop. For some reason
+	// if connected via remote, we always receive absolute positions
+	// this fixes mouse capture when through remote desk
 	if(!isMouseCaptured)
 	{
 		// Translate the cursor position into view coordinates, accounting for the fact that
@@ -204,7 +209,7 @@ namespace gainput
 	}
 	else
 	{
-		// Move the static mouse location with deltas.
+		// Move the static mouse location 	 deltas.
 		//if mouse is captured that means we disassociated mouse position and cursor
 		//which makes locationInWindow return the cursor position instead of actual mouse.
 		capturedMouseLocation.x += [nsEvent deltaX];

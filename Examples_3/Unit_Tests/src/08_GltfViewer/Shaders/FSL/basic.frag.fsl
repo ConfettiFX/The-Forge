@@ -125,7 +125,7 @@ float3 reconstructNormal(in(float4) sampleNormal)
 	return normalize(tangentNormal);
 }
 
-float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
+float3 getNormalFromMap(float3 normal, float3 viewDirection, float2 uv)
 {
 	uint textureIndex = Get(materialData).mNormalTextureProperties.mTextureSamplerIndex & 0xFFFF;
 	if (textureIndex == 0xFFFF) 
@@ -135,24 +135,21 @@ float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
 
 	float3 tangentNormal = reconstructNormal(SampleTex2D(Get(normalMap), Get(normalMapSampler), uv));
 
-	float3 Q1 = ddx(pos);
-	float3 Q2 = ddy(pos);
-	float2 st1 = ddx(uv);
-	float2 st2 = ddy(uv);
+	float3 dPdx = ddx(viewDirection);
+	float3 dPdy = ddy(viewDirection);
+	float2 dUVdx = ddx(uv);
+	float2 dUVdy = ddy(uv);
 
 	float3 N = normalize(normal);
-	float3 T = Q1*st2.g - Q2 * st1.g;
-	T = normalize(T);
+	float3 crossPdyN = cross(dPdy, N);
+	float3 crossNPdx = cross(N, dPdx); 
 
-	if(isnan(T.x) ||isnan(T.y) || isnan(T.z))
-	{
-		float3 UpVec = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
-		T = normalize(cross(N, UpVec));
-	}
+	float3 T = crossPdyN * dUVdx.x + crossNPdx * dUVdy.x;
+	float3 B = crossPdyN * dUVdx.y + crossNPdx * dUVdy.y;
 
-	float3 B = normalize(cross(T, N));
-	float3x3 TBN = make_f3x3_rows(T, B, N);
+	float invScale = rsqrt(max(dot(T, T), dot(B, B)));
 
+	float3x3 TBN = make_f3x3_rows(T * invScale, B * invScale, N);
 	return normalize(mul(tangentNormal, TBN));
 }
 
@@ -281,6 +278,8 @@ PSOut PS_MAIN( PsIn In )
 	INIT_MAIN;
 	PSOut Out;
 
+	float3 V = normalize(Get(camPos).xyz - In.pos);
+
 	// TODO: multiply factors (e.g. mBaseColorFactor) by vertex colours.
 	float4 baseColor = sampleTexture(Get(materialData).mBaseColorProperties, 
 							Get(baseColorMap), Get(baseColorSampler), 
@@ -304,7 +303,7 @@ PSOut PS_MAIN( PsIn In )
 	emissive *= Get(materialData).mEmissiveTextureProperties.mValueScale;
 	emissive.gb *= Get(materialData).mEmissiveGBScale;
 
-	float3 normal = getNormalFromMap(In.normal, In.pos, In.texCoord);
+	float3 normal = getNormalFromMap(In.normal, -V, In.texCoord);
 
 	// Apply alpha mask
 #if TARGET_ANDROID
@@ -322,8 +321,7 @@ PSOut PS_MAIN( PsIn In )
 	roughness = clamp(0.02f, 1.0f, roughness);
 
 	// Compute Direction light
-	float3 N = normal;	
-	float3 V = normalize(Get(camPos).xyz - In.pos);
+	float3 N = normal;
 	float NoV = max(dot(N,V), 0.0);	
 
 	float3 result = ComputeIBL(baseColor.rgb, metalness.r, roughness, NoV, N, V);
