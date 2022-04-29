@@ -16,6 +16,7 @@ The Forge is a cross-platform rendering framework supporting
 - PS4 / PS4 Pro *
 - PS5 *
 - Switch using Vulkan 1.1 *
+
 *(only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
@@ -34,7 +35,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
-- Fast Entity Component System based on our internally developed ECS
+- Fast Entity Component System based on [flecs](https://github.com/SanderMertens/flecs) 
 - Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
 - Shader Translator using a superset of HLSL as the shader language, called The Forge Shading Language. There is a Wiki page on [The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
@@ -54,9 +55,210 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 # Build Status 
 
 * Windows [![Build status](https://ci.appveyor.com/api/projects/status/leqbpaqtqj549yhh/branch/master?svg=true)](https://ci.appveyor.com/project/wolfgangfengel/the-forge/branch/master)
-* macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
+* macOS [![Build Status](https://app.travis-ci.com/ConfettiFX/The-Forge.svg?branch=master)](https://app.travis-ci.com/ConfettiFX/The-Forge)
 
 # News
+
+
+## Release 1.51 - December 21st, 2021 - ECS uses flecs | Better Borderless Window | Descriptor Management improvements | sRGB | Android Game Development Extensions | FSL Improvements | Ray Tracing | Meshoptimizer | Buildbox | Lethis
+<br>
+<br>  
+  
+    Happy Holidays! 🎄🎅🔥🎁🧨
+
+We wish you and your loved ones all the best for the Holidays and a Happy New Year 2022! <br>
+<br>
+<br>
+
+
+This update is again a mixture of things we learned while integrating The Forge and feedback and contributions from our users. Thanks for all the support!
+
+In one of the next updates we will remove EASTL and offer dedicated containers compatible with C99. Over time EASTL was a huge productivity burner. The inefficient memory access patterns hugged too much CPU time in games where we integrated TF and we always had to go back and fix those later manually.
+We know this is a breaking change but considering that STL was a good idea on CPUs 20+ years ago, we would like to align more with what modern CPUs are expecting. 
+
+- We keep moving towards C99 usage. We replaced the old ECS code with Flecs:
+
+[![flecs](https://user-images.githubusercontent.com/9919222/104115165-0a4e4700-52c1-11eb-85d6-9bdfa9a0265f.png)](https://github.com/SanderMertens/flecs)
+
+Now our build times are much better and the overall system runs faster:
+
+```
+CPU: Intel i7-7700k
+GPU: AMD Radeon RX570
+
+Old ECS
+Debug
+Single Threaded: 90.0ms 
+Multi Threaded 29.0ms
+
+Release:
+Single Threaded: 5.7ms
+Multi Threaded: 2.3ms
+
+
+flecs
+Debug
+Single Threaded: 23.0ms   
+Multi Threaded 6.8ms
+
+Release
+Single Threaded 1.7ms
+Multi Threaded 0.9ms
+```
+
+- Descriptor Management improvements - we changed the rendering interface for all platforms - cmdBindPushConstants now takes an index instead of a name, we also allow partial updates of array descriptors
+
+- Borderless window - there are improvements to borderless windows support
+  * remove borderless window "top white bar" on Windows OS
+  * add "Win Key + arrow" behavior (for standard maximize/minimize/split of the borderless window using keyboard)
+  * top resize area necessarily overlaps rendering (this is how we can remove the top white bar)
+
+- FSL improvements
+  * incremental shader generation and build with header dependencies
+  * improved error reported by extending line directives, errors now show up at the correct line in source fsl file
+  * extended matrix column/row access functions for all targets
+  * vec type padding to match our math lib datatypes
+
+* sRGB - all examples should be now more correct when it comes to linear lighting and sRGB
+
+* Android Game Extension usage: in one of our AAA game engine projects, we are now using successfully for the first time Android Game Extensions. So we also brought it to The Forge. 
+  
+  [Android Game Extension](https://developer.android.com/games/agde)
+  
+  We redid a lot of the Android development setup to streamline the experience a bit. We still use Visual Studio 2017 because it allows to be more productive compared to other IDEs. Two years ago we went back and forth between IDEs but concluded that the only IDE that we could efficiently integrate into our Jenkins testing setup was Visual Studio. 
+  Please check out the new Readme below and let us know if we missed anything.
+
+- Vulkan: moved to KHR ray tracing extensions. Upgraded max spec to Vulkan SDK 1.2.162 and tested ray tracing support on an AMD RX 6700 XT GPU
+
+- [meshoptimizer](https://github.com/zeux/meshoptimizer) - somehow the  integration of meshoptimizer "got lost" over time and we just re-integrated it into the resource loader. Here are some numbers that we got
+
+meshoptimizer on various art assets
+![meshoptimizer improvements](Screenshots/meshoptimizer.PNG)
+
+
+- Buildbox 
+
+The game engine BuildBox is now using The Forge (click on Image to go to Buildbox website): 
+
+[![BuildBox](Screenshots/BuildBox.PNG)](https://signup.buildbox.com/product/bb3)
+
+- Lethis 
+
+The game Lethis Path of Progress uses The Forge now (click on image to go to the Steam Store)
+
+[![Lethis](Screenshots/Lethis.PNG)](https://store.steampowered.com/app/359230/Lethis__Path_of_Progress/)
+
+
+
+## Release 1.50 - October 13, 2021 - M²H uses The Forge  | Unlinked Multi GPU Support | Central Config.h | glTF Viewer improvements | Scalar High Precision Math 
+* M²H uses The Forge for Stroke Therapy - [M²H](https://msquarehealthcare.com/) is a medical technology company. They developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
+The Forge provides the rendering layer for their application.
+Here is a YouTube video on what they do:
+
+[![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
+
+
+* Unlinked multiple GPU Support: for professional visualization applications, we now support unlinked multiple GPU. 
+A new renderer API is added to enumerate available GPUs.
+Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list.
+Multiple Renderers can be created this way.
+The resource loader interface has been extended to support multiple Renderers.
+It is initialized with the list of all Renderers created.
+To select which Renderer (GPU) resources are loaded on, the NodeIndex used in linked GPU configurations is reused for the same purpose.
+Resources cannot be shared on multiple Renderers however, resources must be duplicated explicitly if needed.
+To retrieve generated content from one GPU to another (e.g. for presentation), a new resource loader operation is provided to schedule a transfer from a texture to a buffer. The target buffer should be mappable.
+This operation requires proper synchronization with the rendering work; a semaphore can be provided to the copy operation for that purpose.
+Available with Vulkan and D3D12.
+For other APIs, the enumeration API will not create a RendererContext which indicates lack of unlinked multi GPU support.
+
+* Config.h: We now have a central config.h file that can be used to configure TF.
+  * Created config files:
+```
+Common_3/OS/Core/Config.h
+Common_3/Renderer/RendererConfig.h
+Common_3/Renderer/{RenderingAPI}/{RenderingAPI}Config.h
+```
+        * Modified PyBuild.py
+            * Proper handling of config options.
+            * Every config option has --{option-name}/--no-{option-name} flag that uses define/undef directives to enable/disable macros. 
+            * Macros are guarded with ifndef/ifdef.
+            * Updated Android platform handling
+          * Deleted Common_3/Renderer/Compiler.h. It's functionality was moved into Config.h
+          * Moved all macro options to config files
+          * Renamed USE_{OPTON_NAME} to ENABLE_{OPTION_NAME}
+          * Changed some macros to be defined/not defined instead of having values of 0 or 1.
+          * Deleted all DISABLE_{OPTION_NAME} macros
+          * When detecting raytracing replaced ENABLE_RAYTRACING with RAYTRACING_AVAILABLE. This was done, because not all projects need raytracing even if it is available. RendererConfig.h defines ENABLE_RAYTRACING macro if it is available. So, it can be commented out in singular place instead of searching for it for every platform
+          * Removed most of the macro definitions from build systems. Some of the remaining macros are:
+            * Target platform macros: NX64, QUEST_VR
+            * Arm neon macro ANDROID_ARM_NEON.
+            * Windows suppression macros(like _CRT_SECURE_NO_WARNINGS)
+            * Macros specific to gainputstatic
+* glTF viewer improvements: 
+  * sRGB fixes
+  * IBL support now with prefiltered CCO/public domain cube maps
+  * TAA support on more platforms and fixes
+  * Vignette support
+
+
+glTF Viewer running on Android Galaxy Note 9
+![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
+
+glTF Viewer running on iPhone 7
+![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
+
+glTF Viewer running on Linux with NVIDIA RTX 2060
+![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
+
+glTF Viewer running on Mac Mini M1
+![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
+
+glTF Viewer running on PS5
+![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
+
+glTF Viewer running on Switch
+![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
+
+glTF Viewer running on XBOX One Original 
+![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
+
+
+* Specialization/Function constants support on Vulkan and Metal only - these constants get baked into the micro-code during pipeline creation time so the performance is identical to using a macro without any of the downsides of macros (too many shader variations increasing the size of the build).
+
+Good read on Specialization constants. Same things apply to function constants on Metal
+
+https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/specialization_constants/specialization_constants_tutorial.html
+
+Declared at global scope using SHADER_CONSTANT macro. Used as any regular variable after declaration
+
+Macro arguments:
+```
+#define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE)
+```
+Example usage:
+```
+SHADER_CONSTANT(0, uint, gRenderMode, 0);
+// Vulkan - layout (constant_id = 0) const uint gRenderMode = 0;
+// Metal  - constant uint gRenderMode [[function_constant(0)]];
+// Others - const uint gRenderMode = 0;
+
+void main()
+{
+    // Can be used like regular variables in shader code
+    if (gRenderMode == 1)
+    {
+        // 
+    }
+}
+```
+
+* Resolved GitHub Issues
+  * #206 - Executing Unit Tests on Mac OS 10.14 gives a Bad Access error
+  * #209 - way to read texture back from GPU to CPU - this functionality is now in the resource loader
+  * #210 - memory allocation challenge - not an issue
+  * #212 - Question: updating partial uniform data on OpenGLES backend - not possible with OpenGL ES 2.0 run-time
+  * #219 - Question : way to support Vulkan SpecializationInfo? - support is now in the code base see above
+
 
 ## Release 1.49 - September 09, 2021 - Quest 2 Support | Apple M1 support 
 <ul>
@@ -131,211 +333,8 @@ Our on-going effort to make TF easier to use is to rewrite parts in C99, so that
 </ul>
 
 
-## Release 1.48 - May 20th, 2021 - Aura | New FSL Shader Language Translator | Run-time API Switching | Variable Rate Shading | MSAA | OpenGL ES 2 Update | PVS Studio
-This is our biggest update since we started this repository more than three years ago. This update is one of those "what we have learned from the last couple of projects that are using TF" updates and a few more things.
 
-- Aura - Dynamic Global Illumination - we developed this system in the 2010 / 2011 time frame. It is hard to believe it is 10 years ago now :-) ... it shipped in Agents of Mayhem at some point and was implemented and used in other games. We are just putting the "base" version without any game specific modifications in our commercial Middleware repository on GitHub. The games that used this system made specific modifications to the code base to align with their art asset and art style.
- In today's standards this system still fulfills the requirement of a stable rasterizer based Global Illumination system. It runs efficiently on the original XBOX One, that was the original target platform, but might require art asset modifications in a game level. 
- It works with an unlimited number of light sources with minimal memory footprint. You can also cache the reflective shadow maps for directional, point and spotlights the same way you currently cache shadow maps. At some point we did a demo running on a second generation integrated Intel GPU with 256 lights that emitted direct and indirect light and had shadow maps in 2011 at GDC? :-)
- It is best to integrate that system in a custom game engine that can cache shadow maps in an intelligent way. 
 
-Aura - Windows DirectX 12 Geforce 980TI 1080p Driver 466.47
-
-![Aura on Windows DX12](Screenshots/Aura/W10-D3D12-GTX980Ti-Driver_466.47.png)
-
-
-Aura - Windows Vulkan Geforce 980TI 1080p Driver 466.47
-
-![Aura on Windows Vulkan](Screenshots/Aura/W10-Vulkan-GTX980Ti-Driver_466.47.png)
-
-Aura - Ubuntu Vulkan Geforce RTX 2080 1080p
-
-![Aura on Ubuntu Vulkan](Screenshots/Aura/ubuntu-Vulkan-RTX2080-Driver_.png)
-
-Aura - PS4
-
-![Aura on Ubuntu Vulkan](Screenshots/Aura/PS4.png)
-
-Aura - XBOX One original
-
-![Aura on Ubuntu Vulkan](Screenshots/Aura/XboxOne.png)
-
-
-
-- Forge Shader Language (FSL) translator - after struggeling with writing a shader translator now for 1 1/2 years, we restarted from scratch. This time we developed everything in Python, because it is cross-platform. We also picked a really "low-tech keep it simple" approach. The idea is that a small game team can actually maintain the code base and write shaders efficiently. We wanted a shader translator that translates a FSL shader to the native shader language of each of the platforms. This way whatever shader compiler is used on that platform can take over the actual job of compiling the native code.
-The reason why we are doing this lies mostly in the unreliability of DXC and SPIR-V in general and also their lack of reliability if it comes to cross-platform translation. 
-
-  There is a Wiki entry that holds a FSL language primer and general information how this works here:
-
-[The Forge Shading Language](https://github.com/ConfettiFX/The-Forge/wiki/The-Forge-Shading-Language-(FSL))
-
-- Run-Time API Switching - we had some sort of run-time API switching in an early version of The Forge. At the time we were not expecting this to be very useful because most game teams do not switch APIs on the fly. In the meantime we found a usage case on Android, where we have to reach a large number of devices. So we came up with a better solution that is more consistent with the overall architecture and works on at least PC and Android platforms. 
-On Windows PC one can switch between DX12, Vulkan and DX11 if all are supported. On Android one can switch between Vulkan and OpenGL ES 2.0. The later allows us to target a much larger group of devices for business application frameworks. We could extend this architecture to other platforms like consoles easily.
-This new API switching required us to change the rendering interfaces. So it is a breaking change to existing implementations but we think it is not much effort to upgrade and the resulting code is easier to read and maintain and overall improves the code base by being more consistent.
-
-- Device Reset - This was implemented together with API switching. Windows forces game developers to respond to a crashing device driver by resetting the device. We implemented the functionality already in the last update here on GitHub. This update integrates it better into the OS base layer. 
-We also verified that the life cycle management for Windows in each application based on the IApp interface works now for device change, device reset and for API switching so that we can cover all cases of losing and recovering the device.
-
-  The functions for API switching and device reload and reset are:
-```
-void onRequestReload();
-void onDeviceLost();
-void onAPISwitch();
-```
-- Variable Rate Shading (VRS) - we implemented VRS in a new unit test 35_VariableRateShading. It is only supported by DirectX 12 on Windows and XBOX Series S / X.
-In this demo, we demonstrate two main ways of setting the shading rate:
-
-  - Per-tile Shading Rate:
-Generating a shading rate lookup texture on-the-fly. Used for drawing the color palette which makes up the background. The rate decreases the further the pixels are located from the center. We can see artifacts becoming visible at aggressive rates, such as 4X4. There is also a slider in the UI to modify the center of the circle.
-
-![Per-tile Shading Rate](Screenshots/35_VRS_1.png)
-
-  - Per-draw Shading Rate:
-The cubes are drawn by a different shading rate. They are following the Per-draw rate, which can be changed via the dropdown menu in the UI.
-By using a combiner that overrides the screen rates, we ensure that cubes are drawn by an independent rate.
-
-![Per-draw Shading Rate](Screenshots/35_VRS_2.png)
-The cubes are using per-draw shading rate while the background is using per-tile shading rate.
-
-  - Notes:
-    - There is a debug view showing the shading rates and the tiles' size.
-    - Per-tile method may not be available on certain GPUs even if they support the Per-draw method.
-    - The tile size is enforced by the GPU and is readable, as shown in the example.
-    - The shading rates available can vary based on the active GPU.
-
-
-
-- Multi-Sample Anti-Aliasing (MSAA) - we added a dynamic way of picking MSAA to unit test 9 and the Visibility Buffer example on all platforms.
-
-PC
-![MSAA](Screenshots/MSAA.png)
-
-PS4
-![MSAA](Screenshots/MSAA_PS4.png)
-
-PS5
-![MSAA](Screenshots/MSAA_PS5.png)
-
-* Android & OpenGL ES 2 - the OpenGL ES 2 layer for Android is now more stable and tested and closer to production code. As mentioned above on an Android phone one can switch between Vulkan and OpenGL ES 2 dyanmically if both are supported.
-Now Android & OpenGL ES 2 support additionally unit test 17 - Entity Component System Test.
-In general we are testing many Android phones at the moment on the low and high end of the spectrum following the two Android projects we are currently working on, which are on both ends of the spectrum.
-
-* PVS Studio - we did another manual pass on the code base with PVS Studio -a static code analyzer- to increase code quality.
-
-
-
-
-## Release 1.47 - December 18th, 2020 - OpenGL ES 2.0 Android support | Device Reset Support | DRED / Breadcrumb support | Lua driven functional tests | DX11 refactor | YUV support through Vulkan
-As the year winds slowly down, we finally found time to do another release. First of all, Happy Holidays and a happy new Year! 
-
-![Happy Holidays and a happy new Year!](Screenshots/Holidycard-2020-front.png)
-
-Most of us will take off over the Holiday season and spent time with their families. We should be back online in the middle of January 2021.
-* OpenGL ES 2.0: TF will run on probably several hundred million of mobile devices in the future. It will be the rendering layer of business application frameworks. For this usage case, we added OpenGL ES 2.0 support only for Android. The OpenGL ES 2.0 layer only supports unit tests 1, 5, 12 and 31 at the moment. 
-* Device change / reset: we finally implemented all the code that can deal with device changes, device resets or device removed scenarios on all platforms. The underlying design was always there but it took us 3+ years to finally add the functionality :-)
-When you go into any of the ```*OSBase.*``` files you can find a snippet of code that looks like this:
-
-```
-if (pApp->mSettings.mResetGraphics) 
-	{
-		pApp->Unload();
-		pApp->Load();
-		pApp->mSettings.mResetGraphics = false;
-	}
-  ```
-* DRED / Breadcrumb support: to be able to better tell what the reason behind a removed device is, we implemented DRED support on PC with DirectX 12 and XBOX. We integrated this into the first functional test 01_Transformations. Here is a screenshot. Look for the "Simulate crash" button:
-
-![Image of the Transformations Unit test](Screenshots/01_Transformations.PNG)
-
-Breadcrumb are user defined markers used to pinpoint which command has caused GPU to stall.
-In the Breadcrumb unit test, two markers get injected into the command list. 
-Pressing the crash button would result in a GPU hang. 
-In this situation, the first marker would be written before the draw command, but the second one would stall for the draw command to finish.
-Due to the infinite loop in the shader, the second marker won't be written, and we can reason that the draw command has caused the GPU to hang.
-We log the markers' information to verify this.
-Check out this link for more info: [D3D12 Device Removed Extended Data (DRED)](https://microsoft.github.io/DirectX-Specs/d3d/DeviceRemovedExtendedData.html)
-
-* More Lua Scripting support for all functional tests:
-  * For the scripted testing of the Unit Tests, this layer provides automated function registration of the UI elements to Lua State.
-  * Any UI elements added to the GUI will add a function or a pair of function(Getter/Setter) to the Lua state for using them in any script.
-Lua function name resolution will work like this:
-  * UI Widget "label" name will be included in the function name as follows,
-	- For Widget events: label name + "Event Name". e.g., Lua Function name for label - "Press", and event - OnEdited : "PressOnEdited"
-	- For Widget modifiers such as ints / floats: "Set" and "Get" function pair will be added as a prefix to label name e.g., "X" variable will have "SetX" and "GetX" pair of functions.
- * After writing the scripts, you can let the layer know about the scripts using AddTestScripts() function call and run them on any frame by RunTestScript() defined in UIApp class. There are examples of these test scripts in most of the UTs showing how you can also add these scripts to UI and test them on runtime.
-
- Here is how the current Lua support in the functional tests might look like:
-
-![Lua support](Screenshots/Lua_Support.png)
-
-* DX11 refactor: we re-wrote the DX11 run-time a few times. We ended up with the most straighforward version. This version only recently shipped in Hades along with the Vulkan run-time on PC. 
-
-* YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
-
-![YUV unit test](Screenshots/34_YUV.png)
-
-* Audio: we removed the audio functional test. It was the only test that was released unfinished and didn't run on all our platforms. Our customers show  love for FMOD ... would make more sense to show an integration of that.
-
-* GitHub issues fixed: 
-  * #188 - typo - lowercase L in first DepthStencilClearFlags constant "ClEAR_DEPTH"
-  * #186 - Ubuntu: Examples fail to build
-  * #182 - Flickering on master when vsync is off
-  * #176 - [08_GlftViewer] Application crash on missing resource
-
-Numerous other fixes ...
-
-
-
-
-## Release 1.46 - October 1st, 2020 - Supergiant's Hades | Windows Management | AMD FX Stochastic SS Reflection
-* [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
-
-Here is a screenshot of Hades running on Switch:
-
-![Supergiant Hades](Screenshots/Supergiant_Hades.jpg)
-
-Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
-Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
-
-* Windows management: there is a new functional test named 32_Window that demonstrates windows management on Windows, Linux and macOS. 
-  * The window layout, position, and size are now driven by the client dimensions, meaning that
-the values that the client demands are the exact values the client area will be represented with, regardless of the window style. This allows for much greater flexibility
-and consistency, especially when working with a fullscreen window. 
-  * Multi-monitor support has also been improved significantly, offering smooth consistent transitions between client displays and guaranteeing correct window behavior and data retention. Media layer functionality has been expanded, allowing the client to control mouse positioning, mouse visibility, and mouse visual representation. 
-  * It is now possible to create independent mouse cursors to further customize the application.
-
-Here are the screenshots:
-
-Windows:
-![Windows Management for Windows](Screenshots/32_Window_Win.png)
-
-macOS:
-![Windows Management for macOS](Screenshots/32_Window_macOS.png)
-
-Linux:
-![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
-
-* Screen-Space reflections: we renamed the functional test "10_PixelProjectedReflections" to 10_ScreenSpaceReflections. You have now two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
-
-Here are the screenshots:
-
-Windows final scene:
-![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/SSSR_Scene_with_reflections.png)
-
-Without denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_only_defore_denoise.png)
-
-With denoising:
-![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_with_denoise.png)
-
-PS4:
-![AMD FX Stochastic Screen Space Reflections on PS4](Screenshots/SSSR/SSSR_on_PS4.png)
-
-macOS:
-![AMD FX Stochastic Screen Space Reflections on macOS](Screenshots/SSSR/SSSR_on_macOS.png)
-
-* Resolved GitHub issues:
-  * Issue #183 - VERTEX_ATTRIB_RATE_INSTANCE ignored on macOS 10.12, iOS 10.0
 
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
@@ -360,7 +359,7 @@ See the release notes from previous releases in the [Release section](https://gi
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 
-4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec  [1.1.114](https://vulkan.lunarg.com/sdk/home)
+4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec  [1.2.162](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
@@ -369,18 +368,15 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS min spec. 10.13.6
+1. macOS min spec. 10.15.7
 
-2. Xcode 11.0 (11A419c)
+2. Xcode 12.1
 
 3. The Forge is currently tested on the following macOS devices:
-* iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
 * iMac with AMD RADEON 580 (Part No. MNED2xx/A)
-* MacBook Pro 13 inch (MacBookPro13,2) 
-* Macbook Pro 13 inch (MacbookPro14,2)
-* iMac with M1
+* iMac with M1 macOS 11.6
 
-At this moment we do not have access to an iMac with M1 chipset (we ordered one), iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
+At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
 
 
@@ -399,13 +395,13 @@ We are currently testing on
 
 # iPad OS Requirements:
 
-1. iPadOS 13.1 beta 3 (17A5837a)
+1. iPadOS 14
 
 2. XCode: see macOS
 
 We are currently testing on:
 * iPad (Model A1893)
-* iPad Pro with M1
+* iPad Pro with M1 with 14.7.1
 
 
 # PC Linux Requirements:
@@ -430,9 +426,7 @@ We are currently testing on:
 # Android Requirements:
 
 1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
-
-2. Visual Studio 2019 (Visual Studio 2017 works too but has a bug in the build module) 
-
+2. Visual Studio 2017
 3. Android API level 23 or higher
 
 At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs or lack of support:
@@ -452,6 +446,56 @@ At the moment, the Android run-time does not support the following unit tests du
 * [Samsung S20 Ultra (Qualcomm Snapdragon 865 (Vulkan 1.1.120))](https://www.gsmarena.com/samsung_galaxy_s20_ultra_5g-10040.php) with Android 10. Please note that this version uses the Qualcomm based chipset compared to the European version that uses the Exynos chipset.
 * [Samsung Galaxy Note9 (Qualcomm 845 Octa-Core (Vulkan 1.1.87))](https://www.samsung.com/us/business/support/owners/product/galaxy-note9-unlocked/) with Android 10.0. Please note this is the Qualcomm version only available in the US
 
+## Setup Android Environment
+
+- Download and install [.NET Core SDK 2.2](https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/sdk-2.2.107-windows-x64-installer)
+- Download and Install Android Game Development Extension (Version 21.1.51) ([AGDE Quickstart](https://developer.android.com/games/agde/quickstart?authuser=1))
+- After AGDE installation, open the SDK Manager from the toolbar and:
+    - Install SDK
+    - Install Android NDK r21e (21.4.7075529)
+    The versions might not be visible so be sure to check the "Show Package Details" option.
+    - Set `ANDROID_SDK_ROOT` environment variable to point at the installed SDK
+
+### Steps if You want to create a new Project
+
+1) Create a new project
+2) Project->Add Item->Android->Android APK
+
+3) Setup the properties of the project for the Android-arm64-v8a platform, this can be done using one of two ways:
+
+- You can copy the properties from any Unit Test.
+- Use the already provided `.props` files
+  - There are 2 `.props` files
+    1. `Android-arm64-v8a.props` can be added to the project using the property manager
+    2. `AGDEVersions.props` needs to be added manually into the project between the ` <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />` and `<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />` lines (see Unit Tests for reference)
+
+For link directories,
+- $(SolutionDir)$(Platform)\$(Configuration)\ (this is where we have all our libs. set it accordingly)
+  - *NOTE* This can be avoided by adding our libs as references (Right-click project -> Add -> Reference -> Pick the ones you want to link -> Ok)
+
+Notes:
+- Add -lm to you project Linker Command Line options for if you get any undefined math operations error
+- If you get error related to "cannot use 'throw' with exceptions disabled", Enable exceptions in C++ Project settings
+- If you get error related to multiple instances of ioctl add BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD in preprocessor definitions
+- If you get errors related to neon support not enabled -Enable Advance SIMD to Yes -Set floating point ABI to softfp
+
+# Quest 2 Requirements:
+1. Follow the Android setup instructions for Visual studio 2017 with "Mobile Development with C++" with the following notes:
+* It's recommended for Visual Studio 2017 to not install default Visual Studio Installer Android NDK
+* For compatibility with other components the best Android NDK to use is the 21.1.635 version from UE4 or the official 21e releases
+* The official (now unsupported) NDK can be downloaded here: https://github.com/android/ndk/wiki/Unsupported-Downloads#r21e
+2. Download OVR mobile sdk from oculus website. https://developer.oculus.com/downloads/package/oculus-mobile-sdk/
+3. Tested with ovr-mobile-sdk version 1.46
+4. Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0
+5. Download vulkan validation libs for android from https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases a) Place unzipped sdk in The-Forge/Common_3/ThirdParty/OpenSource/Vulkan-ValidationLayer-1.2.182.0 b) Folder should contain the following: Vulkan-ValidationLayer-1.2.182.0/arm64-v8a/libVkLayer_khronos_validation.so
+6. Run examples from Examples_3/Unit_Tests/Quest_VisualStudio2017.
+As a side note the following examples may not be current compatible with the Quest:
+* 04_ExecuteIndirect
+* 05_FontRendering
+* 08_GltfViewer
+* 13_UserInterface
+* 17_EntityComponentSystem
+* 33_YUV
 
 
 # Install 
@@ -526,26 +570,30 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
 ## 8. glTF Model Viewer
-A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. We integrated Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and use the same PBR as used in the Material Playground unit test.
-This modelviewer can also utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
+A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. 
+This modelviewer can utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
 
-glTF model viewer running on iPad with 2048x1536 resolution
+glTF Viewer running on Android Galaxy Note 9
+![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.PNG)
+glTF Viewer running on iPhone 7
+![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.PNG)
+glTF Viewer running on Linux with NVIDIA RTX 2060
+![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
 
-glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
+glTF Viewer running on Mac Mini M1
+![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.JPEG)
+glTF Viewer running on PS5
+![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.JPEG)
+glTF Viewer running on Switch
+![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
 
-glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
+glTF Viewer running on XBOX One Original 
+![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
 
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
@@ -630,6 +678,11 @@ This unit test shows a typical VR Multi-GPU configuration. One eye is rendered b
 
 ![Image of the Multi-GPU Unit test](Screenshots/11_MultiGPU.png)
 
+## 11a. Unlinked multiple GPUs (Driver support only on PC Windows)
+For professional visualization applications, we now support unlinked multiple GPUs. A new renderer API is added to enumerate available GPUs. Renderer creation is extended to allow explicit GPU selection using the enumerated GPU list. Multiple Renderers can be created this way. The resource loader interface has been extended to support multiple Renderers. It is initialized with the list of all Renderers created. To select which Renderer (GPU) resources are loaded on, the NodeIndex used in linked GPU configurations is reused for the same purpose. Resources cannot be shared on multiple Renderers however, resources must be duplicated explicitly if needed. To retrieve generated content from one GPU to another (e.g. for presentation), a new resource loader operation is provided to schedule a transfer from a texture to a buffer. The target buffer should be mappable. This operation requires proper synchronization with the rendering work; a semaphore can be provided to the copy operation for that purpose. Available with Vulkan and D3D12. For other APIs, the enumeration API will not create a RendererContext which indicates lack of unlinked multi GPU support.
+
+![Image of the Unlinked Multiple GPUs Unit test](Screenshots/11a_UnlinkedMultipleGPUs.PNG)
+
 ## 12. File System Test
 This unit test showcases a cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](/Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
    * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
@@ -688,9 +741,40 @@ This unit test was originally posted on ShaderToy by [Inigo Quilez](https://www.
 ![Image of the Sphere Tracing  unit test in The Forge](Screenshots/16_RayMarching_Linux.png)
 
 ## 17. Entity Component System Test
-This unit test shows how to use the high-performance entity component system in The Forge. This unit test is based on a ECS system that we developed internally for tools.
-
+This unit test shows how to use the high-performance entity component system in The Forge. 
 ![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
+
+This unit test uses
+
+[![flecs](https://user-images.githubusercontent.com/9919222/104115165-0a4e4700-52c1-11eb-85d6-9bdfa9a0265f.png)](https://github.com/SanderMertens/flecs)
+
+Compared to our old ECS system our build times are now much better and the overall system runs faster:
+
+```
+CPU: intel i7-7700k
+GPU: AMD Radeon RX570
+
+Old ECS
+Debug
+Single Threaded: 90.0ms 
+Multi Threaded 29.0ms
+
+Release:
+Single Threaded: 5.7ms
+Multi Threaded: 2.3ms
+
+
+flecs
+Debug
+Single Threaded: 23.0ms   
+Multi Threaded 6.8ms
+
+Release
+Single Threaded 1.7ms
+Multi Threaded 0.9ms
+```
+
+
 
 ## 18. Sparse Virtual Textures
 The Forge has now support for Sparse Virtual Textures on Windows and Linux with DirectX 12 / Vulkan. Sparse texture (also known as "virtual texture", “tiled texture”, or “mega-texture”) is a technique to load huge size (such as 16k x 16k or more) textures in GPU memory.
@@ -892,6 +976,16 @@ The Forge Interactive Inc. will prepare releases when all the platforms are stab
 # Products
 We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far or we contributed to:
 
+## BuildBox
+The game engine BuildBox is now using The Forge (click on image to go to the Steam Store): 
+
+[![BuildBox](Screenshots/BuildBox.PNG)](https://signup.buildbox.com/product/bb3)
+
+## Lethis
+The Game "Lethis Path of Progress" is now using The Forge (click on image to go to the Steam Store)
+
+[![Lethis](Screenshots/Lethis.PNG)](https://store.steampowered.com/app/359230/Lethis__Path_of_Progress/)
+
 ## Supergiant Games Hades
 [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
 
@@ -913,7 +1007,12 @@ Here is more info about this game engine:
 
 [Bethesda's overhauling its engine for Starfield and The Elder Scrolls 6](https://www.gamesradar.com/bethesda-engine-starfield-elder-scrolls-6/)
 
+## M²H - Stroke Therapy
+M²H uses The Forge - [M²H](https://msquarehealthcare.com/) is a medical technology company. They have developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
+The Forge provides the rendering layer for their application.
+Here is a YouTube video on what they do:
 
+[![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 ## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
@@ -994,3 +1093,4 @@ The Forge utilizes the following Open-Source libraries:
 * [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
 * [minizip ng](https://github.com/zlib-ng/minizip-ng)
+* [flecs](https://github.com/SanderMertens/flecs)
