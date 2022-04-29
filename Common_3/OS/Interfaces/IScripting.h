@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,6 +29,12 @@
 
 // LUA
 #include "../Scripting/LuaManager.h"
+
+#ifdef ENABLE_FORGE_SCRIPTING
+#define REGISTER_LUA_WIDGET(x) luaRegisterWidget((x))
+#else
+#define REGISTER_LUA_WIDGET(x) (void)(x)
+#endif
 
 /****************************************************************************/
 // MARK: - Lua Scripting Data Structs

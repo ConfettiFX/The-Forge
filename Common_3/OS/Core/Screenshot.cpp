@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -335,11 +335,14 @@ void mapRenderTarget(
 bool prepareScreenshot(SwapChain* pSwapChain)
 {
 #if defined(METAL)
-	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-	if (layer.framebufferOnly)
+	if(@available(ios 13.0, *))
 	{
-		layer.framebufferOnly = false;
-		return false;
+		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+		if (layer.framebufferOnly)
+		{
+			layer.framebufferOnly = false;
+			return false;
+		}
 	}
 #endif
 	return true;
@@ -355,12 +358,15 @@ void captureScreenshot(
 	ASSERT(pCmd);
 
 #if defined(METAL)
-	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-	if (layer.framebufferOnly)
+	if(@available(ios 13.0, *))
 	{
-		LOGF(eERROR, "prepareScreenshot() must be used one frame before using captureScreenshot()");
-		ASSERT(0);
-		return;
+		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+		if (layer.framebufferOnly)
+		{
+			LOGF(eERROR, "prepareScreenshot() must be used one frame before using captureScreenshot()");
+			ASSERT(0);
+			return;
+		}
 	}
 #endif
 
@@ -403,7 +409,7 @@ void captureScreenshot(
 	if (noAlpha)
 	{
 		uint8_t* imageData = ((uint8_t*)alloc);
-		for (uint32_t i = 3; i < pRenderTarget->mWidth * pRenderTarget->mHeight * byteSize; i += byteSize)
+		for (uint32_t i = 3; i < (uint32_t)(pRenderTarget->mWidth * pRenderTarget->mHeight * byteSize); i += byteSize)
 		{
 			imageData[i] = 255u;
 		}
@@ -424,7 +430,11 @@ void captureScreenshot(
 	tf_free(png);
 
 #if defined(METAL)
-	layer.framebufferOnly = true;
+	if(@available(ios 13.0, *))
+	{
+		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+		layer.framebufferOnly = true;
+	}
 #endif
 }
 

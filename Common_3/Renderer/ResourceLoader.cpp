@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,7 +32,9 @@
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_bits.h"
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
+#if defined(ENABLE_MESHOPTIMIZER)
 #include "../ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"
+#endif
 
 #define TINYKTX_IMPLEMENTATION
 #include "../ThirdParty/OpenSource/tinyktx/tinyktx.h"
@@ -104,10 +106,19 @@ extern RendererApi gSelectedRendererApi;
 // Xbox, Orbis, Prospero, iOS have unified memory
 // so we dont need a command buffer to upload linear data
 // A simple memcpy suffices since the GPU memory is marked as CPU write combine
-#if defined(XBOX) || defined(ORBIS) || defined(PROSPERO) || defined(TARGET_APPLE_ARM64)
-#define UMA 1
+#if defined(XBOX) || defined(ORBIS) || defined(PROSPERO) || defined(TARGET_APPLE_ARM64) || defined(NX64)
+static FORGE_CONSTEXPR const bool gUma = true;
+#elif defined(ANDROID)
+#if defined(USE_MULTIPLE_RENDER_APIS)
+// Cant determine at compile time since we can be running GLES or VK. Not using UMA path for non VK
+static bool gUma = false;
+#elif defined(VULKAN)
+static FORGE_CONSTEXPR const bool gUma = true;
 #else
-#define UMA 0
+static FORGE_CONSTEXPR const bool gUma = false;
+#endif
+#else
+static FORGE_CONSTEXPR const bool gUma = false;
 #endif
 
 #define MAX_FRAMES 3U
@@ -427,7 +438,6 @@ struct ResourceLoader
 	ResourceLoaderDesc mDesc;
 
 	volatile int mRun;
-	ThreadDesc   mThreadDesc;
 	ThreadHandle mThread;
 
 	Mutex                        mQueueMutex;
@@ -447,11 +457,6 @@ struct ResourceLoader
 	CopyEngine pCopyEngines[MAX_MULTIPLE_GPUS];
 	uint32_t   mNextSet;
 	uint32_t   mSubmittedSets;
-
-#if defined(NX64)
-	ThreadTypeNX mThreadType;
-	void*        mThreadStackPtr;
-#endif
 };
 
 static ResourceLoader* pResourceLoader = NULL;
@@ -994,7 +999,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 				{
 					LOGF(eWARNING,
 						"Trying to load '%s' image using SRGB profile. "
-						"But image has '$s' format, which doesn't have SRGB counterpart.",
+						"But image has '%s' format, which doesn't have SRGB counterpart.",
 						pTextureDesc->pFileName, TinyImageFormat_Name(textureDesc.mFormat));
 				}
 			}
@@ -1041,7 +1046,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 						{
 							LOGF(eWARNING,
 								"Trying to load '%s' image using SRGB profile. "
-								"But image has '$s' format, which doesn't have SRGB counterpart.",
+								"But image has '%s' format, which doesn't have SRGB counterpart.",
 								pTextureDesc->pFileName, TinyImageFormat_Name(textureDesc.mFormat));
 						}
 					}
@@ -1107,12 +1112,12 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		}
 
 		ssize_t fileSize = fsGetStreamFileSize(&file);
-		void*   fileData = tf_malloc(fileSize);
+		void* fileData = tf_malloc(fileSize);
 
 		fsReadFromStream(&file, fileData, fileSize);
 
 		cgltf_options options = {};
-		cgltf_data*   data = NULL;
+		cgltf_data* data = NULL;
 		options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
 		options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
 		cgltf_result result = cgltf_parse(&options, fileData, fileSize, &data);
@@ -1200,7 +1205,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
 				for (uint32_t i = 0; i < prim->attributes_count; ++i)
 					vertexAttribs[util_cgltf_attrib_type_to_semantic(prim->attributes[i].type, prim->attributes[i].index)] =
-						&prim->attributes[i];
+					&prim->attributes[i];
 			}
 		}
 
@@ -1210,7 +1215,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		// Determine vertex stride for each binding
 		for (uint32_t i = 0; i < pDesc->pVertexLayout->mAttribCount; ++i)
 		{
-			const VertexAttrib*    attr = &pDesc->pVertexLayout->mAttribs[i];
+			const VertexAttrib* attr = &pDesc->pVertexLayout->mAttribs[i];
 			const cgltf_attribute* cgltfAttr = vertexAttribs[attr->mSemantic];
 
 			bool defaultTexcoords = !cgltfAttr && (attr->mSemantic >= SEMANTIC_TEXCOORD0 && attr->mSemantic <= SEMANTIC_TEXCOORD9);
@@ -1254,22 +1259,22 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 				// Select appropriate packing function which will be used when filling the vertex buffer
 				switch (cgltfAttr->type)
 				{
-					case cgltf_attribute_type_texcoord:
-					{
-						if (sizeof(uint32_t) == dstFormatSize && sizeof(float[2]) == srcFormatSize)
-							vertexPacking[attr->mSemantic] = util_pack_float2_to_half2;
-						// #TODO: Add more variations if needed
-						break;
-					}
-					case cgltf_attribute_type_normal:
-					case cgltf_attribute_type_tangent:
-					{
-						if (sizeof(uint32_t) == dstFormatSize && (sizeof(float[3]) == srcFormatSize || sizeof(float[4]) == srcFormatSize))
-							vertexPacking[attr->mSemantic] = util_pack_float3_direction_to_half2;
-						// #TODO: Add more variations if needed
-						break;
-					}
-					default: break;
+				case cgltf_attribute_type_texcoord:
+				{
+					if (sizeof(uint32_t) == dstFormatSize && sizeof(float[2]) == srcFormatSize)
+						vertexPacking[attr->mSemantic] = util_pack_float2_to_half2;
+					// #TODO: Add more variations if needed
+					break;
+				}
+				case cgltf_attribute_type_normal:
+				case cgltf_attribute_type_tangent:
+				{
+					if (sizeof(uint32_t) == dstFormatSize && (sizeof(float[3]) == srcFormatSize || sizeof(float[4]) == srcFormatSize))
+						vertexPacking[attr->mSemantic] = util_pack_float3_direction_to_half2;
+					// #TODO: Add more variations if needed
+					break;
+				}
+				default: break;
 				}
 			}
 		}
@@ -1335,18 +1340,19 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 		indexBufferDesc.mElementCount = indexBufferDesc.mSize / (structuredBuffers ? indexStride : sizeof(uint32_t));
 		indexBufferDesc.mStructStride = indexStride;
 		indexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-#if UMA
-		indexBufferDesc.mStartState = RESOURCE_STATE_INDEX_BUFFER;
-#endif
+		indexBufferDesc.mStartState = gUma ? RESOURCE_STATE_INDEX_BUFFER : indexBufferDesc.mStartState;
 		addBuffer(pRenderer, &indexBufferDesc, &geom->pIndexBuffer);
 
 		indexUpdateDesc.mSize = indexCount * indexStride;
 		indexUpdateDesc.pBuffer = geom->pIndexBuffer;
-#if UMA
-		indexUpdateDesc.mInternal.mMappedRange = { (uint8_t*)geom->pIndexBuffer->pCpuMappedAddress };
-#else
-		indexUpdateDesc.mInternal.mMappedRange = allocateStagingMemory(indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
-#endif
+		if (gUma)
+		{
+			indexUpdateDesc.mInternal.mMappedRange = { (uint8_t*)geom->pIndexBuffer->pCpuMappedAddress };
+		}
+		else
+		{
+			indexUpdateDesc.mInternal.mMappedRange = allocateStagingMemory(indexUpdateDesc.mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+		}
 		indexUpdateDesc.pMappedData = indexUpdateDesc.mInternal.mMappedRange.pData;
 
 		uint32_t bufferCounter = 0;
@@ -1363,20 +1369,21 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			vertexBufferDesc.mElementCount = vertexBufferDesc.mSize / (structuredBuffers ? vertexStrides[i] : sizeof(uint32_t));
 			vertexBufferDesc.mStructStride = vertexStrides[i];
 			vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-#if UMA
-			vertexBufferDesc.mStartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-#endif
+			vertexBufferDesc.mStartState = gUma ? RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER : vertexBufferDesc.mStartState;
 			addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
 
 			geom->mVertexStrides[bufferCounter] = vertexStrides[i];
 
 			vertexUpdateDesc[i].pBuffer = geom->pVertexBuffers[bufferCounter];
 			vertexUpdateDesc[i].mSize = vertexBufferDesc.mSize;
-#if UMA
-			vertexUpdateDesc[i].mInternal.mMappedRange = { (uint8_t*)geom->pVertexBuffers[bufferCounter]->pCpuMappedAddress, 0 };
-#else
-			vertexUpdateDesc[i].mInternal.mMappedRange = allocateStagingMemory(vertexUpdateDesc[i].mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
-#endif
+			if (gUma)
+			{
+				vertexUpdateDesc[i].mInternal.mMappedRange = { (uint8_t*)geom->pVertexBuffers[bufferCounter]->pCpuMappedAddress, 0 };
+			}
+			else
+			{
+				vertexUpdateDesc[i].mInternal.mMappedRange = allocateStagingMemory(vertexUpdateDesc[i].mSize, RESOURCE_BUFFER_ALIGNMENT, pDesc->mNodeIndex);
+			}
 			vertexUpdateDesc[i].pMappedData = vertexUpdateDesc[i].mInternal.mMappedRange.pData;
 			++bufferCounter;
 		}
@@ -1490,7 +1497,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 				jsmn_parser parser = {};
 				jsmntok_t*  tokens = (jsmntok_t*)tf_malloc((skin->joints_count + 1) * sizeof(jsmntok_t));
 				jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
-				ASSERT(tokens[0].size == skin->joints_count + 1);
+				ASSERT(tokens[0].size == (int)skin->joints_count + 1);
 				cgltf_accessor_unpack_floats(
 					skin->inverse_bind_matrices, (cgltf_float*)geom->pInverseBindPoses,
 					skin->joints_count * sizeof(float[16]) / sizeof(float));
@@ -1588,6 +1595,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 	}
 
 	// Optmize mesh
+#if defined(ENABLE_MESHOPTIMIZER)
 	if (pDesc->mOptimizationFlags && geom)
 	{
 		size_t optimizerScratchSize = 128 * 1024 * 1024;
@@ -1705,10 +1713,12 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
 		tf_free(scratchMemory);
 	}
+#endif
 
 	// Upload mesh
 	UploadFunctionResult uploadResult = UPLOAD_FUNCTION_RESULT_COMPLETED;
-#if !UMA
+	if (!gUma)
+	{
 		uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, indexUpdateDesc);
 
 		for (uint32_t i = 0; i < MAX_VERTEX_BINDINGS; ++i)
@@ -1718,8 +1728,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 				uploadResult = updateBuffer(pRenderer, pCopyEngine, activeSet, vertexUpdateDesc[i]);
 			}
 		}
-#endif
-
+	}
 	
 	return uploadResult;
 }
@@ -1834,6 +1843,7 @@ static void streamerThreadFunc(void* pThreadData)
 			// No waiting if not running dedicated resource loader thread.
 			if (pLoader->mDesc.mSingleThreaded)
 			{
+				releaseMutex(&pLoader->mQueueMutex);
 				return;
 			}
 			// Sleep until someone adds an update request to the queue
@@ -2029,14 +2039,14 @@ static void addResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, Re
 		setupCopyEngine(pLoader->ppRenderers[i], &pLoader->pCopyEngines[i], i, pLoader->mDesc.mBufferSize, pLoader->mDesc.mBufferCount);
 	}
 
-	pLoader->mThreadDesc.pFunc = streamerThreadFunc;
-	pLoader->mThreadDesc.pData = pLoader;
+	ThreadDesc threadDesc = {};
+	threadDesc.pFunc = streamerThreadFunc;
+	threadDesc.pData = pLoader;
+	strncpy(threadDesc.mThreadName, "ResourceLoaderTask", sizeof(threadDesc.mThreadName));
 
 #if defined(NX64)
-	pLoader->mThreadDesc.pThreadStack = aligned_alloc(THREAD_STACK_ALIGNMENT_NX, ALIGNED_THREAD_STACK_SIZE_NX);
-	pLoader->mThreadDesc.hThread = &pLoader->mThreadType;
-	pLoader->mThreadDesc.pThreadName = "ResourceLoaderTask";
-	pLoader->mThreadDesc.preferredCore = 1;
+	threadDesc.mHasAffinityMask = true;
+	threadDesc.mAffinityMask = 1;
 #endif
 
 #if defined(DIRECT3D11)
@@ -2044,10 +2054,14 @@ static void addResourceLoader(Renderer** ppRenderers, uint32_t rendererCount, Re
 		pLoader->mDesc.mSingleThreaded = true;
 #endif
 
+#if defined(ANDROID) && defined(USE_MULTIPLE_RENDER_APIS)
+	gUma = gSelectedRendererApi == RENDERER_API_VULKAN;
+#endif
+
 	// Create dedicated resource loader thread.
 	if (!pLoader->mDesc.mSingleThreaded)
 	{
-		initThread(&pLoader->mThreadDesc, &pLoader->mThread);
+		initThread(&threadDesc, &pLoader->mThread);
 	}
 
 	*ppLoader = pLoader;
@@ -2064,7 +2078,7 @@ static void removeResourceLoader(ResourceLoader* pLoader)
 	else
 	{
 		wakeOneConditionVariable(&pLoader->mQueueCond);
-		destroyThread(pLoader->mThread);
+		joinThread(pLoader->mThread);
 	}
 
 	destroyConditionVariable(&pLoader->mQueueCond);
@@ -2225,7 +2239,7 @@ void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 
 void exitResourceLoaderInterface(Renderer* pRenderer) 
 {
-	removeResourceLoader(pResourceLoader); 
+	removeResourceLoader(pResourceLoader);
 }
 
 void initResourceLoaderInterface(Renderer** ppRenderers, uint32_t rendererCount, ResourceLoaderDesc* pDesc)
@@ -2244,7 +2258,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 	bool     update = pBufferDesc->pData || pBufferDesc->mForceReset;
 
 	ASSERT(stagingBufferSize > 0);
-	if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pBufferDesc->mDesc.mMemoryUsage && !pBufferDesc->mDesc.mStartState && (!update || UMA))
+	if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pBufferDesc->mDesc.mMemoryUsage && !pBufferDesc->mDesc.mStartState && (!update || gUma))
 	{
 		pBufferDesc->mDesc.mStartState = util_determine_resource_start_state(&pBufferDesc->mDesc);
 		LOGF(
@@ -2252,7 +2266,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 			(uint32_t)pBufferDesc->mDesc.mStartState);
 	}
 
-	if (pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update && !UMA)
+	if (pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update && !gUma)
 	{
 		pBufferDesc->mDesc.mStartState = RESOURCE_STATE_COMMON;
 	}
@@ -2260,7 +2274,7 @@ void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 
 	if (update)
 	{
-		if (!UMA && pBufferDesc->mDesc.mSize > stagingBufferSize && pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
+		if (!gUma && pBufferDesc->mDesc.mSize > stagingBufferSize && pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 		{
 			// The data is too large for a single staging buffer copy, so perform it in stages.
 
@@ -2368,9 +2382,15 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
 	}
 }
 
-void removeResource(Buffer* pBuffer) { removeBuffer(pResourceLoader->ppRenderers[pBuffer->mNodeIndex], pBuffer); }
+void removeResource(Buffer* pBuffer)
+{
+	removeBuffer(pResourceLoader->ppRenderers[pBuffer->mNodeIndex], pBuffer);
+}
 
-void removeResource(Texture* pTexture) { removeTexture(pResourceLoader->ppRenderers[pTexture->mNodeIndex], pTexture); }
+void removeResource(Texture* pTexture)
+{
+	removeTexture(pResourceLoader->ppRenderers[pTexture->mNodeIndex], pTexture);
+}
 
 void removeResource(Geometry* pGeom)
 {
@@ -2391,7 +2411,7 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 	ASSERT(pBufferUpdate->mDstOffset + size <= pBuffer->mSize);
 
 	ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
-	if (UMA || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
+	if (gUma || memoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
 	{
 		bool map = !pBuffer->pCpuMappedAddress;
 		if (map)
@@ -2422,7 +2442,7 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 	}
 
 	ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
-	if (!UMA && memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
+	if (!gUma && memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 	{
 		queueBufferUpdate(pResourceLoader, pBufferUpdate, token);
 	}
@@ -2453,7 +2473,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
 	pTextureUpdate->mDstSliceStride = round_up(pTextureUpdate->mDstRowStride * pTextureUpdate->mRowCount, alignment);
 
 	const ssize_t requiredSize = round_up(
-		MIP_REDUCE(texture->mDepth, pTextureUpdate->mMipLevel) * pTextureUpdate->mDstRowStride * pTextureUpdate->mRowCount, alignment);
+		MIP_REDUCE(texture->mDepth, pTextureUpdate->mMipLevel) * pTextureUpdate->mDstSliceStride, alignment);
 
 	// We need to use a staging buffer.
 	pTextureUpdate->mInternal.mMappedRange = allocateUploadMemory(pRenderer, requiredSize, alignment);
@@ -3052,11 +3072,17 @@ bool load_shader_stage_byte_code(
 #if defined(VULKAN)
 		case RENDERER_API_VULKAN: rendererApi = "VULKAN"; break;
 #endif
-#if defined(METAL)
-		case RENDERER_API_METAL: rendererApi = "Metal"; break;
-#endif
 #if defined(GLES)
 		case RENDERER_API_GLES: rendererApi = "GLES"; break;
+#endif
+#if defined(METAL)
+		case RENDERER_API_METAL:
+#endif
+#if defined(ORBIS)
+		case RENDERER_API_ORBIS:
+#endif
+#if defined(PROSPERO)
+		case RENDERER_API_PROSPERO:
 #endif
 		default: break;
 	}
@@ -3066,13 +3092,13 @@ bool load_shader_stage_byte_code(
 	time_t timeStamp = 0;
 #endif
 
+	eastl::string fileNameAPI = rendererApi.size() > 0 ? rendererApi + '/' + loadDesc.pFileName : loadDesc.pFileName;
 #if !defined(METAL) && !defined(NX64)
-	eastl::string pFileNameAPI = RENDERER_API_COUNT > 1 ? rendererApi + '/' + loadDesc.pFileName : loadDesc.pFileName;
 	FileStream    sourceFileStream = {};
-	bool          sourceExists = fsOpenStreamFromPath(RD_SHADER_SOURCES, pFileNameAPI.c_str(), FM_READ_BINARY, NULL, &sourceFileStream);
+	bool          sourceExists = fsOpenStreamFromPath(RD_SHADER_SOURCES, fileNameAPI.c_str(), FM_READ_BINARY, NULL, &sourceFileStream);
 	ASSERT(sourceExists && "No source shader present for file");
 
-	if (!process_source_file(pRenderer->pName, &sourceFileStream, pFileNameAPI.c_str(), &sourceFileStream, timeStamp, code))
+	if (!process_source_file(pRenderer->pName, &sourceFileStream, fileNameAPI.c_str(), &sourceFileStream, timeStamp, code))
 	{
 		fsCloseStream(&sourceFileStream);
 		return false;
@@ -3091,7 +3117,7 @@ bool load_shader_stage_byte_code(
 	sprintf(&hashStringBuffer[0], "%zu.%s", (size_t)hash, "spv");
 
 	char nxShaderPath[FS_MAX_PATH] = {};
-	fsAppendPathExtension(loadDesc.pFileName, hashStringBuffer, nxShaderPath);
+	fsAppendPathExtension(fileNameAPI.c_str(), hashStringBuffer, nxShaderPath);
 	FileStream sourceFileStream = {};
 	bool sourceExists = fsOpenStreamFromPath(RD_SHADER_SOURCES, nxShaderPath, FM_READ_BINARY, NULL, &sourceFileStream);
 	ASSERT(sourceExists);
@@ -3166,7 +3192,7 @@ bool load_shader_stage_byte_code(
 #if defined(DIRECT3D12)
 			case RENDERER_API_D3D12:
 				d3d12_compileShader(
-					pRenderer, target, stage, pFileNameAPI.c_str(), (uint32_t)code.size(), code.c_str(),
+					pRenderer, target, stage, fileNameAPI.c_str(), (uint32_t)code.size(), code.c_str(),
 					loadDesc.mFlags & SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID, macroCount, pMacros, pOut, loadDesc.pEntryPointName);
 
 				if (!save_byte_code(binaryShaderComponent.c_str(), (char*)(pOut->pByteCode), pOut->mByteCodeSize))
@@ -3178,7 +3204,7 @@ bool load_shader_stage_byte_code(
 #if defined(DIRECT3D11)
 			case RENDERER_API_D3D11:
 				d3d11_compileShader(
-					pRenderer, target, stage, pFileNameAPI.c_str(), (uint32_t)code.size(), code.c_str(),
+					pRenderer, target, stage, fileNameAPI.c_str(), (uint32_t)code.size(), code.c_str(),
 					loadDesc.mFlags & SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID, macroCount, pMacros, pOut, loadDesc.pEntryPointName);
 
 				if (!save_byte_code(binaryShaderComponent.c_str(), (char*)(pOut->pByteCode), pOut->mByteCodeSize))
@@ -3199,7 +3225,7 @@ bool load_shader_stage_byte_code(
 				}
 #else
 				vk_compileShader(
-					pRenderer, target, stage, pFileNameAPI.c_str(), binaryShaderComponent.c_str(), macroCount, pMacros, pOut,
+					pRenderer, target, stage, fileNameAPI.c_str(), binaryShaderComponent.c_str(), macroCount, pMacros, pOut,
 					loadDesc.pEntryPointName);
 #endif
 				break;

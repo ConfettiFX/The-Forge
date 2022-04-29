@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -80,9 +80,13 @@ public:
     inline const CameraMatrix& operator= (const CameraMatrix& mat);
 
     inline const CameraMatrix operator* (const Matrix4& mat) const;
+	inline const CameraMatrix operator* (const CameraMatrix& mat) const;
 
     // Returns the camera matrix or the left eye matrix on VR platforms.
     mat4 getPrimaryMatrix() const;
+
+	// Applies offsets to the projection matrices (useful when needing to jitter the camera for techniques like TAA)
+	void applyProjectionSampleOffset(float xOffset, float yOffset);
 
     static inline const CameraMatrix inverse(const CameraMatrix& mat);
     static inline const CameraMatrix transpose(const CameraMatrix& mat);
@@ -120,6 +124,16 @@ inline const CameraMatrix CameraMatrix::operator* (const Matrix4& mat) const
     result.mRightEye = mRightEye * mat;
 #endif
     return result;
+}
+
+inline const CameraMatrix CameraMatrix::operator* (const CameraMatrix& mat) const
+{
+	CameraMatrix result;
+	result.mLeftEye = mLeftEye * mat.mLeftEye;
+#if defined(QUEST_VR)
+	result.mRightEye = mRightEye * mat.mRightEye;
+#endif
+	return result;
 }
 
 inline const CameraMatrix CameraMatrix::inverse(const CameraMatrix & mat)

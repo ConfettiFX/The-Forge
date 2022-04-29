@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,6 +21,8 @@
  * specific language governing permissions and limitations
  * under the License.
 */
+
+#include "../../OS/Core/Config.h"
 
 #include "shlobj.h"
 #include "commdlg.h"
@@ -71,7 +73,6 @@ typedef struct FileWatcher
 	DWORD               mNotifyFilter;
 	FileWatcherCallback mCallback;
 	HANDLE              hExitEvt;
-	ThreadDesc          mThreadDesc;
 	ThreadHandle        mThread;
 	volatile int        mRun;
 } FileWatcher;
@@ -141,7 +142,7 @@ void fswThreadFunc(void* data)
 				continue;
 			}
 
-			char fullPathToFile[256] = { 0 };
+			char fullPathToFile[FS_MAX_PATH] = { 0 };
 			strcat(fullPathToFile, fs->mPath);
 			strcat(fullPathToFile, "\\");
 			strcat(fullPathToFile, utf8Name);
@@ -185,10 +186,11 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 	watcher->mCallback = callback;
 	watcher->mRun = TRUE;
 
-	watcher->mThreadDesc.pFunc = fswThreadFunc;
-	watcher->mThreadDesc.pData = watcher;
-
-	initThread(&watcher->mThreadDesc, &watcher->mThread);
+	ThreadDesc threadDesc = {};
+	threadDesc.pFunc = fswThreadFunc;
+	threadDesc.pData = watcher;
+	strncpy(threadDesc.mThreadName, "FileWatcher", sizeof(threadDesc.mThreadName));
+	initThread(&threadDesc, &watcher->mThread);
 
 	return watcher;
 }
@@ -197,7 +199,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
 	fileWatcher->mRun = FALSE;
 	SetEvent(fileWatcher->hExitEvt);
-	destroyThread(fileWatcher->mThread);
+	joinThread(fileWatcher->mThread);
 	CloseHandle(fileWatcher->hExitEvt);
 	tf_free(fileWatcher);
 }

@@ -13,6 +13,12 @@
     <Filter Include="Include">
       <UniqueIdentifier>{a8641ccb-03da-49d6-9fee-bac081e4cf42}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies">
+      <UniqueIdentifier>{b6461f62-f67b-48f1-95a0-c420526ebb33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\meshoptimizer">
+      <UniqueIdentifier>{ddbddaed-c9c0-47c2-9a1b-46f0ad877239}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
@@ -34,6 +40,21 @@
       <Filter>Vulkan</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Quest\VrApiHooks.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
+      <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h">

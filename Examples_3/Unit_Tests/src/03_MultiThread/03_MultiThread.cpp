@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -302,8 +302,6 @@ class MultiThread: public IApp
 		// DirectX 11 not supported on this unit test
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -641,19 +639,23 @@ class MultiThread: public IApp
 						  return true;
 					  } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-					   [](InputActionContext* ctx) {
-						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-						   return true;
-					   },
-					   this };
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
+		{
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+			return true;
+		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -956,6 +958,12 @@ class MultiThread: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -1034,27 +1042,21 @@ class MultiThread: public IApp
 		const float xTxtOffset = 8.f;
 		float       yTxtOrig = yTxtOffset;
 
-		sprintf(gMainThreadTxt, "CPU Main Thread - %f ms", getCpuAvgFrameTime());
-		float2 txtSizePx = fntMeasureFontText(gMainThreadTxt, &gFrameTimeDraw);
-
 		gFrameTimeDraw.mFontColor = 0xff00ffff;
-		gFrameTimeDraw.mFontSize = 14.0f;
-		gFrameTimeDraw.pText = gMainThreadTxt;
-		cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
-		
+		gFrameTimeDraw.mFontID = gFontID;
+
+		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
+		yTxtOrig += txtSizePx.y + 7 * yTxtOffset;
+
+		txtSizePx = cmdDrawGpuProfile(cmd, float2(xTxtOffset, yTxtOrig), pGpuProfiletokens[0], &gFrameTimeDraw);
 		yTxtOrig += txtSizePx.y + yTxtOffset;
 
-		for (uint32_t i = 0; i < gThreadCount; ++i)
-		{
-			sprintf(gParticleThreadText, "CPU Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID));
-			gFrameTimeDraw.pText = gParticleThreadText;
-			cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
-			yTxtOrig += txtSizePx.y + yTxtOffset;
-		}
-
+		txtSizePx.y = 15.0f;
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
-			txtSizePx = cmdDrawGpuProfile(cmd, float2(xTxtOffset, yTxtOrig), pGpuProfiletokens[i], &gFrameTimeDraw);
+			sprintf(gParticleThreadText, "GPU Particle Thread %u - %f ms", i, getGpuProfileAvgTime(pGpuProfiletokens[i]));
+			gFrameTimeDraw.pText = gParticleThreadText;
+			cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
 			yTxtOrig += txtSizePx.y + yTxtOffset;
 		}
 
@@ -1076,7 +1078,10 @@ class MultiThread: public IApp
 				pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
 				pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-				cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+				loadActions = {};
+				loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+				cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+				
 				cmdSetViewport(
 					ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
 					pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
@@ -1161,7 +1166,7 @@ class MultiThread: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -1254,9 +1259,10 @@ class MultiThread: public IApp
 				entries.emplace_back(CPUData());
 				CPUData& entry = entries.back();
 				char     dummyCpuName[256];    // dummy cpu name, not used.
-				fscanf(
+				int _ret = fscanf(
 					fh, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1], &entry.times[2],
 					&entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8], &entry.times[9]);
+                (void)_ret;
 			}
 			// Close the cpu stat file
 			fclose(fh);
@@ -1425,8 +1431,7 @@ class MultiThread: public IApp
 		if (gCoresCount)
 		{
 			pCoresLoadData = (float*)tf_malloc(sizeof(float) * gCoresCount);
-			float zeroFloat = 0.0;
-			memset(pCoresLoadData, *(int*)&zeroFloat, sizeof(float) * gCoresCount);
+			memset(pCoresLoadData, 0, sizeof(float) * gCoresCount);
 		}
 
 		CalCpuUsage();

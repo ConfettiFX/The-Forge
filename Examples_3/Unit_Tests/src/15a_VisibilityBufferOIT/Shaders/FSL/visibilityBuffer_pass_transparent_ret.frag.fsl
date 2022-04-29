@@ -1,0 +1,68 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shader_defs.h.fsl"
+#include "packing.h.fsl"
+#include "vb_resources.h.fsl"
+
+STRUCT(PsInAlphaTested)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD0);
+#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+    DATA(FLAT(uint), drawId, TEXCOORD3);
+#endif
+};
+
+uint calculateOutputVBID(uint drawID, uint primitiveID)
+{
+    return  (1 << ALPH_IS_LOW_BIT) | 
+			((drawID << DRAW_ID_LOW_BIT) & DRAW_ID_MASK) | 
+			((primitiveID << PRIM_ID_LOW_BIT) & PRIM_ID_MASK);
+}
+
+float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+{
+    INIT_MAIN;
+
+	uint width = Get(screenWidth); 
+
+	uint nodeIdx = 0; 
+	uint2 screenPos = uint2(In.position.xy);
+	AtomicAdd(Get(geometryCountBuffer)[0].count, 1, nodeIdx);
+
+	if (nodeIdx < Get(maxNodeCount))
+	{
+		uint prevHeadIdx;
+		uint bufferIdx = screenPos.y * width + screenPos.x; 
+		AtomicExchange(Get(headIndexBufferUAV)[bufferIdx], nodeIdx, prevHeadIdx);
+
+		Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = calculateOutputVBID(getDrawID(), primitiveId);
+		Get(vbDepthLinkedListUAV)[nodeIdx].next = prevHeadIdx; 
+	}
+
+	clip(-1.0f);
+	
+	return float4(0, 0, 0, 0); 
+}

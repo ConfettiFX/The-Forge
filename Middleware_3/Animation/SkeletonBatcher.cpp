@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -176,7 +176,7 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 			++batchInstanceCount;
 
 			// If we have reached our maximun amount of instances, or the end of our data
-			if ((instanceIndex == MAX_INSTANCES -1) || ((rigIndex - rigsOffset == numRigs - 1) && (jointIndex == numJoints - 1)))
+			if ((instanceIndex == MAX_INSTANCES -1) || ((rigIndex - rigsOffset == (uint32_t)(numRigs - 1)) && (jointIndex == numJoints - 1)))
 			{
 
 				// Finalize the data for this batch by adding the batch instance to the batch total size

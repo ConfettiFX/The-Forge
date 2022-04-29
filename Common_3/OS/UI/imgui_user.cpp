@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -57,7 +57,6 @@ int KnobFloat(
 
 	float knobRadius = size * 0.5f;
 
-	float2 startPos = window->DC.CursorPos;
 	float2 center = total_bb.GetCenter();
 
 	const ImRect inner_bb(center - float2(knobRadius, knobRadius), center + float2(knobRadius, knobRadius));

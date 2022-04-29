@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -598,7 +598,7 @@ if (!(exp))                   \
 
 	ssize_t ddsDataSize = fsGetStreamFileSize(pStream);
 	RETURN_IF_FAILED(ddsDataSize <= UINT32_MAX);
-	RETURN_IF_FAILED((ddsDataSize > (sizeof(uint32_t) + sizeof(DDS_HEADER))));
+	RETURN_IF_FAILED((ddsDataSize > (ssize_t)(sizeof(uint32_t) + sizeof(DDS_HEADER))));
 
 	// DDS files always start with the same magic number ("DDS ")
 	uint32_t dwMagicNumber = 0;
@@ -621,7 +621,7 @@ if (!(exp))                   \
 		(MAKEFOURCC('D', 'X', '1', '0') == header->ddspf.fourCC))
 	{
 		// Must be long enough for both headers and magic value
-		RETURN_IF_FAILED(ddsDataSize >= (sizeof(DDS_HEADER) + sizeof(uint32_t) + sizeof(DDS_HEADER_DXT10)));
+		RETURN_IF_FAILED(ddsDataSize >= (ssize_t)(sizeof(DDS_HEADER) + sizeof(uint32_t) + sizeof(DDS_HEADER_DXT10)));
 		d3d10ext = &hdrDx10Struct;
 		bytesRead = fsReadFromStream(pStream, d3d10ext, sizeof(DDS_HEADER_DXT10));
 		RETURN_IF_FAILED(bytesRead == sizeof(DDS_HEADER_DXT10));
@@ -722,7 +722,7 @@ if (!(exp))                   \
 /************************************************************************/
 // KTX Loading
 /************************************************************************/
-static bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
+inline bool loadKTXTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
 #define RETURN_IF_FAILED(exp) \
 if (!(exp))                   \
@@ -782,7 +782,7 @@ if (!(exp))                   \
 /************************************************************************/
 // BASIS Loading
 /************************************************************************/
-static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, void** ppOutData, uint32_t* pOutDataSize)
+inline bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, void** ppOutData, uint32_t* pOutDataSize)
 {
 	if (pStream == NULL || fsGetStreamFileSize(pStream) <= 0)
 		return false;
@@ -943,7 +943,7 @@ struct SVT_HEADER
 };
 
 #if defined(DIRECT3D12) || defined(VULKAN)
-static bool loadSVTTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
+inline bool loadSVTTextureDesc(FileStream* pStream, TextureDesc* pOutDesc)
 {
 #define RETURN_IF_FAILED(exp) \
 if (!(exp))                   \
@@ -955,7 +955,7 @@ if (!(exp))                   \
 
 	ssize_t svtDataSize = fsGetStreamFileSize(pStream);
 	RETURN_IF_FAILED(svtDataSize <= UINT32_MAX);
-	RETURN_IF_FAILED((svtDataSize > (sizeof(SVT_HEADER))));
+	RETURN_IF_FAILED((svtDataSize > (ssize_t)(sizeof(SVT_HEADER))));
 
 	SVT_HEADER header = {};
 	ssize_t bytesRead = fsReadFromStream(pStream, &header, sizeof(SVT_HEADER));

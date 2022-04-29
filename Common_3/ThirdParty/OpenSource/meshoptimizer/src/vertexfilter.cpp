@@ -1,8 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <math.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // The block below auto-detects SIMD ISA that can be used on the target platform
 #ifndef MESHOPTIMIZER_NO_SIMD
@@ -164,7 +163,7 @@ static void decodeFilterExp(unsigned int* data, size_t count)
 template <typename T>
 static void dispatchSimd(void (*process)(T*, size_t), T* data, size_t count, size_t stride)
 {
-	assert(stride <= 4);
+	ASSERT(stride <= 4);
 
 	size_t count4 = count & ~size_t(3);
 	process(data, count4);
@@ -173,7 +172,7 @@ static void dispatchSimd(void (*process)(T*, size_t), T* data, size_t count, siz
 	{
 		T tail[4 * 4] = {}; // max stride 4, max count 4
 		size_t tail_size = (count - count4) * stride * sizeof(T);
-		assert(tail_size <= sizeof(tail));
+		ASSERT(tail_size <= sizeof(tail));
 
 		memcpy(tail, data + count4 * stride, tail_size);
 		process(tail, count - count4);
@@ -797,7 +796,7 @@ void meshopt_decodeFilterOct(void* buffer, size_t count, size_t stride)
 {
 	using namespace meshopt;
 
-	assert(stride == 4 || stride == 8);
+	ASSERT(stride == 4 || stride == 8);
 
 #if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
 	if (stride == 4)
@@ -816,7 +815,7 @@ void meshopt_decodeFilterQuat(void* buffer, size_t count, size_t stride)
 {
 	using namespace meshopt;
 
-	assert(stride == 8);
+	ASSERT(stride == 8);
 	(void)stride;
 
 #if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
@@ -830,7 +829,7 @@ void meshopt_decodeFilterExp(void* buffer, size_t count, size_t stride)
 {
 	using namespace meshopt;
 
-	assert(stride > 0 && stride % 4 == 0);
+	ASSERT(stride > 0 && stride % 4 == 0);
 
 #if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
 	dispatchSimd(decodeFilterExpSimd, static_cast<unsigned int*>(buffer), count * (stride / 4), 1);
@@ -841,8 +840,8 @@ void meshopt_decodeFilterExp(void* buffer, size_t count, size_t stride)
 
 void meshopt_encodeFilterOct(void* destination, size_t count, size_t stride, int bits, const float* data)
 {
-	assert(stride == 4 || stride == 8);
-	assert(bits >= 1 && bits <= 16);
+	ASSERT(stride == 4 || stride == 8);
+	ASSERT(bits >= 1 && bits <= 16);
 
 	signed char* d8 = static_cast<signed char*>(destination);
 	short* d16 = static_cast<short*>(destination);
@@ -888,8 +887,8 @@ void meshopt_encodeFilterOct(void* destination, size_t count, size_t stride, int
 
 void meshopt_encodeFilterQuat(void* destination_, size_t count, size_t stride, int bits, const float* data)
 {
-	assert(stride == 8);
-	assert(bits >= 4 && bits <= 16);
+	ASSERT(stride == 8);
+	ASSERT(bits >= 4 && bits <= 16);
 	(void)stride;
 
 	short* destination = static_cast<short*>(destination_);
@@ -920,8 +919,8 @@ void meshopt_encodeFilterQuat(void* destination_, size_t count, size_t stride, i
 
 void meshopt_encodeFilterExp(void* destination_, size_t count, size_t stride, int bits, const float* data)
 {
-	assert(stride > 0 && stride % 4 == 0);
-	assert(bits >= 1 && bits <= 24);
+	ASSERT(stride > 0 && stride % 4 == 0);
+	ASSERT(bits >= 1 && bits <= 24);
 
 	unsigned int* destination = static_cast<unsigned int*>(destination_);
 	size_t stride_float = stride / sizeof(float);

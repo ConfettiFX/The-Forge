@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -180,7 +180,7 @@ int Rig::FindJoint(const char* jointName)
 
 void Rig::FindJointChain(const char* jointNames[], size_t numNames, int jointChain[])
 {
-	int found = 0;
+	size_t found = 0;
 	for (int i = 0; i < mSkeleton.num_joints() && found < numNames; ++i)
 	{
 		const char* joint_name = mSkeleton.joint_names()[i];

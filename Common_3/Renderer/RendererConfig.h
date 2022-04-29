@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,12 +25,19 @@
 #ifndef FORGE_RENDERER_CONFIG_H
 #define FORGE_RENDERER_CONFIG_H
 
+//Support external config file override
+#if defined(EXTERNAL_RENDERER_CONFIG_FILEPATH)
+    #include EXTERNAL_RENDERER_CONFIG_FILEPATH
+#else
+
 #include "../OS/Core/Config.h"
 
 
 // Comment/uncomment includes to disable/enable rendering APIs
 #if defined(_WINDOWS)
+#ifndef _WINDOWS7
 #include "Direct3D12/Direct3D12Config.h"
+#endif
 #include "Direct3D11/Direct3D11Config.h"
 #include "Vulkan/VulkanConfig.h"
 #elif defined(XBOX)
@@ -76,7 +83,7 @@ enum
 
 // Enable raytracing if available
 // Possible renderers: D3D12, Vulkan, Metal
-#ifdef RAYTRACING_AVAILABLE
+#if defined(D3D12_RAYTRACING_AVAILABLE) || defined(VK_RAYTRACING_AVAILABLE) || defined(MTL_RAYTRACING_AVAILABLE)
 #define ENABLE_RAYTRACING
 #endif
 
@@ -109,4 +116,5 @@ enum
 #define USE_MULTIPLE_RENDER_APIS
 #endif
 
+#endif
 #endif

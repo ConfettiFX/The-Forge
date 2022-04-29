@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <time.h>
+#include "../Interfaces/ITime.h"
 
 /************************************************************************/
 // Time Related Functions
@@ -46,7 +47,7 @@ uint32_t getSystemTime()
 	return (uint32_t)ms;
 }
 
-int64_t getUSec()
+int64_t getUSec(bool precise)
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -157,8 +157,6 @@ class WaveIntrinsics: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		settings.mShaderTarget = shader_target_6_0;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -350,17 +348,17 @@ class WaveIntrinsics: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				if (uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
-					pMovePosition = ctx->pPosition;
-				else
-					pMovePosition = NULL;
-				return true;
-			}, this
+			if (uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
+				pMovePosition = ctx->pPosition;
+			else
+				pMovePosition = NULL;
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { pMovePosition = NULL; gMoveDelta = ctx->mFloat2; return true; } };
 		addInputAction(&actionDesc);
@@ -535,6 +533,12 @@ class WaveIntrinsics: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 		/************************************************************************/

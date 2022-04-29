@@ -1,8 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // John McDonald, Mark Kilgard. Crack-Free Point-Normal Triangles using Adjacent Edge Normals. 2010
@@ -136,8 +135,8 @@ static size_t hashBuckets(size_t count)
 template <typename T, typename Hash>
 static T* hashLookup(T* table, size_t buckets, const Hash& hash, const T& key, const T& empty)
 {
-	assert(buckets > 0);
-	assert((buckets & (buckets - 1)) == 0);
+	ASSERT(buckets > 0);
+	ASSERT((buckets & (buckets - 1)) == 0);
 
 	size_t hashmod = buckets - 1;
 	size_t bucket = hash.hash(key) & hashmod;
@@ -156,7 +155,7 @@ static T* hashLookup(T* table, size_t buckets, const Hash& hash, const T& key, c
 		bucket = (bucket + probe + 1) & hashmod;
 	}
 
-	assert(false && "Hash table is full"); // unreachable
+	ASSERT(false && "Hash table is full"); // unreachable
 	return 0;
 }
 
@@ -186,9 +185,9 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 {
 	using namespace meshopt;
 
-	assert(indices || index_count == vertex_count);
-	assert(index_count % 3 == 0);
-	assert(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(indices || index_count == vertex_count);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
 
 	meshopt_Allocator allocator;
 
@@ -205,7 +204,7 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		if (destination[index] == ~0u)
 		{
@@ -219,14 +218,14 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 			}
 			else
 			{
-				assert(destination[*entry] != ~0u);
+				ASSERT(destination[*entry] != ~0u);
 
 				destination[index] = destination[*entry];
 			}
 		}
 	}
 
-	assert(next_vertex <= vertex_count);
+	ASSERT(next_vertex <= vertex_count);
 
 	return next_vertex;
 }
@@ -235,14 +234,14 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 {
 	using namespace meshopt;
 
-	assert(indices || index_count == vertex_count);
-	assert(index_count % 3 == 0);
-	assert(stream_count > 0 && stream_count <= 16);
+	ASSERT(indices || index_count == vertex_count);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(stream_count > 0 && stream_count <= 16);
 
 	for (size_t i = 0; i < stream_count; ++i)
 	{
-		assert(streams[i].size > 0 && streams[i].size <= 256);
-		assert(streams[i].size <= streams[i].stride);
+		ASSERT(streams[i].size > 0 && streams[i].size <= 256);
+		ASSERT(streams[i].size <= streams[i].stride);
 	}
 
 	meshopt_Allocator allocator;
@@ -260,7 +259,7 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		if (destination[index] == ~0u)
 		{
@@ -274,21 +273,21 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 			}
 			else
 			{
-				assert(destination[*entry] != ~0u);
+				ASSERT(destination[*entry] != ~0u);
 
 				destination[index] = destination[*entry];
 			}
 		}
 	}
 
-	assert(next_vertex <= vertex_count);
+	ASSERT(next_vertex <= vertex_count);
 
 	return next_vertex;
 }
 
 void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t vertex_count, size_t vertex_size, const unsigned int* remap)
 {
-	assert(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
 
 	meshopt_Allocator allocator;
 
@@ -304,7 +303,7 @@ void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t v
 	{
 		if (remap[i] != ~0u)
 		{
-			assert(remap[i] < vertex_count);
+			ASSERT(remap[i] < vertex_count);
 
 			memcpy(static_cast<unsigned char*>(destination) + remap[i] * vertex_size, static_cast<const unsigned char*>(vertices) + i * vertex_size, vertex_size);
 		}
@@ -313,12 +312,12 @@ void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t v
 
 void meshopt_remapIndexBuffer(unsigned int* destination, const unsigned int* indices, size_t index_count, const unsigned int* remap)
 {
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		assert(remap[index] != ~0u);
+		ASSERT(remap[index] != ~0u);
 
 		destination[i] = remap[index];
 	}
@@ -328,10 +327,10 @@ void meshopt_generateShadowIndexBuffer(unsigned int* destination, const unsigned
 {
 	using namespace meshopt;
 
-	assert(indices);
-	assert(index_count % 3 == 0);
-	assert(vertex_size > 0 && vertex_size <= 256);
-	assert(vertex_size <= vertex_stride);
+	ASSERT(indices);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(vertex_size <= vertex_stride);
 
 	meshopt_Allocator allocator;
 
@@ -347,7 +346,7 @@ void meshopt_generateShadowIndexBuffer(unsigned int* destination, const unsigned
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		if (remap[index] == ~0u)
 		{
@@ -367,14 +366,14 @@ void meshopt_generateShadowIndexBufferMulti(unsigned int* destination, const uns
 {
 	using namespace meshopt;
 
-	assert(indices);
-	assert(index_count % 3 == 0);
-	assert(stream_count > 0 && stream_count <= 16);
+	ASSERT(indices);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(stream_count > 0 && stream_count <= 16);
 
 	for (size_t i = 0; i < stream_count; ++i)
 	{
-		assert(streams[i].size > 0 && streams[i].size <= 256);
-		assert(streams[i].size <= streams[i].stride);
+		ASSERT(streams[i].size > 0 && streams[i].size <= 256);
+		ASSERT(streams[i].size <= streams[i].stride);
 	}
 
 	meshopt_Allocator allocator;
@@ -391,7 +390,7 @@ void meshopt_generateShadowIndexBufferMulti(unsigned int* destination, const uns
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		if (remap[index] == ~0u)
 		{
@@ -411,9 +410,9 @@ void meshopt_generateAdjacencyIndexBuffer(unsigned int* destination, const unsig
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -440,7 +439,7 @@ void meshopt_generateAdjacencyIndexBuffer(unsigned int* destination, const unsig
 			unsigned int i0 = indices[i + e];
 			unsigned int i1 = indices[i + next[e]];
 			unsigned int i2 = indices[i + next[e + 1]];
-			assert(i0 < vertex_count && i1 < vertex_count && i2 < vertex_count);
+			ASSERT(i0 < vertex_count && i1 < vertex_count && i2 < vertex_count);
 
 			unsigned long long edge = ((unsigned long long)i0 << 32) | i1;
 			unsigned long long* entry = hashLookup(edge_table, edge_table_size, edge_hasher, edge, ~0ull);
@@ -464,7 +463,7 @@ void meshopt_generateAdjacencyIndexBuffer(unsigned int* destination, const unsig
 		{
 			unsigned int i0 = indices[i + e];
 			unsigned int i1 = indices[i + next[e]];
-			assert(i0 < vertex_count && i1 < vertex_count);
+			ASSERT(i0 < vertex_count && i1 < vertex_count);
 
 			// note: this refers to the opposite edge!
 			unsigned long long edge = ((unsigned long long)i1 << 32) | i0;
@@ -482,9 +481,9 @@ void meshopt_generateTessellationIndexBuffer(unsigned int* destination, const un
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -507,7 +506,7 @@ void meshopt_generateTessellationIndexBuffer(unsigned int* destination, const un
 		{
 			unsigned int i0 = indices[i + e];
 			unsigned int i1 = indices[i + next[e]];
-			assert(i0 < vertex_count && i1 < vertex_count);
+			ASSERT(i0 < vertex_count && i1 < vertex_count);
 
 			unsigned long long edge = ((unsigned long long)i0 << 32) | i1;
 			unsigned long long* entry = hashLookup(edge_table, edge_table_size, edge_hasher, edge, ~0ull);
@@ -526,7 +525,7 @@ void meshopt_generateTessellationIndexBuffer(unsigned int* destination, const un
 		{
 			unsigned int i0 = indices[i + e];
 			unsigned int i1 = indices[i + next[e]];
-			assert(i0 < vertex_count && i1 < vertex_count);
+			ASSERT(i0 < vertex_count && i1 < vertex_count);
 
 			// note: this refers to the opposite edge!
 			unsigned long long edge = ((unsigned long long)i1 << 32) | i0;

@@ -30,8 +30,10 @@
  * range of characters within the aggregated buffer.
  */
 
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4996)
+#endif
 
 #ifndef CGLTF_WRITE_H_INCLUDED__
 #define CGLTF_WRITE_H_INCLUDED__
@@ -1035,7 +1037,9 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 #endif /* #ifdef CGLTF_WRITE_IMPLEMENTATION */
 
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
 
 /* cgltf is distributed under MIT license:
  *

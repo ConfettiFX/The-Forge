@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -179,7 +179,7 @@ static bool MemoryStreamFlush(FileStream*)
 
 static bool MemoryStreamIsAtEnd(const FileStream* pStream)
 {
-	return pStream->mMemory.mCursor == pStream->mSize;
+	return (ssize_t)pStream->mMemory.mCursor == pStream->mSize;
 }
 /************************************************************************/
 // File Stream Functions

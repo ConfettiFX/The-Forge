@@ -1,6 +1,6 @@
 #pragma once
 /*
- * Copyright (c) 2019 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,7 +49,8 @@ enum
 
 struct ThreadSystem;
 
-void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, bool migrateEnabled = true ,const char* threadName = "");
+// If affinityMasks is not null it must point to an array of size numRequestedThreads, each elements indicates the affinityMask for that thread
+void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, uint32_t* affinityMasks = NULL, const char* threadName = "");
 
 void exitThreadSystem(ThreadSystem* pThreadSystem);
 

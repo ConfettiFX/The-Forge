@@ -55,6 +55,23 @@
           <VirtualDirectory Name="touch">
             <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouch.cpp"/>
           </VirtualDirectory>
+          <VirtualDirectory Name="hid">
+            <VirtualDirectory Name="hidparsers">
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS5Controller.cpp"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS5Controller.h"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS4Controller.cpp"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS4Controller.h"/>
+            </VirtualDirectory>
+            <File Name="../../lib/source/gainput/hid/GainputHID.cpp"/>
+            <File Name="../../lib/source/gainput/hid/GainputHID.h"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDTypes.h"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDWhitelist.cpp"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDWhitelist.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+        <VirtualDirectory Name="hidapi">
+          <File Name="../../lib/source/hidapi/hidapi.h"/>
+          <File Name="../../lib/source/hidapi/linux/hid.c"/>
         </VirtualDirectory>
       </VirtualDirectory>
     </VirtualDirectory>
@@ -172,9 +189,8 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;" C_Options="-g;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
-      </Compiler>
-      <Linker Options="" Required="yes"/>
+      <Compiler Options="-g;-std=c++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="-ludev" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
@@ -210,11 +226,11 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O2;-std=c++14;-Wall;" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-O2;-std=c++14;-Wall;-Werror;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
       </Compiler>
-      <Linker Options="-ldl;-pthread;" Required="yes">
+      <Linker Options="-ludev;-ldl;-pthread;" Required="yes">
         <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

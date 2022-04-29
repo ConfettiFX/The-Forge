@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,6 +34,7 @@
 #include "../../Renderer/IRenderer.h"
 
 // INTERFACES
+#include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IScripting.h"
 #include "../Interfaces/IProfiler.h"
@@ -68,12 +69,10 @@ bool   gUnloaded = true;
 float2 gCurrWindowSize;
 
 float2 gScreenPos;
-char gCpuProfileText[32] = { 0 };
+char gCpuProfileText[512];
 
-#ifndef __ANDROID__
 #ifdef ENABLE_FORGE_FONTS
-const char gGpuProfileTitleText[] = "-----GPU Times-----";
-#endif
+char gGpuProfileTitleText[1024];
 #endif
 
 GpuProfiler* getGpuProfiler(ProfileToken nProfileToken);
@@ -81,7 +80,7 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken);
 typedef struct GpuProfileDrawDesc
 {
 	float mChildIndent = 25.0f;
-	float mHeightOffset = 5.0f;
+	float mHeightOffset = 10.0f;
 } GpuProfileDrawDesc;
 
 static GpuProfileDrawDesc gDefaultGpuProfileDrawDesc = {};
@@ -318,9 +317,10 @@ typedef ThreadFunction ProfileThreadFunc;
 inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
 {
 	*pThread = (ThreadHandle*)tf_malloc(sizeof(ThreadHandle));
-	ThreadDesc desc;
+	ThreadDesc desc = {};
 	desc.pFunc = Func;
 	desc.pData = *pThread;
+	strncpy(desc.mThreadName, "ProfilerWebServer", sizeof(desc.mThreadName));
 	initThread(&desc, *pThread);
 }
 inline void ProfileThreadJoin(ProfileThread* pThread)
@@ -503,7 +503,7 @@ void profileDrawDetailedModeGrid(
 		lineWidget.mColor = color;
 		lineWidget.mAddItem = false;
 		gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &lineWidget, WIDGET_TYPE_DRAW_LINE));
-		luaRegisterWidget(gDetailedModeWidgets.back());
+		REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 		x += interLineDistance;
 	}
 #endif
@@ -768,7 +768,7 @@ void profileDrawDetailedMode(Profile& S)
 			rectWidget.mScale = scale;
 			rectWidget.mColor = color;
 			gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &rectWidget, WIDGET_TYPE_FILLED_RECT));
-			luaRegisterWidget(gDetailedModeWidgets.back());
+			REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 
 			// Add data to draw a tooltip for this timer.
 			DrawTextWidget textWidget;
@@ -776,7 +776,7 @@ void profileDrawDetailedMode(Profile& S)
 			textWidget.mColor = float4(1.f);
 			gDetailedModeTooltips.push_back(
 				ProfileDetailedModeTooltip(timer, uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &textWidget, WIDGET_TYPE_DRAW_TEXT)));
-			luaRegisterWidget(gDetailedModeTooltips.back().mWidget);
+			REGISTER_LUA_WIDGET(gDetailedModeTooltips.back().mWidget);
 			frameHeight = max(frameHeight, height * 1.2f);
 			++timerCount;
 		}
@@ -793,7 +793,7 @@ void profileDrawDetailedMode(Profile& S)
 		textWidget.mPos = float2(startWidthPixels + i * msToPixels, startHeightPixels - gCurrWindowSize.y * 0.03f);
 		textWidget.mColor = float4(1.f);
 		gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, indexStr, &textWidget, WIDGET_TYPE_DRAW_TEXT));
-		luaRegisterWidget(gDetailedModeWidgets.back());
+		REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 	}
 
 	// Backgroud vertical lines.
@@ -806,7 +806,7 @@ void profileDrawDetailedMode(Profile& S)
 	topLine.mColor = unpackA8B8G8R8(0x64646464);
 	topLine.mAddItem = true;
 	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "TopSeparator", &topLine, WIDGET_TYPE_DRAW_LINE));
-	luaRegisterWidget(gDetailedModeWidgets.back());
+	REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 
 	DrawLineWidget bottomLine;
 	bottomLine.mPos1 = float2(startWidthPixels, frameHeight);
@@ -814,14 +814,14 @@ void profileDrawDetailedMode(Profile& S)
 	bottomLine.mColor = unpackA8B8G8R8(0x64646464);
 	bottomLine.mAddItem = true;
 	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "BottomSeparator", &bottomLine, WIDGET_TYPE_DRAW_LINE));
-	luaRegisterWidget(gDetailedModeWidgets.back());
+	REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 	// Tooltip widget.
 
 	DrawTooltipWidget tooltip;
 	tooltip.mShowTooltip = &gShowTooltip;
 	tooltip.mText = gTooltipData;
 	gDetailedModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "Tooltips", &tooltip, WIDGET_TYPE_DRAW_TOOLTIP));
-	luaRegisterWidget(gDetailedModeWidgets.back());
+	REGISTER_LUA_WIDGET(gDetailedModeWidgets.back());
 #endif
 }
 
@@ -892,12 +892,12 @@ void profileDrawPlotMode(Profile& S)
 	lineSeparator.mColor = unpackA8B8G8R8(0x64646464);
 	lineSeparator.mAddItem = false;
 	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
-	luaRegisterWidget(gPlotModeWidgets.back());
+	REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 
 	lineSeparator.mPos1 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightStart);
 	lineSeparator.mPos2 = float2(gCurrWindowSize.x - baseWidthOffset, timeHeightEnd);
 	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "PlotTimelineSeparator2", &lineSeparator, WIDGET_TYPE_DRAW_LINE));
-	luaRegisterWidget(gPlotModeWidgets.back());
+	REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 
 	// Draw Reference times and reference lines.
 	for (uint32_t i = 0; i <= (uint32_t)timelineCount; ++i)
@@ -921,20 +921,20 @@ void profileDrawPlotMode(Profile& S)
 		lineSeparator.mPos2 = float2(xEnd, y);
 		lineSeparator.mColor = unpackA8B8G8R8(0x32323232);
 		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, yStr, &lineSeparator, WIDGET_TYPE_DRAW_LINE));
-		luaRegisterWidget(gPlotModeWidgets.back());
+		REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 
 		DrawTextWidget text;
 		text.mPos = float2(baseWidthOffset, y);
 		text.mColor = float4(1.f);
 		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, resultStr, &text, WIDGET_TYPE_DRAW_TEXT));
-		luaRegisterWidget(gPlotModeWidgets.back());
+		REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 	}
 
 	// Add some space after the graph drawing.
 	CursorLocationWidget cursor;
 	cursor.mLocation = float2(baseWidthOffset, timeHeightEnd * 1.05f);
 	gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &cursor, WIDGET_TYPE_CURSOR_LOCATION));
-	luaRegisterWidget(gPlotModeWidgets.back());
+	REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 
 	// Draw Timer Infos.
 	for (uint32_t i = 0; i < (uint32_t)gPlotModeData.size(); ++i)
@@ -946,14 +946,14 @@ void profileDrawPlotMode(Profile& S)
 		oneLineCheckbox.pData = &gPlotModeData[i].mEnabled;
 		oneLineCheckbox.mColor = color;
 		gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, timerInfo.pName, &oneLineCheckbox, WIDGET_TYPE_ONE_LINE_CHECKBOX));
-		luaRegisterWidget(gPlotModeWidgets.back());
+		REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 
 		// Only 6 timer names in one line to not overflow horizontally.
 		if ((i + 1) % 10 != 0)
 		{
 			HorizontalSpaceWidget space;
 			gPlotModeWidgets.push_back(uiCreateComponentWidget(pWidgetUIComponent, "", &space, WIDGET_TYPE_HORIZONTAL_SPACE));
-			luaRegisterWidget(gPlotModeWidgets.back());
+			REGISTER_LUA_WIDGET(gPlotModeWidgets.back());
 		}
 	}
 #endif
@@ -987,18 +987,18 @@ void profileDrawTimerMode(Profile& S)
 	ColumnWidget headerColumn;
 	headerColumn.mNumColumns = (uint32_t)header.size();
 	headerColumn.mPerColumnWidgets = eastl::move(header);
-	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "Header", &headerColumn, WIDGET_TYPE_COLUMN));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "Header", &headerColumn, WIDGET_TYPE_COLUMN));
 
 	SeparatorWidget separator;
-	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	// Add other coloumn data.
 	for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
 	{
 		ColorLabelWidget colorLabel;
 		colorLabel.mColor = gFernGreenColor;
-		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
-		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+		REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, S.GroupInfo[groupIndex].pName, &colorLabel, WIDGET_TYPE_COLOR_LABEL));
+		REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 		// Timers are not 1-1 with the groups so search entire list(not very large) every time.
 		for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
@@ -1047,12 +1047,12 @@ void profileDrawTimerMode(Profile& S)
 				ColumnWidget timerColWidget;
 				timerColWidget.mNumColumns = (uint32_t)timerCol.size();
 				timerColWidget.mPerColumnWidgets = timerCol;
-				luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
+				REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, S.TimerInfo[timerIndex].pName, &timerColWidget, WIDGET_TYPE_COLUMN));
 				gWidgetTable.push_back(timerCol);
 			}
 		}
 
-		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+		REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 	}
 #endif
 }
@@ -1284,7 +1284,6 @@ void drawGpuProfileRecursive(
 
 float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfileToken, FontDrawDesc* pDrawDesc)
 {
-#ifndef __ANDROID__
 #ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDrawDesc);
 
@@ -1307,20 +1306,24 @@ float2 cmdDrawGpuProfile(Cmd* pCmd, float2 screenCoordsInPx, ProfileToken nProfi
 #else
 	return float2(0.f, 0.f);
 #endif
-#else 
-	return float2(0.f, 0.f);
-#endif
 }
 
 float2 cmdDrawCpuProfile(Cmd* pCmd, float2 screenCoordsInPx, FontDrawDesc* pDrawDesc)
 {
 #ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDrawDesc);
-
-	sprintf(gCpuProfileText, "CPU %f ms", getCpuAvgFrameTime());
-
+	
 	pDrawDesc->pText = gCpuProfileText;
 
+	//print cpu name
+#if !defined(NX64)
+	snprintf(gCpuProfileText, sizeof(gCpuProfileText), "%s", getCpuInfo()->name);
+	cmdDrawTextWithFont(pCmd, screenCoordsInPx, pDrawDesc);
+#endif
+
+	//print cpu time
+	screenCoordsInPx += float2(30.0f, 45.0f);
+	snprintf(gCpuProfileText, sizeof(gCpuProfileText), "%f ms", getCpuAvgFrameTime());
 	cmdDrawTextWithFont(pCmd, screenCoordsInPx, pDrawDesc);
 
 	float2 totalTextSizePx = fntMeasureFontText(gCpuProfileText, pDrawDesc);
@@ -1450,11 +1453,11 @@ void profileLoadWidgetUI(Profile& S)
 	topMenuCol.mNumColumns = (uint32_t)topMenu.size();
 	topMenuCol.mPerColumnWidgets = topMenu;
 
-	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "topmenu", &topMenuCol, WIDGET_TYPE_COLUMN));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "topmenu", &topMenuCol, WIDGET_TYPE_COLUMN));
 	gWidgetTable.push_back(topMenu);
 
 	SeparatorWidget separator;
-	luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	if (gProfileMode == PROFILE_MODE_TIMER)
 	{
@@ -1466,7 +1469,7 @@ void profileLoadWidgetUI(Profile& S)
 		plotLines.mPlotScale = &gHistogramSize;
 		plotLines.mTitle = gFrameTimerTitle;
 
-		luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+		REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
 		for (uint32_t i = 0; i < S.nGroupCount; ++i)
 		{
 			if (S.GroupInfo[i].Type == ProfileTokenTypeGpu)
@@ -1478,7 +1481,7 @@ void profileLoadWidgetUI(Profile& S)
 				plotLines.mPlotScale = &gHistogramSize;
 				plotLines.mTitle = gGPUTimerTitle[i];
 
-				luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
+				REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "", &plotLines, WIDGET_TYPE_PLOT_LINES));
 			}
 		}
 
@@ -1508,7 +1511,7 @@ void profileLoadWidgetUI(Profile& S)
 					curve.mNumPoints = FRAME_HISTORY_LEN;
 					curve.mThickness = 1.f;
 					curve.mColor = color;
-					luaRegisterWidget(uiCreateComponentWidget(pWidgetUIComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE));
+					REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWidgetUIComponent, "Curves", &curve, WIDGET_TYPE_DRAW_CURVE));
 					gPlotModeData.push_back(graphTimer);
 				}
 			}
@@ -1811,6 +1814,9 @@ void initProfiler(ProfilerDesc* pDesc)
 #endif
 	//store active gpu settings
 	ProfileGet()->pGpuSettings = pDesc->pRenderer->pActiveGpuSettings;
+
+	snprintf(gGpuProfileTitleText, sizeof(gGpuProfileTitleText), "%s \t\t\t\t Driver: %s", pDesc->pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName,
+		pDesc->pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuDriverVersion);
 #endif
 
 	// PROFILER UI
@@ -1849,23 +1855,23 @@ void initProfiler(ProfilerDesc* pDesc)
 		dpiScale = dpiScaleArr[0];
 	}
 
-	guiMenuDesc.mStartPosition = vec2(pDesc->mWidthUI - 300.0f * dpiScale, pDesc->mHeightUI * 0.5f);
+	guiMenuDesc.mStartPosition = vec2(pDesc->mWidthUI - 300.0f * dpiScale, pDesc->mHeightUI * 0.8f);
 
 	uiCreateComponent("Micro Profiler", &guiMenuDesc, &pMenuUIComponent);
 
 	CheckboxWidget checkbox;
 	checkbox.pData = &gProfilerWidgetUIEnabled;
-	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Toggle Profiler", &checkbox, WIDGET_TYPE_CHECKBOX));
 
 	SeparatorWidget separator;
-	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	ButtonWidget dumpButtonWidget;
 	UIWidget*     pDumpButton = uiCreateComponentWidget(pMenuUIComponent, "Dump Profile", &dumpButtonWidget, WIDGET_TYPE_BUTTON);
 	pDumpButton->pOnDeactivatedAfterEdit = profileCallbkDumpFramesToFile;
-	luaRegisterWidget(pDumpButton);
+	REGISTER_LUA_WIDGET(pDumpButton);
 
-	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "", &separator, WIDGET_TYPE_SEPARATOR));
 
 	SliderFloatWidget sliderFloat;
 	sliderFloat.pData = &gGuiTransparency;
@@ -1874,7 +1880,7 @@ void initProfiler(ProfilerDesc* pDesc)
 	sliderFloat.mStep = 0.01f;
 	memset(sliderFloat.mFormat, 0, MAX_FORMAT_STR_LENGTH);
 	strcpy(sliderFloat.mFormat, "%.2f");
-	luaRegisterWidget(uiCreateComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pMenuUIComponent, "Transparency", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT));
 #endif
 }
 

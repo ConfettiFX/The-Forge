@@ -16,13 +16,16 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidWindow.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\CPUConfig.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\UnixFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\stbtt.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\FontSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
@@ -34,7 +37,11 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\hwcaps.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_x86_linux_or_android.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
@@ -83,21 +90,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lutf8lib.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lvm.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\lua-5.3.5\src\lzio.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
@@ -150,7 +142,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
@@ -257,6 +248,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -282,6 +274,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

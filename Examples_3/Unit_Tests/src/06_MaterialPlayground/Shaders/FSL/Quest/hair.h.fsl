@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -98,12 +98,6 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6)
 	DATA(uint, NumPointLights, None);
 };
 
-CBUFFER(cbDirectionalLights, UPDATE_FREQ_NONE, b4, binding = 7)
-{
-	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
-	DATA(uint, NumDirectionalLights, None);
-};
-
 // TODO: fix this
 #ifdef METAL
 	RES(RWBuffer(uint), DepthsTexture,  UPDATE_FREQ_NONE, u0, binding = 6);
@@ -122,6 +116,12 @@ RES(Tex2DArray(float), InvAlphaTexture, UPDATE_FREQ_NONE, t6, binding = 7);
 #endif
 
 // UPDATE_FREQ_PER_FRAME
+CBUFFER(cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b4, binding = 7)
+{
+	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
+	DATA(uint, NumDirectionalLights, None);
+};
+
 #if !defined(HAIR_SHADOW)
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {

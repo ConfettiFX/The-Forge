@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,8 +32,20 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* prevent 64-bit overflow when computing relative timestamp
+    see https://gist.github.com/jspohr/3dc4f00033d79ec5bdaf67bc46c813e3
+*/
+/* TODO: Move this function to the Math Library as soon as it's in C */
+static inline int64_t int64MulDiv(int64_t value, int64_t numer, int64_t denom)
+{
+    int64_t q = value / denom;
+    int64_t r = value % denom;
+    return q * numer + r * numer / denom;
+}
+
 // High res timer functions
-int64_t getUSec(void);
+int64_t getUSec(bool precise);
 int64_t getTimerFrequency(void);
 
 // Time related functions

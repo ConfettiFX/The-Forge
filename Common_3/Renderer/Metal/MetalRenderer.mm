@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -214,6 +214,7 @@ namespace RENDERER_CPP_NAMESPACE {
 
 MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format);
 MTLLoadAction   util_to_mtl_load_action(const LoadActionType loadActionType);
+MTLStoreAction  util_to_mtl_store_action(const StoreActionType storeActionType);
 
 void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource);
 
@@ -319,18 +320,16 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 	ASSERT(pDescriptorSet);
 	ASSERT(index < pDescriptorSet->mMaxSets);
 
-	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
-
 	if (pDescriptorSet->pRootDescriptorData)
 	{
 		RootDescriptorData* pData = pDescriptorSet->pRootDescriptorData + index;
-		for (uint32_t i = 0; i < pRootSignature->mRootBufferCount; ++i)
+		for (uint32_t i = 0; i < pDescriptorSet->mRootBufferCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pBuffers[i];
 			util_bind_root_cbv(pCmd, pHandle);
 		}
 
-		for (uint32_t i = 0; i < pRootSignature->mRootTextureCount; ++i)
+		for (uint32_t i = 0; i < pDescriptorSet->mRootTextureCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pTextures[i];
 
@@ -348,7 +347,7 @@ void mtl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescrip
 			}
 		}
 
-		for (uint32_t i = 0; i < pRootSignature->mRootSamplerCount; ++i)
+		for (uint32_t i = 0; i < pDescriptorSet->mRootSamplerCount; ++i)
 		{
 			const RootDescriptorHandle* pHandle = &pData->pSamplers[i];
 
@@ -495,6 +494,9 @@ void mtl_addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, D
 	pDescriptorSet->mUpdateFrequency = updateFreq;
 	pDescriptorSet->mNodeIndex = nodeIndex;
 	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
+	pDescriptorSet->mRootTextureCount = pRootSignature->mRootTextureCount;
+	pDescriptorSet->mRootBufferCount = pRootSignature->mRootBufferCount;
+	pDescriptorSet->mRootSamplerCount = pRootSignature->mRootSamplerCount;
 
 	if (needRootData)
 	{
@@ -611,15 +613,15 @@ void mtl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 	{
 		for (uint32_t i = 0; i < pDescriptorSet->mMaxSets; ++i)
 		{
-			for (uint32_t b = 0; b < pDescriptorSet->pRootSignature->mRootBufferCount; ++b)
+			for (uint32_t b = 0; b < pDescriptorSet->mRootBufferCount; ++b)
 			{
 				pDescriptorSet->pRootDescriptorData[i].pBuffers[b].pResource = nil;
 			}
-			for (uint32_t t = 0; t < pDescriptorSet->pRootSignature->mRootTextureCount; ++t)
+			for (uint32_t t = 0; t < pDescriptorSet->mRootTextureCount; ++t)
 			{
 				pDescriptorSet->pRootDescriptorData[i].pTextures[t].pResource = nil;
 			}
-			for (uint32_t s = 0; s < pDescriptorSet->pRootSignature->mRootSamplerCount; ++s)
+			for (uint32_t s = 0; s < pDescriptorSet->mRootSamplerCount; ++s)
 			{
 				pDescriptorSet->pRootDescriptorData[i].pSamplers[s].pResource = nil;
 			}
@@ -913,6 +915,16 @@ static void util_specialize_function(id<MTLLibrary> lib, const ShaderConstant* p
 /************************************************************************/
 // Pipeline state functions
 /************************************************************************/
+MTLColorWriteMask util_to_color_mask(uint32_t colorMask)
+{
+	MTLColorWriteMask mtlMask =
+		((colorMask & 0x1) ? MTLColorWriteMaskRed   : 0u )|
+		((colorMask & 0x2) ? MTLColorWriteMaskGreen : 0u )|
+		((colorMask & 0x4) ? MTLColorWriteMaskBlue  : 0u )|
+		((colorMask & 0x8) ? MTLColorWriteMaskAlpha : 0u );
+	return mtlMask;
+}
+
 void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttachmentDescriptorArray* attachments, uint32_t attachmentCount)
 {
 	int blendDescIndex = 0;
@@ -954,6 +966,7 @@ void util_to_blend_desc(const BlendStateDesc* pDesc, MTLRenderPipelineColorAttac
 			attachments[i].destinationRGBBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstFactors[blendDescIndex]];
 			attachments[i].sourceAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mSrcAlphaFactors[blendDescIndex]];
 			attachments[i].destinationAlphaBlendFactor = gMtlBlendConstantTranslator[pDesc->mDstAlphaFactors[blendDescIndex]];
+			attachments[i].writeMask = util_to_color_mask(pDesc->mMasks[blendDescIndex]);
 		}
 
 		if (pDesc->mIndependentBlend)
@@ -977,20 +990,26 @@ id<MTLDepthStencilState> util_to_depth_state(Renderer* pRenderer, const DepthSta
 	// Set comparison function to always if depth test is disabled
 	descriptor.depthCompareFunction = pDesc->mDepthTest ? gMtlComparisonFunctionTranslator[pDesc->mDepthFunc] : MTLCompareFunctionAlways;
 	descriptor.depthWriteEnabled = pDesc->mDepthWrite;
-	descriptor.backFaceStencil.stencilCompareFunction =
-		pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc] : MTLCompareFunctionAlways;
-	descriptor.backFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthBackFail];
-	descriptor.backFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilBackFail];
-	descriptor.backFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilBackPass];
-	descriptor.backFaceStencil.readMask = pDesc->mStencilReadMask;
-	descriptor.backFaceStencil.writeMask = pDesc->mStencilWriteMask;
-	descriptor.frontFaceStencil.stencilCompareFunction =
-		pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc] : MTLCompareFunctionAlways;
-	descriptor.frontFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthFrontFail];
-	descriptor.frontFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontFail];
-	descriptor.frontFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontPass];
-	descriptor.frontFaceStencil.readMask = pDesc->mStencilReadMask;
-	descriptor.frontFaceStencil.writeMask = pDesc->mStencilWriteMask;
+    if(pDesc->mStencilTest)
+    {
+        descriptor.backFaceStencil.stencilCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc];
+        descriptor.backFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthBackFail];
+        descriptor.backFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilBackFail];
+        descriptor.backFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilBackPass];
+        descriptor.backFaceStencil.readMask = pDesc->mStencilReadMask;
+        descriptor.backFaceStencil.writeMask = pDesc->mStencilWriteMask;
+        descriptor.frontFaceStencil.stencilCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc];
+        descriptor.frontFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthFrontFail];
+        descriptor.frontFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontFail];
+        descriptor.frontFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontPass];
+        descriptor.frontFaceStencil.readMask = pDesc->mStencilReadMask;
+        descriptor.frontFaceStencil.writeMask = pDesc->mStencilWriteMask;
+    }
+    else
+    {
+        descriptor.backFaceStencil = nil;
+        descriptor.frontFaceStencil = nil;
+    }
 
 	id<MTLDepthStencilState> ds = [pRenderer->pDevice newDepthStencilStateWithDescriptor:descriptor];
 	ASSERT(ds);
@@ -1492,7 +1511,15 @@ VkResult vkAllocateMemory(
 	{
 		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)tf_calloc(1, sizeof(VkDeviceMemory_T));
 		memory->pHeap = [device->pDevice newHeapWithDescriptor:heapDesc];
+		ASSERT(memory->pHeap);
+		// need to return out of device memory here as well
+		// as new heap will return null with no error message
+		// if device is out of available memory
 		*pMemory = memory;
+		if (!memory->pHeap)
+		{
+			return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+		}
 
 		if ((device->mHeapCount + 1) > device->mHeapCapacity)
 		{
@@ -1707,7 +1734,15 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 
 		eastl::string mDeviceName = [pRenderer->pDevice.name UTF8String];
 		strncpy(gpuVendor.mGpuName, mDeviceName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
+	
 
+		uint32_t familyTier = getFamilyTier(pRenderer);
+		
+		NSProcessInfo *pInfo = [NSProcessInfo processInfo];
+		NSString *version = [pInfo operatingSystemVersionString];
+		
+		sprintf(gpuVendor.mGpuDriverVersion, "   GpuFamily: %d     OSVersion: %s", familyTier, version.UTF8String);
+		
 #ifndef TARGET_IOS
 		eastl::string outModelId;
 		retrieveSystemProfilerInformation(outModelId);
@@ -1838,12 +1873,16 @@ void mtl_initRenderer(const char* appName, const RendererDesc* settings, Rendere
 		// Heaps and Placement heaps supported on all iOS devices. Only restriction is iOS version
 		if (@available(iOS 10.0, *))
 		{
-			gpuSettings[0].mHeaps = 1;
+			BOOL isiOSAppOnMac = false;
+			if (@available(iOS 14.0, *)) {
+				isiOSAppOnMac = [NSProcessInfo processInfo].isiOSAppOnMac;
+			}
+			gpuSettings[0].mHeaps = !isiOSAppOnMac;
 
 #if defined(ENABLE_HEAP_PLACEMENT)
 			if (@available(iOS 13.0, *))
 			{
-				gpuSettings[0].mPlacementHeaps = 1;
+				gpuSettings[0].mPlacementHeaps = !isiOSAppOnMac;
 			}
 #endif
 		}
@@ -2261,14 +2300,19 @@ void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain
 		}
 	}
 #endif
+	// Set the view pixel format to match the swapchain's pixel format.
+	layer.pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mColorFormat);
 #else
 	pSwapChain->pForgeView = (__bridge UIView*)pDesc->mWindowHandle.window;
 	pSwapChain->pForgeView.autoresizesSubviews = TRUE;
 
-	CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+	if(@available(ios 13.0, *))
+	{
+		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+		// Set the view pixel format to match the swapchain's pixel format.
+		layer.pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mColorFormat);
+	}
 #endif
-	// Set the view pixel format to match the swapchain's pixel format.
-	layer.pixelFormat = (MTLPixelFormat)TinyImageFormat_ToMTLPixelFormat(pDesc->mColorFormat);
 
 	pSwapChain->mMTKDrawable = nil;
 
@@ -2285,6 +2329,7 @@ void mtl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain
 	descColor.mClearValue = pDesc->mColorClearValue;
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
+	descColor.mFlags |= TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET;
 
 	for (uint32_t i = 0; i < pDesc->mImageCount; ++i)
 	{
@@ -2502,7 +2547,7 @@ void mtl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pTexture);
 
-#if defined(ENABLE_RAYTRACING)
+#if defined(MTL_RAYTRACING_AVAILABLE)
 	if (pTexture->mpsTextureAllocator)
 	{
 		if (@available(macOS 10.15, iOS 13.0, *))
@@ -2589,12 +2634,26 @@ void mtl_addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppS
 
 	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
+	
+	//default sampler lod values
+	//used if not overriden by mSetLodRange or not Linear mipmaps
+	float minSamplerLod = 0;
+	float maxSamplerLod = pDesc->mMipMapMode == MIPMAP_MODE_LINEAR ? FLT_MAX : 0;
+	//user provided lods
+	if(pDesc->mSetLodRange)
+	{
+		minSamplerLod = pDesc->mMinLod;
+		maxSamplerLod = pDesc->mMaxLod;
+	}
 
 	MTLSamplerDescriptor* samplerDesc = [[MTLSamplerDescriptor alloc] init];
 	samplerDesc.minFilter = (pDesc->mMinFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
 	samplerDesc.magFilter = (pDesc->mMagFilter == FILTER_NEAREST ? MTLSamplerMinMagFilterNearest : MTLSamplerMinMagFilterLinear);
 	samplerDesc.mipFilter = (pDesc->mMipMapMode == MIPMAP_MODE_NEAREST ? MTLSamplerMipFilterNearest : MTLSamplerMipFilterLinear);
 	samplerDesc.maxAnisotropy = (pDesc->mMaxAnisotropy == 0 ? 1 : pDesc->mMaxAnisotropy);    // 0 is not allowed in Metal
+
+	samplerDesc.lodMinClamp = minSamplerLod;
+	samplerDesc.lodMaxClamp = maxSamplerLod;
 
 	const MTLSamplerAddressMode* addressModeTable = NULL;
 #if defined(ENABLE_SAMPLER_CLAMP_TO_BORDER)
@@ -3272,7 +3331,16 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].format = util_to_mtl_vertex_format(attrib->mFormat);
 
 			//setup layout for all bindings instead of just 0.
-			renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stride += TinyImageFormat_BitSizeOfBlock(attrib->mFormat) / 8;
+			if (!pDesc->pVertexLayout->mStrides[attrib->mBinding])
+			{
+				const uint32_t attribExtent = TinyImageFormat_BitSizeOfBlock(attrib->mFormat) / 8 + attrib->mOffset;
+				const uint32_t stride = (uint32_t)max( renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stride, (NSUInteger)attribExtent );
+				renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stride = stride;
+			}
+			else
+			{
+				renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stride = pDesc->pVertexLayout->mStrides[attrib->mBinding];
+			}
 			renderPipelineDesc.vertexDescriptor.layouts[bufferIndex].stepRate = 1;
 
 #if defined(ENABLE_TESSELLATION)
@@ -3296,18 +3364,20 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 		}
 	}
 
-#if !defined(TARGET_IOS)
-	// add pipeline settings to descriptor
-	switch (pDesc->mPrimitiveTopo)
+	//available on ios 12.0 and required for render_target_array_index semantics
+	if (@available(*, iOS 12.0))
 	{
-		case PRIMITIVE_TOPO_POINT_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint; break;
-		case PRIMITIVE_TOPO_LINE_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine; break;
-		case PRIMITIVE_TOPO_LINE_STRIP: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine; break;
-		case PRIMITIVE_TOPO_TRI_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
-		case PRIMITIVE_TOPO_TRI_STRIP: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
-		default: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
+		// add pipeline settings to descriptor
+		switch (pDesc->mPrimitiveTopo)
+		{
+			case PRIMITIVE_TOPO_POINT_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassPoint; break;
+			case PRIMITIVE_TOPO_LINE_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine; break;
+			case PRIMITIVE_TOPO_LINE_STRIP: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassLine; break;
+			case PRIMITIVE_TOPO_TRI_LIST: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
+			case PRIMITIVE_TOPO_TRI_STRIP: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
+			default: renderPipelineDesc.inputPrimitiveTopology = MTLPrimitiveTopologyClassTriangle; break;
+		}
 	}
-#endif
 
 	// assign blend state
 	if (pDesc->pBlendState)
@@ -3420,7 +3490,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	*ppPipeline = pPipeline;
 }
 
-#if defined(ENABLE_RAYTRACING)
+#if defined(MTL_RAYTRACING_AVAILABLE)
 extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
 extern void removeRaytracingPipeline(RaytracingPipeline* pPipeline);
 #endif
@@ -3442,7 +3512,7 @@ void mtl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** 
 			addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
 			break;
 		}
-#if defined(ENABLE_RAYTRACING)
+#if defined(MTL_RAYTRACING_AVAILABLE)
 		case (PIPELINE_TYPE_RAYTRACING):
 		{
 			addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
@@ -3467,7 +3537,7 @@ void mtl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 	pPipeline->mtlComputePipelineState = nil;
 	pPipeline->mtlDepthStencilState = nil;
 
-#if defined(ENABLE_RAYTRACING)
+#if defined(MTL_RAYTRACING_AVAILABLE)
 	if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
 	{
 		removeRaytracingPipeline(pPipeline->pRaytracingPipeline);
@@ -3602,7 +3672,13 @@ void mtl_cmdBindRenderTargets(
 
 	@autoreleasepool
 	{
+		id<MTLBuffer> visibilityResultBuffer = nil;
+		if(nil != pCmd->pRenderPassDesc)
+		{
+			visibilityResultBuffer = pCmd->pRenderPassDesc.visibilityResultBuffer;
+		}
 		pCmd->pRenderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+		pCmd->pRenderPassDesc.visibilityResultBuffer = visibilityResultBuffer;
 
 		// Flush color attachments
 		for (uint32_t i = 0; i < renderTargetCount; i++)
@@ -3645,19 +3721,12 @@ void mtl_cmdBindRenderTargets(
 				}
 			}
 
-			// For on-tile (memoryless) textures, we never need to load or store.
-			if (colorAttachment->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
-			{
-				pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
-					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
-				pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionDontCare;
-			}
-			else
-			{
-				pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
-					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
-				pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
-			}
+			pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
+				(pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
+			// For on-tile (memoryless) textures, we never need to store.
+			pCmd->pRenderPassDesc.colorAttachments[i].storeAction = colorAttachment->mLazilyAllocated ? MTLStoreActionDontCare :
+				(pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionsColor[i]) : MTLStoreActionStore);
+
 			if (pLoadActions != NULL)
 			{
 				const ClearValue& clearValue = pLoadActions->mClearColorValues[i];
@@ -3666,7 +3735,7 @@ void mtl_cmdBindRenderTargets(
 			}
 		}
 
-		if (pDepthStencil != nil)
+		if (pDepthStencil)
 		{
 			pCmd->pRenderPassDesc.depthAttachment.texture = pDepthStencil->pTexture->mtlTexture;
 			pCmd->pRenderPassDesc.depthAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
@@ -3684,32 +3753,23 @@ void mtl_cmdBindRenderTargets(
 				pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 			}
 
-			// For on-tile (memoryless) textures, we never need to load or store.
-			if (pDepthStencil->pTexture->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
+			pCmd->pRenderPassDesc.depthAttachment.loadAction =
+				(pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
+			// For on-tile (memoryless) textures, we never need to store.
+			pCmd->pRenderPassDesc.depthAttachment.storeAction = pDepthStencil->pTexture->mLazilyAllocated ? MTLStoreActionDontCare :
+				(pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionDepth) : MTLStoreActionStore);
+
+			if (isStencilEnabled)
 			{
-				pCmd->pRenderPassDesc.depthAttachment.loadAction =
-					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
-				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
 				pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare);
-				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+					pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
+				pCmd->pRenderPassDesc.stencilAttachment.storeAction = pDepthStencil->pTexture->mLazilyAllocated ? MTLStoreActionDontCare :
+					(pLoadActions ? util_to_mtl_store_action(pLoadActions->mStoreActionStencil) : MTLStoreActionStore);
 			}
 			else
 			{
-				pCmd->pRenderPassDesc.depthAttachment.loadAction =
-					pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
-				if (isStencilEnabled)
-				{
-					pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-						pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
-					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
-				}
-				else
-				{
-					pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
-					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-				}
+				pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
 			}
 
 			if (pLoadActions)
@@ -4548,8 +4608,11 @@ void mtl_acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore*
 
 	@autoreleasepool
 	{
-		CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
-		pSwapChain->mMTKDrawable = [layer nextDrawable];
+		if(@available(ios 13.0, *))
+		{
+				CAMetalLayer* layer = (CAMetalLayer*)pSwapChain->pForgeView.layer;
+			pSwapChain->mMTKDrawable = [layer nextDrawable];
+		}
 
 		pSwapChain->mIndex = (pSwapChain->mIndex + 1) % pSwapChain->mImageCount;
 		*pImageIndex = pSwapChain->mIndex;
@@ -4771,7 +4834,14 @@ void mtl_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 #if defined(ENABLE_COMMAND_BUFFER_DEBUG_MARKERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
-		[pCmd->mtlCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        if(pCmd->mtlRenderEncoder)
+        {
+            [pCmd->mtlRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        }
+        else
+        {
+            [pCmd->mtlCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+        }
 	}
 	else
 #endif
@@ -4785,7 +4855,14 @@ void mtl_cmdEndDebugMarker(Cmd* pCmd)
 #if defined(ENABLE_COMMAND_BUFFER_DEBUG_MARKERS)
 	if (@available(macOS 10.13, iOS 11.0, *))
 	{
-		[pCmd->mtlCommandBuffer popDebugGroup];
+        if(pCmd->mtlRenderEncoder)
+        {
+            [pCmd->mtlRenderEncoder popDebugGroup];
+        }
+        else
+        {
+            [pCmd->mtlCommandBuffer popDebugGroup];
+        }
 	}
 	else
 #endif
@@ -4968,16 +5045,27 @@ void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource)
 
 void util_set_heaps_graphics(Cmd* pCmd)
 {
-	// #TODO: Investigate iOS seems to not like the call to useHeaps
-	// Nothing renders if it is called and everything works without it
-	// #NOTE: Update 11/11/2020 - iOS 14.0+ seems to require this call but versions prior to this dont like it
+	// #TODO: Investigate iOS seems to not like the call to useHeaps: count: stages:
+	// #TODO: Investigate iOS seems to not like the call to useHeaps: stages:
+	// if using those on ios, then running without a debugger and without api validation causes pink screen.
+	// #NOTE: Update 02/20/2021 using the for loop and the default userHeap fixes that issue
+#ifdef TARGET_IOS
+	if (@available(*, iOS 11.0))
+	{
+		for(int i = 0 ; i < pCmd->pRenderer->mHeapCount;i++)
+		{
+			[pCmd->mtlRenderEncoder useHeap:pCmd->pRenderer->pHeaps[i]];
+		}
+	}
+#else
+
+    // #TODO: Investigate M1 seems to not like the call to useHeaps: stages: (run without XCode yields black screen)
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 #if defined(ENABLE_ARGUMENT_BUFFER_USE_STAGES)
 	if (@available(macOS 10.15, iOS 14.0, *))
 	{
 		[pCmd->mtlRenderEncoder useHeaps:pCmd->pRenderer->pHeaps
-								   count:pCmd->pRenderer->mHeapCount
-								  stages:MTLRenderStageVertex | MTLRenderStageFragment];
+                                   count:pCmd->pRenderer->mHeapCount];
 	}
 #else
 	if (@available(macOS 10.13, iOS 14.0, *))
@@ -4987,6 +5075,8 @@ void util_set_heaps_graphics(Cmd* pCmd)
 	}
 #endif
 #endif
+
+#endif
 }
 
 void util_set_heaps_compute(Cmd* pCmd)
@@ -4994,11 +5084,21 @@ void util_set_heaps_compute(Cmd* pCmd)
 	// #TODO: Investigate iOS seems to not like the call to useHeaps
 	// Nothing renders if it is called and everything works without it
 	// #NOTE: Update 11/11/2020 - iOS 14.0+ seems to require this call but versions prior to this dont like it
+#ifdef TARGET_IOS
+	if (@available(*, iOS 11.0))
+	{
+		for(int i = 0 ; i < pCmd->pRenderer->mHeapCount;i++)
+		{
+			[pCmd->mtlRenderEncoder useHeap:pCmd->pRenderer->pHeaps[i]];
+		}
+	}
+#else
 #if defined(ENABLE_ARGUMENT_BUFFERS)
 	if (@available(macOS 10.13, iOS 14.0, *))
 	{
 		[pCmd->mtlComputeEncoder useHeaps:pCmd->pRenderer->pHeaps count:pCmd->pRenderer->mHeapCount];
 	}
+#endif
 #endif
 }
 
@@ -5036,6 +5136,15 @@ MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format)
 {
 	switch (format)
 	{
+
+		case TinyImageFormat_R8G8_UINT: return MTLVertexFormatUChar2;
+		case TinyImageFormat_R8G8B8_UINT: return MTLVertexFormatUChar3;
+		case TinyImageFormat_R8G8B8A8_UINT: return MTLVertexFormatUChar4;
+
+		case TinyImageFormat_R8G8_SINT: return MTLVertexFormatChar2;
+		case TinyImageFormat_R8G8B8_SINT: return MTLVertexFormatChar3;
+		case TinyImageFormat_R8G8B8A8_SINT: return MTLVertexFormatChar4;
+
 		case TinyImageFormat_R8G8_UNORM: return MTLVertexFormatUChar2Normalized;
 		case TinyImageFormat_R8G8B8_UNORM: return MTLVertexFormatUChar3Normalized;
 		case TinyImageFormat_R8G8B8A8_UNORM: return MTLVertexFormatUChar4Normalized;
@@ -5074,6 +5183,9 @@ MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format)
 		case TinyImageFormat_R32G32B32_SINT: return MTLVertexFormatInt3;
 		case TinyImageFormat_R32G32B32A32_SINT: return MTLVertexFormatInt4;
 
+		case TinyImageFormat_R10G10B10A2_SNORM: return MTLVertexFormatInt1010102Normalized;
+		case TinyImageFormat_R10G10B10A2_UNORM: return MTLVertexFormatUInt1010102Normalized;
+
 		case TinyImageFormat_R32_UINT: return MTLVertexFormatUInt;
 		case TinyImageFormat_R32G32_UINT: return MTLVertexFormatUInt2;
 		case TinyImageFormat_R32G32B32_UINT: return MTLVertexFormatUInt3;
@@ -5096,6 +5208,14 @@ MTLLoadAction util_to_mtl_load_action(const LoadActionType loadActionType)
 		return MTLLoadActionLoad;
 	else
 		return MTLLoadActionClear;
+}
+
+MTLStoreAction util_to_mtl_store_action(const StoreActionType storeActionType)
+{
+	if (storeActionType == STORE_ACTION_DONTCARE)
+		return MTLStoreActionDontCare;
+	else
+		return MTLStoreActionStore;
 }
 
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
@@ -5273,7 +5393,8 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
 		pTexture->pMtlUAVDescriptors = (id<MTLTexture> __strong*)mem;
 
-	if (pDesc->mHeight == 1)
+	if (!(pDesc->mFlags & (TEXTURE_CREATION_FLAG_FORCE_2D | TEXTURE_CREATION_FLAG_FORCE_3D) ) && pDesc->mHeight == 1)
+
 		((TextureDesc*)pDesc)->mMipLevels = 1;
 
 	bool isDepthBuffer = TinyImageFormat_HasDepth(pDesc->mFormat) || TinyImageFormat_HasStencil(pDesc->mFormat);
@@ -5287,8 +5408,12 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		((TextureDesc*)pDesc)->mFormat = TinyImageFormat_D32_SFLOAT_S8_UINT;
 	}
 
+	if (pDesc->mFlags & TEXTURE_CREATION_FLAG_ALLOW_DISPLAY_TARGET)
+	{
+		pTexture->mOwnsImage = false;
+	}
 	// If we've passed a native handle, it means the texture is already on device memory, and we just need to assign it.
-	if (pDesc->pNativeHandle)
+	else if (pDesc->pNativeHandle)
 	{
 		pTexture->mOwnsImage = false;
 		
@@ -5312,8 +5437,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 			internal_log(eERROR, "Invalid pNativeHandle specified in TextureDesc", "addTexture");
 			return;
 		}
-		
-		
 	}
 	// Otherwise, we need to create a new texture.
 	else
@@ -5455,6 +5578,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 				textureDesc.resourceOptions = MTLResourceStorageModeMemoryless;
 
 				pTexture->mtlTexture = [pRenderer->pDevice newTextureWithDescriptor:textureDesc];
+				pTexture->mLazilyAllocated = true;
 				ASSERT(pTexture->mtlTexture);
 #if defined(ENABLE_GRAPHICS_DEBUG)
 				setTextureName(pRenderer, pTexture, "Memoryless Texture");
@@ -5546,7 +5670,6 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	pTexture->mNodeIndex = pDesc->mNodeIndex;
 	pTexture->mUav = pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE;
 	pTexture->mMipLevels = pDesc->mMipLevels;
-	pTexture->mFlags = pDesc->mFlags;
 	pTexture->mWidth = pDesc->mWidth;
 	pTexture->mHeight = pDesc->mHeight;
 	pTexture->mDepth = pDesc->mDepth;

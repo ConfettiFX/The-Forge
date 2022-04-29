@@ -106,8 +106,11 @@
     <Filter Include="Dependencies\basisu">
       <UniqueIdentifier>{a429a440-a05a-4264-9328-6e4a39cbba91}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dependencies\meshoptimizer">
-      <UniqueIdentifier>{7a70408e-2cbf-4332-b264-d6a3865394c9}</UniqueIdentifier>
+    <Filter Include="Dependencies\cpu_features">
+      <UniqueIdentifier>{b77f4f96-058c-4487-85e2-86ac1209da03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\WindowSystem">
+      <UniqueIdentifier>{ab2609b9-d70f-4ca1-a7c7-7799693cf760}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -284,9 +287,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerCommon.h">
       <Filter>OS\Scripting</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h">
-      <Filter>Dependencies\meshoptimizer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -575,50 +575,20 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_x86_windows.c">
+      <Filter>Dependencies\cpu_features</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\CPUConfig.cpp">
+      <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\stbtt.cpp">
+      <Filter>OS\Fonts</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsWindow.cpp">
+      <Filter>OS\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp">
-      <Filter>Dependencies\meshoptimizer</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
+      <Filter>OS\WindowSystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

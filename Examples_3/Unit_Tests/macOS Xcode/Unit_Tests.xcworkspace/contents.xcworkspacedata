@@ -5,19 +5,25 @@
       location = "container:"
       name = "Examples">
       <FileRef
-         location = "group:01_Transformations/01_Transformations.xcodeproj">
+         location = "group:19a_CodeHotReload_Game/19a_CodeHotReload_Game.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:02_Compute/02_Compute.xcodeproj">
+         location = "group:19_CodeHotReload_Main/19_CodeHotReload_Main.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:01_Transformations/01_Transformations.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:03_MultiThread/03_MultiThread.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:05_FontRendering/05_FontRendering.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
@@ -41,13 +47,13 @@
          location = "group:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:13_UserInterface/13_UserInterface.xcodeproj">
-      </FileRef>
-      <FileRef
          location = "group:14_WaveIntrinsincs/14_WaveIntrinsics.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:15_Transparency/15_Transparency.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:16_Raytracing/../15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:16_Raytracing/16_Raytracing.xcodeproj">
@@ -56,7 +62,10 @@
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:32_Window/32_Window.xcodeproj">
+         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:34_Input/34_Input.xcodeproj">
       </FileRef>
    </Group>
    <Group

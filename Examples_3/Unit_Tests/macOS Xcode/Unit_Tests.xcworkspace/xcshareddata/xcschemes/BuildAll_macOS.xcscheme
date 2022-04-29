@@ -379,9 +379,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "32_Window.app"
-               BlueprintName = "32_Window"
-               ReferencedContainer = "container:32_Window/32_Window.xcodeproj">
+               BuildableName = "15a_VisibilityBufferOIT.app"
+               BlueprintName = "15a_VisibilityBufferOIT"
+               ReferencedContainer = "container:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

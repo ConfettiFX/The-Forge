@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -147,22 +147,31 @@ unsigned int getNumCPUCores(void)
 
 void* ThreadFunctionStatic(void* data)
 {
-	ThreadDesc* pItem = (ThreadDesc*)(data);
-	pItem->pFunc(pItem->pData);
+	ThreadDesc item = *((ThreadDesc*)(data));
+	tf_free(data);
+	
+	if(item.mThreadName[0] != 0)
+		setCurrentThreadName(item.mThreadName);
+
+	// TODO: if Apple at some point allows to set affinity mask use mHasAffinityMask and mAffinityMask here.
+	
+	item.pFunc(item.pData);
 	return 0;
 }
 
 void initThread(ThreadDesc* pData, ThreadHandle* pHandle)
 {
-	int       res = pthread_create(pHandle, NULL, ThreadFunctionStatic, pData);
+	// Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
+	ThreadDesc* pDataCopy = (ThreadDesc*)tf_malloc(sizeof(ThreadDesc));
+	*pDataCopy = *pData;
+
+	int       res = pthread_create(pHandle, NULL, ThreadFunctionStatic, pDataCopy);
 	UNREF_PARAM(res);
 	ASSERT(res == 0);
 }
 
-void destroyThread(ThreadHandle handle)
+void joinThread(ThreadHandle handle)
 {
 	pthread_join(handle, NULL);
 	handle = NULL;
 }
-
-void joinThread(ThreadHandle handle) { pthread_join(handle, NULL); }

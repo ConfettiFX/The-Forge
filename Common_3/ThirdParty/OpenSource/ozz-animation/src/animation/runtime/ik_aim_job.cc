@@ -59,18 +59,21 @@ namespace {
 // line perpendicular to pivot-offset line, at the intersection with the sphere
 // defined by target position (centered on joint position). See geogebra
 // diagram: media/doc/src/ik_aim_offset.ggb
-bool ComputeOffsettedForward(Vector3 _forward, Vector3 _offset,
-                             Vector3 _target,
+bool ComputeOffsettedForward(Vector3 _forward, Vector3 _offset, Vector3 _target,
                              Vector3* _offsetted_forward) {
-  // AO is projected offset vector onto the normalized forward vector.
-  //assert(ozz::math::AreAllTrue1(ozz::math::IsNormalizedEst3(_forward)));
+  // assert(ozz::math::AreAllTrue1(ozz::math::IsNormalizedEst3(_forward)));
+  // AO -- projected offset vector onto the normalized forward vector.
+  // ACl2 -- Compute square length of ac using Pythagorean theorem.
+  // r2 -- Square length of target vector, aka circle radius.
+#if !VECTORMATH_MODE_SCALAR
   const FloatInVec AOl = dot(_forward, _offset);
-
-  // Compute square length of ac using Pythagorean theorem.
   const FloatInVec ACl2 = lengthSqr(_offset) - AOl * AOl;
-
-  // Square length of target vector, aka circle radius.
   const FloatInVec r2 = lengthSqr(_target);
+#else
+  const float AOl = dot(_forward, _offset);
+  const float ACl2 = lengthSqr(_offset) - AOl * AOl;
+  const float r2 = lengthSqr(_target);
+#endif
 
   // If offset is outside of the sphere defined by target length, the target
   // isn't reachable.
@@ -78,8 +81,12 @@ bool ComputeOffsettedForward(Vector3 _forward, Vector3 _offset,
     return false;
   }
 
-  // AIl is the length of the vector from offset to sphere intersection.
+  // AIl -- the length of the vector from offset to sphere intersection.
+#if !VECTORMATH_MODE_SCALAR
   const FloatInVec AIl = sqrt(r2 - ACl2);
+#else
+  const float AIl = sqrt(r2 - ACl2);
+#endif
 
   // The distance from offset position to the intersection with the sphere is
   // (AIl - AOl) Intersection point on the sphere can thus be computed.
@@ -93,7 +100,12 @@ bool IKAimJob::Run() const {
   if (!Validate()) {
     return false;
   }
+
+#if !VECTORMATH_MODE_SCALAR
   const FloatInVec zero(0.0f);
+#else
+  const float zero(0.0f);
+#endif
 
   // If matrices aren't invertible, they'll be all 0 (ozz::math
   // implementation), which will result in identity correction quaternions.
@@ -101,7 +113,11 @@ bool IKAimJob::Run() const {
 
   // Computes joint to target vector, in joint local-space (_js).
   const Vector3 joint_to_target_js = (inv_joint * target).getXYZ();
+#if !VECTORMATH_MODE_SCALAR
   const FloatInVec joint_to_target_js_len2 = lengthSqr(joint_to_target_js);
+#else
+  const float joint_to_target_js_len2 = lengthSqr(joint_to_target_js);
+#endif
 
   // Recomputes forward vector to account for offset.
   // If the offset is further than target, it won't be reachable.
@@ -115,7 +131,7 @@ bool IKAimJob::Run() const {
     *reached = lreached;
   }
 
-  if (!lreached || (joint_to_target_js_len2 == zero )) {
+  if (!lreached || (joint_to_target_js_len2 == zero)) {
     // Target can't be reached or is too close to joint position to find a
     // direction.
     *joint_correction = Quat::identity();
@@ -124,25 +140,29 @@ bool IKAimJob::Run() const {
 
   // Calculates joint_to_target_rot_ss quaternion which solves for
   // offsetted_forward vector rotating onto the target.
+  // TODO -- add fromVectors either here or to scalar math
   const Quat joint_to_target_rot_js =
       Quat::fromVectors(offsetted_forward, joint_to_target_js);
 
   // Calculates rotate_plane_js quaternion which aligns joint up to the pole
   // vector.
-  const Vector3 corrected_up_js =
-      rotate(joint_to_target_rot_js, up);
+  const Vector3 corrected_up_js = rotate(joint_to_target_rot_js, up);
 
   // Compute (and normalize) reference and pole planes normals.
   const Vector3 pole_vector_js = (inv_joint * pole_vector).getXYZ();
-  const Vector3 ref_joint_normal_js =
-      cross(pole_vector_js, joint_to_target_js);
-  const Vector3 joint_normal_js =
-      cross(corrected_up_js, joint_to_target_js);
+  const Vector3 ref_joint_normal_js = cross(pole_vector_js, joint_to_target_js);
+  const Vector3 joint_normal_js = cross(corrected_up_js, joint_to_target_js);
+
+#if !VECTORMATH_MODE_SCALAR
   const FloatInVec ref_joint_normal_js_len2 = lengthSqr(ref_joint_normal_js);
   const FloatInVec joint_normal_js_len2 = lengthSqr(joint_normal_js);
+#else
+  const float ref_joint_normal_js_len2 = lengthSqr(ref_joint_normal_js);
+  const float joint_normal_js_len2 = lengthSqr(joint_normal_js);
+#endif
 
   const Vector4 denoms(joint_to_target_js_len2, joint_normal_js_len2,
-           ref_joint_normal_js_len2, zero);
+                       ref_joint_normal_js_len2, zero);
 
   Vector3 rotate_plane_axis_js;
   Quat rotate_plane_js;
@@ -155,20 +175,38 @@ bool IKAimJob::Run() const {
     rotate_plane_axis_js = joint_to_target_js * rsqrts.getX();
 
     // Computes angle cosine between the 2 normalized plane normals.
+    // TODO -- add scalar bitwise for floats either here or to scalar math
+#if !VECTORMATH_MODE_SCALAR
     const FloatInVec rotate_plane_cos_angle = dot(
         joint_normal_js * rsqrts.getY(), ref_joint_normal_js * rsqrts.getZ());
-    const FloatInVec axis_flip =
-        andPerElem(dot(ref_joint_normal_js, corrected_up_js),
-            vector4int::mask_sign());
+    const FloatInVec axis_flip = andPerElem(
+        dot(ref_joint_normal_js, corrected_up_js), vector4int::mask_sign());
+#else
+    const float rotate_plane_cos_angle = dot(
+        joint_normal_js * rsqrts.getY(), ref_joint_normal_js * rsqrts.getZ());
+    ScalarFI temp;
+    temp.f = dot(ref_joint_normal_js, corrected_up_js);
+    temp.i = temp.i & (int)0x80000000;
+    const float axis_flip = temp.f;
+#endif
+
     const Vector3 rotate_plane_axis_flipped_js =
         xorPerElem(rotate_plane_axis_js, axis_flip);
 
     // Builds quaternion along rotation axis.
+#if !VECTORMATH_MODE_SCALAR
     const FloatInVec one(1.0f);
+#else
+    const float one = 1.0f;
+#endif
     rotate_plane_js = Quat::fromAxisCosAngle(
         rotate_plane_axis_flipped_js, clamp(-one, rotate_plane_cos_angle, one));
   } else {
+#if !VECTORMATH_MODE_SCALAR
     rotate_plane_axis_js = joint_to_target_js * rSqrtEstNR(denoms.getX());
+#else
+    rotate_plane_axis_js = joint_to_target_js * rsqrtf(denoms.getX());
+#endif
     rotate_plane_js = Quat::identity();
   }
 
@@ -184,17 +222,28 @@ bool IKAimJob::Run() const {
   }
 
   // Weights output quaternion.
-  
+
   // Fix up quaternions so w is always positive, which is required for NLerp
   // (with identity quaternion) to lerp the shortest path.
-  const Vector4 twisted_fu =
-      xorPerElem(Vector4(twisted), And(vector4int::mask_sign(),
-                            twisted.getW() < zero));
-
+#if !VECTORMATH_MODE_SCALAR
+  const Vector4 twisted_fu = xorPerElem(
+      Vector4(twisted), And(vector4int::mask_sign(), twisted.getW() < zero));
+#else
+  const Vector4 twisted_fu = xorPerElem(
+      Vector4(twisted), And(vector4int::mask_sign(),
+        twisted.getW() < zero
+			? vector4int::all_true()
+			: vector4int::all_false()));
+#endif
+  
   if (weight < 1.f) {
     // NLerp start and mid joint rotations.
     const Vector4 identity = Vector4::wAxis();
+#if !VECTORMATH_MODE_SCALAR
     const FloatInVec simd_weight = max(zero, FloatInVec(weight));
+#else
+    const float simd_weight = max(zero, weight);
+#endif
     *joint_correction =
         Quat(normalize(lerp(simd_weight, identity, twisted_fu)));
   } else {

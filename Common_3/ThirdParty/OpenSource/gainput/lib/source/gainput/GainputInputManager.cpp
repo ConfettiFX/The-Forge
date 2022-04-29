@@ -38,6 +38,9 @@ static gainput::InputManager* gGainputInputManager;
 #include <stdlib.h>
 
 #include "dev/GainputDev.h"
+#if defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_LINUX)
+#include "hid/GainputHID.h"
+#endif
 #include "../../include/gainput/GainputHelpers.h"
 
 
@@ -45,23 +48,24 @@ namespace gainput
 {
 
 InputManager::InputManager(bool useSystemTime, Allocator& allocator) :
-		allocator_(allocator),
-		devices_(allocator_),
-		nextDeviceId_(0),
-		listeners_(allocator_),
-		nextListenerId_(0),
-		sortedListeners_(allocator_),
-		modifiers_(allocator_),
-		nextModifierId_(0),
-		deltaState_(allocator_.New<InputDeltaState>(allocator_)),
-		currentTime_(0),
-        GAINPUT_CONC_CONSTRUCT(concurrentInputs_),
-		displayWidth_(-1),
-		displayHeight_(-1),
-		useSystemTime_(useSystemTime),
-		debugRenderingEnabled_(false),
-		debugRenderer_(0),
-		window_instance_(0)
+    mAllocator(allocator),
+	mDevices(mAllocator),
+	mNextDeviceID(0),
+	mListeners(mAllocator),
+    mNextListenerID(0),
+    mSortedListeners(mAllocator),
+    mModifiers(mAllocator),
+    mNextModifierID(0),
+    pDeltaState(NULL),
+    mCurrentTime(0),
+    GAINPUT_CONC_CONSTRUCT(mConcurrentInputs),
+    mDisplayWidth(-1),
+    mDisplayHeight(-1),
+    mUseSystemTime(useSystemTime),
+    mDebugRendererEnabled(false),
+    pDebugRenderer(NULL),
+    pWindowInstance(NULL),
+    mInitialized(false)
 {
 	GAINPUT_DEV_INIT(this);
 #ifdef GAINPUT_PLATFORM_ANDROID
@@ -69,18 +73,35 @@ InputManager::InputManager(bool useSystemTime, Allocator& allocator) :
 #endif
 }
 
-InputManager::~InputManager()
+void InputManager::Init(void* windowInstance)
 {
-	allocator_.Delete(deltaState_);
+    GAINPUT_ASSERT(!mInitialized);
 
-	for (DeviceMap::iterator it = devices_.begin();
-			it != devices_.end();
-			++it)
-	{
-		allocator_.Delete(it->second);
-	}
+    pWindowInstance = windowInstance;
+    pDeltaState = mAllocator.New<InputDeltaState>(mAllocator);
+#if defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_LINUX)
+    HIDInit(windowInstance);
+#endif
 
-	GAINPUT_DEV_SHUTDOWN(this);
+    mInitialized = true;
+}
+
+void InputManager::Exit()
+{
+    GAINPUT_ASSERT(mInitialized);
+
+#if defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_LINUX)
+    HIDExit();
+#endif
+    mAllocator.Delete(pDeltaState);
+
+    for (DeviceMap::iterator it = mDevices.begin(); it != mDevices.end(); ++it)
+    {
+        mAllocator.Delete(it->second);
+    }
+    mDevices.clear();
+
+    GAINPUT_DEV_SHUTDOWN(this);
 }
 
 void InputManager::ClearAllStates(gainput::DeviceId deviceId)
@@ -91,7 +112,7 @@ void InputManager::ClearAllStates(gainput::DeviceId deviceId)
 	DeviceButtonSpec buttonsDown[256];
 
 	size_t activeButtons = GetAnyButtonDown(buttonsDown, 256);
-	InputDeltaState* ds = listeners_.empty() ? 0 : deltaState_;
+	InputDeltaState* ds = mListeners.empty() ? 0 : pDeltaState;
 
 
 	for (size_t i = 0; i < activeButtons; i++)
@@ -131,11 +152,16 @@ void InputManager::ClearAllStates(gainput::DeviceId deviceId)
 }
 
 
-void
-InputManager::Update()
+void InputManager::Update()
 {
+    GAINPUT_ASSERT(mInitialized);
+
+#if defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_LINUX)
+    HIDPromptForDeviceStateReports(pDeltaState);
+#endif
+
     Change change;
-    while (GAINPUT_CONC_DEQUEUE(concurrentInputs_, change))
+    while (GAINPUT_CONC_DEQUEUE(mConcurrentInputs, change))
     {
         if (change.type == BT_BOOL)
         {
@@ -147,10 +173,10 @@ InputManager::Update()
         }
     }
     
-	InputDeltaState* ds = listeners_.empty() ? 0 : deltaState_;
+	InputDeltaState* ds = mListeners.empty() ? 0 : pDeltaState;
 
-	for (DeviceMap::iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 		if (!it->second->IsLateUpdate())
@@ -161,15 +187,15 @@ InputManager::Update()
 
 	GAINPUT_DEV_UPDATE(ds);
 
-	for (HashMap<ModifierId, DeviceStateModifier*>::iterator it = modifiers_.begin();
-			it != modifiers_.end();
+	for (HashMap<ModifierId, DeviceStateModifier*>::iterator it = mModifiers.begin();
+			it != mModifiers.end();
 			++it)
 	{
 		it->second->Update(ds);
 	}
 
-	for (DeviceMap::iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 		if (it->second->IsLateUpdate())
@@ -180,7 +206,7 @@ InputManager::Update()
 
 	if (ds)
 	{
-		ds->NotifyListeners(sortedListeners_);
+		ds->NotifyListeners(mSortedListeners);
 		ds->Clear();
 	}
 	
@@ -188,8 +214,8 @@ InputManager::Update()
 #ifdef GAINPUT_PLATFORM_IOS
 	//clear buttons
 	//only Does something for KeyboardIOS
-	for (DeviceMap::iterator it = devices_.begin();
-		 it != devices_.end();
+	for (DeviceMap::iterator it = mDevices.begin();
+		 it != mDevices.end();
 		 ++it)
 	{
 		if (it->second->GetType() == InputDevice::DT_KEYBOARD)
@@ -200,18 +226,16 @@ InputManager::Update()
 #endif
 }
 
-void
-InputManager::Update(uint64_t deltaTime)
+void InputManager::Update(uint64_t deltaTime)
 {
-	GAINPUT_ASSERT(useSystemTime_ == false);
-	currentTime_ += deltaTime;
+	GAINPUT_ASSERT(mUseSystemTime == false);
+	mCurrentTime += deltaTime;
 	Update();
 }
 
-uint64_t
-InputManager::GetTime() const
+uint64_t InputManager::GetTime() const
 {
-	if (useSystemTime_)
+	if (mUseSystemTime)
 	{
 #if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_QUEST) || defined(GAINPUT_PLATFORM_GGP) || defined(GAINPUT_PLATFORM_ORBIS) || defined(GAINPUT_PLATFORM_PROSPERO)
 	struct timespec ts;
@@ -256,15 +280,15 @@ InputManager::GetTime() const
 }
 	else
 	{
-		return currentTime_;
+		return mCurrentTime;
 	}
 }
 
 DeviceId
 InputManager::FindDeviceId(const char* typeName, unsigned index) const
 {
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 		if (strcmp(typeName, it->second->GetTypeName()) == 0
@@ -279,8 +303,8 @@ InputManager::FindDeviceId(const char* typeName, unsigned index) const
 DeviceId
 InputManager::FindDeviceId(InputDevice::DeviceType type, unsigned index) const
 {
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 		if (it->second->GetType() == type
@@ -295,15 +319,15 @@ InputManager::FindDeviceId(InputDevice::DeviceType type, unsigned index) const
 ListenerId
 InputManager::AddListener(InputListener* listener)
 {
-	listeners_[nextListenerId_] = listener;
+	mListeners[mNextListenerID] = listener;
 	ReorderListeners();
-	return nextListenerId_++;
+	return mNextListenerID++;
 }
 
 void
 InputManager::RemoveListener(ListenerId listenerId)
 {
-	listeners_.erase(listenerId);
+	mListeners.erase(listenerId);
 	ReorderListeners();
 }
 
@@ -319,44 +343,44 @@ static int CompareListeners(const void* a, const void* b)
 void
 InputManager::ReorderListeners()
 {
-	sortedListeners_.clear();
-	for (HashMap<ListenerId, InputListener*>::iterator it = listeners_.begin();
-		it != listeners_.end();
+	mSortedListeners.clear();
+	for (HashMap<ListenerId, InputListener*>::iterator it = mListeners.begin();
+		it != mListeners.end();
 		++it)
 	{
-		sortedListeners_.push_back(it->second);
+		mSortedListeners.push_back(it->second);
 	}
 
-	if (sortedListeners_.empty())
+	if (mSortedListeners.empty())
 	{
 		return;
 	}
 
-	qsort(&sortedListeners_[0], 
-		sortedListeners_.size(), 
-		sizeof(InputListener*), 
+	qsort(&mSortedListeners[0],
+		mSortedListeners.size(),
+		sizeof(InputListener*),
 		&CompareListeners);
 }
 
 ModifierId
 InputManager::AddDeviceStateModifier(DeviceStateModifier* modifier)
 {
-	modifiers_[nextModifierId_] = modifier;
-	return nextModifierId_++;
+	mModifiers[mNextModifierID] = modifier;
+	return mNextModifierID++;
 }
 
 void
 InputManager::RemoveDeviceStateModifier(ModifierId modifierId)
 {
-	modifiers_.erase(modifierId);
+	mModifiers.erase(modifierId);
 }
 
 size_t
 InputManager::GetAnyButtonDown(DeviceButtonSpec* outButtons, size_t maxButtonCount) const
 {
 	size_t buttonsFound = 0;
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end() && maxButtonCount > buttonsFound;
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end() && maxButtonCount > buttonsFound;
 			++it)
 	{
 		buttonsFound += it->second->GetAnyButtonDown(outButtons+buttonsFound, maxButtonCount-buttonsFound);
@@ -368,8 +392,8 @@ unsigned
 InputManager::GetDeviceCountByType(InputDevice::DeviceType type) const
 {
 	unsigned count = 0;
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 		if (it->second->GetType() == type)
@@ -391,8 +415,8 @@ InputManager::DeviceCreated(InputDevice* device)
 void
 InputManager::HandleEvent(XEvent& event)
 {
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 #if defined(GAINPUT_DEV)
@@ -434,8 +458,11 @@ InputManager::HandleEvent(XEvent& event)
 void
 InputManager::HandleMessage(const MSG& msg)
 {
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+    if (HIDHandleSystemMessage(&msg))
+        return;
+
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 #if defined(GAINPUT_DEV)
@@ -495,8 +522,8 @@ int32_t
 InputManager::HandleInput(AInputEvent* event, ANativeActivity* activity)
 {
 	int handled = 0;
-	for (DeviceMap::const_iterator it = devices_.begin();
-			it != devices_.end();
+	for (DeviceMap::const_iterator it = mDevices.begin();
+			it != mDevices.end();
 			++it)
 	{
 #if defined(GAINPUT_DEV)
@@ -564,11 +591,11 @@ InputManager::HandleDeviceInput(DeviceInput const& input)
 
 	if (input.buttonType == BT_BOOL)
 	{
-		EnqueueConcurrentChange(*device, *state, deltaState_, input.buttonId, input.value.b);
+		EnqueueConcurrentChange(*device, *state, pDeltaState, input.buttonId, input.value.b);
 	}
 	else if (input.buttonType == BT_FLOAT)
 	{
-		EnqueueConcurrentChange(*device, *state, deltaState_, input.buttonId, input.value.f);
+		EnqueueConcurrentChange(*device, *state, pDeltaState, input.buttonId, input.value.f);
 	}
 	else if (input.buttonType == BT_COUNT && input.deviceType == InputDevice::DT_PAD)
 	{
@@ -606,17 +633,17 @@ InputManager::StartDeviceStateSync(DeviceId deviceId)
 void
 InputManager::SetDebugRenderingEnabled(bool enabled)
 {
-	debugRenderingEnabled_ = enabled;
+	mDebugRendererEnabled = enabled;
 	if (enabled)
 	{
-		GAINPUT_ASSERT(debugRenderer_);
+		GAINPUT_ASSERT(pDebugRenderer);
 	}
 }
 
 void
 InputManager::SetDebugRenderer(DebugRenderer* debugRenderer)
 {
-	debugRenderer_ = debugRenderer;
+	pDebugRenderer = debugRenderer;
 }
 
 void
@@ -629,7 +656,7 @@ InputManager::EnqueueConcurrentChange(InputDevice& device, InputState& state, In
     change.buttonId = buttonId;
     change.type = BT_BOOL;
     change.b = value;
-    GAINPUT_CONC_ENQUEUE(concurrentInputs_, change);
+    GAINPUT_CONC_ENQUEUE(mConcurrentInputs, change);
 }
 
 void
@@ -642,7 +669,7 @@ InputManager::EnqueueConcurrentChange(InputDevice& device, InputState& state, In
     change.buttonId = buttonId;
     change.type = BT_FLOAT;
     change.f = value;
-    GAINPUT_CONC_ENQUEUE(concurrentInputs_, change);
+    GAINPUT_CONC_ENQUEUE(mConcurrentInputs, change);
 }
 
 }

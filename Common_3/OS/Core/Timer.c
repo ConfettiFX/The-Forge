@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,7 +46,7 @@ void initHiresTimer(HiresTimer* pTimer)
 
 int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset)
 {
-	int64_t currentTime = getUSec();
+	int64_t currentTime = getUSec(false);
 	int64_t elapsedTime = currentTime - pTimer->mStartTime;
 
 	// Correct for possible weirdness with changing internal frequency
@@ -80,4 +80,4 @@ float getHiresTimerSeconds(HiresTimer* pTimer, bool reset) { return (float)(getH
 
 float getHiresTimerSecondsAverage(HiresTimer* pTimer) { return (float)(getHiresTimerUSecAverage(pTimer) / 1e6); }
 
-void resetHiresTimer(HiresTimer* pTimer) { pTimer->mStartTime = getUSec(); }
+void resetHiresTimer(HiresTimer* pTimer) { pTimer->mStartTime = getUSec(false); }

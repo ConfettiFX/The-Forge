@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -56,12 +56,6 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b2, binding = 2)
 	DATA(uint, NumPointLights, None);
 };
 
-CBUFFER(cbDirectionalLights, UPDATE_FREQ_NONE, b3, binding = 3)
-{
-	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
-	DATA(uint, NumDirectionalLights, None);
-};
-
 RES(Tex2D(float2), brdfIntegrationMap, UPDATE_FREQ_NONE, t3, binding = 4);
 RES(TexCube(float4), irradianceMap, UPDATE_FREQ_NONE, t4, binding = 5);
 RES(TexCube(float4), specularMap, UPDATE_FREQ_NONE, t5, binding = 6);
@@ -85,6 +79,12 @@ CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 	DATA(float, fAOIntensity, None);
 	DATA(int, renderMode, None);
 	DATA(float, fNormalMapIntensity, None);
+};
+
+CBUFFER(cbDirectionalLights, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
+{
+	DATA(DirectionalLight, DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS], None);
+	DATA(uint, NumDirectionalLights, None);
 };
 
 // UPDATE_FREQ_PER_DRAW

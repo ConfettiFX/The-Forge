@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -120,14 +120,31 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 	if (!pid)
 	{
 		execvp(argPtrs[0], (char**)&argPtrs[0]);
-		return -1;    // Return -1 if we could not spawn the process
+		exit(1);    // Return 1 if we could not spawn the process (man page says values need to be in the range 0-255
+		// Don't return here, we want to terminate the child process, that was done by exit().
 	}
 	else if (pid > 0)
 	{
-		int exitCode = EINTR;
-		while (exitCode == EINTR)
-			wait(&exitCode);
-		return exitCode;
+		int waitStatus = 0;
+		waitpid(pid, &waitStatus, 0); // Use waitpid to make sure we wait for our forked process, not some other process created in another thread.
+		
+		if(WIFEXITED(waitStatus))
+		{
+			// Child process terminated normally
+			const int exitCode = WEXITSTATUS(waitStatus);
+			return exitCode;
+		}
+		// else process didn't terminate normally, to see how to extract
+		// information about termination reason check the man page for wait:
+		// https://man7.org/linux/man-pages/man2/waitpid.2.html
+		
+		LOGF(eINFO, "Child Procress failed");
+		if(WIFSIGNALED(waitStatus))
+		{
+			LOGF(eWARNING, "Child process terminated by signal: %d", WTERMSIG(waitStatus));
+		}
+		
+		return -1; // Failed to execute
 	}
 	else
 		return -1;

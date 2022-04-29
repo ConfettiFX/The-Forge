@@ -1860,7 +1860,7 @@ void ImGuiStorage::SetVoidPtr(ImGuiID key, void* val)
 
 void ImGuiStorage::SetAllInt(int v)
 {
-    for (int i = 0; i < Data.size(); i++)
+    for (uint i = 0; i < Data.size(); i++)
         Data[i].val_i = v;
 }
 
@@ -1920,7 +1920,7 @@ void ImGuiTextFilter::Build()
     input_range.split(',', &Filters);
 
     CountGrep = 0;
-    for (int i = 0; i != Filters.size(); i++)
+    for (uint i = 0; i != Filters.size(); i++)
     {
         TextRange& f = Filters[i];
         while (f.b < f.e && ImCharIsBlankA(f.b[0]))
@@ -1942,7 +1942,7 @@ bool ImGuiTextFilter::PassFilter(const char* text, const char* text_end) const
     if (text == NULL)
         text = "";
 
-    for (int i = 0; i != Filters.size(); i++)
+    for (uint i = 0; i != Filters.size(); i++)
     {
         const TextRange& f = Filters[i];
         if (f.empty())
@@ -2124,7 +2124,7 @@ ImGuiWindow::~ImGuiWindow()
 {
     IM_ASSERT(DrawList == &DrawListInst);
     IM_DELETE(Name);
-	for (int i = 0; i != ColumnsStorage.size(); i++)
+	for (uint i = 0; i != ColumnsStorage.size(); i++)
 	{
 		ColumnsStorage[i].Clear();
 	}
@@ -2974,7 +2974,7 @@ void ImGui::NewFrame()
     g.NavIdTabCounter = INT_MAX;
 
     // Mark all windows as not visible
-    for (int i = 0; i != g.Windows.size(); i++)
+    for (uint i = 0; i != g.Windows.size(); i++)
     {
         ImGuiWindow* window = g.Windows[i];
         window->WasActive = window->Active;
@@ -3030,7 +3030,7 @@ void ImGui::Shutdown(ImGuiContext* context)
         return;
 
     // Clear everything else
-    for (int i = 0; i < g.Windows.size(); i++)
+    for (uint i = 0; i < g.Windows.size(); i++)
         IM_DELETE(g.Windows[i]);
     g.Windows.clear();
     g.WindowsSortBuffer.clear();
@@ -3054,7 +3054,7 @@ void ImGui::Shutdown(ImGuiContext* context)
     g.InputTextState.InitialText.clear();
     g.InputTextState.TempBuffer.clear();
 
-    for (int i = 0; i < g.SettingsWindows.size(); i++)
+    for (uint i = 0; i < g.SettingsWindows.size(); i++)
         IM_DELETE(g.SettingsWindows[i].Name);
     g.SettingsWindows.clear();
     g.SettingsHandlers.clear();
@@ -3110,7 +3110,7 @@ static void AddDrawListToDrawData(eastl::vector<ImDrawList*>* out_list, ImDrawLi
     // Draw list sanity check. Detect mismatch between PrimReserve() calls and incrementing _VtxCurrentIdx, _VtxWritePtr etc. May trigger for you if you are using PrimXXX functions incorrectly.
     IM_ASSERT(draw_list->VtxBuffer.size() == 0 || draw_list->_VtxWritePtr == draw_list->VtxBuffer.data() + draw_list->VtxBuffer.size());
     IM_ASSERT(draw_list->IdxBuffer.size() == 0 || draw_list->_IdxWritePtr == draw_list->IdxBuffer.data() + draw_list->IdxBuffer.size());
-    IM_ASSERT((int)draw_list->_VtxCurrentIdx == draw_list->VtxBuffer.size());
+    IM_ASSERT(draw_list->_VtxCurrentIdx == draw_list->VtxBuffer.size());
 
     // Check that draw_list doesn't use more vertices than indexable (default ImDrawIdx = unsigned short = 2 bytes = 64K vertices per ImDrawList = per window)
     // If this assert triggers because you are drawing lots of stuff manually:
@@ -3133,7 +3133,7 @@ static void AddWindowToDrawData(eastl::vector<ImDrawList*>* out_render_list, ImG
     ImGuiContext& g = *GImGui;
     g.IO.MetricsRenderWindows++;
     AddDrawListToDrawData(out_render_list, window->DrawList);
-    for (int i = 0; i < window->DC.ChildWindows.size(); i++)
+    for (uint i = 0; i < window->DC.ChildWindows.size(); i++)
     {
         ImGuiWindow* child = window->DC.ChildWindows[i];
         if (IsWindowActiveAndVisible(child)) // clipped children may have been marked not active
@@ -3283,7 +3283,7 @@ void ImGui::EndFrame()
     // We cannot do that on FocusWindow() because childs may not exist yet
     g.WindowsSortBuffer.resize(0);
     g.WindowsSortBuffer.reserve(g.Windows.size());
-    for (int i = 0; i != g.Windows.size(); i++)
+    for (uint i = 0; i != g.Windows.size(); i++)
     {
         ImGuiWindow* window = g.Windows[i];
         if (window->Active && (window->Flags & ImGuiWindowFlags_ChildWindow))       // if a child is active its parent will add it
@@ -3322,13 +3322,13 @@ void ImGui::Render()
     ImGuiWindow* windows_to_render_front_most[2];
     windows_to_render_front_most[0] = (g.NavWindowingTarget && !(g.NavWindowingTarget->Flags & ImGuiWindowFlags_NoBringToFrontOnFocus)) ? g.NavWindowingTarget->RootWindow : NULL;
     windows_to_render_front_most[1] = g.NavWindowingTarget ? g.NavWindowingList : NULL;
-    for (int n = 0; n != g.Windows.size(); n++)
+    for (uint n = 0; n != g.Windows.size(); n++)
     {
         ImGuiWindow* window = g.Windows[n];
         if (IsWindowActiveAndVisible(window) && (window->Flags & ImGuiWindowFlags_ChildWindow) == 0 && window != windows_to_render_front_most[0] && window != windows_to_render_front_most[1])
             AddWindowToDrawDataSelectLayer(window);
     }
-    for (int n = 0; n < IM_ARRAYSIZE(windows_to_render_front_most); n++)
+    for (uint n = 0; n < IM_ARRAYSIZE(windows_to_render_front_most); n++)
         if (windows_to_render_front_most[n] && IsWindowActiveAndVisible(windows_to_render_front_most[n])) // NavWindowingTarget is always temporarily displayed as the front-most window
             AddWindowToDrawDataSelectLayer(windows_to_render_front_most[n]);
     g.DrawDataBuilder.FlattenIntoSingleLayer();
@@ -5098,7 +5098,7 @@ void ImGui::BringWindowToBack(ImGuiWindow* window)
     ImGuiContext& g = *GImGui;
     if (g.Windows[0] == window)
         return;
-    for (int i = 0; i < g.Windows.size(); i++)
+    for (uint i = 0; i < g.Windows.size(); i++)
         if (g.Windows[i] == window)
         {
             memmove(&g.Windows[1], &g.Windows[0], (size_t)i * sizeof(ImGuiWindow*));
@@ -6459,7 +6459,7 @@ void ImGui::OpenPopupEx(ImGuiID id)
     popup_ref.OpenPopupPos = NavCalcPreferredRefPos();
 
     //printf("[%05d] OpenPopupEx(0x%08X)\n", g.FrameCount, id);
-    if (g.OpenPopupStack.size() < current_stack_size + 1)
+    if (g.OpenPopupStack.size() < (uint)current_stack_size + 1)
     {
         g.OpenPopupStack.push_back(popup_ref);
     }
@@ -6507,7 +6507,7 @@ void ImGui::ClosePopupsOverWindow(ImGuiWindow* ref_window)
 
     // When popups are stacked, clicking on a lower level popups puts focus back to it and close popups above it.
     // Don't close our own child popup windows.
-    int n = 0;
+    uint n = 0;
     if (ref_window)
     {
         for (n = 0; n < g.OpenPopupStack.size(); n++)
@@ -6521,7 +6521,7 @@ void ImGui::ClosePopupsOverWindow(ImGuiWindow* ref_window)
 
             // Trim the stack if popups are not direct descendant of the reference window (which is often the NavWindow)
             bool has_focus = false;
-            for (int m = n; m < g.OpenPopupStack.size() && !has_focus; m++)
+            for (uint m = n; m < g.OpenPopupStack.size() && !has_focus; m++)
                 has_focus = (g.OpenPopupStack[m].Window && g.OpenPopupStack[m].Window->RootWindow == ref_window->RootWindow);
             if (!has_focus)
                 break;
@@ -6556,7 +6556,7 @@ void ImGui::CloseCurrentPopup()
 {
     ImGuiContext& g = *GImGui;
     int popup_idx = (int)g.CurrentPopupStack.size() - 1;
-    if (popup_idx < 0 || popup_idx >= g.OpenPopupStack.size() || g.CurrentPopupStack[popup_idx].PopupId != g.OpenPopupStack[popup_idx].PopupId)
+    if (popup_idx < 0 || popup_idx >= (int)g.OpenPopupStack.size() || g.CurrentPopupStack[popup_idx].PopupId != g.OpenPopupStack[popup_idx].PopupId)
         return;
     while (popup_idx > 0 && g.OpenPopupStack[popup_idx].Window && (g.OpenPopupStack[popup_idx].Window->Flags & ImGuiWindowFlags_ChildMenu))
         popup_idx--;
@@ -6835,7 +6835,13 @@ static bool NavScoreItem(ImGuiNavMoveResult* result, ImRect cand)
 
     // Compute distance between boxes
     float dbx = NavScoreItemDistInterval(cand.Min.x, cand.Max.x, curr.Min.x, curr.Max.x);
+#if STADIA
+	// TheForge: This change fixes some bug on STADIA, unfortunatelly it breaks navigation for Combo Boxes on the rest of the platforms.
     float dby = NavScoreItemDistInterval(cand.Min.y, cand.Max.y, curr.Min.y, curr.Max.y);
+#else
+    // FIXME-NAV: Introducing biases for vertical navigation, needs to be removed.
+    float dby = NavScoreItemDistInterval(ImLerp(cand.Min.y, cand.Max.y, 0.2f), ImLerp(cand.Min.y, cand.Max.y, 0.8f), ImLerp(curr.Min.y, curr.Max.y, 0.2f), ImLerp(curr.Min.y, curr.Max.y, 0.8f)); // Scale down on Y to keep using box-distance for vertically touching items
+#endif
     if (dby != 0.0f && dbx != 0.0f)
        dbx = (dbx/1000.0f) + ((dbx > 0.0f) ? +1.0f : -1.0f);
     float dist_box = ImFabs(dbx) + ImFabs(dby);
@@ -7579,7 +7585,7 @@ static int FindWindowIndex(ImGuiWindow* window) // FIXME-OPT O(N)
 static ImGuiWindow* FindWindowNavFocusable(int i_start, int i_stop, int dir) // FIXME-OPT O(N)
 {
     ImGuiContext& g = *GImGui;
-    for (int i = i_start; i >= 0 && i < g.Windows.size() && i != i_stop; i += dir)
+    for (uint i = i_start; i >= 0 && i < g.Windows.size() && i != (uint)i_stop; i += dir)
         if (ImGui::IsWindowNavFocusable(g.Windows[i]))
             return g.Windows[i];
     return NULL;
@@ -7860,7 +7866,7 @@ float ImGui::GetColumnOffset(int column_index)
 
     if (column_index < 0)
         column_index = columns->Current;
-    IM_ASSERT(column_index < columns->Columns.size());
+    IM_ASSERT((uint)column_index < columns->Columns.size());
 
     const float t = columns->Columns[column_index].OffsetNorm;
     const float x_offset = ImLerp(columns->MinX, columns->MaxX, t);
@@ -7900,7 +7906,7 @@ void ImGui::SetColumnOffset(int column_index, float offset)
 
     if (column_index < 0)
         column_index = columns->Current;
-    IM_ASSERT(column_index < columns->Columns.size());
+    IM_ASSERT((uint)column_index < columns->Columns.size());
 
     const bool preserve_width = !(columns->Flags & ImGuiColumnsFlags_NoPreserveWidths) && (column_index < columns->Count-1);
     const float width = preserve_width ? GetColumnWidthEx(columns, column_index, columns->IsBeingResized) : 0.0f;
@@ -7936,7 +7942,7 @@ void ImGui::PushColumnClipRect(int column_index)
 
 static ImGuiColumnsSet* FindOrAddColumnsSet(ImGuiWindow* window, ImGuiID id)
 {
-    for (int n = 0; n < window->ColumnsStorage.size(); n++)
+    for (uint n = 0; n < window->ColumnsStorage.size(); n++)
         if (window->ColumnsStorage[n].ID == id)
             return &window->ColumnsStorage[n];
 
@@ -7979,7 +7985,7 @@ void ImGui::BeginColumns(const char* str_id, int columns_count, ImGuiColumnsFlag
     window->DC.CursorPos.x = (float)(int)(window->Pos.x + window->DC.Indent.x + window->DC.ColumnsOffset.x);
 
     // Clear data if columns count changed
-    if (columns->Columns.size() != 0 && columns->Columns.size() != columns_count + 1)
+    if (columns->Columns.size() != 0 && columns->Columns.size() != (uint)columns_count + 1)
         columns->Columns.resize(0);
 
     // Initialize defaults
@@ -8522,7 +8528,7 @@ static ImGuiWindowSettings* CreateNewWindowSettings(const char* name)
 ImGuiWindowSettings* ImGui::FindWindowSettings(ImGuiID id)
 {
     ImGuiContext& g = *GImGui;
-    for (int i = 0; i != g.SettingsWindows.size(); i++)
+    for (uint i = 0; i != g.SettingsWindows.size(); i++)
         if (g.SettingsWindows[i].ID == id)
             return &g.SettingsWindows[i];
     return NULL;
@@ -8545,7 +8551,7 @@ ImGuiSettingsHandler* ImGui::FindSettingsHandler(const char* type_name)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiID type_hash = ImHash(type_name, 0, 0);
-    for (int handler_n = 0; handler_n < g.SettingsHandlers.size(); handler_n++)
+    for (uint handler_n = 0; handler_n < g.SettingsHandlers.size(); handler_n++)
         if (g.SettingsHandlers[handler_n].TypeHash == type_hash)
             return &g.SettingsHandlers[handler_n];
     return NULL;
@@ -8632,7 +8638,7 @@ const char* ImGui::SaveIniSettingsToMemory(size_t* out_size)
 {
     ImGuiContext& g = *GImGui;
     g.SettingsIniData.resize(0);
-    for (int handler_n = 0; handler_n < g.SettingsHandlers.size(); handler_n++)
+    for (uint handler_n = 0; handler_n < g.SettingsHandlers.size(); handler_n++)
     {
         ImGuiSettingsHandler* handler = &g.SettingsHandlers[handler_n];
         handler->WriteAllFn(&g, handler, &g.SettingsIniData);
@@ -8664,7 +8670,7 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
 {
     // Gather data from windows that were active during this session
     ImGuiContext& g = *imgui_ctx;
-    for (int i = 0; i != g.Windows.size(); i++)
+    for (uint i = 0; i != g.Windows.size(); i++)
     {
         ImGuiWindow* window = g.Windows[i];
         if (window->Flags & ImGuiWindowFlags_NoSavedSettings)
@@ -8687,7 +8693,7 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
     // Write a buffer
     // If a window wasn't opened in this session we preserve its settings
     buf->reserve(buf->size() + (int)g.SettingsWindows.size() * 96); // ballpark reserve
-    for (int i = 0; i != g.SettingsWindows.size(); i++)
+    for (uint i = 0; i != g.SettingsWindows.size(); i++)
     {
         const ImGuiWindowSettings* settings = &g.SettingsWindows[i];
         if (settings->Pos.x == FLT_MAX)
@@ -8924,7 +8930,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
             {
                 if (!ImGui::TreeNode(label, "%s (%d)", label, (int)windows.size()))
                     return;
-                for (int i = 0; i < windows.size(); i++)
+                for (uint i = 0; i < windows.size(); i++)
                     Funcs::NodeWindow(windows[i], "Window");
                 ImGui::TreePop();
             }
@@ -8954,13 +8960,13 @@ void ImGui::ShowMetricsWindow(bool* p_open)
                 if (window->DC.ChildWindows.size() > 0) NodeWindows(window->DC.ChildWindows, "ChildWindows");
                 if (window->ColumnsStorage.size() > 0 && ImGui::TreeNode("Columns", "Columns sets (%d)", (int)window->ColumnsStorage.size()))
                 {
-                    for (int n = 0; n < window->ColumnsStorage.size(); n++)
+                    for (uint n = 0; n < window->ColumnsStorage.size(); n++)
                     {
                         const ImGuiColumnsSet* columns = &window->ColumnsStorage[n];
                         if (ImGui::TreeNode((void*)(uintptr_t)columns->ID, "Columns Id: 0x%08X, Count: %d, Flags: 0x%04X", columns->ID, columns->Count, columns->Flags))
                         {
                             ImGui::BulletText("Width: %.1f (MinX: %.1f, MaxX: %.1f)", columns->MaxX - columns->MinX, columns->MinX, columns->MaxX);
-                            for (int column_n = 0; column_n < columns->Columns.size(); column_n++)
+                            for (uint column_n = 0; column_n < columns->Columns.size(); column_n++)
                                 ImGui::BulletText("Column %02d: OffsetNorm %.3f (= %.1f px)", column_n, columns->Columns[column_n].OffsetNorm, OffsetNormToPixels(columns, columns->Columns[column_n].OffsetNorm));
                             ImGui::TreePop();
                         }
@@ -8977,13 +8983,13 @@ void ImGui::ShowMetricsWindow(bool* p_open)
         Funcs::NodeWindows(g.Windows, "Windows");
         if (ImGui::TreeNode("DrawList", "Active DrawLists (%d)", (int)g.DrawDataBuilder.Layers[0].size()))
         {
-            for (int i = 0; i < g.DrawDataBuilder.Layers[0].size(); i++)
+            for (uint i = 0; i < g.DrawDataBuilder.Layers[0].size(); i++)
                 Funcs::NodeDrawList(NULL, g.DrawDataBuilder.Layers[0][i], "DrawList");
             ImGui::TreePop();
         }
         if (ImGui::TreeNode("Popups", "Popups (%d)", (int)g.OpenPopupStack.size()))
         {
-            for (int i = 0; i < g.OpenPopupStack.size(); i++)
+            for (uint i = 0; i < g.OpenPopupStack.size(); i++)
             {
                 ImGuiWindow* window = g.OpenPopupStack[i].Window;
                 ImGui::BulletText("PopupID: %08x, Window: '%s'%s%s", g.OpenPopupStack[i].PopupId, window ? window->Name : "NULL", window && (window->Flags & ImGuiWindowFlags_ChildWindow) ? " ChildWindow" : "", window && (window->Flags & ImGuiWindowFlags_ChildMenu) ? " ChildMenu" : "");
@@ -9013,7 +9019,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
 
         if (g.IO.KeyCtrl && show_window_begin_order)
         {
-            for (int n = 0; n < g.Windows.size(); n++)
+            for (uint n = 0; n < g.Windows.size(); n++)
             {
                 ImGuiWindow* window = g.Windows[n];
                 if ((window->Flags & ImGuiWindowFlags_ChildWindow) || !window->WasActive)

@@ -1,9 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <float.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Nicolas Capens. Advanced Rasterization. 2004
@@ -146,9 +144,9 @@ meshopt_OverdrawStatistics meshopt_analyzeOverdraw(const unsigned int* indices, 
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	assert(vertex_positions_stride % sizeof(float) == 0);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	ASSERT(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -178,7 +176,7 @@ meshopt_OverdrawStatistics meshopt_analyzeOverdraw(const unsigned int* indices, 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		const float* v = vertex_positions + index * vertex_stride_float;
 

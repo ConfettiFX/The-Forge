@@ -1,9 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <limits.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Francine Evans, Steven Skiena and Amitabh Varshney. Optimizing Triangle Strips for Fast Rendering. 1996
@@ -51,8 +49,8 @@ static int findStripNext(const unsigned int buffer[][3], unsigned int buffer_siz
 
 size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices, size_t index_count, size_t vertex_count, unsigned int restart_index)
 {
-	assert(destination != indices);
-	assert(index_count % 3 == 0);
+	ASSERT(destination != indices);
+	ASSERT(index_count % 3 == 0);
 
 	using namespace meshopt;
 
@@ -77,7 +75,7 @@ size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices, 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		valence[index]++;
 	}
@@ -86,7 +84,7 @@ size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices, 
 
 	while (buffer_size > 0 || index_offset < index_count)
 	{
-		assert(next < 0 || (size_t(next >> 2) < buffer_size && (next & 3) < 3));
+		ASSERT(next < 0 || (size_t(next >> 2) < buffer_size && (next & 3) < 3));
 
 		// fill triangle buffer
 		while (buffer_size < buffer_capacity && index_offset < index_count)
@@ -99,7 +97,7 @@ size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices, 
 			index_offset += 3;
 		}
 
-		assert(buffer_size > 0);
+		ASSERT(buffer_size > 0);
 
 		if (next >= 0)
 		{
@@ -242,7 +240,7 @@ size_t meshopt_stripify(unsigned int* destination, const unsigned int* indices, 
 
 size_t meshopt_stripifyBound(size_t index_count)
 {
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	// worst case without restarts is 2 degenerate indices and 3 indices per triangle
 	// worst case with restarts is 1 restart index and 3 indices per triangle
@@ -251,7 +249,7 @@ size_t meshopt_stripifyBound(size_t index_count)
 
 size_t meshopt_unstripify(unsigned int* destination, const unsigned int* indices, size_t index_count, unsigned int restart_index)
 {
-	assert(destination != indices);
+	ASSERT(destination != indices);
 
 	size_t offset = 0;
 	size_t start = 0;
@@ -289,7 +287,7 @@ size_t meshopt_unstripify(unsigned int* destination, const unsigned int* indices
 
 size_t meshopt_unstripifyBound(size_t index_count)
 {
-	assert(index_count == 0 || index_count >= 3);
+	ASSERT(index_count == 0 || index_count >= 3);
 
 	return (index_count == 0) ? 0 : (index_count - 2) * 3;
 }

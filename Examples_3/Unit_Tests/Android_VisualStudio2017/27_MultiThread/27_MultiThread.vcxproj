@@ -55,7 +55,7 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
@@ -85,7 +85,7 @@ xcopy $(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua $(SolutionDir)$(Platfo
       <SubSystem>Windows</SubSystem>
     </Link>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>

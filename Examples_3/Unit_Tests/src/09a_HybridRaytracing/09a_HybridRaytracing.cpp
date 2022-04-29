@@ -860,8 +860,6 @@ public:
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		//check for init success
@@ -1102,22 +1100,24 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -1842,6 +1842,13 @@ public:
 	void Draw()
 	{
 		eastl::vector<Cmd*> allCmds;
+
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -2060,7 +2067,7 @@ public:
 			gFrameTimeDraw.mFontSize = 18.0f;
 			gFrameTimeDraw.mFontID = gFontID;
 			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
 
 			cmdDrawUserInterface(cmd);
 			cmdEndDebugMarker(cmd);

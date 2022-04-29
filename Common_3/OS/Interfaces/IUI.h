@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -483,7 +483,7 @@ void uiSetComponentActive(UIComponent* pGuiComponent, bool active);
 
 /// Create a Widget to be assigned to a given UI Component
 /// User is NOT responsible for freeing this memory at application exit
-UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone = true);
+UIWidget* uiCreateComponentWidget(UIComponent* pGui, const char* pLabel, const void* pWidget, WidgetType type, bool clone = true); //-V1071
 
 /// Destroy and free memory associated with a Widget 
 /// Only necessary for replacement purposes. UI Widget memory will be freed internally on exit
@@ -540,6 +540,12 @@ bool uiIsFocused();
 
 /// Callback function to share button press data w/ ImGUI
 bool uiOnButton(uint32_t button, bool press, const float2* pVec);
+
+/// Callback function to share joystick data w/ ImGUI
+bool uiOnStick(uint32_t stick, const float2* pStick);
+
+/// Callback function to share any type of input data w/ ImGUI. Leverages uiOnButton and uiOnStick.
+bool uiOnInput(uint32_t binding, bool buttonPress, const float2* pMousePos, const float2* pStick);
 
 /// Callback function to share text entry data w/ ImGUI
 bool uiOnText(const wchar_t* pText);

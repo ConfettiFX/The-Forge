@@ -357,6 +357,42 @@ inline const Quat Quat::rotationZ(float radians)
     return Quat(0.0f, 0.0f, s, c);
 }
 
+inline const Quat Quat::fromVectors(const Vector3& from, const Vector3& to)
+{
+	const float tolorance = 1e-6f;
+	float norm_from_norm_to = dot(from, from) * dot(to, to);
+	float x = sqrtf(norm_from_norm_to);
+	if (x < tolorance)
+		return Quat::identity();
+
+	Vector4 quat;
+	float imaginary = dot(from, to);
+	float real = x + imaginary;
+	if (real < x * tolorance)
+	{
+		quat = std::abs(from[0]) > std::abs(from[2])
+			? Vector4(-from[1], from[0], 0.0f, 0.0f)
+			: Vector4(0.0f, -from[2], from[1], 0.0f);
+	}
+	else
+	{
+		quat = Vector4(cross(from, to), real);
+	}
+	return Quat(normalize(quat));
+}
+
+inline const Quat Quat::fromAxisCosAngle(const Vector3& axis, const float& cos)
+{
+	const float one = 1.0f;
+	const float half = 0.5f;
+	const float half_cos2 = (one + cos) * half;
+	const float half_sin2 = one - half_cos2;
+	const float halfSin = sqrtf(half_sin2);
+	const float halfCos = sqrtf(half_cos2);
+	const Vector3 vec = axis * halfSin;
+	return Quat(vec.getX(), vec.getY(), vec.getZ(), halfCos);
+}
+
 inline const Quat Quat::operator * (const Quat & quat) const
 {
     return Quat(((((mW * quat.mX) + (mX * quat.mW)) + (mY * quat.mZ)) - (mZ * quat.mY)),

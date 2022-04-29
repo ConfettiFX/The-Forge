@@ -223,7 +223,13 @@ private:
 			axisDialect_[i] = i;
 		}
 
-		if (strcmp(name, "Sony PLAYSTATION(R)3 Controller") == 0)
+		if (strcmp(name, "Sony Computer Entertainment Wireless Controller") == 0)
+        {
+            close(fd_);
+            fd_ = -1;
+            return;
+        }
+		else if (strcmp(name, "Sony PLAYSTATION(R)3 Controller") == 0)
 		{
 #ifdef GAINPUT_DEBUG
 			GAINPUT_LOG("  --> known controller\n");

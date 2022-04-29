@@ -20,6 +20,7 @@ struct QuestVR
 	bool mFoveatedRenderingEnabled;
 	bool isSrgb;
 };
+extern QuestVR* pQuest;
 
 bool initVrApi(android_app* pAndroidApp, JNIEnv* pJavaEnv);
 void exitVrApi();

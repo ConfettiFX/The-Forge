@@ -43,6 +43,7 @@
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -58,7 +59,7 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
@@ -89,7 +90,7 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
     </FSLShader>
     <FSLShader>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -466,7 +466,6 @@ struct
 {
 	bool mHoldFilteredTriangles = false;
 	bool mIsGeneratingSDF = false;
-	bool mToggleVsync = false;
 
 	SampleCount mMsaaLevel = SAMPLE_COUNT_1;
 	uint32_t mMsaaIndex = (uint32_t)log2((uint32_t)mMsaaLevel);
@@ -1892,11 +1891,6 @@ struct SDFVolumeTextureAtlas
 	eastl::vector<SDFVolumeTextureNode*> mCurrentNodeList;
 };
 
-float GenerateRandomFloat()
-{
-	return (float)rand() / (float)RAND_MAX;
-}
-
 void GenerateSampleDirections(int32_t thetaSteps, int32_t phiSteps, 
 	SDFVolumeData::SampleDirectionsList& outDirectionsList, int32_t finalThetaModifier = 1)
 {
@@ -1905,8 +1899,8 @@ void GenerateSampleDirections(int32_t thetaSteps, int32_t phiSteps,
 	{
 		for (int32_t phi = 0; phi < phiSteps; ++phi)
 		{
-			float random1 = GenerateRandomFloat();
-			float random2 = GenerateRandomFloat();
+			float random1 = randomFloat01();
+			float random2 = randomFloat01();
 
 			float thetaFrac = (theta + random1) / (float)thetaSteps;
 			float phiFrac = (phi + random2) / (float)phiSteps;
@@ -2550,7 +2544,7 @@ public:
 		{
 			float maxCos = -FLT_MAX;
 			int32_t index1 = -1;
-			vec2 dir1;
+			vec2 dir1(0.0f);
 			for (int32_t j = 1; j < numVertices; ++j)
 			{
 				int32_t k = (index0 + j) % numVertices;
@@ -4174,7 +4168,7 @@ private:
 					}
 				}
 
-				vec4 packedData;
+				vec4 packedData(0.0f);
 				ivec4 destCoord;
 				GetIndirectionTextureData(pTile, packedData, destCoord);
 
@@ -5226,8 +5220,6 @@ class LightShadowPlayground: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		QueueDesc queueDesc = {};
@@ -6264,22 +6256,24 @@ class LightShadowPlayground: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -6313,7 +6307,7 @@ class LightShadowPlayground: public IApp
 		Sampler* pSkyboxSampler = NULL;
 
 		SamplerDesc samplerDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, false, 0.0f, 0.0f, 16
 		};
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
@@ -7407,13 +7401,6 @@ class LightShadowPlayground: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gAppSettings.mToggleVsync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
 		if (gASMCpuSettings.mSunCanMove && gCurrentShadowType == SHADOW_TYPE_ASM)
 		{
 			gLightCpuSettings.mSunControl.y += deltaTime * ASM_SUN_SPEED;
@@ -8171,6 +8158,12 @@ class LightShadowPlayground: public IApp
 
 	void Draw() override
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -8515,7 +8508,7 @@ class LightShadowPlayground: public IApp
 		gFrameTimeDraw.mFontSize = 18.0f;
 		gFrameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-        cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
+        cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 75.f), gCurrentGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
 #endif
@@ -9412,11 +9405,6 @@ void GuiController::addGui()
 	CheckboxWidget checkbox;
 	checkbox.pData = &gAppSettings.mHoldFilteredTriangles;
 	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Hold triangles", &checkbox, WIDGET_TYPE_CHECKBOX));
-
-#if !defined(TARGET_IOS)
-	checkbox.pData = &gAppSettings.mToggleVsync;
-	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Toggle VSync", &checkbox, WIDGET_TYPE_CHECKBOX));
-#endif
 
 	DropdownWidget ddShadowType;
 	ddShadowType.pData = &gRenderSettings.mShadowType;

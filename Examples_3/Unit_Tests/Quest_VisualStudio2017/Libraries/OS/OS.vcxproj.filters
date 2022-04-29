@@ -100,6 +100,12 @@
     <Filter Include="OS\VR">
       <UniqueIdentifier>{0dadd2f0-95c1-4429-a129-6312c70cad2c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\WindowSystem">
+      <UniqueIdentifier>{efa7dd55-7975-485c-aa62-6f79786f3f8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\cpu_features">
+      <UniqueIdentifier>{69d6b350-b25d-4cac-8fcb-b907985299c0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
@@ -324,6 +330,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\FontSystem.cpp">
       <Filter>OS\Fonts</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\stbtt.cpp">
+      <Filter>OS\Fonts</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
@@ -380,6 +389,21 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Quest\VrApi.cpp">
       <Filter>OS\VR</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidWindow.cpp">
+      <Filter>OS\WindowSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
+      <Filter>OS\WindowSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\CPUConfig.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\hwcaps.c">
+      <Filter>Dependencies\cpu_features</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c">
+      <Filter>Dependencies\cpu_features</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

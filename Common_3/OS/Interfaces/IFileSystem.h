@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,7 +31,7 @@
 #ifdef TARGET_IOS_SIMULATOR
 #define FS_MAX_PATH 320
 #else
-#define FS_MAX_PATH 256
+#define FS_MAX_PATH 512
 #endif
 
 #ifdef __cplusplus
@@ -47,8 +47,16 @@ typedef enum ResourceMount
 	RM_DEBUG,
 	/// Documents directory
 	RM_DOCUMENTS,
+#if defined(ANDROID)
+	// System level files (/proc/ or equivalent if available)
+	RM_SYSTEM,
+#endif
 	/// Save game data mount 0
 	RM_SAVE_0,
+#ifdef ENABLE_FS_EMPTY_MOUNT
+	/// Empty mount for absolute paths
+	RM_EMPTY,
+#endif
 	RM_COUNT,
 } ResourceMount;
 
@@ -70,6 +78,10 @@ typedef enum ResourceDirectory
 	RD_LOG,
 	RD_SCRIPTS,
 	RD_SCREENSHOTS,
+#if defined(ANDROID)
+	// #TODO: Add for others if necessary
+	RD_SYSTEM,
+#endif
 	RD_OTHER_FILES,
 
 	// Libraries can have their own directories.

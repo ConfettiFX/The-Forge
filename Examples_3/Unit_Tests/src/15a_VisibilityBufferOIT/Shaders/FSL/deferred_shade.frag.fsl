@@ -1,0 +1,287 @@
+/*
+ * Copyright (c) 2018-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// USERMACRO: SAMPLE_COUNT [1,2,4]
+// USERMACRO: USE_AMBIENT_OCCLUSION [0,1]
+
+#include "shading.h.fsl"
+
+// This shader loads gBuffer data and shades the pixel.
+
+STRUCT(VSOutput)
+{
+    DATA(float4, Position,  SV_Position);
+    DATA(float2, ScreenPos, TEXCOORD0);
+};
+
+STRUCT(FSOutput)
+{
+	DATA(float4, FragmentOutput, SV_Target);
+};
+
+struct NodeFinalOIT
+{
+	float3 color;
+	float  depth;
+	uint   next; 
+};
+
+#if(SAMPLE_COUNT > 1)
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferColor,      UPDATE_FREQ_NONE, t0, binding = 1);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferNormal,     UPDATE_FREQ_NONE, t1, binding = 2);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferDepth,      UPDATE_FREQ_NONE, t2, binding = 3);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferSpecular,   UPDATE_FREQ_NONE, t3, binding = 4);
+RES(Tex2DMS(float4, SAMPLE_COUNT), gBufferSimulation, UPDATE_FREQ_NONE, t4, binding = 5);
+
+#else
+RES(Tex2D(float4), gBufferColor,      UPDATE_FREQ_NONE, t0, binding = 1);
+RES(Tex2D(float4), gBufferNormal,     UPDATE_FREQ_NONE, t1, binding = 2);
+RES(Tex2D(float4), gBufferDepth,      UPDATE_FREQ_NONE, t2, binding = 3);
+RES(Tex2D(float4), gBufferSpecular,   UPDATE_FREQ_NONE, t3, binding = 4);
+RES(Tex2D(float4), gBufferSimulation, UPDATE_FREQ_NONE, t4, binding = 5);
+
+#endif
+
+RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t101, binding = 6);
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s0, binding = 8);
+
+RES(Buffer(uint),            headIndexBufferSRV, UPDATE_FREQ_NONE, t30, binding = 10);
+RES(Buffer(DeferredNodeOIT), defDepthLinkedListSRV, UPDATE_FREQ_NONE, t31, binding = 11);
+
+float3 data_to_shaded_color(float4 inPosition, float2 inScreenPos, float4 colorData, float4 specularData, float4 simulation, float4 normalData, float depth, float aoMod)
+{
+	float ao = 1.0f;
+	
+	float3 normal = normalize(normalData.xyz * 2.0f - 1.0f);
+
+	float4 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(inScreenPos, depth, 1));
+	float3 posWS = position.xyz / position.w;
+
+	bool isTwoSided = colorData.a > 0.5f ? true : false;
+	bool isBackFace = false;
+
+	float3 ViewVec = normalize(Get(camPos).xyz - posWS);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+
+	if(isTwoSided && dot(normal, ViewVec) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	float3 HalfVec = normalize(ViewVec - Get(lightDir).xyz);
+	float3 ReflectVec = reflect(-ViewVec, normal);
+	float NoV = saturate(dot(normal, ViewVec));
+
+	float NoL = dot(normal, -Get(lightDir).xyz);	
+
+	// Deal with two faced materials
+	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(posWS, 1)) + simulation;
+		
+	float3 DiffuseColor = colorData.xyz;
+	
+	float shadowFactor = 1.0f;
+
+	float fLightingMode = saturate(float(Get(lightingMode)));
+
+	float Roughness = clamp(specularData.a, 0.05f, 0.99f);
+	float Metallic = specularData.b;
+
+	float3 shadedColor = calculateIllumination(
+		    normal,
+		    ViewVec,
+			HalfVec,
+			ReflectVec,
+			NoL,
+			NoV,
+			Get(camPos).xyz,
+			Get(esmControl),
+			Get(lightDir).xyz,
+			posLS,
+			posWS,  
+			Get(shadowMap),
+			DiffuseColor,
+			DiffuseColor,
+			Roughness,
+			Metallic,			
+			Get(depthSampler),
+			isBackFace,
+			fLightingMode,
+			shadowFactor);
+
+
+	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL * ao;
+
+	float ambientIntencity = 0.05f;
+	float3 ambient = colorData.xyz * ambientIntencity;
+
+	return shadedColor + ambient;
+}
+
+// Pixel shader
+FSOutput PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
+{
+    INIT_MAIN;
+    FSOutput Out;
+    // Load gBuffer data from render target
+#if(SAMPLE_COUNT > 1)
+    float depth = LoadTex2DMS(Get(gBufferDepth), Get(depthSampler), uint2(In.Position.xy), i).r;
+#else
+    float depth = LoadTex2D(Get(gBufferDepth),   Get(depthSampler), uint2(In.Position.xy), 0).r;
+#endif
+
+	uint opaqueShaded = 0; 
+	uint transparentShaded = 0; 
+
+	float3 OutColor = float3(0, 0, 0); 
+
+	// Since we don't have a skydome, this code is added here to avoid shading the sky.
+  	if (depth < 0.999f)
+    {
+#if(SAMPLE_COUNT > 1)
+		float4 colorData    = LoadTex2DMS(Get(gBufferColor),      Get(depthSampler), uint2(In.Position.xy), i);
+		float4 specularData = LoadTex2DMS(Get(gBufferSpecular),   Get(depthSampler), uint2(In.Position.xy), i);
+		float4 simulation   = LoadTex2DMS(Get(gBufferSimulation), Get(depthSampler), uint2(In.Position.xy), i);
+		float4 normalData   = LoadTex2DMS(Get(gBufferNormal),     Get(depthSampler), uint2(In.Position.xy), i);
+#else
+		float4 colorData    = LoadTex2D(Get(gBufferColor),        Get(depthSampler), uint2(In.Position.xy), 0);
+		float4 specularData = LoadTex2D(Get(gBufferSpecular),     Get(depthSampler), uint2(In.Position.xy), 0);
+		float4 simulation   = LoadTex2D(Get(gBufferSimulation),   Get(depthSampler), uint2(In.Position.xy), 0);
+		float4 normalData   = LoadTex2D(Get(gBufferNormal),       Get(depthSampler), uint2(In.Position.xy), 0);
+#endif
+
+		/************************************************************************/
+		// Shade deferred geometry
+		/************************************************************************/
+
+		OutColor = data_to_shaded_color(
+			In.Position, 
+			In.ScreenPos, 
+			colorData, 
+			specularData, 
+			simulation, 
+			normalData, 
+			depth,
+			1.0f
+		);
+
+		opaqueShaded = 1; 
+    }
+
+	/************************************************************************/
+	// Accumulate transparent geometry (OIT)
+	/************************************************************************/
+
+	uint2 pixelAddr = uint2(In.Position.xy);
+	uint scrW = Get(screenWidth); 
+	uint bufferIdx = pixelAddr.y * scrW + pixelAddr.x;
+	uint nodeIdx = Get(headIndexBufferSRV)[bufferIdx];
+	
+	if (nodeIdx != OIT_HEAD_INVALID)
+	{
+		uint count = 0; 
+		NodeFinalOIT fragments[OIT_MAX_FRAG_COUNT];
+		
+		// Accumulate transparent pixel color data
+		while (nodeIdx != OIT_HEAD_INVALID)
+		{
+			if (count >= OIT_MAX_FRAG_COUNT)
+			{
+				break; 
+			}
+	
+			DeferredNodeOIT node = Get(defDepthLinkedListSRV)[nodeIdx];
+	
+			float3 nodeColor = data_to_shaded_color(
+				In.Position, 
+				In.ScreenPos, 
+				node.colorData, 
+				node.specularData, 
+				f4(0), 
+				node.normalData, 
+				node.depth,
+				0.0f
+			);
+		
+			// Manual visbuf depth test
+			if (node.depth < depth)
+			{
+				fragments[count].color = nodeColor; 
+				fragments[count].depth = node.depth;
+				fragments[count].next  = node.next;
+		
+				++count;
+			}
+		
+			nodeIdx = node.next;
+		}
+		
+		// May be no fragments left after manual depth cull
+		if (count > 0)
+		{
+			// Insertion sort
+			for (uint j = 1; j < count; ++j)
+			{
+				NodeFinalOIT insert = fragments[j];
+				uint k = j;
+			
+				while (k > 0)
+				{
+					if (insert.depth <= fragments[k - 1].depth)
+					{
+						break; 
+					}
+					
+					fragments[k] = fragments[k - 1];
+					--k;
+				}
+			
+				fragments[k] = insert; 
+			}
+		
+			// Blending
+			float3 TransparentColor = fragments[0].color; 
+			float alpha = Get(transAlpha); 
+			for (uint l = 1; l < count; ++l)
+			{
+				TransparentColor = lerp(TransparentColor, fragments[l].color, alpha);
+			}
+			OutColor = lerp(OutColor, TransparentColor, alpha); 
+			transparentShaded = 1; 
+		}
+	}
+	else if (opaqueShaded == 0)
+	{
+		discard; 
+	}
+
+	float OutAlpha = (transparentShaded == 1 && opaqueShaded == 0) ? Get(transAlpha) : 1.0f; 
+    Out.FragmentOutput = float4(OutColor, OutAlpha);
+	RETURN(Out);
+}

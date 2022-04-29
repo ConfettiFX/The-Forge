@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,7 +40,6 @@ struct ThreadedTask
 
 struct ThreadSystem
 {
-	ThreadDesc        mThreadDescs[MAX_LOAD_THREADS];
 	ThreadHandle      mThread[MAX_LOAD_THREADS];
 	ThreadedTask      mLoadTask[MAX_SYSTEM_TASKS];
 	uint32_t          mBegin, mEnd;
@@ -50,10 +49,6 @@ struct ThreadSystem
 	uint32_t          mNumLoaders;
 	uint32_t          mNumIdleLoaders;
 	volatile bool     mRun;
-
-#if defined(NX64)
-	ThreadTypeNX mThreadType[MAX_LOAD_THREADS];
-#endif
 };
 
 bool assistThreadSystemTasks(ThreadSystem* pThreadSystem, uint32_t* pIds, size_t count)
@@ -178,7 +173,7 @@ static void taskThreadFunc(void* pThreadData)
 }
 
 void initThreadSystem(
-	ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, int preferredCore, bool migrateEnabled, const char* threadName)
+	ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, uint32_t* affinityMasks, const char* threadName)
 {
 	ThreadSystem* pThreadSystem = tf_new(ThreadSystem);
 
@@ -194,20 +189,23 @@ void initThreadSystem(
 	pThreadSystem->mBegin = 0;
 	pThreadSystem->mEnd = 0;
 
+	if (!threadName || *threadName == 0)
+		threadName = "TaskThread";
+
+	ThreadDesc threadDesc = {};
+	threadDesc.pFunc = taskThreadFunc;
+	threadDesc.pData = pThreadSystem;
+	
 	for (unsigned i = 0; i < numLoaders; ++i)
 	{
-		pThreadSystem->mThreadDescs[i].pFunc = taskThreadFunc;
-		pThreadSystem->mThreadDescs[i].pData = pThreadSystem;
+		if (affinityMasks)
+		{
+			threadDesc.mHasAffinityMask = true;
+			threadDesc.mAffinityMask = affinityMasks[i];
+		}
 
-#if defined(NX64)
-		pThreadSystem->mThreadDescs[i].pThreadStack = aligned_alloc(THREAD_STACK_ALIGNMENT_NX, ALIGNED_THREAD_STACK_SIZE_NX);
-		pThreadSystem->mThreadDescs[i].hThread = &pThreadSystem->mThreadType[i];
-		pThreadSystem->mThreadDescs[i].preferredCore = preferredCore;
-		pThreadSystem->mThreadDescs[i].pThreadName = threadName;
-		pThreadSystem->mThreadDescs[i].migrateEnabled = migrateEnabled;
-#endif
-
-		initThread(&pThreadSystem->mThreadDescs[i], &pThreadSystem->mThread[i]);
+		snprintf(threadDesc.mThreadName, sizeof(threadDesc.mThreadName), "%s%u", threadName, i);
+		initThread(&threadDesc, &pThreadSystem->mThread[i]);
 	}
 	pThreadSystem->mNumLoaders = numLoaders;
 
@@ -270,7 +268,7 @@ void exitThreadSystem(ThreadSystem* pThreadSystem)
 	uint32_t numLoaders = pThreadSystem->mNumLoaders;
 	for (uint32_t i = 0; i < numLoaders; ++i)
 	{
-		destroyThread(pThreadSystem->mThread[i]);
+		joinThread(pThreadSystem->mThread[i]);
 	}
 
 	destroyConditionVariable(&pThreadSystem->mQueueCond);

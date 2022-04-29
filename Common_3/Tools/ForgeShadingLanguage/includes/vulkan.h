@@ -40,6 +40,7 @@
 
 #define SV_VERTEXID         gl_VertexIndex
 #define SV_INSTANCEID       gl_InstanceIndex
+#define SV_ISFRONTFACE      gl_FrontFacing 
 #define SV_GROUPID          gl_WorkGroupID
 #define SV_DISPATCHTHREADID gl_GlobalInvocationID
 #define SV_GROUPTHREADID    gl_LocalInvocationID
@@ -196,6 +197,8 @@ vec4 SampleLvlTexCube( textureCube NAME, sampler SAMPLER, vec3 COORD, float LEVE
 // { return textureLodOffset(sampler2D(NAME, SAMPLER), COORD, LEVEL, OFFSET); }
 #define SampleLvlOffsetTex2D(NAME, SAMPLER, COORD, LEVEL, OFFSET) \
 textureLodOffset(sampler2D(NAME, SAMPLER), COORD, LEVEL, OFFSET)
+#define SampleLvlOffsetTex2DArray(NAME, SAMPLER, COORD, LEVEL, OFFSET) \
+textureLodOffset(sampler2DArray(NAME, SAMPLER), COORD, LEVEL, OFFSET)
 #define SampleLvlOffsetTex3D(NAME, SAMPLER, COORD, LEVEL, OFFSET) \
 textureLodOffset(sampler3D(NAME, SAMPLER), COORD, LEVEL, OFFSET)
 
@@ -752,13 +755,8 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
     #define WaveActiveSum subgroupAdd
     #define WavePrefixSum subgroupExclusiveAdd
 
-    #if defined(TARGET_SWITCH) || defined(TARGET_ANDROID)
-    #define QuadReadAcrossX _ERROR_UNSUPPORTED_QuadReadAcrossX
-    #define QuadReadAcrossY _ERROR_UNSUPPORTED_QuadReadAcrossY
-    #else
     #define QuadReadAcrossX subgroupQuadSwapHorizontal
     #define QuadReadAcrossY subgroupQuadSwapVertical
-    #endif
 
 #endif
 

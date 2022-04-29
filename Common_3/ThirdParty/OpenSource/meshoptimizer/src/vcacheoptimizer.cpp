@@ -1,8 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Tom Forsyth. Linear-Speed Vertex Cache Optimisation. 2006
@@ -52,7 +51,7 @@ static void buildTriangleAdjacency(TriangleAdjacency& adjacency, const unsigned 
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
-		assert(indices[i] < vertex_count);
+		ASSERT(indices[i] < vertex_count);
 
 		adjacency.counts[indices[i]]++;
 	}
@@ -66,7 +65,7 @@ static void buildTriangleAdjacency(TriangleAdjacency& adjacency, const unsigned 
 		offset += adjacency.counts[i];
 	}
 
-	assert(offset == index_count);
+	ASSERT(offset == index_count);
 
 	// fill triangle data
 	for (size_t i = 0; i < face_count; ++i)
@@ -81,7 +80,7 @@ static void buildTriangleAdjacency(TriangleAdjacency& adjacency, const unsigned 
 	// fix offsets that have been disturbed by the previous pass
 	for (size_t i = 0; i < vertex_count; ++i)
 	{
-		assert(adjacency.offsets[i] >= adjacency.counts[i]);
+		ASSERT(adjacency.offsets[i] >= adjacency.counts[i]);
 
 		adjacency.offsets[i] -= adjacency.counts[i];
 	}
@@ -143,7 +142,7 @@ static unsigned int getNextVertexNeighbour(const unsigned int* next_candidates_b
 
 static float vertexScore(const VertexScoreTable* table, int cache_position, unsigned int live_triangles)
 {
-	assert(cache_position >= -1 && cache_position < int(kCacheSizeMax));
+	ASSERT(cache_position >= -1 && cache_position < int(kCacheSizeMax));
 
 	unsigned int live_triangles_clamped = live_triangles < kValenceMax ? live_triangles : kValenceMax;
 
@@ -170,7 +169,7 @@ void meshopt_optimizeVertexCacheTable(unsigned int* destination, const unsigned 
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	meshopt_Allocator allocator;
 
@@ -187,7 +186,7 @@ void meshopt_optimizeVertexCacheTable(unsigned int* destination, const unsigned 
 	}
 
 	unsigned int cache_size = 16;
-	assert(cache_size <= kCacheSizeMax);
+	ASSERT(cache_size <= kCacheSizeMax);
 
 	size_t face_count = index_count / 3;
 
@@ -233,7 +232,7 @@ void meshopt_optimizeVertexCacheTable(unsigned int* destination, const unsigned 
 
 	while (current_triangle != ~0u)
 	{
-		assert(output_triangle < face_count);
+		ASSERT(output_triangle < face_count);
 
 		unsigned int a = indices[current_triangle * 3 + 0];
 		unsigned int b = indices[current_triangle * 3 + 1];
@@ -320,10 +319,10 @@ void meshopt_optimizeVertexCacheTable(unsigned int* destination, const unsigned 
 			for (const unsigned int* it = neighbours_begin; it != neighbours_end; ++it)
 			{
 				unsigned int tri = *it;
-				assert(!emitted_flags[tri]);
+				ASSERT(!emitted_flags[tri]);
 
 				float tri_score = triangle_scores[tri] + score_diff;
-				assert(tri_score > 0);
+				ASSERT(tri_score > 0);
 
 				if (best_score < tri_score)
 				{
@@ -344,8 +343,8 @@ void meshopt_optimizeVertexCacheTable(unsigned int* destination, const unsigned 
 		}
 	}
 
-	assert(input_cursor == face_count);
-	assert(output_triangle == face_count);
+	ASSERT(input_cursor == face_count);
+	ASSERT(output_triangle == face_count);
 }
 
 void meshopt_optimizeVertexCache(unsigned int* destination, const unsigned int* indices, size_t index_count, size_t vertex_count)
@@ -362,8 +361,8 @@ void meshopt_optimizeVertexCacheFifo(unsigned int* destination, const unsigned i
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(cache_size >= 3);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(cache_size >= 3);
 
 	meshopt_Allocator allocator;
 
@@ -469,5 +468,5 @@ void meshopt_optimizeVertexCacheFifo(unsigned int* destination, const unsigned i
 		}
 	}
 
-	assert(output_triangle == face_count);
+	ASSERT(output_triangle == face_count);
 }

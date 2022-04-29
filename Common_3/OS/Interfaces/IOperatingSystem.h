@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,6 +25,8 @@
 #pragma once
 
 #include "../Core/Config.h"
+
+#include "../Core/CPUConfig.h"
 
 #if defined(_WINDOWS) || defined(XBOX)
 #include <sys/stat.h>
@@ -80,9 +82,30 @@ typedef uint64_t uint64;
 #define stricmp(a, b) _stricmp(a, b)
 #endif
 
+//------------------------------------------------------------------------
+// WINDOW AND RESOLUTION
+//------------------------------------------------------------------------
+
+#define MAX_MONITOR_COUNT 32
+
+typedef enum WindowMode
+{
+	WM_WINDOWED,
+	WM_FULLSCREEN,
+	WM_BORDERLESS
+} WindowMode;
+
+typedef struct RectDesc
+{
+	int32_t left;
+	int32_t top;
+	int32_t right;
+	int32_t bottom;
+} RectDesc;
+
 typedef struct WindowHandle
 {
-// TODO: Separate vulkan ext from choosing xlib vs xcb
+	// TODO: Separate vulkan ext from choosing xlib vs xcb
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 	Display* display;
 	Window   window;
@@ -102,27 +125,16 @@ typedef struct WindowHandle
 #endif
 } WindowHandle;
 
-typedef struct RectDesc
+typedef struct WindowDesc
 {
-	int32_t left;
-	int32_t top;
-	int32_t right;
-	int32_t bottom;
-} RectDesc;
 
-inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
-
-inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
-
-typedef struct
-{
 	WindowHandle handle;
 	RectDesc     windowedRect;
 	RectDesc     fullscreenRect;
 	RectDesc     clientRect;
 	uint32_t     windowsFlags;
 	bool         fullScreen;
-	bool         cursorTracked;
+	bool         cursorCaptured;
 	bool         iconified;
 	bool         maximized;
 	bool         minimized;
@@ -132,7 +144,23 @@ typedef struct
 	bool         overrideDefaultPosition;
 	bool         centered;
 	bool         forceLowDPI;
-} WindowsDesc;
+
+	int32_t mWindowMode;
+
+	int32_t pCurRes[MAX_MONITOR_COUNT];
+	int32_t pLastRes[MAX_MONITOR_COUNT];
+
+	int32_t mWndX;
+	int32_t mWndY;
+	int32_t mWndW;
+	int32_t mWndH;
+
+	bool    mCursorHidden;
+	int32_t mCursorInsideWindow;
+	bool    mCursorClipped;
+	bool    mMinimizeRequested;
+
+} WindowDesc;
 
 typedef struct Resolution
 {
@@ -179,6 +207,47 @@ typedef struct
 	bool        modesPruned;
 	bool        modeChanged;
 } MonitorDesc;
+
+inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left; }
+inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
+
+// Window handling
+void openWindow(const char* app_name, WindowDesc* winDesc);
+void closeWindow(const WindowDesc* winDesc);
+void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
+void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
+void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
+void toggleFullscreen(WindowDesc* winDesc);
+void showWindow(WindowDesc* winDesc);
+void hideWindow(WindowDesc* winDesc);
+void maximizeWindow(WindowDesc* winDesc);
+void minimizeWindow(WindowDesc* winDesc);
+void centerWindow(WindowDesc* winDesc);
+void captureCursor(WindowDesc* winDesc, bool bEnable);
+
+// Mouse and cursor handling
+void* createCursor(const char* path);
+void  setCursor(void* cursor);
+void  showCursor(void);
+void  hideCursor(void);
+bool  isCursorInsideTrackingArea(void);
+void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
+void  setMousePositionAbsolute(int32_t x, int32_t y);
+
+void getRecommendedResolution(RectDesc* rect);
+// Sets video mode for specified display
+void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+MonitorDesc* getMonitor(uint32_t index);
+uint32_t     getMonitorCount(void);
+// pArray pointer to array with at least 2 elements(x,y)
+void getDpiScale(float array[2]);
+
+bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+//------------------------------------------------------------------------
+// PLATFORM LAYER
+//------------------------------------------------------------------------
 
 #if defined(_WINDOWS)
 typedef enum ResetScenario
@@ -227,41 +296,8 @@ void requestShutdown(void);
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle);
 
 // Custom processing of OS pipe messages
-typedef int32_t (*CustomMessageProcessor)(WindowsDesc* pWindow, void* msg);
+typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
 void setCustomMessageProcessor(CustomMessageProcessor proc);
-
-// Window handling
-void openWindow(const char* app_name, WindowsDesc* winDesc);
-void closeWindow(const WindowsDesc* winDesc);
-void setWindowRect(WindowsDesc* winDesc, const RectDesc* rect);
-void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height);
-void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height);
-void toggleFullscreen(WindowsDesc* winDesc);
-void showWindow(WindowsDesc* winDesc);
-void hideWindow(WindowsDesc* winDesc);
-void maximizeWindow(WindowsDesc* winDesc);
-void minimizeWindow(WindowsDesc* winDesc);
-void centerWindow(WindowsDesc* winDesc);
-
-// Mouse and cursor handling
-void* createCursor(const char* path);
-void  setCursor(void* cursor);
-void  showCursor(void);
-void  hideCursor(void);
-bool  isCursorInsideTrackingArea(void);
-void  setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
-void  setMousePositionAbsolute(int32_t x, int32_t y);
-
-void getRecommendedResolution(RectDesc* rect);
-// Sets video mode for specified display
-void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
-
-MonitorDesc* getMonitor(uint32_t index);
-uint32_t     getMonitorCount(void);
-// pArray pointer to array with at least 2 elements(x,y)
-void getDpiScale(float array[2]);
-
-bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Shell commands
 

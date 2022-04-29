@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -44,7 +44,6 @@ struct FileWatcher
 	char                mPath[FS_MAX_PATH];
 	uint32_t            mNotifyFilter;
 	FileWatcherCallback mCallback;
-	ThreadDesc          mThreadDesc;
 	ThreadHandle        mThread;
 	volatile int        mRun;
 };
@@ -154,10 +153,11 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 	watcher->mCallback = callback;
 	watcher->mRun = 1;
 
-	watcher->mThreadDesc.pFunc = fswThreadFunc;
-	watcher->mThreadDesc.pData = watcher;
-
-	initThread(&watcher->mThreadDesc, &watcher->mThread);
+	ThreadDesc threadDesc = {};
+	threadDesc.pFunc = fswThreadFunc;
+	threadDesc.pData = watcher;
+	strncpy(threadDesc.mThreadName, "FileWatcher", sizeof(threadDesc.mThreadName));
+	initThread(&threadDesc, &watcher->mThread);
 
     return watcher;
 }
@@ -165,7 +165,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
 	fileWatcher->mRun = 0;
-	destroyThread(fileWatcher->mThread);
+	joinThread(fileWatcher->mThread);
 	tf_free(fileWatcher);
 }
 

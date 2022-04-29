@@ -130,7 +130,7 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
@@ -201,7 +201,7 @@ xcopy "$(ProjectDir)..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Conf
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/VULKAN</OutDir>
+      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
       <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>

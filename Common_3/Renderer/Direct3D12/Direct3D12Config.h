@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,7 +46,7 @@
 //////////////////////////////////////////////
 
 #ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT
-#define RAYTRACING_AVAILABLE
+#define D3D12_RAYTRACING_AVAILABLE
 #endif
 
 #ifdef D3D12_RS_SET_SHADING_RATE_COMBINER_COUNT

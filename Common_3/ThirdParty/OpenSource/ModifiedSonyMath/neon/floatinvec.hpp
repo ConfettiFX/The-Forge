@@ -43,7 +43,7 @@ typedef __m128i Vector4Int;
 // ========================================================
 
 // Vectorized scalar float.
-/*VECTORMATH_ALIGNED_TYPE_PRE*/ class FloatInVec
+VECTORMATH_ALIGNED_TYPE_PRE class FloatInVec
 {
     __m128 mData;
 
@@ -96,9 +96,9 @@ public:
     friend inline const FloatInVec operator / (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const FloatInVec operator + (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const FloatInVec operator - (const FloatInVec & vec0, const FloatInVec & vec1);
-    friend inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, BoolInVec select_vec1);
+    friend inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, const BoolInVec & select_vec1);
 
-} /*VECTORMATH_ALIGNED_TYPE_POST*/;
+} VECTORMATH_ALIGNED_TYPE_POST;
 
 // ========================================================
 // FloatInVec functions

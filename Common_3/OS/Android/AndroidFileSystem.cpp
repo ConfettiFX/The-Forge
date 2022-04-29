@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -99,7 +99,8 @@ static IFileSystem gBundledFileIO =
 
 static bool gInitialized = false;
 static const char* gResourceMounts[RM_COUNT];
-const char* GetResourceMount(ResourceMount mount) {
+const char* GetResourceMount(ResourceMount mount)
+{
 	return gResourceMounts[mount];
 }
 bool fsIsBundledResourceDir(ResourceDirectory resourceDir);
@@ -128,6 +129,7 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
 	gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
 	gResourceMounts[RM_SAVE_0] = pNativeActivity->externalDataPath;
+	gResourceMounts[RM_SYSTEM] = "/proc/";
 	
 	// Override Resource mounts
 	for (uint32_t i = 0; i < RM_COUNT; ++i)
@@ -147,8 +149,15 @@ void exitFileSystem()
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
 {
-	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	// Cant write to system files
+	if (RD_SYSTEM == resourceDir && ((mode & FM_WRITE) || (mode & FM_APPEND)))
+	{
+		LOGF(LogLevel::eERROR, "Trying to write to system file with FileMode '%d'", mode);
+		return false;
+	}
+
 	char filePath[FS_MAX_PATH] = {};
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
 	fsAppendPathComponent(resourcePath, fileName, filePath);
 
 	if (fsIsBundledResourceDir(resourceDir))

@@ -522,6 +522,495 @@ inline void print(const Matrix3 & mat, const char * name)
 #endif // VECTORMATH_DEBUG
 
 // ========================================================
+// Matrix3d
+// ========================================================
+
+inline Matrix3d::Matrix3d(const Matrix3d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+}
+
+inline Matrix3d::Matrix3d(double scalar)
+{
+	mCol0 = Vector3d(scalar);
+	mCol1 = Vector3d(scalar);
+	mCol2 = Vector3d(scalar);
+}
+
+inline Matrix3d::Matrix3d(const DoubleInVec & scalar)
+{
+	mCol0 = Vector3d(scalar);
+	mCol1 = Vector3d(scalar);
+	mCol2 = Vector3d(scalar);
+}
+
+inline Matrix3d::Matrix3d(const Quat & unitQuat)
+{
+	const DSSEVec4 unitQuatd = dsseSetr((double)unitQuat.getX(), (double)unitQuat.getY(), (double)unitQuat.getZ(), (double)unitQuat.getW());
+	DSSEVec4 xyzw_2, wwww, yzxw, zxyw, yzxw_2, zxyw_2;
+	DSSEVec4 tmp0, tmp1, tmp2, tmp3, tmp4, tmp5;
+
+	VECTORMATH_ALIGNED(unsigned long long sx[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long sz[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+
+	DSSEVec4 select_x = dsseLoadu((double *)sx);
+	DSSEVec4 select_z = dsseLoadu((double *)sz);
+
+	xyzw_2 = dsseAdd(unitQuatd, unitQuatd);
+	wwww = dsseShuffle(unitQuatd, unitQuatd, _MM_SHUFFLE(3, 3, 3, 3));
+	yzxw = dsseShuffle(unitQuatd, unitQuatd, _MM_SHUFFLE(3, 0, 2, 1));
+	zxyw = dsseShuffle(unitQuatd, unitQuatd, _MM_SHUFFLE(3, 1, 0, 2));
+	yzxw_2 = dsseShuffle(xyzw_2, xyzw_2, _MM_SHUFFLE(3, 0, 2, 1));
+	zxyw_2 = dsseShuffle(xyzw_2, xyzw_2, _MM_SHUFFLE(3, 1, 0, 2));
+
+	tmp0 = dsseMul(yzxw_2, wwww);                                // tmp0 = 2yw, 2zw, 2xw, 2w2
+	tmp1 = dsseSub(dsseSet1(1.0), dsseMul(yzxw, yzxw_2)); // tmp1 = 1 - 2y2, 1 - 2z2, 1 - 2x2, 1 - 2w2
+	tmp2 = dsseMul(yzxw, xyzw_2);                                // tmp2 = 2xy, 2yz, 2xz, 2w2
+	tmp0 = dsseAdd(dsseMul(zxyw, xyzw_2), tmp0);              // tmp0 = 2yw + 2zx, 2zw + 2xy, 2xw + 2yz, 2w2 + 2w2
+	tmp1 = dsseSub(tmp1, dsseMul(zxyw, zxyw_2));              // tmp1 = 1 - 2y2 - 2z2, 1 - 2z2 - 2x2, 1 - 2x2 - 2y2, 1 - 2w2 - 2w2
+	tmp2 = dsseSub(tmp2, dsseMul(zxyw_2, wwww));              // tmp2 = 2xy - 2zw, 2yz - 2xw, 2xz - 2yw, 2w2 -2w2
+
+	tmp3 = dsseSelect(tmp0, tmp1, select_x);
+	tmp4 = dsseSelect(tmp1, tmp2, select_x);
+	tmp5 = dsseSelect(tmp2, tmp0, select_x);
+	mCol0 = Vector3d(dsseSelect(tmp3, tmp2, select_z));
+	mCol1 = Vector3d(dsseSelect(tmp4, tmp0, select_z));
+	mCol2 = Vector3d(dsseSelect(tmp5, tmp1, select_z));
+}
+
+inline Matrix3d::Matrix3d(const Vector3d & _col0, const Vector3d & _col1, const Vector3d & _col2)
+{
+	mCol0 = _col0;
+	mCol1 = _col1;
+	mCol2 = _col2;
+}
+
+inline Matrix3d & Matrix3d::setCol0(const Vector3d & _col0)
+{
+	mCol0 = _col0;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol1(const Vector3d & _col1)
+{
+	mCol1 = _col1;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol2(const Vector3d & _col2)
+{
+	mCol2 = _col2;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol(int col, const Vector3d & vec)
+{
+	*(&mCol0 + col) = vec;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setRow(int row, const Vector3d & vec)
+{
+	mCol0.setElem(row, vec.getElem(0));
+	mCol1.setElem(row, vec.getElem(1));
+	mCol2.setElem(row, vec.getElem(2));
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setElem(int col, int row, double val)
+{
+	(*this)[col].setElem(row, val);
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setElem(int col, int row, const DoubleInVec & val)
+{
+	Vector3d tmpV3_0;
+	tmpV3_0 = this->getCol(col);
+	tmpV3_0.setElem(row, val);
+	this->setCol(col, tmpV3_0);
+	return *this;
+}
+
+inline const DoubleInVec Matrix3d::getElem(int col, int row) const
+{
+	return this->getCol(col).getElem(row);
+}
+
+inline const Vector3d Matrix3d::getCol0() const
+{
+	return mCol0;
+}
+
+inline const Vector3d Matrix3d::getCol1() const
+{
+	return mCol1;
+}
+
+inline const Vector3d Matrix3d::getCol2() const
+{
+	return mCol2;
+}
+
+inline const Vector3d Matrix3d::getCol(int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector3d Matrix3d::getRow(int row) const
+{
+	return Vector3d(mCol0.getElem(row), mCol1.getElem(row), mCol2.getElem(row));
+}
+
+inline Vector3d & Matrix3d::operator[](int col)
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector3d Matrix3d::operator[](int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline Matrix3d & Matrix3d::operator = (const Matrix3d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+	return *this;
+}
+
+inline const Matrix3d transpose(const Matrix3d & mat)
+{
+	
+	DSSEVec4 tmp0, tmp1, res0, res1, res2;
+	tmp0 = dsseMergeH(mat.getCol0().get256(), mat.getCol2().get256());
+	tmp1 = dsseMergeL(mat.getCol0().get256(), mat.getCol2().get256());
+	res0 = dsseMergeH(tmp0, mat.getCol1().get256());
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	res1 = dsseShuffle(tmp0, tmp0, _MM_SHUFFLE(0, 3, 2, 2));
+	res1 = dsseSelect(res1, mat.getCol1().get256(), select_y);
+	res2 = dsseShuffle(tmp1, tmp1, _MM_SHUFFLE(0, 1, 1, 0));
+	res2 = dsseSelect(res2, dsseSplat(mat.getCol1().get256(), 2), select_y);
+	return Matrix3d(Vector3d(res0), Vector3d(res1), Vector3d(res2));
+}
+
+inline const Matrix3d inverse(const Matrix3d & mat)
+{
+	DSSEVec4 tmp0, tmp1, tmp2, tmp3, tmp4, dot, invdet, inv0, inv1, inv2;
+	tmp2 = dsseVecCross(mat.getCol0().get256(), mat.getCol1().get256());
+	tmp0 = dsseVecCross(mat.getCol1().get256(), mat.getCol2().get256());
+	tmp1 = dsseVecCross(mat.getCol2().get256(), mat.getCol0().get256());
+	dot = dsseVecDot3(tmp2, mat.getCol2().get256());
+	dot = dsseSplat(dot, 0);
+	invdet = dsseRecipf(dot);
+	tmp3 = dsseMergeH(tmp0, tmp2);
+	tmp4 = dsseMergeL(tmp0, tmp2);
+	inv0 = dsseMergeH(tmp3, tmp1);
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	inv1 = dsseShuffle(tmp3, tmp3, _MM_SHUFFLE(0, 3, 2, 2));
+	inv1 = dsseSelect(inv1, tmp1, select_y);
+	inv2 = dsseShuffle(tmp4, tmp4, _MM_SHUFFLE(0, 1, 1, 0));
+	inv2 = dsseSelect(inv2, dsseSplat(tmp1, 2), select_y);
+	inv0 = dsseMul(inv0, invdet);
+	inv1 = dsseMul(inv1, invdet);
+	inv2 = dsseMul(inv2, invdet);
+	return Matrix3d(Vector3d(inv0), Vector3d(inv1), Vector3d(inv2));
+}
+
+inline const DoubleInVec determinant(const Matrix3d & mat)
+{
+	return dot(mat.getCol2(), cross(mat.getCol0(), mat.getCol1()));
+}
+
+inline const Matrix3d Matrix3d::operator + (const Matrix3d & mat) const
+{
+	return Matrix3d((mCol0 + mat.mCol0), (mCol1 + mat.mCol1), (mCol2 + mat.mCol2));
+}
+
+inline const Matrix3d Matrix3d::operator - (const Matrix3d & mat) const
+{
+	return Matrix3d((mCol0 - mat.mCol0), (mCol1 - mat.mCol1), (mCol2 - mat.mCol2));
+}
+
+inline Matrix3d & Matrix3d::operator += (const Matrix3d & mat)
+{
+	*this = *this + mat;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::operator -= (const Matrix3d & mat)
+{
+	*this = *this - mat;
+	return *this;
+}
+
+inline const Matrix3d Matrix3d::operator - () const
+{
+	return Matrix3d((-mCol0), (-mCol1), (-mCol2));
+}
+
+inline const Matrix3d absPerElem(const Matrix3d & mat)
+{
+	return Matrix3d(absPerElem(mat.getCol0()), absPerElem(mat.getCol1()), absPerElem(mat.getCol2()));
+}
+
+inline const Matrix3d Matrix3d::operator * (double scalar) const
+{
+	return *this * DoubleInVec(scalar);
+}
+
+inline const Matrix3d Matrix3d::operator * (const DoubleInVec & scalar) const
+{
+	return Matrix3d((mCol0 * scalar), (mCol1 * scalar), (mCol2 * scalar));
+}
+
+inline Matrix3d & Matrix3d::operator *= (double scalar)
+{
+	return *this *= DoubleInVec(scalar);
+}
+
+inline Matrix3d & Matrix3d::operator *= (const DoubleInVec & scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Matrix3d operator * (double scalar, const Matrix3d & mat)
+{
+	return DoubleInVec(scalar) * mat;
+}
+
+inline const Matrix3d operator * (const DoubleInVec & scalar, const Matrix3d & mat)
+{
+	return mat * scalar;
+}
+
+inline const Vector3d Matrix3d::operator * (const Vector3d & vec) const
+{
+		DSSEVec4 res;
+		DSSEVec4 xxxx, yyyy, zzzz;
+		xxxx = dsseSplat(vec.get256(), 0);
+		yyyy = dsseSplat(vec.get256(), 1);
+		zzzz = dsseSplat(vec.get256(), 2);
+		res = dsseMul(mCol0.get256(), xxxx);
+		res = dsseMAdd(mCol1.get256(), yyyy, res);
+		res = dsseMAdd(mCol2.get256(), zzzz, res);
+		return Vector3d(res);
+}
+
+inline const Matrix3d Matrix3d::operator * (const Matrix3d & mat) const
+{
+	return Matrix3d((*this * mat.mCol0), (*this * mat.mCol1), (*this * mat.mCol2));
+}
+
+inline Matrix3d & Matrix3d::operator *= (const Matrix3d & mat)
+{
+	*this = *this * mat;
+	return *this;
+}
+
+inline const Matrix3d mulPerElem(const Matrix3d & mat0, const Matrix3d & mat1)
+{
+	return Matrix3d(
+		mulPerElem(mat0.getCol0(), mat1.getCol0()),
+		mulPerElem(mat0.getCol1(), mat1.getCol1()),
+		mulPerElem(mat0.getCol2(), mat1.getCol2())
+	);
+}
+
+inline const Matrix3d Matrix3d::identity()
+{
+	return Matrix3d(Vector3d::xAxis(), Vector3d::yAxis(), Vector3d::zAxis());
+}
+
+inline const Matrix3d Matrix3d::rotationX(double radians)
+{
+	return rotationX(DoubleInVec(radians));
+}
+
+inline const Matrix3d Matrix3d::rotationX(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 s, c, res1, res2;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res1 = dsseSelect(zero, c, select_y);
+	res1 = dsseSelect(res1, s, select_z);
+	res2 = dsseSelect(zero, dsseNegatef(s), select_y);
+	res2 = dsseSelect(res2, c, select_z);
+	return Matrix3d(Vector3d::xAxis(), Vector3d(res1), Vector3d(res2));
+}
+
+inline const Matrix3d Matrix3d::rotationY(double radians)
+{
+	return rotationY(DoubleInVec(radians));
+}
+
+inline const Matrix3d Matrix3d::rotationY(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 s, c, res0, res2;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res0 = dsseSelect(zero, c, select_x);
+	res0 = dsseSelect(res0, dsseNegatef(s), select_z);
+	res2 = dsseSelect(zero, s, select_x);
+	res2 = dsseSelect(res2, c, select_z);
+	return Matrix3d(Vector3d(res0), Vector3d::yAxis(), Vector3d(res2));
+}
+
+inline const Matrix3d Matrix3d::rotationZ(double radians)
+{
+	return rotationZ(DoubleInVec(radians));
+}
+
+inline const Matrix3d Matrix3d::rotationZ(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 s, c, res0, res1;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res0 = dsseSelect(zero, c, select_x);
+	res0 = dsseSelect(res0, s, select_y);
+	res1 = dsseSelect(zero, dsseNegatef(s), select_x);
+	res1 = dsseSelect(res1, c, select_y);
+	return Matrix3d(Vector3d(res0), Vector3d(res1), Vector3d::zAxis());
+}
+
+inline const Matrix3d Matrix3d::rotationZYX(const Vector3d & radiansXYZ)
+{
+	DSSEVec4 angles, s, negS, c, X0, X1, Y0, Y1, Z0, Z1, tmp;
+	angles = Vector4d(radiansXYZ, 0.0).get256();
+	dsseSinfCosf(angles, &s, &c);
+	negS = dsseNegatef(s);
+	Z0 = dsseMergeL(c, s);
+	Z1 = dsseMergeL(negS, c);
+	VECTORMATH_ALIGNED(unsigned long long select_xyz[4]) = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0 };
+	Z1 = dsseAnd(Z1, dsseLoadu((double *)select_xyz));
+	Y0 = dsseShuffle(c, negS, _MM_SHUFFLE(0, 1, 1, 1));
+	Y1 = dsseShuffle(s, c, _MM_SHUFFLE(0, 1, 1, 1));
+	X0 = dsseSplat(s, 0);
+	X1 = dsseSplat(c, 0);
+	tmp = dsseMul(Z0, Y1);
+	return Matrix3d(
+		Vector3d(dsseMul(Z0, Y0)),
+		Vector3d(dsseMAdd(Z1, X1, dsseMul(tmp, X0))),
+		Vector3d(dsseMSub(Z1, X0, dsseMul(tmp, X1)))
+	);
+}
+
+inline const Matrix3d Matrix3d::rotation(double radians, const Vector3d & unitVec)
+{
+	return rotation(DoubleInVec(radians), unitVec);
+}
+
+inline const Matrix3d Matrix3d::rotation(const DoubleInVec & radians, const Vector3d & unitVec)
+{
+	DSSEVec4 axis, s, c, oneMinusC, axisS, negAxisS, xxxx, yyyy, zzzz, tmp0, tmp1, tmp2;
+	axis = unitVec.get256();
+	dsseSinfCosf(radians.get256(), &s, &c);
+	xxxx = dsseSplat(axis, 0);
+	yyyy = dsseSplat(axis, 1);
+	zzzz = dsseSplat(axis, 2);
+	oneMinusC = dsseSub(dsseSet1(1.0), c);
+	axisS = dsseMul(axis, s);
+	negAxisS = dsseNegatef(axisS);
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	tmp0 = dsseShuffle(axisS, axisS, _MM_SHUFFLE(0, 0, 2, 0));
+	tmp0 = dsseSelect(tmp0, dsseSplat(negAxisS, 1), select_z);
+	tmp1 = dsseSelect(dsseSplat(axisS, 0), dsseSplat(negAxisS, 2), select_x);
+	tmp2 = dsseShuffle(axisS, axisS, _MM_SHUFFLE(0, 0, 0, 1));
+	tmp2 = dsseSelect(tmp2, dsseSplat(negAxisS, 0), select_y);
+	tmp0 = dsseSelect(tmp0, c, select_x);
+	tmp1 = dsseSelect(tmp1, c, select_y);
+	tmp2 = dsseSelect(tmp2, c, select_z);
+	return Matrix3d(
+		Vector3d(dsseMAdd(dsseMul(axis, xxxx), oneMinusC, tmp0)),
+		Vector3d(dsseMAdd(dsseMul(axis, yyyy), oneMinusC, tmp1)),
+		Vector3d(dsseMAdd(dsseMul(axis, zzzz), oneMinusC, tmp2))
+	);
+}
+
+inline const Matrix3d Matrix3d::rotation(const Quat & unitQuat)
+{
+	return Matrix3d(unitQuat);
+}
+
+inline const Matrix3d Matrix3d::scale(const Vector3d & scaleVec)
+{
+	const DSSEVec4 zero = dsseSetZero();
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	return Matrix3d(
+		Vector3d(dsseSelect(zero, scaleVec.get256(), select_x)),
+		Vector3d(dsseSelect(zero, scaleVec.get256(), select_y)),
+		Vector3d(dsseSelect(zero, scaleVec.get256(), select_z))
+	);
+}
+
+inline const Matrix3d appendScale(const Matrix3d & mat, const Vector3d & scaleVec)
+{
+	return Matrix3d(
+		(mat.getCol0() * scaleVec.getX()),
+		(mat.getCol1() * scaleVec.getY()),
+		(mat.getCol2() * scaleVec.getZ())
+	);
+}
+
+inline const Matrix3d prependScale(const Vector3d & scaleVec, const Matrix3d & mat)
+{
+	return Matrix3d(
+		mulPerElem(mat.getCol0(), scaleVec),
+		mulPerElem(mat.getCol1(), scaleVec),
+		mulPerElem(mat.getCol2(), scaleVec)
+	);
+}
+
+inline const Matrix3d select(const Matrix3d & mat0, const Matrix3d & mat1, bool select1)
+{
+	return Matrix3d(
+		select(mat0.getCol0(), mat1.getCol0(), select1),
+		select(mat0.getCol1(), mat1.getCol1(), select1),
+		select(mat0.getCol2(), mat1.getCol2(), select1)
+	);
+}
+
+inline const Matrix3d select(const Matrix3d & mat0, const Matrix3d & mat1, const BoolInVec & select1)
+{
+	return Matrix3d(
+		select(mat0.getCol0(), mat1.getCol0(), select1),
+		select(mat0.getCol1(), mat1.getCol1(), select1),
+		select(mat0.getCol2(), mat1.getCol2(), select1)
+	);
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Matrix3d & mat)
+{
+	print(mat.getRow(0));
+	print(mat.getRow(1));
+	print(mat.getRow(2));
+}
+
+inline void print(const Matrix3d & mat, const char * name)
+{
+	std::printf("%s:\n", name);
+	print(mat);
+}
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
 // Matrix4
 // ========================================================
 
@@ -1554,7 +2043,7 @@ inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, floa
 	const Vector4 &col2 = orthoMatrix.mCol2;
 	const Vector4 &col3 = orthoMatrix.mCol3;
 	orthoMatrix.mCol2.setZ(-col2.getZ());
-	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
+	orthoMatrix.mCol3.setZ((float)-col3.getZ() * zFar / zNear);
 
 	return orthoMatrix;
 }
@@ -1738,6 +2227,1183 @@ inline void print(const Matrix4 & mat, const char * name)
 {
     std::printf("%s:\n", name);
     print(mat);
+}
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
+// Matrix4d
+// ========================================================
+
+inline Matrix4d::Matrix4d(const Matrix4d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+	mCol3 = mat.mCol3;
+}
+
+inline Matrix4d::Matrix4d(double scalar)
+{
+	mCol0 = Vector4d(scalar);
+	mCol1 = Vector4d(scalar);
+	mCol2 = Vector4d(scalar);
+	mCol3 = Vector4d(scalar);
+}
+
+inline Matrix4d::Matrix4d(const DoubleInVec & scalar)
+{
+	mCol0 = Vector4d(scalar);
+	mCol1 = Vector4d(scalar);
+	mCol2 = Vector4d(scalar);
+	mCol3 = Vector4d(scalar);
+}
+
+inline Matrix4d::Matrix4d(const Transform3 & mat)
+{
+	SSEFloat c0, c1, c2, c3;
+	c0.m128 = mat.getCol0().get128();
+	c1.m128 = mat.getCol1().get128();
+	c2.m128 = mat.getCol2().get128();
+	c3.m128 = mat.getCol3().get128();
+	mCol0 = Vector4d(dsseFromFVec4(c0));
+	mCol1 = Vector4d(dsseFromFVec4(c1));
+	mCol2 = Vector4d(dsseFromFVec4(c2));
+	mCol3 = Vector4d(dsseFromFVec4(c3));
+}
+
+inline Matrix4d::Matrix4d(const Vector4d & _col0, const Vector4d & _col1, const Vector4d & _col2, const Vector4d & _col3)
+{
+	mCol0 = _col0;
+	mCol1 = _col1;
+	mCol2 = _col2;
+	mCol3 = _col3;
+}
+
+inline Matrix4d::Matrix4d(const Matrix3d & mat, const Vector3d & translateVec)
+{
+	mCol0 = Vector4d(mat.getCol0(), 0.0);
+	mCol1 = Vector4d(mat.getCol1(), 0.0);
+	mCol2 = Vector4d(mat.getCol2(), 0.0);
+	mCol3 = Vector4d(translateVec,  1.0);
+}
+
+inline Matrix4d::Matrix4d(const Quat & unitQuat, const Vector3d & translateVec)
+{
+	Matrix3d mat;
+	mat = Matrix3d(unitQuat);
+	mCol0 = Vector4d(mat.getCol0(), 0.0);
+	mCol1 = Vector4d(mat.getCol1(), 0.0);
+	mCol2 = Vector4d(mat.getCol2(), 0.0);
+	mCol3 = Vector4d(translateVec,  1.0);
+}
+
+inline Matrix4d & Matrix4d::setCol0(const Vector4d & _col0)
+{
+	mCol0 = _col0;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol1(const Vector4d & _col1)
+{
+	mCol1 = _col1;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol2(const Vector4d & _col2)
+{
+	mCol2 = _col2;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol3(const Vector4d & _col3)
+{
+	mCol3 = _col3;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setCol(int col, const Vector4d & vec)
+{
+	*(&mCol0 + col) = vec;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setRow(int row, const Vector4d & vec)
+{
+	mCol0.setElem(row, vec.getElem(0));
+	mCol1.setElem(row, vec.getElem(1));
+	mCol2.setElem(row, vec.getElem(2));
+	mCol3.setElem(row, vec.getElem(3));
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setElem(int col, int row, double val)
+{
+	(*this)[col].setElem(row, val);
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::setElem(int col, int row, const DoubleInVec & val)
+{
+	Vector4d tmpV3_0;
+	tmpV3_0 = this->getCol(col);
+	tmpV3_0.setElem(row, val);
+	this->setCol(col, tmpV3_0);
+	return *this;
+}
+
+inline const DoubleInVec Matrix4d::getElem(int col, int row) const
+{
+	return this->getCol(col).getElem(row);
+}
+
+inline const Vector4d Matrix4d::getCol0() const
+{
+	return mCol0;
+}
+
+inline const Vector4d Matrix4d::getCol1() const
+{
+	return mCol1;
+}
+
+inline const Vector4d Matrix4d::getCol2() const
+{
+	return mCol2;
+}
+
+inline const Vector4d Matrix4d::getCol3() const
+{
+	return mCol3;
+}
+
+inline const Vector4d Matrix4d::getCol(int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector4d Matrix4d::getRow(int row) const
+{
+	return Vector4d(mCol0.getElem(row), mCol1.getElem(row), mCol2.getElem(row), mCol3.getElem(row));
+}
+
+inline Vector4d & Matrix4d::operator[](int col)
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector4d Matrix4d::operator[](int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline Matrix4d & Matrix4d::operator = (const Matrix4d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+	mCol3 = mat.mCol3;
+	return *this;
+}
+
+inline const Matrix4d transpose(const Matrix4d & mat)
+{
+	DSSEVec4 tmp0, tmp1, tmp2, tmp3, res0, res1, res2, res3;
+	tmp0 = dsseMergeH(mat.getCol0().get256(), mat.getCol2().get256());
+	tmp1 = dsseMergeH(mat.getCol1().get256(), mat.getCol3().get256());
+	tmp2 = dsseMergeL(mat.getCol0().get256(), mat.getCol2().get256());
+	tmp3 = dsseMergeL(mat.getCol1().get256(), mat.getCol3().get256());
+	res0 = dsseMergeH(tmp0, tmp1);
+	res1 = dsseMergeL(tmp0, tmp1);
+	res2 = dsseMergeH(tmp2, tmp3);
+	res3 = dsseMergeL(tmp2, tmp3);
+	return Matrix4d(Vector4d(res0), Vector4d(res1), Vector4d(res2), Vector4d(res3));
+}
+
+inline const Matrix4d inverse(const Matrix4d & mat)
+{
+	VECTORMATH_ALIGNED(unsigned long long PNPN[4]) = { 0x00000000, 0x8000000000000000, 0x00000000, 0x8000000000000000 };
+	VECTORMATH_ALIGNED(unsigned long long NPNP[4]) = { 0x8000000000000000, 0x00000000, 0x8000000000000000, 0x00000000 };
+	VECTORMATH_ALIGNED(double X1_YZ0_W1[4])   = { 1.0f, 0.0f, 0.0f, 1.0f };
+
+	DSSEVec4 Va, Vb, Vc;
+	DSSEVec4 r1, r2, r3, tt, tt2;
+	DSSEVec4 sum, Det, RDet = dsseSetZero();
+	DSSEVec4 trns0, trns1, trns2, trns3;
+
+	DSSEVec4 _L1 = mat.getCol0().get256();
+	DSSEVec4 _L2 = mat.getCol1().get256();
+	DSSEVec4 _L3 = mat.getCol2().get256();
+	DSSEVec4 _L4 = mat.getCol3().get256();
+	// Calculating the minterms for the first line.
+
+	// sseRor is just a macro using _mm_shuffle_ps().
+	tt = _L4;
+	tt2 = dsseRor(_L3, 1);
+	Vc = dsseMul(tt2, dsseRor(tt, 0)); // V3'·V4
+	Va = dsseMul(tt2, dsseRor(tt, 2)); // V3'·V4"
+	Vb = dsseMul(tt2, dsseRor(tt, 3)); // V3'·V4^
+
+	r1 = dsseSub(dsseRor(Va, 1), dsseRor(Vc, 2)); // V3"·V4^ - V3^·V4"
+	r2 = dsseSub(dsseRor(Vb, 2), dsseRor(Vb, 0)); // V3^·V4' - V3'·V4^
+	r3 = dsseSub(dsseRor(Va, 0), dsseRor(Vc, 1)); // V3'·V4" - V3"·V4'
+
+	tt = _L2;
+	Va = dsseRor(tt, 1);
+	sum = dsseMul(Va, r1);
+	Vb = dsseRor(tt, 2);
+	sum = dsseAdd(sum, dsseMul(Vb, r2));
+	Vc = dsseRor(tt, 3);
+	sum = dsseAdd(sum, dsseMul(Vc, r3));
+
+	// Calculating the determinant.
+	Det = dsseMul(sum, _L1);
+	Det = dsseAdd(Det, dsseMoveHL(Det, Det));
+
+	const DSSEVec4 Sign_PNPN = dsseLoadu((double *)PNPN);
+	const DSSEVec4 Sign_NPNP = dsseLoadu((double *)NPNP);
+
+	DSSEVec4 mtL1 = dsseXor(sum, Sign_PNPN);
+
+	// Calculating the minterms of the second line (using previous results).
+	tt = dsseRor(_L1, 1);
+	sum = dsseMul(tt, r1);
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r2));
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r3));
+	DSSEVec4 mtL2 = dsseXor(sum, Sign_NPNP);
+
+	// Testing the determinant.
+	Det.xy = _mm_sub_sd(Det.xy, dsseShuffle(Det, Det, 1).xy);
+
+	// Calculating the minterms of the third line.
+	tt = dsseRor(_L1, 1);
+	Va = dsseMul(tt, Vb);  // V1'·V2"
+	Vb = dsseMul(tt, Vc);  // V1'·V2^
+	Vc = dsseMul(tt, _L2); // V1'·V2
+
+	r1 = dsseSub(dsseRor(Va, 1), dsseRor(Vc, 2)); // V1"·V2^ - V1^·V2"
+	r2 = dsseSub(dsseRor(Vb, 2), dsseRor(Vb, 0)); // V1^·V2' - V1'·V2^
+	r3 = dsseSub(dsseRor(Va, 0), dsseRor(Vc, 1)); // V1'·V2" - V1"·V2'
+
+	tt = dsseRor(_L4, 1);
+	sum = dsseMul(tt, r1);
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r2));
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r3));
+	DSSEVec4 mtL3 = dsseXor(sum, Sign_PNPN);
+
+	// Dividing is FASTER than rcp_nr! (Because rcp_nr causes many register-memory RWs).
+	RDet.xy = _mm_div_sd(_mm_load_sd((double *)&X1_YZ0_W1), Det.xy);
+	RDet = dsseShuffle(RDet, RDet, 0x00);
+
+	// Devide the first 12 minterms with the determinant.
+	mtL1 = dsseMul(mtL1, RDet);
+	mtL2 = dsseMul(mtL2, RDet);
+	mtL3 = dsseMul(mtL3, RDet);
+
+	// Calculate the minterms of the forth line and devide by the determinant.
+	tt = dsseRor(_L3, 1);
+	sum = dsseMul(tt, r1);
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r2));
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r3));
+	DSSEVec4 mtL4 = dsseXor(sum, Sign_NPNP);
+	mtL4 = dsseMul(mtL4, RDet);
+
+	// Now we just have to transpose the minterms matrix.
+	trns0 = dsseMergeH(mtL1, mtL2);
+	trns1 = dsseMergeH(mtL3, mtL4);
+	trns2 = dsseMergeL(mtL1, mtL2);
+	trns3 = dsseMergeL(mtL3, mtL4);
+	_L1 = dsseMoveLH(trns0, trns1);
+	_L2 = dsseMoveHL(trns1, trns0);
+	_L3 = dsseMoveLH(trns2, trns3);
+	_L4 = dsseMoveHL(trns3, trns2);
+
+	return Matrix4d(Vector4d(_L1), Vector4d(_L2), Vector4d(_L3), Vector4d(_L4));
+}
+
+inline const Matrix4d affineInverse(const Matrix4d & mat)
+{
+	DSSEVec4 inv0, inv1, inv2, inv3;
+	DSSEVec4 tmp0, tmp1, tmp2, tmp3, tmp4, dot, invdet;
+	DSSEVec4 xxxx, yyyy, zzzz;
+	tmp2 = dsseVecCross(mat.getCol0().get256(), mat.getCol1().get256());
+	tmp0 = dsseVecCross(mat.getCol1().get256(), mat.getCol2().get256());
+	tmp1 = dsseVecCross(mat.getCol2().get256(), mat.getCol0().get256());
+	inv3 = dsseNegatef(mat.getCol3().get256());
+	dot = dsseVecDot3(tmp2, mat.getCol2().get256());
+	dot = dsseSplat(dot, 0);
+	invdet = dsseRecipf(dot);
+	tmp3 = dsseMergeH(tmp0, tmp2);
+	tmp4 = dsseMergeL(tmp0, tmp2);
+	inv0 = dsseMergeH(tmp3, tmp1);
+	xxxx = dsseSplat(inv3, 0);
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	inv1 = dsseShuffle(tmp3, tmp3, _MM_SHUFFLE(0, 3, 2, 2));
+	inv1 = dsseSelect(inv1, tmp1, select_y);
+	inv2 = dsseShuffle(tmp4, tmp4, _MM_SHUFFLE(0, 1, 1, 0));
+	inv2 = dsseSelect(inv2, dsseSplat(tmp1, 2), select_y);
+	yyyy = dsseSplat(inv3, 1);
+	zzzz = dsseSplat(inv3, 2);
+	inv3 = dsseMul(inv0, xxxx);
+	inv3 = dsseMAdd(inv1, yyyy, inv3);
+	inv3 = dsseMAdd(inv2, zzzz, inv3);
+	inv0 = dsseMul(inv0, invdet);
+	inv1 = dsseMul(inv1, invdet);
+	inv2 = dsseMul(inv2, invdet);
+	inv3 = dsseMul(inv3, invdet);
+	return Matrix4d(Matrix3d(Vector3d(inv0), Vector3d(inv1), Vector3d(inv2)), Vector3d(inv3));
+}
+
+inline const Matrix4d orthoInverse(const Matrix4d & mat)
+{
+	DSSEVec4 inv0, inv1, inv2, inv3;
+	DSSEVec4 tmp0, tmp1;
+	DSSEVec4 xxxx, yyyy, zzzz;
+	tmp0 = dsseMergeH(mat.getCol0().get256(), mat.getCol2().get256());
+	tmp1 = dsseMergeL(mat.getCol0().get256(), mat.getCol2().get256());
+	inv3 = dsseNegatef(mat.getCol3().get256());
+	inv0 = dsseMergeH(tmp0, mat.getCol1().get256());
+	xxxx = dsseSplat(inv3, 0);
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	inv1 = dsseShuffle(tmp0, tmp0, _MM_SHUFFLE(0, 3, 2, 2));
+	inv1 = dsseSelect(inv1, mat.getCol1().get256(), select_y);
+	inv2 = dsseShuffle(tmp1, tmp1, _MM_SHUFFLE(0, 1, 1, 0));
+	inv2 = dsseSelect(inv2, dsseSplat(mat.getCol1().get256(), 2), select_y);
+	yyyy = dsseSplat(inv3, 1);
+	zzzz = dsseSplat(inv3, 2);
+	inv3 = dsseMul(inv0, xxxx);
+	inv3 = dsseMAdd(inv1, yyyy, inv3);
+	inv3 = dsseMAdd(inv2, zzzz, inv3);
+	return Matrix4d(Matrix3d(Vector3d(inv0), Vector3d(inv1), Vector3d(inv2)), Vector3d(inv3));
+}
+
+inline const DoubleInVec determinant(const Matrix4d & mat)
+{
+	DSSEVec4 Va, Vb, Vc;
+	DSSEVec4 r1, r2, r3, tt, tt2;
+	DSSEVec4 sum, Det;
+
+	DSSEVec4 _L1 = mat.getCol0().get256();
+	DSSEVec4 _L2 = mat.getCol1().get256();
+	DSSEVec4 _L3 = mat.getCol2().get256();
+	DSSEVec4 _L4 = mat.getCol3().get256();
+	// Calculating the minterms for the first line.
+
+	// sseRor is just a macro using _mm_shuffle_ps().
+	tt = _L4;
+	tt2 = dsseRor(_L3, 1);
+	Vc = dsseMul(tt2, dsseRor(tt, 0)); // V3'·V4
+	Va = dsseMul(tt2, dsseRor(tt, 2)); // V3'·V4"
+	Vb = dsseMul(tt2, dsseRor(tt, 3)); // V3'·V4^
+
+	r1 = dsseSub(dsseRor(Va, 1), dsseRor(Vc, 2)); // V3"·V4^ - V3^·V4"
+	r2 = dsseSub(dsseRor(Vb, 2), dsseRor(Vb, 0)); // V3^·V4' - V3'·V4^
+	r3 = dsseSub(dsseRor(Va, 0), dsseRor(Vc, 1)); // V3'·V4" - V3"·V4'
+
+	tt = _L2;
+	Va = dsseRor(tt, 1);
+	sum = dsseMul(Va, r1);
+	Vb = dsseRor(tt, 2);
+	sum = dsseAdd(sum, dsseMul(Vb, r2));
+	Vc = dsseRor(tt, 3);
+	sum = dsseAdd(sum, dsseMul(Vc, r3));
+
+	// Calculating the determinant.
+	Det = dsseMul(sum, _L1);
+	Det = dsseAdd(Det, dsseMoveHL(Det, Det));
+
+	// Calculating the minterms of the second line (using previous results).
+	tt = dsseRor(_L1, 1);
+	sum = dsseMul(tt, r1);
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r2));
+	tt = dsseRor(tt, 1);
+	sum = dsseAdd(sum, dsseMul(tt, r3));
+
+	// Testing the determinant.
+	Det = dsseSub(Det, dsseShuffle(Det, Det, 1));
+	return DoubleInVec(Det, 0);
+}
+
+inline const Matrix4d Matrix4d::operator + (const Matrix4d & mat) const
+{
+	return Matrix4d((mCol0 + mat.mCol0),
+				   (mCol1 + mat.mCol1),
+				   (mCol2 + mat.mCol2),
+				   (mCol3 + mat.mCol3));
+}
+
+inline const Matrix4d Matrix4d::operator - (const Matrix4d & mat) const
+{
+	return Matrix4d((mCol0 - mat.mCol0),
+				   (mCol1 - mat.mCol1),
+				   (mCol2 - mat.mCol2),
+				   (mCol3 - mat.mCol3));
+}
+
+inline Matrix4d & Matrix4d::operator += (const Matrix4d & mat)
+{
+	*this = *this + mat;
+	return *this;
+}
+
+inline Matrix4d & Matrix4d::operator -= (const Matrix4d & mat)
+{
+	*this = *this - mat;
+	return *this;
+}
+
+inline const Matrix4d Matrix4d::operator - () const
+{
+	return Matrix4d((-mCol0), (-mCol1), (-mCol2), (-mCol3));
+}
+
+inline const Matrix4d absPerElem(const Matrix4d & mat)
+{
+	return Matrix4d(absPerElem(mat.getCol0()),
+				   absPerElem(mat.getCol1()),
+				   absPerElem(mat.getCol2()),
+				   absPerElem(mat.getCol3()));
+}
+
+inline const Matrix4d Matrix4d::operator * (double scalar) const
+{
+	return *this * DoubleInVec(scalar);
+}
+
+inline const Matrix4d Matrix4d::operator * (const DoubleInVec & scalar) const
+{
+	return Matrix4d((mCol0 * scalar),
+				   (mCol1 * scalar),
+				   (mCol2 * scalar),
+				   (mCol3 * scalar));
+}
+
+inline Matrix4d & Matrix4d::operator *= (double scalar)
+{
+	return *this *= DoubleInVec(scalar);
+}
+
+inline Matrix4d & Matrix4d::operator *= (const DoubleInVec & scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Matrix4d operator * (double scalar, const Matrix4d & mat)
+{
+	return DoubleInVec(scalar) * mat;
+}
+
+inline const Matrix4d operator * (const DoubleInVec & scalar, const Matrix4d & mat)
+{
+	return mat * scalar;
+}
+
+inline const Vector4d Matrix4d::operator * (const Vector4d & vec) const
+{
+	return Vector4d(
+		dsseAdd(
+			dsseAdd(dsseMul(mCol0.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(0, 0, 0, 0))), dsseMul(mCol1.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(1, 1, 1, 1)))),
+			dsseAdd(dsseMul(mCol2.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(2, 2, 2, 2))), dsseMul(mCol3.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(3, 3, 3, 3))))));
+}
+
+inline const Vector4d Matrix4d::operator * (const Vector3d & vec) const
+{
+	return Vector4d(
+		dsseAdd(
+			dsseAdd(dsseMul(mCol0.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(0, 0, 0, 0))), dsseMul(mCol1.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(1, 1, 1, 1)))),
+			dsseMul(mCol2.get256(), dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(2, 2, 2, 2)))));
+}
+
+inline const Vector4d Matrix4d::operator * (const Point3 & pnt) const
+{
+	SSEFloat f;
+	f.m128 = pnt.get128();
+	const DSSEVec4 fVec = dsseFromFVec4(f);
+	return Vector4d(
+		dsseAdd(
+			dsseAdd(dsseMul(mCol0.get256(), dsseShuffle(fVec, fVec, _MM_SHUFFLE(0, 0, 0, 0))), dsseMul(mCol1.get256(), dsseShuffle(fVec, fVec, _MM_SHUFFLE(1, 1, 1, 1)))),
+			dsseAdd(dsseMul(mCol2.get256(), dsseShuffle(fVec, fVec, _MM_SHUFFLE(2, 2, 2, 2))), mCol3.get256())));
+}
+
+inline const Matrix4d Matrix4d::operator * (const Matrix4d & mat) const
+{
+	return Matrix4d((*this * mat.mCol0),
+				   (*this * mat.mCol1),
+				   (*this * mat.mCol2),
+				   (*this * mat.mCol3));
+}
+
+inline Matrix4d & Matrix4d::operator *= (const Matrix4d & mat)
+{
+	*this = *this * mat;
+	return *this;
+}
+
+inline const Matrix4d Matrix4d::operator * (const Transform3 & tfrm) const
+{
+	SSEFloat c0, c1, c2;
+	c0.m128 = tfrm.getCol0().get128();
+	c1.m128 = tfrm.getCol1().get128();
+	c2.m128 = tfrm.getCol2().get128();
+	return Matrix4d(
+		(*this * Vector3d(dsseFromFVec4(c0))),
+		(*this * Vector3d(dsseFromFVec4(c1))),
+		(*this * Vector3d(dsseFromFVec4(c2))),
+		(*this * Point3(tfrm.getCol3()))
+	);
+}
+
+inline Matrix4d & Matrix4d::operator *= (const Transform3 & tfrm)
+{
+	*this = *this * tfrm;
+	return *this;
+}
+
+inline const Matrix4d mulPerElem(const Matrix4d & mat0, const Matrix4d & mat1)
+{
+	return Matrix4d(mulPerElem(mat0.getCol0(), mat1.getCol0()),
+				   mulPerElem(mat0.getCol1(), mat1.getCol1()),
+				   mulPerElem(mat0.getCol2(), mat1.getCol2()),
+				   mulPerElem(mat0.getCol3(), mat1.getCol3()));
+}
+
+inline const Matrix4d Matrix4d::identity()
+{
+	return Matrix4d(Vector4d::xAxis(),
+				   Vector4d::yAxis(),
+				   Vector4d::zAxis(),
+				   Vector4d::wAxis());
+}
+
+inline Matrix4d & Matrix4d::setUpper3x3(const Matrix3d & mat3)
+{
+	mCol0.setXYZ(mat3.getCol0());
+	mCol1.setXYZ(mat3.getCol1());
+	mCol2.setXYZ(mat3.getCol2());
+	return *this;
+}
+
+inline const Matrix3d Matrix4d::getUpper3x3() const
+{
+	return Matrix3d(mCol0.getXYZ(), mCol1.getXYZ(), mCol2.getXYZ());
+}
+
+inline Matrix4d & Matrix4d::setTranslation(const Vector3d & translateVec)
+{
+	mCol3.setXYZ(translateVec);
+	return *this;
+}
+
+inline const Vector3d Matrix4d::getTranslation() const
+{
+	return mCol3.getXYZ();
+}
+
+inline const Matrix4d Matrix4d::rotationX(double radians)
+{
+	return rotationX(DoubleInVec(radians));
+}
+
+inline const Matrix4d Matrix4d::rotationX(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 s, c, res1, res2;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res1 = dsseSelect(zero, c, select_y);
+	res1 = dsseSelect(res1, s, select_z);
+	res2 = dsseSelect(zero, dsseNegatef(s), select_y);
+	res2 = dsseSelect(res2, c, select_z);
+	return Matrix4d(Vector4d::xAxis(),
+				   Vector4d(res1),
+				   Vector4d(res2),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationY(double radians)
+{
+	return rotationY(DoubleInVec(radians));
+}
+
+inline const Matrix4d Matrix4d::rotationY(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 s, c, res0, res2;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res0 = dsseSelect(zero, c, select_x);
+	res0 = dsseSelect(res0, dsseNegatef(s), select_z);
+	res2 = dsseSelect(zero, s, select_x);
+	res2 = dsseSelect(res2, c, select_z);
+	return Matrix4d(Vector4d(res0),
+				   Vector4d::yAxis(),
+				   Vector4d(res2),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationZ(double radians)
+{
+	return rotationZ(DoubleInVec(radians));
+}
+
+inline const Matrix4d Matrix4d::rotationZ(const DoubleInVec & radians)
+{
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	const DSSEVec4 zero = dsseSetZero();
+	
+	DSSEVec4 s, c, res0, res1;
+	dsseSinfCosf(radians.get256(), &s, &c);
+	res0 = dsseSelect(zero, c, select_x);
+	res0 = dsseSelect(res0, s, select_y);
+	res1 = dsseSelect(zero, dsseNegatef(s), select_x);
+	res1 = dsseSelect(res1, c, select_y);
+	return Matrix4d(Vector4d(res0),
+				   Vector4d(res1),
+				   Vector4d::zAxis(),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotationZYX(const Vector3d & radiansXYZ)
+{
+	DSSEVec4 angles, s, negS, c, X0, X1, Y0, Y1, Z0, Z1, tmp;
+	angles = Vector4d(radiansXYZ, 0.0f).get256();
+	dsseSinfCosf(angles, &s, &c);
+	negS = dsseNegatef(s);
+	Z0 = dsseMergeL(c, s);
+	Z1 = dsseMergeL(negS, c);
+	VECTORMATH_ALIGNED(unsigned long long select_xyz[4]) = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0 };
+	Z1 = dsseAnd(Z1, dsseLoadu((double *)select_xyz));
+	Y0 = dsseShuffle(c, negS, _MM_SHUFFLE(0, 1, 1, 1));
+	Y1 = dsseShuffle(s, c, _MM_SHUFFLE(0, 1, 1, 1));
+	X0 = dsseSplat(s, 0);
+	X1 = dsseSplat(c, 0);
+	tmp = dsseMul(Z0, Y1);
+	return Matrix4d(Vector4d(dsseMul(Z0, Y0)),
+				   Vector4d(dsseMAdd(Z1, X1, dsseMul(tmp, X0))),
+				   Vector4d(dsseMSub(Z1, X0, dsseMul(tmp, X1))),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotation(double radians, const Vector3d & unitVec)
+{
+	return rotation(DoubleInVec(radians), unitVec);
+}
+
+inline const Matrix4d Matrix4d::rotation(const DoubleInVec & radians, const Vector3d & unitVec)
+{
+	DSSEVec4 axis, s, c, oneMinusC, axisS, negAxisS, xxxx, yyyy, zzzz, tmp0, tmp1, tmp2;
+	axis = unitVec.get256();
+	dsseSinfCosf(radians.get256(), &s, &c);
+	xxxx = dsseSplat(axis, 0);
+	yyyy = dsseSplat(axis, 1);
+	zzzz = dsseSplat(axis, 2);
+	oneMinusC = dsseSub(dsseSet1(1.0), c);
+	axisS = dsseMul(axis, s);
+	negAxisS = dsseNegatef(axisS);
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	tmp0 = dsseShuffle(axisS, axisS, _MM_SHUFFLE(0, 0, 2, 0));
+	tmp0 = dsseSelect(tmp0, dsseSplat(negAxisS, 1), select_z);
+	tmp1 = dsseSelect(dsseSplat(axisS, 0), dsseSplat(negAxisS, 2), select_x);
+	tmp2 = dsseShuffle(axisS, axisS, _MM_SHUFFLE(0, 0, 0, 1));
+	tmp2 = dsseSelect(tmp2, dsseSplat(negAxisS, 0), select_y);
+	tmp0 = dsseSelect(tmp0, c, select_x);
+	tmp1 = dsseSelect(tmp1, c, select_y);
+	tmp2 = dsseSelect(tmp2, c, select_z);
+	VECTORMATH_ALIGNED(unsigned long long select_xyz[4]) = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0 };
+	axis = dsseAnd(axis, dsseLoadu((double *)select_xyz));
+	tmp0 = dsseAnd(tmp0, dsseLoadu((double *)select_xyz));
+	tmp1 = dsseAnd(tmp1, dsseLoadu((double *)select_xyz));
+	tmp2 = dsseAnd(tmp2, dsseLoadu((double *)select_xyz));
+	return Matrix4d(Vector4d(dsseMAdd(dsseMul(axis, xxxx), oneMinusC, tmp0)),
+				   Vector4d(dsseMAdd(dsseMul(axis, yyyy), oneMinusC, tmp1)),
+				   Vector4d(dsseMAdd(dsseMul(axis, zzzz), oneMinusC, tmp2)),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d Matrix4d::rotation(const Quat & unitQuat)
+{
+	return Matrix4d(Transform3::rotation(unitQuat));
+}
+
+inline const Matrix4d Matrix4d::scale(const Vector3d & scaleVec)
+{
+	DSSEVec4 zero = dsseSetZero();
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	return Matrix4d(Vector4d(dsseSelect(zero, scaleVec.get256(), select_x)),
+				   Vector4d(dsseSelect(zero, scaleVec.get256(), select_y)),
+				   Vector4d(dsseSelect(zero, scaleVec.get256(), select_z)),
+				   Vector4d::wAxis());
+}
+
+inline const Matrix4d appendScale(const Matrix4d & mat, const Vector3d & scaleVec)
+{
+	return Matrix4d((mat.getCol0() * scaleVec.getX()),
+				   (mat.getCol1() * scaleVec.getY()),
+				   (mat.getCol2() * scaleVec.getZ()),
+				   mat.getCol3());
+}
+
+inline const Matrix4d prependScale(const Vector3d & scaleVec, const Matrix4d & mat)
+{
+	const Vector4d scale4 = Vector4d(scaleVec, 1.0);
+	return Matrix4d(mulPerElem(mat.getCol0(), scale4),
+				   mulPerElem(mat.getCol1(), scale4),
+				   mulPerElem(mat.getCol2(), scale4),
+				   mulPerElem(mat.getCol3(), scale4));
+}
+
+inline const Matrix4d Matrix4d::translation(const Vector3d & translateVec)
+{
+	return Matrix4d(Vector4d::xAxis(),
+				   Vector4d::yAxis(),
+				   Vector4d::zAxis(),
+				   Vector4d(translateVec, 1.0));
+}
+
+inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
+{
+	Matrix4d m4EyeFrame;
+	Vector3d v3X, v3Y, v3Z;
+	v3Y = normalize(upVec);
+	v3Z = normalize(Vector3d(eyePos) - Vector3d(lookAtPos));
+	v3X = normalize(cross(v3Y, v3Z));
+	v3Y = cross(v3Z, v3X);
+	m4EyeFrame = Matrix4d(Vector4d(v3X), Vector4d(v3Y), Vector4d(v3Z), Vector4d(eyePos));
+	return orthoInverse(m4EyeFrame);
+}
+
+inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+	DSSEVec4 lbf, rtn;
+	DSSEVec4 diff, sum, inv_diff;
+	DSSEVec4 diagonal, column, near2;
+	DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 l, f, r, n, b, t;
+	l.d[0] = left;
+	f.d[0] = zFar;
+	r.d[0] = right;
+	n.d[0] = zNear;
+	b.d[0] = bottom;
+	t.d[0] = top;
+	lbf = dsseMergeH(l, f);
+	rtn = dsseMergeH(r, n);
+	lbf = dsseMergeH(lbf, b);
+	rtn = dsseMergeH(rtn, t);
+	diff = dsseSub(rtn, lbf);
+	sum = dsseAdd(rtn, lbf);
+	inv_diff = dsseRecipf(diff);
+	near2 = dsseSplat(n, 0);
+	near2 = dsseAdd(near2, near2);
+	diagonal = dsseMul(near2, inv_diff);
+	column = dsseMul(sum, inv_diff);
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_w[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	return Matrix4d(Vector4d(dsseSelect(zero, diagonal, select_x)),
+		Vector4d(dsseSelect(zero, diagonal, select_y)),
+		Vector4d(dsseSelect(column, dsseSet1(-1.0), select_w)),
+		Vector4d(dsseSelect(zero, dsseMul(diagonal, dsseSplat(f, 0)), select_z)));
+}
+
+//========================================= #TheForgeMathExtensionsBegin ================================================
+#define CONSTRUCT_TRANSPOSED_MAT4d(m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34,m41,m42,m43,m44) \
+	Matrix4d(Vector4d(m11,m21,m31,m41),\
+		 Vector4d(m12,m22,m32,m42),\
+		 Vector4d(m13,m23,m33,m43),\
+		 Vector4d(m14,m24,m34,m44))
+
+//----------------------------------------------------------------------------------------
+
+//#define USE_VERTICAL_FIELD_OF_VIEW 0	// The Forge uses perspective() with horizontal field of view, defined below
+#if USE_VERTICAL_FIELD_OF_VIEW
+// this function creates a perspective matrix based on vertical field of view.
+inline const Matrix4d Matrix4d::perspective(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+// this function creates a perspective matrix based on horizontal field of view.
+// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
+inline const Matrix4d Matrix4d::perspective(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+	static const double VECTORMATH_PI_OVER_2 = 1.570796327;
+
+	double f, rangeInv;
+	DSSEVec4 tmp;
+	DSSEVec4 col0, col1, col2, col3;
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+	double aspectInverse = 1.0 / aspect;
+	double fovxRadians = fovyRadians * aspectInverse;
+#endif
+
+#if defined(__linux__)
+	// linux build uses c++11 standard
+	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+#else
+	f = ::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+#endif
+
+	// LH - DirectX: Z -> [0, 1]
+	rangeInv = 1.0 / (zFar - zNear);
+	const DSSEVec4 zero = dsseSetZero();
+	tmp = zero;
+	tmp.d[0] = f;
+	col0 = tmp;
+	tmp = zero;
+	tmp.d[1] = f / aspectInverse;
+	col1 = tmp;
+	tmp = zero;
+	tmp.d[0] = (zFar)* rangeInv;
+	tmp.d[1] = +1.0;
+	col2 = tmp;
+	tmp = zero;
+	tmp.d[0] = -zNear * zFar * rangeInv;
+	col3 = tmp;
+
+	return Matrix4d(Vector4d(col0), Vector4d(col1), Vector4d(col2), Vector4d(col3));
+}
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+inline const Matrix4d Matrix4d::perspectiveRH(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+inline const Matrix4d Matrix4d::perspectiveRH(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+	static const double VECTORMATH_PI_OVER_2 = 1.570796327;
+
+	double f, rangeInv;
+	DSSEVec4 tmp;
+	DSSEVec4 col0, col1, col2, col3;
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+	double aspectInverse = 1.f / aspect;
+	double fovxRadians = fovyRadians * aspectInverse;
+#endif
+
+#if defined(__linux__)
+	// linux build uses c++11 standard
+	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+#else
+	f = ::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+#endif
+
+	// LH - OpenGL: Z -> [-1, +1]
+	rangeInv = 1.0 / (zNear - zFar);
+
+	const DSSEVec4 zero = dsseSetZero();
+	tmp = zero;
+	tmp.d[0] = f;
+	col0 = tmp;
+	tmp = zero;
+	tmp.d[1] = f / aspectInverse;
+	col1 = tmp;
+	tmp = zero;
+	tmp.d[0] = (zNear + zFar) * rangeInv;
+	tmp.d[1] = -1.0;
+	col2 = tmp;
+	tmp = zero;
+	tmp.d[0] = zNear * zFar * rangeInv * 2.0;
+	col3 = tmp;
+
+	return Matrix4d(Vector4d(col0), Vector4d(col1), Vector4d(col2), Vector4d(col3));
+}
+
+#if USE_VERTICAL_FIELD_OF_VIEW
+// this function creates a perspective matrix based on vertical field of view.
+inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovyRadians, double aspect, double zNear, double zFar)
+#else
+// this function creates a perspective matrix based on horizontal field of view.
+// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
+inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovxRadians, double aspectInverse, double zNear, double zFar)
+#endif
+{
+	Matrix4d perspMatrix =
+#if USE_VERTICAL_FIELD_OF_VIEW
+		perspective(fovyRadians, aspect, zNear, zFar);
+#else
+		perspective(fovxRadians, aspectInverse, zNear, zFar);
+#endif
+
+	const Vector4d &col2 = perspMatrix.mCol2;
+	const Vector4d &col3 = perspMatrix.mCol3;
+	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
+	perspMatrix.mCol3.setZ(-col3.getZ());
+
+	return perspMatrix;
+}
+
+inline const Matrix4d Matrix4d::orthographic(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+	// LH - DirectX: Z -> [0, 1]
+	DSSEVec4 lbn, rtf;
+	DSSEVec4 diff, sum, inv_diff, neg_inv_diff;
+	DSSEVec4 diagonal, column;
+	DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 l, f, r, n, b, t;
+	l = dsseSet1(left);
+	f = dsseSet1(zFar);
+	r = dsseSet1(right);
+	n = dsseSet1(zNear);
+	b = dsseSet1(bottom);
+	t = dsseSet1(top);
+	lbn = dsseMergeH(l, n);
+	rtf = dsseMergeH(r, f);
+	lbn = dsseMergeH(lbn, b);
+	rtf = dsseMergeH(rtf, t);
+	diff = dsseSub(rtf, lbn);
+	inv_diff = dsseRecipf(diff);
+	neg_inv_diff = dsseNegatef(inv_diff);
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_w[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	sum = dsseAdd(rtf, dsseSelect(lbn, dsseSub(n, f), select_z));
+	diagonal = dsseAdd(inv_diff, dsseSelect(inv_diff, zero, select_z));
+	column = dsseMul(sum, neg_inv_diff);
+	return Matrix4d(Vector4d(dsseSelect(zero, diagonal, select_x)),
+		Vector4d(dsseSelect(zero, diagonal, select_y)),
+		Vector4d(dsseSelect(zero, diagonal, select_z)),
+		Vector4d(dsseSelect(column, dsseSet1(1.0), select_w)));
+}
+inline const Matrix4d Matrix4d::orthographicRH(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+	// RH - OpenGL: Z -> [-1, +1]
+	DSSEVec4 lbf, rtn;
+	DSSEVec4 diff, sum, inv_diff, neg_inv_diff;
+	DSSEVec4 diagonal, column;
+	DSSEVec4 zero = dsseSetZero();
+	DSSEVec4 l, f, r, n, b, t;
+	l.d[0] = left;
+	f.d[0] = zFar;
+	r.d[0] = right;
+	n.d[0] = zNear;
+	b.d[0] = bottom;
+	t.d[0] = top;
+	lbf = dsseMergeH(l, f);
+	rtn = dsseMergeH(r, n);
+	lbf = dsseMergeH(lbf, b);
+	rtn = dsseMergeH(rtn, t);
+	diff = dsseSub(rtn, lbf);
+	sum = dsseAdd(rtn, lbf);
+	inv_diff = dsseRecipf(diff);
+	neg_inv_diff = dsseNegatef(inv_diff);
+	diagonal = dsseAdd(inv_diff, inv_diff);
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_w[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
+	column = dsseMul(sum, dsseSelect(neg_inv_diff, inv_diff, select_z));
+	return Matrix4d(Vector4d(dsseSelect(zero, diagonal, select_x)),
+		Vector4d(dsseSelect(zero, diagonal, select_y)),
+		Vector4d(dsseSelect(zero, diagonal, select_z)),
+		Vector4d(dsseSelect(column, dsseSet1(1.0), select_w)));
+}
+
+inline const Matrix4d Matrix4d::orthographicReverseZ(double left, double right, double bottom, double top, double zNear, double zFar)
+{
+	Matrix4d orthoMatrix = orthographic(left, right, bottom, top, zNear, zFar);
+
+	const Vector4d &col2 = orthoMatrix.mCol2;
+	const Vector4d &col3 = orthoMatrix.mCol3;
+	orthoMatrix.mCol2.setZ(-col2.getZ());
+	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
+
+	return orthoMatrix;
+}
+
+inline const Matrix4d Matrix4d::cubeProjection(const double zNear, const double zFar)
+{
+	// LH - DirectX
+	return CONSTRUCT_TRANSPOSED_MAT4d(
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, zFar / (zFar - zNear), (zFar * zNear) / (zNear - zFar),
+		0, 0, 1, 0);
+}
+inline const Matrix4d Matrix4d::cubeProjectionRH(const double zNear, const double zFar)
+{
+	// RH - OpenGL
+	return CONSTRUCT_TRANSPOSED_MAT4d(
+		1, 0, 0, 0,
+		0, -1, 0, 0,
+		0, 0, (zFar + zNear) / (zFar - zNear), -(2 * zFar * zNear) / (zFar - zNear),
+		0, 0, 1, 0);
+}
+
+inline const Matrix4d Matrix4d::cubeView(const unsigned int side)
+{
+	switch (side)
+	{
+	case POSITIVE_X:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			1, 0, 0, 0,
+			0, 0, 0, 1);
+	case NEGATIVE_X:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			0, 0, 1, 0,
+			0, 1, 0, 0,
+			-1, 0, 0, 0,
+			0, 0, 0, 1);
+	case POSITIVE_Y:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1);
+	case NEGATIVE_Y:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			1, 0, 0, 0,
+			0, 0, 1, 0,
+			0, -1, 0, 0,
+			0, 0, 0, 1);
+	case POSITIVE_Z:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1);
+		//case NEGATIVE_Z:
+	default:
+		return CONSTRUCT_TRANSPOSED_MAT4d(
+			-1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, -1, 0,
+			0, 0, 0, 1);
+	}
+}
+
+inline void Matrix4d::extractFrustumClipPlanes(const Matrix4d& vp, Vector4d& rcp, Vector4d& lcp, Vector4d& tcp, Vector4d& bcp, Vector4d& fcp, Vector4d& ncp, bool const normalizePlanes)
+{
+	// Left plane
+	lcp = vp.getRow(3) + vp.getRow(0);
+
+	// Right plane
+	rcp = vp.getRow(3) - vp.getRow(0);
+
+	// Bottom plane
+	bcp = vp.getRow(3) + vp.getRow(1);
+
+	// Top plane
+	tcp = vp.getRow(3) - vp.getRow(1);
+
+	// Near plane
+	ncp = vp.getRow(3) + vp.getRow(2);
+
+	// Far plane
+	fcp = vp.getRow(3) - vp.getRow(2);
+
+	// Normalize if needed
+	if (normalizePlanes)
+	{
+		double lcp_norm = length(lcp.getXYZ());
+		lcp /= lcp_norm;
+
+		double rcp_norm = length(rcp.getXYZ());
+		rcp /= rcp_norm;
+
+		double bcp_norm = length(bcp.getXYZ());
+		bcp /= bcp_norm;
+
+		double tcp_norm = length(tcp.getXYZ());
+		tcp /= tcp_norm;
+
+		double ncp_norm = length(ncp.getXYZ());
+		ncp /= ncp_norm;
+
+		double fcp_norm = length(fcp.getXYZ());
+		fcp /= fcp_norm;
+	}
+}
+
+inline const Matrix4d Matrix4d::rotationYX(const double radiansY, const double radiansX)
+{
+	// Note that:
+	//  rotateYX(-y,-x)*rotateXY(x,y) == mat4::identity()
+	// which means that
+	//  inverse(rotateXY(x,y)) = rotateYX(-y,-x)
+
+	//return mat4::rotationY(angleY) * mat4::rotationX(angleX);
+
+	//[	1,		 0,		 0,		 0]
+	//[	0,		 c,		-s,		 0]
+	//[	0,		 s,		 c,		 0]
+	//[	0,		 0,		 0,		 1]
+	//
+	//[ o, 0, i, 0]	[   o,		is,		ic,		0]
+	//[ 0, 1, 0, 0]	[   0,		c ,		-s,		0]
+	//[-i, 0, o, 0]	[  -i,		os,		oc,		0]
+	//[ 0, 0, 0, 1]	[   0,		0 ,		0 ,		1]
+
+	const double cosX = cos(radiansX), sinX = sin(radiansX);
+	const double cosY = cos(radiansY), sinY = sin(radiansY);
+	return CONSTRUCT_TRANSPOSED_MAT4d(
+		cosY, sinY*sinX, sinY*cosX, 0,
+		0, cosX, -sinX, 0,
+		-sinY, cosY*sinX, cosY*cosX, 0,
+		0, 0, 0, 1
+	);
+}
+
+inline const Matrix4d Matrix4d::rotationXY(const double radiansX, const double radiansY)
+{	//same as: return mat4::rotationX(angleX) * mat4::rotationY(angleY);
+	const double cosX = cos(radiansX), sinX = sin(radiansX);
+	const double cosY = cos(radiansY), sinY = sin(radiansY);
+
+	return CONSTRUCT_TRANSPOSED_MAT4d(
+		cosY, 0, sinY, 0,
+		sinX * sinY, cosX, -sinX * cosY, 0,
+		cosX *-sinY, sinX, cosX * cosY, 0,
+		0, 0, 0, 1);
+}
+//========================================= #TheForgeMathExtensionsEnd ==================================================
+
+inline const Matrix4d select(const Matrix4d & mat0, const Matrix4d & mat1, bool select1)
+{
+	return Matrix4d(select(mat0.getCol0(), mat1.getCol0(), select1),
+		select(mat0.getCol1(), mat1.getCol1(), select1),
+		select(mat0.getCol2(), mat1.getCol2(), select1),
+		select(mat0.getCol3(), mat1.getCol3(), select1));
+}
+
+inline const Matrix4d select(const Matrix4d & mat0, const Matrix4d & mat1, const BoolInVec & select1)
+{
+	return Matrix4d(select(mat0.getCol0(), mat1.getCol0(), select1),
+		select(mat0.getCol1(), mat1.getCol1(), select1),
+		select(mat0.getCol2(), mat1.getCol2(), select1),
+		select(mat0.getCol3(), mat1.getCol3(), select1));
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Matrix4d & mat)
+{
+	print(mat.getRow(0));
+	print(mat.getRow(1));
+	print(mat.getRow(2));
+	print(mat.getRow(3));
+}
+
+inline void print(const Matrix4d & mat, const char * name)
+{
+	std::printf("%s:\n", name);
+	print(mat);
 }
 
 #endif // VECTORMATH_DEBUG
@@ -2341,12 +4007,27 @@ inline const Matrix3 outer(const Vector3 & tfrm0, const Vector3 & tfrm1)
                    (tfrm0 * tfrm1.getZ()));
 }
 
+inline const Matrix3d outer(const Vector3d & tfrm0, const Vector3d & tfrm1)
+{
+	return Matrix3d((tfrm0 * tfrm1.getX()),
+		(tfrm0 * tfrm1.getY()),
+		(tfrm0 * tfrm1.getZ()));
+}
+
 inline const Matrix4 outer(const Vector4 & tfrm0, const Vector4 & tfrm1)
 {
     return Matrix4((tfrm0 * tfrm1.getX()),
                    (tfrm0 * tfrm1.getY()),
                    (tfrm0 * tfrm1.getZ()),
                    (tfrm0 * tfrm1.getW()));
+}
+
+inline const Matrix4d outer(const Vector4d & tfrm0, const Vector4d & tfrm1)
+{
+	return Matrix4d((tfrm0 * tfrm1.getX()),
+		(tfrm0 * tfrm1.getY()),
+		(tfrm0 * tfrm1.getZ()),
+		(tfrm0 * tfrm1.getW()));
 }
 
 inline const Vector3 rowMul(const Vector3 & vec, const Matrix3 & mat)
@@ -2370,6 +4051,27 @@ inline const Vector3 rowMul(const Vector3 & vec, const Matrix3 & mat)
     return Vector3(res);
 }
 
+inline const Vector3d rowMul(const Vector3d & vec, const Matrix3d & mat)
+{
+	DSSEVec4 tmp0, tmp1, mcol0, mcol1, mcol2, res;
+	DSSEVec4 xxxx, yyyy, zzzz;
+	tmp0 = dsseMergeH(mat.getCol0().get256(), mat.getCol2().get256());
+	tmp1 = dsseMergeL(mat.getCol0().get256(), mat.getCol2().get256());
+	xxxx = dsseSplat(vec.get256(), 0);
+	mcol0 = dsseMergeH(tmp0, mat.getCol1().get256());
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	mcol1 = dsseShuffle(tmp0, tmp0, _MM_SHUFFLE(0, 3, 2, 2));
+	mcol1 = dsseSelect(mcol1, mat.getCol1().get256(), select_y);
+	mcol2 = dsseShuffle(tmp1, tmp1, _MM_SHUFFLE(0, 1, 1, 0));
+	mcol2 = dsseSelect(mcol2, dsseSplat(mat.getCol1().get256(), 2), select_y);
+	yyyy = dsseSplat(vec.get256(), 1);
+	res = dsseMul(mcol0, xxxx);
+	zzzz = dsseSplat(vec.get256(), 2);
+	res = dsseMAdd(mcol1, yyyy, res);
+	res = dsseMAdd(mcol2, zzzz, res);
+	return Vector3d(res);
+}
+
 inline const Matrix3 crossMatrix(const Vector3 & vec)
 {
     __m128 neg, res0, res1, res2;
@@ -2391,9 +4093,35 @@ inline const Matrix3 crossMatrix(const Vector3 & vec)
     return Matrix3(Vector3(res0), Vector3(res1), Vector3(res2));
 }
 
+inline const Matrix3d crossMatrix(const Vector3d & vec)
+{
+	DSSEVec4 neg, res0, res1, res2;
+	neg = dsseNegatef(vec.get256());
+	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
+	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
+	res0 = dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(0, 2, 2, 0));
+	res0 = dsseSelect(res0, dsseSplat(neg, 1), select_z);
+	res1 = dsseSelect(dsseSplat(vec.get256(), 0), dsseSplat(neg, 2), select_x);
+	res2 = dsseShuffle(vec.get256(), vec.get256(), _MM_SHUFFLE(0, 0, 1, 1));
+	res2 = dsseSelect(res2, dsseSplat(neg, 0), select_y);
+	VECTORMATH_ALIGNED(unsigned long long filter_x[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+	VECTORMATH_ALIGNED(unsigned long long filter_y[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF };
+	VECTORMATH_ALIGNED(unsigned long long filter_z[4]) = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0xFFFFFFFFFFFFFFFF };
+	res0 = dsseAnd(res0, dsseLoadu((double *)filter_x));
+	res1 = dsseAnd(res1, dsseLoadu((double *)filter_y));
+	res2 = dsseAnd(res2, dsseLoadu((double *)filter_z));
+	return Matrix3d(Vector3d(res0), Vector3d(res1), Vector3d(res2));
+}
+
 inline const Matrix3 crossMatrixMul(const Vector3 & vec, const Matrix3 & mat)
 {
     return Matrix3(cross(vec, mat.getCol0()), cross(vec, mat.getCol1()), cross(vec, mat.getCol2()));
+}
+
+inline const Matrix3d crossMatrixMul(const Vector3d & vec, const Matrix3d & mat)
+{
+	return Matrix3d(cross(vec, mat.getCol0()), cross(vec, mat.getCol1()), cross(vec, mat.getCol2()));
 }
 
 } // namespace Neon

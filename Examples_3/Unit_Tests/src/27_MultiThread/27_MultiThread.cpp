@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2021 The Forge Interactive Inc.
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -316,8 +316,6 @@ class MultiThread: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
-		settings.mGLESUnsupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		if (!pRenderer)    //check for init success
 			return false;
@@ -605,22 +603,24 @@ class MultiThread: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -913,6 +913,12 @@ class MultiThread: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -1027,9 +1033,9 @@ class MultiThread: public IApp
 
 		sprintf(gAnimationUpdateText, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
 		gFrameTimeDraw.pText = gAnimationUpdateText;
-		cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 30.f), &gFrameTimeDraw);
+		cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 75.f), &gFrameTimeDraw);
 
-		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 45.f), gGpuProfileToken, &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 100.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
 
@@ -1077,7 +1083,7 @@ class MultiThread: public IApp
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mColorClearValue = { { 0.39f, 0.41f, 0.37f, 1.0f } };
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;

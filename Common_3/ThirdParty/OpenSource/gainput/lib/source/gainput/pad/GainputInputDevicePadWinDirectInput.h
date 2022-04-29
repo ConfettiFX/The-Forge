@@ -1080,6 +1080,32 @@ class DirectInputInitializer
 		gamePads.xinputCountConnected = 0;
 	}
 
+    void FilterHIDHandledDevices()
+    {
+#if defined(_WINDOWS)
+        extern bool HIDIsSupported(uint16_t vendor, uint16_t product);
+        HIDIsSupported(0, 0);
+        int32_t it = gamePads.directInputCountConnected - 1;
+
+        for (; it >= 0; --it)
+        {
+            joystick_hwdata* pad = &gamePads.gamePadInfos[it].gamepad.hwdata;
+            if (HIDIsSupported(pad->vendor, pad->product))
+            {
+                int32_t last = gamePads.directInputCountConnected - 1;
+
+                if (it != last)
+                {
+                    GamePadInfo* dst = gamePads.gamePadInfos + it;
+                    memcpy(dst, dst + 1, sizeof(*dst) * (last - it));
+                }
+
+                --gamePads.directInputCountConnected;
+            }
+        }
+#endif
+    }
+
 	void DInputClean()
 	{
 		for (int i = 0; i < gamePads.directInputCountConnected; ++i)
@@ -1104,6 +1130,7 @@ class DirectInputInitializer
 		gamePadsInUse = 0;
 		gamePads.directInputCountConnected = 0;
 		IDirectInput8_EnumDevices(gamePads.dinput, DI8DEVCLASS_GAMECTRL, EnumJoysticksCallback, &gamePads, DIEDFL_ATTACHEDONLY);
+        FilterHIDHandledDevices();
 	}
 
 	void OnDeviceAdd() { DInputClean(); }
@@ -1139,6 +1166,7 @@ class DirectInputInitializer
 		IDirectInput8_Initialize(gamePads.dinput, instance, DIRECTINPUT_VERSION);
 		//enum devices
 		IDirectInput8_EnumDevices(gamePads.dinput, DI8DEVCLASS_GAMECTRL, EnumJoysticksCallback, &gamePads, DIEDFL_ATTACHEDONLY);
+        FilterHIDHandledDevices();
 
 		//Registering RawInput as well only for Effects(in future use only RawInput) : workaround
 		RAWINPUTDEVICE Rid[2] = {};

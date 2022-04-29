@@ -52,12 +52,12 @@ typedef uint64_t deUint64;
 
 namespace basisu_astc
 {
-	static bool inBounds(int v, int l, int h)
+	static inline bool inBounds(int v, int l, int h)
 	{
 		return (v >= l) && (v < h);
 	}
 
-	static bool inRange(int v, int l, int h)
+	static inline bool inRange(int v, int l, int h)
 	{
 		return (v >= l) && (v <= h);
 	}
@@ -191,8 +191,7 @@ namespace basisu_astc
 	{
 		return (a + b - 1) / b;
 	}
-
-	static bool deInBounds32(uint32_t v, uint32_t l, uint32_t h)
+	static inline bool deInBounds32(uint32_t v, uint32_t l, uint32_t h)
 	{
 		return (v >= l) && (v < h);
 	}

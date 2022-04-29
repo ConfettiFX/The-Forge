@@ -149,6 +149,7 @@
 		81856F14229D72EF00F3A92B /* assert.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F12229D72EF00F3A92B /* assert.cpp */; };
 		81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
 		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
+		9901BBB728173F900024D01D /* impl_aarch64_iOS.c in Sources */ = {isa = PBXBuildFile; fileRef = B274E48627DE563100670028 /* impl_aarch64_iOS.c */; };
 		B22CEE9225D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
 		B22CEE9325D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
 		B22CEEDA25D686980062036A /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B22CEED925D686980062036A /* GPUConfig.h */; };
@@ -252,6 +253,12 @@
 		B23498CF2693B83600504010 /* lstrlib.c in Sources */ = {isa = PBXBuildFile; fileRef = B23498892693B83600504010 /* lstrlib.c */; };
 		B245106E24CEEA5300FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
 		B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
+		B26E985327BC52FD005873E3 /* stbtt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26E985227BC52FD005873E3 /* stbtt.cpp */; };
+		B26E985427BC52FD005873E3 /* stbtt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26E985227BC52FD005873E3 /* stbtt.cpp */; };
+		B274E48527DE560600670028 /* impl_x86_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = B274E48427DE560600670028 /* impl_x86_macos.c */; };
+		B274E48727DE563100670028 /* impl_aarch64_iOS.c in Sources */ = {isa = PBXBuildFile; fileRef = B274E48627DE563100670028 /* impl_aarch64_iOS.c */; };
+		B274E4BC27DE57FE00670028 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274E4BB27DE57FE00670028 /* CPUConfig.cpp */; };
+		B274E4BD27DE57FE00670028 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274E4BB27DE57FE00670028 /* CPUConfig.cpp */; };
 		B285F7F5276CA3FF00D015CE /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F7E6276CA3FF00D015CE /* clusterizer.cpp */; };
 		B285F7F6276CA3FF00D015CE /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F7E6276CA3FF00D015CE /* clusterizer.cpp */; };
 		B285F7F7276CA3FF00D015CE /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F7E7276CA3FF00D015CE /* spatialorder.cpp */; };
@@ -288,6 +295,10 @@
 		B2B2F1C62472F7D200B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */; };
 		B2CE780E25664A9600A0FF1B /* Screenshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CE780D25664A9600A0FF1B /* Screenshot.cpp */; };
 		B2CE780F25664A9600A0FF1B /* Screenshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2CE780D25664A9600A0FF1B /* Screenshot.cpp */; };
+		B2DE327827ACBD4A00FB8676 /* WindowSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DE327727ACBD4900FB8676 /* WindowSystem.cpp */; };
+		B2DE327B27ACBD5300FB8676 /* WindowSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DE327727ACBD4900FB8676 /* WindowSystem.cpp */; };
+		B2DE327F27ACBF4500FB8676 /* macOSWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = B2DE327E27ACBF4500FB8676 /* macOSWindow.mm */; };
+		B2DE340D27ADFDE100FB8676 /* iOSWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = B2DE340C27ADFDE100FB8676 /* iOSWindow.mm */; };
 		B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24223F40207006D7450 /* GpuProfiler.cpp */; };
 		E95891EB2341596500B68D6A /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E967DE3A233B0A2C0032E4BA /* DarwinThread.c in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.c */; };
@@ -308,20 +319,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		5C17301021414D810074EE71 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B24D2A5920EACFA400CF8EA0;
-			remoteInfo = gainputstatic_iOS;
-		};
-		5C55831221413D5C0019960B /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 43862BC2A9E14F76B28F44D0;
-			remoteInfo = gainputstatic;
-		};
 		B2D1CEA820EAD160001BB8C4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */;
@@ -501,6 +498,10 @@
 		B23498882693B83600504010 /* lbaselib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lbaselib.c; path = "../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lbaselib.c"; sourceTree = "<group>"; };
 		B23498892693B83600504010 /* lstrlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = lstrlib.c; path = "../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstrlib.c"; sourceTree = "<group>"; };
 		B245106D24CEEA5300FCDD20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
+		B26E985227BC52FD005873E3 /* stbtt.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = stbtt.cpp; path = Fonts/stbtt.cpp; sourceTree = "<group>"; };
+		B274E48427DE560600670028 /* impl_x86_macos.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = impl_x86_macos.c; path = ../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_x86_macos.c; sourceTree = "<group>"; };
+		B274E48627DE563100670028 /* impl_aarch64_iOS.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = impl_aarch64_iOS.c; path = ../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_aarch64_iOS.c; sourceTree = "<group>"; };
+		B274E4BB27DE57FE00670028 /* CPUConfig.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPUConfig.cpp; sourceTree = "<group>"; };
 		B285F7E6276CA3FF00D015CE /* clusterizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = clusterizer.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/clusterizer.cpp; sourceTree = "<group>"; };
 		B285F7E7276CA3FF00D015CE /* spatialorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = spatialorder.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/spatialorder.cpp; sourceTree = "<group>"; };
 		B285F7E8276CA3FF00D015CE /* vcacheoptimizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vcacheoptimizer.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp; sourceTree = "<group>"; };
@@ -522,6 +523,9 @@
 		B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
 		B2CE780D25664A9600A0FF1B /* Screenshot.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Screenshot.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
+		B2DE327727ACBD4900FB8676 /* WindowSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WindowSystem.cpp; path = WindowSystem/WindowSystem.cpp; sourceTree = "<group>"; };
+		B2DE327E27ACBF4500FB8676 /* macOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = macOSWindow.mm; sourceTree = "<group>"; };
+		B2DE340C27ADFDE100FB8676 /* iOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSWindow.mm; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
 		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RingBuffer.h; sourceTree = "<group>"; };
@@ -762,6 +766,7 @@
 		B234981C2693B6DB00504010 /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
+				B26E985227BC52FD005873E3 /* stbtt.cpp */,
 				B23498622693B7EC00504010 /* FontSystem.cpp */,
 				B23498592693B7A000504010 /* Shaders */,
 			);
@@ -881,6 +886,15 @@
 			name = FSL;
 			sourceTree = "<group>";
 		};
+		B274D8BE27DE559A00670028 /* cpu_features */ = {
+			isa = PBXGroup;
+			children = (
+				B274E48427DE560600670028 /* impl_x86_macos.c */,
+				B274E48627DE563100670028 /* impl_aarch64_iOS.c */,
+			);
+			name = cpu_features;
+			sourceTree = "<group>";
+		};
 		B285F7E5276CA38F00D015CE /* meshoptimizer */ = {
 			isa = PBXGroup;
 			children = (
@@ -923,9 +937,18 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B2DE327627ACBD2400FB8676 /* WindowSystem */ = {
+			isa = PBXGroup;
+			children = (
+				B2DE327727ACBD4900FB8676 /* WindowSystem.cpp */,
+			);
+			name = WindowSystem;
+			sourceTree = "<group>";
+		};
 		B2EE056023F14BA400AB25DF /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				B274D8BE27DE559A00670028 /* cpu_features */,
 				B285F7E5276CA38F00D015CE /* meshoptimizer */,
 				B23498422693B75600504010 /* imgui */,
 				B23498412693B75000504010 /* LUA */,
@@ -975,6 +998,8 @@
 				E9E601C9233B098900B21FD6 /* macOSBase.mm */,
 				E9E601CA233B098900B21FD6 /* iOSAppDelegate.h */,
 				E9E601CB233B098900B21FD6 /* macOSAppDelegate.h */,
+				B2DE327E27ACBF4500FB8676 /* macOSWindow.mm */,
+				B2DE340C27ADFDE100FB8676 /* iOSWindow.mm */,
 			);
 			path = Darwin;
 			sourceTree = "<group>";
@@ -1034,6 +1059,7 @@
 				D2111E771F4457910014FFE6 /* MemoryManager */,
 				D20D920F1F3879A4004B3A42 /* Camera */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
+				B2DE327627ACBD2400FB8676 /* WindowSystem */,
 				E98584E52334397C00692529 /* SystemRun.cpp */,
 			);
 			path = OS;
@@ -1101,6 +1127,7 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				B274E4BB27DE57FE00670028 /* CPUConfig.cpp */,
 				559C35F32716EBCD00823211 /* Config.h */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.c */,
@@ -1192,7 +1219,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				5C17301121414D810074EE71 /* PBXTargetDependency */,
 			);
 			name = "The-Forge_iOS";
 			productName = "The-Forge_iOS";
@@ -1211,7 +1237,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				5C55831321413D5C0019960B /* PBXTargetDependency */,
 			);
 			name = "The-Forge";
 			productName = "The-Forge";
@@ -1323,6 +1348,7 @@
 				B285F7FE276CA3FF00D015CE /* indexcodec.cpp in Sources */,
 				B23498A52693B83600504010 /* lfunc.c in Sources */,
 				B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */,
+				B2DE327B27ACBD5300FB8676 /* WindowSystem.cpp in Sources */,
 				E98584E72334397C00692529 /* SystemRun.cpp in Sources */,
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.c in Sources */,
 				B23498512693B78800504010 /* UI.cpp in Sources */,
@@ -1340,6 +1366,7 @@
 				B285F80A276CA3FF00D015CE /* stripifier.cpp in Sources */,
 				B285F7FA276CA3FF00D015CE /* vcacheoptimizer.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
+				B274E4BD27DE57FE00670028 /* CPUConfig.cpp in Sources */,
 				B23498B52693B83600504010 /* ldblib.c in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTracking.c in Sources */,
 				B23498972693B83600504010 /* lvm.c in Sources */,
@@ -1359,6 +1386,7 @@
 				B285F802276CA3FF00D015CE /* indexgenerator.cpp in Sources */,
 				B231A24F23F40207006D7450 /* ProfilerBase.cpp in Sources */,
 				B23498CB2693B83600504010 /* ldo.c in Sources */,
+				B2DE340D27ADFDE100FB8676 /* iOSWindow.mm in Sources */,
 				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
 				B23498932693B83600504010 /* lmathlib.c in Sources */,
 				B23498BD2693B83600504010 /* lzio.c in Sources */,
@@ -1367,6 +1395,7 @@
 				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				81856F05229D729000F3A92B /* red_black_tree.cpp in Sources */,
 				B234984E2693B77E00504010 /* imgui_draw.cpp in Sources */,
+				B26E985427BC52FD005873E3 /* stbtt.cpp in Sources */,
 				5557BC25268CBFEC00B7ACF4 /* mz_strm_zlib.c in Sources */,
 				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B285F80F276CA3FF00D015CE /* vfetchanalyzer.cpp in Sources */,
@@ -1427,6 +1456,7 @@
 				B234984A2693B77E00504010 /* imgui.cpp in Sources */,
 				B23498AF2693B83600504010 /* lobject.c in Sources */,
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
+				B274E48727DE563100670028 /* impl_aarch64_iOS.c in Sources */,
 				B23498CF2693B83600504010 /* lstrlib.c in Sources */,
 				5557BC4A268CBFFA00B7ACF4 /* aestab.c in Sources */,
 				B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */,
@@ -1525,6 +1555,7 @@
 				5557BC1F268CBFEC00B7ACF4 /* mz_zip.c in Sources */,
 				5557BC26268CBFEC00B7ACF4 /* mz_strm_wzaes.c in Sources */,
 				B2CE780E25664A9600A0FF1B /* Screenshot.cpp in Sources */,
+				B26E985327BC52FD005873E3 /* stbtt.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				B23498492693B77E00504010 /* imgui.cpp in Sources */,
@@ -1535,7 +1566,9 @@
 				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				5557BC24268CBFEC00B7ACF4 /* mz_strm_zlib.c in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
+				B274E4BC27DE57FE00670028 /* CPUConfig.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
+				B274E48527DE560600670028 /* impl_x86_macos.c in Sources */,
 				B234989E2693B83600504010 /* linit.c in Sources */,
 				B23498472693B77E00504010 /* imgui_demo.cpp in Sources */,
 				5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
@@ -1556,6 +1589,7 @@
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				B285F7FF276CA3FF00D015CE /* vcacheanalyzer.cpp in Sources */,
 				5557BC22268CBFEC00B7ACF4 /* mz_crypt.c in Sources */,
+				9901BBB728173F900024D01D /* impl_aarch64_iOS.c in Sources */,
 				E967DE3A233B0A2C0032E4BA /* DarwinThread.c in Sources */,
 				B23498C22693B83600504010 /* llex.c in Sources */,
 				B23498BE2693B83600504010 /* lcorolib.c in Sources */,
@@ -1564,11 +1598,13 @@
 				5557BC1B268CBFEC00B7ACF4 /* mz_strm_raw.c in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,
 				B234984D2693B77E00504010 /* imgui_draw.cpp in Sources */,
+				B2DE327827ACBD4A00FB8676 /* WindowSystem.cpp in Sources */,
 				E967DE3C233B0A2C0032E4BA /* DarwinLog.c in Sources */,
 				B23498AE2693B83600504010 /* lobject.c in Sources */,
 				B23498B42693B83600504010 /* ldblib.c in Sources */,
 				B23498922693B83600504010 /* lmathlib.c in Sources */,
 				B23498C82693B83600504010 /* ldump.c in Sources */,
+				B2DE327F27ACBF4500FB8676 /* macOSWindow.mm in Sources */,
 				5C55831021413D550019960B /* ThreadSystem.cpp in Sources */,
 				E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */,
 				B23498C62693B83600504010 /* lopcodes.c in Sources */,
@@ -1581,19 +1617,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		5C17301121414D810074EE71 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = gainputstatic_iOS;
-			targetProxy = 5C17301021414D810074EE71 /* PBXContainerItemProxy */;
-		};
-		5C55831321413D5C0019960B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = gainputstatic;
-			targetProxy = 5C55831221413D5C0019960B /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5C172FCF21414C4A0074EE71 /* Debug */ = {
@@ -1661,6 +1684,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1684,6 +1708,7 @@
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1739,7 +1764,9 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -1799,7 +1826,9 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;

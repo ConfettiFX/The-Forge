@@ -29,5 +29,6 @@
     <ClCompile Include="..\..\src\27_MultiThread\27_MultiThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
 </Project>

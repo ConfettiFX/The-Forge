@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,11 +36,15 @@
 #include <EGL/egl.h>
 #endif
 
+#include "../Core/CPUConfig.h"
+
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IProfiler.h"
+#include "../Interfaces/IApp.h"
+#include "../Interfaces/IFileSystem.h"
 
 #include "../Interfaces/IScripting.h"
 #include "../Interfaces/IFont.h"
@@ -54,58 +58,41 @@
 
 #include "../Interfaces/IMemory.h"
 
-static WindowsDesc gWindow;
+
+static IApp* pApp = NULL;
+static WindowDesc* gWindowDesc = nullptr;
+extern WindowDesc gWindow;
 
 static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static bool    gShowPlatformUI = true;
+
+/// CPU
+static CpuInfo gCpu;
 
 /// UI
 static UIComponent* pAPISwitchingWindow = NULL;
+static UIComponent* pToggleVSyncWindow = NULL;
 UIWidget* pSwitchWindowLabel = NULL;
 UIWidget* pSelectApUIWidget = NULL;
 
 static uint32_t gSelectedApiIndex = 0;
-extern RendererApi gSelectedRendererApi; // Renderer.cpp
-extern bool gGLESUnsupported; // Renderer.cpp
 
-#if defined(QUEST_VR)
-extern QuestVR* pQuest;
-#endif
+// Renderer.cpp
+extern RendererApi gSelectedRendererApi;
+extern bool gGLESUnsupported;
 
-void adjustWindow(WindowsDesc* winDesc);
+// AndroidWindow.cpp
+extern IApp* pWindowAppRef;
+extern bool windowReady;
+extern bool isActive;
+extern bool isLoaded;
 
-void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
-
-void requestShutdown() { LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android"); }
-
-void toggleFullscreen(WindowsDesc* window) {}
-/************************************************************************/
-// App Entrypoint
-/************************************************************************/
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IFileSystem.h"
-
-static IApp* pApp = NULL;
-
-struct DisplayMetrics
-{
-	uint32_t widthPixels;
-	uint32_t heightPixels;
-	float    density;
-	uint32_t densityDpi;
-	float    scaledDensity;
-	float    xdpi;
-	float    ydpi;
-};
-
-DisplayMetrics metrics = {};
-
-void getDpiScale(float array[2])
-{
-	array[0] = metrics.scaledDensity;
-	array[1] = metrics.scaledDensity;
+//------------------------------------------------------------------------
+// STATIC HELPER FUNCTIONS
+//------------------------------------------------------------------------
+CpuInfo* getCpuInfo() {
+	return &gCpu;
 }
-
-float getDensity() { return metrics.density; }
 
 bool getBenchmarkArguments(android_app* pAndroidApp, JNIEnv* pJavaEnv, int& frameCount, char * benchmarkOutput)
 {
@@ -149,123 +136,18 @@ bool getBenchmarkArguments(android_app* pAndroidApp, JNIEnv* pJavaEnv, int& fram
 	return argumentsPassed;
 }
 
-void getDisplayMetrics(android_app* pAndroidApp, JNIEnv* pJavaEnv)
-{
-	if (!pAndroidApp || !pAndroidApp->activity || !pAndroidApp->activity->vm || !pJavaEnv)
-		return;
-
-	// get all the classes we want to access from the JVM
-	jclass classNativeActivity = pJavaEnv->FindClass("android/app/NativeActivity");
-	jclass classWindowManager = pJavaEnv->FindClass("android/view/WindowManager");
-	jclass classDisplay = pJavaEnv->FindClass("android/view/Display");
-	jclass classDisplayMetrics = pJavaEnv->FindClass("android/util/DisplayMetrics");
-
-	if (!classNativeActivity || !classWindowManager || !classDisplay || !classDisplayMetrics)
-	{
-        pAndroidApp->activity->vm->DetachCurrentThread();
-		return;
-	}
-
-	// Get all the methods we want to access from the JVM classes
-	// Note: You can get the signatures (third parameter of GetMethodID) for all
-	// functions of a class with the javap tool, like in the following example for class DisplayMetrics:
-	// javap -s -classpath myandroidpath/adt-bundle-linux-x86_64-20131030/sdk/platforms/android-10/android.jar android/util/DisplayMetrics
-	jmethodID idNativeActivity_getWindowManager =
-		pJavaEnv->GetMethodID(classNativeActivity, "getWindowManager", "()Landroid/view/WindowManager;");
-	jmethodID idWindowManager_getDefaultDisplay = pJavaEnv->GetMethodID(classWindowManager, "getDefaultDisplay", "()Landroid/view/Display;");
-	jmethodID idDisplayMetrics_constructor = pJavaEnv->GetMethodID(classDisplayMetrics, "<init>", "()V");
-	jmethodID idDisplay_getMetrics = pJavaEnv->GetMethodID(classDisplay, "getMetrics", "(Landroid/util/DisplayMetrics;)V");
-
-	if (!idNativeActivity_getWindowManager || !idWindowManager_getDefaultDisplay || !idDisplayMetrics_constructor || !idDisplay_getMetrics)
-	{
-        pAndroidApp->activity->vm->DetachCurrentThread();
-		return;
-	}
-
-	jobject windowManager = pJavaEnv->CallObjectMethod(pAndroidApp->activity->clazz, idNativeActivity_getWindowManager);
-
-	if (!windowManager)
-	{
-        pAndroidApp->activity->vm->DetachCurrentThread();
-		return;
-	}
-	jobject display = pJavaEnv->CallObjectMethod(windowManager, idWindowManager_getDefaultDisplay);
-	if (!display)
-	{
-        pAndroidApp->activity->vm->DetachCurrentThread();
-		return;
-	}
-	jobject displayMetrics = pJavaEnv->NewObject(classDisplayMetrics, idDisplayMetrics_constructor);
-	if (!displayMetrics)
-	{
-        pAndroidApp->activity->vm->DetachCurrentThread();
-		return;
-	}
-	pJavaEnv->CallVoidMethod(display, idDisplay_getMetrics, displayMetrics);
-
-	// access the fields of DisplayMetrics (we ignore the DENSITY constants)
-	jfieldID idDisplayMetrics_widthPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "widthPixels", "I");
-	jfieldID idDisplayMetrics_heightPixels = pJavaEnv->GetFieldID(classDisplayMetrics, "heightPixels", "I");
-	jfieldID idDisplayMetrics_density = pJavaEnv->GetFieldID(classDisplayMetrics, "density", "F");
-	jfieldID idDisplayMetrics_densityDpi = pJavaEnv->GetFieldID(classDisplayMetrics, "densityDpi", "I");
-	jfieldID idDisplayMetrics_scaledDensity = pJavaEnv->GetFieldID(classDisplayMetrics, "scaledDensity", "F");
-	jfieldID idDisplayMetrics_xdpi = pJavaEnv->GetFieldID(classDisplayMetrics, "xdpi", "F");
-	jfieldID idDisplayMetrics_ydpi = pJavaEnv->GetFieldID(classDisplayMetrics, "ydpi", "F");
-
-	if (idDisplayMetrics_widthPixels)
-		metrics.widthPixels = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_widthPixels);
-	if (idDisplayMetrics_heightPixels)
-		metrics.heightPixels = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_heightPixels);
-	if (idDisplayMetrics_density)
-		metrics.density = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_density);
-	if (idDisplayMetrics_densityDpi)
-		metrics.densityDpi = pJavaEnv->GetIntField(displayMetrics, idDisplayMetrics_densityDpi);
-	if (idDisplayMetrics_scaledDensity)
-		metrics.scaledDensity = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_scaledDensity);
-	if (idDisplayMetrics_xdpi)
-		metrics.xdpi = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_xdpi);
-	if (idDisplayMetrics_ydpi)
-		metrics.ydpi = pJavaEnv->GetFloatField(displayMetrics, idDisplayMetrics_ydpi);
+void onStart(ANativeActivity* activity)
+{ 
+	printf("start\b");
 }
 
-void openWindow(const char* app_name, WindowsDesc* winDesc) {}
+//------------------------------------------------------------------------
+// OPERATING SYSTEM INTERFACE FUNCTIONS
+//------------------------------------------------------------------------
 
-void handleMessages(WindowsDesc* winDesc) { return; }
-
-void onStart(ANativeActivity* activity) { printf("start\b"); }
-
-static CustomMessageProcessor sCustomProc = nullptr;
-void                          setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
-
-static bool windowReady = false;
-static bool isActive = false;
-static bool isLoaded = false;
-
-static int32_t handle_input(struct android_app* app, AInputEvent* event)
+void requestShutdown()
 {
-	if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK)
-	{
-		app->destroyRequested = 1;
-		isActive = false;
-		return 1;
-	}
-
-	if (sCustomProc != nullptr)
-	{
-		sCustomProc(&gWindow, event);
-	}
-
-	return 0;
-}
-
-static void onFocusChanged(bool focused)
-{
-	if (pApp == nullptr || !pApp->mSettings.mInitialized)
-	{
-		return;
-	}
-
-	pApp->mSettings.mFocused = focused;
+	LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android");
 }
 
 void onRequestReload()
@@ -315,120 +197,15 @@ void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
 #endif
 }
 
-// Process the next main command.
-void handle_cmd(android_app* app, int32_t cmd)
+CustomMessageProcessor sCustomProc = nullptr;
+void setCustomMessageProcessor(CustomMessageProcessor proc)
 {
-	switch (cmd)
-	{
-		case APP_CMD_INIT_WINDOW:
-		{
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "init window");
-
-#if !defined(QUEST_VR)
-			int32_t screenWidth = ANativeWindow_getWidth(app->window);
-			int32_t screenHeight = ANativeWindow_getHeight(app->window);
-#else
-			int32_t screenWidth = pQuest->mEyeTextureWidth;
-			int32_t screenHeight = pQuest->mEyeTextureHeight;
-#endif
-
-			IApp::Settings* pSettings = &pApp->mSettings;
-			gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
-			gWindow.fullScreen = pSettings->mFullScreen;
-			gWindow.maximized = false;
-			gWindow.handle.window = app->window;
-			pSettings->mWidth = screenWidth;
-			pSettings->mHeight = screenHeight;
-			openWindow(pApp->GetName(), &gWindow);
-
-			pApp->pWindow = &gWindow;
-			if (!windowReady)
-			{
-				pApp->Load();
-				isLoaded = true;
-			}
-
-			// The window is being shown, mark it as ready.
-			windowReady = true;
-
-			break;
-		}
-		case APP_CMD_TERM_WINDOW:
-		{
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "term window");
-
-			windowReady = false;
-
-			// The window is being hidden or closed, clean it up.
-			break;
-		}
-		case APP_CMD_WINDOW_RESIZED:
-		{
-#if !defined(QUEST_VR)
-            int32_t screenWidth = ANativeWindow_getWidth(app->window);
-            int32_t screenHeight = ANativeWindow_getHeight(app->window);
-#else
-            int32_t screenWidth = pQuest->mEyeTextureWidth;
-			int32_t screenHeight = pQuest->mEyeTextureHeight;
-#endif
-
-			IApp::Settings* pSettings = &pApp->mSettings;
-			if (pSettings->mWidth != screenWidth || pSettings->mHeight != screenHeight)
-			{
-				gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
-				pSettings->mWidth = screenWidth;
-				pSettings->mHeight = screenHeight;
-
-				onRequestReload();
-			}
-			break;
-		}
-		case APP_CMD_START:
-		{
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "start app");
-			break;
-		}
-		case APP_CMD_GAINED_FOCUS:
-		{
-			isActive = true;
-			onFocusChanged(true);
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
-			break;
-		}
-		case APP_CMD_LOST_FOCUS:
-		{
-			isActive = false;
-			onFocusChanged(false);
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app");
-			break;
-		}
-		case APP_CMD_PAUSE:
-		{
-			isActive = false;
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "pause app");
-			break;
-		}
-		case APP_CMD_RESUME:
-		{
-			isActive = true;
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "resume app");
-			break;
-		}
-		case APP_CMD_STOP:
-		{
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "stop app");
-			break;
-		}
-		case APP_CMD_DESTROY:
-		{
-			// Activity is destroyed and waiting app to clean up. Request app to shut down.
-			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "shutting down app");
-		}
-		default:
-		{
-		}
-	}
+	sCustomProc = proc;
 }
+
+//------------------------------------------------------------------------
+// PLATFORM LAYER CORE SUBSYSTEMS
+//------------------------------------------------------------------------
 
 bool initBaseSubsystems(IApp* app)
 {
@@ -436,6 +213,10 @@ bool initBaseSubsystems(IApp* app)
 	extern bool platformInitFontSystem();
 	extern bool platformInitUserInterface();
 	extern void platformInitLuaScriptingSystem();
+	extern void platformInitWindowSystem(WindowDesc*);
+
+	platformInitWindowSystem(gWindowDesc);
+	pApp->pWindow = gWindowDesc;
 
 #ifdef ENABLE_FORGE_FONTS
 	if (!platformInitFontSystem())
@@ -459,6 +240,9 @@ void updateBaseSubsystems(float deltaTime)
 	// Not exposed in the interface files / app layer
 	extern void platformUpdateLuaScriptingSystem();
 	extern void platformUpdateUserInterface(float deltaTime);
+	extern void platformUpdateWindowSystem();
+
+	platformUpdateWindowSystem();
 
 #ifdef ENABLE_FORGE_SCRIPTING
 	platformUpdateLuaScriptingSystem();
@@ -475,6 +259,9 @@ void exitBaseSubsystems()
 	extern void platformExitFontSystem();
 	extern void platformExitUserInterface();
 	extern void platformExitLuaScriptingSystem();
+	extern void platformExitWindowSystem();
+
+	platformExitWindowSystem();
 
 #ifdef ENABLE_FORGE_UI
 	platformExitUserInterface();
@@ -489,11 +276,31 @@ void exitBaseSubsystems()
 #endif
 }
 
-void setupAPISwitchingUI(int32_t width, int32_t height)
+//------------------------------------------------------------------------
+// PLATFORM LAYER USER INTERFACE
+//------------------------------------------------------------------------
+
+void setupPlatformUI(int32_t width, int32_t height)
 {
+#ifdef ENABLE_FORGE_UI
+	// WINDOW AND RESOLUTION CONTROL
+
+	extern void platformSetupWindowSystemUI(IApp*);
+	platformSetupWindowSystemUI(pApp);
+
+	// VSYNC CONTROL
+
+	UIComponentDesc UIComponentDesc = {};
+	UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
+	uiCreateComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
+
+	CheckboxWidget checkbox;
+	checkbox.pData = &pApp->mSettings.mVSyncEnabled;
+	UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+	REGISTER_LUA_WIDGET(pCheckbox);
+
 	gSelectedApiIndex = gSelectedRendererApi;
 
-#ifdef ENABLE_FORGE_UI
 	static const char* pApiNames[] =
 	{
 	#if defined(GLES)
@@ -507,7 +314,6 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 
 	if (apiNameCount > 1 && !gGLESUnsupported)
 	{
-		UIComponentDesc UIComponentDesc = {};
 		UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
 		uiCreateComponent("API Switching", &UIComponentDesc, &pAPISwitchingWindow);
 
@@ -523,7 +329,7 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 		pSelectApUIWidget->pOnEdited = onAPISwitch;
 
 #ifdef ENABLE_FORGE_SCRIPTING
-		luaRegisterWidget(pSelectApUIWidget);
+		REGISTER_LUA_WIDGET(pSelectApUIWidget);
 		LuaScriptDesc apiScriptDesc = {};
 		apiScriptDesc.pScriptFileName = "Test_API_Switching.lua";
 		luaDefineScripts(&apiScriptDesc, 1);
@@ -531,6 +337,29 @@ void setupAPISwitchingUI(int32_t width, int32_t height)
 	}
 #endif
 }
+
+void togglePlatformUI()
+{
+	gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
+
+#ifdef ENABLE_FORGE_UI
+	extern void platformToggleWindowSystemUI(bool);
+	platformToggleWindowSystemUI(gShowPlatformUI); 
+
+	uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI); 
+	uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
+#endif
+}
+
+//------------------------------------------------------------------------
+// APP ENTRY POINT
+//------------------------------------------------------------------------
+
+// AndroidWindow.cpp
+extern void handleMessages(WindowDesc*);
+extern void getDisplayMetrics(android_app*, JNIEnv*);
+extern void handle_cmd(android_app*, int32_t);
+extern int32_t handle_input(struct android_app*, AInputEvent*);
 
 int AndroidMain(void* param, IApp* app)
 {
@@ -552,6 +381,7 @@ int AndroidMain(void* param, IApp* app)
 	}
 
 	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+	fsSetPathForResourceDir(pSystemFileIO, RM_SYSTEM, RD_SYSTEM, "");
 
 	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
 
@@ -561,8 +391,12 @@ int AndroidMain(void* param, IApp* app)
 	// Set the callback to process system events
 	gWindow.handle.activity = android_app->activity;
 	gWindow.handle.configuration = android_app->config;
+	gWindow.cursorCaptured = false;
+	gWindowDesc = &gWindow;
+
 	android_app->onAppCmd = handle_cmd;
 	pApp = app;
+	pWindowAppRef = app; 
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
@@ -570,17 +404,26 @@ int AndroidMain(void* param, IApp* app)
 	uint32_t	targetFrameCount = 120;
 #endif
 
+	initCpuInfo(&gCpu, pJavaEnv);
+
 	IApp::Settings* pSettings = &pApp->mSettings;
 	Timer           deltaTimer;
 	initTimer(&deltaTimer);
-	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
-	{
-		RectDesc rect = {};
-		getRecommendedResolution(&rect);
-		pSettings->mWidth = getRectWidth(&rect);
-		pSettings->mHeight = getRectHeight(&rect);
-	}
+
 	getDisplayMetrics(android_app, pJavaEnv);
+
+#if defined(QUEST_VR)
+	initVrApi(android_app, pJavaEnv);
+	ASSERT(pQuest);
+	pSettings->mWidth = pQuest->mEyeTextureWidth;
+	pSettings->mHeight = pQuest->mEyeTextureHeight;
+#else		
+	RectDesc rect = {};
+	getRecommendedResolution(&rect);
+	pSettings->mWidth = getRectWidth(&rect);
+	pSettings->mHeight = getRectHeight(&rect);
+#endif
+		
 #ifdef AUTOMATED_TESTING
 	int frameCountArgs;
 	char benchmarkOutput[1024] = { "\0" };
@@ -592,13 +435,8 @@ int AndroidMain(void* param, IApp* app)
 	}
 #endif
 
-	pApp->pWindow = &gWindow;
 	// Set the callback to process input events
 	android_app->onInputEvent = handle_input;
-
-#if defined(QUEST_VR)
-    initVrApi(android_app, pJavaEnv);
-#endif
 
     if (!initBaseSubsystems(pApp))
     {
@@ -610,7 +448,7 @@ int AndroidMain(void* param, IApp* app)
         abort();
     }
 
-	setupAPISwitchingUI(pSettings->mWidth, pSettings->mHeight);
+	setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
 	pSettings->mInitialized = true;
 
 #ifdef AUTOMATED_TESTING
@@ -670,7 +508,7 @@ int AndroidMain(void* param, IApp* app)
                     abort();
                 }
 
-				setupAPISwitchingUI(pSettings->mWidth, pSettings->mHeight);
+				setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
 				pSettings->mInitialized = true;
 
                 if (!pApp->Load())
@@ -724,6 +562,11 @@ int AndroidMain(void* param, IApp* app)
 		pApp->Update(deltaTime);
 		pApp->Draw();
 
+		if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+		{
+			togglePlatformUI(); 
+		}
+
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
 		testingFrameCount++;
@@ -766,5 +609,3 @@ int AndroidMain(void* param, IApp* app)
 
 	exit(0);
 }
-/************************************************************************/
-/************************************************************************/

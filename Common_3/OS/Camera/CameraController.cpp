@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -305,4 +305,14 @@ CameraMatrix::CameraMatrix(const CameraMatrix& mat)
 mat4 CameraMatrix::getPrimaryMatrix() const
 {
     return mCamera;
+}
+
+void CameraMatrix::applyProjectionSampleOffset(float xOffset, float yOffset)
+{
+	mLeftEye[2][0] += xOffset;
+	mLeftEye[2][1] += yOffset;
+#if defined(QUEST_VR)
+	mRightEye[2][0] += xOffset;
+	mRightEye[2][1] += yOffset;
+#endif
 }

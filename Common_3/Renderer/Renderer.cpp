@@ -363,6 +363,9 @@ static void initRendererContextAPI(const char* appName, const RendererContextDes
 		initVulkanRendererContext(appName, pSettings, ppContext);
 		break;
 #endif
+#if defined(DIRECT3D11)
+	case RENDERER_API_D3D11:
+#endif
 	default:
 		LOGF(LogLevel::eERROR, "No Renderer API defined!");
 		break;
@@ -383,11 +386,13 @@ static void exitRendererContextAPI(RendererContext* pContext, const RendererApi 
 		exitVulkanRendererContext(pContext);
 		break;
 #endif
+#if defined(DIRECT3D11)
+	case RENDERER_API_D3D11:
+#endif
 	default:
 		LOGF(LogLevel::eERROR, "No Renderer API defined!");
 		break;
 	}
-
 }
 
 void initRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
@@ -438,8 +443,8 @@ void initRenderer(const char* appName, const RendererDesc* pSettings, Renderer**
 
 	ASSERT(pSettings);
 
-	gD3D11Unsupported = pSettings->mD3D11Unsupported;
-	gGLESUnsupported = pSettings->mGLESUnsupported; 
+	gD3D11Unsupported = !pSettings->mD3D11Supported;
+	gGLESUnsupported = !pSettings->mGLESSupported;
 
 	// Init requested renderer API
 	if (!apiIsUnsupported(gSelectedRendererApi))

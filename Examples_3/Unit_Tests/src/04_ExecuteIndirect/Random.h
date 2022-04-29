@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,6 +28,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "../../../../Common_3/OS/Math/MathTypes.h"
+
 // For producing random numbers used in the asteroids test
 class MyRandom
 {
@@ -37,7 +39,7 @@ class MyRandom
 
 	void SetSeed(unsigned seed) { srand(seed); }
 
-	float GetUniformDistribution(float min, float max) { return min + float(rand()) / (float(RAND_MAX) / (max - min)); }
+	float GetUniformDistribution(float min, float max) { return randomFloat(min, max); }
 
 	int GetUniformDistribution(int min, int max) { return (rand() % (max - min)) + min; }
 

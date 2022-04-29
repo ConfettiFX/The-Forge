@@ -35,7 +35,6 @@ freely, subject to the following restrictions:
 
 namespace SoLoud {
 namespace Thread {
-eastl::unordered_map<ThreadHandle, ThreadDesc*> gThreadDataToCleanup;
 
 void* createMutex()
 {
@@ -71,12 +70,12 @@ void unlockMutex(void* aHandle)
 
 ThreadHandle createThread(ThreadFunction aThreadFunction, void* aParameter)
 {
-	ThreadDesc* td = tf_new(ThreadDesc);
-	td->pFunc = aThreadFunction;
-	td->pData = aParameter;
+	ThreadDesc threadDesc = {};
+	threadDesc.pFunc = aThreadFunction;
+	threadDesc.pData = aParameter;
+	strncpy(threadDesc.mThreadName, "Soloud", sizeof(threadDesc.mThreadName));
 	ThreadHandle ret;
-	::initThread(td, &ret);
-	gThreadDataToCleanup[ret] = td;
+	::initThread(&threadDesc, &ret);
 	return ret;
 }
 
@@ -84,13 +83,7 @@ void sleep(int aMSec) { threadSleep((unsigned)aMSec); }
 
 void release(ThreadHandle aThreadHandle)
 {
-	eastl::unordered_map<ThreadHandle, ThreadDesc*>::iterator it = gThreadDataToCleanup.find(aThreadHandle);
-	ASSERT(it != gThreadDataToCleanup.end());
-	::destroyThread(aThreadHandle);
-	tf_delete(it->second);
-	gThreadDataToCleanup.erase(it);
-	if (gThreadDataToCleanup.empty())
-		gThreadDataToCleanup.clear(true);
+	::joinThread(aThreadHandle);
 }
 }    // namespace Thread
 }    // namespace SoLoud

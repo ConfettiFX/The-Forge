@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018-2021 Confetti Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 
@@ -160,6 +160,7 @@ void cmdBindRenderTargets(
 	const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice,
 	uint32_t depthMipSlice)
 {
+	COMPILE_ASSERT(sizeof(LoadActionsDesc) == sizeof(::LoadActionsDesc));
 	::cmdBindRenderTargets(
 		p_cmd, render_target_count, pp_render_targets, p_depth_stencil, (const ::LoadActionsDesc*)loadActions, pColorArraySlices,
 		pColorMipSlices, depthArraySlice, depthMipSlice);

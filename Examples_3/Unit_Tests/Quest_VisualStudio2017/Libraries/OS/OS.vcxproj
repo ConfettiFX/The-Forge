@@ -16,7 +16,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidWindow.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\CPUConfig.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Screenshot.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.c" />
@@ -24,6 +26,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\UnixFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\FontSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Fonts\stbtt.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.c" />
@@ -34,7 +37,10 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaManagerImpl.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Scripting\LuaSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\UI\UI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\hwcaps.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
@@ -243,6 +249,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>QUEST_VR;ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -270,6 +277,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <PreprocessorDefinitions>QUEST_VR;ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

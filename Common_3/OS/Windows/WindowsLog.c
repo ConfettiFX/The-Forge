@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -35,6 +35,8 @@
 
 #define BUFFER_SIZE 4096
 
+HWND* gLogWindowHandle = NULL;
+
 void _OutputDebugStringV(const char* str, va_list args)
 {
     char           buf[BUFFER_SIZE];
@@ -64,10 +66,12 @@ void _FailedAssert(const char* file, int line, const char* statement)
 		mbstowcs(wfile, file, 1024);
 		wsprintfW(str, L"Failed: (%s)\n\nFile: %s\nLine: %d\n\n", message, wfile, line);
 
+		HWND hwnd = gLogWindowHandle ? *gLogWindowHandle : NULL;
+
 		if (IsDebuggerPresent())
 		{
 			wcscat(str, L"Debug?");
-			int res = MessageBoxW(NULL, str, L"Assert failed", MB_YESNOCANCEL | MB_ICONERROR);
+			int res = MessageBoxW(hwnd, str, L"Assert failed", MB_YESNOCANCEL | MB_ICONERROR);
 			if (res == IDYES)
 			{
 #if _MSC_VER >= 1400
@@ -87,7 +91,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 			__debugbreak();
 #else
 			wcscat(str, L"Display more asserts?");
-			if (MessageBoxW(NULL, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES)
+			if (MessageBoxW(hwnd, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES)
 			{
 				debug = false;
 			}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,6 +23,11 @@
 */
 #pragma once
 
+//Support external config file override
+#if defined(EXTERNAL_CONFIG_FILEPATH)
+	#include EXTERNAL_CONFIG_FILEPATH
+#else
+
 #include <stdint.h>
 
 //////////////////////////////////////////////
@@ -38,12 +43,14 @@
 
 #ifdef __cplusplus
 #define FORGE_CONSTEXPR constexpr
+#define FORGE_EXTERN_C extern "C"
 #else
 #define FORGE_CONSTEXPR
+#define FORGE_EXTERN_C
 #endif
 
 #if defined(_MSC_VER) && !defined(__clang__)
-	#if !defined(_DEBUG)
+	#if !defined(_DEBUG) && !defined(NDEBUG)
 		#define NDEBUG
 	#endif
 
@@ -126,6 +133,14 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #endif
 #endif // !SSIZE_MAX
 
+#if defined(_MSC_VER)
+#define FORGE_EXPORT __declspec(dllexport)
+#define FORGE_IMPORT __declspec(dllimport)
+#elif defined(__GNUC__) // clang & gcc
+#define FORGE_EXPORT __attribute__((visibility("default")))
+#define FORGE_IMPORT
+#endif
+
 //////////////////////////////////////////////
 //// Platform setup
 //////////////////////////////////////////////
@@ -134,7 +149,9 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 	#ifdef _GAMING_XBOX 
 		#define XBOX
 		#ifdef _GAMING_XBOX_SCARLETT
-			#define SCARLETT
+			#ifndef SCARLETT
+				#define SCARLETT
+			#endif
 		#endif
 	#elif !defined(_WINDOWS)
 		#define _WINDOWS
@@ -150,10 +167,17 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 	#define NOMINMAX
 	#endif
 
+	#ifdef _WINDOWS
+	// Restrict compilation to Windows 7 APIs
+	#define NTDDI_VERSION NTDDI_WIN7
+	#define WINVER _WIN32_WINNT_WIN7
+	#define _WIN32_WINNT _WIN32_WINNT_WIN7
+	#endif
+
 #elif defined(__APPLE__)
 	#include <TargetConditionals.h>
 
-	#if TARGET_OS_MAC && defined(ARCH_ARM64)
+	#if defined(ARCH_ARM64)
 		#define TARGET_APPLE_ARM64
 	#endif
 
@@ -184,9 +208,14 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 #define ENABLE_FORGE_SCRIPTING
 #define ENABLE_FORGE_UI
 #define ENABLE_FORGE_FONTS
+#define ENABLE_FORGE_INPUT
 #define ENABLE_ZIP_FILESYSTEM
 #define ENABLE_SCREENSHOT
 #define ENABLE_PROFILER
+#define ENABLE_MESHOPTIMIZER
+//Uncomment this to enable empty mounts
+//used for absolute paths
+//#define ENABLE_FS_EMPTY_MOUNT
 
 
 #ifdef ENABLE_PROFILER
@@ -205,7 +234,6 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 //// Build related options
 //////////////////////////////////////////////
-
 
 #ifndef FORGE_DEBUG
 #if defined(DEBUG) || defined(_DEBUG) || defined(AUTOMATED_TESTING)
@@ -235,4 +263,5 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 
 #if defined(_DEBUG) && defined(NDEBUG)
 #error "_DEBUG and NDEBUG are defined at the same time"
+#endif
 #endif

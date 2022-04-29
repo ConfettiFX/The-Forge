@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,16 +37,6 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 ///////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 The Forge Interactive Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from The Forge Interactive Inc.
-//
-//--------------------------------------------------------------------------------------------
 
 #pragma once
 

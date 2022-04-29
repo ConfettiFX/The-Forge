@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		020563AD551F4C6E92867C09 /* GainputInputDevicePadIos.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1AF627EAEE854FBB8B506D19 /* GainputInputDevicePadIos.mm */; };
+		09109002276190B50032104E /* GainputHIDWhitelist.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 09108FFD276190B50032104E /* GainputHIDWhitelist.cpp */; };
+		09109003276190B50032104E /* GainputHID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 09108FFF276190B50032104E /* GainputHID.cpp */; };
+		09109008276190F00032104E /* hid.c in Sources */ = {isa = PBXBuildFile; fileRef = 09109007276190EF0032104E /* hid.c */; };
+		0910900B276191010032104E /* HIDParserPS5Controller.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 09109009276191010032104E /* HIDParserPS5Controller.cpp */; };
+		094F14E1278CD95800079776 /* HIDParserPS4Controller.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 094F14E0278CD95800079776 /* HIDParserPS4Controller.cpp */; };
 		1C31468E69304C2180370ECE /* gainput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D5D26C4DDE2C4F6F8C8EFF22 /* gainput.cpp */; };
 		1D0F35552E944E4399EC3746 /* GainputMemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E45A6E39911941C0A58032FD /* GainputMemoryStream.cpp */; };
 		219D96C7C97A43E29B0B59C1 /* GainputMapFilters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 013A93508CE549CFB2949B65 /* GainputMapFilters.cpp */; };
@@ -91,7 +96,18 @@
 		036AA55F1DF04D65B2D6A7BA /* GainputInputDeviceBuiltInIos.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDeviceBuiltInIos.h; path = source/gainput/builtin/GainputInputDeviceBuiltInIos.h; sourceTree = SOURCE_ROOT; };
 		03F277EB1EF341BCB9208FC5 /* GainputInputDevicePadImpl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDevicePadImpl.h; path = source/gainput/pad/GainputInputDevicePadImpl.h; sourceTree = SOURCE_ROOT; };
 		051D1CDC88F94B45ACA35494 /* GainputDev.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = GainputDev.cpp; path = source/gainput/dev/GainputDev.cpp; sourceTree = SOURCE_ROOT; };
+		09108FFD276190B50032104E /* GainputHIDWhitelist.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GainputHIDWhitelist.cpp; path = source/gainput/hid/GainputHIDWhitelist.cpp; sourceTree = "<group>"; };
+		09108FFE276190B50032104E /* GainputHIDTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GainputHIDTypes.h; path = source/gainput/hid/GainputHIDTypes.h; sourceTree = "<group>"; };
+		09108FFF276190B50032104E /* GainputHID.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = GainputHID.cpp; path = source/gainput/hid/GainputHID.cpp; sourceTree = "<group>"; };
+		09109000276190B50032104E /* GainputHID.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GainputHID.h; path = source/gainput/hid/GainputHID.h; sourceTree = "<group>"; };
+		09109001276190B50032104E /* GainputHIDWhitelist.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GainputHIDWhitelist.h; path = source/gainput/hid/GainputHIDWhitelist.h; sourceTree = "<group>"; };
+		09109006276190DE0032104E /* hidapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hidapi.h; path = source/hidapi/hidapi.h; sourceTree = "<group>"; };
+		09109007276190EF0032104E /* hid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hid.c; path = source/hidapi/mac/hid.c; sourceTree = "<group>"; };
+		09109009276191010032104E /* HIDParserPS5Controller.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HIDParserPS5Controller.cpp; path = source/gainput/hid/hidparsers/HIDParserPS5Controller.cpp; sourceTree = "<group>"; };
+		0910900A276191010032104E /* HIDParserPS5Controller.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HIDParserPS5Controller.h; path = source/gainput/hid/hidparsers/HIDParserPS5Controller.h; sourceTree = "<group>"; };
 		093F3B8BB6CA4381AC92D7E2 /* GainputInputDevicePadAndroid.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDevicePadAndroid.h; path = source/gainput/pad/GainputInputDevicePadAndroid.h; sourceTree = SOURCE_ROOT; };
+		094F14DF278CD95800079776 /* HIDParserPS4Controller.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HIDParserPS4Controller.h; path = source/gainput/hid/hidparsers/HIDParserPS4Controller.h; sourceTree = "<group>"; };
+		094F14E0278CD95800079776 /* HIDParserPS4Controller.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = HIDParserPS4Controller.cpp; path = source/gainput/hid/hidparsers/HIDParserPS4Controller.cpp; sourceTree = "<group>"; };
 		1260AAC3F7CA48EA975E45BB /* GainputInputDevicePadMac.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDevicePadMac.h; path = source/gainput/pad/GainputInputDevicePadMac.h; sourceTree = SOURCE_ROOT; };
 		135849A4627C4E389DE1F802 /* GainputInputDeviceKeyboardWinRaw.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDeviceKeyboardWinRaw.h; path = source/gainput/keyboard/GainputInputDeviceKeyboardWinRaw.h; sourceTree = SOURCE_ROOT; };
 		15173A5D446949D3AE779393 /* GainputInputDevicePad.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = GainputInputDevicePad.h; path = include/gainput/GainputInputDevicePad.h; sourceTree = SOURCE_ROOT; };
@@ -214,9 +230,44 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		09108FF02761904F0032104E /* hid */ = {
+			isa = PBXGroup;
+			children = (
+				09109004276190BA0032104E /* api */,
+				09109005276190C40032104E /* parsers */,
+				09108FFF276190B50032104E /* GainputHID.cpp */,
+				09109000276190B50032104E /* GainputHID.h */,
+				09108FFE276190B50032104E /* GainputHIDTypes.h */,
+				09108FFD276190B50032104E /* GainputHIDWhitelist.cpp */,
+				09109001276190B50032104E /* GainputHIDWhitelist.h */,
+			);
+			name = hid;
+			sourceTree = "<group>";
+		};
+		09109004276190BA0032104E /* api */ = {
+			isa = PBXGroup;
+			children = (
+				09109007276190EF0032104E /* hid.c */,
+				09109006276190DE0032104E /* hidapi.h */,
+			);
+			name = api;
+			sourceTree = "<group>";
+		};
+		09109005276190C40032104E /* parsers */ = {
+			isa = PBXGroup;
+			children = (
+				094F14E0278CD95800079776 /* HIDParserPS4Controller.cpp */,
+				094F14DF278CD95800079776 /* HIDParserPS4Controller.h */,
+				09109009276191010032104E /* HIDParserPS5Controller.cpp */,
+				0910900A276191010032104E /* HIDParserPS5Controller.h */,
+			);
+			name = parsers;
+			sourceTree = "<group>";
+		};
 		0DB6C64C13F34C279851B498 /* Source Files */ = {
 			isa = PBXGroup;
 			children = (
+				09108FF02761904F0032104E /* hid */,
 				8060FBAD83C94C158766B4FC /* GainputAllocator.cpp */,
 				231E0977D71B430F976D1CCB /* GainputInputDeltaState.cpp */,
 				8BD4D61FDC83453D8EA06671 /* GainputInputDevice.cpp */,
@@ -483,6 +534,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				09109002276190B50032104E /* GainputHIDWhitelist.cpp in Sources */,
+				0910900B276191010032104E /* HIDParserPS5Controller.cpp in Sources */,
 				3DDA27C71DBF44D79A3F9C33 /* GainputAllocator.cpp in Sources */,
 				BF95AE889FDB4A44963047A1 /* GainputInputDeltaState.cpp in Sources */,
 				FECB580074DF41D7962CA47A /* GainputInputDevice.cpp in Sources */,
@@ -498,6 +551,7 @@
 				1D0F35552E944E4399EC3746 /* GainputMemoryStream.cpp in Sources */,
 				A4406286EF944C748BBBC84F /* GainputNetAddress.cpp in Sources */,
 				99E3D74931F64784A4110341 /* GainputNetConnection.cpp in Sources */,
+				094F14E1278CD95800079776 /* HIDParserPS4Controller.cpp in Sources */,
 				F840D88DCAD14ED9B8045A87 /* GainputNetListener.cpp in Sources */,
 				1C31468E69304C2180370ECE /* gainput.cpp in Sources */,
 				66A6307103DD46ABA4D24F0A /* GainputButtonStickGesture.cpp in Sources */,
@@ -510,10 +564,12 @@
 				ED183098A4924AFEB416F8D6 /* GainputTapGesture.cpp in Sources */,
 				E63DEFD5CA984251B0768640 /* GainputInputDeviceKeyboard.cpp in Sources */,
 				93F1C60A956047DDAB0F1D11 /* GainputInputDeviceKeyboardMac.cpp in Sources */,
+				09109003276190B50032104E /* GainputHID.cpp in Sources */,
 				381C4C8D66054D4FB91D7F67 /* GainputInputDeviceMouse.cpp in Sources */,
 				4171DEAD220B4263ABA2333C /* GainputInputDeviceMouseMac.mm in Sources */,
 				DBBE91468FE74AF3AA3014D8 /* GainputInputDevicePad.cpp in Sources */,
 				020563AD551F4C6E92867C09 /* GainputInputDevicePadIos.mm in Sources */,
+				09109008276190F00032104E /* hid.c in Sources */,
 				DFA1C77E0CEB4B33B2986496 /* GainputInputDevicePadMac.cpp in Sources */,
 				4B3E093351E74BE096B65EEE /* GainputInputPlayer.cpp in Sources */,
 				6B4B66CD9F9C45C7A50FBE91 /* GainputInputRecorder.cpp in Sources */,
@@ -549,6 +605,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -588,6 +645,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -615,6 +673,7 @@
 				GCC_OPTIMIZATION_LEVEL = 3;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = ../lib/include;
 				INSTALL_PATH = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
@@ -718,6 +777,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = ../lib/include;
 				INSTALL_PATH = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;

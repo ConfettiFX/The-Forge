@@ -146,6 +146,8 @@
 		81856F14229D72EF00F3A92B /* assert.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F12229D72EF00F3A92B /* assert.cpp */; };
 		81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
 		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
+		B2244DDF27B853DC00F19A33 /* impl_x86_macos.c in Sources */ = {isa = PBXBuildFile; fileRef = B2244DDE27B853DC00F19A33 /* impl_x86_macos.c */; };
+		B2244DE327B854A000F19A33 /* CPUConfig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2244DE227B854A000F19A33 /* CPUConfig.cpp */; };
 		B22CEE9225D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
 		B22CEE9325D682460062036A /* Renderer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22CEE9125D682460062036A /* Renderer.cpp */; };
 		B22CEEDA25D686980062036A /* GPUConfig.h in Headers */ = {isa = PBXBuildFile; fileRef = B22CEED925D686980062036A /* GPUConfig.h */; };
@@ -158,6 +160,8 @@
 		B231A25323F40207006D7450 /* ProfilerHTML.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24723F40207006D7450 /* ProfilerHTML.h */; };
 		B245106E24CEEA5300FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
 		B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
+		B26E99AA27BC6EEA005873E3 /* stbtt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26E99A927BC6EEA005873E3 /* stbtt.cpp */; };
+		B26E99AB27BC6EEA005873E3 /* stbtt.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B26E99A927BC6EEA005873E3 /* stbtt.cpp */; };
 		B285F8BD276D051600D015CE /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F8AE276D051600D015CE /* indexcodec.cpp */; };
 		B285F8BE276D051600D015CE /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F8AE276D051600D015CE /* indexcodec.cpp */; };
 		B285F8BF276D051600D015CE /* spatialorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B285F8AF276D051600D015CE /* spatialorder.cpp */; };
@@ -305,6 +309,10 @@
 		B2D8BF9526963A7C009EE13D /* UI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D8BF9326963A7C009EE13D /* UI.cpp */; };
 		B2D8BF9926963A8F009EE13D /* FontSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D8BF9826963A8F009EE13D /* FontSystem.cpp */; };
 		B2D8BF9A26963A8F009EE13D /* FontSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2D8BF9826963A8F009EE13D /* FontSystem.cpp */; };
+		B2DE354C27B1F55A00FB8676 /* WindowSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DE354B27B1F55900FB8676 /* WindowSystem.cpp */; };
+		B2DE354F27B1F56200FB8676 /* WindowSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DE354B27B1F55900FB8676 /* WindowSystem.cpp */; };
+		B2DE355227B1F56F00FB8676 /* iOSWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = B2DE354927B1F54300FB8676 /* iOSWindow.mm */; };
+		B2DE355527B1F57100FB8676 /* macOSWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = B2DE354827B1F54300FB8676 /* macOSWindow.mm */; };
 		B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24223F40207006D7450 /* GpuProfiler.cpp */; };
 		E95891EB2341596500B68D6A /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E967DE3A233B0A2C0032E4BA /* DarwinThread.c in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.c */; };
@@ -452,6 +460,8 @@
 		81856EFF229D729000F3A92B /* fixed_pool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fixed_pool.cpp; path = OpenSource/EASTL/fixed_pool.cpp; sourceTree = "<group>"; };
 		81856F12229D72EF00F3A92B /* assert.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = assert.cpp; path = OpenSource/EASTL/assert.cpp; sourceTree = "<group>"; };
 		81FF8E292237A9D30009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
+		B2244DDE27B853DC00F19A33 /* impl_x86_macos.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = impl_x86_macos.c; path = OpenSource/cpu_features/src/impl_x86_macos.c; sourceTree = "<group>"; };
+		B2244DE227B854A000F19A33 /* CPUConfig.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CPUConfig.cpp; sourceTree = "<group>"; };
 		B22CEE9125D682460062036A /* Renderer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = Renderer.cpp; sourceTree = "<group>"; };
 		B22CEED925D686980062036A /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GPUConfig.h; sourceTree = "<group>"; };
 		B231A24023F40207006D7450 /* ProfilerBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerBase.h; sourceTree = "<group>"; };
@@ -460,6 +470,7 @@
 		B231A24423F40207006D7450 /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ProfilerBase.cpp; sourceTree = "<group>"; };
 		B231A24723F40207006D7450 /* ProfilerHTML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerHTML.h; sourceTree = "<group>"; };
 		B245106D24CEEA5300FCDD20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
+		B26E99A927BC6EEA005873E3 /* stbtt.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = stbtt.cpp; path = Fonts/stbtt.cpp; sourceTree = "<group>"; };
 		B285F8AE276D051600D015CE /* indexcodec.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = indexcodec.cpp; path = OpenSource/meshoptimizer/src/indexcodec.cpp; sourceTree = "<group>"; };
 		B285F8AF276D051600D015CE /* spatialorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = spatialorder.cpp; path = OpenSource/meshoptimizer/src/spatialorder.cpp; sourceTree = "<group>"; };
 		B285F8B0276D051600D015CE /* vcacheoptimizer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = vcacheoptimizer.cpp; path = OpenSource/meshoptimizer/src/vcacheoptimizer.cpp; sourceTree = "<group>"; };
@@ -557,6 +568,9 @@
 		B2D8BF8A26963A6D009EE13D /* LuaManagerImpl.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LuaManagerImpl.cpp; path = Scripting/LuaManagerImpl.cpp; sourceTree = "<group>"; };
 		B2D8BF9326963A7C009EE13D /* UI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = UI.cpp; path = UI/UI.cpp; sourceTree = "<group>"; };
 		B2D8BF9826963A8F009EE13D /* FontSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FontSystem.cpp; path = Fonts/FontSystem.cpp; sourceTree = "<group>"; };
+		B2DE354827B1F54300FB8676 /* macOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = macOSWindow.mm; sourceTree = "<group>"; };
+		B2DE354927B1F54300FB8676 /* iOSWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSWindow.mm; sourceTree = "<group>"; };
+		B2DE354B27B1F55900FB8676 /* WindowSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WindowSystem.cpp; path = WindowSystem/WindowSystem.cpp; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
 		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RingBuffer.h; sourceTree = "<group>"; };
@@ -773,6 +787,14 @@
 			name = gainput;
 			sourceTree = "<group>";
 		};
+		B2244DDD27B853BE00F19A33 /* cpu_features */ = {
+			isa = PBXGroup;
+			children = (
+				B2244DDE27B853DC00F19A33 /* impl_x86_macos.c */,
+			);
+			name = cpu_features;
+			sourceTree = "<group>";
+		};
 		B22D906C20E3F8BC0036B88E /* Middleware_3 */ = {
 			isa = PBXGroup;
 			children = (
@@ -916,6 +938,7 @@
 		B2D8BF74269639EF009EE13D /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
+				B26E99A927BC6EEA005873E3 /* stbtt.cpp */,
 				B2D8BF9826963A8F009EE13D /* FontSystem.cpp */,
 				B2D8BF7726963A02009EE13D /* Shaders */,
 			);
@@ -979,6 +1002,14 @@
 			name = FSL;
 			sourceTree = "<group>";
 		};
+		B2DE354A27B1F54900FB8676 /* WindowSystem */ = {
+			isa = PBXGroup;
+			children = (
+				B2DE354B27B1F55900FB8676 /* WindowSystem.cpp */,
+			);
+			name = WindowSystem;
+			sourceTree = "<group>";
+		};
 		B2EE056023F14BA400AB25DF /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
@@ -1019,6 +1050,8 @@
 		E9E601C3233B098900B21FD6 /* Darwin */ = {
 			isa = PBXGroup;
 			children = (
+				B2DE354927B1F54300FB8676 /* iOSWindow.mm */,
+				B2DE354827B1F54300FB8676 /* macOSWindow.mm */,
 				E967DE39233B0A2C0032E4BA /* DarwinLog.c */,
 				E967DE38233B0A2C0032E4BA /* DarwinThread.c */,
 				E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */,
@@ -1087,6 +1120,7 @@
 				D2111E771F4457910014FFE6 /* MemoryManager */,
 				D20D920F1F3879A4004B3A42 /* Camera */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
+				B2DE354A27B1F54900FB8676 /* WindowSystem */,
 				E98584E52334397C00692529 /* SystemRun.cpp */,
 			);
 			path = OS;
@@ -1123,6 +1157,7 @@
 		EA463CE41EF81FC5005AC8C7 /* OpenSource */ = {
 			isa = PBXGroup;
 			children = (
+				B2244DDD27B853BE00F19A33 /* cpu_features */,
 				B285F8AD276D04F900D015CE /* meshoptimizer */,
 				B2D8BEBD2696396B009EE13D /* imgui */,
 				B2D8BEBC26963966009EE13D /* LUA */,
@@ -1155,6 +1190,7 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				B2244DE227B854A000F19A33 /* CPUConfig.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.c */,
 			);
@@ -1494,6 +1530,7 @@
 				654D97B921E92F8700113964 /* Clip.cpp in Sources */,
 				B2D8BEFC26963987009EE13D /* lundump.c in Sources */,
 				B2D8BF4426963988009EE13D /* lopcodes.c in Sources */,
+				B26E99AB27BC6EEA005873E3 /* stbtt.cpp in Sources */,
 				5557BB5C268CB3C400B7ACF4 /* mz_strm_zlib.c in Sources */,
 				B2D8BF1926963987009EE13D /* lbaselib.c in Sources */,
 				5C172FF721414CC60074EE71 /* Log.c in Sources */,
@@ -1509,7 +1546,9 @@
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				B2D8BF4126963988009EE13D /* ltablib.c in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
+				B2DE354F27B1F56200FB8676 /* WindowSystem.cpp in Sources */,
 				B2D8BF3C26963988009EE13D /* linit.c in Sources */,
+				B2DE355227B1F56F00FB8676 /* iOSWindow.mm in Sources */,
 				81856EF4229D725000F3A92B /* EASprintf.cpp in Sources */,
 				5C172FFD21414CC60074EE71 /* Timer.c in Sources */,
 				B2D8BF0826963987009EE13D /* lutf8lib.c in Sources */,
@@ -1551,6 +1590,7 @@
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				B2D8BF9926963A8F009EE13D /* FontSystem.cpp in Sources */,
 				5557BB36268CB3AA00B7ACF4 /* sha1.c in Sources */,
+				B2244DDF27B853DC00F19A33 /* impl_x86_macos.c in Sources */,
 				B285F8D2276D051600D015CE /* stripifier.cpp in Sources */,
 				B2D8BF1C26963987009EE13D /* lcode.c in Sources */,
 				5C5582F621413D550019960B /* MemoryTracking.c in Sources */,
@@ -1564,7 +1604,9 @@
 				B2D8BF2B26963987009EE13D /* lbitlib.c in Sources */,
 				5C5582F721413D550019960B /* CameraController.cpp in Sources */,
 				5C5582F921413D550019960B /* MathTypes.h in Sources */,
+				B2DE355527B1F57100FB8676 /* macOSWindow.mm in Sources */,
 				B2D8BF1A26963987009EE13D /* lzio.c in Sources */,
+				B2DE354C27B1F55A00FB8676 /* WindowSystem.cpp in Sources */,
 				654D979721E922F400113964 /* ClipMask.cpp in Sources */,
 				5557BB56268CB3C400B7ACF4 /* mz_zip.c in Sources */,
 				B2D8BF2226963987009EE13D /* lparser.c in Sources */,
@@ -1598,12 +1640,14 @@
 				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				B2D8BF3D26963988009EE13D /* ltm.c in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
+				B26E99AA27BC6EEA005873E3 /* stbtt.cpp in Sources */,
 				B285F8C7276D051600D015CE /* indexgenerator.cpp in Sources */,
 				B285F8CD276D051600D015CE /* vfetchoptimizer.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
 				5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
 				B2D8BF3426963988009EE13D /* lapi.c in Sources */,
 				5C55830B21413D550019960B /* Log.c in Sources */,
+				B2244DE327B854A000F19A33 /* CPUConfig.cpp in Sources */,
 				B2D8BF4A26963988009EE13D /* lctype.c in Sources */,
 				B231A24E23F40207006D7450 /* ProfilerBase.cpp in Sources */,
 				81856EF5229D725000F3A92B /* EAMemory.cpp in Sources */,
@@ -1734,6 +1778,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1756,6 +1801,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
@@ -1811,7 +1857,9 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -1871,7 +1919,9 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;

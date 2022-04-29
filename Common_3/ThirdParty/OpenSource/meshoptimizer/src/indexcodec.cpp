@@ -1,8 +1,7 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 // This work is based on:
 // Fabian Giesen. Simple lossless index buffer compression & follow-up. 2013
@@ -165,7 +164,7 @@ size_t meshopt_encodeIndexBuffer(unsigned char* buffer, size_t buffer_size, cons
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	// the minimum valid encoding is header, 1 byte per triangle and a 16-byte codeaux table
 	if (buffer_size < 1 + index_count / 3 + 16)
@@ -322,23 +321,23 @@ size_t meshopt_encodeIndexBuffer(unsigned char* buffer, size_t buffer_size, cons
 	for (size_t i = 0; i < 16; ++i)
 	{
 		// decoder assumes that table entries never refer to separately encoded indices
-		assert((codeaux_table[i] & 0xf) != 0xf && (codeaux_table[i] >> 4) != 0xf);
+		ASSERT((codeaux_table[i] & 0xf) != 0xf && (codeaux_table[i] >> 4) != 0xf);
 
 		*data++ = codeaux_table[i];
 	}
 
 	// since we encode restarts as codeaux without a table reference, we need to make sure 00 is encoded as a table reference
-	assert(codeaux_table[0] == 0);
+	ASSERT(codeaux_table[0] == 0);
 
-	assert(data >= buffer + index_count / 3 + 16);
-	assert(data <= buffer + buffer_size);
+	ASSERT(data >= buffer + index_count / 3 + 16);
+	ASSERT(data <= buffer + buffer_size);
 
 	return data - buffer;
 }
 
 size_t meshopt_encodeIndexBufferBound(size_t index_count, size_t vertex_count)
 {
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	// compute number of bits required for each index
 	unsigned int vertex_bits = 1;
@@ -354,7 +353,7 @@ size_t meshopt_encodeIndexBufferBound(size_t index_count, size_t vertex_count)
 
 void meshopt_encodeIndexVersion(int version)
 {
-	assert(unsigned(version) <= 1);
+	ASSERT(unsigned(version) <= 1);
 
 	meshopt::gEncodeIndexVersion = version;
 }
@@ -363,8 +362,8 @@ int meshopt_decodeIndexBuffer(void* destination, size_t index_count, size_t inde
 {
 	using namespace meshopt;
 
-	assert(index_count % 3 == 0);
-	assert(index_size == 2 || index_size == 4);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(index_size == 2 || index_size == 4);
 
 	// the minimum valid encoding is header, 1 byte per triangle and a 16-byte codeaux table
 	if (buffer_size < 1 + index_count / 3 + 16)

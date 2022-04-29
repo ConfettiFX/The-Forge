@@ -30,6 +30,7 @@
 #ifndef VECTORMATH_SSE_VECIDX_HPP
 #define VECTORMATH_SSE_VECIDX_HPP
 
+#include "internal.hpp"
 namespace Vectormath
 {
 namespace SSE
@@ -78,6 +79,47 @@ public:
 
 
 //========================================= #TheForgeMathExtensionsStart ================================================
+
+// ========================================================
+// VecIdxd
+// ========================================================
+
+// Used in setting elements of Vector3d and Vector4d
+// with the subscripting operator [].
+VECTORMATH_ALIGNED_TYPE_PRE class VecIdxd
+{
+	DSSEVec4 & ref;
+	int i;
+
+public:
+
+	inline VecIdxd(DSSEVec4 & vec, int idx) : ref(vec), i(idx) { }
+
+	//
+	// implicitly casts to float unless VECTORMATH_NO_SCALAR_CAST defined
+	// in which case, implicitly casts to FloatInVec, and one must call
+	// getAsFloat() to convert to float.
+	//
+#ifdef VECTORMATH_NO_SCALAR_CAST
+	inline operator DoubleInVec() const;
+	inline float getAsDouble() const;
+#else // !VECTORMATH_NO_SCALAR_CAST
+	inline operator double() const;
+#endif // VECTORMATH_NO_SCALAR_CAST
+
+	inline double operator = (double scalar);
+	inline DoubleInVec operator =  (const DoubleInVec & scalar);
+	inline DoubleInVec operator =  (const VecIdxd & scalar);
+	inline DoubleInVec operator *= (double scalar);
+	inline DoubleInVec operator *= (const DoubleInVec & scalar);
+	inline DoubleInVec operator /= (double scalar);
+	inline DoubleInVec operator /= (const DoubleInVec & scalar);
+	inline DoubleInVec operator += (double scalar);
+	inline DoubleInVec operator += (const DoubleInVec & scalar);
+	inline DoubleInVec operator -= (double scalar);
+	inline DoubleInVec operator -= (const DoubleInVec & scalar);
+
+} VECTORMATH_ALIGNED_TYPE_POST;
 
 // ========================================================
 // IVecIdx

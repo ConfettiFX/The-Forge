@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -88,7 +88,6 @@ const uint32_t gViewCount = 2;
 uint32_t gFrameLatency = 2;
 uint32_t gBufferedFrames = 0;
 
-bool           gToggleVSync = false;
 // Simulate heavy gpu workload by rendering high resolution spheres
 const int   gSphereResolution = 1024;    // Increase for higher resolution spheres
 const float gSphereDiameter = 0.5f;
@@ -320,8 +319,6 @@ public:
 
 			RendererDesc settings;
 			memset(&settings, 0, sizeof(settings));
-			settings.mD3D11Unsupported = true;
-			settings.mGLESUnsupported = true;
 			settings.mGpuMode = GPU_MODE_SINGLE;
 
 			initRenderer(GetName(), &settings, &pRenderer[0]);
@@ -348,9 +345,7 @@ public:
 
 			RendererDesc settings;
 			memset(&settings, 0, sizeof(settings));
-			settings.mD3D11Unsupported = true;
-			settings.mGLESUnsupported = true;
-			settings.mGpuMode = GPU_MODE_UNLINKED;
+			settings.mGpuMode = gMultiGPUCurrent ? GPU_MODE_UNLINKED : GPU_MODE_SINGLE;
 			settings.pContext = pContext;
 			for (uint32_t i = 0; i < gViewCount; ++i)
 			{
@@ -386,10 +381,10 @@ public:
 				pGraphicsQueue[i] = pGraphicsQueue[0];
 
 			uint32_t rendererIndex = gMultiGPUCurrent ? i : 0;
-			sprintf(gGpuProfilerNames[i], "Graphics %d: GPU %u (%s)", i, gSelectedGpuIndices[rendererIndex], pRenderer[i]->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+			snprintf(gGpuProfilerNames[i], sizeof(gGpuProfilerNames), "Graphics %d: GPU %u (%s)", i, gSelectedGpuIndices[rendererIndex], pRenderer[i]->pActiveGpuSettings->mGpuVendorPreset.mGpuName); //-V512
 		}
 
-		sprintf(gGpuProfilerNames[gViewCount], "Merge (GPU %u)", gSelectedGpuIndices[0]);
+		snprintf(gGpuProfilerNames[gViewCount], sizeof(gGpuProfilerNames), "Merge (GPU %u)", gSelectedGpuIndices[0]); //-V512
 
 		// Load fonts
 		FontDesc font = {};
@@ -610,12 +605,6 @@ public:
 				gReadbackSyncTokens[i][j] = 0;
 		}
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget vSyncCheckbox;
-		vSyncCheckbox.pData = &gToggleVSync;
-		luaRegisterWidget(uiCreateComponentWidget(pGui, "Toggle VSync", &vSyncCheckbox, WIDGET_TYPE_CHECKBOX));
-#endif
-
 		// Multi gpu controls
 		if (pContext)
 		{
@@ -627,7 +616,7 @@ public:
 
 			for (uint32_t i = 0; i < pContext->mGpuCount; ++i)
 			{
-				sprintf(gGpuNames[i], "GPU %u : %s", i, pContext->pGpus[i].mSettings.mGpuVendorPreset.mGpuName);
+				snprintf(gGpuNames[i], sizeof(gGpuNames), "GPU %u : %s", i, pContext->pGpus[i].mSettings.mGpuVendorPreset.mGpuName); //-V512
 			}
 
 			char renderer[20] = {};
@@ -750,21 +739,25 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			if (*ctx->pCaptured)
+			{
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+			}
 			return true;
 		};
 		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
@@ -1004,14 +997,6 @@ public:
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mHeight, mSettings.mHeight);
-
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != gToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue[0]);
-			::toggleVSync(pRenderer[0], &pSwapChain);
-		}
-#endif
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -1073,6 +1058,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue[0]);
+			::toggleVSync(pRenderer[0], &pSwapChain);
+		}
+
 		// Update uniform buffers
 		for (int i = gViewCount - 1; i >= 0; --i)
 		{
@@ -1273,7 +1264,7 @@ public:
 
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 
-			const float txtIndentY = 12.f;
+			const float txtIndentY = 15.f;
 			float txtOrigY = txtIndentY;
 			float2 screenCoords = float2(8.0f, txtOrigY);
 
@@ -1282,7 +1273,7 @@ public:
 			gFrameTimeDraw.mFontID = gFontID;
 			float2 txtSize = cmdDrawCpuProfile(cmd, screenCoords, &gFrameTimeDraw);
 
-			txtOrigY += txtSize.y + txtIndentY;
+			txtOrigY += txtSize.y + 4 * txtIndentY;
 			for (uint32_t j = 0; j < gViewCount; ++j)
 			{
 				screenCoords = float2(8.f, txtOrigY);

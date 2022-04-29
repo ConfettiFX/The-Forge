@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -74,21 +74,27 @@ float3 reconstructNormal(float4 sampleNormal)
 	return tangentNormal;
 }
 
-float3 getNormalFromMap(Tex2D(float4) normalTex, float3 pos, float3 normal, float2 uv)
+float3 getNormalFromMap(Tex2D(float4) normalTex, float3 viewDirection, float3 normal, float2 uv)
 {
 	float4 rawNormal = SampleTex2D(normalTex, Get(defaultSampler), uv);
 	float3 tangentNormal = reconstructNormal(rawNormal);
 
-    float3 Q1  = ddx(pos);
-    float3 Q2  = ddy(pos);
-    float2 st1 = ddx(uv);
-    float2 st2 = ddy(uv);
+	float3 dPdx = ddx(viewDirection);
+	float3 dPdy = ddy(viewDirection);
+	float2 dUVdx = ddx(uv);
+	float2 dUVdy = ddy(uv);
 
-    float3 N   = normalize(normal);
-    float3 T  = normalize(Q1*st2.y - Q2*st1.y);
-    float3 B  = -normalize(cross(N, T));
-    float3x3 TBN = make_f3x3_rows(T, B, N);
-    return mul(tangentNormal, TBN);
+	float3 N = normalize(normal);
+	float3 crossPdyN = cross(dPdy, N);
+	float3 crossNPdx = cross(N, dPdx); 
+
+	float3 T = crossPdyN * dUVdx.x + crossNPdx * dUVdy.x;
+	float3 B = crossPdyN * dUVdx.y + crossNPdx * dUVdy.y;
+
+	float invScale = rsqrt(max(dot(T, T), dot(B, B)));
+
+	float3x3 TBN = make_f3x3_rows(T * invScale, B * invScale, N);
+	return mul(tangentNormal, TBN);
 }
 
 STRUCT(PsIn)
@@ -137,19 +143,19 @@ PSOut PS_MAIN( PsIn In )
 	float ao = 1.0f;
 
 	float3 N = normalize(In.normal);
-	
+	float3 V = normalize(Get(camPos).xyz - In.pos);
 
 	//this means pbr materials is set for these so sample from textures
 	if(Get(pbrMaterials) !=- 1) 
 	{
 		albedo = albedoAndAlpha.rgb;
 #if defined(USE_TEXTURES_FALLBACK)
-		N          = getNormalFromMap(Get(normalMap), In.pos, In.normal, In.uv);
+		N          = getNormalFromMap(Get(normalMap), -V, In.normal, In.uv);
 		_metalness = SampleTex2D(Get(metallicMap),  Get(defaultSampler),In.uv).r;
 		_roughness = SampleTex2D(Get(roughnessMap), Get(defaultSampler),In.uv).r;
 		ao         = SampleLvlTex2D(Get(aoMap),     Get(defaultSampler),In.uv, 0).r;
 #else
-		N          = getNormalFromMap(Get(textureMaps)[normalMapId], In.pos, In.normal, In.uv);
+		N          = getNormalFromMap(Get(textureMaps)[normalMapId], -V, In.normal, In.uv);
 		_metalness = SampleTex2D(Get(textureMaps)[metallicMapId], Get(defaultSampler),In.uv).r;
 		_roughness = SampleTex2D(Get(textureMaps)[roughnessMapId], Get(defaultSampler),In.uv).r;
 		ao         = SampleLvlTex2D(Get(textureMaps)[aoMapId], Get(defaultSampler),In.uv, 0).r;

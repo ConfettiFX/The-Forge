@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,7 +47,6 @@
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
-
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 /// Demo structures
@@ -114,7 +113,6 @@ Buffer* pSkyboxUniformBuffer[gImageCount] = { NULL };
 uint32_t gFrameIndex = 0;
 ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 
-bool			 bToggleVSync = false;
 int              gNumberOfSpherePoints;
 UniformBlock     gUniformData;
 UniformBlock     gUniformDataSky;
@@ -189,13 +187,18 @@ void takeScreenshot()
 		gTakeScreenshot = true;
 }
 
+const char* gWindowTestScripts[] = 
+{ 
+	"TestFullScreen.lua", 
+	"TestCenteredWindow.lua",
+	"TestNonCenteredWindow.lua", 
+	"TestBorderless.lua",
+	"TestHideWindow.lua" 
+};
+
 class Transformations: public IApp
 {
 public:
-	Transformations()
-	{
-		bToggleVSync = mSettings.mDefaultVSyncEnabled;
-	}
 
 	bool Init()
 	{
@@ -214,6 +217,8 @@ public:
 		// window and renderer setup
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
+		settings.mD3D11Supported = true;
+		settings.mGLESSupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -375,13 +380,6 @@ public:
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
-#if !defined(TARGET_IOS)
-		CheckboxWidget checkbox;
-		checkbox.pData = &bToggleVSync;
-		UIWidget* pCheckbox = uiCreateComponentWidget(pGuiWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
-		luaRegisterWidget(pCheckbox);
-#endif
-
 		// Take a screenshot with a button.
 		ButtonWidget screenshot;
 		UIWidget* pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
@@ -396,6 +394,12 @@ public:
 			uiSetWidgetOnEditedCallback(pCrashButton, crashCallback); 
 			luaRegisterWidget(pCrashButton);
 		}
+		
+		const uint32_t numScripts = sizeof(gWindowTestScripts) / sizeof(gWindowTestScripts[0]);
+		LuaScriptDesc scriptDescs[numScripts] = {};
+		for (uint32_t i = 0; i < numScripts; ++i)
+			scriptDescs[i].pScriptFileName = gWindowTestScripts[i];
+		luaDefineScripts(scriptDescs, numScripts);
 
 		waitForAllResourceLoads();
 
@@ -520,23 +524,25 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc =
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
-			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+			return true;
 		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
+			if (*ctx->pCaptured)
 			{
-				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
 			}
 			return true;
 		};
@@ -722,15 +728,6 @@ public:
 
 	void Update(float deltaTime)
 	{
-#if !defined(TARGET_IOS)
-		if (pSwapChain->mEnableVsync != bToggleVSync)
-		{
-			waitQueueIdle(pGraphicsQueue);
-			gFrameIndex = 0;
-			::toggleVSync(pRenderer, &pSwapChain);
-		}
-#endif
-
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
@@ -781,6 +778,12 @@ public:
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -898,7 +901,7 @@ public:
 		gFrameTimeDraw.mFontSize = 18.0f;
 		gFrameTimeDraw.mFontID = gFontID;
 		float2 txtSizePx = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
 
@@ -956,7 +959,7 @@ public:
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
         swapChainDesc.mFlags = SWAP_CHAIN_CREATION_FLAG_ENABLE_FOVEATED_RENDERING_VR;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 

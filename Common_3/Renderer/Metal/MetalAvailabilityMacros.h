@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,7 +31,7 @@
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
 #ifndef TARGET_IOS_SIMULATOR
 #define ENABLE_HEAP_PLACEMENT
-#define RAYTRACING_AVAILABLE
+#define MTL_RAYTRACING_AVAILABLE
 #define ENABLE_INDIRECT_COMMAND_BUFFER_INHERIT_PIPELINE
 #endif // TARGET_IOS_SIMULATOR
 #define ENABLE_HEAP_RESOURCE_OPTIONS
@@ -109,7 +109,7 @@
 #define ENABLE_ARGUMENT_BUFFER_USE_STAGES
 #endif
 #define ENABLE_GPU_TIMESTAMPS
-#define RAYTRACING_AVAILABLE
+#define MTL_RAYTRACING_AVAILABLE
 #define ENABLE_GPU_FAMILY
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_15
 #endif // MAC_OS_X_VERSION_10_15

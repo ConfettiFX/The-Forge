@@ -76,6 +76,21 @@
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputTapGesture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\lib\source\hidapi\windows\hid.c">
+      <Filter>Source Files\HID\hidapi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\hid\GainputHID.cpp">
+      <Filter>Source Files\HID</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.cpp">
+      <Filter>Source Files\HID\HIDParsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.cpp">
+      <Filter>Source Files\HID</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.cpp">
+      <Filter>Source Files\HID\HIDParsers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputWindows.h">
@@ -285,6 +300,24 @@
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputTouchInfo.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\lib\source\hidapi\hidapi.h">
+      <Filter>Source Files\HID\hidapi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHID.h">
+      <Filter>Source Files\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDTypes.h">
+      <Filter>Source Files\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h">
+      <Filter>Source Files\HID\HIDParsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.h">
+      <Filter>Source Files\HID</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.h">
+      <Filter>Source Files\HID\HIDParsers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
@@ -292,6 +325,15 @@
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{53C4E343-C81F-3F86-BA31-EFF74477211B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\HID">
+      <UniqueIdentifier>{dff62ca2-eacf-4ec8-b7a9-80c30ff36acd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\HID\hidapi">
+      <UniqueIdentifier>{d6001321-ab0f-4635-aa3f-6af61360cc32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\HID\HIDParsers">
+      <UniqueIdentifier>{a426004f-d7c9-4611-ad8d-1e6675bae08e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -81,9 +81,7 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <PostBuildEvent>
-      <Command>"$(OutDir)../AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.gltf" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.bin" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Stormtrooper_D.dds" "$(OutDir)Textures\"
@@ -135,9 +133,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>"$(OutDir)../AssetPipelineCmd.exe" -pa "$(SolutionDir)../UnitTestResources/Animation" "$(SolutionDir)../UnitTestResources/Animation"
-
-xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.gltf" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.bin" "$(OutDir)Meshes\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Stormtrooper_D.dds" "$(OutDir)Textures\"

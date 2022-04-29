@@ -16,6 +16,9 @@
     <ClCompile Include="..\..\src\24_PartialBlending\24_PartialBlending.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\src\24_PartialBlending\Shaders\FSL\basic.frag.fsl">

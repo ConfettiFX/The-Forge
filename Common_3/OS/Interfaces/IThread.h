@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -57,9 +57,10 @@ typedef INIT_ONCE CallOnceGuard;
 typedef pthread_once_t CallOnceGuard;
 #endif
 
-
-
-
+// Max thread name should be 15 + null character
+#ifndef MAX_THREAD_NAME_LENGTH
+#define MAX_THREAD_NAME_LENGTH 31
+#endif
 
 #define TIMEOUT_INFINITE UINT32_MAX
 
@@ -119,19 +120,17 @@ extern "C"
 
 	typedef void (*ThreadFunction)(void*);
 
+#define MAX_THREAD_AFFINITY_MASK_BITS 31
+
 	/// Work queue item.
 	typedef struct ThreadDesc
 	{
-#if defined(NX64)
-		ThreadHandle hThread;
-		void*        pThreadStack;
-		const char*  pThreadName;
-		int          preferredCore;
-		bool         migrateEnabled;
-#endif
 		/// Work item description and thread index (Main thread => 0)
 		ThreadFunction pFunc;
 		void*          pData;
+		uint32_t       mHasAffinityMask : 1;
+		uint32_t       mAffinityMask : MAX_THREAD_AFFINITY_MASK_BITS;
+		char           mThreadName[MAX_THREAD_NAME_LENGTH];
 	} ThreadDesc;
 
 #if defined(_WINDOWS) || defined(XBOX)
@@ -141,7 +140,6 @@ extern "C"
 #endif
 
 	void         initThread(ThreadDesc* pItem, ThreadHandle* pHandle);
-	void         destroyThread(ThreadHandle handle);
 	void         joinThread(ThreadHandle handle);
 
 	void            setMainThread(void);
@@ -151,11 +149,6 @@ extern "C"
 	bool            isMainThread(void);
 	void            threadSleep(unsigned mSec);
 	unsigned int    getNumCPUCores(void);
-
-// Max thread name should be 15 + null character
-#ifndef MAX_THREAD_NAME_LENGTH
-#define MAX_THREAD_NAME_LENGTH 31
-#endif
 
 #ifdef __cplusplus
 }    // extern "C"

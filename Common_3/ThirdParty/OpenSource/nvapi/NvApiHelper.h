@@ -13,10 +13,21 @@ typedef enum NvAPI_Status
 } NvAPI_Status;
 #endif
 
+
+#if defined(NVAPI)
+typedef struct {
+	NvU32 driverVersion;
+	NvAPI_ShortString buildBranch;
+} NvGPUInfo;
+static NvAPI_Status gNvStatus = NVAPI_ERROR;
+static NvGPUInfo  gNvGpuInfo = {};
+#endif
+
 static NvAPI_Status nvapiInit()
 {
 #if defined(NVAPI)
-	return NvAPI_Initialize();
+	gNvStatus = NvAPI_Initialize();
+	return gNvStatus;
 #endif
 
 	return NvAPI_Status::NVAPI_OK;
@@ -32,13 +43,12 @@ static void nvapiExit()
 static void nvapiPrintDriverInfo()
 {
 #if defined(NVAPI)
-	NvU32 driverVersion = 0;
-	NvAPI_ShortString buildBranch = {};
-	NvAPI_Status status = NvAPI_SYS_GetDriverAndBranchVersion(&driverVersion, buildBranch);
+	NvAPI_Status status = NvAPI_SYS_GetDriverAndBranchVersion(
+		&gNvGpuInfo.driverVersion, gNvGpuInfo.buildBranch);
 	if (NvAPI_Status::NVAPI_OK == status)
 	{
-		LOGF(eINFO, "NVIDIA Display Driver Version %u", driverVersion);
-		LOGF(eINFO, "NVIDIA Build Branch %s", buildBranch);
+		LOGF(eINFO, "NVIDIA Display Driver Version %u", gNvGpuInfo.driverVersion);
+		LOGF(eINFO, "NVIDIA Build Branch %s", gNvGpuInfo.buildBranch);
 	}
 #endif
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
-
 #ifdef __linux__
 
-#define _GNU_SOURCE
+#define _GNU_SOURCE // sched_setaffinity
+
+#include "../Core/Config.h"
 
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
@@ -115,6 +115,9 @@ void setMainThread() { mainThreadID = getCurrentThreadID(); }
 
 ThreadID getCurrentThreadID() { return getCurrentPthreadID(); }
 
+int pthread_setname_np(pthread_t thread, const char *name);
+int pthread_getname_np(pthread_t thread, char *name, size_t len);
+
 void getCurrentThreadName(char* buffer, int buffer_size) { pthread_getname_np(pthread_self(), buffer, buffer_size); }
 
 void setCurrentThreadName(const char* name) { pthread_setname_np(pthread_self(), name); }
@@ -126,7 +129,6 @@ void threadSleep(unsigned mSec) { usleep(mSec * 1000); }
 // threading class (Static functions)
 unsigned int getNumCPUCores(void)
 {
-	size_t       len;
 	unsigned int ncpu;
 	ncpu = sysconf(_SC_NPROCESSORS_ONLN);
 	return ncpu;
@@ -134,22 +136,44 @@ unsigned int getNumCPUCores(void)
 
 void* ThreadFunctionStatic(void* data)
 {
-	ThreadDesc* pItem = (ThreadDesc*)(data);
-	pItem->pFunc(pItem->pData);
+	ThreadDesc item = *((ThreadDesc*)(data));
+	tf_free(data);
+
+	if(item.mThreadName[0] != 0)
+		setCurrentThreadName(item.mThreadName);
+
+	if(item.mHasAffinityMask)
+	{
+		cpu_set_t cpuset;
+		CPU_ZERO(&cpuset);
+		for(uint32_t i = 0; i < MAX_THREAD_AFFINITY_MASK_BITS; ++i)
+		{
+			if((1u << i) & item.mAffinityMask)
+				CPU_SET(i, &cpuset);
+		}
+
+		const int res = sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+		ASSERT(res == 0);
+	}
+
+	item.pFunc(item.pData);
 	return 0;
 }
 
 void initThread(ThreadDesc* pData, ThreadHandle* pHandle)
 {
-	int       res = pthread_create(pHandle, NULL, ThreadFunctionStatic, pData);
+	// Copy the contents of ThreadDesc because if the variable is in the stack we might access corrupted data.
+	ThreadDesc* pDataCopy = (ThreadDesc*)tf_malloc(sizeof(ThreadDesc));
+	*pDataCopy = *pData;
+
+	int       res = pthread_create(pHandle, NULL, ThreadFunctionStatic, pDataCopy);
 	ASSERT(res == 0);
 }
 
-void destroyThread(ThreadHandle handle)
+void joinThread(ThreadHandle handle)
 {
 	pthread_join(handle, NULL);
 	handle = (ThreadHandle)NULL;
 }
 
-void joinThread(ThreadHandle handle) { pthread_join(handle, NULL); }
 #endif    //if __linux__

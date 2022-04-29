@@ -67,6 +67,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;GAINPUT_LIB_DYNAMIC=1;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -101,6 +102,7 @@
       <DebugInformationFormat>
       </DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=1;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -144,6 +146,11 @@
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecorder.cpp" />
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecording.cpp" />
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouch.cpp" />
+    <ClCompile Include="..\..\lib\source\gainput\hid\GainputHID.cpp" />
+    <ClCompile Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.cpp" />
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.cpp" />
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.cpp" />
+    <ClCompile Include="..\..\lib\source\hidapi\windows\hid.c" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputHelpersEvdev.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputWindows.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInAndroid.h" />
@@ -216,7 +223,13 @@
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputPlayer.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecorder.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecording.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHID.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDTypes.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h" />
     <ClInclude Include="..\..\lib\source\gainput\touch\gainputinputdevicetouchwin.h" />
+    <ClInclude Include="..\..\lib\source\hidapi\hidapi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

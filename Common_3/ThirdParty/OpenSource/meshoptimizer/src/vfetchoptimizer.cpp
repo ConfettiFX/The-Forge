@@ -1,12 +1,11 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
-#include <assert.h>
-#include <string.h>
+#include "../../../../OS/Interfaces/ILog.h"
 
 size_t meshopt_optimizeVertexFetchRemap(unsigned int* destination, const unsigned int* indices, size_t index_count, size_t vertex_count)
 {
-	assert(index_count % 3 == 0);
+	ASSERT(index_count % 3 == 0);
 
 	memset(destination, -1, vertex_count * sizeof(unsigned int));
 
@@ -15,7 +14,7 @@ size_t meshopt_optimizeVertexFetchRemap(unsigned int* destination, const unsigne
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		if (destination[index] == ~0u)
 		{
@@ -23,15 +22,15 @@ size_t meshopt_optimizeVertexFetchRemap(unsigned int* destination, const unsigne
 		}
 	}
 
-	assert(next_vertex <= vertex_count);
+	ASSERT(next_vertex <= vertex_count);
 
 	return next_vertex;
 }
 
 size_t meshopt_optimizeVertexFetch(void* destination, unsigned int* indices, size_t index_count, const void* vertices, size_t vertex_count, size_t vertex_size)
 {
-	assert(index_count % 3 == 0);
-	assert(vertex_size > 0 && vertex_size <= 256);
+	ASSERT(index_count % 3 == 0);
+	ASSERT(vertex_size > 0 && vertex_size <= 256);
 
 	meshopt_Allocator allocator;
 
@@ -52,7 +51,7 @@ size_t meshopt_optimizeVertexFetch(void* destination, unsigned int* indices, siz
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		assert(index < vertex_count);
+		ASSERT(index < vertex_count);
 
 		unsigned int& remap = vertex_remap[index];
 
@@ -68,7 +67,7 @@ size_t meshopt_optimizeVertexFetch(void* destination, unsigned int* indices, siz
 		indices[i] = remap;
 	}
 
-	assert(next_vertex <= vertex_count);
+	ASSERT(next_vertex <= vertex_count);
 
 	return next_vertex;
 }

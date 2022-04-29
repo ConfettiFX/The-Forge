@@ -395,6 +395,362 @@ inline void print(const Matrix3 & mat, const char * name)
 #endif // VECTORMATH_DEBUG
 
 // ========================================================
+// Matrix3d
+// ========================================================
+
+inline Matrix3d::Matrix3d(const Matrix3d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+}
+
+inline Matrix3d::Matrix3d(double scalar)
+{
+	mCol0 = Vector3d(scalar);
+	mCol1 = Vector3d(scalar);
+	mCol2 = Vector3d(scalar);
+}
+
+inline Matrix3d::Matrix3d(const Quat & unitQuat)
+{
+	double qx, qy, qz, qw, qx2, qy2, qz2, qxqx2, qyqy2, qzqz2, qxqy2, qyqz2, qzqw2, qxqz2, qyqw2, qxqw2;
+	qx = unitQuat.getX();
+	qy = unitQuat.getY();
+	qz = unitQuat.getZ();
+	qw = unitQuat.getW();
+	qx2 = (qx + qx);
+	qy2 = (qy + qy);
+	qz2 = (qz + qz);
+	qxqx2 = (qx * qx2);
+	qxqy2 = (qx * qy2);
+	qxqz2 = (qx * qz2);
+	qxqw2 = (qw * qx2);
+	qyqy2 = (qy * qy2);
+	qyqz2 = (qy * qz2);
+	qyqw2 = (qw * qy2);
+	qzqz2 = (qz * qz2);
+	qzqw2 = (qw * qz2);
+	mCol0 = Vector3d(((1.0f - qyqy2) - qzqz2), (qxqy2 + qzqw2), (qxqz2 - qyqw2));
+	mCol1 = Vector3d((qxqy2 - qzqw2), ((1.0f - qxqx2) - qzqz2), (qyqz2 + qxqw2));
+	mCol2 = Vector3d((qxqz2 + qyqw2), (qyqz2 - qxqw2), ((1.0f - qxqx2) - qyqy2));
+}
+
+inline Matrix3d::Matrix3d(const Vector3d & _col0, const Vector3d & _col1, const Vector3d & _col2)
+{
+	mCol0 = _col0;
+	mCol1 = _col1;
+	mCol2 = _col2;
+}
+
+inline Matrix3d & Matrix3d::setCol0(const Vector3d & _col0)
+{
+	mCol0 = _col0;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol1(const Vector3d & _col1)
+{
+	mCol1 = _col1;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol2(const Vector3d & _col2)
+{
+	mCol2 = _col2;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setCol(int col, const Vector3d & vec)
+{
+	*(&mCol0 + col) = vec;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setRow(int row, const Vector3d & vec)
+{
+	mCol0.setElem(row, vec.getElem(0));
+	mCol1.setElem(row, vec.getElem(1));
+	mCol2.setElem(row, vec.getElem(2));
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::setElem(int col, int row, double val)
+{
+	Vector3d tmpV3_0;
+	tmpV3_0 = this->getCol(col);
+	tmpV3_0.setElem(row, val);
+	this->setCol(col, tmpV3_0);
+	return *this;
+}
+
+inline double Matrix3d::getElem(int col, int row) const
+{
+	return this->getCol(col).getElem(row);
+}
+
+inline const Vector3d Matrix3d::getCol0() const
+{
+	return mCol0;
+}
+
+inline const Vector3d Matrix3d::getCol1() const
+{
+	return mCol1;
+}
+
+inline const Vector3d Matrix3d::getCol2() const
+{
+	return mCol2;
+}
+
+inline const Vector3d Matrix3d::getCol(int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector3d Matrix3d::getRow(int row) const
+{
+	return Vector3d(mCol0.getElem(row), mCol1.getElem(row), mCol2.getElem(row));
+}
+
+inline Vector3d & Matrix3d::operator[](int col)
+{
+	return *(&mCol0 + col);
+}
+
+inline const Vector3d Matrix3d::operator[](int col) const
+{
+	return *(&mCol0 + col);
+}
+
+inline Matrix3d & Matrix3d::operator = (const Matrix3d & mat)
+{
+	mCol0 = mat.mCol0;
+	mCol1 = mat.mCol1;
+	mCol2 = mat.mCol2;
+	return *this;
+}
+
+inline const Matrix3d transpose(const Matrix3d & mat)
+{
+	return Matrix3d(
+		Vector3d(mat.getCol0().getX(), mat.getCol1().getX(), mat.getCol2().getX()),
+		Vector3d(mat.getCol0().getY(), mat.getCol1().getY(), mat.getCol2().getY()),
+		Vector3d(mat.getCol0().getZ(), mat.getCol1().getZ(), mat.getCol2().getZ()));
+}
+
+inline const Matrix3d inverse(const Matrix3d & mat)
+{
+	Vector3d tmp0, tmp1, tmp2;
+	double detinv;
+	tmp0 = cross(mat.getCol1(), mat.getCol2());
+	tmp1 = cross(mat.getCol2(), mat.getCol0());
+	tmp2 = cross(mat.getCol0(), mat.getCol1());
+	detinv = (1.0f / dot(mat.getCol2(), tmp2));
+	return Matrix3d(
+		Vector3d((tmp0.getX() * detinv), (tmp1.getX() * detinv), (tmp2.getX() * detinv)),
+		Vector3d((tmp0.getY() * detinv), (tmp1.getY() * detinv), (tmp2.getY() * detinv)),
+		Vector3d((tmp0.getZ() * detinv), (tmp1.getZ() * detinv), (tmp2.getZ() * detinv)));
+}
+
+inline double determinant(const Matrix3d & mat)
+{
+	return dot(mat.getCol2(), cross(mat.getCol0(), mat.getCol1()));
+}
+
+inline const Matrix3d Matrix3d::operator + (const Matrix3d & mat) const
+{
+	return Matrix3d((mCol0 + mat.mCol0),
+		(mCol1 + mat.mCol1),
+		(mCol2 + mat.mCol2));
+}
+
+inline const Matrix3d Matrix3d::operator - (const Matrix3d & mat) const
+{
+	return Matrix3d((mCol0 - mat.mCol0),
+		(mCol1 - mat.mCol1),
+		(mCol2 - mat.mCol2));
+}
+
+inline Matrix3d & Matrix3d::operator += (const Matrix3d & mat)
+{
+	*this = *this + mat;
+	return *this;
+}
+
+inline Matrix3d & Matrix3d::operator -= (const Matrix3d & mat)
+{
+	*this = *this - mat;
+	return *this;
+}
+
+inline const Matrix3d Matrix3d::operator - () const
+{
+	return Matrix3d((-mCol0), (-mCol1), (-mCol2));
+}
+
+inline const Matrix3d absPerElem(const Matrix3d & mat)
+{
+	return Matrix3d(absPerElem(mat.getCol0()),
+		absPerElem(mat.getCol1()),
+		absPerElem(mat.getCol2()));
+}
+
+inline const Matrix3d Matrix3d::operator * (double scalar) const
+{
+	return Matrix3d((mCol0 * scalar), (mCol1 * scalar), (mCol2 * scalar));
+}
+
+inline Matrix3d & Matrix3d::operator *= (double scalar)
+{
+	*this = *this * scalar;
+	return *this;
+}
+
+inline const Matrix3d operator * (double scalar, const Matrix3d & mat)
+{
+	return mat * scalar;
+}
+
+inline const Vector3d Matrix3d::operator * (const Vector3d & vec) const
+{
+	return Vector3d((((mCol0.getX() * vec.getX()) + (mCol1.getX() * vec.getY())) + (mCol2.getX() * vec.getZ())),
+		(((mCol0.getY() * vec.getX()) + (mCol1.getY() * vec.getY())) + (mCol2.getY() * vec.getZ())),
+		(((mCol0.getZ() * vec.getX()) + (mCol1.getZ() * vec.getY())) + (mCol2.getZ() * vec.getZ())));
+}
+
+inline const Matrix3d Matrix3d::operator * (const Matrix3d & mat) const
+{
+	return Matrix3d((*this * mat.mCol0), (*this * mat.mCol1), (*this * mat.mCol2));
+}
+
+inline Matrix3d & Matrix3d::operator *= (const Matrix3d & mat)
+{
+	*this = *this * mat;
+	return *this;
+}
+
+inline const Matrix3d mulPerElem(const Matrix3d & mat0, const Matrix3d & mat1)
+{
+	return Matrix3d(mulPerElem(mat0.getCol0(), mat1.getCol0()),
+		mulPerElem(mat0.getCol1(), mat1.getCol1()),
+		mulPerElem(mat0.getCol2(), mat1.getCol2()));
+}
+
+inline const Matrix3d Matrix3d::identity()
+{
+	return Matrix3d(Vector3d::xAxis(), Vector3d::yAxis(), Vector3d::zAxis());
+}
+
+inline const Matrix3d Matrix3d::rotationX(double radians)
+{
+	double s, c;
+	s = std::sin(radians);
+	c = std::cos(radians);
+	return Matrix3d(Vector3d::xAxis(), Vector3d(0.0f, c, s), Vector3d(0.0f, -s, c));
+}
+
+inline const Matrix3d Matrix3d::rotationY(double radians)
+{
+	double s, c;
+	s = std::sin(radians);
+	c = std::cos(radians);
+	return Matrix3d(Vector3d(c, 0.0f, -s), Vector3d::yAxis(), Vector3d(s, 0.0f, c));
+}
+
+inline const Matrix3d Matrix3d::rotationZ(double radians)
+{
+	double s, c;
+	s = std::sin(radians);
+	c = std::cos(radians);
+	return Matrix3d(Vector3d(c, s, 0.0f), Vector3d(-s, c, 0.0f), Vector3d::zAxis());
+}
+
+inline const Matrix3d Matrix3d::rotationZYX(const Vector3d & radiansXYZ)
+{
+	double sX, cX, sY, cY, sZ, cZ, tmp0, tmp1;
+	sX = std::sin(radiansXYZ.getX());
+	cX = std::cos(radiansXYZ.getX());
+	sY = std::sin(radiansXYZ.getY());
+	cY = std::cos(radiansXYZ.getY());
+	sZ = std::sin(radiansXYZ.getZ());
+	cZ = std::cos(radiansXYZ.getZ());
+	tmp0 = (cZ * sY);
+	tmp1 = (sZ * sY);
+	return Matrix3d(Vector3d((cZ * cY), (sZ * cY), -sY),
+		Vector3d(((tmp0 * sX) - (sZ * cX)), ((tmp1 * sX) + (cZ * cX)), (cY * sX)),
+		Vector3d(((tmp0 * cX) + (sZ * sX)), ((tmp1 * cX) - (cZ * sX)), (cY * cX)));
+}
+
+inline const Matrix3d Matrix3d::rotation(double radians, const Vector3d & unitVec)
+{
+	double x, y, z, s, c, oneMinusC, xy, yz, zx;
+	s = std::sin(radians);
+	c = std::cos(radians);
+	x = unitVec.getX();
+	y = unitVec.getY();
+	z = unitVec.getZ();
+	xy = (x * y);
+	yz = (y * z);
+	zx = (z * x);
+	oneMinusC = (1.0f - c);
+	return Matrix3d(Vector3d((((x * x) * oneMinusC) + c), ((xy * oneMinusC) + (z * s)), ((zx * oneMinusC) - (y * s))),
+		Vector3d(((xy * oneMinusC) - (z * s)), (((y * y) * oneMinusC) + c), ((yz * oneMinusC) + (x * s))),
+		Vector3d(((zx * oneMinusC) + (y * s)), ((yz * oneMinusC) - (x * s)), (((z * z) * oneMinusC) + c)));
+}
+
+inline const Matrix3d Matrix3d::rotation(const Quat & unitQuat)
+{
+	return Matrix3d(unitQuat);
+}
+
+inline const Matrix3d Matrix3d::scale(const Vector3d & scaleVec)
+{
+	return Matrix3d(Vector3d(scaleVec.getX(), 0.0f, 0.0f),
+		Vector3d(0.0f, scaleVec.getY(), 0.0f),
+		Vector3d(0.0f, 0.0f, scaleVec.getZ()));
+}
+
+inline const Matrix3d appendScale(const Matrix3d & mat, const Vector3d & scaleVec)
+{
+	return Matrix3d((mat.getCol0() * scaleVec.getX()),
+		(mat.getCol1() * scaleVec.getY()),
+		(mat.getCol2() * scaleVec.getZ()));
+}
+
+inline const Matrix3d prependScale(const Vector3d & scaleVec, const Matrix3d & mat)
+{
+	return Matrix3d(mulPerElem(mat.getCol0(), scaleVec),
+		mulPerElem(mat.getCol1(), scaleVec),
+		mulPerElem(mat.getCol2(), scaleVec));
+}
+
+inline const Matrix3d select(const Matrix3d & mat0, const Matrix3d & mat1, bool select1)
+{
+	return Matrix3d(select(mat0.getCol0(), mat1.getCol0(), select1),
+		select(mat0.getCol1(), mat1.getCol1(), select1),
+		select(mat0.getCol2(), mat1.getCol2(), select1));
+}
+
+#ifdef VECTORMATH_DEBUG
+
+inline void print(const Matrix3d & mat)
+{
+	print(mat.getRow(0));
+	print(mat.getRow(1));
+	print(mat.getRow(2));
+}
+
+inline void print(const Matrix3d & mat, const char * name)
+{
+	std::printf("%s:\n", name);
+	print(mat);
+}
+
+#endif // VECTORMATH_DEBUG
+
+// ========================================================
 // Matrix4
 // ========================================================
 
@@ -1104,6 +1460,18 @@ inline const Matrix4 Matrix4::orthographicRH(float left, float right, float bott
                     Vector4((-sum_rl * inv_rl), (-sum_tb * inv_tb), (sum_nf * inv_nf), 1.0f));
 }
 
+inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
+{
+	Matrix4 orthoMatrix = orthographic(left, right, bottom, top, zNear, zFar);
+
+	const Vector4 &col2 = orthoMatrix.mCol2;
+	const Vector4 &col3 = orthoMatrix.mCol3;
+	orthoMatrix.mCol2.setZ(-col2.getZ());
+	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
+
+	return orthoMatrix;
+}
+
 inline const Matrix4 Matrix4::cubeProjection(const float zNear, const float zFar)
 {
 	// LH - DirectX
@@ -1300,13 +1668,14 @@ inline Matrix4d::Matrix4d(double scalar)
     mCol3 = Vector4d(scalar);
 }
 
-//inline Matrix4d::Matrix4d(const Transform3 & mat)
-//{
-//    mCol0 = Vector4d(mat.getCol0(), 0.0);
-//    mCol1 = Vector4d(mat.getCol1(), 0.0);
-//    mCol2 = Vector4d(mat.getCol2(), 0.0);
-//    mCol3 = Vector4d(mat.getCol3(), 1.0);
-//}
+inline Matrix4d::Matrix4d(const Transform3 & mat)
+{
+	auto v3d = [](const Vector3& vec) { return Vector3d(vec.getX(), vec.getY(), vec.getZ()); };
+    mCol0 = Vector4d(v3d(mat.getCol0()), 0.0);
+    mCol1 = Vector4d(v3d(mat.getCol1()), 0.0);
+    mCol2 = Vector4d(v3d(mat.getCol2()), 0.0);
+    mCol3 = Vector4d(v3d(mat.getCol3()), 1.0);
+}
 
 inline Matrix4d::Matrix4d(const Vector4d & _col0, const Vector4d & _col1, const Vector4d & _col2, const Vector4d & _col3)
 {
@@ -1316,23 +1685,22 @@ inline Matrix4d::Matrix4d(const Vector4d & _col0, const Vector4d & _col1, const 
     mCol3 = _col3;
 }
 
-//inline Matrix4d::Matrix4d(const Matrix3 & mat, const Vector3d & translateVec)
-//{
-//    mCol0 = Vector4d(mat.getCol0(), 0.0);
-//    mCol1 = Vector4d(mat.getCol1(), 0.0);
-//    mCol2 = Vector4d(mat.getCol2(), 0.0);
-//    mCol3 = Vector4d(translateVec,  1.0);
-//}
+inline Matrix4d::Matrix4d(const Matrix3d & mat, const Vector3d & translateVec)
+{
+    mCol0 = Vector4d(mat.getCol0(), 0.0);
+    mCol1 = Vector4d(mat.getCol1(), 0.0);
+    mCol2 = Vector4d(mat.getCol2(), 0.0);
+    mCol3 = Vector4d(translateVec,  1.0);
+}
 
-//inline Matrix4d::Matrix4d(const Quat & unitQuat, const Vector3d & translateVec)
-//{
-//    Matrix3 mat;
-//    mat = Matrix3(unitQuat);
-//    mCol0 = Vector4d(mat.getCol0(), 0.0);
-//    mCol1 = Vector4d(mat.getCol1(), 0.0);
-//    mCol2 = Vector4d(mat.getCol2(), 0.0);
-//    mCol3 = Vector4d(translateVec,  1.0);
-//}
+inline Matrix4d::Matrix4d(const Quat & unitQuat, const Vector3d & translateVec)
+{
+    Matrix3d mat = Matrix3d(unitQuat);
+    mCol0 = Vector4d(mat.getCol0(), 0.0);
+    mCol1 = Vector4d(mat.getCol1(), 0.0);
+    mCol2 = Vector4d(mat.getCol2(), 0.0);
+    mCol3 = Vector4d(translateVec,  1.0);
+}
 
 inline Matrix4d & Matrix4d::setCol0(const Vector4d & _col0)
 {
@@ -1508,25 +1876,25 @@ inline const Matrix4d inverse(const Matrix4d & mat)
     return Matrix4d((res0 * detInv), (res1 * detInv), (res2 * detInv), (res3 * detInv));
 }
 
-//inline const Matrix4d affineInverse(const Matrix4d & mat)
-//{
-//    Transform3 affineMat;
-//    affineMat.setCol0(mat.getCol0().getXYZ());
-//    affineMat.setCol1(mat.getCol1().getXYZ());
-//    affineMat.setCol2(mat.getCol2().getXYZ());
-//    affineMat.setCol3(mat.getCol3().getXYZ());
-//    return Matrix4d(inverse(affineMat));
-//}
+inline const Matrix4d affineInverse(const Matrix4d & mat)
+{
+    Transform3 affineMat;
+    affineMat.setCol0(mat.getCol0().getXYZ());
+    affineMat.setCol1(mat.getCol1().getXYZ());
+    affineMat.setCol2(mat.getCol2().getXYZ());
+    affineMat.setCol3(mat.getCol3().getXYZ());
+    return Matrix4d(inverse(affineMat));
+}
 
-//inline const Matrix4d orthoInverse(const Matrix4d & mat)
-//{
-//    Transform3 affineMat;
-//    affineMat.setCol0(mat.getCol0().getXYZ());
-//    affineMat.setCol1(mat.getCol1().getXYZ());
-//    affineMat.setCol2(mat.getCol2().getXYZ());
-//    affineMat.setCol3(mat.getCol3().getXYZ());
-//    return Matrix4d(orthoInverse(affineMat));
-//}
+inline const Matrix4d orthoInverse(const Matrix4d & mat)
+{
+    Transform3 affineMat;
+    affineMat.setCol0(mat.getCol0().getXYZ());
+    affineMat.setCol1(mat.getCol1().getXYZ());
+    affineMat.setCol2(mat.getCol2().getXYZ());
+    affineMat.setCol3(mat.getCol3().getXYZ());
+    return Matrix4d(orthoInverse(affineMat));
+}
 
 inline double determinant(const Matrix4d & mat)
 {
@@ -1658,19 +2026,20 @@ inline Matrix4d & Matrix4d::operator *= (const Matrix4d & mat)
     return *this;
 }
 
-//inline const Matrix4d Matrix4d::operator * (const Transform3 & tfrm) const
-//{
-//    return Matrix4d((*this * tfrm.getCol0()),
-//                   (*this * tfrm.getCol1()),
-//                   (*this * tfrm.getCol2()),
-//                   (*this * Point3(tfrm.getCol3())));
-//}
+inline const Matrix4d Matrix4d::operator * (const Transform3 & tfrm) const
+{
+	auto v3d = [](const Vector3& vec) { return Vector3d(vec.getX(), vec.getY(), vec.getZ()); };
+    return Matrix4d((*this * v3d(tfrm.getCol0())),
+                   (*this * v3d(tfrm.getCol1())),
+                   (*this * v3d(tfrm.getCol2())),
+                   (*this * Point3(tfrm.getCol3())));
+}
 
-//inline Matrix4d & Matrix4d::operator *= (const Transform3 & tfrm)
-//{
-//    *this = *this * tfrm;
-//    return *this;
-//}
+inline Matrix4d & Matrix4d::operator *= (const Transform3 & tfrm)
+{
+    *this = *this * tfrm;
+    return *this;
+}
 
 inline const Matrix4d mulPerElem(const Matrix4d & mat0, const Matrix4d & mat1)
 {
@@ -1688,21 +2057,21 @@ inline const Matrix4d Matrix4d::identity()
                    Vector4d::wAxis());
 }
 
-//inline Matrix4d & Matrix4d::setUpper3x3(const Matrix3 & mat3)
-//{
-//    mCol0.setXYZ(mat3.getCol0());
-//    mCol1.setXYZ(mat3.getCol1());
-//    mCol2.setXYZ(mat3.getCol2());
-//    return *this;
-//}
+inline Matrix4d & Matrix4d::setUpper3x3(const Matrix3d & mat3)
+{
+    mCol0.setXYZ(mat3.getCol0());
+    mCol1.setXYZ(mat3.getCol1());
+    mCol2.setXYZ(mat3.getCol2());
+    return *this;
+}
 
-//inline const Matrix3 Matrix4d::getUpper3x3() const
-//{
-//    return Matrix3(
-//    mCol0.getXYZ(),
-//    mCol1.getXYZ(),
-//    mCol2.getXYZ());
-//}
+inline const Matrix3d Matrix4d::getUpper3x3() const
+{
+    return Matrix3d(
+    mCol0.getXYZ(),
+    mCol1.getXYZ(),
+    mCol2.getXYZ());
+}
 
 inline Matrix4d & Matrix4d::setTranslation(const Vector3d & translateVec)
 {
@@ -1783,10 +2152,10 @@ inline const Matrix4d Matrix4d::rotation(double radians, const Vector3d & unitVe
                    Vector4d::wAxis());
 }
 
-//inline const Matrix4d Matrix4d::rotation(const Quat & unitQuat)
-//{
-//    return Matrix4d(Transform3::rotation(unitQuat));
-//}
+inline const Matrix4d Matrix4d::rotation(const Quat & unitQuat)
+{
+    return Matrix4d(Transform3::rotation(unitQuat));
+}
 
 inline const Matrix4d Matrix4d::scale(const Vector3d & scaleVec)
 {
@@ -1822,17 +2191,17 @@ inline const Matrix4d Matrix4d::translation(const Vector3d & translateVec)
                    Vector4d(translateVec, 1.0));
 }
 
-//inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
-//{
-//    Matrix4d m4EyeFrame;
-//    Vector3d v3X, v3Y, v3Z;
-//    v3Y = normalize(upVec);
-//    v3Z = normalize((eyePos - lookAtPos));
-//    v3X = normalize(cross(v3Y, v3Z));
-//    v3Y = cross(v3Z, v3X);
-//    m4EyeFrame = Matrix4d(Vector4d(v3X), Vector4d(v3Y), Vector4d(v3Z), Vector4d(eyePos));
-//    return orthoInverse(m4EyeFrame);
-//}
+inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
+{
+    Matrix4d m4EyeFrame;
+    Vector3d v3X, v3Y, v3Z;
+    v3Y = normalize(upVec);
+	v3Z = normalize(Vector3d(eyePos) - Vector3d(lookAtPos));
+    v3X = normalize(cross(v3Y, v3Z));
+    v3Y = cross(v3Z, v3X);
+    m4EyeFrame = Matrix4d(Vector4d(v3X), Vector4d(v3Y), Vector4d(v3Z), Vector4d(eyePos));
+    return orthoInverse(m4EyeFrame);
+}
 
 inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom, double top, double zNear, double zFar)
 {
@@ -2634,12 +3003,27 @@ inline const Matrix3 outer(const Vector3 & tfrm0, const Vector3 & tfrm1)
                    (tfrm0 * tfrm1.getZ()));
 }
 
+inline const Matrix3d outer(const Vector3d & tfrm0, const Vector3d & tfrm1)
+{
+	return Matrix3d((tfrm0 * tfrm1.getX()),
+		(tfrm0 * tfrm1.getY()),
+		(tfrm0 * tfrm1.getZ()));
+}
+
 inline const Matrix4 outer(const Vector4 & tfrm0, const Vector4 & tfrm1)
 {
     return Matrix4((tfrm0 * tfrm1.getX()),
                    (tfrm0 * tfrm1.getY()),
                    (tfrm0 * tfrm1.getZ()),
                    (tfrm0 * tfrm1.getW()));
+}
+
+inline const Matrix4d outer(const Vector4d & tfrm0, const Vector4d & tfrm1)
+{
+	return Matrix4d((tfrm0 * tfrm1.getX()),
+		(tfrm0 * tfrm1.getY()),
+		(tfrm0 * tfrm1.getZ()),
+		(tfrm0 * tfrm1.getW()));
 }
 
 inline const Vector3 rowMul(const Vector3 & vec, const Matrix3 & mat)
@@ -2649,6 +3033,13 @@ inline const Vector3 rowMul(const Vector3 & vec, const Matrix3 & mat)
                    (((vec.getX() * mat.getCol2().getX()) + (vec.getY() * mat.getCol2().getY())) + (vec.getZ() * mat.getCol2().getZ())));
 }
 
+inline const Vector3d rowMul(const Vector3d & vec, const Matrix3d & mat)
+{
+	return Vector3d((((vec.getX() * mat.getCol0().getX()) + (vec.getY() * mat.getCol0().getY())) + (vec.getZ() * mat.getCol0().getZ())),
+		(((vec.getX() * mat.getCol1().getX()) + (vec.getY() * mat.getCol1().getY())) + (vec.getZ() * mat.getCol1().getZ())),
+		(((vec.getX() * mat.getCol2().getX()) + (vec.getY() * mat.getCol2().getY())) + (vec.getZ() * mat.getCol2().getZ())));
+}
+
 inline const Matrix3 crossMatrix(const Vector3 & vec)
 {
     return Matrix3(Vector3(0.0f, vec.getZ(), -vec.getY()),
@@ -2656,9 +3047,21 @@ inline const Matrix3 crossMatrix(const Vector3 & vec)
                    Vector3(vec.getY(), -vec.getX(), 0.0f));
 }
 
+inline const Matrix3d crossMatrix(const Vector3d & vec)
+{
+	return Matrix3d(Vector3d(0.0f, vec.getZ(), -vec.getY()),
+		Vector3d(-vec.getZ(), 0.0f, vec.getX()),
+		Vector3d(vec.getY(), -vec.getX(), 0.0f));
+}
+
 inline const Matrix3 crossMatrixMul(const Vector3 & vec, const Matrix3 & mat)
 {
     return Matrix3(cross(vec, mat.getCol0()), cross(vec, mat.getCol1()), cross(vec, mat.getCol2()));
+}
+
+inline const Matrix3d crossMatrixMul(const Vector3d & vec, const Matrix3d & mat)
+{
+	return Matrix3d(cross(vec, mat.getCol0()), cross(vec, mat.getCol1()), cross(vec, mat.getCol2()));
 }
 
 } // namespace Scalar

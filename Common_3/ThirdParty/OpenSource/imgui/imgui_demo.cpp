@@ -2343,7 +2343,7 @@ void ImGui::ShowFontSelector(const char* label)
     ImFont* font_current = ImGui::GetFont();
     if (ImGui::BeginCombo(label, font_current->GetDebugName()))
     {
-        for (int n = 0; n < io.Fonts->Fonts.size(); n++)
+        for (uint n = 0; n < io.Fonts->Fonts.size(); n++)
             if (ImGui::Selectable(io.Fonts->Fonts[n]->GetDebugName(), io.Fonts->Fonts[n] == font_current))
                 io.FontDefault = io.Fonts->Fonts[n];
         ImGui::EndCombo();
@@ -2504,7 +2504,7 @@ void ImGui::ShowStyleEditor(ImGuiStyle* ref)
             ImGui::TreePop();
         }
         ImGui::PushItemWidth(100);
-        for (int i = 0; i < atlas->Fonts.size(); i++)
+        for (uint i = 0; i < atlas->Fonts.size(); i++)
         {
             ImFont* font = atlas->Fonts[i];
             ImGui::PushID(font);
@@ -2702,7 +2702,7 @@ struct ExampleAppConsole
     void Destroy()
     {
         ClearLog();
-        for (int i = 0; i < History.size(); i++)
+        for (uint i = 0; i < History.size(); i++)
             tf_free(History[i]);
 
 		Commands.set_capacity(0);
@@ -2718,7 +2718,7 @@ struct ExampleAppConsole
 
     void    ClearLog()
     {
-        for (int i = 0; i < Items.size(); i++)
+        for (uint i = 0; i < Items.size(); i++)
             tf_free(Items[i]);
         Items.clear();
         ScrollToBottom = true;
@@ -2798,7 +2798,7 @@ struct ExampleAppConsole
         if (copy_to_clipboard)
             ImGui::LogToClipboard();
         float4 col_default_text = ImGui::GetStyleColorVec4(ImGuiCol_Text);
-        for (int i = 0; i < Items.size(); i++)
+        for (uint i = 0; i < Items.size(); i++)
         {
             const char* item = Items[i];
             if (!filter.PassFilter(item))
@@ -2862,13 +2862,13 @@ struct ExampleAppConsole
         else if (Stricmp(command_line, "HELP") == 0)
         {
             AddLog("Commands:");
-            for (int i = 0; i < Commands.size(); i++)
+            for (uint i = 0; i < Commands.size(); i++)
                 AddLog("- %s", Commands[i]);
         }
         else if (Stricmp(command_line, "HISTORY") == 0)
         {
             int first = (int)History.size() - 10;
-            for (int i = first > 0 ? first : 0; i < History.size(); i++)
+            for (uint i = first > 0 ? first : 0; i < History.size(); i++)
                 AddLog("%3d: %s\n", i, History[i]);
         }
         else
@@ -2905,7 +2905,7 @@ struct ExampleAppConsole
 
                 // Build a list of candidates
                 eastl::vector<const char*> candidates;
-                for (int i = 0; i < Commands.size(); i++)
+                for (uint i = 0; i < Commands.size(); i++)
                     if (Strnicmp(Commands[i], word_start, (int)(word_end-word_start)) == 0)
                         candidates.push_back(Commands[i]);
 
@@ -2929,7 +2929,7 @@ struct ExampleAppConsole
                     {
                         int c = 0;
                         bool all_candidates_matches = true;
-                        for (int i = 0; i < candidates.size() && all_candidates_matches; i++)
+                        for (uint i = 0; i < candidates.size() && all_candidates_matches; i++)
                             if (i == 0)
                                 c = toupper(candidates[i][match_len]);
                             else if (c == 0 || c != toupper(candidates[i][match_len]))
@@ -2947,7 +2947,7 @@ struct ExampleAppConsole
 
                     // List matches
                     AddLog("Possible matches:\n");
-                    for (int i = 0; i < candidates.size(); i++)
+                    for (uint i = 0; i < candidates.size(); i++)
                         AddLog("- %s\n", candidates[i]);
                 }
 
@@ -3060,7 +3060,7 @@ struct ExampleAppLog
         {
             const char* buf_begin = Buf.begin();
             const char* line = buf_begin;
-            for (int line_no = 0; line != NULL; line_no++)
+            for (uint line_no = 0; line != NULL; line_no++)
             {
                 const char* line_end = (line_no < LineOffsets.size()) ? buf_begin + LineOffsets[line_no] : NULL;
                 if (Filter.PassFilter(line, line_end))
@@ -3525,7 +3525,7 @@ static void ShowExampleAppCustomRendering(bool* p_open)
         }
         draw_list->PushClipRect(canvas_pos, float2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), true);      // clip lines within the canvas (if we resize it, etc.)
 		if (points.size() > 0)
-			for (int i = 0; i < points.size() - 1; i += 2)
+			for (uint i = 0; i < points.size() - 1; i += 2)
 				draw_list->AddLine(float2(canvas_pos.x + points[i].x, canvas_pos.y + points[i].y), float2(canvas_pos.x + points[i + 1].x, canvas_pos.y + points[i + 1].y), IM_COL32(255, 255, 0, 255), 2.0f);
         draw_list->PopClipRect();
         if (adding_preview)

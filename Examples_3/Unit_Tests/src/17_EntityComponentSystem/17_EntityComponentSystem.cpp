@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2021 The Forge Interactive Inc.
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -125,8 +125,6 @@ ecs_query_t *gECSSpriteQuery = NULL;
 ecs_query_t *gECSAvoidQuery = NULL;
 
 // Based on: https://github.com/aras-p/dod-playground
-static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
-static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 
 #if defined(__ANDROID__)
 const uint MaxSpriteCount = 128;
@@ -149,9 +147,9 @@ MoveComponent createMoveComponent(float minSpeed, float maxSpeed)
 	MoveComponent move;
 
 	// random angle
-	float angle = RandomFloat01() * 3.1415926f * 2;
+	float angle = randomFloat01() * 3.1415926f * 2;
 	// random movement speed between given min & max
-	float speed = RandomFloat(minSpeed, maxSpeed);
+	float speed = randomFloat(minSpeed, maxSpeed);
 	// velocity x & y components
 	move.velx = cosf(angle) * speed;
 	move.vely = sinf(angle) * speed;
@@ -268,8 +266,8 @@ static void createEntities(void* pData, uintptr_t i)
 
 	ecs_entity_t entityId = ecs_new_id(gECSWorld);
 
-	float x = RandomFloat(data.bounds->xMin, data.bounds->xMax);
-	float y = RandomFloat(data.bounds->yMin, data.bounds->yMax);
+	float x = randomFloat(data.bounds->xMin, data.bounds->xMax);
+	float y = randomFloat(data.bounds->yMin, data.bounds->yMax);
 
 	PositionComponent position = { x, y };
 	MoveComponent move = createMoveComponent(0.3f, 0.6f);
@@ -282,9 +280,9 @@ static void createEntities(void* pData, uintptr_t i)
 
 		position.x *= 0.2f;
 		position.y *= 0.2f;
-		sprite.colorR = RandomFloat(0.5f, 1.0f);
-		sprite.colorG = RandomFloat(0.5f, 1.0f);
-		sprite.colorB = RandomFloat(0.5f, 1.0f);
+		sprite.colorR = randomFloat(0.5f, 1.0f);
+		sprite.colorG = randomFloat(0.5f, 1.0f);
+		sprite.colorB = randomFloat(0.5f, 1.0f);
 		sprite.scale = 2.0f;
 		sprite.spriteIndex = 5;
 	}
@@ -294,7 +292,7 @@ static void createEntities(void* pData, uintptr_t i)
 		sprite.colorG = 1.0f;
 		sprite.colorB = 1.0f;
 		sprite.scale = 1.0f;
-		sprite.spriteIndex = rand() % 5;
+		sprite.spriteIndex = randomInt(0, 5);
 	}
 
 	ecs_set(gECSWorld, entityId, PositionComponent, position);
@@ -317,7 +315,7 @@ class EntityComponentSystem: public IApp
 
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
-		settings.mD3D11Unsupported = true;
+		settings.mGLESSupported = true;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -547,13 +545,16 @@ class EntityComponentSystem: public IApp
 						  return true;
 					  } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY,
-					   [](InputActionContext* ctx) {
-						   bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-						   setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-						   return true;
-					   },
-					   this };
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
+		{
+			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+			return true;
+		};
+		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
 		addInputAction(&actionDesc);
 
 		gFrameIndex = 0;
@@ -691,7 +692,7 @@ class EntityComponentSystem: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		
-		static bool oldMultiThread = gMultiThread;
+		static bool oldMultiThread = !gMultiThread;
 		if (oldMultiThread != gMultiThread)
 		{
 			oldMultiThread = gMultiThread;
@@ -752,6 +753,12 @@ class EntityComponentSystem: public IApp
 
 	void Draw()
 	{
+		if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
+		{
+			waitQueueIdle(pGraphicsQueue);
+			::toggleVSync(pRenderer, &pSwapChain);
+		}
+
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
@@ -824,7 +831,7 @@ class EntityComponentSystem: public IApp
 		uiTextDesc.mFontSize = 18;
 		uiTextDesc.mFontID = gFontID;
 		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
-		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken, &uiTextDesc);
+		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 75.f), gGpuProfileToken, &uiTextDesc);
 
 		cmdDrawUserInterface(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -872,7 +879,7 @@ class EntityComponentSystem: public IApp
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 		swapChainDesc.mColorClearValue = { { 0.02f, 0.02f, 0.02f, 1.0f } };
-		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mEnableVsync = mSettings.mVSyncEnabled;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
