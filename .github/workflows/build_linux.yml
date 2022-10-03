@@ -18,7 +18,7 @@ jobs:
       with:
         path: Custom-Middleware
         repository: ConfettiFX/Custom-Middleware
-        # ref: ${{ github.ref_name }}  # Checkout the Custom-Middleware branch with the same name as the The-Forge branch we're building
+        ref: ${{ github.ref_name }}  # Checkout the Custom-Middleware branch with the same name as the The-Forge branch we're building
 
     - name: Setup Python
       uses: actions/setup-python@v4
