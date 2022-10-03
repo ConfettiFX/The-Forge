@@ -36,4 +36,8 @@ jobs:
 
     - name: Build
       working-directory: The-Forge
-      run: python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput
+      run: |
+        echo "Current working directory:"
+        ls -la
+        echo "Running pybuild..."
+        python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput
