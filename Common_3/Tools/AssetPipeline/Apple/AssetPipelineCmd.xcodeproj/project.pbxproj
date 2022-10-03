@@ -21,6 +21,9 @@
 		5557BBF7268CBEF000B7ACF4 /* mz_crypt.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */; };
 		5557BBF8268CBEF000B7ACF4 /* mz_os.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */; };
 		5557BBFA268CBF0F00B7ACF4 /* ZipFileSystem.c in Sources */ = {isa = PBXBuildFile; fileRef = 5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */; };
+		555F39BC27FF376700BE4B17 /* bstrlib.c in Sources */ = {isa = PBXBuildFile; fileRef = 555F39BA27FF376700BE4B17 /* bstrlib.c */; };
+		555F39C527FF37AF00BE4B17 /* Algorithms.c in Sources */ = {isa = PBXBuildFile; fileRef = 555F39C027FF37AE00BE4B17 /* Algorithms.c */; };
+		555F39C627FF37AF00BE4B17 /* StbDs.c in Sources */ = {isa = PBXBuildFile; fileRef = 555F39C327FF37AF00BE4B17 /* StbDs.c */; };
 		5C61B5B724D35F2100EF5D20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */; };
 		5C61B5C124D3722000EF5D20 /* CocoaToolsFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C61B5C024D3722000EF5D20 /* CocoaToolsFileSystem.mm */; };
 		B231A10A23F2DBA4006D7450 /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B231A10723F2DB7E006D7450 /* ozz_animation offline.a */; };
@@ -42,6 +45,34 @@
 		B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */; };
 		B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */; };
 		B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */; };
+		E0E9C0F328B7A74500D321E4 /* astcenc_mathlib_softfloat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0CF28B7A74400D321E4 /* astcenc_mathlib_softfloat.cpp */; };
+		E0E9C0F428B7A74500D321E4 /* astcenc_compute_variance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0D628B7A74400D321E4 /* astcenc_compute_variance.cpp */; };
+		E0E9C0F528B7A74500D321E4 /* astcenc_quantization.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0D728B7A74400D321E4 /* astcenc_quantization.cpp */; };
+		E0E9C0F628B7A74500D321E4 /* astcenc_block_sizes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0D828B7A74400D321E4 /* astcenc_block_sizes.cpp */; };
+		E0E9C0F728B7A74500D321E4 /* astcenc_decompress_symbolic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0D928B7A74400D321E4 /* astcenc_decompress_symbolic.cpp */; };
+		E0E9C0F828B7A74500D321E4 /* astcenc_averages_and_directions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0DA28B7A74400D321E4 /* astcenc_averages_and_directions.cpp */; };
+		E0E9C0F928B7A74500D321E4 /* astcenc_color_quantize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0DB28B7A74400D321E4 /* astcenc_color_quantize.cpp */; };
+		E0E9C0FC28B7A74500D321E4 /* astcenc_mathlib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0DE28B7A74400D321E4 /* astcenc_mathlib.cpp */; };
+		E0E9C0FD28B7A74500D321E4 /* astcenc_diagnostic_trace.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0DF28B7A74400D321E4 /* astcenc_diagnostic_trace.cpp */; };
+		E0E9C0FE28B7A74500D321E4 /* astcenc_ideal_endpoints_and_weights.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E028B7A74400D321E4 /* astcenc_ideal_endpoints_and_weights.cpp */; };
+		E0E9C0FF28B7A74500D321E4 /* astcenccli_error_metrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E128B7A74400D321E4 /* astcenccli_error_metrics.cpp */; };
+		E0E9C10028B7A74500D321E4 /* astcenc_integer_sequence.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E228B7A74400D321E4 /* astcenc_integer_sequence.cpp */; };
+		E0E9C10128B7A74500D321E4 /* astcenccli_platform_dependents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E328B7A74400D321E4 /* astcenccli_platform_dependents.cpp */; };
+		E0E9C10228B7A74500D321E4 /* astcenc_partition_tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E428B7A74400D321E4 /* astcenc_partition_tables.cpp */; };
+		E0E9C10328B7A74500D321E4 /* astcenc_weight_align.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E528B7A74400D321E4 /* astcenc_weight_align.cpp */; };
+		E0E9C10528B7A74500D321E4 /* astcenc_image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E728B7A74400D321E4 /* astcenc_image.cpp */; };
+		E0E9C10628B7A74500D321E4 /* astcenc_entry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E828B7A74400D321E4 /* astcenc_entry.cpp */; };
+		E0E9C10728B7A74500D321E4 /* astcenc_compress_symbolic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0E928B7A74400D321E4 /* astcenc_compress_symbolic.cpp */; };
+		E0E9C10928B7A74500D321E4 /* astcenc_find_best_partitioning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0EB28B7A74400D321E4 /* astcenc_find_best_partitioning.cpp */; };
+		E0E9C10A28B7A74500D321E4 /* astcenc_platform_isa_detection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0EC28B7A74400D321E4 /* astcenc_platform_isa_detection.cpp */; };
+		E0E9C10B28B7A74500D321E4 /* astcenccli_image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0ED28B7A74400D321E4 /* astcenccli_image.cpp */; };
+		E0E9C10C28B7A74500D321E4 /* astcenc_percentile_tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0EE28B7A74400D321E4 /* astcenc_percentile_tables.cpp */; };
+		E0E9C10D28B7A74500D321E4 /* astcenc_color_unquantize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0EF28B7A74400D321E4 /* astcenc_color_unquantize.cpp */; };
+		E0E9C10E28B7A74500D321E4 /* astcenc_pick_best_endpoint_format.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0F028B7A74400D321E4 /* astcenc_pick_best_endpoint_format.cpp */; };
+		E0E9C10F28B7A74500D321E4 /* astcenc_symbolic_physical.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0F128B7A74400D321E4 /* astcenc_symbolic_physical.cpp */; };
+		E0E9C11028B7A74500D321E4 /* astcenc_weight_quant_xfer_tables.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C0F228B7A74500D321E4 /* astcenc_weight_quant_xfer_tables.cpp */; };
+		E0E9C12628B7B25000D321E4 /* astcenccli_image_external.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C12528B7B25000D321E4 /* astcenccli_image_external.cpp */; };
+		E0E9C12828B7B45900D321E4 /* astcenccli_image_load_store.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E0E9C12728B7B45900D321E4 /* astcenccli_image_load_store.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -116,61 +147,113 @@
 		5557BBD8268CBEC500B7ACF4 /* aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
 		5557BBD9268CBEC500B7ACF4 /* aestab.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = aestab.c; sourceTree = "<group>"; };
 		5557BBDA268CBEC500B7ACF4 /* sha1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sha1.h; sourceTree = "<group>"; };
-		5557BBE2268CBEE300B7ACF4 /* miniz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = miniz.h; path = ../../../../ThirdParty/OpenSource/zip/miniz.h; sourceTree = "<group>"; };
-		5557BBE3268CBEEF00B7ACF4 /* mz_strm_wzaes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_wzaes.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_wzaes.h; sourceTree = "<group>"; };
-		5557BBE4268CBEEF00B7ACF4 /* mz_zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_zip.h; path = ../../../ThirdParty/OpenSource/minizip/mz_zip.h; sourceTree = "<group>"; };
-		5557BBE5268CBEF000B7ACF4 /* mz_strm_zlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_zlib.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_zlib.h; sourceTree = "<group>"; };
-		5557BBE6268CBEF000B7ACF4 /* mz_os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_os.h; path = ../../../ThirdParty/OpenSource/minizip/mz_os.h; sourceTree = "<group>"; };
-		5557BBE7268CBEF000B7ACF4 /* mz_strm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm.h; path = ../../../ThirdParty/OpenSource/minizip/mz_strm.h; sourceTree = "<group>"; };
-		5557BBE8268CBEF000B7ACF4 /* mz_strm_raw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_raw.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_raw.c; sourceTree = "<group>"; };
-		5557BBE9268CBEF000B7ACF4 /* zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zip.h; path = ../../../ThirdParty/OpenSource/minizip/zip.h; sourceTree = "<group>"; };
-		5557BBEA268CBEF000B7ACF4 /* mz_crypt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_crypt.h; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt.h; sourceTree = "<group>"; };
-		5557BBEB268CBEF000B7ACF4 /* mz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz.h; path = ../../../ThirdParty/OpenSource/minizip/mz.h; sourceTree = "<group>"; };
-		5557BBEC268CBEF000B7ACF4 /* mz_crypt_brg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt_brg.c; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt_brg.c; sourceTree = "<group>"; };
-		5557BBED268CBEF000B7ACF4 /* mz_zip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_zip.c; path = ../../../ThirdParty/OpenSource/minizip/mz_zip.c; sourceTree = "<group>"; };
-		5557BBEE268CBEF000B7ACF4 /* mz_strm_zlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_zlib.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_zlib.c; sourceTree = "<group>"; };
-		5557BBEF268CBEF000B7ACF4 /* mz_strm_wzaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_wzaes.c; path = ../../../ThirdParty/OpenSource/minizip/mz_strm_wzaes.c; sourceTree = "<group>"; };
-		5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt.c; path = ../../../ThirdParty/OpenSource/minizip/mz_crypt.c; sourceTree = "<group>"; };
-		5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mz_os.cpp; path = ../../../ThirdParty/OpenSource/minizip/mz_os.cpp; sourceTree = "<group>"; };
-		5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ZipFileSystem.c; path = ../../../OS/FileSystem/ZipFileSystem.c; sourceTree = "<group>"; };
+		5557BBE2268CBEE300B7ACF4 /* miniz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = miniz.h; path = ../../../../Utilities/ThirdParty/OpenSource/zip/miniz.h; sourceTree = "<group>"; };
+		5557BBE3268CBEEF00B7ACF4 /* mz_strm_wzaes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_wzaes.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.h; sourceTree = "<group>"; };
+		5557BBE4268CBEEF00B7ACF4 /* mz_zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_zip.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_zip.h; sourceTree = "<group>"; };
+		5557BBE5268CBEF000B7ACF4 /* mz_strm_zlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm_zlib.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.h; sourceTree = "<group>"; };
+		5557BBE6268CBEF000B7ACF4 /* mz_os.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_os.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_os.h; sourceTree = "<group>"; };
+		5557BBE7268CBEF000B7ACF4 /* mz_strm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_strm.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm.h; sourceTree = "<group>"; };
+		5557BBE8268CBEF000B7ACF4 /* mz_strm_raw.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_raw.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm_raw.c; sourceTree = "<group>"; };
+		5557BBE9268CBEF000B7ACF4 /* zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = zip.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/zip.h; sourceTree = "<group>"; };
+		5557BBEA268CBEF000B7ACF4 /* mz_crypt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz_crypt.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_crypt.h; sourceTree = "<group>"; };
+		5557BBEB268CBEF000B7ACF4 /* mz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mz.h; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz.h; sourceTree = "<group>"; };
+		5557BBEC268CBEF000B7ACF4 /* mz_crypt_brg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt_brg.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_crypt_brg.c; sourceTree = "<group>"; };
+		5557BBED268CBEF000B7ACF4 /* mz_zip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_zip.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_zip.c; sourceTree = "<group>"; };
+		5557BBEE268CBEF000B7ACF4 /* mz_strm_zlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_zlib.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.c; sourceTree = "<group>"; };
+		5557BBEF268CBEF000B7ACF4 /* mz_strm_wzaes.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_strm_wzaes.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.c; sourceTree = "<group>"; };
+		5557BBF0268CBEF000B7ACF4 /* mz_crypt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mz_crypt.c; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_crypt.c; sourceTree = "<group>"; };
+		5557BBF1268CBEF000B7ACF4 /* mz_os.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mz_os.cpp; path = ../../../Utilities/ThirdParty/OpenSource/minizip/mz_os.cpp; sourceTree = "<group>"; };
+		5557BBF9268CBF0F00B7ACF4 /* ZipFileSystem.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ZipFileSystem.c; path = ../../../Utilities/FileSystem/ZipFileSystem.c; sourceTree = "<group>"; };
+		555F39BA27FF376700BE4B17 /* bstrlib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bstrlib.c; path = ../../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.c; sourceTree = "<group>"; };
+		555F39BB27FF376700BE4B17 /* bstrlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bstrlib.h; path = ../../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h; sourceTree = "<group>"; };
+		555F39BE27FF377E00BE4B17 /* stb_ds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = stb_ds.h; path = ../../../Utilities/ThirdParty/OpenSource/stb/stb_ds.h; sourceTree = "<group>"; };
+		555F39BF27FF37AE00BE4B17 /* AlgorithmsImpl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AlgorithmsImpl.h; path = ../../../Utilities/Math/AlgorithmsImpl.h; sourceTree = "<group>"; };
+		555F39C027FF37AE00BE4B17 /* Algorithms.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Algorithms.c; path = ../../../Utilities/Math/Algorithms.c; sourceTree = "<group>"; };
+		555F39C127FF37AF00BE4B17 /* Config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Config.h; path = ../../../Application/Core/Config.h; sourceTree = "<group>"; };
+		555F39C227FF37AF00BE4B17 /* Algorithms.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Algorithms.h; path = ../../../Utilities/Math/Algorithms.h; sourceTree = "<group>"; };
+		555F39C327FF37AF00BE4B17 /* StbDs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = StbDs.c; path = ../../../Utilities/Math/StbDs.c; sourceTree = "<group>"; };
+		555F39C427FF37AF00BE4B17 /* BStringHashMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BStringHashMap.h; path = ../../../Utilities/Math/BStringHashMap.h; sourceTree = "<group>"; };
 		5C61B5AD24D35ED900EF5D20 /* IToolFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IToolFileSystem.h; path = ../../FileSystem/IToolFileSystem.h; sourceTree = "<group>"; };
-		5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = ../../../OS/FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
-		5C61B5C024D3722000EF5D20 /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../FileSystem/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
+		5C61B5B624D35F2100EF5D20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = ../../../Utilities/FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
+		5C61B5C024D3722000EF5D20 /* CocoaToolsFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaToolsFileSystem.mm; path = ../../../OS/Darwin/CocoaToolsFileSystem.mm; sourceTree = "<group>"; };
 		B231A0E923F2DB2D006D7450 /* AssetPipelineCmd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AssetPipelineCmd; sourceTree = BUILT_PRODUCTS_DIR; };
-		B231A0F323F2DB7E006D7450 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
+		B231A0F323F2DB7E006D7450 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		B231A11623F2DBD5006D7450 /* AssetPipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssetPipeline.h; path = ../src/AssetPipeline.h; sourceTree = "<group>"; };
 		B231A11723F2DBD5006D7450 /* AssetPipeline.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipeline.cpp; path = ../src/AssetPipeline.cpp; sourceTree = "<group>"; };
 		B231A11823F2DBD5006D7450 /* AssetPipelineCmd.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipelineCmd.cpp; path = ../src/AssetPipelineCmd.cpp; sourceTree = "<group>"; };
-		B231A11B23F2DBE9006D7450 /* TressFXAsset.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = TressFXAsset.cpp; path = ../../../ThirdParty/OpenSource/TressFX/TressFXAsset.cpp; sourceTree = "<group>"; };
-		B231A11C23F2DBE9006D7450 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../ThirdParty/OpenSource/TressFX/TressFXAsset.h; sourceTree = "<group>"; };
-		B231A11D23F2DBE9006D7450 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../ThirdParty/OpenSource/TressFX/TressFXFileFormat.h; sourceTree = "<group>"; };
-		B231A12F23F2DCA3006D7450 /* SystemRun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = ../../../OS/FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
-		B231A13123F2DCA3006D7450 /* UnixFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = ../../../OS/FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
-		B231A13E23F2DCC1006D7450 /* ThreadSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadSystem.h; path = ../../../OS/Core/ThreadSystem.h; sourceTree = "<group>"; };
-		B231A13F23F2DCC1006D7450 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../OS/Core/ThreadSystem.cpp; sourceTree = "<group>"; };
-		B231A14023F2DCC1006D7450 /* Atomics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Atomics.h; path = ../../../OS/Core/Atomics.h; sourceTree = "<group>"; };
-		B231A14123F2DCC1006D7450 /* Compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Compiler.h; path = ../../../OS/Core/Compiler.h; sourceTree = "<group>"; };
-		B231A14223F2DCC1006D7450 /* DLL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DLL.h; path = ../../../OS/Core/DLL.h; sourceTree = "<group>"; };
-		B231A14323F2DCC1006D7450 /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../../../OS/Core/GPUConfig.h; sourceTree = "<group>"; };
-		B231A14423F2DCC1006D7450 /* Timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Timer.c; path = ../../../OS/Core/Timer.c; sourceTree = "<group>"; };
+		B231A11B23F2DBE9006D7450 /* TressFXAsset.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = TressFXAsset.cpp; path = ../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXAsset.cpp; sourceTree = "<group>"; };
+		B231A11C23F2DBE9006D7450 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXAsset.h; sourceTree = "<group>"; };
+		B231A11D23F2DBE9006D7450 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXFileFormat.h; sourceTree = "<group>"; };
+		B231A12F23F2DCA3006D7450 /* SystemRun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = ../../../Utilities/FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
+		B231A13123F2DCA3006D7450 /* UnixFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = ../../../Utilities/FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
+		B231A13E23F2DCC1006D7450 /* ThreadSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ThreadSystem.h; path = ../../../Utilities/Threading/ThreadSystem.h; sourceTree = "<group>"; };
+		B231A13F23F2DCC1006D7450 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../Utilities/Threading/ThreadSystem.cpp; sourceTree = "<group>"; };
+		B231A14023F2DCC1006D7450 /* Atomics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Atomics.h; path = ../../../Utilities/Threading/Atomics.h; sourceTree = "<group>"; };
+		B231A14223F2DCC1006D7450 /* DLL.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DLL.h; path = ../../../Application/DLL.h; sourceTree = "<group>"; };
+		B231A14323F2DCC1006D7450 /* GPUConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GPUConfig.h; path = ../../../Graphics/GPUConfig.h; sourceTree = "<group>"; };
+		B231A14423F2DCC1006D7450 /* Timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Timer.c; path = ../../../Utilities/Timer.c; sourceTree = "<group>"; };
 		B231A14923F2DCF0006D7450 /* DarwinThread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DarwinThread.c; path = ../../../OS/Darwin/DarwinThread.c; sourceTree = "<group>"; };
 		B231A14B23F2DCF0006D7450 /* DarwinLog.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DarwinLog.c; path = ../../../OS/Darwin/DarwinLog.c; sourceTree = "<group>"; };
 		B231A14D23F2DCF0006D7450 /* CocoaFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CocoaFileSystem.mm; path = ../../../OS/Darwin/CocoaFileSystem.mm; sourceTree = "<group>"; };
-		B231A15523F2DD07006D7450 /* NoMemoryDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NoMemoryDefines.h; path = ../../../OS/MemoryTracking/NoMemoryDefines.h; sourceTree = "<group>"; };
-		B231A15623F2DD07006D7450 /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = ../../../OS/MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
-		B231A15923F2DF86006D7450 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../OS/Logging/Log.h; sourceTree = "<group>"; };
-		B231A15A23F2DF86006D7450 /* Log.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Log.c; path = ../../../OS/Logging/Log.c; sourceTree = "<group>"; };
-		B231A16123F2E0F9006D7450 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = basisu_transcoder.cpp; path = ../../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
-		B231A16223F2E0F9006D7450 /* basisu_transcoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basisu_transcoder.h; path = ../../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h; sourceTree = "<group>"; };
-		B231A16523F2E124006D7450 /* eastl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eastl.cpp; path = ../../../ThirdParty/OpenSource/EASTL/eastl.cpp; sourceTree = "<group>"; };
+		B231A15523F2DD07006D7450 /* NoMemoryDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = NoMemoryDefines.h; path = ../../../Utilities/MemoryTracking/NoMemoryDefines.h; sourceTree = "<group>"; };
+		B231A15623F2DD07006D7450 /* MemoryTracking.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = MemoryTracking.c; path = ../../../Utilities/MemoryTracking/MemoryTracking.c; sourceTree = "<group>"; };
+		B231A15923F2DF86006D7450 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../Utilities/Log/Log.h; sourceTree = "<group>"; };
+		B231A15A23F2DF86006D7450 /* Log.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = Log.c; path = ../../../Utilities/Log/Log.c; sourceTree = "<group>"; };
+		B231A16123F2E0F9006D7450 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = basisu_transcoder.cpp; path = ../../../Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
+		B231A16223F2E0F9006D7450 /* basisu_transcoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = basisu_transcoder.h; path = ../../../Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h; sourceTree = "<group>"; };
+		B231A16523F2E124006D7450 /* eastl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = eastl.cpp; path = ../../../Utilities/ThirdParty/OpenSource/EASTL/eastl.cpp; sourceTree = "<group>"; };
 		B231A16923F2E174006D7450 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = ../../../OS/Darwin/macOSBase.mm; sourceTree = "<group>"; };
 		B231A16B23F2E1A8006D7450 /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
 		B231A19823F2E1F8006D7450 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B231A19923F2E1F8006D7450 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B231A19C23F2E217006D7450 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
-		B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
-		B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
-		B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
+		B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = ../../../Utilities/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
+		B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = ../../../Utilities/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
+		B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = ../../../Utilities/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
+		E0E9C0CF28B7A74400D321E4 /* astcenc_mathlib_softfloat.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_mathlib_softfloat.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_mathlib_softfloat.cpp"; sourceTree = "<group>"; };
+		E0E9C0D628B7A74400D321E4 /* astcenc_compute_variance.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_compute_variance.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_compute_variance.cpp"; sourceTree = "<group>"; };
+		E0E9C0D728B7A74400D321E4 /* astcenc_quantization.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_quantization.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_quantization.cpp"; sourceTree = "<group>"; };
+		E0E9C0D828B7A74400D321E4 /* astcenc_block_sizes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_block_sizes.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_block_sizes.cpp"; sourceTree = "<group>"; };
+		E0E9C0D928B7A74400D321E4 /* astcenc_decompress_symbolic.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_decompress_symbolic.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_decompress_symbolic.cpp"; sourceTree = "<group>"; };
+		E0E9C0DA28B7A74400D321E4 /* astcenc_averages_and_directions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_averages_and_directions.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_averages_and_directions.cpp"; sourceTree = "<group>"; };
+		E0E9C0DB28B7A74400D321E4 /* astcenc_color_quantize.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_color_quantize.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_color_quantize.cpp"; sourceTree = "<group>"; };
+		E0E9C0DE28B7A74400D321E4 /* astcenc_mathlib.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_mathlib.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_mathlib.cpp"; sourceTree = "<group>"; };
+		E0E9C0DF28B7A74400D321E4 /* astcenc_diagnostic_trace.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_diagnostic_trace.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_diagnostic_trace.cpp"; sourceTree = "<group>"; };
+		E0E9C0E028B7A74400D321E4 /* astcenc_ideal_endpoints_and_weights.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_ideal_endpoints_and_weights.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_ideal_endpoints_and_weights.cpp"; sourceTree = "<group>"; };
+		E0E9C0E128B7A74400D321E4 /* astcenccli_error_metrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenccli_error_metrics.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_error_metrics.cpp"; sourceTree = "<group>"; };
+		E0E9C0E228B7A74400D321E4 /* astcenc_integer_sequence.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_integer_sequence.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_integer_sequence.cpp"; sourceTree = "<group>"; };
+		E0E9C0E328B7A74400D321E4 /* astcenccli_platform_dependents.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenccli_platform_dependents.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_platform_dependents.cpp"; sourceTree = "<group>"; };
+		E0E9C0E428B7A74400D321E4 /* astcenc_partition_tables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_partition_tables.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_partition_tables.cpp"; sourceTree = "<group>"; };
+		E0E9C0E528B7A74400D321E4 /* astcenc_weight_align.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_weight_align.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_weight_align.cpp"; sourceTree = "<group>"; };
+		E0E9C0E728B7A74400D321E4 /* astcenc_image.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_image.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_image.cpp"; sourceTree = "<group>"; };
+		E0E9C0E828B7A74400D321E4 /* astcenc_entry.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_entry.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_entry.cpp"; sourceTree = "<group>"; };
+		E0E9C0E928B7A74400D321E4 /* astcenc_compress_symbolic.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_compress_symbolic.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_compress_symbolic.cpp"; sourceTree = "<group>"; };
+		E0E9C0EB28B7A74400D321E4 /* astcenc_find_best_partitioning.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_find_best_partitioning.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_find_best_partitioning.cpp"; sourceTree = "<group>"; };
+		E0E9C0EC28B7A74400D321E4 /* astcenc_platform_isa_detection.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_platform_isa_detection.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_platform_isa_detection.cpp"; sourceTree = "<group>"; };
+		E0E9C0ED28B7A74400D321E4 /* astcenccli_image.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenccli_image.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_image.cpp"; sourceTree = "<group>"; };
+		E0E9C0EE28B7A74400D321E4 /* astcenc_percentile_tables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_percentile_tables.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_percentile_tables.cpp"; sourceTree = "<group>"; };
+		E0E9C0EF28B7A74400D321E4 /* astcenc_color_unquantize.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_color_unquantize.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_color_unquantize.cpp"; sourceTree = "<group>"; };
+		E0E9C0F028B7A74400D321E4 /* astcenc_pick_best_endpoint_format.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_pick_best_endpoint_format.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_pick_best_endpoint_format.cpp"; sourceTree = "<group>"; };
+		E0E9C0F128B7A74400D321E4 /* astcenc_symbolic_physical.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_symbolic_physical.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_symbolic_physical.cpp"; sourceTree = "<group>"; };
+		E0E9C0F228B7A74500D321E4 /* astcenc_weight_quant_xfer_tables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = astcenc_weight_quant_xfer_tables.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_weight_quant_xfer_tables.cpp"; sourceTree = "<group>"; };
+		E0E9C11228B7A82800D321E4 /* astcenccli_version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenccli_version.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_version.h"; sourceTree = "<group>"; };
+		E0E9C11328B7A82800D321E4 /* astcenc_vecmathlib_avx2_8.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib_avx2_8.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib_avx2_8.h"; sourceTree = "<group>"; };
+		E0E9C11428B7A82800D321E4 /* astcenc_vecmathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib.h"; sourceTree = "<group>"; };
+		E0E9C11528B7A82800D321E4 /* astcenc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc.h"; sourceTree = "<group>"; };
+		E0E9C11628B7A82800D321E4 /* astcenc_mathlib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_mathlib.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_mathlib.h"; sourceTree = "<group>"; };
+		E0E9C11728B7A82800D321E4 /* astcenc_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_internal.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_internal.h"; sourceTree = "<group>"; };
+		E0E9C11828B7A82800D321E4 /* astcenc_vecmathlib_sse_4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib_sse_4.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib_sse_4.h"; sourceTree = "<group>"; };
+		E0E9C11928B7A82800D321E4 /* astcenc_diagnostic_trace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_diagnostic_trace.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_diagnostic_trace.h"; sourceTree = "<group>"; };
+		E0E9C11A28B7A82800D321E4 /* astcenc_vecmathlib_none_4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib_none_4.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib_none_4.h"; sourceTree = "<group>"; };
+		E0E9C11B28B7A82800D321E4 /* astcenc_vecmathlib_common_4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib_common_4.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib_common_4.h"; sourceTree = "<group>"; };
+		E0E9C11C28B7A82800D321E4 /* astcenc_vecmathlib_neon_4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_vecmathlib_neon_4.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_vecmathlib_neon_4.h"; sourceTree = "<group>"; };
+		E0E9C11D28B7A82800D321E4 /* astcenc_internal_entry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenc_internal_entry.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenc_internal_entry.h"; sourceTree = "<group>"; };
+		E0E9C11E28B7A82800D321E4 /* astcenccli_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = astcenccli_internal.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_internal.h"; sourceTree = "<group>"; };
+		E0E9C12328B7AF5000D321E4 /* tinyexr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = tinyexr.h; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/tinyexr.h"; sourceTree = "<group>"; };
+		E0E9C12528B7B25000D321E4 /* astcenccli_image_external.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = astcenccli_image_external.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_image_external.cpp"; sourceTree = "<group>"; };
+		E0E9C12728B7B45900D321E4 /* astcenccli_image_load_store.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = astcenccli_image_load_store.cpp; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/astcenccli_image_load_store.cpp"; sourceTree = "<group>"; };
+		E0E9C12928B7B84400D321E4 /* wuffs-v0.3.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "wuffs-v0.3.c"; path = "../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Source/wuffs-v0.3.c"; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -230,7 +313,7 @@
 				5557BBDA268CBEC500B7ACF4 /* sha1.h */,
 			);
 			name = brg;
-			path = ../../../ThirdParty/OpenSource/minizip/lib/brg;
+			path = ../../../Utilities/ThirdParty/OpenSource/minizip/lib/brg;
 			sourceTree = "<group>";
 		};
 		5557BBE1268CBECC00B7ACF4 /* libzip(zip) */ = {
@@ -239,6 +322,23 @@
 				5557BBE2268CBEE300B7ACF4 /* miniz.h */,
 			);
 			path = "libzip(zip)";
+			sourceTree = "<group>";
+		};
+		555F39B227FF373D00BE4B17 /* bstrlib */ = {
+			isa = PBXGroup;
+			children = (
+				555F39BA27FF376700BE4B17 /* bstrlib.c */,
+				555F39BB27FF376700BE4B17 /* bstrlib.h */,
+			);
+			name = bstrlib;
+			sourceTree = "<group>";
+		};
+		555F39B927FF374300BE4B17 /* stb */ = {
+			isa = PBXGroup;
+			children = (
+				555F39BE27FF377E00BE4B17 /* stb_ds.h */,
+			);
+			name = stb;
 			sourceTree = "<group>";
 		};
 		B231A0E023F2DB2D006D7450 = {
@@ -325,8 +425,13 @@
 		B231A13C23F2DCAC006D7450 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				555F39C027FF37AE00BE4B17 /* Algorithms.c */,
+				555F39C227FF37AF00BE4B17 /* Algorithms.h */,
+				555F39BF27FF37AE00BE4B17 /* AlgorithmsImpl.h */,
+				555F39C427FF37AF00BE4B17 /* BStringHashMap.h */,
+				555F39C127FF37AF00BE4B17 /* Config.h */,
+				555F39C327FF37AF00BE4B17 /* StbDs.c */,
 				B231A14023F2DCC1006D7450 /* Atomics.h */,
-				B231A14123F2DCC1006D7450 /* Compiler.h */,
 				B231A14223F2DCC1006D7450 /* DLL.h */,
 				B231A14323F2DCC1006D7450 /* GPUConfig.h */,
 				B231A13F23F2DCC1006D7450 /* ThreadSystem.cpp */,
@@ -369,6 +474,9 @@
 		B231A15C23F2E056006D7450 /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				E0E9C11128B7A79A00D321E4 /* astc-encoder */,
+				555F39B927FF374300BE4B17 /* stb */,
+				555F39B227FF373D00BE4B17 /* bstrlib */,
 				5557BBCB268CBEAF00B7ACF4 /* minizip */,
 				B2B2F1F12472F83D00B483FF /* rmem */,
 				B231A16423F2E10E006D7450 /* eastl */,
@@ -402,6 +510,56 @@
 				B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */,
 			);
 			name = rmem;
+			sourceTree = "<group>";
+		};
+		E0E9C11128B7A79A00D321E4 /* astc-encoder */ = {
+			isa = PBXGroup;
+			children = (
+				E0E9C12928B7B84400D321E4 /* wuffs-v0.3.c */,
+				E0E9C12728B7B45900D321E4 /* astcenccli_image_load_store.cpp */,
+				E0E9C12528B7B25000D321E4 /* astcenccli_image_external.cpp */,
+				E0E9C12328B7AF5000D321E4 /* tinyexr.h */,
+				E0E9C11928B7A82800D321E4 /* astcenc_diagnostic_trace.h */,
+				E0E9C11D28B7A82800D321E4 /* astcenc_internal_entry.h */,
+				E0E9C11728B7A82800D321E4 /* astcenc_internal.h */,
+				E0E9C11628B7A82800D321E4 /* astcenc_mathlib.h */,
+				E0E9C11328B7A82800D321E4 /* astcenc_vecmathlib_avx2_8.h */,
+				E0E9C11B28B7A82800D321E4 /* astcenc_vecmathlib_common_4.h */,
+				E0E9C11C28B7A82800D321E4 /* astcenc_vecmathlib_neon_4.h */,
+				E0E9C11A28B7A82800D321E4 /* astcenc_vecmathlib_none_4.h */,
+				E0E9C11828B7A82800D321E4 /* astcenc_vecmathlib_sse_4.h */,
+				E0E9C11428B7A82800D321E4 /* astcenc_vecmathlib.h */,
+				E0E9C11528B7A82800D321E4 /* astcenc.h */,
+				E0E9C11E28B7A82800D321E4 /* astcenccli_internal.h */,
+				E0E9C11228B7A82800D321E4 /* astcenccli_version.h */,
+				E0E9C0DA28B7A74400D321E4 /* astcenc_averages_and_directions.cpp */,
+				E0E9C0D828B7A74400D321E4 /* astcenc_block_sizes.cpp */,
+				E0E9C0DB28B7A74400D321E4 /* astcenc_color_quantize.cpp */,
+				E0E9C0EF28B7A74400D321E4 /* astcenc_color_unquantize.cpp */,
+				E0E9C0E928B7A74400D321E4 /* astcenc_compress_symbolic.cpp */,
+				E0E9C0D628B7A74400D321E4 /* astcenc_compute_variance.cpp */,
+				E0E9C0D928B7A74400D321E4 /* astcenc_decompress_symbolic.cpp */,
+				E0E9C0DF28B7A74400D321E4 /* astcenc_diagnostic_trace.cpp */,
+				E0E9C0E828B7A74400D321E4 /* astcenc_entry.cpp */,
+				E0E9C0EB28B7A74400D321E4 /* astcenc_find_best_partitioning.cpp */,
+				E0E9C0E028B7A74400D321E4 /* astcenc_ideal_endpoints_and_weights.cpp */,
+				E0E9C0E728B7A74400D321E4 /* astcenc_image.cpp */,
+				E0E9C0E228B7A74400D321E4 /* astcenc_integer_sequence.cpp */,
+				E0E9C0CF28B7A74400D321E4 /* astcenc_mathlib_softfloat.cpp */,
+				E0E9C0DE28B7A74400D321E4 /* astcenc_mathlib.cpp */,
+				E0E9C0E428B7A74400D321E4 /* astcenc_partition_tables.cpp */,
+				E0E9C0EE28B7A74400D321E4 /* astcenc_percentile_tables.cpp */,
+				E0E9C0F028B7A74400D321E4 /* astcenc_pick_best_endpoint_format.cpp */,
+				E0E9C0EC28B7A74400D321E4 /* astcenc_platform_isa_detection.cpp */,
+				E0E9C0D728B7A74400D321E4 /* astcenc_quantization.cpp */,
+				E0E9C0F128B7A74400D321E4 /* astcenc_symbolic_physical.cpp */,
+				E0E9C0E528B7A74400D321E4 /* astcenc_weight_align.cpp */,
+				E0E9C0F228B7A74500D321E4 /* astcenc_weight_quant_xfer_tables.cpp */,
+				E0E9C0E128B7A74400D321E4 /* astcenccli_error_metrics.cpp */,
+				E0E9C0ED28B7A74400D321E4 /* astcenccli_image.cpp */,
+				E0E9C0E328B7A74400D321E4 /* astcenccli_platform_dependents.cpp */,
+			);
+			name = "astc-encoder";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -512,9 +670,37 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E0E9C0F328B7A74500D321E4 /* astcenc_mathlib_softfloat.cpp in Sources */,
+				E0E9C0F428B7A74500D321E4 /* astcenc_compute_variance.cpp in Sources */,
+				E0E9C0F528B7A74500D321E4 /* astcenc_quantization.cpp in Sources */,
+				E0E9C0F628B7A74500D321E4 /* astcenc_block_sizes.cpp in Sources */,
+				E0E9C0F728B7A74500D321E4 /* astcenc_decompress_symbolic.cpp in Sources */,
+				E0E9C0F828B7A74500D321E4 /* astcenc_averages_and_directions.cpp in Sources */,
+				E0E9C0F928B7A74500D321E4 /* astcenc_color_quantize.cpp in Sources */,
+				E0E9C0FC28B7A74500D321E4 /* astcenc_mathlib.cpp in Sources */,
+				E0E9C0FD28B7A74500D321E4 /* astcenc_diagnostic_trace.cpp in Sources */,
+				E0E9C0FE28B7A74500D321E4 /* astcenc_ideal_endpoints_and_weights.cpp in Sources */,
+				E0E9C0FF28B7A74500D321E4 /* astcenccli_error_metrics.cpp in Sources */,
+				E0E9C10028B7A74500D321E4 /* astcenc_integer_sequence.cpp in Sources */,
+				E0E9C10128B7A74500D321E4 /* astcenccli_platform_dependents.cpp in Sources */,
+				E0E9C10228B7A74500D321E4 /* astcenc_partition_tables.cpp in Sources */,
+				E0E9C10328B7A74500D321E4 /* astcenc_weight_align.cpp in Sources */,
+				E0E9C10528B7A74500D321E4 /* astcenc_image.cpp in Sources */,
+				E0E9C10628B7A74500D321E4 /* astcenc_entry.cpp in Sources */,
+				E0E9C10728B7A74500D321E4 /* astcenc_compress_symbolic.cpp in Sources */,
+				E0E9C10928B7A74500D321E4 /* astcenc_find_best_partitioning.cpp in Sources */,
+				E0E9C10A28B7A74500D321E4 /* astcenc_platform_isa_detection.cpp in Sources */,
+				E0E9C10B28B7A74500D321E4 /* astcenccli_image.cpp in Sources */,
+				E0E9C12828B7B45900D321E4 /* astcenccli_image_load_store.cpp in Sources */,
+				E0E9C10C28B7A74500D321E4 /* astcenc_percentile_tables.cpp in Sources */,
+				E0E9C10D28B7A74500D321E4 /* astcenc_color_unquantize.cpp in Sources */,
+				E0E9C10E28B7A74500D321E4 /* astcenc_pick_best_endpoint_format.cpp in Sources */,
+				E0E9C10F28B7A74500D321E4 /* astcenc_symbolic_physical.cpp in Sources */,
+				E0E9C11028B7A74500D321E4 /* astcenc_weight_quant_xfer_tables.cpp in Sources */,
 				5557BBDF268CBEC500B7ACF4 /* sha1.c in Sources */,
 				5557BBDC268CBEC500B7ACF4 /* hmac.c in Sources */,
 				5557BBF8268CBEF000B7ACF4 /* mz_os.cpp in Sources */,
+				E0E9C12628B7B25000D321E4 /* astcenccli_image_external.cpp in Sources */,
 				B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */,
 				5557BBE0268CBEC500B7ACF4 /* aestab.c in Sources */,
 				5557BBF3268CBEF000B7ACF4 /* mz_crypt_brg.c in Sources */,
@@ -532,6 +718,8 @@
 				B231A16323F2E0F9006D7450 /* basisu_transcoder.cpp in Sources */,
 				5557BBDB268CBEC500B7ACF4 /* aeskey.c in Sources */,
 				5557BBF6268CBEF000B7ACF4 /* mz_strm_wzaes.c in Sources */,
+				555F39BC27FF376700BE4B17 /* bstrlib.c in Sources */,
+				555F39C527FF37AF00BE4B17 /* Algorithms.c in Sources */,
 				B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */,
 				B231A15723F2DD07006D7450 /* MemoryTracking.c in Sources */,
 				5557BBDE268CBEC500B7ACF4 /* aescrypt.c in Sources */,
@@ -543,6 +731,7 @@
 				B231A11A23F2DBD5006D7450 /* AssetPipelineCmd.cpp in Sources */,
 				B231A11E23F2DBE9006D7450 /* TressFXAsset.cpp in Sources */,
 				5557BBFA268CBF0F00B7ACF4 /* ZipFileSystem.c in Sources */,
+				555F39C627FF37AF00BE4B17 /* StbDs.c in Sources */,
 				B231A15B23F2DF86006D7450 /* Log.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -675,7 +864,7 @@
 					"$(inherited)",
 				);
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include";
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.tools.assetpipelinecmd;
@@ -692,7 +881,7 @@
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include";
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.tools.assetpipelinecmd;

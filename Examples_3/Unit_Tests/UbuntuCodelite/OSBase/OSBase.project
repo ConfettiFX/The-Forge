@@ -7,20 +7,20 @@
   </Plugins>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="Animation">
-      <File Name="../../../../Middleware_3/Animation/SkeletonBatcher.h"/>
-      <File Name="../../../../Middleware_3/Animation/SkeletonBatcher.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/Rig.h"/>
-      <File Name="../../../../Middleware_3/Animation/Rig.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/ClipMask.h"/>
-      <File Name="../../../../Middleware_3/Animation/ClipMask.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/ClipController.h"/>
-      <File Name="../../../../Middleware_3/Animation/ClipController.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/Clip.h"/>
-      <File Name="../../../../Middleware_3/Animation/Clip.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/Animation.h"/>
-      <File Name="../../../../Middleware_3/Animation/Animation.cpp"/>
-      <File Name="../../../../Middleware_3/Animation/AnimatedObject.h"/>
-      <File Name="../../../../Middleware_3/Animation/AnimatedObject.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Animation.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Animation.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Clip.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Clip.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/ClipController.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/ClipController.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/ClipMask.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/ClipMask.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Rig.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Rig.h"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/SkeletonBatcher.cpp"/>
+      <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/SkeletonBatcher.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="PaniniProjection">
       <VirtualDirectory Name="Shaders">
@@ -33,49 +33,53 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="Camera">
-    <File Name="../../../../Common_3/OS/Camera/CameraController.cpp"/>
+    <File Name="../../../../Common_3/Application/CameraController.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Core">
-    <File Name="../../../../Common_3/OS/Core/Timer.c"/>
-    <File Name="../../../../Common_3/OS/Core/Atomics.h"/>
-    <File Name="../../../../Common_3/OS/Core/Compiler.h"/>
-    <File Name="../../../../Common_3/OS/Core/DLL.h"/>
-    <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
-    <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
-    <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/Screenshot.cpp"/>
-    <File Name="../../../../Common_3/OS/Core/GPUConfig.h"/>
-    <File Name="../../../../Common_3/OS/Core/CPUConfig.cpp"/>
+    <File Name="../../../../Common_3/Utilities/Threading/Atomics.h"/>
+    <File Name="../../../../Common_3/Application/Config.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/Algorithms.c"/>
+    <File Name="../../../../Common_3/Utilities/Math/Algorithms.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/BStringHashMap.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/StbDs.c"/>
+    <File Name="../../../../Common_3/Utilities/RingBuffer.h"/>
+    <File Name="../../../../Common_3/Utilities/Timer.c"/>
+    <File Name="../../../../Common_3/OS/CPUConfig.cpp"/>
+    <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.cpp"/>
+    <File Name="../../../../Common_3/Application/DLL.h"/>
+    <File Name="../../../../Common_3/Application/Screenshot.cpp"/>
+    <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Input">
-    <File Name="../../../../Common_3/OS/Input/InputSystem.cpp"/>
+    <File Name="../../../../Common_3/Application/InputSystem.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Interfaces">
-    <File Name="../../../../Common_3/OS/Interfaces/IProfiler.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IApp.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/ICameraController.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IFileSystem.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/ILog.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IMemory.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IMiddleware.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IProfiler.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IApp.h"/>
+    <File Name="../../../../Common_3/Utilities/Interfaces/IFileSystem.h"/>
+    <File Name="../../../../Common_3/Utilities/Interfaces/ILog.h"/>
+    <File Name="../../../../Common_3/Utilities/Interfaces/IMemory.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IOperatingSystem.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IInput.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IThread.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/ITime.h"/>
+    <File Name="../../../../Common_3/Utilities/Interfaces/IThread.h"/>
+    <File Name="../../../../Common_3/Utilities/Interfaces/ITime.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IUIManager.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IFont.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IScripting.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IUI.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IFont.h"/>
+    <File Name="../../../../Common_3/Game/Interfaces/IScripting.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IUI.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/ICameraController.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IInput.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IMiddleware.h"/>
+    <File Name="../../../../Common_3/Application/Interfaces/IScreenshot.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Logging">
-    <File Name="../../../../Common_3/OS/Logging/Log.c"/>
-    <File Name="../../../../Common_3/OS/Logging/Log.h"/>
+    <File Name="../../../../Common_3/Utilities/Log/Log.c"/>
+    <File Name="../../../../Common_3/Utilities/Log/Log.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Math">
-    <File Name="../../../../Common_3/OS/Math/MathTypes.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/MathTypes.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="MemoryTracking">
-    <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTracking.c"/>
+    <File Name="../../../../Common_3/Utilities/MemoryTracking/MemoryTracking.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Linux">
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.c"/>
@@ -86,176 +90,193 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxWindow.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
+    <VirtualDirectory Name="bstrlib">
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="minizip">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/zip.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_zip.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_zip.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm_zlib.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm_zlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm_wzaes.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm_wzaes.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm_raw.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_strm.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_os.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_os.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_crypt_brg.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_crypt.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz_crypt.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/mz.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/zip.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_zip.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_zip.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_raw.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_os.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_os.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt_brg.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt.h"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt.c"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz.h"/>
       <VirtualDirectory Name="brg">
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/sha2.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/sha2.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/sha1.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/sha1.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/hmac.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/hmac.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/brg_types.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/brg_endian.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aestab.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aestab.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aesopt.h"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aeskey.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aescrypt.c"/>
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/minizip/lib/brg/aes.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha2.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha2.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha1.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha1.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/hmac.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/hmac.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/brg_types.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/brg_endian.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aestab.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aestab.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aesopt.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aeskey.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aescrypt.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aes.h"/>
       </VirtualDirectory>
       <VirtualDirectory Name="libzip(zip)">
-        <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/miniz.h"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zip/miniz.h"/>
       </VirtualDirectory>
     </VirtualDirectory>
     <VirtualDirectory Name="rmem">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="basisu">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="imgui">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imconfig.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_demo.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imconfig.h"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui.cpp"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui.h"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_demo.cpp"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_draw.cpp"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_widgets.cpp"/>
+      <File Name="../../../../Common_3/Application/ThirdParty/OpenSource/imgui/imgui_tables.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="LUA">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lapi.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lbaselib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lbitlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcode.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcode.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lcorolib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lctype.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lctype.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldblib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldo.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldo.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ldump.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lgc.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lgc.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/linit.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/liolib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llex.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llex.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/llimits.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmathlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmem.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lmem.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/loadlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lobject.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lobject.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/loslib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lparser.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lparser.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lprefix.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstate.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstate.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstring.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstring.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lstrlib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltable.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltable.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltablib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltm.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/ltm.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lua.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lua.hpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/luaconf.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lualib.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lundump.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lundump.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lutf8lib.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lvm.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lvm.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lzio.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lapi.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lapi.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lbaselib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lbitlib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lcode.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lcode.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lcorolib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lctype.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lctype.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldblib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldebug.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldo.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldo.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ldump.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lfunc.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lgc.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lgc.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/linit.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/liolib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/llex.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/llex.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/llimits.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lmathlib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lmem.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lmem.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/loadlib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lobject.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lobject.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lopcodes.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/loslib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lparser.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lparser.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lprefix.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstate.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstate.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstring.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstring.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lstrlib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ltable.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ltable.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ltablib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ltm.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/ltm.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lua.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lua.hpp"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/luaconf.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lualib.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lundump.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lundump.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lutf8lib.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lvm.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lvm.h"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lzio.c"/>
+      <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/lua-5.3.5/src/lzio.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="cpu_features">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_x86_linux_or_android.c"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/cpu_features/src/impl_aarch64_linux_or_android.c"/>
+      <File Name="../../../../Common_3/OS/ThirdParty/OpenSource/cpu_features/src/impl_x86_linux_or_android.c"/>
+      <File Name="../../../../Common_3/OS/ThirdParty/OpenSource/cpu_features/src/impl_aarch64_linux_or_android.c"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="TaskScheduler">
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTDefaultAppInterop.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTFiberContext.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTScheduler.cpp"/>
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTThreadContext.cpp"/>
     </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.c"/>
-    <File Name="../../../../Common_3/OS/FileSystem/FileSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/SystemRun.cpp"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/FileSystem.cpp"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/SystemRun.cpp"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/UnixFileSystem.cpp"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/ZipFileSystem.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Profiler">
-    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
-    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.h"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
+    <File Name="../../../../Common_3/Application/Profiler/GpuProfiler.cpp"/>
+    <File Name="../../../../Common_3/Application/Profiler/GpuProfiler.h"/>
+    <File Name="../../../../Common_3/Application/Profiler/ProfilerBase.cpp"/>
+    <File Name="../../../../Common_3/Application/Profiler/ProfilerBase.h"/>
+    <File Name="../../../../Common_3/Application/Profiler/ProfilerHTML.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Fonts">
-    <File Name="../../../../Common_3/OS/Fonts/FontSystem.cpp"/>
     <VirtualDirectory Name="Shaders">
       <VirtualDirectory Name="FSL">
-        <File Name="../../../../Common_3/OS/Fonts/Shaders/FSL/fontstash.frag.fsl"/>
-        <File Name="../../../../Common_3/OS/Fonts/Shaders/FSL/fontstash2D.vert.fsl"/>
-        <File Name="../../../../Common_3/OS/Fonts/Shaders/FSL/fontstash3D.vert.fsl"/>
-        <File Name="../../../../Common_3/OS/Fonts/Shaders/FSL/resources.h"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash2D.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/fontstash3D.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/Fonts/Shaders/FSL/resources.h"/>
       </VirtualDirectory>
     </VirtualDirectory>
-    <File Name="../../../../Common_3/OS/Fonts/stbtt.cpp"/>
+    <File Name="../../../../Common_3/Application/Fonts/FontSystem.cpp"/>
+    <File Name="../../../../Common_3/Application/Fonts/stbtt.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="UI">
     <VirtualDirectory Name="Shaders">
       <VirtualDirectory Name="FSL">
-        <File Name="../../../../Common_3/OS/UI/Shaders/FSL/imgui.frag.fsl"/>
-        <File Name="../../../../Common_3/OS/UI/Shaders/FSL/imgui.vert.fsl"/>
-        <File Name="../../../../Common_3/OS/UI/Shaders/FSL/textured_mesh.frag.fsl"/>
-        <File Name="../../../../Common_3/OS/UI/Shaders/FSL/textured_mesh.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/imgui.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/imgui.vert.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/textured_mesh.frag.fsl"/>
+        <File Name="../../../../Common_3/Application/UI/Shaders/FSL/textured_mesh.vert.fsl"/>
       </VirtualDirectory>
     </VirtualDirectory>
-    <File Name="../../../../Common_3/OS/UI/UI.cpp"/>
+    <File Name="../../../../Common_3/Application/UI/UI.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Scripting">
-    <File Name="../../../../Common_3/OS/Scripting/LuaManager.cpp"/>
-    <File Name="../../../../Common_3/OS/Scripting/LuaManagerImpl.cpp"/>
-    <File Name="../../../../Common_3/OS/Scripting/LuaSystem.cpp"/>
+    <File Name="../../../../Common_3/Game/Scripting/LuaManager.cpp"/>
+    <File Name="../../../../Common_3/Game/Scripting/LuaManagerImpl.cpp"/>
+    <File Name="../../../../Common_3/Game/Scripting/LuaSystem.cpp"/>
   </VirtualDirectory>
+  <VirtualDirectory Name="WindowSystem">
+    <File Name="../../../../Common_3/OS/WindowSystem/WindowSystem.cpp"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
         <IncludePath Value="."/>
+        <IncludePath Value="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include"/>
       </Compiler>
       <Linker Options="$(shell pkg-config --libs gtk+-3.0)"/>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -285,16 +306,17 @@
       <AdditionalRules>
         <CustomPostBuild/>
         <CustomPreBuild>shaders
-SRC_UI = $(WorkspacePath)/../../../Common_3/OS/UI/Shaders/FSL/
-SRC_TEXT = $(WorkspacePath)/../../../Common_3/OS/Fonts/Shaders/FSL/
+SRC_UI = $(WorkspacePath)/../../../Common_3/Application/UI/Shaders/FSL/
+SRC_TEXT = $(WorkspacePath)/../../../Common_3/Application/Fonts/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -304,7 +326,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -334,17 +356,16 @@ shaders:&#xD;
       <AdditionalRules>
         <CustomPostBuild/>
         <CustomPreBuild>shaders
-SRC_UI = $(WorkspacePath)/../../../Common_3/OS/UI/Shaders/FSL/
-SRC_TEXT = $(WorkspacePath)/../../../Common_3/OS/Fonts/Shaders/FSL/
+SRC_UI = $(WorkspacePath)/../../../Common_3/Application/UI/Shaders/FSL/
+SRC_TEXT = $(WorkspacePath)/../../../Common_3/Application/Fonts/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
-</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -354,9 +375,4 @@ shaders:&#xD;
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="WindowSystem">
-    <File Name="../../../../Common_3/OS/WindowSystem/WindowSystem.cpp"/>
-  </VirtualDirectory>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

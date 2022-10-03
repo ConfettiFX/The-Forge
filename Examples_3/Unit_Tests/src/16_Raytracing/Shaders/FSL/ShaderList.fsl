@@ -1,0 +1,20 @@
+
+#frag DisplayTexture.frag
+#define DENOISER_ENABLED 0
+#include "DisplayTexture.frag.fsl"
+#end
+
+#vert DisplayTexture.vert
+#define DENOISER_ENABLED 0
+#include "DisplayTexture.vert.fsl"
+#end
+
+#frag DisplayTexture_USE_DENOISER.frag
+#define DENOISER_ENABLED 1
+#include "DisplayTexture.frag.fsl"
+#end
+
+#vert DisplayTexture_USE_DENOISER.vert
+#define DENOISER_ENABLED 1
+#include "DisplayTexture.vert.fsl"
+#end

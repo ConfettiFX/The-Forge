@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="01_Transformations" InternalType="Console" Version="10.0.0">
+<CodeLite_Project Name="01_Transformations" InternalType="Console" Version="11000">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -16,7 +16,22 @@
     <File Name="../../src/01_Transformations/Shaders/FSL/crash.vert.fsl"/>
     <File Name="../../src/01_Transformations/Shaders/FSL/skybox.frag.fsl"/>
     <File Name="../../src/01_Transformations/Shaders/FSL/skybox.vert.fsl"/>
+    <File Name="../../src/01_Transformations/Shaders/FSL/ShaderList.fsl"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -26,16 +41,18 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/Application/ThirdParty/noesisgui/Include"/>
       </Compiler>
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Application/ThirdParty/noesisgui/SDK/_build/Out/Lib/linux_x86_64/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -55,20 +72,25 @@
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
-      <PreBuild/>
+      <PreBuild>
+      </PreBuild>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include 'Skybox_*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Fonts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
         <Command Enabled="no"># Scripts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># Noesis</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Common_3/Application/UI/*.xaml $(ProjectPath)/$(ConfigurationName)/Noesis/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -84,8 +106,8 @@
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
@@ -99,16 +121,18 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/Application/ThirdParty/noesisgui/Include"/>
       </Compiler>
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
         <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Application/ThirdParty/noesisgui/SDK/_build/Out/Lib/linux_x86_64/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -128,20 +152,25 @@ shaders:&#xD;
         <PostConnectCommands/>
         <StartupCommands/>
       </Debugger>
-      <PreBuild/>
+      <PreBuild>
+      </PreBuild>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include 'Skybox_*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../UnitTestResources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Fonts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
         <Command Enabled="no"># Scripts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># Noesis</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Common_3/Application/UI/*.xaml $(ProjectPath)/$(ConfigurationName)/Noesis/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -157,8 +186,8 @@ shaders:&#xD;
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
@@ -171,18 +200,4 @@ shaders:&#xD;
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
 </CodeLite_Project>

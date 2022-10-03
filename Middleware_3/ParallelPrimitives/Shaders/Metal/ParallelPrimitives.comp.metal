@@ -24,12 +24,14 @@
 using namespace metal;
 #define restrict 
 
+// TODO: instead of hardcoding might be better to include "metal.h" from FSL to have the same value
 #ifndef UPDATE_FREQ_PER_DRAW
-#define UPDATE_FREQ_PER_DRAW 0
+#define UPDATE_FREQ_PER_DRAW 3
 #endif
 
+// TODO: instead of hardcoding might be better to include "metal.h" from FSL to have the same value
 #ifndef UPDATE_FREQ_USER
-#define UPDATE_FREQ_USER 1
+#define UPDATE_FREQ_USER 4
 #endif
 
 #define GROUP_SIZE 64

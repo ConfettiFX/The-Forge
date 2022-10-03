@@ -34,13 +34,13 @@ CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 	DATA(float4x4, WorldMat, None);
 };
 
-#if defined(METAL) || defined(DIRECT3D12)
+#if defined(INDIRECT_ROOT_CONSTANT)
     PUSH_CONSTANT(indirectRootConstant, b2)
     {
         DATA(uint, indirectDrawId, None);
     };
     #define getDrawID() Get(indirectDrawId)
-#elif defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#else
     #define getDrawID() In.drawId
 #endif
 

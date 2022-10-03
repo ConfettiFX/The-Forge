@@ -34,6 +34,9 @@ STRUCT(VSOutput)
 	DATA(float4, Normal, NORMAL);
 	DATA(float4, UV, TEXCOORD0);
 	DATA(FLAT(uint), MatID, MAT_ID);
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 #if !defined(ORBIS) && !defined(PROSPERO)
 EARLY_FRAGMENT_TESTS
@@ -47,7 +50,11 @@ void PS_MAIN( VSOutput In )
 
 	if(finalColor.a > 0.01f)
 	{
+#if VR_MULTIVIEW_ENABLED	
+		WriteNewPixelToAOIT(In.Position.xy, VR_VIEW_ID(In.ViewID), In.Position.z, finalColor);
+#else
 		WriteNewPixelToAOIT(In.Position.xy, In.Position.z, finalColor);
+#endif
 	}
 
     EndPSInterlock();

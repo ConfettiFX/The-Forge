@@ -567,11 +567,13 @@ f2x2 setRow(inout(f2x2) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][
 
 int2 imageSize(utexture2D TEX) { return textureSize(TEX, 0); }
 int2 imageSize(texture2D TEX) { return textureSize(TEX, 0); }
+int2 imageSize(texture2DMS TEX) { return textureSize(TEX); }
 int2 imageSize(textureCube TEX) { return textureSize(TEX, 0); }
 int3 imageSize(texture2DArray TEX) { return textureSize(TEX, 0); }
 int3 imageSize(utexture2DArray TEX) { return textureSize(TEX, 0); }
 
 #define GetDimensions(TEX, SMP) imageSize(TEX)
+#define GetDimensionsMS(TEX, DIM) int2 DIM; { DIM = imageSize(TEX); }
 
 // int2 GetDimensions(writeonly iimage2D t, uint _NO_SAMPLER) { return imageSize(t); }
 // int2 GetDimensions(writeonly uimage2D t, uint _NO_SAMPLER) { return imageSize(t); }

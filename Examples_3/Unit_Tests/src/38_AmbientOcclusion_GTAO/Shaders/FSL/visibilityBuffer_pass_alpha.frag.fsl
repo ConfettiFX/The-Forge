@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shader_defs.h"
+#include "packing.h"
+
+#if defined(INDIRECT_ROOT_CONSTANT)
+	PUSH_CONSTANT(indirectRootConstant, b1)
+	{
+		DATA(uint, indirectDrawId, None);
+	};
+	#define getDrawID() Get(indirectDrawId)
+#else
+    #define getDrawID() In.drawId
+#endif
+
+RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
+RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_NONE, t1, binding = 4);
+RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE], UPDATE_FREQ_NONE, t2, binding = 3);
+
+STRUCT(PsInAlphaTested)
+{
+	DATA(float4, position, SV_Position);
+	DATA(float2, texCoord, TEXCOORD0);
+#if !defined(INDIRECT_ROOT_CONSTANT)
+    DATA(FLAT(uint), drawId, TEXCOORD3);
+#endif
+};
+
+uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
+{
+    uint drawID_primID = ((drawID << 23) & 0x7F800000) | (primitiveID & 0x007FFFFF);
+    return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
+}
+
+float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+{
+    INIT_MAIN;
+    float4 Out;
+    uint matBaseSlot = BaseMaterialBuffer(true, 0); //0 is camera view, 1 is shadow map view
+    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+
+    float alpha = 0.0f;
+    BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+    EndNonUniformResourceIndex();
+    
+    //clip(texColor.a < 0.9 ? -1 : 1);
+    clip(alpha - 0.5f);
+    Out = unpackUnorm4x8(calculateOutputVBID(false, getDrawID(), primitiveId));
+    RETURN(Out);
+}

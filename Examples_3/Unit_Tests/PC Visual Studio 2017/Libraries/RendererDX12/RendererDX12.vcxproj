@@ -11,13 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12CapBuilder.h" />

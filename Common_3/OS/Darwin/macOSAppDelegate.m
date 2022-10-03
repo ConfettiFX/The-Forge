@@ -23,7 +23,10 @@
 */
 
 #import "macOSAppDelegate.h"
+#import <IOKit/pwr_mgt/IOPMLib.h>
 #define DISPATCH_APPROACH
+
+static IOPMAssertionID systemSleepAssertionID, displaySleepAssertionID;
 
 @interface GameController: NSViewController
 -(void)draw;
@@ -48,6 +51,13 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification
 {
+
+    // prevent Energy-Saver to turn off the display
+    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep,
+                                kIOPMAssertionLevelOn, CFSTR("Running The-Forge"), &systemSleepAssertionID);
+    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleDisplaySleep,
+                                kIOPMAssertionLevelOn, CFSTR("Running The-Forge"), &displaySleepAssertionID);
+
     myController = [GameController new];
 
 #ifdef DISPATCH_APPROACH
@@ -80,6 +90,14 @@
 
 - (void)applicationWillTerminate:(NSNotification*)aNotification
 {
+    if(systemSleepAssertionID > 0)
+    {
+        IOPMAssertionRelease(systemSleepAssertionID);
+    }
+    if(displaySleepAssertionID > 0) 
+    {
+        IOPMAssertionRelease(displaySleepAssertionID);
+    }
 	// Insert code here to tear down your application
 }
 

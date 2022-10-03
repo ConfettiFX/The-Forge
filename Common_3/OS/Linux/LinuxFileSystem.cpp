@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ILog.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,6 +31,7 @@
 #include <pwd.h>
 #include <fcntl.h>           //for open and O_* enums
 #include <dirent.h>
+#include <stdlib.h>
 
 static bool gInitialized = false;
 static const char* gResourceMounts[RM_COUNT];

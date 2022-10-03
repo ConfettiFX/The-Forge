@@ -22,11 +22,11 @@
  * under the License.
  */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef __APPLE__
 
-#include "../Core/CPUConfig.h"
+#include "../../OS/CPUConfig.h"
 
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
@@ -38,26 +38,25 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
+#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IProfiler.h"
-#include "../Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IApp.h"
 
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 #define FORGE_WINDOW_CLASS L"The Forge"
 #define MAX_KEYS 256
@@ -67,8 +66,10 @@
 
 static IApp* pApp = NULL;
 WindowDesc gCurrentWindow;
+extern CustomMessageProcessor sCustomProc;
 
-static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
+
 static bool    gShowPlatformUI = true;
 
 /// CPU
@@ -80,7 +81,7 @@ extern float2*        gDPIScales;
 
 /// VSync Toggle
 static UIComponent* pToggleVSyncWindow = NULL;
-
+static UIComponent* pReloadShaderComponent = NULL;
 @interface ForgeApplication: NSApplication
 @end
 
@@ -152,18 +153,9 @@ void requestShutdown()
 	[[NSApplication sharedApplication] terminate:[NSApplication sharedApplication]];
 }
 
-void onRequestReload()
+void requestReload(const ReloadDesc* pReloadDesc)
 {
-	gResetScenario |= RESET_SCENARIO_RELOAD;
-}
-void onDeviceLost()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
-}
-
-void onAPISwitch()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
+	gReloadDescriptor = *pReloadDesc;
 }
 
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
@@ -179,9 +171,10 @@ void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
 #endif
 }
 
+CustomMessageProcessor sCustomProc = nullptr;
 void setCustomMessageProcessor(CustomMessageProcessor proc)
 {
-	// No-op
+	sCustomProc = proc;
 }
 
 //------------------------------------------------------------------------
@@ -355,6 +348,16 @@ void setupPlatformUI(int32_t width, int32_t height)
 	checkbox.pData = &pApp->mSettings.mVSyncEnabled;
 	UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
 	REGISTER_LUA_WIDGET(pCheckbox);
+	
+	// RELOAD CONTROL
+	UIComponentDesc = {};
+	UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
+	uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
+	
+	ButtonWidget shaderReload;
+	UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders", &shaderReload, WIDGET_TYPE_BUTTON);
+	uiSetWidgetOnEditedCallback(pShaderReload, nullptr, [](void* pUserData){ReloadDesc reloadDesc; reloadDesc.mType = RELOAD_TYPE_SHADER; requestReload(&reloadDesc);});
+	REGISTER_LUA_WIDGET(pShaderReload);
 #endif
 }
 
@@ -513,7 +516,7 @@ extern void collectMonitorInfo();
 extern void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device, id<RenderDestinationProvider> delegateRenderProvider);
 
 // Timer used in the update function.
-Timer           deltaTimer;
+HiresTimer      deltaTimer;
 IApp::Settings* pSettings;
 #ifdef AUTOMATED_TESTING
 uint32_t frameCounter;
@@ -530,7 +533,7 @@ char benchmarkOutput[1024] = { "\0" };
 {
 	initCpuInfo(&gCpu);
 	
-    initTimer(&deltaTimer);
+    initHiresTimer(&deltaTimer);
 #define EXIT_IF_FAILED(cond) \
 	if (!(cond))             \
 		exit(1);
@@ -562,7 +565,7 @@ char benchmarkOutput[1024] = { "\0" };
 		collectMonitorInfo();
 
 		pSettings = &pApp->mSettings;
-		if (pSettings->mMonitorIndex < 0)
+		if (pSettings->mMonitorIndex < 0 || pSettings->mMonitorIndex >= (int)gMonitorCount)
 		{
 			pSettings->mMonitorIndex = 0;
 		}
@@ -576,23 +579,28 @@ char benchmarkOutput[1024] = { "\0" };
 		gCurrentWindow.forceLowDPI = pSettings->mForceLowDPI;
 		gCurrentWindow.cursorCaptured = false;
 
-		RectDesc fullScreenRect = {};
-		getRecommendedResolution(&fullScreenRect);
 		if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
 		{
-			MonitorDesc* windowMonitor = getMonitor(pSettings->mMonitorIndex);
-			uint32_t     oneBeforeLast = windowMonitor->resolutionCount - 2;
-			if (oneBeforeLast == ~0)
-			{
-				oneBeforeLast = 0;
-			}
-
-			pSettings->mWidth = windowMonitor->resolutions[oneBeforeLast].mWidth;
-			pSettings->mHeight = windowMonitor->resolutions[oneBeforeLast].mHeight;
+			RectDesc rect = {};
+			getRecommendedResolution(&rect);
+			pSettings->mWidth = getRectWidth(&rect);
+			pSettings->mHeight = getRectHeight(&rect);
 		}
+		MonitorDesc* pMonitor = getMonitor(pSettings->mMonitorIndex);
+		ASSERT(pMonitor);
 
-		gCurrentWindow.clientRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
-		gCurrentWindow.fullscreenRect = fullScreenRect;
+		gCurrentWindow.clientRect = { 	pSettings->mWindowX + pMonitor->monitorRect.left,
+										pSettings->mWindowY + pMonitor->monitorRect.top,
+										pSettings->mWidth ,
+										pSettings->mHeight
+									};
+		gCurrentWindow.windowedRect = gCurrentWindow.clientRect;
+		
+		gCurrentWindow.fullscreenRect = { 	pMonitor->monitorRect.left,
+											pMonitor->monitorRect.top,
+											(int32_t)(pMonitor->monitorRect.right  * gDPIScales[0].x),
+											(int32_t)(pMonitor->monitorRect.bottom * gDPIScales[0].y),
+										};
 
 		openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider);
 
@@ -649,7 +657,7 @@ char benchmarkOutput[1024] = { "\0" };
 			pApp->mSettings.mInitialized = true;
 
 			//if load fails then exit the app
-			if (!pApp->Load())
+			if (!pApp->Load(&gReloadDescriptor))
 			{
 				for (ForgeNSWindow* window in [NSApplication sharedApplication].windows)
 				{
@@ -681,23 +689,25 @@ char benchmarkOutput[1024] = { "\0" };
 	{
 		pApp->mSettings.mWidth = newWidth;
 		pApp->mSettings.mHeight = newHeight;
-
-		onRequestReload();
+		
+		ReloadDesc reloadDesc;
+		reloadDesc.mType = RELOAD_TYPE_RESIZE;
+		requestReload(&reloadDesc);
 	}
 }
 
 - (void)update
 {
-	if (gResetScenario & RESET_SCENARIO_RELOAD)
+	if(gReloadDescriptor.mType != RELOAD_TYPE_ALL)
 	{
-		pApp->Unload();
-		pApp->Load();
+		pApp->Unload(&gReloadDescriptor);
+		pApp->Load(&gReloadDescriptor);
 
-		gResetScenario &= ~RESET_SCENARIO_RELOAD;
+		gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 		return;
 	}
 
-	float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
+	float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 	if (deltaTime > 0.15f)
 		deltaTime = 0.05f;
@@ -733,7 +743,7 @@ char benchmarkOutput[1024] = { "\0" };
 	for (int i = 0; i < gMonitorCount; ++i)
 	{
 		MonitorDesc& monitor = gMonitors[i];
-		tf_free(monitor.resolutions);
+		arrfree(monitor.resolutions);
 	}
 
 	if (gMonitorCount > 0)
@@ -751,8 +761,8 @@ char benchmarkOutput[1024] = { "\0" };
 #endif
 	
 	pApp->mSettings.mQuit = true;
-	
-	pApp->Unload();
+	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+	pApp->Unload(&gReloadDescriptor);
 	pApp->Exit();
 
 	pApp->mSettings.mInitialized = false;

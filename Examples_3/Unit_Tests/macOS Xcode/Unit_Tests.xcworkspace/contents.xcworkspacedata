@@ -3,19 +3,14 @@
    version = "1.0">
    <Group
       location = "container:"
+      name = "Internal Tests">
+      <FileRef
+         location = "group:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:"
       name = "Examples">
-      <FileRef
-         location = "group:19a_CodeHotReload_Game/19a_CodeHotReload_Game.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:19_CodeHotReload_Main/19_CodeHotReload_Main.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
-      </FileRef>
       <FileRef
          location = "group:01_Transformations/01_Transformations.xcodeproj">
       </FileRef>
@@ -30,9 +25,6 @@
       </FileRef>
       <FileRef
          location = "group:07_Tessellation/07_Tessellation.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:08_GltfViewer/08_GltfViewer.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
@@ -53,7 +45,7 @@
          location = "group:15_Transparency/15_Transparency.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:16_Raytracing/../15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
+         location = "group:15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:16_Raytracing/16_Raytracing.xcodeproj">
@@ -62,41 +54,29 @@
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
+         location = "group:19_CodeHotReload_Main/19_CodeHotReload_Main.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:19a_CodeHotReload_Game/19a_CodeHotReload_Game.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:34_Input/34_Input.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:38_AmbientOcclusion_GTAO/38_AmbientOcclusion_GTAO.xcodeproj">
       </FileRef>
    </Group>
    <Group
       location = "container:"
       name = "Examples Animation">
       <FileRef
-         location = "group:21_Playback/21_Playback.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:22_Blending/22_Blending.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:23_JointAttachment/23_JointAttachment.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:24_PartialBlending/24_PartialBlending.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:25_AddititveBlending/25_AdditiveBlending.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:26_BakedPhysics/26_BakedPhysics.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:27_MultiThread/27_MultiThread.xcodeproj">
+         location = "group:21_Animations/21_Animations.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:22_Blending/../28_Skinning/28_Skinning.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:29_InverseKinematic/29_InverseKinematic.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>

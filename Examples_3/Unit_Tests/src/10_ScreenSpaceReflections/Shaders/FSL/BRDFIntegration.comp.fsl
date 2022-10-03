@@ -132,8 +132,6 @@ float2 IntegrateBRDF(float NdotV, float roughness)
 	return float2(A, B);
 }
 
-STATIC const float PI = 3.14159265359;
-
 RES(WTex2D(float2), dstTexture, UPDATE_FREQ_NONE, u0, binding = 0);
 
 NUM_THREADS(16, 16, 1)

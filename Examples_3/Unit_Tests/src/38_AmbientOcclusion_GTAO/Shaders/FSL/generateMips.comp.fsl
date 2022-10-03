@@ -1,0 +1,87 @@
+/*
+* Copyright (c) 2017-2022 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+CBUFFER(cbGTAOConsts, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float2, ViewportPixelSize, None);
+    DATA(float2, NDCToViewMul, None);
+    DATA(float2, NDCToViewAdd, None);
+    DATA(float2, NDCToViewMul_x_PixelSize, None);
+	DATA(float, EffectRadius, None);
+    DATA(float, EffectFalloffRange, None);
+    DATA(float, RadiusMultiplier, None);
+	DATA(float, SampleDistributionPower, None);
+	DATA(float, ThinOccluderCompensation, None);
+	DATA(float, SliceCount, None);
+	DATA(float, StepsPerSlice, None);
+    DATA(float, DepthMIPSamplingOffset, None);
+    DATA(float, FinalValuePower, None);
+	DATA(uint, NoiseIndex, None);
+    DATA(float, DenoiseBlurBeta, None);
+};
+
+RES(RWTex2D(float), Source, UPDATE_FREQ_PER_DRAW, u0, binding = 1);
+RES(RWTex2D(float), Destination, UPDATE_FREQ_PER_DRAW, u1, binding = 2);
+
+PUSH_CONSTANT(RootConstant, b1)
+{
+	DATA(uint2, MipSize, None);
+};
+
+// weighted average depth filter
+float XeGTAO_DepthMIPFilter( float depth0, float depth1, float depth2, float depth3)
+{
+    float maxDepth = max( max( depth0, depth1 ), max( depth2, depth3 ) );
+
+    const float depthRangeScaleFactor = 0.75f; // found empirically :)
+    const float effectRadius = depthRangeScaleFactor * Get(EffectRadius) * Get(RadiusMultiplier);
+    const float falloffRange = Get(EffectFalloffRange) * effectRadius;
+    const float falloffFrom  = effectRadius * (1.f-Get(EffectFalloffRange));
+    // fadeout precompute optimisation
+    const float falloffMul   = -1.0f / ( falloffRange );
+    const float falloffAdd   = falloffFrom / ( falloffRange ) + 1.0f;
+
+    float weight0 = saturate( (maxDepth-depth0) * falloffMul + falloffAdd );
+    float weight1 = saturate( (maxDepth-depth1) * falloffMul + falloffAdd );
+    float weight2 = saturate( (maxDepth-depth2) * falloffMul + falloffAdd );
+    float weight3 = saturate( (maxDepth-depth3) * falloffMul + falloffAdd );
+
+    float weightSum = weight0 + weight1 + weight2 + weight3;
+    return (weight0 * depth0 + weight1 * depth1 + weight2 * depth2 + weight3 * depth3) / weightSum;
+}
+
+NUM_THREADS(16,  16,  1)
+void CS_MAIN( SV_DispatchThreadID(uint3) id) 
+{    
+	INIT_MAIN;
+	if (id.x < Get(MipSize).x && id.y < Get(MipSize).y)
+	{
+		float depth0 = LoadRWTex2D(Get(Source), id.xy * 2 + uint2(0, 0)).x;
+		float depth1 = LoadRWTex2D(Get(Source), id.xy * 2 + uint2(0, 1)).x;
+		float depth2 = LoadRWTex2D(Get(Source), id.xy * 2 + uint2(1, 0)).x;
+		float depth3 = LoadRWTex2D(Get(Source), id.xy * 2 + uint2(1, 1)).x;
+		Write2D(Get(Destination), id.xy, XeGTAO_DepthMIPFilter(depth0, depth1, depth2, depth3));
+	}
+	RETURN();
+}

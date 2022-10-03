@@ -60,14 +60,17 @@
   <ItemGroup>
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\RenderSky.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\RenderSky.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Sky_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Space.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Space.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\SpaceObjects_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Star.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Star.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Sun.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\Sun.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\DepthLinearization.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\FXAA.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\Triangular.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\GenNormalMap.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\GenNormalMap.vert.fsl" />
@@ -77,6 +80,7 @@
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\RenderTerrain.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\BlurHorizontal.comp.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\BlurVertical.comp.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\Composite.frag.fsl" />
@@ -97,6 +101,7 @@
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.comp.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricClouds_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloudWithDepth.comp.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloudWithDepth.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2nd.comp.fsl" />
@@ -187,10 +192,8 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\res
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
 
 :: Copy Shaders
-xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-
-xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
-
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 :: Copy GPUCfg file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
@@ -213,7 +216,7 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
     <FSLShader>
       <Language>VULKAN DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -257,10 +260,8 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\res
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
 
 :: Copy Shaders
-xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-
-xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
-
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 :: Copy GPUCfg file
 xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"
@@ -283,7 +284,7 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\Ephemer
     <FSLShader>
       <Language>VULKAN DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
     </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

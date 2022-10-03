@@ -26,6 +26,9 @@
                     if exist "%(FSLShader.OutDir)"\ (
                         rmdir /s /q "%(FSLShader.OutDir)"
                     )
+                    if exist "%(FSLShader.BinaryOutDir)"\ (
+                        rmdir /s /q "%(FSLShader.BinaryOutDir)"
+                    )
                 </Command>
                 <Outputs>None</Outputs>
                 <LinkObjects>false</LinkObjects>
@@ -51,5 +54,14 @@
         <CustomBuild Condition ="'%(FSLShader.ExcludedFromBuild)' != 'true'" Sources="@(FSLShader)" />
 
     </Target>
+	
+	<PropertyGroup>
+		<!-- 
+			Trigger FSL always, we check internally for incremental rebuilds taking into account includes.
+			Without this setting FSL is only triggered when some cpp changes.
+			VS has another way to do this by specifying the input and output files of a target (for example: basic.vert.fsl -> basic.vert.bin) the problem is that there's no information about include files, we can't use it for our purposes.
+		-->
+		<DisableFastUpToDateCheck>True</DisableFastUpToDateCheck>
+	</PropertyGroup>
 </Project>
 

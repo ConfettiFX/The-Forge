@@ -26,41 +26,14 @@
 #include "packing.h.fsl"
 #include "deferred_resources.h.fsl"
 
-#ifdef VULKAN
-    #extension GL_ARB_shader_draw_parameters : enable
-#endif
-
-STRUCT(VsIn)
-{
-    DATA(float3, Position, POSITION);
-    DATA(uint,   TexCoord, TEXCOORD);
-    DATA(uint,   Normal, NORMAL);
-    DATA(uint,   Tangent, TANGENT);
-};
-
-STRUCT(PsIn)
-{
-    DATA(float4, Position, SV_Position);
-    DATA(float2, TexCoord, TEXCOORD0);
-    DATA(float3, Normal, TEXCOORD1);
-    DATA(float3, Tangent, TEXCOORD2);
-#if defined(VULKAN ) || defined(ORBIS) || defined(PROSPERO)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
-PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId )
+PsInDeferred VS_MAIN( VsInDeferred In, SV_InstanceID(uint) instanceId )
 {
     INIT_MAIN;
-    PsIn Out;
+    PsInDeferred Out;
     Out.Position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.Position, 1.0f));
     Out.TexCoord = unpack2Floats(In.TexCoord);
     Out.Normal = decodeDir(unpackUnorm2x16(In.Normal));
     Out.Tangent = decodeDir(unpackUnorm2x16(In.Tangent));
-#ifdef VULKAN
-    Out.drawId = gl_DrawIDARB;
-#elif defined(ORBIS) || defined(PROSPERO)
-	Out.drawId = instanceId;
-#endif
+    SET_DRAW_ID(Out, drawId, instanceId);
     RETURN(Out);
 }

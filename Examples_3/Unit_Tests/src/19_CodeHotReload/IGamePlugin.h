@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Math/MathTypes.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
 
 // Defined here because this is shared by the Main and Game projects.
 // Ideally it should be placed in some configuration file and disabled when not compiling with the editor.

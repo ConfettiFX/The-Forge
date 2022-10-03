@@ -16,30 +16,34 @@
     <ClCompile Include="..\..\src\28_Skinning\28_Skinning.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\basic.frag.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\basic.vert.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\plane.frag.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\plane.vert.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\skinning.frag.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\basic.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\skinning.vert.fsl">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\basic.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h">
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.frag.fsl">
       <Filter>Shaders\FSL</Filter>
-    </ClInclude>
+    </FSLShader>
   </ItemGroup>
 </Project>

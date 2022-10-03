@@ -27,11 +27,34 @@
     <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\01_Transformations\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis_FragShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis_VertShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\01_Transformations\01_Transformations.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Application\UI\NoesisUI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\Common_3\Application\UI\NoesisUI.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

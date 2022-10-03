@@ -1,0 +1,24 @@
+#frag ST_6_4 basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert ST_6_4 basic.vert
+#include "basic.vert.fsl"
+#end
+
+#comp compShadingRate.comp
+#include "compShadingRate.comp.fsl"
+#end
+#comp compShadingRate_ADDITIONAL_SUPPORT.comp
+#define ADDITIONAL_SUPPORT 1
+#include "compShadingRate.comp.fsl"
+#end
+
+#frag ST_6_4 cube.frag
+#include "cube.frag.fsl"
+#end
+
+#vert ST_6_4 cube.vert
+#include "cube.vert.fsl"
+#end
+

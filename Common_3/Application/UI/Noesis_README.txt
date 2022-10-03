@@ -1,0 +1,1 @@
+The XAML files in this directory were taken from https://github.com/Noesis/Tutorials/tree/master/Samples/Integration

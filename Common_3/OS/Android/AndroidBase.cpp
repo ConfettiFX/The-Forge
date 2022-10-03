@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../../Renderer/RendererConfig.h"
+#include "../../Graphics/GraphicsConfig.h"
 
 #include <ctime>
 #include <unistd.h>
@@ -36,34 +36,35 @@
 #include <EGL/egl.h>
 #endif
 
-#include "../Core/CPUConfig.h"
+#include "../CPUConfig.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IProfiler.h"
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
 
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
 #if defined(QUEST_VR)
 #include "../Quest/VrApi.h"
 #endif
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 
 static IApp* pApp = NULL;
 static WindowDesc* gWindowDesc = nullptr;
 extern WindowDesc gWindow;
 
-static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static ResetDesc gResetDescriptor = { RESET_TYPE_NONE };
+static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
 static bool    gShowPlatformUI = true;
 
 /// CPU
@@ -150,19 +151,14 @@ void requestShutdown()
 	LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android");
 }
 
-void onRequestReload()
+void requestReset(const ResetDesc* pResetDesc)
 {
-	gResetScenario |= RESET_SCENARIO_RELOAD;
+	gResetDescriptor = *pResetDesc;
 }
 
-void onDeviceLost()
+void requestReload(const ReloadDesc* pReloadDesc)
 {
-	// NOT SUPPORTED ON THIS PLATFORM
-}
-
-void onAPISwitch()
-{
-	gResetScenario |= RESET_SCENARIO_API_SWITCH;
+	gReloadDescriptor = *pReloadDesc;
 }
 
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
@@ -320,13 +316,11 @@ void setupPlatformUI(int32_t width, int32_t height)
 		// Select Api 
 		DropdownWidget selectApUIWidget;
 		selectApUIWidget.pData = &gSelectedApiIndex;
-		for (uint32_t i = 0; i < RENDERER_API_COUNT; ++i)
-		{
-			selectApUIWidget.mNames.push_back((char*)pApiNames[i]);
-			selectApUIWidget.mValues.push_back(i);
-		}
+		selectApUIWidget.pNames = pApiNames;
+		selectApUIWidget.mCount = RENDERER_API_COUNT;
+
 		pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApUIWidget->pOnEdited = onAPISwitch;
+		pSelectApUIWidget->pOnEdited = [](void* pUserData){ ResetDesc resetDesc; resetDesc.mType = RESET_TYPE_API_SWITCH; requestReset(&resetDesc); };
 
 #ifdef ENABLE_FORGE_SCRIPTING
 		REGISTER_LUA_WIDGET(pSelectApUIWidget);
@@ -407,8 +401,8 @@ int AndroidMain(void* param, IApp* app)
 	initCpuInfo(&gCpu, pJavaEnv);
 
 	IApp::Settings* pSettings = &pApp->mSettings;
-	Timer           deltaTimer;
-	initTimer(&deltaTimer);
+	HiresTimer           deltaTimer;
+	initHiresTimer(&deltaTimer);
 
 	getDisplayMetrics(android_app, pJavaEnv);
 
@@ -472,22 +466,11 @@ int AndroidMain(void* param, IApp* app)
 #endif
 		}
 
-		if (isActive && gResetScenario != RESET_SCENARIO_NONE)
+		if (isActive && gResetDescriptor.mType != RESET_TYPE_NONE)
 		{
-			if (gResetScenario & RESET_SCENARIO_RELOAD)
-			{
-				pApp->Unload();
+			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 
-                if (!pApp->Load())
-                {
-                    abort();
-                }
-
-				gResetScenario &= ~RESET_SCENARIO_RELOAD;
-				continue;
-			}
-
-			pApp->Unload();
+			pApp->Unload(&gReloadDescriptor);
 			pApp->Exit();
 
 			exitBaseSubsystems();
@@ -511,15 +494,32 @@ int AndroidMain(void* param, IApp* app)
 				setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
 				pSettings->mInitialized = true;
 
-                if (!pApp->Load())
+                if (!pApp->Load(&gReloadDescriptor))
                 {
                     abort();
                 }
 
-				LOGF(LogLevel::eINFO, "Application Reset %f", getTimerMSec(&t, false) / 1000.0f);
+				LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
 			}
 
-			gResetScenario = RESET_SCENARIO_NONE;
+			gResetDescriptor.mType = RESET_TYPE_NONE;
+			continue;
+		}
+
+		if (isActive && gReloadDescriptor.mType != RELOAD_TYPE_ALL)
+		{
+			Timer t;
+			initTimer(&t);
+
+			pApp->Unload(&gReloadDescriptor);
+
+			if (!pApp->Load(&gReloadDescriptor))
+			{
+				abort();
+			}
+
+			LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 			continue;
 		}
 
@@ -533,7 +533,8 @@ int AndroidMain(void* param, IApp* app)
 
 			if (isLoaded && !windowReady)
 			{
-				pApp->Unload();
+				gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+				pApp->Unload(&gReloadDescriptor);
 				isLoaded = false;
 			}
 
@@ -548,7 +549,7 @@ int AndroidMain(void* param, IApp* app)
         updateVrApi();
 #endif
 
-		float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
+		float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
@@ -586,8 +587,9 @@ int AndroidMain(void* param, IApp* app)
 	}
 #endif
 
+	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 	if (isLoaded)
-		pApp->Unload();
+		pApp->Unload(&gReloadDescriptor);
 
 	pApp->Exit();
 

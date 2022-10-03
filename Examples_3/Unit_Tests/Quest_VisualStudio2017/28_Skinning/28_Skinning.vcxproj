@@ -63,9 +63,7 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>        xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
@@ -74,11 +72,9 @@
         xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
-        xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -106,9 +102,7 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>        xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\" /s /y /d
@@ -117,10 +111,9 @@
         xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
-        xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -129,21 +122,20 @@
     <ClCompile Include="..\..\src\28_Skinning\28_Skinning.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\basic.frag.fsl" />
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\basic.vert.fsl" />
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\plane.frag.fsl" />
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\plane.vert.fsl" />
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\skinning.frag.fsl" />
-    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\Quest\skinning.vert.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.frag.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.vert.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
       <Project>{2f0e7e67-ff8e-4a4e-8271-11614a284790}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
       <Project>{055fad37-a3d6-4d9a-a63a-c81716339982}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">

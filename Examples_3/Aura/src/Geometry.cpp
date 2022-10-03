@@ -15,13 +15,13 @@
 
 #include "Geometry.h"
 
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/string.h"
 
-#include "../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../Common_3/OS/Interfaces/ILog.h"
+#include "../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../Common_3/Utilities/Interfaces/ILog.h"
 
-#include "../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 #define DEFAULT_ALBEDO "Default"
 #define DEFAULT_NORMAL "Default_NRM"

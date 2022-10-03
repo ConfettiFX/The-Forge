@@ -22,16 +22,26 @@
  * under the License.
 */
 
+RES(SamplerState,  uSampler0,  UPDATE_FREQ_NONE, s8, binding = 8);
+RES(Tex2D(float4), RightText,  UPDATE_FREQ_NONE, t1, binding = 1);
+RES(Tex2D(float4), LeftText,   UPDATE_FREQ_NONE, t2, binding = 2);
+RES(Tex2D(float4), TopText,    UPDATE_FREQ_NONE, t3, binding = 3);
+RES(Tex2D(float4), BotText,    UPDATE_FREQ_NONE, t4, binding = 4);
+RES(Tex2D(float4), FrontText,  UPDATE_FREQ_NONE, t5, binding = 5);
+RES(Tex2D(float4), BackText,   UPDATE_FREQ_NONE, t6, binding = 6);
+RES(Tex2D(float4), ZipTexture, UPDATE_FREQ_NONE, t7, binding = 7);
+
 STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
-    DATA(float4, Color, COLOR);
+	DATA(float4, Diffuse, COLOR);
+	DATA(float2, texcoords, TEXCOORD);
 };
 
 float4 PS_MAIN( VSOutput In )
 {
 	INIT_MAIN;
 	float4 Out;
-    Out = In.Color;
+	Out = SampleTex2D(Get(ZipTexture), Get(uSampler0), In.texcoords);
 	RETURN(Out);
 }

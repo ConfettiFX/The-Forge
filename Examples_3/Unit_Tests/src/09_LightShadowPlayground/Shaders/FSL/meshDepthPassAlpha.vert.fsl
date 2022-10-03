@@ -27,10 +27,6 @@
 #define MESH_PASS
 #include "vb_resources.h.fsl"
 
-#ifdef VULKAN
-	#extension GL_ARB_shader_draw_parameters : enable
-#endif
-
 STRUCT(VsIn)
 {
 	DATA(float3, Position, POSITION);
@@ -41,7 +37,7 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#if !defined(INDIRECT_ROOT_CONSTANT)
 	DATA(FLAT(uint), drawId, TEXCOORD1);
 #endif
 };
@@ -52,11 +48,6 @@ PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId)
 	PsIn Out;
 	Out.Position = mul(Get(WorldViewProjMat), float4(In.Position.xyz, 1.0));
 	Out.TexCoord = unpack2Floats(In.TexCoord);
-#ifdef VULKAN
-	Out.drawId = gl_DrawIDARB;
-#endif
-#if defined(ORBIS) || defined(PROSPERO)
-	Out.drawId = instanceId;
-#endif
+	SET_DRAW_ID(Out, drawId, instanceId);
 	RETURN(Out);
 }

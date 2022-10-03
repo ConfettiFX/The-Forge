@@ -38,12 +38,12 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>lib19a_CodeHotReload_Game</TargetName>
+    <TargetName>lib$(ProjectName)</TargetName>
     <AndroidEnablePackaging>false</AndroidEnablePackaging>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <LinkIncremental>false</LinkIncremental>
-    <TargetName>lib19a_CodeHotReload_Game</TargetName>
+    <TargetName>lib$(ProjectName)</TargetName>
     <AndroidEnablePackaging>false</AndroidEnablePackaging>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">

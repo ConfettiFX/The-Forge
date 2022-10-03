@@ -32,5 +32,8 @@
     <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\14_WaveIntrinsics\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

@@ -11,15 +11,42 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Common_3\Application\UI\NoesisUI.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <FSLShader Include="..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis.frag.fsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FSLShader>
+    <FSLShader Include="..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis.vert.fsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FSLShader>
+    <FSLShader Include="..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis_FragShaderList.fsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FSLShader>
+    <FSLShader Include="..\..\..\Common_3\Application\UI\Shaders\FSL\Noesis_VertShaderList.fsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FSLShader>
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\basic.vert.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\crash.vert.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\01_Transformations\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\01_Transformations\Shaders\FSL\skybox.vert.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\Application\UI\NoesisUI.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>
@@ -73,8 +100,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Application\ThirdParty\noesisgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -98,14 +124,15 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(Out
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D11\*.*" "$(OutDir)Shaders\DIRECT3D11\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"
+
+xcopy /Y /D "$(SolutionDir)..\..\..\Common_3\Application\UI\*.xaml" "$(OutDir)Noesis\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -121,7 +148,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D11 DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
@@ -134,8 +162,7 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Application\ThirdParty\noesisgui\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -161,14 +188,15 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(Out
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D11\*.*" "$(OutDir)Shaders\DIRECT3D11\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
-xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"
+
+xcopy /Y /D "$(SolutionDir)..\..\..\Common_3\Application\UI\*.xaml" "$(OutDir)Noesis\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -184,7 +212,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D11 DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>

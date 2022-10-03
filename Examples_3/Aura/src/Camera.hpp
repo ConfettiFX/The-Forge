@@ -16,7 +16,7 @@
 #ifndef Camera_hpp
 #define Camera_hpp
 
-#include "../../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../../Common_3/Application/Interfaces/ICameraController.h"
 
 typedef struct PerspectiveProjection
 {

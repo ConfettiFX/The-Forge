@@ -27,15 +27,15 @@
 
 #define MAX_MESH_NAME_LEN 128
 
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 //EA stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 #define NO_FSL_DEFINITIONS
 #include "Shaders/FSL/Shader_Defs.h.fsl"

@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{604d24fe-b9b8-4cfc-b11f-a843d86328b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4c26721a-0e41-44aa-bf82-504ae9916ff5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{4ea6e913-8c39-4c8d-ab90-af48104ba225}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{73c7697d-0e9d-412c-8028-db7d1dc84b6e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\01_Transformations\01_Transformations.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+  </ItemGroup>
+</Project>

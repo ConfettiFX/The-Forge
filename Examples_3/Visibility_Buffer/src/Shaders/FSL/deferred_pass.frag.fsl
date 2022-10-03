@@ -26,17 +26,6 @@
 #include "packing.h.fsl"
 #include "deferred_resources.h.fsl"
 
-STRUCT(PsIn)
-{
-    DATA(float4, Position, SV_Position);
-    DATA(float2, TexCoord, TEXCOORD0);
-    DATA(float3, Normal, TEXCOORD1);
-    DATA(float3, Tangent, TEXCOORD2);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
 STRUCT(PSOut)
 {
     DATA(float4, albedo, SV_Target0);
@@ -45,7 +34,7 @@ STRUCT(PSOut)
     DATA(float4, simulation, SV_Target3);
 };
 
-PSOut PS_MAIN( PsIn In )
+PSOut PS_MAIN( PsInDeferred In )
 {
     INIT_MAIN;
     PSOut Out;

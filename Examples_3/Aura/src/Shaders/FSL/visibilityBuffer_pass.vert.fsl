@@ -24,7 +24,7 @@ STRUCT(VsIn)
 STRUCT(VsOut)
 {
 	DATA(float4,     position, SV_Position);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#if !defined(INDIRECT_ROOT_CONSTANT)
     DATA(FLAT(uint), drawID,   TEXCOORD0);
 #endif
 };
@@ -36,12 +36,7 @@ VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
 	VsOut Out;
 
     Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.position, 1.0f));
-
-#ifdef VULKAN
-	Out.drawID = gl_DrawIDARB;
-#elif defined(ORBIS) || defined(PROSPERO)
-	Out.drawID = InstanceID;
-#endif
+	SET_DRAW_ID(Out, drawID, InstanceID);
 
     RETURN(Out);
 }

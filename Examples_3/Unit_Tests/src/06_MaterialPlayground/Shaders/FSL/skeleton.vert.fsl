@@ -29,7 +29,11 @@
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+	DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, mvp, None);
+#endif
     DATA(float4, color[MAX_INSTANCES], None);
     // Point Light Information
     DATA(float4, lightPosition, None);
@@ -53,7 +57,11 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 {
     INIT_MAIN;
     VSOutput Out;
+#if VR_MULTIVIEW_ENABLED
+    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld)[InstanceID]);
+#else
     float4x4 tempMat = mul(Get(mvp), Get(toWorld)[InstanceID]);
+#endif
     Out.Position = mul(tempMat, In.Position);
 
     float4 normal = normalize(mul(Get(toWorld)[InstanceID], float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling

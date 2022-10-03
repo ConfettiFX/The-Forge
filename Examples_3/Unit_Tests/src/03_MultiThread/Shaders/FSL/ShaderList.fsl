@@ -1,0 +1,24 @@
+#frag Graph.frag
+#include "Graph.frag.fsl"
+#end
+
+#vert Graph.vert
+#include "Graph.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW Particle.frag
+#include "Particle.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW Particle.vert
+#include "Particle.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW Skybox.frag
+#include "Skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW Skybox.vert
+#include "Skybox.vert.fsl"
+#end
+

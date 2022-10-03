@@ -1,0 +1,131 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+RES(Tex2D(float), sceneTexture, UPDATE_FREQ_NONE, t6, binding = 6);
+RES(Tex2D(float), historyTexture, UPDATE_FREQ_NONE, t7, binding = 7);
+RES(Tex2D(float), depthTexture, UPDATE_FREQ_NONE, t8, binding = 8);
+
+RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s9, binding = 9);
+RES(SamplerState, clampMiplessPointSampler, UPDATE_FREQ_NONE, s10, binding = 10);
+
+CBUFFER(TAAUniformBuffer, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float4x4, ReprojectionMatrix, None);
+	DATA(float2, ViewportPixelSize, None);
+};
+
+STRUCT(PsIn)
+{
+	DATA(float4, Position, SV_Position);
+	DATA(float2, TexCoord, TEXCOORD);
+};
+
+float ClipHistory(float clipMin, float clipMax, float history)
+{
+	float center = 0.5 * (clipMax + clipMin);
+	float extent = 0.5 * (clipMax - clipMin);
+	float clip = history - center;
+	float unit = abs(clip / extent);
+
+	if (!isnan(unit) && unit > 1.0)
+		return center + clip / unit;
+	else
+		return history;
+}
+
+float2 ReprojectUV(float2 uv, float depth)
+{
+	float4 reprojected = mul(Get(ReprojectionMatrix), float4(uv * float2(2.0, 2.0) - float2(1.0, 1.0), depth, 1.0));
+	reprojected /= reprojected.w;
+	return reprojected.xy * float2(0.5, 0.5) + float2(0.5, 0.5);
+}
+
+void SampleMinMax3x3(Tex2D(float) inputTexture, SamplerState inputSampler, float2 uv, float sourceSample,
+	inout(float) outClipMin, inout(float) outClipMax)
+{
+	float clipSample;
+	float clipMin = sourceSample;
+	float clipMax = sourceSample;
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2(-1, -1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2(-1,  0)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2(-1,  1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2( 0, -1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2( 0,  1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2( 1, -1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2( 1,  0)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	clipSample = SampleLvlOffsetTex2D(inputTexture, inputSampler, uv, 0, int2( 1,  1)).r;
+	clipMin = min(clipMin, clipSample);
+	clipMax = max(clipMax, clipSample);
+
+	outClipMin = clipMin;
+	outClipMax = clipMax;
+}
+
+SET_OUTPUT_FORMAT(FMT_32_R)
+
+float PS_MAIN( PsIn In )
+{
+	INIT_MAIN;
+	float Out;
+
+	float2 texCoord = In.TexCoord;
+
+	float scene = max(0.0f, SampleTex2D(Get(sceneTexture), Get(clampMiplessPointSampler), texCoord).r);
+
+	float depth = SampleTex2D(Get(depthTexture), Get(clampMiplessPointSampler), texCoord).r;
+	float2 reprojectedUV = ReprojectUV(texCoord, depth);
+
+	float history = max(0.0f, SampleTex2D(Get(historyTexture), Get(clampMiplessLinearSampler), reprojectedUV).r);
+
+	float clipMin;
+	float clipMax;
+	SampleMinMax3x3(Get(sceneTexture), Get(clampMiplessPointSampler), texCoord, scene, clipMin, clipMax);
+
+	history = ClipHistory(clipMin, clipMax, history);
+
+	Out = lerp(scene, history, 0.9);
+	RETURN(Out);
+}

@@ -126,6 +126,7 @@ PUSH_CONSTANT(HDAORootConstants, b0)
 	DATA(float,  g_fHDAOAcceptRadius, None);          // HDAO param
 	DATA(float,  g_fQ, None);                         // far / (far - near)
 	DATA(float,  g_fQTimesZNear, None);               // Q * near
+	DATA(float,  g_pad, None);
 };
 
 #if SAMPLE_COUNT > 1

@@ -75,22 +75,30 @@
 // in the scene. Changing a scene will require to change this value accordingly.
 #define MAX_DRAWS_INDIRECT 256
 
-// The following values point to the position in the indirect draw buffer that holds the
-// number of draw calls to draw after triangle filtering and batch compaction.
-// This value number is stored in the last position of the indirect draw buffer.
-// So it depends on MAX_DRAWS_INDIRECT
+#if defined(DIRECT3D12)
+#define INDIRECT_ROOT_CONSTANT 1
+#define SET_DRAW_ID(o, drawId, instanceId)
+#else
+#define SET_DRAW_ID(o, drawId, instanceId) o.drawId = instanceId
+#endif
+
 #if defined(ORBIS)
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
 #else
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
 #endif
-#if defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   0
-#else
+#if defined(INDIRECT_ROOT_CONSTANT)
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   1
+#else
+#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   0
 #endif
-#define DRAW_COUNTER_SLOT_POS ((MAX_DRAWS_INDIRECT-1)*INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
-#define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS*sizeof(uint))
+
+// The following values point to the position in the indirect draw buffer that holds the
+// number of draw calls to draw after triangle filtering and batch compaction.
+// This value number is stored in the last position of the indirect draw buffer.
+// So it depends on MAX_DRAWS_INDIRECT
+#define DRAW_COUNTER_SLOT_POS ((MAX_DRAWS_INDIRECT - 1) * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
+#define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS * sizeof(uint))
 
 // Size for the material buffer assuming each draw call uses one material index.
 // The 4 values here stands for the 4 types of rendering passes used in the demo:
@@ -169,40 +177,5 @@ STRUCT(LightData)
 	DATA(float4, position, None);
 	DATA(float4, color, None);
 };
-
-// compute units
-#define UNIT_UNCOMPACTED_ARGS             0
-#define UNIT_MATERIAL_PROPS               1
-#define UNIT_VERTEX_DATA                  2
-#define UNIT_INDEX_DATA                   3
-#define UNIT_MESH_CONSTANTS               4
-#define UNIT_BATCH_DATA_CBV               5
-#define UNIT_UNIFORMS_CBV                 6
-// #define UNIT_INDIRECT_MATERIAL_RW         7
-#define UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW  8
-#define UNIT_INDIRECT_DRAW_ARGS_RW        9
-#define UNIT_UNCOMPACTED_ARGS_RW          10
-#define UNIT_INDEX_DATA_RW                11
-#define UNIT_ICB_RW                       12
-#define UNIT_DRAWID_RW                    13
-#define UNIT_POSITION                     14
-#define UNIT_TEXCOORD                     15
-#define UNIT_DIFFUSEMAPS                  16
-
-#ifdef METAL
-
-// icb units
-#define UNIT_VBPASS_POSITION              30
-#define UNIT_VBPASS_TEXCOORD              29
-#define UNIT_VBPASS_NORMAL                28
-#define UNIT_VBPASS_TANGENT               27
-// textures are placed in AB UPDATE_FREQ_NONE
-#define UNIT_VBPASS_TEXTURES              UPDATE_FREQ_NONE
-// the following buffer locations need to be manually set from generated mtl shaders
-#define UNIT_VBPASS_UNIFORMS              6
-#define UINT_VBPASS_DRAWID                8
-#define UNIT_INDIRECT_MATERIAL_RW         7
-#define UINT_VBPASS_MAX                   8
-#endif
 
 #endif

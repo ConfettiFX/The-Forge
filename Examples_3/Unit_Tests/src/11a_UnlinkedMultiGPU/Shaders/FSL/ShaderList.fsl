@@ -1,0 +1,16 @@
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert basic.vert
+#include "basic.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert skybox.vert
+#include "skybox.vert.fsl"
+#end
+

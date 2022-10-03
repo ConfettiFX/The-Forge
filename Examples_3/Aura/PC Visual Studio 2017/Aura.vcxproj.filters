@@ -63,18 +63,6 @@
     <ClCompile Include="..\..\..\..\Custom-Middleware\Aura\Math\AuraVector.cpp">
       <Filter>AuraMiddleware\Math</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTDefaultAppInterop.cpp">
-      <Filter>Dependencies\TaskScheduler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTFiberContext.cpp">
-      <Filter>Dependencies\TaskScheduler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTScheduler.cpp">
-      <Filter>Dependencies\TaskScheduler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTThreadContext.cpp">
-      <Filter>Dependencies\TaskScheduler</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\AuraMiddlewareImpl\TaskManager.cpp">
       <Filter>AuraMiddlewareImpl</Filter>
     </ClCompile>
@@ -89,6 +77,18 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\Custom-Middleware\Aura\LightPropagation\LightPropagationCPUContext.cpp">
       <Filter>AuraMiddleware\Aura</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTDefaultAppInterop.cpp">
+      <Filter>Dependencies\TaskScheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTFiberContext.cpp">
+      <Filter>Dependencies\TaskScheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTScheduler.cpp">
+      <Filter>Dependencies\TaskScheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTThreadContext.cpp">
+      <Filter>Dependencies\TaskScheduler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -155,38 +155,41 @@
     <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvVisualizeCommon.h">
       <Filter>AuraMiddleware\Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h">
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\wind.h">
+    <ClInclude Include="..\src\Shaders\FSL\wind.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shading.h">
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\packing.h">
+    <ClInclude Include="..\src\Shaders\FSL\packing.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\lpvLightApply.h">
+    <ClInclude Include="..\src\Shaders\FSL\lpvLightApply.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\lpvCommon_example.h">
+    <ClInclude Include="..\src\Shaders\FSL\lpvCommon_example.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\lightPropagation_example.h">
+    <ClInclude Include="..\src\Shaders\FSL\lightPropagation_example.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\lpvSHMaths_example.h">
+    <ClInclude Include="..\src\Shaders\FSL\lpvSHMaths_example.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\vb_rsm_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\vb_rsm_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\Shared.h">
+      <Filter>AuraMiddleware\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -290,6 +293,12 @@
       <Filter>AuraMiddleware\Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvLightCopy.frag.fsl">
+      <Filter>AuraMiddleware\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\Aura_ShaderList.fsl">
       <Filter>AuraMiddleware\Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

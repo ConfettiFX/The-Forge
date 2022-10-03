@@ -19,7 +19,7 @@
     </EnumProperty>
     <!-- <StringProperty Subtype="file" Name="RootSignature" DisplayName="RootSignature"/> -->
     <StringProperty Subtype="folder" Name="OutDir" DisplayName="OutDir" Default="$(OutDir)/Shaders/"/>
-    <StringProperty Subtype="folder" Name="BinaryOutDir" DisplayName="BinaryOutDir" Default="$(OutDir)/Shaders/Binary"/>
+    <StringProperty Subtype="folder" Name="BinaryOutDir" DisplayName="BinaryOutDir" Default="$(OutDir)/CompiledShaders"/>
     <BoolProperty Name="Compile" DisplayName="Compile shader after generation"/>
     <BoolProperty Name="Verbose" DisplayName="Verbose shader generation"/>
 </Rule>

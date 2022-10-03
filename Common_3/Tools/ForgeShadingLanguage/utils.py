@@ -3,17 +3,40 @@
 from enum import Enum
 import datetime, os, sys
 from shutil import copyfile
+import subprocess, hashlib
+from os.path import dirname, join
+import tempfile
 
-class Languages(Enum):
+class Platforms(Enum):
     DIRECT3D11 = 0
     DIRECT3D12 = 1
     VULKAN =     2
-    METAL =      3
-    ORBIS =      4
-    PROSPERO =   5
-    XBOX =       6
-    SCARLETT =   7
-    GLES =       8
+    MACOS =      3
+    IOS   =      4
+    ORBIS =      5
+    PROSPERO =   6
+    XBOX =       7
+    SCARLETT =   8
+    GLES =       9
+    SWITCH =    10
+    ANDROID =   11
+    QUEST =     12
+
+platform_langs = {
+    Platforms.DIRECT3D11:  'DIRECT3D11',
+    Platforms.DIRECT3D12:  'DIRECT3D12',
+    Platforms.VULKAN:      'VULKAN',
+    Platforms.MACOS:       'METAL',
+    Platforms.IOS:         'METAL',
+    Platforms.ORBIS:       'ORBIS',
+    Platforms.PROSPERO:    'PROSPERO',
+    Platforms.XBOX :       'DIRECT3D12',
+    Platforms.SCARLETT :   'DIRECT3D12',
+    Platforms.GLES :       'GLES',
+    Platforms.SWITCH :     'VULKAN',
+    Platforms.ANDROID :    'VULKAN',
+    Platforms.QUEST :      'VULKAN',
+}
 
 class Stages(Enum):
     VERT = 0
@@ -23,6 +46,27 @@ class Stages(Enum):
     TESC = 4
     TESE = 5
     NONE = 6
+
+class ShaderTarget(Enum):
+    ST_5_0 = 0,
+    ST_5_1 = 1,
+    ST_6_0 = 2,
+    ST_6_1 = 3,
+    ST_6_2 = 4,
+    ST_6_3 = 5,
+    ST_6_4 = 6,
+    ST_END = 7,
+    MSL_2_2 = 10,
+    MSL_2_3 = 11,
+    MSL_2_4 = 12,
+    MSL_3_0 = 13,
+    MSL_END = 14,
+
+class StageFlags(Enum):
+    NONE = 0,
+    VR_MULTIVIEW = 1,
+    ORBIS_TESC = 2,
+    ORBIS_GEOM = 4
 
 class DescriptorSets(Enum):
     UPDATE_FREQ_NONE = 0
@@ -34,22 +78,53 @@ class DescriptorSets(Enum):
     space5 = 6
     space6 = 7
 
+class ShaderBinary:
+    def __init__(self):
+        self.stage = Stages.NONE
+        if os.name == "posix":
+            self.target = ShaderTarget.MSL_2_2
+        else:
+            self.target = ShaderTarget.ST_5_1
+        self.flags = []
+        self.preprocessed_srcs = {}
+        self.filename = None
+        self.fsl_filepath = None
+        self.derivatives = {}
+
+def fsl_platform_assert(platform: Platforms, condition, filepath, message ):
+    if condition: return
+
+    if platform in [Platforms.ANDROID, Platforms.VULKAN]:
+        for error in message.split('ERROR: '):
+            fne = error.find(':', 2)
+            if fne > 0:
+                src = error[:fne]
+                line, msg = error[fne+1:].split(':', 1)
+                message = '{}({}): ERROR : {}\n'.format(src, line, msg )
+                break
+
+    if Platforms.GLES == platform:
+        errors = message.strip().splitlines()[:-1]
+        src = errors.pop(0)
+        for error in errors:
+            sl, desc = error.split(' ', maxsplit=2)[1:]
+            source_index, line = sl.split(':')[:2]
+            error_src = 'UNKNOWN'
+            with open(src) as gen_src:
+                for l in gen_src.readlines():
+                    if l.startswith('#line'):
+                        index, filepath = l.split()[2:]
+                        if source_index == index:
+                            error_src = filepath[3:].strip('"')
+                            break
+            message = f'{error_src}({line}): ERROR: {desc}'
+            break
+
+    print(message)
+    sys.exit(1)
+
 def fsl_assert(condition, filename=None, _line_no=None, message=''):
     if not condition:
-
-        tmpfn = filename+'.del'
-        if os.path.exists(tmpfn): os.remove(tmpfn)
-        os.rename(filename, tmpfn)
-
-        if 'SPIR-V' in message:
-            for error in message.split('ERROR: '):
-                fne = error.find(':', 2)
-                if fne > 0:
-                    src = error[:fne]
-                    line, msg = error[fne+1:].split(':', 1)
-                    message = '{}({}): ERROR : {}\n'.format(src, line, msg )
-                    break
-
         print(message)
         sys.exit(1)
 
@@ -57,8 +132,8 @@ def getHeader(fsl_source):
     header = [
         '//'+'-'*38+'\n',
         '// Generated from Forge Shading Language\n',
-        '// '+str(datetime.datetime.now())+'\n',
-        '// \"'+fsl_source+'\"\n'
+        # '// '+str(datetime.datetime.now())+'\n',
+        # '// \"'+fsl_source+'\"\n'
         '//'+'-'*38+'\n',
         '\n'
     ]
@@ -217,7 +292,7 @@ def getArrayLenFlat(n):
     
 def getArrayLen(defines, n):
     arrlen = n[n.find('[')+1:n.find(']')]
-    if arrlen.isnumeric():
+    if arrlen.strip().isnumeric():
         return int(arrlen)
     elif arrlen not in defines or not defines[arrlen].strip().isnumeric():
         print(defines)
@@ -297,11 +372,11 @@ def collect_resources(lines: list, ws: set):
     return cb, pc, st, rs, df
 
 
-def getShader(fsl, dst=None, line_directives=True) -> Shader:
-
+def getShader(platform: Platforms, fsl_path: str, fsl: list, dst=None, line_directives=True) -> Shader:
+    
     # collect shader declarations
     incSet = set()
-    lines = preprocessed_from_file(fsl, line_directives)
+    lines = fsl
 
     # print(dst)
     # open(dst, 'w').writelines(lines)
@@ -328,7 +403,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
     
     # lines = open(fsl).readlines()
 
-    stage, entry_ret, entry_args, pcf, vs_reference, enable_waveops = get_entry_signature(fsl, lines)
+    stage, entry_ret, entry_args, pcf, vs_reference, enable_waveops = get_entry_signature(fsl_path, lines)
     # assert len(pushConstant) < 2, 'Only single PUSH_CONSTANT decl per shader'
 
     if stage != Stages.COMP:
@@ -363,7 +438,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
         
         # for tesselation, treat INPUT_PATCH and OUTPUT_PATCH
         if stage == Stages.TESC and 'INPUT_PATCH' in arg:
-            fsl_assert(input_patch_arg is None, fsl, message=': More than one INPUT_PATCH')
+            fsl_assert(input_patch_arg is None, fsl_path, message=': More than one INPUT_PATCH')
             dtype, dvar = arg.rsplit(maxsplit=1)
             arg_dtype, np = getMacro(dtype)
             # print(arg_dtype, np, dvar)
@@ -372,7 +447,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
             struct_args += [(arg_dtype, dvar)]
             continue
         if stage == Stages.TESE and 'OUTPUT_PATCH' in arg:
-            fsl_assert(output_patch_arg is None, fsl, message=': More than one OUTPUT_PATCH')
+            fsl_assert(output_patch_arg is None, fsl_path, message=': More than one OUTPUT_PATCH')
             dtype, dvar = arg.rsplit(maxsplit=1)
             arg_dtype, np = getMacro(dtype)
             output_patch_arg = (arg_dtype, np, dvar)
@@ -380,7 +455,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
             continue
 
         arg_elements = arg.split()
-        fsl_assert(len(arg_elements) == 2, fsl, message=': error FSL: Invalid entry argument: \''+arg+'\'')
+        fsl_assert(len(arg_elements) == 2, fsl_path, message=': error FSL: Invalid entry argument: \''+arg+'\'')
         arg_dtype, arg_var = arg_elements
 
         flat_arg_dtypes = [
@@ -415,7 +490,7 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
 
         # print(arg)
 
-        fsl_assert(arg_dtype in structs, fsl, message=': error FSL: Unknow entry argument: \''+arg+'\'')
+        fsl_assert(arg_dtype in structs, fsl_path, message=': error FSL: Unknow entry argument: \''+arg+'\'')
         struct_args += [(arg_dtype, arg_var)]
 
         continue
@@ -452,9 +527,10 @@ def getShader(fsl, dst=None, line_directives=True) -> Shader:
     shader.input_patch_arg = input_patch_arg
     shader.output_patch_arg = output_patch_arg
 
-    if shader.stage == Stages.TESC:
+    # for Prospero we handle it in collect_shader_decl
+    if shader.stage == Stages.TESC and platform != Platforms.PROSPERO:
         fsl_assert(vs_reference, message="TESC need a vs reference: TESS_VS_SHADER(\"shader.vert.fsl\")")
-        abspath_vs_reference = os.path.join(os.path.dirname(fsl), vs_reference)
+        abspath_vs_reference = os.path.join(os.path.dirname(fsl_path), vs_reference)
         fsl_assert(os.path.exists(abspath_vs_reference), message="Could not open TESC vs reference {}".format(abspath_vs_reference))
         shader.vs_reference = abspath_vs_reference
 
@@ -483,6 +559,234 @@ def max_timestamp_recursive(filepath, _files):
 
 def fixpath(rawpath):
     return rawpath.replace(os.sep, '/')
+
+def needs_regen(args, dependency_filepath, platforms, regen, dependencies):
+    exists, getmtime = os.path.exists, os.path.getmtime
+    if not exists(dependency_filepath):
+        regen.add('deps')
+        return True # no deps file
+    src_timestamp = getmtime(args.fsl_input)
+    if getmtime(dependency_filepath) < src_timestamp:
+        regen.add('deps')
+        return True # out-of-date deps
+    deps = open(dependency_filepath, 'r').read().split('\n\n')[1:]
+    for bdep in deps:
+
+        files = bdep.splitlines()
+        if len(files) == 0:
+            continue
+
+        generated_filename = files.pop(0)
+        dependencies[generated_filename] = [generated_filename] + files + ['']
+        files = [ f[1:-1] for f in files ]
+
+        for platform in platforms:
+            platform_filename = generated_filename
+            if platform in [Platforms.MACOS, Platforms.IOS]:
+                platform_filename += '.metal'
+            generated_filepath = os.path.join(args.destination, platform.name, platform_filename)
+            generated_filepath = os.path.normpath(generated_filepath).replace(os.sep, '/')
+            compiled_filepath = os.path.join(args.binaryDestination, platform.name, platform_filename)
+            if not os.path.exists(generated_filepath):
+                regen.add(platform_filename)
+                continue
+            if not os.path.exists(compiled_filepath):
+                regen.add(platform_filename)
+                continue
+            dst_timestamp = getmtime(generated_filepath)
+            if dst_timestamp < src_timestamp:
+                regen.add(platform_filename)
+                continue
+            deps_timestamp = max([os.path.getmtime(filepath.strip()) for filepath in files])
+            if dst_timestamp < deps_timestamp:
+                regen.add(platform_filename)
+                continue
+            bin_timestamp = getmtime(compiled_filepath)
+            if bin_timestamp < deps_timestamp:
+                regen.add(platform_filename)
+                continue
+    return len(regen)
+
+def collect_shader_decl(args, filepath: str, platforms, regen, dependencies, binary_declarations):
+    pp = []
+    if os.name == 'nt':
+        pp += [join(dirname(dirname(dirname(__file__))), 'Utilities', 'ThirdParty', 'OpenSource', 'mcpp', 'bin', 'mcpp.exe')]
+    else:
+        pp += ['cc', '-E', '-']
+
+    with open(filepath, 'r') as f:
+        source = f.readlines()
+
+    filedir = dirname(filepath)
+
+    binary_identifiers = set()
+
+    meta_source = []
+
+    include_dirs = [f'-I{filedir}']
+    if args.includes:
+        include_dirs += [ f'-I{d}' for d in args.includes ]
+
+    current_stage = Stages.NONE
+    vs_reference_found = False
+
+    for i, line in enumerate(source):
+        line = line.strip()
+        stage = Stages.NONE
+        if line.startswith('#frag'):
+            stage = Stages.FRAG
+        if line.startswith('#vert'):
+            stage = Stages.VERT
+        if line.startswith('#comp'):
+            stage = Stages.COMP
+        if line.startswith('#geom'):
+            stage = Stages.GEOM
+        if line.startswith('#tese'):
+            stage = Stages.TESE
+        if line.startswith('#tesc'):
+            stage = Stages.TESC
+        if stage is not Stages.NONE:
+
+            binary = ShaderBinary()
+            binary.stage = stage
+            binary.fsl_filepath = filepath
+
+            fsl_assert(current_stage == Stages.NONE, filepath, message=' error: missing #end for the previous stage')
+            current_stage = stage
+            decl = line.strip().split()
+            if len(decl) < 2:
+                print('ERROR: Invalid binary declaration: ', line)
+                sys.exit(1)
+            binary.filename, _ = decl.pop(), decl.pop(0)
+            for flag in decl:
+                # check for MSL or ST shader targets depending on platform
+                if Platforms.MACOS in platforms or Platforms.IOS in platforms:
+                    # start looking from ST_END which is just before the msl targets
+                    if flag in ShaderTarget._member_names_[int(ShaderTarget.ST_END.value[0]):]:
+                        binary.target = ShaderTarget[flag]
+                else:
+                    # finish looking once we reach ST_END
+                    if flag in ShaderTarget._member_names_[:int(ShaderTarget.ST_END.value[0])]:
+                        binary.target = ShaderTarget[flag]
+                
+                if flag in StageFlags._member_names_:
+                    binary.flags += [StageFlags[flag]]
+                    
+            binary_macro = abs(hash(binary))
+            if binary_macro not in binary_identifiers:
+                binary_declarations += [ binary ]
+                meta_source += [ f'#if D_{binary_macro}\n'.encode('utf-8') ]
+                binary_identifiers.add(binary_macro)
+            else:
+                print('WARN: duplicate shader, only compiling 1st, line:', i, ':', binary.filename)
+                meta_source += [ b'#if 0\n' ]
+            continue
+
+        if line == '#end':
+            fsl_assert(current_stage != Stages.NONE, filepath, message=' error: #end found without an opening stage')
+            fsl_assert(current_stage != Stages.TESC or vs_reference_found, filepath, message='#tesc need a vs reference in this file: TESS_VS_SHADER(\"shader.vert.fsl\")')
+            current_stage = Stages.NONE
+            vs_reference_found = False
+            meta_source += [ b'#endif\n' ]
+            continue
+        
+        if 'TESS_VS_SHADER(' in line and current_stage == Stages.TESC:
+            vs_reference_found = True
+            vs_filename = getMacro(line).strip('"')
+            # For Prospero we need to change the macro for an #include, if we don't do it at this preprocessor stage
+            # we'll get duplicate definitions latter when compiling the binary.
+            meta_source += [
+                b'#ifdef PROSPERO\n',
+                b'#undef VS_MAIN\n',
+                b'#define VS_MAIN vs_main\n',
+                b'#include "' + vs_filename.encode('utf-8') + b'"\n',
+                b'#else\n',
+                source[i].encode('utf-8'), # For other platforms we keep the macro as is
+                b'#endif\n'
+                ]
+            continue
+
+        meta_source += [ source[i].encode('utf-8') ]
+    
+    source = b''.join(meta_source)
+    fsl_dependencies = {}
+    for binary in binary_declarations:
+        if args.incremental and regen and (not binary.filename in regen and not binary.filename+'.metal' in regen):
+            if binary.filename in dependencies:
+                fsl_dependencies[binary.filename] = dependencies[binary.filename]
+            continue
+
+        for platform in platforms:
+            cmd = pp + [
+                *include_dirs,
+                f'-DD_{abs(hash(binary))}',
+                f'-D{platform_langs[platform]}',
+                f'-DTARGET_{platform.name}',
+                f'-D{ "_DEBUG" if args.debug else "NDEBUG" }'
+            ]
+
+            binary.derivatives[platform] = [[]]
+            
+            if Platforms.QUEST == platform and StageFlags.VR_MULTIVIEW in binary.flags:
+                cmd += ['-DVR_MULTIVIEW_ENABLED']
+
+            deps_filepath = os.path.join( tempfile.gettempdir(), next(tempfile._get_candidate_names()) )
+            if args.incremental:
+                if os.name == 'nt':
+                    cmd += ['-MD', deps_filepath]
+                else:
+                    cmd += ['-MMD', '-MF', deps_filepath]
+
+            cp = subprocess.run(cmd, input=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            if 0 != cp.returncode:
+                _err = cp.stdout.decode()
+                if len(_err) > 19:
+                    if os.name == 'nt':
+                        error_lines = f"{cp.stderr.decode().replace('<stdin>', filepath)}".splitlines()
+                        for i, line in enumerate(error_lines):
+                            if ': error: ' in line:
+                                err, msg = line.split(': error: ')
+                                src, line = err.rsplit(':', maxsplit=1)
+                                error_lines[i] = f'{src}({line}): ERROR : {msg}'
+                        error_message = '\n'.join(error_lines)
+                    else:
+                        error_message = f"{cp.stderr.decode().replace('<stdin>', filepath)}"
+                    print(error_message)
+                    sys.exit(cp.returncode)
+            
+            if args.incremental:
+                if not os.path.exists(deps_filepath):
+                    print('Deps file couldnt be found')
+                    sys.exit(1)
+                md_raw = [ l.rstrip('\\\n').rstrip(': ') for l in open(deps_filepath).readlines() if len(l) > 1 ]
+                if len(md_raw) > 1:
+                    md = [binary.filename] + [ f'\"{d.strip()}\"' for d in md_raw[1:] ] + ['']
+                    fsl_dependencies[binary.filename] = md
+                os.remove(deps_filepath)
+
+            shaderSource = cp.stdout.replace(b'"<stdin>"', f'"{filepath}"'.encode('utf-8'))
+
+            # glslangValidator doesn't seem to understand these empty directives that cc preprocessor adds (empty directive, just a hashtag)
+            # We replace it with #line that it's understood
+            if sys.platform == 'linux':
+                correctLines = []
+                for line in shaderSource.split(b'\n'):
+                    if line.count(b'# ') == 0: correctLines += [line]; continue
+
+                    line = line.replace(b'# ', b'#line ')
+                    last_quote_index = line.rfind(b'"')
+                    # some lines have numbers after the string that confuse glslangValidator, we remove them
+                    if last_quote_index > 0 and last_quote_index + 1 < len(line):
+                        to_remove = len(line) - last_quote_index - 1
+                        line = line[:-to_remove]
+                    correctLines += [line]
+                shaderSource = b'\n'.join(correctLines)
+            
+            if shaderSource.find(b'_MAIN(') > -1:
+                binary.preprocessed_srcs[platform] = shaderSource.decode().splitlines(keepends=True)
+
+    return binary_declarations, fsl_dependencies
 
 def preprocessed_from_file(filepath, line_directives, files_seen=None):
     if files_seen is None: files_seen = []
@@ -619,7 +923,7 @@ def get_fn_table(lines):
                     return False
                 if not skip_keyword(function): # (not 'FSL_' in function or 'PatchTess(' in _line): # skip cbuffer, push_constant and entry fn
                     function = _line.split('(')[0].split()[-1]
-                    print('fn: ', function)
+                    # print('fn: ', function)
                     if 'PatchTess(' in _line:
                         function = _line.split('(')[1].split()[-1]
                     table[function] = (lines[insert[0]], insert)

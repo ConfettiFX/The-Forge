@@ -29,8 +29,9 @@
 #include <android/native_activity.h>
 #include <android/log.h>
 
-#include "../Interfaces/IApp.h"
+#include "../../Application/Interfaces/IApp.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 
 #if defined(QUEST_VR)
 #include "../Quest/VrApi.h"
@@ -340,7 +341,10 @@ void handle_cmd(android_app* app, int32_t cmd)
 			//pApp->pWindow = gWindowDesc;
 			if (!windowReady)
 			{
-				pWindowAppRef->Load();
+				ReloadDesc reloadDesc;
+				reloadDesc.mType = RELOAD_TYPE_ALL;
+				pWindowAppRef->Load(&reloadDesc);
+
 				isLoaded = true;
 			}
 
@@ -374,8 +378,9 @@ void handle_cmd(android_app* app, int32_t cmd)
 				gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
 				pSettings->mWidth = screenWidth;
 				pSettings->mHeight = screenHeight;
-
-				onRequestReload();
+				ReloadDesc reloadDesc;
+				reloadDesc.mType = RELOAD_TYPE_RESIZE;
+				requestReload(&reloadDesc);
 			}
 			break;
 		}

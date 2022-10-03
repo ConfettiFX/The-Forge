@@ -692,6 +692,8 @@ inline int2 GetDimensions(RWTexture2D<float4> t, int _) { uint2 d; t.GetDimensio
 inline int2 GetDimensions(RWTexture2D<float4> t, SamplerState smp) { return GetDimensions(t, NO_SAMPLER); }
 inline int2 GetDimensions(TextureCube t, int _) { uint2 d; t.GetDimensions(d.x, d.y); return d; }
 inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimensions(t, NO_SAMPLER); }
+
+#define GetDimensionsMS(tex, dim) int2 dim; { uint3 d; tex.GetDimensions(d.x, d.y, d.z); dim = int2(d.xy); }
 // #define GetDimensions(TEX, SAMPLER) _GetDimensions(TEX)
 
 // int2 GetDimensions(Texture2D t, SamplerState s)

@@ -11,96 +11,87 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\OS\Core\ThreadSystem.cpp" />
-    <ClCompile Include="..\..\..\OS\Core\Timer.c" />
-    <ClCompile Include="..\..\..\OS\FileSystem\FileSystem.cpp" />
-    <ClCompile Include="..\..\..\OS\FileSystem\SystemRun.cpp" />
-    <ClCompile Include="..\..\..\OS\FileSystem\ZipFileSystem.c" />
-    <ClCompile Include="..\..\..\OS\Logging\Log.c" />
-    <ClCompile Include="..\..\..\OS\MemoryTracking\MemoryTracking.c" />
     <ClCompile Include="..\..\..\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\OS\Windows\WindowsLog.c" />
     <ClCompile Include="..\..\..\OS\Windows\WindowsStackTraceDump.cpp" />
     <ClCompile Include="..\..\..\OS\Windows\WindowsThread.c" />
     <ClCompile Include="..\..\..\OS\Windows\WindowsTime.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\assert.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\fixed_pool.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\hashtable.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\intrusive_list.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\numeric_limits.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\red_black_tree.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\string.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\EASTL\thread_support.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\hmac.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha1.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha2.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt_brg.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_os.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_raw.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_zlib.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\minizip\mz_zip.c" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp" />
-    <ClCompile Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp" />
-    <ClCompile Include="..\..\FileSystem\WindowsToolsFileSystem.cpp" />
+    <ClCompile Include="..\..\..\OS\Windows\WindowsToolsFileSystem.cpp" />
+    <ClCompile Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp" />
+    <ClCompile Include="..\..\..\Utilities\FileSystem\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\Utilities\FileSystem\SystemRun.cpp" />
+    <ClCompile Include="..\..\..\Utilities\FileSystem\ZipFileSystem.c" />
+    <ClCompile Include="..\..\..\Utilities\Log\Log.c" />
+    <ClCompile Include="..\..\..\Utilities\Math\Algorithms.c" />
+    <ClCompile Include="..\..\..\Utilities\Math\StbDs.c" />
+    <ClCompile Include="..\..\..\Utilities\MemoryTracking\MemoryTracking.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt_brg.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.cpp" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_raw.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.c" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp" />
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp" />
+    <ClCompile Include="..\..\..\Utilities\Threading\ThreadSystem.cpp" />
+    <ClCompile Include="..\..\..\Utilities\Timer.c" />
     <ClCompile Include="..\src\AssetPipeline.cpp" />
-    <ClCompile Include="..\src\AssetPipelineCmd.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\src\AssetPipelineCmd.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\OS\Core\Atomics.h" />
-    <ClInclude Include="..\..\..\OS\Core\Compiler.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IApp.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\ICameraController.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IInput.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IMiddleware.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IProfiler.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IScreenshot.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IUI.h" />
+    <ClInclude Include="..\..\..\Game\Interfaces\IScripting.h" />
+    <ClInclude Include="..\..\..\Application\Interfaces\IFont.h" />
     <ClInclude Include="..\..\..\OS\Core\GPUConfig.h" />
-    <ClInclude Include="..\..\..\OS\Core\ThreadSystem.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IApp.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\ICameraController.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IFileSystem.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IFont.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IInput.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\ILog.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IMemory.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\OS\Interfaces\IOperatingSystem.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IProfiler.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IScreenshot.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IScripting.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IThread.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\ITime.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IUI.h" />
-    <ClInclude Include="..\..\..\OS\Logging\Log.h" />
-    <ClInclude Include="..\..\..\OS\MemoryTracking\NoMemoryDefines.h" />
     <ClInclude Include="..\..\..\OS\Windows\WindowsStackTraceDump.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\hmac.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha1.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\lib\brg\sha2.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_crypt.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_os.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_strm_zlib.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\minizip\mz_zip.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\ozz-animation\include\ozz\base\io\archive.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h" />
-    <ClInclude Include="..\..\..\ThirdParty\OpenSource\zip\miniz.h" />
-    <ClInclude Include="..\..\FileSystem\IToolFileSystem.h" />
+    <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.h" />
+    <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\IFileSystem.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\ILog.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\IMemory.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\IThread.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\ITime.h" />
+    <ClInclude Include="..\..\..\Utilities\Interfaces\IToolFileSystem.h" />
+    <ClInclude Include="..\..\..\Utilities\Log\Log.h" />
+    <ClInclude Include="..\..\..\Utilities\Math\Algorithms.h" />
+    <ClInclude Include="..\..\..\Utilities\Math\AlgorithmsImpl.h" />
+    <ClInclude Include="..\..\..\Utilities\Math\BStringHashMap.h" />
+    <ClInclude Include="..\..\..\Utilities\MemoryTracking\NoMemoryDefines.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.h" />
+    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\zip\miniz.h" />
+    <ClInclude Include="..\..\..\Utilities\Threading\Atomics.h" />
+    <ClInclude Include="..\..\..\Utilities\Threading\ThreadSystem.h" />
     <ClInclude Include="..\src\AssetPipeline.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -139,14 +130,14 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
     <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
@@ -170,13 +161,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;astc-encoder.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
 $(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -206,13 +197,13 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;astc-encoder.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
 $(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>

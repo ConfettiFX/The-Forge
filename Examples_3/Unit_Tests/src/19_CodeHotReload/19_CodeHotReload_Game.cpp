@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../../../../Common_3/ThirdParty/OpenSource/cr/cr.h"
+#include "../../../../Common_3/Application/ThirdParty/OpenSource/cr/cr.h"
 
 #include "IGamePlugin.h"
 

@@ -11,15 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c" />
+    <ClCompile Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c" />
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\ShaderList.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6E3EA66-19D5-46EE-B111-877DD965AB89}</ProjectGuid>
@@ -97,10 +98,10 @@
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
@@ -119,7 +120,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
@@ -158,10 +160,10 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
@@ -180,7 +182,8 @@ xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Comm
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>

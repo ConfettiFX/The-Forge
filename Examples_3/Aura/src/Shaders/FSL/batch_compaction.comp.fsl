@@ -60,28 +60,40 @@ void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 	uint slot = 0;
 
 	UNROLL_N(NUM_CULLING_VIEWPORTS)
-	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	for (uint j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
 	{
-		if (numIndices[i] > 0)
+		if (numIndices[j] > 0)
 		{
-			uint matID = Get(uncompactedDrawArgs)[i][threadID.x].materialID;
+			uint matID = Get(uncompactedDrawArgs)[j][threadID.x].materialID;
 			bool hasAlpha = (Get(materialProps)[matID] == 1);
-			uint baseMatSlot = BaseMaterialBuffer(hasAlpha, i);
+			uint baseMatSlot = BaseMaterialBuffer(hasAlpha, j);
 
 			uint indexCountOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 0;
 			uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2;
+			uint startInstanceOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 4;
+			uint startIndex = Get(uncompactedDrawArgs)[j][threadID.x].startIndex;
 
 			if (hasAlpha)
 			{
-				AtomicAdd(Get(indirectDrawArgsBufferAlpha)[i][DRAW_COUNTER_SLOT_POS], 1, slot);
-				AtomicStore(Get(indirectDrawArgsBufferAlpha)[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[i]);
-				AtomicStore(Get(indirectDrawArgsBufferAlpha)[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], Get(uncompactedDrawArgs)[i][threadID.x].startIndex);
+				AtomicAdd(Get(indirectDrawArgsBufferAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
+				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
+				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+				
+				#if defined(INDIRECT_COMMAND_BUFFER)
+					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+					cmdDrawIndexedInstanced(Get(icbAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
+				#endif
 			}
 			else
 			{
-				AtomicAdd(Get(indirectDrawArgsBufferNoAlpha)[i][DRAW_COUNTER_SLOT_POS], 1, slot);
-				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[i]);
-				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], Get(uncompactedDrawArgs)[i][threadID.x].startIndex);
+				AtomicAdd(Get(indirectDrawArgsBufferNoAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
+				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
+				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+				
+				#if defined(INDIRECT_COMMAND_BUFFER)
+					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+					cmdDrawIndexedInstanced(Get(icbNoAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
+				#endif
 			}
 			Get(indirectMaterialBuffer)[baseMatSlot + slot] = matID;
 		}

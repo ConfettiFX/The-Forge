@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #include <functional>
 
@@ -32,19 +32,19 @@
 #include <WinBase.h>
 #endif
 
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 template <typename T>
 static inline T withUTF16Path(const char* path, T(*function)(const wchar_t*))
 {
-	size_t len = strlen(path);
-	wchar_t* buffer = (wchar_t*)alloca((len + 1) * sizeof(wchar_t));
+	size_t len = strlen(path) + 1;
+	wchar_t buffer[FS_MAX_PATH];
+	ASSERT(len < FS_MAX_PATH);
 
-	size_t resultLength = MultiByteToWideChar(CP_UTF8, 0, path, (int)len, buffer, (int)len);
-	buffer[resultLength] = 0;
+	MultiByteToWideChar(CP_UTF8, 0, path, (int)len, buffer, (int)len);
 
 	return function(buffer);
 }
@@ -176,11 +176,10 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 	fsAppendPathComponent(resourcePath, fileName, filePath);
 
 	// Path utf-16 conversion
-	size_t filePathLen = strlen(filePath);
-	wchar_t* pathStr = (wchar_t*)alloca((filePathLen + 1) * sizeof(wchar_t));
-	size_t pathStrLength =
-		MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
-	pathStr[pathStrLength] = 0;
+	size_t filePathLen = strlen(filePath) + 1;
+	wchar_t pathStr[FS_MAX_PATH];
+	ASSERT(filePathLen < FS_MAX_PATH);
+	MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
 
 	// Mode string utf-16 conversion
 	const char* modeStr = fsFileModeToString(mode);

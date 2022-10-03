@@ -14,7 +14,7 @@
 */
 
 #include "../../../../../Custom-Middleware/Aura/Interfaces/IAuraMemoryManager.h"
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 namespace aura {
 void* alloc(size_t size) { return tf_malloc(size); }

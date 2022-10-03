@@ -40,5 +40,8 @@
     <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\basic.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\11_MultiGPU\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

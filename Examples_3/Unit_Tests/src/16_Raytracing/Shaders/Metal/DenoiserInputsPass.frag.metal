@@ -25,6 +25,10 @@
 #include <metal_atomic>
 using namespace metal;
 
+// Include FSL metal to have access to defines: UPDATE_FREQ_*
+// This is copied to the destination folder in build script
+#include "metal.h"
+
 struct VertexOutput
 {
 	float4 position [[position]];

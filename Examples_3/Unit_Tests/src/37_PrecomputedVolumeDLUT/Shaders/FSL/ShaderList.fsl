@@ -1,0 +1,8 @@
+#frag PrecomputedDLUT.frag
+#include "PrecomputedDLUT.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW PrecomputedDLUT.vert
+#include "PrecomputedDLUT.vert.fsl"
+#end
+

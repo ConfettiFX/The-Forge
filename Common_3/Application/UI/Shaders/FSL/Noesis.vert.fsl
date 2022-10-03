@@ -1,0 +1,112 @@
+
+STRUCT(VS_INPUT)
+{
+	DATA(float2, pos, Position);
+#ifdef HAS_COLOR
+	DATA(float4, col, COLOR0);
+#endif
+#ifdef HAS_UV0
+	DATA(float2, uv0, TEXCOORD0);
+#endif
+#ifdef HAS_UV1
+	DATA(float2, uv1, TEXCOORD1);
+#endif
+#ifdef HAS_COVERAGE
+	DATA(float, coverage, TEXCOORD2);
+#endif
+#ifdef HAS_RECT
+	DATA(float4, rect, TEXCOORD3);
+#endif
+#ifdef HAS_TILE
+	DATA(float4, tile, TEXCOORD4);
+#endif
+#ifdef HAS_IMAGE_POSITION
+	DATA(float4, imagePos, TEXCOORD5);
+#endif
+};
+
+STRUCT(PS_INPUT)
+{
+	DATA(float4, pos, SV_Position);
+#ifdef HAS_COLOR
+	DATA(float4, col, COLOR0);
+#endif
+#ifdef HAS_UV0
+	DATA(float2, uv0, TEXCOORD0);
+#endif
+#ifdef HAS_UV1
+	DATA(float2, uv1, TEXCOORD1);
+#endif
+#ifdef HAS_COVERAGE
+	DATA(float, coverage, TEXCOORD2);
+#endif
+#ifdef HAS_RECT
+	DATA(FLAT(float4), rect, TEXCOORD3);
+#endif
+#ifdef HAS_TILE
+	DATA(FLAT(float4), tile, TEXCOORD4);
+#endif
+#ifdef HAS_IMAGE_POSITION
+	DATA(float4, imagePos, TEXCOORD5);
+#endif
+#ifdef SDF
+    DATA(float2, st1, TEXCOORD6);
+#endif
+};
+
+CBUFFER(uBlock, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float4x4, cbuf0_vs, None);
+	DATA(float4, cbuf1_vs, None);
+};
+
+float SRGBToLinear(float v)
+{
+    if (v <= 0.04045f)
+    {
+      return v * (1.0f / 12.92f);
+    }
+    else
+    {
+      return pow( v * (1.0f / 1.055f) + 0.0521327f, 2.4f);
+    }
+}
+
+PS_INPUT VS_MAIN( VS_INPUT In )
+{
+	INIT_MAIN;
+	PS_INPUT Out;
+	Out.pos = mul(Get(cbuf0_vs), float4(In.pos.xy, 0.f, 1.f));
+#ifdef HAS_COLOR
+	#ifdef SRGB
+		Out.col.r = SRGBToLinear(In.col.r);
+		Out.col.g = SRGBToLinear(In.col.g);
+		Out.col.b = SRGBToLinear(In.col.b);
+		Out.col.a = In.col.a;
+	#else
+		Out.col = In.col;
+	#endif
+#endif
+#ifdef HAS_UV0
+	Out.uv0 = In.uv0;
+#endif
+#ifdef HAS_UV1
+	Out.uv1 = In.uv1;
+#endif
+#ifdef HAS_COVERAGE
+	Out.coverage = In.coverage;
+#endif
+#ifdef HAS_RECT
+	Out.rect = In.rect;
+#endif
+#ifdef HAS_TILE
+	Out.tile = In.tile;
+#endif
+#ifdef HAS_IMAGE_POSITION
+	Out.imagePos = In.imagePos;
+#endif
+#ifdef SDF
+	Out.st1 = In.uv1 * Get(cbuf1_vs).xy;
+#endif
+	RETURN(Out);
+}

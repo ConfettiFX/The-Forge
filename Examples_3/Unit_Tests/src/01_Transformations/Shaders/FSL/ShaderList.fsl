@@ -1,0 +1,20 @@
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW basic.vert
+#include "basic.vert.fsl"
+#end
+
+#vert crash.vert
+#include "crash.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+

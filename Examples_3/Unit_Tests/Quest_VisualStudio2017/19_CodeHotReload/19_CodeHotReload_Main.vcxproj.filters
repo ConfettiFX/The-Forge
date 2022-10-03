@@ -18,13 +18,13 @@
     <ClCompile Include="..\..\src\19_CodeHotReload\19_CodeHotReload_Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c">
+    <ClCompile Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c">
       <Filter>Source Files\flecs</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h">
+    <ClInclude Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h">
       <Filter>Source Files\flecs</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,6 +34,9 @@
     </FSLShader>
     <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\basic.vert.fsl">
       <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\19_CodeHotReload\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
     </FSLShader>
   </ItemGroup>
 </Project>

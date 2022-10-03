@@ -22,15 +22,15 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdarg.h>
 #include "../Interfaces/IOperatingSystem.h"
 
 // interfaces
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 void _OutputDebugStringV(const char* str, va_list args)
 {

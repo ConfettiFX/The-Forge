@@ -40,7 +40,6 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 
     if (threadID.x == 0)
     {
-		
 	    UNROLL_N(NUM_CULLING_VIEWPORTS)
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{

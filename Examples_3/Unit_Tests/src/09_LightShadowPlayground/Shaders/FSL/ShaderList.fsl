@@ -1,0 +1,203 @@
+#comp VR_MULTIVIEW bakedSDFMeshShadow_SAMPLE_COUNT_1.comp
+#define SAMPLE_COUNT 1
+#include "bakedSDFMeshShadow.comp.fsl"
+#end
+#comp VR_MULTIVIEW bakedSDFMeshShadow_SAMPLE_COUNT_2.comp
+#define SAMPLE_COUNT 2
+#include "bakedSDFMeshShadow.comp.fsl"
+#end
+#comp VR_MULTIVIEW bakedSDFMeshShadow_SAMPLE_COUNT_4.comp
+#define SAMPLE_COUNT 4
+#include "bakedSDFMeshShadow.comp.fsl"
+#end
+
+#comp clearVisibilityBuffers.comp
+#include "clearVisibilityBuffers.comp.fsl"
+#end
+
+#comp triangleFiltering.comp
+#include "triangleFiltering.comp.fsl"
+#end
+
+#comp batchCompaction.comp
+#include "batchCompaction.comp.fsl"
+#end
+
+#if defined(METAL)
+#comp clearVisibilityBuffers_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "clearVisibilityBuffers.comp.fsl"
+#end
+
+#comp triangleFiltering_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "triangleFiltering.comp.fsl"
+#end
+
+#comp batchCompaction_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "batchCompaction.comp.fsl"
+#end
+#endif
+
+#frag copyDEMQuads.frag
+#include "copyDEMQuads.frag.fsl"
+#end
+
+#vert copyDEMQuads.vert
+#include "copyDEMQuads.vert.fsl"
+#end
+
+#frag copyDepthQuads.frag
+#include "copyDepthQuads.frag.fsl"
+#end
+
+#vert copyDepthQuads.vert
+#include "copyDepthQuads.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW display.frag
+#include "display.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW display.vert
+#include "display.vert.fsl"
+#end
+
+#frag fill_Indirection.frag
+#include "fill_Indirection.frag.fsl"
+#end
+
+#frag fill_Indirection_fp16.frag
+#define USE_OUTPUT_MODE_FP16
+#include "fill_Indirection.frag.fsl"
+#end
+
+#vert fill_Indirection.vert
+#include "fill_Indirection.vert.fsl"
+#end
+
+#frag generateAsmDEM.frag
+#include "generateAsmDEM.frag.fsl"
+#end
+
+#vert generateAsmDEM.vert
+#include "generateAsmDEM.vert.fsl"
+#end
+
+#vert meshDepthPass.vert
+#include "meshDepthPass.vert.fsl"
+#end
+
+#frag meshDepthPassAlpha.frag
+#include "meshDepthPassAlpha.frag.fsl"
+#end
+
+#vert meshDepthPassAlpha.vert
+#include "meshDepthPassAlpha.vert.fsl"
+#end
+
+#comp panoToCube.comp
+#include "panoToCube.comp.fsl"
+#end
+
+#frag quad.frag
+#include "quad.frag.fsl"
+#end
+
+#vert quad.vert
+#include "quad.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW resolve_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "resolve.frag.fsl"
+#end
+#frag VR_MULTIVIEW resolve_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "resolve.frag.fsl"
+#end
+#frag VR_MULTIVIEW resolve_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "resolve.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW resolve.vert
+#include "resolve.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#comp updateRegion3DTexture.comp
+#include "updateRegion3DTexture.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW upsampleSDFShadow_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "upsampleSDFShadow.frag.fsl"
+#end
+#frag VR_MULTIVIEW upsampleSDFShadow_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "upsampleSDFShadow.frag.fsl"
+#end
+#frag VR_MULTIVIEW upsampleSDFShadow_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "upsampleSDFShadow.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW upsampleSDFShadow.vert
+#include "upsampleSDFShadow.vert.fsl"
+#end
+
+#vert VR_MULTIVIEW ORBIS_GEOM visibilityBufferPass.vert
+#include "visibilityBufferPass.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW visibilityBufferPass.frag
+#include "visibilityBufferPass.frag.fsl"
+#end
+
+
+#vert VR_MULTIVIEW ORBIS_GEOM visibilityBufferPassAlpha.vert
+#include "visibilityBufferPassAlpha.vert.fsl"
+#end
+#frag VR_MULTIVIEW visibilityBufferPassAlpha.frag
+#include "visibilityBufferPassAlpha.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW visibilityBufferShade.vert
+#include "visibilityBufferShade.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW visibilityBufferShade_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "visibilityBufferShade.frag.fsl"
+#end
+#frag VR_MULTIVIEW visibilityBufferShade_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "visibilityBufferShade.frag.fsl"
+#end
+#frag VR_MULTIVIEW visibilityBufferShade_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "visibilityBufferShade.frag.fsl"
+#end
+
+#comp visualizeSDFMesh_SAMPLE_COUNT_1.comp
+#define SAMPLE_COUNT 1
+#include "visualizeSDFMesh.comp.fsl"
+#end
+#comp visualizeSDFMesh_SAMPLE_COUNT_2.comp
+#define SAMPLE_COUNT 2
+#include "visualizeSDFMesh.comp.fsl"
+#end
+#comp visualizeSDFMesh_SAMPLE_COUNT_4.comp
+#define SAMPLE_COUNT 4
+#include "visualizeSDFMesh.comp.fsl"
+#end
+

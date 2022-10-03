@@ -29,23 +29,25 @@
 #import <MetalKit/MetalKit.h>
 #import <IOKit/graphics/IOGraphicsLib.h>
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Interfaces/IApp.h"
+#include "../../Application/Interfaces/IApp.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 
 bool gCursorVisible = true;
 bool gCursorInsideTrackingArea = true;
 
-MonitorDesc* gMonitors = nullptr;
-uint32_t      gMonitorCount = 0;
-float2*        gDPIScales = nullptr;
+MonitorDesc*	gMonitors = nullptr;
+uint32_t		gMonitorCount = 0;
+float2*			gDPIScales = nullptr;
 
 extern WindowDesc gCurrentWindow;
+extern CustomMessageProcessor sCustomProc;
 
 //------------------------------------------------------------------------
 // STATIC STRUCTS
@@ -274,7 +276,7 @@ extern WindowDesc gCurrentWindow;
 
 	metalLayer = [CAMetalLayer layer];
 	metalLayer.device = device;
-	metalLayer.framebufferOnly = YES;    //todo: optimized way
+	metalLayer.framebufferOnly = YES;
 	metalLayer.pixelFormat = hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
 	metalLayer.wantsExtendedDynamicRangeContent = hdr ? true : false;
 	metalLayer.drawableSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
@@ -303,11 +305,19 @@ extern WindowDesc gCurrentWindow;
 - (void)windowDidBecomeMain:(NSNotification *)notification
 {
 	[self.delegate didFocusChange:true];
+	if(notification && sCustomProc)
+	{
+		sCustomProc(&gCurrentWindow, (__bridge void*)notification);
+	}
 }
 
 - (void)windowDidResignMain:(NSNotification *)notification
 {
 	[self.delegate didFocusChange:false];
+	if(notification && sCustomProc)
+	{
+		sCustomProc(&gCurrentWindow, (__bridge void*)notification);
+	}
 }
 
 - (void)windowDidMiniaturize:(NSNotification *)notification
@@ -383,6 +393,17 @@ extern WindowDesc gCurrentWindow;
 	gCurrentWindow.fullscreenRect = [window setRectFromNSRect:frame];
 }
 
+-(NSApplicationPresentationOptions)window:(NSWindow *)window willUseFullScreenPresentationOptions:(NSApplicationPresentationOptions)proposedOptions
+{
+	//Return correct presentation options when in fullscreen.
+	if(gCurrentWindow.fullScreen)
+	{
+		return NSApplicationPresentationFullScreen | NSApplicationPresentationHideDock | NSApplicationPresentationHideMenuBar;
+	}
+
+	return proposedOptions;
+}
+
 - (void)onActivation:(NSNotification*)notification
 {
 	NSRunningApplication* runningApplication = [notification.userInfo objectForKey:@"NSWorkspaceApplicationKey"];
@@ -417,7 +438,11 @@ extern WindowDesc gCurrentWindow;
 
 - (void)windowDidExitFullScreen:(NSNotification*)notification
 {
+    ForgeNSWindow* window = [notification object];
 	gCurrentWindow.fullScreen = false;
+    
+	if(window && gCurrentWindow.centered)
+    	centerWindow(&gCurrentWindow);
 }
 
 - (CAMetalLayer*)metalLayer
@@ -497,21 +522,46 @@ CGDisplayModeRef FindClosestResolution(CGDirectDisplayID display, const Resoluti
 
 NSWindowStyleMask PrepareStyleMask(WindowDesc* winDesc)
 {
-	uint32_t fullScreenHeight = getRectHeight(&winDesc->fullscreenRect);
+    NSWindowStyleMask styleMask = 0u;
 
-	NSWindowStyleMask styleMask = NSWindowStyleMaskBorderless;
-	if (winDesc->fullScreen)
-	{
-		NSWindowStyleMask noResizeWindow = !winDesc->noresizeFrame ? NSWindowStyleMaskResizable : 0;
-
-		styleMask = NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | noResizeWindow;
-	}
-	if (!winDesc->fullScreen && !winDesc->borderlessWindow && getRectHeight(&winDesc->clientRect) != fullScreenHeight)
-	{
-		NSWindowStyleMask noResizeWindow = !winDesc->noresizeFrame ? NSWindowStyleMaskResizable : 0;
-
-		styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable | noResizeWindow;
-	}
+    ForgeMTLView* view = (__bridge ForgeMTLView*)(winDesc->handle.window);
+    if (view != nil)
+    {
+        ForgeNSWindow* window = (ForgeNSWindow*)view.window;
+        styleMask = window.styleMask;
+    }
+    
+    if(winDesc->noresizeFrame)
+    {
+        styleMask &= ~NSWindowStyleMaskResizable;
+    }
+    else
+    {
+        styleMask |= NSWindowStyleMaskResizable;
+    }
+    
+    NSWindowStyleMask fullScreenStyleMask = NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
+    NSWindowStyleMask borderlessStyleMask = NSWindowStyleMaskBorderless;
+    NSWindowStyleMask windowedStyleMask   = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
+    
+    if (winDesc->fullScreen)
+    {
+        styleMask &= ~windowedStyleMask;
+        styleMask &= ~borderlessStyleMask;
+        styleMask |= fullScreenStyleMask;
+    }
+    else if(winDesc->borderlessWindow)
+    {
+        styleMask &= ~windowedStyleMask;
+        styleMask &= ~fullScreenStyleMask;
+        styleMask |= borderlessStyleMask;
+    }
+    else
+    {
+        styleMask &= ~borderlessStyleMask;
+        styleMask &= ~fullScreenStyleMask;
+        styleMask |= windowedStyleMask;
+    }
 
 	return styleMask;
 }
@@ -547,9 +597,10 @@ void collectMonitorInfo()
 		ASSERT(0);
 	}
 
-	eastl::vector<CGDirectDisplayID> onlineDisplayIDs(displayCount);
+	CGDirectDisplayID* onlineDisplayIDs = NULL;
+	arrsetlen(onlineDisplayIDs, displayCount);
 
-	error = CGGetOnlineDisplayList(displayCount, onlineDisplayIDs.data(), &displayCount);
+	error = CGGetOnlineDisplayList(displayCount, onlineDisplayIDs, &displayCount);
 	if (error != kCGErrorSuccess)
 	{
 		ASSERT(0);
@@ -600,6 +651,11 @@ void collectMonitorInfo()
 		display.defaultResolution.mHeight = frameRect.size.height;
 
 		NSString* displayName = screenNameForDisplay(displayID, displayScreen);
+		//weird edge case where displayScreen's name is null causing a crash in strcpy=
+        if (displayName == NULL)
+        {
+            displayName = @"Unknown";
+        }
 		strcpy(display.publicDisplayName, displayName.UTF8String);
 
 		id<MTLDevice> metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
@@ -610,8 +666,15 @@ void collectMonitorInfo()
 							 (int32_t)displayBounds.size.height };
 		display.monitorRect = display.workRect;
 
-		eastl::vector<Resolution> displayResolutions;
-		CFArrayRef                displayModes = CGDisplayCopyAllDisplayModes(displayID, nil);
+		Resolution* displayResolutions = NULL;
+
+		CFStringRef keys[1] = { kCGDisplayShowDuplicateLowResolutionModes };
+		CFBooleanRef values[1] = { kCFBooleanTrue };
+
+		CFDictionaryRef options = CFDictionaryCreate(kCFAllocatorDefault, (const void**) keys, (const void**) values, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks );
+
+		CFArrayRef  displayModes = CGDisplayCopyAllDisplayModes(displayID, options);
+		arrsetcap(displayResolutions, CFArrayGetCount(displayModes));
 		for (CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
 		{
 			CGDisplayModeRef currentDisplayMode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, i);
@@ -620,37 +683,53 @@ void collectMonitorInfo()
 			displayResolution.mWidth = (uint32_t)CGDisplayModeGetWidth(currentDisplayMode);
 			displayResolution.mHeight = (uint32_t)CGDisplayModeGetHeight(currentDisplayMode);
 
-			displayResolutions.emplace_back(displayResolution);
+			bool duplicate = false;
+			//filter out duplicate resolutions
+			for(int j = 0 ; j < arrlen(displayResolutions); j++)
+			{
+				if(displayResolutions[j].mWidth == displayResolution.mWidth
+				   && displayResolutions[j].mHeight == displayResolution.mHeight)
+				{
+					duplicate = true;
+					break;
+				}
+			}
+
+			if(!duplicate)
+				arrpush(displayResolutions, displayResolution);
 		}
 
-		qsort(displayResolutions.data(),
-			  displayResolutions.size(),
+		qsort(displayResolutions,
+			  arrlen(displayResolutions),
 			  sizeof(Resolution),
 			  [](const void* lhs, const void* rhs)
 			  {
 			Resolution* pLhs = (Resolution*)lhs;
 			Resolution* pRhs = (Resolution*)rhs;
-			if (pLhs->mHeight == pRhs->mHeight)
-				return (int)(pLhs->mWidth - pRhs->mWidth);
-			return (int)(pLhs->mHeight - pRhs->mHeight);
+			int isBigger = pLhs->mHeight * pLhs->mWidth - pRhs->mWidth * pRhs->mHeight;
+			if(isBigger > 0)
+				return 1;
+			if(isBigger < 0)
+				return -1;
+			return 0;
 		});
 
-		display.resolutionCount = (uint32_t)displayResolutions.size();
-		display.resolutions = (Resolution*)tf_calloc(display.resolutionCount, sizeof(Resolution));
-		memcpy(display.resolutions, displayResolutions.data(), display.resolutionCount * sizeof(Resolution));
+		display.resolutions = displayResolutions;
 		
-		Resolution highest = display.resolutions[display.resolutionCount - 1];
+		Resolution highest = display.resolutions[arrlen(display.resolutions) - 1];
 		
 		display.dpi[0] = (uint32_t)((highest.mWidth * 25.4) / display.physicalSize[0]);
 		display.dpi[1] = (uint32_t)((highest.mHeight * 25.4) / display.physicalSize[1]);
 
 		CFRelease(displayModes);
+		CFRelease(options);
 
 		if(displayID == mainDisplayID && displayIndex != 0)
 		{
 			std::swap(gMonitors[0], gMonitors[displayIndex]);
 		}
 	}
+	arrfree(onlineDisplayIDs);
 }
 
 //------------------------------------------------------------------------
@@ -661,7 +740,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
 {
 	NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
 
-	NSRect viewRect{ 0, 0, (float)getRectWidth(&winDesc->clientRect), (float)getRectHeight(&winDesc->clientRect) };
+	NSRect viewRect{ { 0, 0 }, { (float)getRectWidth(&winDesc->clientRect), (float)getRectHeight(&winDesc->clientRect) } };
 
 	NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];
 
@@ -886,7 +965,10 @@ void maximizeWindow(WindowDesc* winDesc)
 	}
 
 	ForgeNSWindow* window = (ForgeNSWindow*)view.window;
-	[window deminiaturize:nil];
+	// don't call zoom again if it's already zoomed
+	// zoomed == maximized
+	if(![window isZoomed])
+		[window zoom:nil];
 }
 
 void minimizeWindow(WindowDesc* winDesc)
@@ -1087,9 +1169,14 @@ void getRecommendedResolution(RectDesc* rect)
 {
 	float dpiScale[2];
 	getDpiScale(dpiScale);
+	//use screen 0 instead of main screen as this can get called without an active window.
+	//mainscreen refers to the key window where the mouse currently is.
+	//use 75% of full screen rect
+	//NSRect mainScreenRect = [[NSScreen main][0] frame];
 	NSRect mainScreenRect = [[NSScreen mainScreen] frame];
-	*rect = RectDesc{ 0, 0, (int32_t)(mainScreenRect.size.width * dpiScale[0] + 1e-6),
-					  (int32_t)(mainScreenRect.size.height * dpiScale[1] + 1e-6) };
+	*rect = RectDesc{ 0, 0, (int32_t)(mainScreenRect.size.width * dpiScale[0] * 0.75),
+					  (int32_t)(mainScreenRect.size.height * dpiScale[1]  * 0.75) };
+
 }
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)

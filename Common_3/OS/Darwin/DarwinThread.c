@@ -22,19 +22,19 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #include <sys/sysctl.h>
 #include <time.h>
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-#include "../Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Core/UnixThreadID.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Threading/UnixThreadID.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 void callOnce(CallOnceGuard* pGuard, CallOnceFn pFn)
 {

@@ -52,8 +52,20 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-pa &quot;$SRCROOT/../../../../Examples_3/Unit_Tests/UnitTestResources/Animation&quot; &quot;$SRCROOT/../../../../Examples_3/Unit_Tests/UnitTestResources/Animation"
-            isEnabled = "YES">
+            argument = "-pwza --input &quot;../../../../../../Art&quot; --output &quot;../../../../../../Art&quot; --name &quot;Art.zip&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-pt --input ../../../../../../Examples_3/Unit_Tests/UnitTestResources/Textures --output ../../../../../../Examples_3/Unit_Tests/UnitTestResources/ProcessedFiles/Textures --in-all --out-png"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-pgltf --input &quot;../../../../../../Examples_3/Unit_Tests/UnitTestResources/Meshes&quot; --output &quot;../../../../../../Examples_3/Unit_Tests/UnitTestResources/ProcessedFiles/Meshes&quot; --force"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-pt --input Textures --output Temp --in-png --out-ktx"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

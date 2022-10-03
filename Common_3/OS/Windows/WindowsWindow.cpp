@@ -29,14 +29,18 @@
 //     - Jonathan Blow
 //------------------------------------------------------------------------
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IOperatingSystem.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Utilities/Math/Algorithms.h"
+
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
+#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
 
 #pragma comment(lib, "WinMM.lib")
 #include <windowsx.h>
@@ -170,7 +174,9 @@ void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pWindowAppRef->mSettings.mWidth = newSizeX;
 	pWindowAppRef->mSettings.mHeight = newSizeY;
 
-	onRequestReload();
+	ReloadDesc reloadDesc;
+	reloadDesc.mType = RELOAD_TYPE_RESIZE;
+	requestReload(&reloadDesc);
 }
 
 void adjustWindow(WindowDesc* winDesc)
@@ -381,14 +387,17 @@ void collectMonitorInfo()
 		pMonitor->dpi[0] = (uint32_t)((pMonitor->defaultResolution.mWidth * 25.4) / pMonitor->physicalSize[0]);
 		pMonitor->dpi[1] = (uint32_t)((pMonitor->defaultResolution.mHeight * 25.4) / pMonitor->physicalSize[1]);
 
-		eastl::vector<Resolution> displays;
-		DWORD                     current = 0;
+		Resolution*  resolutions = NULL;
+		DWORD        current     = 0;
+
+		arrsetcap(resolutions, 8);
+
 		while (EnumDisplaySettingsW(pMonitor->adapterName, current++, &devMode))
 		{
 			bool duplicate = false;
-			for (uint32_t i = 0; i < (uint32_t)displays.size(); ++i)
+			for (ptrdiff_t i = 0; i < arrlen(resolutions); ++i)
 			{
-				if (displays[i].mWidth == (uint32_t)devMode.dmPelsWidth && displays[i].mHeight == (uint32_t)devMode.dmPelsHeight)
+				if (resolutions[i].mWidth == (uint32_t)devMode.dmPelsWidth && resolutions[i].mHeight == (uint32_t)devMode.dmPelsHeight)
 				{
 					duplicate = true;
 					break;
@@ -401,20 +410,18 @@ void collectMonitorInfo()
 			Resolution videoMode = {};
 			videoMode.mHeight = devMode.dmPelsHeight;
 			videoMode.mWidth = devMode.dmPelsWidth;
-			displays.emplace_back(videoMode);
+			arrpush(resolutions, videoMode);
 		}
-		qsort(displays.data(), displays.size(), sizeof(Resolution), [](const void* lhs, const void* rhs) {
+		sort(resolutions, arrlenu(resolutions), sizeof(Resolution), +[](const void* lhs, const void* rhs, void* pUser) {
 			Resolution* pLhs = (Resolution*)lhs;
 			Resolution* pRhs = (Resolution*)rhs;
 			if (pLhs->mHeight == pRhs->mHeight)
-				return (int)(pLhs->mWidth - pRhs->mWidth);
+				return pLhs->mWidth < pRhs->mWidth;
 
-			return (int)(pLhs->mHeight - pRhs->mHeight);
-		});
+			return pLhs->mHeight < pRhs->mHeight;
+		}, NULL);
 
-		pMonitor->resolutionCount = (uint32_t)displays.size();
-		pMonitor->resolutions = (Resolution*)tf_calloc(pMonitor->resolutionCount, sizeof(Resolution));
-		memcpy(pMonitor->resolutions, displays.data(), pMonitor->resolutionCount * sizeof(Resolution));
+		pMonitor->resolutions = resolutions;
 	}
 }
 
@@ -663,6 +670,12 @@ void toggleFullscreen(WindowDesc* winDesc)
 {
 	winDesc->fullScreen = !winDesc->fullScreen;
 	adjustWindow(winDesc);
+	if (winDesc->fullScreen) 
+	{
+		winDesc->mWndW = getRectWidth(&winDesc->fullscreenRect);
+		winDesc->mWndH = getRectHeight(&winDesc->fullscreenRect);
+	}
+
 }
 
 void showWindow(WindowDesc* winDesc)
@@ -876,7 +889,7 @@ void getDpiScale(float array[2])
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
-	for (uint32_t i = 0; i < pMonitor->resolutionCount; ++i)
+	for (ptrdiff_t i = 0; i < arrlen(pMonitor->resolutions); ++i)
 	{
 		if (pMonitor->resolutions[i].mWidth == pRes->mWidth && pMonitor->resolutions[i].mHeight == pRes->mHeight)
 			return true;
@@ -921,27 +934,6 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			case WM_NCCALCSIZE:
 			{
-				// Calculate new NCCALCSIZE_PARAMS based on custom NCA inset.
-				NCCALCSIZE_PARAMS* pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-
-				if (wParam == TRUE)
-				{
-					if (::IsZoomed(hwnd))
-					{
-						pncsp->rgrc[0].left = pncsp->rgrc[0].left + 6;
-						pncsp->rgrc[0].top = pncsp->rgrc[0].top + 6;
-						pncsp->rgrc[0].right = pncsp->rgrc[0].right - 6;
-						pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 6;
-					}
-					else
-					{
-						pncsp->rgrc[0].left = pncsp->rgrc[0].left + 6;
-						pncsp->rgrc[0].top = pncsp->rgrc[0].top + 1;
-						pncsp->rgrc[0].right = pncsp->rgrc[0].right - 6;
-						pncsp->rgrc[0].bottom = pncsp->rgrc[0].bottom - 6;
-					}
-				}
-
 				return 0;
 			}
 		}
@@ -1013,11 +1005,17 @@ LRESULT CALLBACK WinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				onFocusChanged(false);
 				gWindow->minimized = true;
 				break;
-			case WM_SETFOCUS: onFocusChanged(true); break;
-			case WM_KILLFOCUS: onFocusChanged(false); break;
-			default: onFocusChanged(true); break;
 			}
-
+			break;
+		}
+		case WM_SETFOCUS: 
+		{
+			onFocusChanged(true); 
+			break;
+		}
+		case WM_KILLFOCUS:
+		{
+			onFocusChanged(false); 
 			break;
 		}
 		case WM_ENTERSIZEMOVE:
@@ -1130,7 +1128,7 @@ void initWindowClass()
 void exitWindowClass()
 {
 	for (uint32_t i = 0; i < gMonitorCount; ++i)
-		tf_free(gMonitors[i].resolutions);
+		arrfree(gMonitors[i].resolutions);
 
 	tf_free(gMonitors);
 }

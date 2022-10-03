@@ -27,14 +27,14 @@
 #include "VrApi.h"
 #include <android_native_app_glue.h>
 
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/ILog.h"
-#include "../Math/MathTypes.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Math/MathTypes.h"
 
-#include "../../Renderer/IRenderer.h"
-#include "../../Renderer/Quest/VrApiHooks.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
+#include "../../Graphics/Quest/VrApiHooks.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 QuestVR* pQuest = NULL;
 
@@ -120,7 +120,13 @@ void hook_poll_events(bool appResumed, bool windowReady, ANativeWindow* nativeWi
 
             LOGF(eINFO, "vrapi_EnterVrMode()");
 
+            // gAssertOnVkValidationError is used to work around a bug in the ovr mobile sdk.
+            // There is a fence creation struct that is not initialized in the sdk.
+            // We temporarily disable asserts for this specific ovr mobile sdk function.
+            extern bool gAssertOnVkValidationError;
+            gAssertOnVkValidationError = false;
             pQuest->pOvr = vrapi_EnterVrMode((ovrModeParms*)&parms);
+            gAssertOnVkValidationError = true;
 
             vrapi_SetTrackingSpace(pQuest->pOvr, VRAPI_TRACKING_SPACE_LOCAL);
         }

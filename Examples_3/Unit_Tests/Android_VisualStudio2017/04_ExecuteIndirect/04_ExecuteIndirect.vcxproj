@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Middleware_3\PaniniProjection\Panini.h" />
+    <ClInclude Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\resources.h" />
     <ClInclude Include="..\..\src\04_ExecuteIndirect\AsteroidSim.h" />
     <ClInclude Include="..\..\src\04_ExecuteIndirect\NoiseOctaves.h" />
     <ClInclude Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h" />
@@ -41,11 +42,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl" />
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl" />
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\Panini_ShaderList.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\basic.vert.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\ComputeUpdate.comp.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\ExecuteIndirect.frag.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\ExecuteIndirect.vert.fsl" />
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
@@ -92,6 +97,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -109,25 +115,31 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\Skybox_*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
     </PreLinkEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -167,21 +179,21 @@ xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDi
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\Skybox_*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
     </PreLinkEvent>

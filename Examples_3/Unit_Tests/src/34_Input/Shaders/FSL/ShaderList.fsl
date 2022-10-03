@@ -1,0 +1,8 @@
+#frag basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert basic.vert
+#include "basic.vert.fsl"
+#end
+

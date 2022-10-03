@@ -52,7 +52,7 @@ RES(RWBuffer(GeometryCountOIT), geometryCountBuffer, UPDATE_FREQ_NONE, u50, bind
 		DATA(uint, indirectDrawId, None);
 	};
 	#define getDrawID() indirectDrawId
-#elif defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+#elif !defined(INDIRECT_ROOT_CONSTANT)
     #define getDrawID() In.drawId
 #endif
 

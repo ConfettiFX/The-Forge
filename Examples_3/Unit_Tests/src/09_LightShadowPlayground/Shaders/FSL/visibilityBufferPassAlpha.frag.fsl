@@ -30,7 +30,7 @@ STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, TexCoord, TEXCOORD0);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#if !defined(INDIRECT_ROOT_CONSTANT)
 	DATA(FLAT(uint), drawId, TEXCOORD1);
 #endif
 };

@@ -24,13 +24,13 @@
 
 #include "Panini.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/IResourceLoader.h"
+#include "../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
-#include "../../Common_3/OS/Interfaces/ILog.h"
-#include "../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../Common_3/Utilities/Interfaces/IMemory.h"
 
 namespace eastl {
 template <>

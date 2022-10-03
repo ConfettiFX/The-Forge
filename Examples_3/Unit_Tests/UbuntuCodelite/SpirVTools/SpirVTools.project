@@ -8,18 +8,18 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.cpp"/>
-    <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.h"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_parsed_ir.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_util.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_glsl.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_hlsl.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_msl.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_parsed_ir.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_util.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_glsl.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_hlsl.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_msl.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/SpirvTools.cpp"/>
+    <File Name="../../../../Common_3/Graphics/ThirdParty/OpenSource/SPIRV_Cross/SpirvTools.h"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>
@@ -32,7 +32,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -71,7 +71,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>

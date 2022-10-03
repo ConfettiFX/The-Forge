@@ -26,10 +26,19 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, Texcoord0);
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
+#if VR_MULTIVIEW_ENABLED
+RES(Tex2DArray(float4), AccumulationTexture, UPDATE_FREQ_NONE, t0, binding = 1);
+RES(Tex2DArray(float4), RevealageTexture, UPDATE_FREQ_NONE, t1, binding = 2);
+#else
 RES(Tex2D(float4), AccumulationTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 RES(Tex2D(float4), RevealageTexture, UPDATE_FREQ_NONE, t1, binding = 2);
+#endif
+
 RES(SamplerState, PointSampler, UPDATE_FREQ_NONE, s0, binding = 0);
 
 float MaxComponent(float4 v)
@@ -41,10 +50,19 @@ float4 PS_MAIN( VSOutput In )
 {    
 	INIT_MAIN;
 	float4 Out;
+#if VR_MULTIVIEW_ENABLED
+	float revealage = SampleTex2DArray(Get(RevealageTexture), Get(PointSampler), float3(In.UV.xy, VR_VIEW_ID(In.ViewID))).r;
+#else
 	float revealage = SampleTex2D(Get(RevealageTexture), Get(PointSampler), In.UV.xy).r;
+#endif
 	clip(1.0f - revealage - 0.00001f);
 
+#if VR_MULTIVIEW_ENABLED
+	float4 accumulation = SampleTex2DArray(Get(AccumulationTexture), Get(PointSampler), float3(In.UV.xy, VR_VIEW_ID(In.ViewID)));
+#else
 	float4 accumulation = SampleTex2D(Get(AccumulationTexture), Get(PointSampler), In.UV.xy);
+#endif
+
 	if(isinf(MaxComponent(abs(accumulation))))
 		accumulation.rgb = f3(accumulation.a);
 

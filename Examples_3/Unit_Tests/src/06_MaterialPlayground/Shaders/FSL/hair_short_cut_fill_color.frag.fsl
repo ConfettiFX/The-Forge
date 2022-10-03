@@ -47,6 +47,12 @@
 #define SHORT_CUT_FILL_COLOR
 #include "hair.h.fsl"
 
+#if VR_MULTIVIEW_ENABLED
+#define VR_VIEWID_PARAM(x) , x
+#else
+#define VR_VIEWID_PARAM(x)
+#endif
+
 float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tangentDir)
 {
 	float coneAngleRadians = 10.0f * PI / 180.0f;
@@ -79,7 +85,7 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	return diffuseSpecular;
 }
 
-float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor)
+float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor VR_VIEWID_PARAM(uint viewID))
 {
 	const DirectionalLight light = Get(DirectionalLights)[lightIndex];
 	const float3 color = light.colorAndIntensity.rgb;
@@ -94,7 +100,11 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 
 	if (shadowMap >= 0 && shadowMap < MAX_NUM_DIRECTIONAL_LIGHTS)
 	{
+#if VR_MULTIVIEW_ENABLED
+		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix[VR_VIEW_ID(viewID)], float4(worldPosition, 1.0f));
+#else
 		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix, float4(worldPosition, 1.0f));
+#endif
 		shadowPos.y = -shadowPos.y;
 		shadowPos.xy = (shadowPos.xy + 1.0f) * 0.5f;
 
@@ -199,7 +209,7 @@ float3 CalculatePointLightContribution(uint lightIndex, float3 worldPosition, fl
 	return max(f3(0.0f), reflectedLight);
 }
 
-float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseColor)
+float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseColor VR_VIEWID_PARAM(uint viewID))
 {
 	float3 color = f3(0.0f);
 
@@ -208,7 +218,7 @@ float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseCo
 		color += CalculatePointLightContribution(i, worldPos, tangent, eyeDir, baseColor);
 
 	for (i = 0; i < Get(NumDirectionalLights); ++i)
-		color += CalculateDirectionalLightContribution(i, worldPos, tangent, eyeDir, baseColor);
+		color += CalculateDirectionalLightContribution(i, worldPos, tangent, eyeDir, baseColor VR_VIEWID_PARAM(viewID));
 		
 	return color;
 }
@@ -233,11 +243,16 @@ float4 PS_MAIN( VSOutput In )
 		RETURN(Out);
 	}
 
+#if VR_MULTIVIEW_ENABLED
+	float4 worldPos = mul(Get(Cam).InvVPMatrix[VR_VIEW_ID(In.ViewID)], float4(NDC, 1.0f));
+#else
 	float4 worldPos = mul(Get(Cam).InvVPMatrix, float4(NDC, 1.0f));
+#endif
+
 	worldPos.xyz /= worldPos.w;
 	float3 eyeDir = normalize(worldPos.xyz - Get(Cam).Pos);
 
-	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(In.Tangent.xyz), In.Color.rgb);
+	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(In.Tangent.xyz), In.Color.rgb VR_VIEWID_PARAM(In.ViewID));
 
 	Out = float4(color.rgb * alpha, alpha);
 	RETURN(Out);

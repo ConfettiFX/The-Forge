@@ -26,9 +26,16 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, TEXCOORD0);
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
+#if VR_MULTIVIEW_ENABLED
+RES(Tex2DArray(float4), Source, UPDATE_FREQ_NONE, t0, binding = 0);
+#else
 RES(Tex2D(float4), Source, UPDATE_FREQ_NONE, t0, binding = 0);
+#endif
 RES(SamplerState, PointSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 
 SET_OUTPUT_FORMAT(FMT_32_ABGR)
@@ -37,6 +44,10 @@ float4 PS_MAIN( VSOutput In )
 {    
 	INIT_MAIN;
 	float4 Out;
+#if VR_MULTIVIEW_ENABLED
+	Out = SampleTex2DArray(Get(Source), Get(PointSampler), float3(In.UV.xy, VR_VIEW_ID(In.ViewID)));
+#else
 	Out = SampleTex2D(Get(Source), Get(PointSampler), In.UV.xy);
+#endif
 	RETURN(Out);
 }

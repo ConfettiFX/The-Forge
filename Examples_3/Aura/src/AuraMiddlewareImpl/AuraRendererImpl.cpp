@@ -14,13 +14,13 @@
 */
 
 #include "../../../../../Custom-Middleware/Aura/Interfaces/IAuraRenderer.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string_hash_map.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/string_hash_map.h"
+#include "../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
 
 DECLARE_RENDERER_FUNCTION(void, addBuffer, Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 DECLARE_RENDERER_FUNCTION(void, removeBuffer, Renderer* pRenderer, Buffer* pBuffer)
@@ -153,6 +153,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet) { ::removeDescriptorSet(pRenderer, pDescriptorSet); }
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
+	COMPILE_ASSERT(sizeof(DescriptorData) == sizeof(::DescriptorData));
 	::updateDescriptorSet(pRenderer, index, pDescriptorSet, count, (::DescriptorData*)pParams);
 }
 void cmdBindRenderTargets(

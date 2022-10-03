@@ -24,7 +24,11 @@
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, ProjectionViewMat, None);
+#endif
     DATA(float4x4, ModelMatrixCapsule, None);
     DATA(float4x4, ModelMatrixCube, None);
 };
@@ -33,12 +37,14 @@ STRUCT(VSInput)
 {
     DATA(float4, Position, POSITION);
     DATA(float4, Normal, NORMAL);
+	DATA(float2, TexCoords, TEXCOORD);
 };
 
 STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
-    DATA(float4, Color, COLOR);
+    DATA(float4, Diffuse, COLOR);
+	DATA(float2, texcoords, TEXCOORD);
 };
 
 VSOutput VS_MAIN( VSInput In )
@@ -48,10 +54,12 @@ VSOutput VS_MAIN( VSInput In )
 	
 	float3 lightPos = float3(15.0f,0.0f,0.0f);
 	float3 lightCol = float3(1.0f,1.0f,1.0f);
-	float4 objColor = float4(0.8,0.5,0.144,1.0);
-	
 
+#if VR_MULTIVIEW_ENABLED
+    float4x4 tempMat = mul(Get(ProjectionViewMat)[VR_VIEW_ID], Get(ModelMatrixCapsule));
+#else
     float4x4 tempMat = mul(Get(ProjectionViewMat), Get(ModelMatrixCapsule));
+#endif
     Out.Position = mul(tempMat, In.Position);
 
     float4 normal = normalize(mul(Get(ModelMatrixCapsule), float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
@@ -65,15 +73,13 @@ VSOutput VS_MAIN( VSInput In )
 	   
     lightDir = normalize(lightPos - pos.xyz);
 
-    float distance = length(lightDir);
-    float attenuation = 1.0 / (quadraticCoeff * distance * distance);
-    float intensity = lightIntensity * attenuation;
+    //float distance = length(lightDir);
+    //float attenuation = 1.0 / (quadraticCoeff * distance * distance);
+    //float intensity = lightIntensity * attenuation;
 
-    float3 baseColor = objColor.xyz;
-    float3 blendedColor = (lightCol * baseColor) * lightIntensity;
-    float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
-    float3 ambient = baseColor * ambientCoeff;
+    float3 diffuse = f3(max(dot(normal.xyz, lightDir.xyz), 0.0));
 
-    Out.Color = float4(diffuse + ambient, 1.0);
+	Out.texcoords = In.TexCoords;
+    Out.Diffuse = float4(diffuse, 1.0);
 	RETURN(Out);
 }

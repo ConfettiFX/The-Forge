@@ -13,6 +13,9 @@
     <Filter Include="Shaders\FSL">
       <UniqueIdentifier>{5f991074-2e15-46ae-9822-a3afd925c96d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Panini\Shaders">
+      <UniqueIdentifier>{12af8260-7bcd-4148-9cb5-da8afe8c2d64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\Middleware_3\PaniniProjection\Panini.cpp">
@@ -33,6 +36,7 @@
     <ClCompile Include="..\..\src\04_ExecuteIndirect\TextureGen.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\Middleware_3\PaniniProjection\Panini.h">
@@ -52,6 +56,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\04_ExecuteIndirect\TextureGen.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\resources.h">
+      <Filter>Panini\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -75,6 +82,18 @@
     </FSLShader>
     <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\skybox.vert.fsl">
       <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\04_ExecuteIndirect\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
+      <Filter>Panini\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
+      <Filter>Panini\Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\Panini_ShaderList.fsl">
+      <Filter>Panini</Filter>
     </FSLShader>
   </ItemGroup>
 </Project>

@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\base\containers\string_archive.cc" />
+    <ClCompile Include="..\..\..\..\src\base\io\archive.cc" />
+    <ClCompile Include="..\..\..\..\src\base\maths\math_archive.cc" />
+    <ClCompile Include="..\..\..\..\src\base\maths\simd_math_archive.cc" />
+    <ClCompile Include="..\..\..\..\src\base\maths\soa_math_archive.cc" />
+    <ClCompile Include="..\..\..\..\src\base\memory\allocator.cc" />
+    <ClCompile Include="..\..\..\..\src\base\platform.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\map.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\set.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\string.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\string_archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\vector.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\vector_archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\endianness.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\gtest_helper.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\io\archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\io\archive_traits.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\io\stream.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\gtest_math_helper.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_constant.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_ex.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\simd_math_archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_math_archive.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\memory\allocator.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\base\platform.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{055fad37-a3d6-4d9a-a63a-c81716339982}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>ozz_base</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <AndroidMinSdkVersion>26</AndroidMinSdkVersion>
+    <CLanguageStandard>c99</CLanguageStandard>
+    <CppLanguageStandard>cpp14</CppLanguageStandard>
+    <UseOfStl>cpp_shared</UseOfStl>
+    <AndroidNdkVersion>21.4.7075529</AndroidNdkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <AndroidMinSdkVersion>26</AndroidMinSdkVersion>
+    <CLanguageStandard>c99</CLanguageStandard>
+    <CppLanguageStandard>cpp14</CppLanguageStandard>
+    <UseOfStl>cpp_shared</UseOfStl>
+    <AndroidNdkVersion>21.4.7075529</AndroidNdkVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(VS_NDKRoot)sources\android\native_app_glue</IncludePath>
+    <TargetName>lib$(ProjectName)</TargetName>
+    <TargetExt>.a</TargetExt>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(VS_NDKRoot)sources\android\native_app_glue</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
+    <TargetName>lib$(ProjectName)</TargetName>
+    <TargetExt>.a</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PreprocessorDefinitions>ANDROID_ARM_NEON</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

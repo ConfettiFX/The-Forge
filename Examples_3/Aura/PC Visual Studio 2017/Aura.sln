@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Aura", "Aura", "{6CF62059-3
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SpirvTools", "..\..\Unit_Tests\PC Visual Studio 2017\Libraries\Tools\SpirvCross.vcxproj", "{F3C4507C-E714-4773-AF45-5FA9FB0BB4AF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\PC Visual Studio 2017\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
 	ProjectSection(ProjectDependencies) = postProject

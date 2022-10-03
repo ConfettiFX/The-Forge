@@ -21,11 +21,11 @@
 * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef _WINDOWS
 
-#include "../Core/CPUConfig.h"
+#include "../CPUConfig.h"
 
 #include <ctime>
 #include <ntverp.h>
@@ -35,25 +35,25 @@
 #pragma comment(lib, "shlwapi.lib")
 #endif
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
+#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
+#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
-#include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IProfiler.h"
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
-#include "../Interfaces/IMemory.h"
+#include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
 #include "WindowsStackTraceDump.h"
@@ -64,15 +64,16 @@
 // App Data
 static IApp*          pApp = nullptr;
 static WindowDesc* gWindowDesc = nullptr;
-static uint8_t        gResetScenario = RESET_SCENARIO_NONE;
 static bool           gShowPlatformUI = true;
-
+static ResetDesc gResetDescriptor = { RESET_TYPE_NONE };
+static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
 /// CPU
 static CpuInfo gCpu;
 
 // UI
 static UIComponent* pAPISwitchingComponent = NULL;
 static UIComponent* pToggleVSyncComponent = NULL;
+static UIComponent* pReloadShaderComponent = NULL;
 static UIWidget*    pSwitchComponentLabelWidget = NULL;
 static UIWidget*    pSelectApUIWidget = NULL; 
 static uint32_t     gSelectedApiIndex = 0; 
@@ -111,24 +112,14 @@ void requestShutdown()
 	PostQuitMessage(0); 
 }
 
-void onRequestReload()
+void requestReset(const ResetDesc* pResetDesc)
 {
-	gResetScenario |= RESET_SCENARIO_RELOAD;
+	gResetDescriptor = *pResetDesc;
 }
 
-void onDeviceLost()
+void requestReload(const ReloadDesc* pReloadDesc)
 {
-	gResetScenario |= RESET_SCENARIO_DEVICE_LOST;
-}
-
-void onAPISwitch()
-{
-	gResetScenario |= RESET_SCENARIO_API_SWITCH;
-}
-
-void onGpuModeSwitch()
-{
-	gResetScenario |= RESET_SCENARIO_GPU_MODE_SWITCH;
+	gReloadDescriptor = *pReloadDesc;
 }
 
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
@@ -243,7 +234,7 @@ void setupPlatformUI(int32_t width, int32_t height)
 	// VSYNC CONTROL
 
 	UIComponentDesc uiDesc = {};
-	uiDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
+	uiDesc.mStartPosition = vec2(width * 0.7f, height * 0.8f);
 	uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
 	CheckboxWidget checkbox;
@@ -251,10 +242,20 @@ void setupPlatformUI(int32_t width, int32_t height)
 	UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
 	REGISTER_LUA_WIDGET(pCheckbox);
 
-	// API SWITCHING
+	// RELOAD CONTROL
 
 	uiDesc = {};
-	uiDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
+	uiDesc.mStartPosition = vec2(width * 0.7f, height * 0.9f);
+	uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
+
+	ButtonWidget shaderReload;
+	UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders", &shaderReload, WIDGET_TYPE_BUTTON);
+	uiSetWidgetOnEditedCallback(pShaderReload, nullptr, [](void* pUserData) {ReloadDesc reloadDesc; reloadDesc.mType = RELOAD_TYPE_SHADER; requestReload(&reloadDesc); });
+	REGISTER_LUA_WIDGET(pShaderReload);
+
+	// API SWITCHING
+	uiDesc = {};
+	uiDesc.mStartPosition = vec2(width * 0.6f, height * 0.01f);
 	uiCreateComponent("API Switching", &uiDesc, &pAPISwitchingComponent);
 
 	static const char* pApiNames[] =
@@ -271,7 +272,7 @@ void setupPlatformUI(int32_t width, int32_t height)
 	};
 
 	// Select Api 
-	DropdownWidget selectApUIWidget;
+	DropdownWidget selectApUIWidget = {};
 	selectApUIWidget.pData = &gSelectedApiIndex;
 
 	uint32_t apiCount = RENDERER_API_COUNT;
@@ -279,14 +280,11 @@ void setupPlatformUI(int32_t width, int32_t height)
 	if (gD3D11Unsupported) --apiCount;
 #endif
 	ASSERT(apiCount != 0 && "No supported Graphics API available!");
-	for (uint32_t i = 0; i < apiCount; ++i)
-	{
-		selectApUIWidget.mNames.push_back((char*)pApiNames[i]);
-		selectApUIWidget.mValues.push_back(i);
-	}
+	selectApUIWidget.pNames = pApiNames;
+	selectApUIWidget.mCount = apiCount;
 
 	pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-	pSelectApUIWidget->pOnEdited = onAPISwitch;
+	pSelectApUIWidget->pOnEdited = [](void* pUserData) {ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH }; requestReset(&resetDescriptor); };
 	REGISTER_LUA_WIDGET(pSelectApUIWidget);
 
 #ifdef ENABLE_FORGE_SCRIPTING
@@ -307,6 +305,7 @@ void togglePlatformUI()
 
 	uiSetComponentActive(pToggleVSyncComponent, gShowPlatformUI); 
 	uiSetComponentActive(pAPISwitchingComponent, gShowPlatformUI);
+	uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
 #endif
 }
 
@@ -429,9 +428,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
 		pSettings->mInitialized = true;
 
-		if (!pApp->Load())
+		if (!pApp->Load(&gReloadDescriptor))
 			return EXIT_FAILURE;
-		LOGF(LogLevel::eINFO, "Application Init+Load %f", getTimerMSec(&t, false) / 1000.0f);
+
+
+		LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
 	}
 
 #ifdef AUTOMATED_TESTING
@@ -442,20 +443,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	int64_t lastCounter = getUSec(false);
 	while (!quit)
 	{
-		if (gResetScenario != RESET_SCENARIO_NONE)
+		if (gResetDescriptor.mType != RESET_TYPE_NONE)
 		{
-			if (gResetScenario & RESET_SCENARIO_RELOAD)
-			{
-				pApp->Unload();
-
-				if (!pApp->Load())
-					return EXIT_FAILURE;
-
-				gResetScenario &= ~RESET_SCENARIO_RELOAD;
-				continue;
-			}
-
-			if (gResetScenario & RESET_SCENARIO_DEVICE_LOST)
+			if (gResetDescriptor.mType & RESET_TYPE_DEVICE_LOST)
 			{
 				errorMessagePopup(
 					"Graphics Device Lost",
@@ -464,7 +454,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 					&pApp->pWindow->handle.window);
 			}
 
-			pApp->Unload();
+			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+			pApp->Unload(&gReloadDescriptor);
 			pApp->Exit();
 
 			gSelectedRendererApi = (RendererApi)gSelectedApiIndex;
@@ -487,13 +478,27 @@ int WindowsMain(int argc, char** argv, IApp* app)
 				setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
 				pSettings->mInitialized = true;
 
-				if (!pApp->Load())
+				if (!pApp->Load(&gReloadDescriptor))
 					return EXIT_FAILURE;
 
-				LOGF(LogLevel::eINFO, "Application Reset %f", getTimerMSec(&t, false) / 1000.0f);
+				LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
 			}
 
-			gResetScenario = RESET_SCENARIO_NONE;
+			gResetDescriptor.mType = RESET_TYPE_NONE;
+			continue;
+		}
+
+		if (gReloadDescriptor.mType != RELOAD_TYPE_ALL)
+		{
+			Timer t;
+			initTimer(&t);
+
+			pApp->Unload(&gReloadDescriptor);		
+			if (!pApp->Load(&gReloadDescriptor))
+				return EXIT_FAILURE;
+
+			LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 			continue;
 		}
 
@@ -551,8 +556,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	}
 #endif
 
+	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 	pApp->mSettings.mQuit = true;
-	pApp->Unload();
+	pApp->Unload(&gReloadDescriptor);
 	pApp->Exit();
 
 	exitWindowClass();

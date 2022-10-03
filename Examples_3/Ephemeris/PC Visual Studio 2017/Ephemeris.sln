@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{21A6980D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{6CF62059-3AC3-43CD-A29E-2F1E01EA4115}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "..\..\Unit_Tests\PC Visual Studio 2017\Libraries\Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
 	ProjectSection(ProjectDependencies) = postProject

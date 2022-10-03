@@ -11,7 +11,7 @@ def BuildShaders() -> int:
 
 	# set default compiler paths
 	os.environ['FSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/8.1/bin/x64/fxc.exe')
-	os.environ['FSL_COMPILER_DXC'] = os.path.normpath(_filedir+'/Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/bin/x64/dxc.exe')
+	os.environ['FSL_COMPILER_DXC'] = os.path.normpath(_filedir+'/Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/bin/x64/dxc.exe')
 	os.environ['FSL_COMPILER_METAL'] = os.path.normpath('C:/Program Files/Metal Developer Tools/macos/bin/metal.exe')
 	available_compilers = get_available_compilers()
 

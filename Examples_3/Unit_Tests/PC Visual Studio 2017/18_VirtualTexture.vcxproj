@@ -21,6 +21,7 @@
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\debug.vert.fsl" />
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\fillPage.comp.fsl" />
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\resources.h.fsl" />
+    <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\src\18_VirtualTexture\Shaders\FSL\sun.frag.fsl" />
@@ -102,10 +103,10 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SparseTextures\*" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
@@ -124,7 +125,8 @@ xcopy /Y "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
@@ -163,10 +165,10 @@ xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SparseTextures\*" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)..\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /Y /S /D /E "$(OutDir)..\OS\Shaders" "$(OutDir)Shaders"
+xcopy /Y /S /D /E "$(OutDir)..\OS\CompiledShaders" "$(OutDir)CompiledShaders"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\GPUCfg\*.*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 xcopy /Y "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
@@ -185,7 +187,8 @@ xcopy /Y "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command
     </CustomBuildStep>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
+      <Compile>true</Compile>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>

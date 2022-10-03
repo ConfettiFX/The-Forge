@@ -1,5 +1,0 @@
-math.randomseed( os.time() )
-loader.SetJointIndex(math.random(0, 60))		-- (0, No of Joint Index)
-loader.SetXOffset(math.random() + math.random(-1.0, 0.0))
-loader.SetYOffset(math.random() + math.random(-1.0, 0.0))
-loader.SetZOffset(math.random() + math.random(-1.0, 0.0))

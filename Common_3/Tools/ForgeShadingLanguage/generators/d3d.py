@@ -1,54 +1,58 @@
 """ GLSL shader generation """
 
-from utils import Stages, getHeader, getShader, getMacro, genFnCall, fsl_assert, get_whitespace
-from utils import isArray, getArrayLen, getArrayBaseName, getMacroName, DescriptorSets, is_groupshared_decl
-import os, sys, importlib, re
-from shutil import copyfile
+from utils import Stages, getHeader, getShader, getMacro, genFnCall, Platforms, platform_langs, get_whitespace
+from utils import isArray, getArrayLen, getArrayBaseName, getMacroName, DescriptorSets, is_groupshared_decl, ShaderBinary
+import os, re
 
-def pssl(fsl, dst, rootSignature=None):
-    return d3d(fsl, dst, pssl=True, d3d12=False, rootSignature=rootSignature)
+def direct3d11(*args):
+    return hlsl(Platforms.DIRECT3D11, *args)
 
-def prospero(fsl, dst):
-    return d3d(fsl, dst, pssl=True, prospero=True)
+def direct3d12(*args):
+    return hlsl(Platforms.DIRECT3D12, *args)
 
-def xbox(fsl, dst, rootSignature=None):
-    return d3d(fsl, dst, xbox=True, d3d12=True, rootSignature=rootSignature)
+def xbox(*args):
+    return hlsl(Platforms.XBOX, *args)
 
-def d3d12(fsl, dst):
-    return d3d(fsl, dst, d3d12=True)
+def scarlett(*args):
+    return hlsl(Platforms.SCARLETT, *args)
 
-def scarlett(fsl, dst, rootSignature=None):
-    return xbox(fsl, dst, rootSignature)
+def orbis(*args):
+    return hlsl(Platforms.ORBIS, *args)
 
-def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3d12=False):
+def prospero(*args):
+    return hlsl(Platforms.PROSPERO, *args)
 
-    shader = getShader(fsl, dst)
+def hlsl(platform, debug, binary: ShaderBinary, dst):
+
+    fsl = binary.preprocessed_srcs[platform]
+
+    shader = getShader(platform, binary.fsl_filepath, fsl, dst)
 
     shader_src = getHeader(fsl)
-    if not (d3d12 or pssl or xbox):
-        shader_src += ['#define DIRECT3D11\n']
 
-    if prospero:
-        import prospero
-        pssl = prospero
-        shader_src += ['#define PROSPERO\n']
-        shader_src += prospero.preamble()
+    pssl = None
 
+    is_xbox = False
 
-    elif pssl:
-        import orbis
-        pssl = orbis
-        shader_src += ['#define ORBIS\n']
-        shader_src += orbis.preamble()
+    dependencies = []
 
-    if xbox:
-        import xbox
-        shader_src += ['#define XBOX\n']
-        shader_src += xbox.preamble()
+    if Platforms.PROSPERO == platform:
+        import prospero as prospero_utils
+        pssl = prospero_utils
+        shader_src += prospero_utils.preamble()
 
-    if d3d12:
-        shader_src += ['#define DIRECT3D12\n']
+    elif Platforms.ORBIS == platform:
+        import orbis as orbis_utils
+        pssl = orbis_utils
+        shader_src += orbis_utils.preamble()
 
+    if Platforms.XBOX == platform or Platforms.SCARLETT == platform:
+        is_xbox = True
+        import xbox as xbox_utils
+        shader_src += xbox_utils.preamble()
+
+    shader_src += [f'#define {platform.name}\n']
+    shader_src += [f'#define {platform_langs[platform]}\n']
         
     shader_src += ['#define STAGE_' + shader.stage.name + '\n']
     if shader.enable_waveops:
@@ -70,10 +74,9 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
         for dtype, dvar in shader.flat_args:
             if getMacroName(dtype).upper() == 'SV_PRIMITIVEID':
                 passthrough_gs = True
-                if prospero:
-                    prospero.gen_passthrough_gs(shader, dst.replace('frag', 'geom'))
-                else:
-                    orbis.gen_passthrough_gs(shader, dst.replace('frag', 'geom'))
+                fn = dst.replace('frag', 'geom')
+                pssl.gen_passthrough_gs(shader, fn)
+                dependencies += [(Stages.GEOM, fn, os.path.basename(fn))]
 
     last_res_decl = 0
     explicit_res_decl = None
@@ -81,7 +84,6 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
     srt_free_resources = []
     srt_references = []
 
-    shader_src += ['#line 1 \"'+fsl.replace(os.sep, '/')+'\"\n']
     line_index = 0
 
     parsing_struct = None
@@ -193,20 +195,7 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             last_res_decl = len(shader_src)+1
             # continue
 
-        if 'TESS_VS_SHADER(' in line and prospero:
-            vs_filename = getMacro(line).strip('"')
-            vs_fsl_path = os.path.join(os.path.dirname(fsl), vs_filename)
-            ls_vs_filename = 'ls_'+vs_filename.replace('.fsl', '')
-            vs_pssl = os.path.join(os.path.dirname(dst), ls_vs_filename)
-            d3d(vs_fsl_path, vs_pssl, pssl=True, prospero=True)
-            shader_src += [
-                '#undef VS_MAIN\n',
-                '#define VS_MAIN vs_main\n',
-                '#include "', ls_vs_filename, '"\n'
-                ]
-            continue
-
-        if '_MAIN(' in line and shader.stage == Stages.TESC and prospero:
+        if '_MAIN(' in line and shader.stage == Stages.TESC and Platforms.PROSPERO == platform:
             shader_src += pssl.insert_tesc('vs_main')
 
         if '_MAIN(' in line and shader.returnType:
@@ -247,15 +236,15 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
                     if 'SV_INSTANCEID' in dtype.upper():
                         shader_src += pssl.set_indirect_draw()
 
-        if '_MAIN(' in line and (pssl or xbox) and rootSignature:
+        # if '_MAIN(' in line and (pssl or xbox) and rootSignature:
 
-            l0 = rootSignature.find('SrtSignature')
-            l1 = rootSignature.find('{', l0)
-            srt_name = rootSignature[l0: l1].split()[-1]
+        #     l0 = rootSignature.find('SrtSignature')
+        #     l1 = rootSignature.find('{', l0)
+        #     srt_name = rootSignature[l0: l1].split()[-1]
 
-            res_sig = 'RootSignature' if xbox else 'SrtSignature'
-            shader_src += ['[' + res_sig + '(' + srt_name + ')]\n' + line]
-            continue
+        #     res_sig = 'RootSignature' if xbox else 'SrtSignature'
+        #     shader_src += ['[' + res_sig + '(' + srt_name + ')]\n' + line]
+        #     continue
 
         if 'INIT_MAIN' in line and shader.returnType:
             # mName = getMacroName(shader.returnType)
@@ -323,8 +312,8 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             line = '//' + line
 
         if 'PS_ZORDER_EARLYZ(' in line:
-            if xbox:
-                shader_src += xbox.set_ps_zorder_earlyz()
+            if is_xbox:
+                shader_src += xbox_utils.set_ps_zorder_earlyz()
             line = '//' + line
 
         if shader_src_len != len(shader_src):
@@ -341,11 +330,11 @@ def d3d(fsl, dst, pssl=False, prospero=False, xbox=False, rootSignature=None, d3
             shader_src.insert(last_res_decl, '\n#include \"' + os.path.basename(dst) + '.srt.h\"\n')
 
     # insert root signature at the end (not sure whether that will work for xbox)
-    if rootSignature and pssl:
-        shader_src += [_line+'\n' for _line in rootSignature.splitlines()]# + shader.lines
-    if rootSignature and xbox:
-        shader_src += rootSignature + ['\n']# + shader.lines
+    # if rootSignature and pssl:
+    #     shader_src += [_line+'\n' for _line in rootSignature.splitlines()]# + shader.lines
+    # if rootSignature and xbox:
+    #     shader_src += rootSignature + ['\n']# + shader.lines
 
     open(dst, 'w').writelines(shader_src)
 
-    return 0
+    return 0, dependencies

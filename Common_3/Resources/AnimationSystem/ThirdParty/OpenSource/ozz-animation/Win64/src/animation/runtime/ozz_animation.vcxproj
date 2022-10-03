@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E0CB3186-0614-4DF0-891B-848743572AB2}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>ozz_animation</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(OutDir);$(g3d)\G3D10\build\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_WINDOWS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>_WINDOWS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Lib>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\animation.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\animation.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_aim_job.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_two_bone_job.h" />
+    <ClInclude Include="..\..\..\..\src\animation\runtime\animation_keyframe.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\blending_job.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\animation_utils.cc" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\blending_job.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\local_to_model_job.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_aim_job.cc" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_two_bone_job.cc" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\local_to_model_job.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\sampling_job.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\sampling_job.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\skeleton.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\skeleton.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\skeleton_utils.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\skeleton_utils.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\track.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\track.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\track_sampling_job.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\track_sampling_job.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\track_triggering_job.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\track_triggering_job_stl.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\track_triggering_job.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\base\ozz_base.vcxproj">
+      <Project>{ee1f0fc8-40f5-476a-8553-c8175b343bee}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

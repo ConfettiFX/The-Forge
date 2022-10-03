@@ -38,6 +38,9 @@ STRUCT(VSOutput)
 #if PT_USE_REFRACTION != 0
 	DATA(float4, CSNormal, NORMAL1);
 #endif
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
 STRUCT(PSOutput)
@@ -102,7 +105,11 @@ PSOutput PS_MAIN( VSOutput In )
 #if PT_USE_DIFFUSION != 0
 	if (collimation < 1.0f)
 	{
+#if VR_MULTIVIEW_ENABLED
+		float backgroundDepth = LoadTex3D(Get(DepthTexture), Get(PointSampler), int3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
+#else
 		float backgroundDepth = LoadTex2D(Get(DepthTexture), Get(PointSampler), int2(In.Position.xy), 0).r;
+#endif
 		backgroundDepth = Get(camClipInfo)[0] / (Get(camClipInfo)[1] * backgroundDepth + Get(camClipInfo)[2]);
 
 		const float scaling = 8.0f;

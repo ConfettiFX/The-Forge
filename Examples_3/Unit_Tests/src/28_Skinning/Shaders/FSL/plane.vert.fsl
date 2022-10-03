@@ -24,11 +24,7 @@
 
 // Shader for ground plane in Unit Tests Animation
 
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
-{
-    DATA(float4x4, mvp, None);
-    DATA(float4x4, toWorld, None);
-};
+#include "resources.h.fsl"
 
 STRUCT(VSInput)
 {
@@ -40,14 +36,21 @@ STRUCT(VSOutput)
 {
     DATA(float4, Position, SV_Position);
     DATA(float2, TexCoord, TEXCOORD);
+    DATA(float3, worldPos, POSITION0);
 };
 
 VSOutput VS_MAIN(VSInput In)
 {
     INIT_MAIN;
     VSOutput Out;
+#if VR_MULTIVIEW_ENABLED
+    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld));
+#else
     float4x4 tempMat = mul(Get(mvp), Get(toWorld));
+#endif
     Out.Position = mul(tempMat, In.Position);
+
+    Out.worldPos = mul(In.Position, Get(toWorld)).xyz;
 
     Out.TexCoord = In.TexCoord;
     RETURN(Out);

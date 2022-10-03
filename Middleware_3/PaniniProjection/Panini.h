@@ -26,8 +26,8 @@
 #define NULL 0
 #endif    // ! NULL
 
-#include "../../Common_3/OS/Interfaces/IMiddleware.h"
-#include "../../Common_3/OS/Interfaces/IFileSystem.h"
+#include "../../Common_3/Application/Interfaces/IMiddleware.h"
+#include "../../Common_3/Utilities/Interfaces/IFileSystem.h"
 
 extern ResourceDirectory RD_MIDDLEWARE_PANINI;
 

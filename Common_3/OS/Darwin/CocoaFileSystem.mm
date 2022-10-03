@@ -22,15 +22,15 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #import <Foundation/Foundation.h>
 
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 static bool gInitialized = false;
 static const char* gResourceMounts[RM_COUNT];

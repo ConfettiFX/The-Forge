@@ -102,9 +102,7 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
@@ -113,11 +111,9 @@
         xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -156,9 +152,7 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>        xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\Skybox_*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
@@ -166,10 +160,9 @@
         xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+%(Command)
         </Command>
     </PreLinkEvent>
     <PreBuildEvent />

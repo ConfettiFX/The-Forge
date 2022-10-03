@@ -348,19 +348,19 @@ float3 calculateIllumination(
 		shadowFactor *= NUM_SHADOW_SAMPLES_INV;
 #elif SHADOW == SHADOW_ESM
 		// ESM
-		float CShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy, 0).r);
+		float CShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy, 0).r);
 
-		float LShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(-Gaps.x, 0.0), 0).r);
-		float RShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(Gaps.x, 0.0), 0).r);
+		float LShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(-Gaps.x, 0.0), 0).r);
+		float RShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(Gaps.x, 0.0), 0).r);
 
-		float LTShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(-Gaps.x, Gaps.y), 0).r);
-		float RTShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(Gaps.x, Gaps.y), 0).r);
+		float LTShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(-Gaps.x, Gaps.y), 0).r);
+		float RTShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(Gaps.x, Gaps.y), 0).r);
 
-		float TShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(0.0, Gaps.y), 0).r);
-		float BShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(0.0, -Gaps.y), 0).r);
+		float TShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(0.0, Gaps.y), 0).r);
+		float BShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(0.0, -Gaps.y), 0).r);
 
-		float LBShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(-Gaps.x, -Gaps.y), 0).r);
-		float RBShadow = linearDepth(pShadowMap.SampleLevel(sh, posLS.xy + float2(Gaps.x, -Gaps.y), 0).r);
+		float LBShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(-Gaps.x, -Gaps.y), 0).r);
+		float RBShadow = linearDepth(SampleLvlTex2D(pShadowMap, sh, posLS.xy + float2(Gaps.x, -Gaps.y), 0).r);
 
 		float nbShadow = LShadow + RShadow + TShadow + BShadow + LTShadow + RTShadow + LBShadow + RBShadow;
 

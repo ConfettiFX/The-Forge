@@ -45,8 +45,13 @@
 #include <immintrin.h>
 #endif
 
+#ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
+
+#ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+#endif
 
 #if defined(_MSC_VER)
 #define ALIGNED_(x) __declspec(align(x))
@@ -100,8 +105,8 @@ void AsteroidSimulation::Init(
 		float colorSchemeDist = rng.GetNormalDistribution(0, NUM_COLOR_SCHEMES - 1);
 		int   textureIndexDist = rng.GetUniformDistribution(0, textureCount - 1);
 
-		AsteroidStatic staticAsteroid;
-
+		AsteroidStatic staticAsteroid = {};
+        
 		staticAsteroid.scale = scaleDist;
 
 		float orbitRadius = orbitRadiusDist;
@@ -122,7 +127,6 @@ void AsteroidSimulation::Init(
 		float* c = linearColorSchemes + 6 * colorScheme;
 		staticAsteroid.surfaceColor = float4(c[0], c[1], c[2], 1.0f);
 		staticAsteroid.deepColor = float4(c[3], c[4], c[5], 1.0f);
-
 		asteroidsStatic.push_back(staticAsteroid);
 
 		AsteroidDynamic dynamicAsteroid;

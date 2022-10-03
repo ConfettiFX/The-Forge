@@ -83,7 +83,7 @@ bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(
 	PlaneInfo thisPlane = Get(planeInfo)[index];
 
 	// assuming vectors are all normalized
-	float4x4 thisPlanesMat = thisPlane.rotMat;
+	//float4x4 thisPlanesMat = thisPlane.rotMat;
 	float3 normalVec = getCol2(thisPlane.rotMat).xyz;
 
 	float3 centerPoint = thisPlane.centerPoint.xyz;

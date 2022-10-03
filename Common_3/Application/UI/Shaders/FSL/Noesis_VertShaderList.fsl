@@ -1,0 +1,160 @@
+#vert Noesis.vert
+#end
+
+#vert Noesis_HAS_COLOR.vert
+#define HAS_COLOR
+#end
+
+#vert Noesis_HAS_COLOR_SRGB.vert
+#define HAS_COLOR
+#define SRGB
+#end
+
+#vert Noesis_HAS_UV0.vert
+#define HAS_UV0
+#end
+
+#vert Noesis_HAS_UV0_HAS_RECT.vert
+#define HAS_UV0
+#define HAS_RECT
+#end
+
+#vert Noesis_HAS_UV0_HAS_RECT_HAS_TILE.vert
+#define HAS_UV0
+#define HAS_RECT
+#define HAS_TILE
+#end
+
+#vert Noesis_HAS_COLOR_HAS_COVERAGE.vert
+#define HAS_COLOR
+#define HAS_COVERAGE
+#end
+
+#vert Noesis_HAS_COLOR_HAS_COVERAGE_SRGB.vert
+#define HAS_COLOR
+#define HAS_COVERAGE
+#define SRGB
+#end
+
+#vert Noesis_HAS_UV0_HAS_COVERAGE.vert
+#define HAS_UV0
+#define HAS_COVERAGE
+#end
+
+#vert Noesis_HAS_UV0_HAS_COVERAGE_HAS_RECT.vert
+#define HAS_UV0
+#define HAS_COVERAGE
+#define HAS_RECT
+#end
+
+#vert Noesis_HAS_UV0_HAS_COVERAGE_HAS_RECT_HAS_TILE.vert
+#define HAS_UV0
+#define HAS_COVERAGE
+#define HAS_RECT
+#define HAS_TILE
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1_SDF.vert
+#define HAS_COLOR
+#define HAS_UV1
+#define SDF
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1_SDF_SRGB.vert
+#define HAS_COLOR
+#define HAS_UV1
+#define SDF
+#define SRGB
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_SDF.vert
+#define HAS_UV0
+#define HAS_UV1
+#define SDF
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_HAS_RECT_SDF.vert
+#define HAS_UV0
+#define HAS_UV1
+#define HAS_RECT
+#define SDF
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_HAS_RECT_HAS_TILE_SDF.vert
+#define HAS_UV0
+#define HAS_UV1
+#define HAS_RECT
+#define HAS_TILE
+#define SDF
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1.vert
+#define HAS_COLOR
+#define HAS_UV1
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1_SRGB.vert
+#define HAS_COLOR
+#define HAS_UV1
+#define SRGB
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1.vert
+#define HAS_UV0
+#define HAS_UV1
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_HAS_RECT.vert
+#define HAS_UV0
+#define HAS_UV1
+#define HAS_RECT
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_HAS_RECT_HAS_TILE.vert
+#define HAS_UV0
+#define HAS_UV1
+#define HAS_RECT
+#define HAS_TILE
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV0_HAS_UV1.vert
+#define HAS_COLOR
+#define HAS_UV0
+#define HAS_UV1
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV0_HAS_UV1_SRGB.vert
+#define HAS_COLOR
+#define HAS_UV0
+#define HAS_UV1
+#define SRGB
+#end
+
+#vert Noesis_HAS_UV0_HAS_UV1_DOWNSAMPLE.vert
+#define HAS_UV0
+#define HAS_UV1
+#define DOWNSAMPLE
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1_HAS_RECT.vert
+#define HAS_COLOR
+#define HAS_UV1
+#define HAS_RECT
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV1_HAS_RECT_SRGB.vert
+#define HAS_COLOR
+#define HAS_UV1
+#define HAS_RECT
+#define SRGB
+#end
+
+#vert Noesis_HAS_COLOR_HAS_UV0_HAS_RECT_HAS_IMAGE_POSITION_SRGB.vert
+#define HAS_COLOR
+#define HAS_UV0
+#define HAS_RECT
+#define HAS_IMAGE_POSITION
+#define SRGB
+#end
+
+#include "Noesis.vert.fsl"

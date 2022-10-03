@@ -17,6 +17,7 @@
     <File Name="../../src/28_Skinning/Shaders/FSL/plane.vert.fsl"/>
     <File Name="../../src/28_Skinning/Shaders/FSL/skinning.frag.fsl"/>
     <File Name="../../src/28_Skinning/Shaders/FSL/skinning.vert.fsl"/>
+    <File Name="../../src/28_Skinning/Shaders/FSL/ShaderList.fsl"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
@@ -41,13 +42,13 @@
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
-        <IncludePath Value="$(WorkspacePath)/../../../Common_3/ThirdParty/OpenSource/ozz-animation/include"/>
+        <IncludePath Value="$(WorkspacePath)/../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
       <Linker Options=""/>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -60,7 +61,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -89,7 +90,9 @@
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/Stormtrooper_D.dds $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Animations</Command>
@@ -112,11 +115,12 @@
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -126,7 +130,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -139,7 +143,7 @@ shaders:&#xD;
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
@@ -169,7 +173,9 @@ shaders:&#xD;
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/Stormtrooper_D.dds $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Animations</Command>
@@ -192,12 +198,11 @@ shaders:&#xD;
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
-</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

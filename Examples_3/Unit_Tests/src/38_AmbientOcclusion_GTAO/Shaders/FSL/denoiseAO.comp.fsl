@@ -1,0 +1,177 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The following code is a port of XeGTAO implementation that can be found at: https://github.com/GameTechDev/XeGTAO
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define XE_GTAO_OCCLUSION_TERM_SCALE    (1.0f)      // (1.5f) for packing in UNORM (because raw, pre-denoised occlusion term can overshoot 1 but will later average out to 1)
+
+CBUFFER(cbGTAOConsts, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float2, ViewportPixelSize, None);
+    DATA(float2, NDCToViewMul, None);
+    DATA(float2, NDCToViewAdd, None);
+    DATA(float2, NDCToViewMul_x_PixelSize, None);
+	DATA(float, EffectRadius, None);
+    DATA(float, EffectFalloffRange, None);
+    DATA(float, RadiusMultiplier, None);
+	DATA(float, SampleDistributionPower, None);
+	DATA(float, ThinOccluderCompensation, None);
+	DATA(float, SliceCount, None);
+	DATA(float, StepsPerSlice, None);
+    DATA(float, DepthMIPSamplingOffset, None);
+    DATA(float, FinalValuePower, None);
+	DATA(uint, NoiseIndex, None);
+    DATA(float, DenoiseBlurBeta, None);
+};
+
+RES(Tex2D(float), g_sourceAOTerm, UPDATE_FREQ_NONE, t0, binding = 1);
+RES(Tex2D(float), g_sourceEdges, UPDATE_FREQ_NONE, t1, binding = 2);
+RES(RWTex2D(float), g_output, UPDATE_FREQ_NONE, u0, binding = 3);
+
+RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s0, binding = 4);
+
+float4 XeGTAO_UnpackEdges( float _packedVal )
+{
+    uint packedVal = uint(_packedVal * 255.5f);
+    float4 edgesLRTB;
+    edgesLRTB.x = float((packedVal >> 6) & 0x03) / 3.0f;          // there's really no need for mask (as it's an 8 bit input) but I'll leave it in so it doesn't cause any trouble in the future
+    edgesLRTB.y = float((packedVal >> 4) & 0x03) / 3.0f;
+    edgesLRTB.z = float((packedVal >> 2) & 0x03) / 3.0f;
+    edgesLRTB.w = float((packedVal >> 0) & 0x03) / 3.0f;
+
+    return saturate( edgesLRTB );
+}
+
+void XeGTAO_AddSample( float ssaoValue, float edgeValue, inout(float) sum, inout(float) sumWeight )
+{
+    float weight = edgeValue;    
+
+    sum += (weight * ssaoValue);
+    sumWeight += weight;
+}
+
+float4 XeGTAO_DecodeGatherPartial( const float4 packedValue )
+{
+    float4 outDecoded;
+    for( int i = 0; i < 4; i++ )
+        outDecoded[i] = packedValue[i];
+    return outDecoded;
+}
+
+void XeGTAO_Denoise( const uint2 pixCoordBase, const bool finalApply )
+{
+    const float blurAmount = (finalApply)?(Get(DenoiseBlurBeta)):(Get(DenoiseBlurBeta)/5.0f);
+    const float diagWeight = 0.85f * 0.5f;
+
+    float aoTerm[2];   // pixel pixCoordBase and pixel pixCoordBase + int2( 1, 0 )
+    float4 edgesC_LRTB[2];
+    float weightTL[2];
+    float weightTR[2];
+    float weightBL[2];
+    float weightBR[2];
+
+    // gather edge and visibility quads, used later
+    const float2 gatherCenter00 = float2( pixCoordBase + uint2(0, 0) ) * Get(ViewportPixelSize);
+    const float2 gatherCenter20 = float2( pixCoordBase + uint2(2, 0) ) * Get(ViewportPixelSize);
+    const float2 gatherCenter02 = float2( pixCoordBase + uint2(0, 2) ) * Get(ViewportPixelSize);
+    const float2 gatherCenter22 = float2( pixCoordBase + uint2(2, 2) ) * Get(ViewportPixelSize);
+    const float2 gatherCenter12 = float2( pixCoordBase + uint2(1, 2) ) * Get(ViewportPixelSize);
+    float4 edgesQ0 = GatherRedTex2D( Get(g_sourceEdges), Get(defaultSampler), gatherCenter00 );
+    float4 edgesQ1 = GatherRedTex2D( Get(g_sourceEdges), Get(defaultSampler), gatherCenter20 );
+    float4 edgesQ2 = GatherRedTex2D( Get(g_sourceEdges), Get(defaultSampler), gatherCenter12 );
+
+    float4 visQ0 = XeGTAO_DecodeGatherPartial( GatherRedTex2D( Get(g_sourceAOTerm), Get(defaultSampler), gatherCenter00 ) );
+    float4 visQ1 = XeGTAO_DecodeGatherPartial( GatherRedTex2D( Get(g_sourceAOTerm), Get(defaultSampler), gatherCenter20 ) );
+    float4 visQ2 = XeGTAO_DecodeGatherPartial( GatherRedTex2D( Get(g_sourceAOTerm), Get(defaultSampler), gatherCenter02 ) );
+    float4 visQ3 = XeGTAO_DecodeGatherPartial( GatherRedTex2D( Get(g_sourceAOTerm), Get(defaultSampler), gatherCenter22 ) );
+
+    for( int side = 0; side < 2; side++ )
+    {
+        const int2 pixCoord = int2( pixCoordBase.x + side, pixCoordBase.y );
+
+        float4 edgesL_LRTB  = XeGTAO_UnpackEdges( (side==0)?(edgesQ0.x):(edgesQ0.y) );
+        float4 edgesT_LRTB  = XeGTAO_UnpackEdges( (side==0)?(edgesQ0.z):(edgesQ1.w) );
+        float4 edgesR_LRTB  = XeGTAO_UnpackEdges( (side==0)?(edgesQ1.x):(edgesQ1.y) );
+        float4 edgesB_LRTB  = XeGTAO_UnpackEdges( (side==0)?(edgesQ2.w):(edgesQ2.z) );
+
+        edgesC_LRTB[side]   = XeGTAO_UnpackEdges( (side==0)?(edgesQ0.y):(edgesQ1.x) );
+
+        // Edges aren't perfectly symmetrical: edge detection algorithm does not guarantee that a left edge on the right pixel will match the right edge on the left pixel (although
+        // they will match in majority of cases). This line further enforces the symmetricity, creating a slightly sharper blur. Works real nice with TAA.
+        edgesC_LRTB[side] *= float4( edgesL_LRTB.y, edgesR_LRTB.x, edgesT_LRTB.w, edgesB_LRTB.z );
+
+#if 1   // this allows some small amount of AO leaking from neighbours if there are 3 or 4 edges; this reduces both spatial and temporal aliasing
+        const float leak_threshold = 2.5; const float leak_strength = 0.5;
+        float edginess = (saturate(4.0 - leak_threshold - dot( edgesC_LRTB[side], float4(1, 1, 1, 1) )) / (4-leak_threshold)) * leak_strength;
+        edgesC_LRTB[side] = saturate( edgesC_LRTB[side] + edginess );
+#endif
+
+        // for diagonals; used by first and second pass
+        weightTL[side] = diagWeight * (edgesC_LRTB[side].x * edgesL_LRTB.z + edgesC_LRTB[side].z * edgesT_LRTB.x);
+        weightTR[side] = diagWeight * (edgesC_LRTB[side].z * edgesT_LRTB.y + edgesC_LRTB[side].y * edgesR_LRTB.z);
+        weightBL[side] = diagWeight * (edgesC_LRTB[side].w * edgesB_LRTB.x + edgesC_LRTB[side].x * edgesL_LRTB.w);
+        weightBR[side] = diagWeight * (edgesC_LRTB[side].y * edgesR_LRTB.w + edgesC_LRTB[side].w * edgesB_LRTB.y);
+
+        // first pass
+        float ssaoValue     = (side==0)?(visQ0[1]):(visQ1[0]);
+        float ssaoValueL    = (side==0)?(visQ0[0]):(visQ0[1]);
+        float ssaoValueT    = (side==0)?(visQ0[2]):(visQ1[3]);
+        float ssaoValueR    = (side==0)?(visQ1[0]):(visQ1[1]);
+        float ssaoValueB    = (side==0)?(visQ2[2]):(visQ3[3]);
+        float ssaoValueTL   = (side==0)?(visQ0[3]):(visQ0[2]);
+        float ssaoValueBR   = (side==0)?(visQ3[3]):(visQ3[2]);
+        float ssaoValueTR   = (side==0)?(visQ1[3]):(visQ1[2]);
+        float ssaoValueBL   = (side==0)?(visQ2[3]):(visQ2[2]);
+
+        float sumWeight = blurAmount;
+        float sum = ssaoValue * sumWeight;
+
+        XeGTAO_AddSample( ssaoValueL, edgesC_LRTB[side].x, sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueR, edgesC_LRTB[side].y, sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueT, edgesC_LRTB[side].z, sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueB, edgesC_LRTB[side].w, sum, sumWeight );
+
+        XeGTAO_AddSample( ssaoValueTL, weightTL[side], sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueTR, weightTR[side], sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueBL, weightBL[side], sum, sumWeight );
+        XeGTAO_AddSample( ssaoValueBR, weightBR[side], sum, sumWeight );
+
+        aoTerm[side] = sum / sumWeight;
+
+        aoTerm[side] *=  (finalApply)?(XE_GTAO_OCCLUSION_TERM_SCALE):(1);
+        Write2D(Get(g_output), pixCoord.xy, aoTerm[side]);    }
+}
+
+NUM_THREADS(8,  8,  1)
+void CS_MAIN( SV_DispatchThreadID(uint2) did )
+{
+	INIT_MAIN;
+
+    const uint2 pixCoordBase = did * uint2( 2, 1 );    // we're computing 2 horizontal pixels at a time (performance optimization)
+    XeGTAO_Denoise(pixCoordBase, false);
+
+    RETURN();
+}

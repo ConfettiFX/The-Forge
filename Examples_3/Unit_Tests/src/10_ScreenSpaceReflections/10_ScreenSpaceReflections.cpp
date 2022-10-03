@@ -26,35 +26,63 @@
 // Unit Test for testing materials and pbr.
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Core/Atomics.h"
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Utilities/Threading/Atomics.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 //Input
-#include "../../../../Common_3/OS/Core/ThreadSystem.h"
+#include "../../../../Common_3/Utilities/Threading/ThreadSystem.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 #include "samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_2spp.cpp"
 
+#include "Shaders/Shared.h"
+
 #define DEFERRED_RT_COUNT 4
 #define MAX_PLANES 4
+
+
+
+#define FOREACH_SETTING(X) \
+		X(UseTextureFallback)
+
+#define GENERATE_ENUM(x) x,
+#define GENERATE_STRING(x) #x,
+#define GENERATE_STRUCT(x) uint32_t m##x = 0;
+
+typedef enum ESettings
+{
+	FOREACH_SETTING(GENERATE_ENUM)
+	Count
+} ESettings;
+
+const char* gSettingNames[] =
+{
+	FOREACH_SETTING(GENERATE_STRING)
+};
+
+// Useful for using names directly instead of subscripting an array
+struct AppSettings
+{
+	FOREACH_SETTING(GENERATE_STRUCT)
+} gSettings;
 
 // Have a uniform for camera data
 struct UniformCamData
@@ -207,12 +235,6 @@ static int32_t  gSSSR_EAWPassCount = 1;
 static bool     gSSSR_TemporalVarianceEnabled = true;
 static float    gSSSR_RougnessThreshold = 0.1f;
 static bool     gSSSR_SkipDenoiser = false;
-
-#ifdef TARGET_IOS
-static bool gUseTexturesFallback = false;
-#else
-const bool gUseTexturesFallback = false;    // cut off branching for other platforms
-#endif
 
 bool gSSSRSupported = false;
 
@@ -497,7 +519,6 @@ Texture* pSpecularMap = NULL;
 
 Buffer* pIntermediateBuffer = NULL;
 
-#define TOTAL_IMGS 84
 Texture* pMaterialTextures[TOTAL_IMGS];
 
 eastl::vector<int> gSponzaTextureIndexforMaterial;
@@ -562,7 +583,6 @@ FontDrawDesc gFrameTimeDraw;
 uint32_t     gFontID = 0; 
 
 UIComponent*    pGui = NULL;
-UIComponent*    pLoadingGui = NULL;
 DynamicUIWidgets PPR_Widgets;
 DynamicUIWidgets SSSR_Widgets;
 
@@ -587,7 +607,7 @@ bool gHasReset = false;
 const char* gTestScripts[] = { "Test_RenderScene.lua", "Test_RenderReflections.lua", "Test_RenderSceneReflections.lua", "Test_RenderSceneExReflections.lua" };
 uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
 uint32_t gCurrentScriptIndex = 0;
-void RunScript()
+void RunScript(void* pUserData)
 {
 	LuaScriptDesc runDesc = {};
 	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
@@ -613,15 +633,21 @@ class ScreenSpaceReflections: public IApp
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
+		ExtendedSettings extendedSettings = {};
+		extendedSettings.numSettings = ESettings::Count;
+		extendedSettings.pSettings = (uint32_t*)&gSettings;
+		extendedSettings.ppSettingNames = gSettingNames;
+
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
+		settings.pExtendedSettings = &extendedSettings;
 		settings.mShaderTarget = shader_target_6_0;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -634,10 +660,6 @@ class ScreenSpaceReflections: public IApp
 			(pRenderer->pActiveGpuSettings->mWaveOpsSupportFlags & WAVE_OPS_SUPPORT_FLAG_VOTE_BIT);
 
 		gLastReflectionType = gReflectionType = gSSSRSupported ? SSS_REFLECTION : PP_REFLECTION;
-
-#ifdef TARGET_IOS
-		gUseTexturesFallback = (pRenderer->pActiveGpuSettings->mArgumentBufferMaxTextures < TOTAL_IMGS);
-#endif
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
@@ -713,288 +735,6 @@ class ScreenSpaceReflections: public IApp
 		SamplerDesc nearstSamplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
 						ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 		addSampler(pRenderer, &nearstSamplerDesc, &pSamplerNearest);
-
-		// GBuffer
-		char totalImagesShaderMacroBuffer[5] = {};
-		sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
-		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
-		ShaderLoadDesc gBuffersShaderDesc = {};
-
-		if (!gUseTexturesFallback)
-		{
-			gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", &totalImagesShaderMacro, 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		}
-		else
-		{
-			gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		}
-		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
-
-		const char* pStaticSamplerNames[] = { "defaultSampler" };
-		Sampler*    pStaticSamplers[] = { pSamplerBilinear };
-
-		RootSignatureDesc gBuffersRootDesc = { &pShaderGbuffers, 1 };
-		gBuffersRootDesc.mStaticSamplerCount = 1;
-		gBuffersRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		gBuffersRootDesc.ppStaticSamplers = pStaticSamplers;
-
-		if (!gUseTexturesFallback)
-		{
-			gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-		}
-		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
-		gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSigGbuffers, "cbTextureRootConstants");
-
-		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
-
-		const char*       pSkyboxamplerName = "skyboxSampler";
-		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
-		skyboxRootDesc.mStaticSamplerCount = 1;
-		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
-		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
-		addRootSignature(pRenderer, &skyboxRootDesc, &pSkyboxRootSignature);
-
-		//BRDF
-		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
-
-		const char* pStaticSampler2Names[] = { "envSampler", "defaultSampler" };
-		Sampler*    pStaticSamplers2[] = { pSamplerBilinear, pSamplerNearest };
-
-		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
-		brdfRootDesc.mStaticSamplerCount = 2;
-		brdfRootDesc.ppStaticSamplerNames = pStaticSampler2Names;
-		brdfRootDesc.ppStaticSamplers = pStaticSamplers2;
-		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
-
-		//PPR_Projection
-		ShaderLoadDesc PPR_ProjectionShaderDesc = {};
-		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		addShader(pRenderer, &PPR_ProjectionShaderDesc, &pPPR_ProjectionShader);
-
-		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
-		PPR_PRootDesc.mStaticSamplerCount = 1;
-		PPR_PRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		PPR_PRootDesc.ppStaticSamplers = pStaticSamplers;
-		addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
-
-		//PPR_Reflection
-		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
-		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-
-		addShader(pRenderer, &PPR_ReflectionShaderDesc, &pPPR_ReflectionShader);
-
-		RootSignatureDesc PPR_RRootDesc = { &pPPR_ReflectionShader, 1 };
-		PPR_RRootDesc.mStaticSamplerCount = 1;
-		PPR_RRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
-		PPR_RRootDesc.ppStaticSamplers = pStaticSamplers;
-		addRootSignature(pRenderer, &PPR_RRootDesc, &pPPR_ReflectionRootSignature);
-
-		//PPR_HolePatching
-		ShaderLoadDesc PPR_HolePatchingShaderDesc = {};
-		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-
-		addShader(pRenderer, &PPR_HolePatchingShaderDesc, &pPPR_HolePatchingShader);
-
-		const char* pStaticSamplerforHolePatchingNames[] = { "nearestSampler", "bilinearSampler" };
-		Sampler*    pStaticSamplersforHolePatching[] = { pSamplerNearest, pSamplerBilinear };
-
-		RootSignatureDesc PPR_HolePatchingRootDesc = { &pPPR_HolePatchingShader, 1 };
-		PPR_HolePatchingRootDesc.mStaticSamplerCount = 2;
-		PPR_HolePatchingRootDesc.ppStaticSamplerNames = pStaticSamplerforHolePatchingNames;
-		PPR_HolePatchingRootDesc.ppStaticSamplers = pStaticSamplersforHolePatching;
-		addRootSignature(pRenderer, &PPR_HolePatchingRootDesc, &pPPR_HolePatchingRootSignature);
-
-		if (gSSSRSupported)
-		{
-			ShaderLoadDesc SPDDesc = {};
-			SPDDesc.mStages[0] = { "DepthDownsample.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			SPDDesc.mTarget = shader_target_6_0;
-			addShader(pRenderer, &SPDDesc, &pSPDShader);
-
-			RootSignatureDesc SPDDescRootDesc = { &pSPDShader, 1 };
-			SPDDescRootDesc.mMaxBindlessTextures = 13;
-			addRootSignature(pRenderer, &SPDDescRootDesc, &pSPDRootSignature);
-
-			ShaderLoadDesc CopyDepthShaderDesc = {};
-			CopyDepthShaderDesc.mStages[0] = { "copyDepth.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &CopyDepthShaderDesc, &pCopyDepthShader);
-
-			RootSignatureDesc CopyDepthShaderDescRootDesc = { &pCopyDepthShader, 1 };
-			addRootSignature(pRenderer, &CopyDepthShaderDescRootDesc, &pCopyDepthRootSignature);
-
-			ShaderLoadDesc GenerateMipShaderDesc = {};
-			GenerateMipShaderDesc.mStages[0] = { "generateMips.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &GenerateMipShaderDesc, &pGenerateMipShader);
-
-			RootSignatureDesc GenerateMipShaderDescRootDesc = { &pGenerateMipShader, 1 };
-			addRootSignature(pRenderer, &GenerateMipShaderDescRootDesc, &pGenerateMipRootSignature);
-			gMipSizeRootConstantIndex = getDescriptorIndexFromName(pGenerateMipRootSignature, "RootConstant");
-
-			// SSSR
-			ShaderLoadDesc SSSR_ClassifyTilesShaderDesc = {};
-			SSSR_ClassifyTilesShaderDesc.mStages[0] = { "SSSR_ClassifyTiles.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			SSSR_ClassifyTilesShaderDesc.mTarget = shader_target_6_0;
-			addShader(pRenderer, &SSSR_ClassifyTilesShaderDesc, &pSSSR_ClassifyTilesShader);
-
-			RootSignatureDesc SSSR_ClassifyTilesRootDesc = { &pSSSR_ClassifyTilesShader, 1 };
-			addRootSignature(pRenderer, &SSSR_ClassifyTilesRootDesc, &pSSSR_ClassifyTilesRootSignature);
-
-			ShaderLoadDesc SSSR_PrepareIndirectArgsShaderDesc = {};
-			SSSR_PrepareIndirectArgsShaderDesc.mStages[0] = { "SSSR_PrepareIndirectArgs.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &SSSR_PrepareIndirectArgsShaderDesc, &pSSSR_PrepareIndirectArgsShader);
-
-			RootSignatureDesc SSSR_PrepareIndirectArgsRootDesc = { &pSSSR_PrepareIndirectArgsShader, 1 };
-			addRootSignature(pRenderer, &SSSR_PrepareIndirectArgsRootDesc, &pSSSR_PrepareIndirectArgsRootSignature);
-
-			ShaderLoadDesc SSSR_IntersectShaderDesc = {};
-			SSSR_IntersectShaderDesc.mStages[0] = { "SSSR_Intersect.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			SSSR_IntersectShaderDesc.mTarget = shader_target_6_0;
-			addShader(pRenderer, &SSSR_IntersectShaderDesc, &pSSSR_IntersectShader);
-
-			RootSignatureDesc SSSR_IntersectRootDesc = { &pSSSR_IntersectShader, 1 };
-			addRootSignature(pRenderer, &SSSR_IntersectRootDesc, &pSSSR_IntersectRootSignature);
-
-			IndirectArgumentDescriptor indirectArgDescs[1] = {};
-			indirectArgDescs[0].mType = INDIRECT_DISPATCH;
-
-			CommandSignatureDesc cmdSignatureDesc = { pSSSR_IntersectRootSignature, 
-											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pSSSR_IntersectCommandSignature);
-
-			ShaderLoadDesc SSSR_ResolveSpatialShaderDesc = {};
-			SSSR_ResolveSpatialShaderDesc.mStages[0] = { "SSSR_ResolveSpatial.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			SSSR_ResolveSpatialShaderDesc.mTarget = shader_target_6_0;
-			addShader(pRenderer, &SSSR_ResolveSpatialShaderDesc, &pSSSR_ResolveSpatialShader);
-
-			RootSignatureDesc SSSR_ResolveSpatialRootDesc = { &pSSSR_ResolveSpatialShader, 1 };
-			addRootSignature(pRenderer, &SSSR_ResolveSpatialRootDesc, &pSSSR_ResolveSpatialRootSignature);
-
-			CommandSignatureDesc cmdResolveSpatialSignatureDesc = { pSSSR_ResolveSpatialRootSignature,
-											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdResolveSpatialSignatureDesc, &pSSSR_ResolveSpatialCommandSignature);
-
-			ShaderLoadDesc SSSR_ResolveTemporalShaderDesc = {};
-			SSSR_ResolveTemporalShaderDesc.mStages[0] = { "SSSR_ResolveTemporal.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &SSSR_ResolveTemporalShaderDesc, &pSSSR_ResolveTemporalShader);
-
-			RootSignatureDesc SSSR_ResolveTemporalRootDesc = { &pSSSR_ResolveTemporalShader, 1 };
-			addRootSignature(pRenderer, &SSSR_ResolveTemporalRootDesc, &pSSSR_ResolveTemporalRootSignature);
-
-			CommandSignatureDesc cmdResolveTemporalSignatureDesc = { pSSSR_ResolveTemporalRootSignature,
-											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdResolveTemporalSignatureDesc, &pSSSR_ResolveTemporalCommandSignature);
-
-			ShaderLoadDesc SSSR_ResolveEAWShaderDesc = {};
-			SSSR_ResolveEAWShaderDesc.mStages[0] = { "SSSR_ResolveEaw.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &SSSR_ResolveEAWShaderDesc, &pSSSR_ResolveEAWShader);
-
-			RootSignatureDesc SSSR_ResolveEAWRootDesc = { &pSSSR_ResolveEAWShader, 1 };
-			addRootSignature(pRenderer, &SSSR_ResolveEAWRootDesc, &pSSSR_ResolveEAWRootSignature);
-
-			CommandSignatureDesc cmdResolveEAWSignatureDesc = { pSSSR_ResolveEAWRootSignature,
-										indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdResolveEAWSignatureDesc, &pSSSR_ResolveEAWCommandSignature);
-
-			ShaderLoadDesc SSSR_ResolveEAWStride2ShaderDesc = {};
-			SSSR_ResolveEAWStride2ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &SSSR_ResolveEAWStride2ShaderDesc, &pSSSR_ResolveEAWStride2Shader);
-
-			RootSignatureDesc SSSR_ResolveEAWStride2RootDesc = { &pSSSR_ResolveEAWStride2Shader, 1 };
-			addRootSignature(pRenderer, &SSSR_ResolveEAWStride2RootDesc, &pSSSR_ResolveEAWStride2RootSignature);
-
-			CommandSignatureDesc cmdResolveEAWStride2SignatureDesc = { pSSSR_ResolveEAWStride2RootSignature,
-											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride2SignatureDesc, &pSSSR_ResolveEAWStride2CommandSignature);
-
-			ShaderMacro SSSR_ShaderMacro = { "FFX_SSSR_EAW_STRIDE", "4" };
-
-			ShaderLoadDesc SSSR_ResolveEAWStride4ShaderDesc = {};
-			SSSR_ResolveEAWStride4ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride.comp", &SSSR_ShaderMacro, 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			addShader(pRenderer, &SSSR_ResolveEAWStride4ShaderDesc, &pSSSR_ResolveEAWStride4Shader);
-
-			RootSignatureDesc SSSR_ResolveEAWStride4RootDesc = { &pSSSR_ResolveEAWStride4Shader, 1 };
-			addRootSignature(pRenderer, &SSSR_ResolveEAWStride4RootDesc, &pSSSR_ResolveEAWStride4RootSignature);
-
-			CommandSignatureDesc cmdResolveEAWStride4SignatureDesc = { pSSSR_ResolveEAWStride4RootSignature,
-											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
-			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride4SignatureDesc, &pSSSR_ResolveEAWStride4CommandSignature);
-		}
-		// Skybox
-		DescriptorSetDesc setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
-		setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
-		// GBuffer
-		if (gUseTexturesFallback)
-		{
-			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 512 };
-		}
-		else
-		{
-			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		}
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[0]);
-		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[1]);
-		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 2 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[2]);
-		// BRDF
-		setDesc = { pRootSigBRDF, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[0]);
-		setDesc = { pRootSigBRDF, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[1]);
-		// PPR Projection
-		setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[0]);
-		setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[1]);
-		// PPR Reflection
-		setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[0]);
-		setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[1]);
-		// PPR Hole Patching
-		setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[0]);
-		setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[1]);
-
-		if (gSSSRSupported)
-		{
-			// Copy depth
-			setDesc = { pCopyDepthRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorCopyDepth);
-			// DepthDownsample
-			setDesc = { pGenerateMipRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 13 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorGenerateMip);
-			// SSSR
-			setDesc = { pSSSR_ClassifyTilesRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ClassifyTiles);
-			setDesc = { pSSSR_PrepareIndirectArgsRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_PrepareIndirectArgs);
-			setDesc = { pSSSR_IntersectRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_Intersect);
-			setDesc = { pSSSR_ResolveSpatialRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveSpatial);
-			setDesc = { pSSSR_ResolveTemporalRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveTemporal);
-			setDesc = { pSSSR_ResolveEAWRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAW);
-			setDesc = { pSSSR_ResolveEAWStride2RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride2);
-			setDesc = { pSSSR_ResolveEAWStride4RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride4);
-		}
 
 		BufferLoadDesc sponza_buffDesc = {};
 		sponza_buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1288,7 +1028,7 @@ class ScreenSpaceReflections: public IApp
 		// Add light to scene
 
 		//Point light
-		Light light;
+		Light light = {};
 		light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
 		light.mPos = vec4(-12.5f, -3.5f, 4.7f, 0.0f);
 		light.mRadius = 10.0f;
@@ -1324,6 +1064,11 @@ class ScreenSpaceReflections: public IApp
 		*(UniformLightData*)lightBuffUpdateDesc.pMappedData = gUniformDataLights;
 		endUpdateResource(&lightBuffUpdateDesc, NULL);
 
+		for (size_t i = 0; i < TOTAL_IMGS; i += 1)
+		{
+			loadTexture(i);
+		}
+
 		//Directional light
 		DirectionalLight dLight;
 		dLight.mCol = vec4(1.0f, 1.0f, 1.0f, 5.0f);
@@ -1337,31 +1082,21 @@ class ScreenSpaceReflections: public IApp
 		*(UniformDirectionalLightData*)directionalLightBuffUpdateDesc.pMappedData = gUniformDataDirectionalLights;
 		endUpdateResource(&directionalLightBuffUpdateDesc, NULL);
 
-		static const uint32_t enumRenderModes[] = { SCENE_ONLY, REFLECTIONS_ONLY, SCENE_WITH_REFLECTIONS, SCENE_EXCLU_REFLECTIONS, 0 };
-
 		static const char* enumRenderModeNames[] = { "Render Scene Only", "Render Reflections Only", "Render Scene with Reflections",
-								"Render Scene with exclusive Reflections", NULL };
+								"Render Scene with exclusive Reflections" };
 
-		static const uint32_t enumReflectionType[] = { PP_REFLECTION, SSS_REFLECTION, 0 };
-
-		static const char* enumReflectionTypeNames[] = { "Pixel Projected Reflections", "Stochastic Screen Space Reflections", NULL };
+		static const char* enumReflectionTypeNames[] = { "Pixel Projected Reflections", "Stochastic Screen Space Reflections" };
 
 		DropdownWidget ddRenderMode;
 		ddRenderMode.pData = &gRenderMode;
-		for (uint32_t i = 0; i < 4; ++i)
-		{
-			ddRenderMode.mNames.push_back((char*)enumRenderModeNames[i]);
-			ddRenderMode.mValues.push_back(enumRenderModes[i]);
-		}
+		ddRenderMode.pNames = enumRenderModeNames;
+		ddRenderMode.mCount = sizeof(enumRenderModeNames)/sizeof(enumRenderModeNames[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pGui, "Render Mode", &ddRenderMode, WIDGET_TYPE_DROPDOWN));
 
 		DropdownWidget ddReflType;
 		ddReflType.pData = &gReflectionType;
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			ddReflType.mNames.push_back((char*)enumReflectionTypeNames[i]);
-			ddReflType.mValues.push_back(enumReflectionType[i]);
-		}
+		ddReflType.pNames = enumReflectionTypeNames;
+		ddReflType.mCount = sizeof(enumReflectionTypeNames)/sizeof(enumReflectionTypeNames[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pGui, "Reflection Type", &ddReflType, WIDGET_TYPE_DROPDOWN));
 
 		CheckboxWidget holePatchCheck;
@@ -1472,16 +1207,13 @@ class ScreenSpaceReflections: public IApp
 
 		DropdownWidget ddTestScripts;
 		ddTestScripts.pData = &gCurrentScriptIndex;
-		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
-		{
-			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
-			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
-		}
+		ddTestScripts.pNames = gTestScripts;
+		ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
 		UIWidget* pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+		uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
 		luaRegisterWidget(pRunScript);
 
 		if (gReflectionType == PP_REFLECTION)
@@ -1492,16 +1224,6 @@ class ScreenSpaceReflections: public IApp
 		{
 			uiShowDynamicWidgets(&SSSR_Widgets, pGui);
 		}
-
-		UIComponentDesc guiDesc2 = {};
-		guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.25f);
-		uiCreateComponent("Loading", &guiDesc2, &pLoadingGui);
-
-		ProgressBarWidget ProgressBar;
-		ProgressBar.pData = &mProgressBarValue;
-		ProgressBar.mMaxProgress = mProgressBarValueMax;
-		luaRegisterWidget(uiCreateComponentWidget(pLoadingGui, "               [ProgressBar]               ", &ProgressBar, WIDGET_TYPE_PROGRESS_BAR));
-
 		// fill Gbuffers
 		// Create vertex layout
 		gVertexLayoutModel.mAttribCount = 3;
@@ -1531,18 +1253,6 @@ class ScreenSpaceReflections: public IApp
 			loadMesh(i);
 		}
 
-		// Prepare descriptor sets
-		DescriptorData skyParams[1] = {};
-		skyParams[0].pName = "skyboxTex";
-		skyParams[0].ppTextures = &pSkybox;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 1, skyParams);
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			skyParams[0].pName = "uniformBlock";
-			skyParams[0].ppBuffers = &pBufferUniformCameraSky[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyParams);
-		}
-
 		CameraMotionParameters camParameters{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 20.0f, -2.0f, 0.9f };
 		vec3                   lookAt{ 0.0f, -2.0f, 0.9f };
@@ -1557,52 +1267,41 @@ class ScreenSpaceReflections: public IApp
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN,
-			[](InputActionContext* ctx) {
-			toggleFullscreen(((IApp*)ctx->pUserData)->pWindow);
-			return true;
-			},
-			this 
-		};
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) {
-			requestShutdown();
-			return true;
-		} };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool(*CameraInputHandler)(InputActionContext * ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index) {
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = {
-			InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f
-		};
-		addInputAction(&actionDesc);
-		actionDesc = {
-			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f
-		};
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) {
-			pCameraController->resetView();
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
 			return true;
-		} };
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		assignSponzaTextures();
 
@@ -1626,39 +1325,20 @@ class ScreenSpaceReflections: public IApp
 
 		exitProfiler();
 
-		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[2]);
-		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[1]);
-		if (gSSSRSupported)
-		{
-			removeDescriptorSet(pRenderer, pDescriptorCopyDepth);
-			removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ClassifyTiles);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_PrepareIndirectArgs);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_Intersect);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveSpatial);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveTemporal);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAW);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride2);
-			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride4);
-		}
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
+
+		for (uint i = 0; i < TOTAL_IMGS; ++i)
+		{
+			if (pMaterialTextures[i])
+			{
+				removeResource(pMaterialTextures[i]);
+			}
+		}
 
 		removeResource(pSpecularMap);
 		removeResource(pIrradianceMap);
@@ -1702,56 +1382,8 @@ class ScreenSpaceReflections: public IApp
 
 		exitFontSystem(); 
 
-		if (gSSSRSupported)
-		{
-			removeShader(pRenderer, pSSSR_ResolveEAWStride4Shader);
-			removeShader(pRenderer, pSSSR_ResolveEAWStride2Shader);
-			removeShader(pRenderer, pSSSR_ResolveEAWShader);
-			removeShader(pRenderer, pSSSR_ResolveTemporalShader);
-			removeShader(pRenderer, pSSSR_ResolveSpatialShader);
-			removeShader(pRenderer, pSSSR_IntersectShader);
-			removeShader(pRenderer, pSSSR_PrepareIndirectArgsShader);
-			removeShader(pRenderer, pSSSR_ClassifyTilesShader);
-			removeShader(pRenderer, pSPDShader);
-			removeShader(pRenderer, pGenerateMipShader);
-			removeShader(pRenderer, pCopyDepthShader);
-		}
-		removeShader(pRenderer, pPPR_HolePatchingShader);
-		removeShader(pRenderer, pPPR_ReflectionShader);
-		removeShader(pRenderer, pPPR_ProjectionShader);
-		removeShader(pRenderer, pShaderBRDF);
-		removeShader(pRenderer, pSkyboxShader);
-		removeShader(pRenderer, pShaderGbuffers);
-
 		removeSampler(pRenderer, pSamplerBilinear);
 		removeSampler(pRenderer, pSamplerNearest);
-
-		if (gSSSRSupported)
-		{
-			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWStride4CommandSignature);
-			removeRootSignature(pRenderer, pSSSR_ResolveEAWStride4RootSignature);
-			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWStride2CommandSignature);
-			removeRootSignature(pRenderer, pSSSR_ResolveEAWStride2RootSignature);
-			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWCommandSignature);
-			removeRootSignature(pRenderer, pSSSR_ResolveEAWRootSignature);
-			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveTemporalCommandSignature);
-			removeRootSignature(pRenderer, pSSSR_ResolveTemporalRootSignature);
-			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveSpatialCommandSignature);
-			removeRootSignature(pRenderer, pSSSR_ResolveSpatialRootSignature);
-			removeIndirectCommandSignature(pRenderer, pSSSR_IntersectCommandSignature);
-			removeRootSignature(pRenderer, pSSSR_IntersectRootSignature);
-			removeRootSignature(pRenderer, pSSSR_PrepareIndirectArgsRootSignature);
-			removeRootSignature(pRenderer, pSSSR_ClassifyTilesRootSignature);
-			removeRootSignature(pRenderer, pSPDRootSignature);
-			removeRootSignature(pRenderer, pGenerateMipRootSignature);
-			removeRootSignature(pRenderer, pCopyDepthRootSignature);
-		}
-		removeRootSignature(pRenderer, pPPR_HolePatchingRootSignature);
-		removeRootSignature(pRenderer, pPPR_ReflectionRootSignature);
-		removeRootSignature(pRenderer, pPPR_ProjectionRootSignature);
-		removeRootSignature(pRenderer, pRootSigBRDF);
-		removeRootSignature(pRenderer, pSkyboxRootSignature);
-		removeRootSignature(pRenderer, pRootSigGbuffers);
 
 		// Remove commands and command pool&
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1885,26 +1517,42 @@ class ScreenSpaceReflections: public IApp
 		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0 };
 
 		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
-		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
-		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-		char           importanceSampleCountBuffer[5] = {};
-		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
-		ShaderMacro importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
-		float irradianceSampleDeltas[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 0.25f, 0.025f, 0.025f, 0.025f };
-		float irradianceSampleDelta = irradianceSampleDeltas[presetLevel];
-		char  irradianceSampleDeltaBuffer[10] = {};
-		sprintf(irradianceSampleDeltaBuffer, "%f", irradianceSampleDelta);
-		ShaderMacro irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
+		const char* brdfIntegrationShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
+			"BRDFIntegration_SAMPLES_0.comp",
+			"BRDFIntegration_SAMPLES_0.comp",
+			"BRDFIntegration_SAMPLES_64.comp",
+			"BRDFIntegration_SAMPLES_128.comp",
+			"BRDFIntegration_SAMPLES_256.comp",
+			"BRDFIntegration_SAMPLES_1024.comp"
+		};
+
+		const char* irradianceShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
+			"computeIrradianceMap_SAMPLE_DELTA_025.comp",
+			"computeIrradianceMap_SAMPLE_DELTA_025.comp",
+			"computeIrradianceMap_SAMPLE_DELTA_025.comp",
+			"computeIrradianceMap_SAMPLE_DELTA_0025.comp",
+			"computeIrradianceMap_SAMPLE_DELTA_0025.comp",
+			"computeIrradianceMap_SAMPLE_DELTA_0025.comp"
+		};
+
+		const char* specularShaders[GPUPresetLevel::GPU_PRESET_COUNT] = {
+			"computeSpecularMap_SAMPLES_0.comp",
+			"computeSpecularMap_SAMPLES_0.comp",
+			"computeSpecularMap_SAMPLES_64.comp",
+			"computeSpecularMap_SAMPLES_128.comp",
+			"computeSpecularMap_SAMPLES_256.comp",
+			"computeSpecularMap_SAMPLES_1024.comp"
+		};
 
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1 };
+		brdfIntegrationShaderDesc.mStages[0] = { brdfIntegrationShaders[presetLevel], NULL, 0 };
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1 };
+		irradianceShaderDesc.mStages[0] = { irradianceShaders[presetLevel], NULL, 0 };
 
 		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1 };
+		specularShaderDesc.mStages[0] = { specularShaders[presetLevel], NULL, 0 };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
@@ -2106,7 +1754,6 @@ class ScreenSpaceReflections: public IApp
 		loadDesc.pFileName = gModelNames[index];
 		loadDesc.ppGeometry = &gModels[index];
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
-		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
 		addResource(&loadDesc, &gResourceSyncToken);
 	}
 
@@ -2123,339 +1770,84 @@ class ScreenSpaceReflections: public IApp
 		addResource(&textureDesc, &gResourceSyncToken);
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		for (size_t i = 0; i < TOTAL_IMGS; i += 1)
-		{
-			loadTexture(i);
-		}
-
 		gResourceSyncStartToken = getLastTokenCompleted();
 
-		if (gSSSRSupported)
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			// This desc set contains mip level data which is dependent on window dimensions
-			DescriptorSetDesc setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addSceneBuffer())
-			return false;
-
-		if (!addReflectionBuffer())
-			return false;
-
-		if (!addGBuffers())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-		if (!addIntermeditateBuffer())
-			return false;
-
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		/************************************************************************/
-		// Setup the resources needed for the Deferred Pass Pipeline
-		/************************************************************************/
-		TinyImageFormat deferredFormats[DEFERRED_RT_COUNT] = {};
-		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			deferredFormats[i] = pRenderTargetDeferredPass[0][i]->mFormat;
+			if (!addSwapChain())
+				return false;
+
+			addRenderTargets();
 		}
 
-		// Create depth state and rasterizer state
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& deferredPassPipelineSettings = desc.mGraphicsDesc;
-		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
-		deferredPassPipelineSettings.pDepthState = &depthStateDesc;
-
-		deferredPassPipelineSettings.pColorFormats = deferredFormats;
-
-		deferredPassPipelineSettings.mSampleCount = pRenderTargetDeferredPass[0][0]->mSampleCount;
-		deferredPassPipelineSettings.mSampleQuality = pRenderTargetDeferredPass[0][0]->mSampleQuality;
-
-		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		deferredPassPipelineSettings.pRootSignature = pRootSigGbuffers;
-		deferredPassPipelineSettings.pShaderProgram = pShaderGbuffers;
-		deferredPassPipelineSettings.pVertexLayout = &gVertexLayoutModel;
-		deferredPassPipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pPipelineGbuffers);
-
-		//layout and pipeline for skybox draw
-		VertexLayout vertexLayoutSkybox = {};
-		vertexLayoutSkybox.mAttribCount = 1;
-		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSkybox.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
-		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
-		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
-
-		deferredPassPipelineSettings = {};
-		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		deferredPassPipelineSettings.pDepthState = NULL;
-
-		deferredPassPipelineSettings.mRenderTargetCount = 1;
-		deferredPassPipelineSettings.pColorFormats = deferredFormats;
-		deferredPassPipelineSettings.mSampleCount = pRenderTargetDeferredPass[0][0]->mSampleCount;
-		deferredPassPipelineSettings.mSampleQuality = pRenderTargetDeferredPass[0][0]->mSampleQuality;
-
-		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		deferredPassPipelineSettings.pRootSignature = pSkyboxRootSignature;
-		deferredPassPipelineSettings.pShaderProgram = pSkyboxShader;
-		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSkybox;
-		deferredPassPipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pSkyboxPipeline);
-
-		TinyImageFormat formats[4] = {};
-		formats[0] = pRenderTargetDeferredPass[0][0]->mFormat;
-		formats[1] = pSSSR_TemporalResults[0]->mFormat;
-		formats[2] = pSSSR_TemporalResults[1]->mFormat;
-		formats[3] = pSSSR_RayLength->mFormat;
-
-		deferredPassPipelineSettings.mRenderTargetCount = 4;
-		deferredPassPipelineSettings.pColorFormats = formats;
-		addPipeline(pRenderer, &desc, &pSkyboxWithClearTexturesPipeline);
-
-		// BRDF
-		//Position
-		VertexLayout vertexLayoutScreenQuad = {};
-		vertexLayoutScreenQuad.mAttribCount = 2;
-
-		vertexLayoutScreenQuad.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutScreenQuad.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutScreenQuad.mAttribs[0].mBinding = 0;
-		vertexLayoutScreenQuad.mAttribs[0].mLocation = 0;
-		vertexLayoutScreenQuad.mAttribs[0].mOffset = 0;
-
-		//Uv
-		vertexLayoutScreenQuad.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutScreenQuad.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayoutScreenQuad.mAttribs[1].mLocation = 1;
-		vertexLayoutScreenQuad.mAttribs[1].mBinding = 0;
-		vertexLayoutScreenQuad.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
-
-		desc.mGraphicsDesc = {};
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = NULL;
-
-		pipelineSettings.pColorFormats = &pSceneBuffer->mFormat;
-		pipelineSettings.mSampleCount = pSceneBuffer->mSampleCount;
-		pipelineSettings.mSampleQuality = pSceneBuffer->mSampleQuality;
-
-		// pipelineSettings.pDepthState is NULL, pipelineSettings.mDepthStencilFormat should be NONE
-		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-		pipelineSettings.pRootSignature = pRootSigBRDF;
-		pipelineSettings.pShaderProgram = pShaderBRDF;
-		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pPipelineBRDF);
-
-		//PPR_Projection
-		PipelineDesc computeDesc = {};
-		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
-		ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
-		cpipelineSettings.pShaderProgram = pPPR_ProjectionShader;
-		cpipelineSettings.pRootSignature = pPPR_ProjectionRootSignature;
-		addPipeline(pRenderer, &computeDesc, &pPPR_ProjectionPipeline);
-
-		//PPR_Reflection
-		pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = NULL;
-
-		pipelineSettings.pColorFormats = &pReflectionBuffer->mFormat;
-		pipelineSettings.mSampleCount = pReflectionBuffer->mSampleCount;
-		pipelineSettings.mSampleQuality = pReflectionBuffer->mSampleQuality;
-
-		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-		pipelineSettings.pRootSignature = pPPR_ReflectionRootSignature;
-		pipelineSettings.pShaderProgram = pPPR_ReflectionShader;
-		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pPPR_ReflectionPipeline);
-
-		//PPR_HolePatching -> Present
-		pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = NULL;
-
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-
-		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
-		pipelineSettings.pRootSignature = pPPR_HolePatchingRootSignature;
-		pipelineSettings.pShaderProgram = pPPR_HolePatchingShader;
-		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pPPR_HolePatchingPipeline);
-
-		if (gSSSRSupported)
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSPDShader;
-			cpipelineSettings.pRootSignature = pSPDRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSPDPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pCopyDepthShader;
-			cpipelineSettings.pRootSignature = pCopyDepthRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pCopyDepthPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pGenerateMipShader;
-			cpipelineSettings.pRootSignature = pGenerateMipRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pGenerateMipPipeline);
-
-			// SSSR
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ClassifyTilesShader;
-			cpipelineSettings.pRootSignature = pSSSR_ClassifyTilesRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ClassifyTilesPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_PrepareIndirectArgsShader;
-			cpipelineSettings.pRootSignature = pSSSR_PrepareIndirectArgsRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_PrepareIndirectArgsPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_IntersectShader;
-			cpipelineSettings.pRootSignature = pSSSR_IntersectRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_IntersectPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ResolveSpatialShader;
-			cpipelineSettings.pRootSignature = pSSSR_ResolveSpatialRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveSpatialPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ResolveTemporalShader;
-			cpipelineSettings.pRootSignature = pSSSR_ResolveTemporalRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveTemporalPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWShader;
-			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWRootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWPipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride2Shader;
-			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride2RootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride2Pipeline);
-
-			cpipelineSettings = { 0 };
-			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride4Shader;
-			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride4RootSignature;
-			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride4Pipeline);
+			addPipelines();
 		}
 
 		waitForAllResourceLoads();
+		prepareDescriptorSets();
 
-		PrepareDescriptorSets(true);
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		// Remove streamer before removing any actual resources
-		// otherwise we might delete a resource while uploading to it.
-		waitForToken(&gResourceSyncToken);
-		waitForAllResourceLoads();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		gResourceSyncToken = 0;
-
-		if (gSSSRSupported)
-			removeDescriptorSet(pRenderer, pDescriptorSPD);
-
-		removeUserInterfacePipelines();
-
-		removeFontSystemPipelines(); 
-
-		removePipeline(pRenderer, pPipelineBRDF);
-		removePipeline(pRenderer, pSkyboxWithClearTexturesPipeline);
-		removePipeline(pRenderer, pSkyboxPipeline);
-		removePipeline(pRenderer, pPPR_ProjectionPipeline);
-		removePipeline(pRenderer, pPPR_ReflectionPipeline);
-		removePipeline(pRenderer, pPPR_HolePatchingPipeline);
-		if (gSSSRSupported)
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			removePipeline(pRenderer, pSPDPipeline);
-			removePipeline(pRenderer, pCopyDepthPipeline);
-			removePipeline(pRenderer, pGenerateMipPipeline);
-			removePipeline(pRenderer, pSSSR_ClassifyTilesPipeline);
-			removePipeline(pRenderer, pSSSR_PrepareIndirectArgsPipeline);
-			removePipeline(pRenderer, pSSSR_IntersectPipeline);
-			removePipeline(pRenderer, pSSSR_ResolveSpatialPipeline);
-			removePipeline(pRenderer, pSSSR_ResolveTemporalPipeline);
-			removePipeline(pRenderer, pSSSR_ResolveEAWPipeline);
-			removePipeline(pRenderer, pSSSR_ResolveEAWStride2Pipeline);
-			removePipeline(pRenderer, pSSSR_ResolveEAWStride4Pipeline);
+			removePipelines();
 		}
-		removePipeline(pRenderer, pPipelineGbuffers);
 
-		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeRenderTarget(pRenderer, pSceneBuffer);
-		removeRenderTarget(pRenderer, pReflectionBuffer);
-		removeResource(pIntermediateBuffer);
-		removeRenderTarget(pRenderer, pSSSR_TemporalResults[0]);
-		removeRenderTarget(pRenderer, pSSSR_TemporalResults[1]);
-		removeResource(pSSSR_DepthHierarchy);
-		removeResource(pSSSR_TemporalVariance);
-		removeRenderTarget(pRenderer, pSSSR_RayLength);
-		removeResource(pSSSR_RayListBuffer);
-		removeResource(pSSSR_TileListBuffer);
-
-		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
-			removeRenderTarget(pRenderer, pRenderTargetDeferredPass[0][i]);
-
-		removeRenderTarget(pRenderer, pRenderTargetDeferredPass[1][1]);
-		removeRenderTarget(pRenderer, pRenderTargetDeferredPass[1][2]);
-
-		removeSwapChain(pRenderer, pSwapChain);
-
-		for (uint i = 0; i < TOTAL_IMGS; ++i)
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			if (pMaterialTextures[i])
-			{
-				removeResource(pMaterialTextures[i]);
-			}
+			waitForToken(&gResourceSyncToken);
+			waitForAllResourceLoads();
+
+			gResourceSyncToken = 0;
+
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTargets();
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
 		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 
@@ -2733,7 +2125,7 @@ class ScreenSpaceReflections: public IApp
 
 			const uint32_t drawCount = (uint32_t)sponzaMesh.mDrawArgCount;
 
-			if (gUseTexturesFallback)
+			if (gSettings.mUseTextureFallback)
 			{
 				cmdBindPipeline(cmd, pPipelineGbuffers);
 				cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, sponzaMesh.mVertexStrides, NULL);
@@ -2785,7 +2177,7 @@ class ScreenSpaceReflections: public IApp
 			Geometry& lionMesh = *gModels[LION_MODEL];
 
 			//Draw Lion
-			if (gUseTexturesFallback)
+			if (gSettings.mUseTextureFallback)
 			{
 				DescriptorData params[5] = {};
 
@@ -3161,13 +2553,24 @@ class ScreenSpaceReflections: public IApp
 
 	const char* GetName() { return "10_ScreenSpaceReflections"; }
 
-	void PrepareDescriptorSets(bool dataLoaded)
+	void prepareDescriptorSets()
 	{
+		DescriptorData skyParams[1] = {};
+		skyParams[0].pName = "skyboxTex";
+		skyParams[0].ppTextures = &pSkybox;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 1, skyParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			skyParams[0].pName = "uniformBlock";
+			skyParams[0].ppBuffers = &pBufferUniformCameraSky[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyParams);
+		}
+
 		// GBuffer
 		{
 			DescriptorData params[8] = {};
 
-			if (!gUseTexturesFallback && dataLoaded)
+			if (!gSettings.mUseTextureFallback)
 			{
 				params[0].pName = "textureMaps";
 				params[0].ppTextures = pMaterialTextures;
@@ -3304,7 +2707,6 @@ class ScreenSpaceReflections: public IApp
 					DescriptorData params[2] = {};
 					params[0].pName = "Source";
 					params[0].ppTextures = &pSSSR_DepthHierarchy;
-					params[0].mUAVMipSlice = i - 1;
 					params[1].pName = "Destination";
 					params[1].ppTextures = &pSSSR_DepthHierarchy;
 					params[1].mUAVMipSlice = i;
@@ -3534,6 +2936,668 @@ class ScreenSpaceReflections: public IApp
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		if (gSSSRSupported)
+		{
+			// This desc set contains mip level data which is dependent on window dimensions
+			DescriptorSetDesc setDesc = { pSPDRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSPD);
+		}
+
+
+		// Skybox
+		DescriptorSetDesc setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
+		setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
+		// GBuffer
+		if (gSettings.mUseTextureFallback)
+		{
+			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 512 };
+		}
+		else
+		{
+			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		}
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[0]);
+		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[1]);
+		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 2 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[2]);
+		// BRDF
+		setDesc = { pRootSigBRDF, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[0]);
+		setDesc = { pRootSigBRDF, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF[1]);
+		// PPR Projection
+		setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[0]);
+		setDesc = { pPPR_ProjectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Projection[1]);
+		// PPR Reflection
+		setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[0]);
+		setDesc = { pPPR_ReflectionRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR_Reflection[1]);
+		// PPR Hole Patching
+		setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[0]);
+		setDesc = { pPPR_HolePatchingRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPPR__HolePatching[1]);
+
+		if (gSSSRSupported)
+		{
+			// Copy depth
+			setDesc = { pCopyDepthRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorCopyDepth);
+			// DepthDownsample
+			setDesc = { pGenerateMipRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, 13 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorGenerateMip);
+			// SSSR
+			setDesc = { pSSSR_ClassifyTilesRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ClassifyTiles);
+			setDesc = { pSSSR_PrepareIndirectArgsRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_PrepareIndirectArgs);
+			setDesc = { pSSSR_IntersectRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_Intersect);
+			setDesc = { pSSSR_ResolveSpatialRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveSpatial);
+			setDesc = { pSSSR_ResolveTemporalRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveTemporal);
+			setDesc = { pSSSR_ResolveEAWRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAW);
+			setDesc = { pSSSR_ResolveEAWStride2RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride2);
+			setDesc = { pSSSR_ResolveEAWStride4RootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSSSR_ResolveEAWStride4);
+		}
+	}
+
+	void removeDescriptorSets()
+	{
+		if (gSSSRSupported)
+			removeDescriptorSet(pRenderer, pDescriptorSPD);
+
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetGbuffers[2]);
+		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetBRDF[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Projection[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR_Reflection[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetPPR__HolePatching[1]);
+
+		if (gSSSRSupported)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorCopyDepth);
+			removeDescriptorSet(pRenderer, pDescriptorGenerateMip);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ClassifyTiles);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_PrepareIndirectArgs);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_Intersect);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveSpatial);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveTemporal);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAW);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride2);
+			removeDescriptorSet(pRenderer, pDescriptorSetSSSR_ResolveEAWStride4);
+		}
+	}
+
+	void addRootSignatures()
+	{
+		// GBuffer
+		const char* pStaticSamplerNames[] = { "defaultSampler" };
+		Sampler*    pStaticSamplers[] = { pSamplerBilinear };
+
+		RootSignatureDesc gBuffersRootDesc = { &pShaderGbuffers, 1 };
+		gBuffersRootDesc.mStaticSamplerCount = 1;
+		gBuffersRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		gBuffersRootDesc.ppStaticSamplers = pStaticSamplers;
+
+		if (!gSettings.mUseTextureFallback)
+		{
+			gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+		}
+		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
+		gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSigGbuffers, "cbTextureRootConstants");
+
+		const char*       pSkyboxamplerName = "skyboxSampler";
+		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
+		skyboxRootDesc.mStaticSamplerCount = 1;
+		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
+		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
+		addRootSignature(pRenderer, &skyboxRootDesc, &pSkyboxRootSignature);
+
+		//BRDF
+		const char* pStaticSampler2Names[] = { "envSampler", "defaultSampler" };
+		Sampler*    pStaticSamplers2[] = { pSamplerBilinear, pSamplerNearest };
+
+		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
+		brdfRootDesc.mStaticSamplerCount = 2;
+		brdfRootDesc.ppStaticSamplerNames = pStaticSampler2Names;
+		brdfRootDesc.ppStaticSamplers = pStaticSamplers2;
+		addRootSignature(pRenderer, &brdfRootDesc, &pRootSigBRDF);
+
+		//PPR_Projection
+		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
+		PPR_PRootDesc.mStaticSamplerCount = 1;
+		PPR_PRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		PPR_PRootDesc.ppStaticSamplers = pStaticSamplers;
+		addRootSignature(pRenderer, &PPR_PRootDesc, &pPPR_ProjectionRootSignature);
+
+		//PPR_Reflection
+		RootSignatureDesc PPR_RRootDesc = { &pPPR_ReflectionShader, 1 };
+		PPR_RRootDesc.mStaticSamplerCount = 1;
+		PPR_RRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		PPR_RRootDesc.ppStaticSamplers = pStaticSamplers;
+		addRootSignature(pRenderer, &PPR_RRootDesc, &pPPR_ReflectionRootSignature);
+
+		//PPR_HolePatching
+		const char* pStaticSamplerforHolePatchingNames[] = { "nearestSampler", "bilinearSampler" };
+		Sampler*    pStaticSamplersforHolePatching[] = { pSamplerNearest, pSamplerBilinear };
+
+		RootSignatureDesc PPR_HolePatchingRootDesc = { &pPPR_HolePatchingShader, 1 };
+		PPR_HolePatchingRootDesc.mStaticSamplerCount = 2;
+		PPR_HolePatchingRootDesc.ppStaticSamplerNames = pStaticSamplerforHolePatchingNames;
+		PPR_HolePatchingRootDesc.ppStaticSamplers = pStaticSamplersforHolePatching;
+		addRootSignature(pRenderer, &PPR_HolePatchingRootDesc, &pPPR_HolePatchingRootSignature);
+
+		if (gSSSRSupported)
+		{
+			RootSignatureDesc SPDDescRootDesc = { &pSPDShader, 1 };
+			SPDDescRootDesc.mMaxBindlessTextures = 13;
+			addRootSignature(pRenderer, &SPDDescRootDesc, &pSPDRootSignature);
+
+			RootSignatureDesc CopyDepthShaderDescRootDesc = { &pCopyDepthShader, 1 };
+			addRootSignature(pRenderer, &CopyDepthShaderDescRootDesc, &pCopyDepthRootSignature);
+
+			RootSignatureDesc GenerateMipShaderDescRootDesc = { &pGenerateMipShader, 1 };
+			addRootSignature(pRenderer, &GenerateMipShaderDescRootDesc, &pGenerateMipRootSignature);
+			gMipSizeRootConstantIndex = getDescriptorIndexFromName(pGenerateMipRootSignature, "RootConstant");
+
+			// SSSR
+			RootSignatureDesc SSSR_ClassifyTilesRootDesc = { &pSSSR_ClassifyTilesShader, 1 };
+			addRootSignature(pRenderer, &SSSR_ClassifyTilesRootDesc, &pSSSR_ClassifyTilesRootSignature);
+
+			RootSignatureDesc SSSR_PrepareIndirectArgsRootDesc = { &pSSSR_PrepareIndirectArgsShader, 1 };
+			addRootSignature(pRenderer, &SSSR_PrepareIndirectArgsRootDesc, &pSSSR_PrepareIndirectArgsRootSignature);
+
+			RootSignatureDesc SSSR_IntersectRootDesc = { &pSSSR_IntersectShader, 1 };
+			addRootSignature(pRenderer, &SSSR_IntersectRootDesc, &pSSSR_IntersectRootSignature);
+
+			IndirectArgumentDescriptor indirectArgDescs[1] = {};
+			indirectArgDescs[0].mType = INDIRECT_DISPATCH;
+
+			CommandSignatureDesc cmdSignatureDesc = { pSSSR_IntersectRootSignature,
+											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pSSSR_IntersectCommandSignature);
+
+			RootSignatureDesc SSSR_ResolveSpatialRootDesc = { &pSSSR_ResolveSpatialShader, 1 };
+			addRootSignature(pRenderer, &SSSR_ResolveSpatialRootDesc, &pSSSR_ResolveSpatialRootSignature);
+
+			CommandSignatureDesc cmdResolveSpatialSignatureDesc = { pSSSR_ResolveSpatialRootSignature,
+											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdResolveSpatialSignatureDesc, &pSSSR_ResolveSpatialCommandSignature);
+
+			RootSignatureDesc SSSR_ResolveTemporalRootDesc = { &pSSSR_ResolveTemporalShader, 1 };
+			addRootSignature(pRenderer, &SSSR_ResolveTemporalRootDesc, &pSSSR_ResolveTemporalRootSignature);
+
+			CommandSignatureDesc cmdResolveTemporalSignatureDesc = { pSSSR_ResolveTemporalRootSignature,
+											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdResolveTemporalSignatureDesc, &pSSSR_ResolveTemporalCommandSignature);
+
+			RootSignatureDesc SSSR_ResolveEAWRootDesc = { &pSSSR_ResolveEAWShader, 1 };
+			addRootSignature(pRenderer, &SSSR_ResolveEAWRootDesc, &pSSSR_ResolveEAWRootSignature);
+
+			CommandSignatureDesc cmdResolveEAWSignatureDesc = { pSSSR_ResolveEAWRootSignature,
+										indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdResolveEAWSignatureDesc, &pSSSR_ResolveEAWCommandSignature);
+
+			RootSignatureDesc SSSR_ResolveEAWStride2RootDesc = { &pSSSR_ResolveEAWStride2Shader, 1 };
+			addRootSignature(pRenderer, &SSSR_ResolveEAWStride2RootDesc, &pSSSR_ResolveEAWStride2RootSignature);
+
+			CommandSignatureDesc cmdResolveEAWStride2SignatureDesc = { pSSSR_ResolveEAWStride2RootSignature,
+											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride2SignatureDesc, &pSSSR_ResolveEAWStride2CommandSignature);
+
+			RootSignatureDesc SSSR_ResolveEAWStride4RootDesc = { &pSSSR_ResolveEAWStride4Shader, 1 };
+			addRootSignature(pRenderer, &SSSR_ResolveEAWStride4RootDesc, &pSSSR_ResolveEAWStride4RootSignature);
+
+			CommandSignatureDesc cmdResolveEAWStride4SignatureDesc = { pSSSR_ResolveEAWStride4RootSignature,
+											indirectArgDescs, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), true };
+			addIndirectCommandSignature(pRenderer, &cmdResolveEAWStride4SignatureDesc, &pSSSR_ResolveEAWStride4CommandSignature);
+		}
+	}
+
+	void removeRootSignatures()
+	{
+		if (gSSSRSupported)
+		{
+			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWStride4CommandSignature);
+			removeRootSignature(pRenderer, pSSSR_ResolveEAWStride4RootSignature);
+			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWStride2CommandSignature);
+			removeRootSignature(pRenderer, pSSSR_ResolveEAWStride2RootSignature);
+			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveEAWCommandSignature);
+			removeRootSignature(pRenderer, pSSSR_ResolveEAWRootSignature);
+			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveTemporalCommandSignature);
+			removeRootSignature(pRenderer, pSSSR_ResolveTemporalRootSignature);
+			removeIndirectCommandSignature(pRenderer, pSSSR_ResolveSpatialCommandSignature);
+			removeRootSignature(pRenderer, pSSSR_ResolveSpatialRootSignature);
+			removeIndirectCommandSignature(pRenderer, pSSSR_IntersectCommandSignature);
+			removeRootSignature(pRenderer, pSSSR_IntersectRootSignature);
+			removeRootSignature(pRenderer, pSSSR_PrepareIndirectArgsRootSignature);
+			removeRootSignature(pRenderer, pSSSR_ClassifyTilesRootSignature);
+			removeRootSignature(pRenderer, pSPDRootSignature);
+			removeRootSignature(pRenderer, pGenerateMipRootSignature);
+			removeRootSignature(pRenderer, pCopyDepthRootSignature);
+		}
+
+		removeRootSignature(pRenderer, pPPR_HolePatchingRootSignature);
+		removeRootSignature(pRenderer, pPPR_ReflectionRootSignature);
+		removeRootSignature(pRenderer, pPPR_ProjectionRootSignature);
+		removeRootSignature(pRenderer, pRootSigBRDF);
+		removeRootSignature(pRenderer, pSkyboxRootSignature);
+		removeRootSignature(pRenderer, pRootSigGbuffers);
+	}
+
+	void addShaders()
+	{
+		// GBuffer
+		ShaderLoadDesc gBuffersShaderDesc = {};
+		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		if (gSettings.mUseTextureFallback)
+		{
+			gBuffersShaderDesc.mStages[0].pFileName = "fillGbuffers_TEX_FALLBACK.vert";
+			gBuffersShaderDesc.mStages[1].pFileName = "fillGbuffers_TEX_FALLBACK.frag";
+		}
+		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
+
+		ShaderLoadDesc skyboxShaderDesc = {};
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
+
+		//BRDF
+		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
+
+		//PPR_Projection
+		ShaderLoadDesc PPR_ProjectionShaderDesc = {};
+		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		addShader(pRenderer, &PPR_ProjectionShaderDesc, &pPPR_ProjectionShader);
+
+		//PPR_Reflection
+		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
+		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &PPR_ReflectionShaderDesc, &pPPR_ReflectionShader);
+
+		//PPR_HolePatching
+		ShaderLoadDesc PPR_HolePatchingShaderDesc = {};
+		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &PPR_HolePatchingShaderDesc, &pPPR_HolePatchingShader);
+
+		if (gSSSRSupported)
+		{
+			ShaderLoadDesc SPDDesc = {};
+			SPDDesc.mStages[0] = { "DepthDownsample.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			SPDDesc.mTarget = shader_target_6_0;
+			addShader(pRenderer, &SPDDesc, &pSPDShader);
+
+			ShaderLoadDesc CopyDepthShaderDesc = {};
+			CopyDepthShaderDesc.mStages[0] = { "copyDepth.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &CopyDepthShaderDesc, &pCopyDepthShader);
+
+			ShaderLoadDesc GenerateMipShaderDesc = {};
+			GenerateMipShaderDesc.mStages[0] = { "generateMips.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &GenerateMipShaderDesc, &pGenerateMipShader);
+
+			// SSSR
+			ShaderLoadDesc SSSR_ClassifyTilesShaderDesc = {};
+			SSSR_ClassifyTilesShaderDesc.mStages[0] = { "SSSR_ClassifyTiles.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			SSSR_ClassifyTilesShaderDesc.mTarget = shader_target_6_0;
+			addShader(pRenderer, &SSSR_ClassifyTilesShaderDesc, &pSSSR_ClassifyTilesShader);
+			
+			ShaderLoadDesc SSSR_PrepareIndirectArgsShaderDesc = {};
+			SSSR_PrepareIndirectArgsShaderDesc.mStages[0] = { "SSSR_PrepareIndirectArgs.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &SSSR_PrepareIndirectArgsShaderDesc, &pSSSR_PrepareIndirectArgsShader);
+
+			ShaderLoadDesc SSSR_IntersectShaderDesc = {};
+			SSSR_IntersectShaderDesc.mStages[0] = { "SSSR_Intersect.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			SSSR_IntersectShaderDesc.mTarget = shader_target_6_0;
+			addShader(pRenderer, &SSSR_IntersectShaderDesc, &pSSSR_IntersectShader);
+
+			ShaderLoadDesc SSSR_ResolveSpatialShaderDesc = {};
+			SSSR_ResolveSpatialShaderDesc.mStages[0] = { "SSSR_ResolveSpatial.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			SSSR_ResolveSpatialShaderDesc.mTarget = shader_target_6_0;
+			addShader(pRenderer, &SSSR_ResolveSpatialShaderDesc, &pSSSR_ResolveSpatialShader);
+
+			ShaderLoadDesc SSSR_ResolveTemporalShaderDesc = {};
+			SSSR_ResolveTemporalShaderDesc.mStages[0] = { "SSSR_ResolveTemporal.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &SSSR_ResolveTemporalShaderDesc, &pSSSR_ResolveTemporalShader);
+
+			ShaderLoadDesc SSSR_ResolveEAWShaderDesc = {};
+			SSSR_ResolveEAWShaderDesc.mStages[0] = { "SSSR_ResolveEaw.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &SSSR_ResolveEAWShaderDesc, &pSSSR_ResolveEAWShader);
+
+			ShaderLoadDesc SSSR_ResolveEAWStride2ShaderDesc = {};
+			SSSR_ResolveEAWStride2ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride_2.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &SSSR_ResolveEAWStride2ShaderDesc, &pSSSR_ResolveEAWStride2Shader);
+
+			ShaderLoadDesc SSSR_ResolveEAWStride4ShaderDesc = {};
+			SSSR_ResolveEAWStride4ShaderDesc.mStages[0] = { "SSSR_ResolveEawStride_4.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &SSSR_ResolveEAWStride4ShaderDesc, &pSSSR_ResolveEAWStride4Shader);
+		}
+	}
+	
+	void removeShaders()
+	{
+		if (gSSSRSupported)
+		{
+			removeShader(pRenderer, pSSSR_ResolveEAWStride4Shader);
+			removeShader(pRenderer, pSSSR_ResolveEAWStride2Shader);
+			removeShader(pRenderer, pSSSR_ResolveEAWShader);
+			removeShader(pRenderer, pSSSR_ResolveTemporalShader);
+			removeShader(pRenderer, pSSSR_ResolveSpatialShader);
+			removeShader(pRenderer, pSSSR_IntersectShader);
+			removeShader(pRenderer, pSSSR_PrepareIndirectArgsShader);
+			removeShader(pRenderer, pSSSR_ClassifyTilesShader);
+			removeShader(pRenderer, pSPDShader);
+			removeShader(pRenderer, pGenerateMipShader);
+			removeShader(pRenderer, pCopyDepthShader);
+		}
+
+		removeShader(pRenderer, pPPR_HolePatchingShader);
+		removeShader(pRenderer, pPPR_ReflectionShader);
+		removeShader(pRenderer, pPPR_ProjectionShader);
+		removeShader(pRenderer, pShaderBRDF);
+		removeShader(pRenderer, pSkyboxShader);
+		removeShader(pRenderer, pShaderGbuffers);
+	}
+
+	void addPipelines()
+	{
+		/************************************************************************/
+		// Setup the resources needed for the Deferred Pass Pipeline
+		/************************************************************************/
+		TinyImageFormat deferredFormats[DEFERRED_RT_COUNT] = {};
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+		{
+			deferredFormats[i] = pRenderTargetDeferredPass[0][i]->mFormat;
+		}
+
+		// Create depth state and rasterizer state
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& deferredPassPipelineSettings = desc.mGraphicsDesc;
+		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		deferredPassPipelineSettings.mRenderTargetCount = DEFERRED_RT_COUNT;
+		deferredPassPipelineSettings.pDepthState = &depthStateDesc;
+
+		deferredPassPipelineSettings.pColorFormats = deferredFormats;
+
+		deferredPassPipelineSettings.mSampleCount = pRenderTargetDeferredPass[0][0]->mSampleCount;
+		deferredPassPipelineSettings.mSampleQuality = pRenderTargetDeferredPass[0][0]->mSampleQuality;
+
+		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		deferredPassPipelineSettings.pRootSignature = pRootSigGbuffers;
+		deferredPassPipelineSettings.pShaderProgram = pShaderGbuffers;
+		deferredPassPipelineSettings.pVertexLayout = &gVertexLayoutModel;
+		deferredPassPipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pPipelineGbuffers);
+
+		//layout and pipeline for skybox draw
+		VertexLayout vertexLayoutSkybox = {};
+		vertexLayoutSkybox.mAttribCount = 1;
+		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSkybox.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
+		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
+		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
+
+		deferredPassPipelineSettings = {};
+		deferredPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		deferredPassPipelineSettings.pDepthState = NULL;
+
+		deferredPassPipelineSettings.mRenderTargetCount = 1;
+		deferredPassPipelineSettings.pColorFormats = deferredFormats;
+		deferredPassPipelineSettings.mSampleCount = pRenderTargetDeferredPass[0][0]->mSampleCount;
+		deferredPassPipelineSettings.mSampleQuality = pRenderTargetDeferredPass[0][0]->mSampleQuality;
+
+		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		deferredPassPipelineSettings.pRootSignature = pSkyboxRootSignature;
+		deferredPassPipelineSettings.pShaderProgram = pSkyboxShader;
+		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSkybox;
+		deferredPassPipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pSkyboxPipeline);
+
+		TinyImageFormat formats[4] = {};
+		formats[0] = pRenderTargetDeferredPass[0][0]->mFormat;
+		formats[1] = pSSSR_TemporalResults[0]->mFormat;
+		formats[2] = pSSSR_TemporalResults[1]->mFormat;
+		formats[3] = pSSSR_RayLength->mFormat;
+
+		deferredPassPipelineSettings.mRenderTargetCount = 4;
+		deferredPassPipelineSettings.pColorFormats = formats;
+		addPipeline(pRenderer, &desc, &pSkyboxWithClearTexturesPipeline);
+
+		// BRDF
+		//Position
+		VertexLayout vertexLayoutScreenQuad = {};
+		vertexLayoutScreenQuad.mAttribCount = 2;
+
+		vertexLayoutScreenQuad.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutScreenQuad.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayoutScreenQuad.mAttribs[0].mBinding = 0;
+		vertexLayoutScreenQuad.mAttribs[0].mLocation = 0;
+		vertexLayoutScreenQuad.mAttribs[0].mOffset = 0;
+
+		//Uv
+		vertexLayoutScreenQuad.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutScreenQuad.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayoutScreenQuad.mAttribs[1].mLocation = 1;
+		vertexLayoutScreenQuad.mAttribs[1].mBinding = 0;
+		vertexLayoutScreenQuad.mAttribs[1].mOffset = 3 * sizeof(float);    // first attribute contains 3 floats
+
+		desc.mGraphicsDesc = {};
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = NULL;
+
+		pipelineSettings.pColorFormats = &pSceneBuffer->mFormat;
+		pipelineSettings.mSampleCount = pSceneBuffer->mSampleCount;
+		pipelineSettings.mSampleQuality = pSceneBuffer->mSampleQuality;
+
+		// pipelineSettings.pDepthState is NULL, pipelineSettings.mDepthStencilFormat should be NONE
+		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+		pipelineSettings.pRootSignature = pRootSigBRDF;
+		pipelineSettings.pShaderProgram = pShaderBRDF;
+		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pPipelineBRDF);
+
+		//PPR_Projection
+		PipelineDesc computeDesc = {};
+		computeDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
+		cpipelineSettings.pShaderProgram = pPPR_ProjectionShader;
+		cpipelineSettings.pRootSignature = pPPR_ProjectionRootSignature;
+		addPipeline(pRenderer, &computeDesc, &pPPR_ProjectionPipeline);
+
+		//PPR_Reflection
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = NULL;
+
+		pipelineSettings.pColorFormats = &pReflectionBuffer->mFormat;
+		pipelineSettings.mSampleCount = pReflectionBuffer->mSampleCount;
+		pipelineSettings.mSampleQuality = pReflectionBuffer->mSampleQuality;
+
+		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+		pipelineSettings.pRootSignature = pPPR_ReflectionRootSignature;
+		pipelineSettings.pShaderProgram = pPPR_ReflectionShader;
+		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pPPR_ReflectionPipeline);
+
+		//PPR_HolePatching -> Present
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = NULL;
+
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+
+		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+		pipelineSettings.pRootSignature = pPPR_HolePatchingRootSignature;
+		pipelineSettings.pShaderProgram = pPPR_HolePatchingShader;
+		pipelineSettings.pVertexLayout = &vertexLayoutScreenQuad;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pPPR_HolePatchingPipeline);
+
+		if (gSSSRSupported)
+		{
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSPDShader;
+			cpipelineSettings.pRootSignature = pSPDRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSPDPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pCopyDepthShader;
+			cpipelineSettings.pRootSignature = pCopyDepthRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pCopyDepthPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pGenerateMipShader;
+			cpipelineSettings.pRootSignature = pGenerateMipRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pGenerateMipPipeline);
+
+			// SSSR
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ClassifyTilesShader;
+			cpipelineSettings.pRootSignature = pSSSR_ClassifyTilesRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ClassifyTilesPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_PrepareIndirectArgsShader;
+			cpipelineSettings.pRootSignature = pSSSR_PrepareIndirectArgsRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_PrepareIndirectArgsPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_IntersectShader;
+			cpipelineSettings.pRootSignature = pSSSR_IntersectRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_IntersectPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ResolveSpatialShader;
+			cpipelineSettings.pRootSignature = pSSSR_ResolveSpatialRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveSpatialPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ResolveTemporalShader;
+			cpipelineSettings.pRootSignature = pSSSR_ResolveTemporalRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveTemporalPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWShader;
+			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWRootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWPipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride2Shader;
+			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride2RootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride2Pipeline);
+
+			cpipelineSettings = { 0 };
+			cpipelineSettings.pShaderProgram = pSSSR_ResolveEAWStride4Shader;
+			cpipelineSettings.pRootSignature = pSSSR_ResolveEAWStride4RootSignature;
+			addPipeline(pRenderer, &computeDesc, &pSSSR_ResolveEAWStride4Pipeline);
+		}
+	}
+
+	void removePipelines()
+	{
+		removePipeline(pRenderer, pPipelineBRDF);
+		removePipeline(pRenderer, pSkyboxWithClearTexturesPipeline);
+		removePipeline(pRenderer, pSkyboxPipeline);
+		removePipeline(pRenderer, pPPR_ProjectionPipeline);
+		removePipeline(pRenderer, pPPR_ReflectionPipeline);
+		removePipeline(pRenderer, pPPR_HolePatchingPipeline);
+		if (gSSSRSupported)
+		{
+			removePipeline(pRenderer, pSPDPipeline);
+			removePipeline(pRenderer, pCopyDepthPipeline);
+			removePipeline(pRenderer, pGenerateMipPipeline);
+			removePipeline(pRenderer, pSSSR_ClassifyTilesPipeline);
+			removePipeline(pRenderer, pSSSR_PrepareIndirectArgsPipeline);
+			removePipeline(pRenderer, pSSSR_IntersectPipeline);
+			removePipeline(pRenderer, pSSSR_ResolveSpatialPipeline);
+			removePipeline(pRenderer, pSSSR_ResolveTemporalPipeline);
+			removePipeline(pRenderer, pSSSR_ResolveEAWPipeline);
+			removePipeline(pRenderer, pSSSR_ResolveEAWStride2Pipeline);
+			removePipeline(pRenderer, pSSSR_ResolveEAWStride4Pipeline);
+		}
+		removePipeline(pRenderer, pPipelineGbuffers);
+	}
+
+	void addRenderTargets()
+	{
+		addSceneBuffer();
+
+		addReflectionBuffer();
+
+		addGBuffers();
+
+		addDepthBuffer();
+
+		addIntermeditateBuffer();
+	}
+
+	void removeRenderTargets()
+	{
+		removeRenderTarget(pRenderer, pDepthBuffer);
+		removeRenderTarget(pRenderer, pSceneBuffer);
+		removeRenderTarget(pRenderer, pReflectionBuffer);
+		removeResource(pIntermediateBuffer);
+		removeRenderTarget(pRenderer, pSSSR_TemporalResults[0]);
+		removeRenderTarget(pRenderer, pSSSR_TemporalResults[1]);
+		removeResource(pSSSR_DepthHierarchy);
+		removeResource(pSSSR_TemporalVariance);
+		removeRenderTarget(pRenderer, pSSSR_RayLength);
+		removeResource(pSSSR_RayListBuffer);
+		removeResource(pSSSR_TileListBuffer);
+
+		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
+			removeRenderTarget(pRenderer, pRenderTargetDeferredPass[0][i]);
+
+		removeRenderTarget(pRenderer, pRenderTargetDeferredPass[1][1]);
+		removeRenderTarget(pRenderer, pRenderTargetDeferredPass[1][2]);
 	}
 
 	bool addSceneBuffer()

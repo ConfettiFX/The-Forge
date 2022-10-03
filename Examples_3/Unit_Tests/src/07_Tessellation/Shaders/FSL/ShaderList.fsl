@@ -1,0 +1,23 @@
+#comp VR_MULTIVIEW compute.comp
+#include "compute.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW grass.frag
+#include "grass.frag.fsl"
+#end
+
+#if !defined(METAL)
+#vert VR_MULTIVIEW ORBIS_TESC grass.vert
+#include "grass.vert.fsl"
+#end
+#endif
+
+#tesc VR_MULTIVIEW grass.tesc
+TESS_VS_SHADER("grass.vert.fsl")
+#include "grass.tesc.fsl"
+#end
+
+#tese VR_MULTIVIEW grass.tese
+#include "grass.tese.fsl"
+#end
+

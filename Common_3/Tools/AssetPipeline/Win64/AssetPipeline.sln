@@ -1,23 +1,26 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2016
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basisu", "..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj", "{59586A07-8E7E-411D-BC3D-387E039AA423}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basisu", "..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\basisu.vcxproj", "{59586A07-8E7E-411D-BC3D-387E039AA423}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetPipelineCmd", "AssetPipelineCmd.vcxproj", "{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}"
 	ProjectSection(ProjectDependencies) = postProject
 		{59586A07-8E7E-411D-BC3D-387E039AA423} = {59586A07-8E7E-411D-BC3D-387E039AA423}
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139} = {AC91B515-5B5E-399D-BF31-B6272AF9D139}
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139} = {AC91B518-5B5E-399D-BF31-B6272AF9D139}
 		{E0CB3186-0614-4DF0-891B-848743572AB2} = {E0CB3186-0614-4DF0-891B-848743572AB2}
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE} = {EE1F0FC8-40F5-476A-8553-C8175B343BEE}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_base", "..\..\..\ThirdParty\OpenSource\ozz-animation\Win64\src\base\ozz_base.vcxproj", "{EE1F0FC8-40F5-476A-8553-C8175B343BEE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_base", "..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\base\ozz_base.vcxproj", "{EE1F0FC8-40F5-476A-8553-C8175B343BEE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..\..\..\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\offline\ozz_animation_offline.vcxproj", "{AC91B515-5B5E-399D-BF31-B6272AF9D139}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\offline\ozz_animation_offline.vcxproj", "{AC91B515-5B5E-399D-BF31-B6272AF9D139}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\runtime\ozz_animation.vcxproj", "{E0CB3186-0614-4DF0-891B-848743572AB2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\runtime\ozz_animation.vcxproj", "{E0CB3186-0614-4DF0-891B-848743572AB2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "astc-encoder", "..\..\..\Resources\ResourceLoader\ThirdParty\OpenSource\astc-encoder\Win64\Source\astc-encoder.vcxproj", "{AC91B518-5B5E-399D-BF31-B6272AF9D139}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,6 +60,12 @@ Global
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x64.ActiveCfg = Release|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x64.Build.0 = Release|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x86.ActiveCfg = Release|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.ActiveCfg = Debug|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.Build.0 = Debug|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x86.ActiveCfg = Debug|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x64.ActiveCfg = Release|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x64.Build.0 = Release|x64
+		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

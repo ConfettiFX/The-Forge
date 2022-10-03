@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="ozz_base" InternalType="" Version="11000">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="source">
+    <File Name="../src/base/memory/allocator.cc"/>
+    <File Name="../src/base/io/archive.cc"/>
+    <File Name="../src/base/maths/math_archive.cc"/>
+    <File Name="../src/base/platform.cc"/>
+    <File Name="../src/base/maths/simd_math_archive.cc"/>
+    <File Name="../src/base/maths/soa_math_archive.cc"/>
+    <File Name="../src/base/containers/string_archive.cc"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <File Name="../include/ozz/base/containers/map.h"/>
+    <File Name="../include/ozz/base/containers/set.h"/>
+    <File Name="../include/ozz/base/containers/string.h"/>
+    <File Name="../include/ozz/base/containers/string_archive.h"/>
+    <File Name="../include/ozz/base/containers/vector.h"/>
+    <File Name="../include/ozz/base/containers/vector_archive.h"/>
+    <File Name="../include/ozz/base/endianness.h"/>
+    <File Name="../include/ozz/base/gtest_helper.h"/>
+    <File Name="../include/ozz/base/io/archive.h"/>
+    <File Name="../include/ozz/base/io/archive_traits.h"/>
+    <File Name="../include/ozz/base/maths/gtest_math_helper.h"/>
+    <File Name="../include/ozz/base/maths/math_archive.h"/>
+    <File Name="../include/ozz/base/maths/math_constant.h"/>
+    <File Name="../include/ozz/base/maths/math_ex.h"/>
+    <File Name="../include/ozz/base/maths/simd_math_archive.h"/>
+    <File Name="../include/ozz/base/maths/soa_math_archive.h"/>
+    <File Name="../include/ozz/base/memory/allocator.h"/>
+    <File Name="../include/ozz/base/platform.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+  </Dependencies>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="../include"/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Wno-ignored-attributes;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=gnu++14;-Wall;-Wno-ignored-attributes;-Werror;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

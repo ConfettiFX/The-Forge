@@ -26,18 +26,9 @@
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
 PS_ZORDER_EARLYZ()
 
-void PS_MAIN( PsInAlphaTested In )
+void PS_MAIN( PsInShadowAlphaTested In )
 {
     INIT_MAIN;
     uint matBaseSlot = BaseMaterialBuffer(true, 0); //1 is camera view, 0 is shadow map view

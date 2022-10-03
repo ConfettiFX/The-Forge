@@ -29,6 +29,9 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, Texcoord0);
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
 float4 PS_MAIN( VSOutput In )
@@ -43,14 +46,22 @@ float4 PS_MAIN( VSOutput In )
 	ctrlSurface.clear = false;
 	ctrlSurface.opaque = false;
 	ctrlSurface.depth = 0.0f;
+#if VR_MULTIVIEW_ENABLED
+	AOITLoadControlSurfaceSRV(pixelAddr, VR_VIEW_ID(In.ViewID), ctrlSurface);
+#else
 	AOITLoadControlSurfaceSRV(pixelAddr, ctrlSurface);
+#endif
 
 	// Any transparent fragments contributing to this pixel?
 	if(!ctrlSurface.clear)
 	{
 		// Load all nodes for this pixel
 		AOITNode nodeArray[AOIT_NODE_COUNT];
+#if VR_MULTIVIEW_ENABLED
+		AOITLoadDataSRV(pixelAddr, VR_VIEW_ID(In.ViewID), nodeArray);
+#else
 		AOITLoadDataSRV(pixelAddr, nodeArray);
+#endif
 
 		// Accumulate final transparent colors
 		float trans = 1.0f;

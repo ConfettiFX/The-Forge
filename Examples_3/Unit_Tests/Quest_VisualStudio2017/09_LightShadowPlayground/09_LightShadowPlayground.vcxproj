@@ -127,24 +127,20 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary/</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
         xcopy $(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
         xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y
-        xcopy $(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\ $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\ /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         
         xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Textures\*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
         xcopy "$(ProjectDir)..\..\..\..\Art\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -188,23 +184,20 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary/</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
         xcopy $(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
         xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y
-        xcopy $(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\ $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\ /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
         
         xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Textures\*.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
         xcopy "$(ProjectDir)..\..\..\..\Art\SanMiguel_3\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\" /s /y /d
         xcopy "$(ProjectDir)..\..\..\..\Art\SDF\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\SDF\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />

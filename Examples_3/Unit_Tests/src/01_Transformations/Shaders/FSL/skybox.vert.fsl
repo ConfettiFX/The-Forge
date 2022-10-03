@@ -43,7 +43,11 @@ VSOutput VS_MAIN( VSInput In )
     VSOutput Out;
  
     float4 p = float4(In.Position.x*9.0, In.Position.y*9.0, In.Position.z*9.0, 1.0);
+#if VR_MULTIVIEW_ENABLED
+    p = mul(Get(mvp)[VR_VIEW_ID], p);
+#else
     p = mul(Get(mvp), p);
+#endif
     Out.Position = p.xyww;
     Out.TexCoord = float4(In.Position.x, In.Position.y, In.Position.z,In.Position.w);
 

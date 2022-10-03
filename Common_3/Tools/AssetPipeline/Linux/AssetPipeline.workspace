@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Workspace Name="AssetPipeline" Database="" Version="10.0.0">
   <Project Name="AssetPipelineCmd" Path="AssetPipelineCmd.project" Active="Yes"/>
+  <Project Name="ozz_base" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
+  <Project Name="ozz_animation_offline" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
+  <Project Name="ozz_animation" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
+  <Project Name="astc-encoder" Path="../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Linux/astc-encoder.project" Active="No"/>
   <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
-  <Project Name="ozz_base" Path="../../../ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
-  <Project Name="ozz_animation_offline" Path="../../../ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
-  <Project Name="ozz_animation" Path="../../../ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug">
       <Environment/>
-      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="ozz_base" ConfigName="Debug"/>
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
+      <Project Name="astc-encoder" ConfigName="Debug"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
+      <Project Name="OS" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release">
       <Environment/>
-      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="ozz_base" ConfigName="Release"/>
       <Project Name="ozz_animation_offline" ConfigName="Release"/>
       <Project Name="ozz_animation" ConfigName="Release"/>
+      <Project Name="astc-encoder" ConfigName="Release"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

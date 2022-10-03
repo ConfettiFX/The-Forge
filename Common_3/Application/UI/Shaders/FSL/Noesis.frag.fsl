@@ -1,0 +1,190 @@
+
+#ifdef PAINT_SOLID
+    #define HAS_COLOR 1
+#endif
+
+#if defined(PAINT_LINEAR) || defined(PAINT_RADIAL) || defined(PAINT_PATTERN)
+    #define HAS_UV0 1
+#endif
+
+#ifdef CLAMP_PATTERN
+    #define HAS_RECT 1
+#endif
+
+#if defined(REPEAT_PATTERN) || defined(MIRRORU_PATTERN) || defined(MIRRORV_PATTERN) || defined(MIRROR_PATTERN)
+    #define HAS_RECT 1
+    #define HAS_TILE 1
+#endif
+
+#ifdef EFFECT_PATH_AA
+    #define HAS_COVERAGE 1
+#endif
+
+#ifdef EFFECT_SDF
+    #define HAS_UV1 1
+    #define HAS_ST1 1
+    #define SDF_SCALE 7.96875
+    #define SDF_BIAS 0.50196078431
+    #define SDF_AA_FACTOR 0.65
+    #define SDF_BASE_MIN 0.125
+    #define SDF_BASE_MAX 0.25
+    #define SDF_BASE_DEV -0.65
+#endif
+
+#ifdef EFFECT_OPACITY
+    #define HAS_UV1 1
+#endif
+
+#ifdef EFFECT_SHADOW
+    #define HAS_UV1 1
+    #define HAS_RECT 1
+#endif
+
+#ifdef EFFECT_BLUR
+    #define HAS_UV1 1
+#endif
+
+#ifdef EFFECT_DOWNSAMPLE
+    #define HAS_UV0 1
+    #define HAS_UV1 1
+    #define HAS_UV2 1
+    #define HAS_UV3 1
+#endif
+
+#ifdef EFFECT_UPSAMPLE
+    #define HAS_COLOR 1
+    #define HAS_UV0 1
+    #define HAS_UV1 1
+#endif
+
+STRUCT(PS_INPUT)
+{
+	DATA(float4, pos, SV_Position);
+#ifdef HAS_COLOR
+	DATA(float4, col, COLOR0);
+#endif
+#ifdef HAS_UV0
+	DATA(float2, uv0, TEXCOORD0);
+#endif
+#ifdef HAS_UV1
+	DATA(float2, uv1, TEXCOORD1);
+#endif
+#ifdef HAS_COVERAGE
+	DATA(float, coverage, TEXCOORD2);
+#endif
+#ifdef HAS_RECT
+	DATA(FLAT(float4), rect, TEXCOORD3);
+#endif
+#ifdef HAS_TILE
+	DATA(FLAT(float4), tile, TEXCOORD4);
+#endif
+#ifdef HAS_IMAGE_POSITION
+	DATA(float4, imagePos, TEXCOORD5);
+#endif
+#ifdef EFFECT_SDF
+    DATA(float2, st1, TEXCOORD6);
+#endif
+};
+
+CBUFFER(uBlock, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float4x4, cbuf0_vs, None);
+    DATA(float4, cbuf1_vs, None);
+    DATA(float, cbuf0_ps[8], None);
+    DATA(float, cbuf1_ps[8], None);
+};
+
+RES(Tex2D(float4), uRampsTex, UPDATE_FREQ_PER_BATCH, t1, binding = 1);
+RES(SamplerState, uRampsSampler, UPDATE_FREQ_PER_BATCH, s1, binding = 2);
+RES(Tex2D(float4), uPatternTex, UPDATE_FREQ_PER_BATCH, t2, binding = 3);
+RES(SamplerState, uPatternSampler, UPDATE_FREQ_PER_BATCH, s2, binding = 4);
+RES(Tex2D(float4), uImageTex, UPDATE_FREQ_PER_BATCH, t3, binding = 5);
+RES(SamplerState, uImageSampler, UPDATE_FREQ_PER_BATCH, s3, binding = 6);
+RES(Tex2D(float4), uGlyphsTex, UPDATE_FREQ_PER_BATCH, t4, binding = 7);
+RES(SamplerState, uGlyphsSampler, UPDATE_FREQ_PER_BATCH, s4, binding = 8);
+RES(Tex2D(float4), uShadowTex, UPDATE_FREQ_PER_BATCH, t5, binding = 9);
+RES(SamplerState, uShadowSampler, UPDATE_FREQ_PER_BATCH, s5, binding = 10);
+
+float4 PS_MAIN( PS_INPUT In )
+{
+	INIT_MAIN;
+
+#if defined(PAINT_SOLID)
+    float4 paint = In.col;
+    float opacity = 1.0f;
+#elif defined (PAINT_LINEAR)
+    float4 paint = SampleTex2D(Get(uRampsTex), Get(uRampsSampler), In.uv0);
+    float opacity = Get(cbuf0_ps)[0];
+#elif defined (PAINT_RADIAL)
+    float dd = Get(cbuf0_ps)[4] * In.uv0.x - Get(cbuf0_ps)[5] * In.uv0.y;
+    float u = Get(cbuf0_ps)[0] * In.uv0.x + Get(cbuf0_ps)[1] * In.uv0.y + Get(cbuf0_ps)[2] * sqrt(In.uv0.x * In.uv0.x + In.uv0.y * In.uv0.y - dd * dd);
+    float4 paint = SampleTex2D(Get(uRampsTex), Get(uRampsSampler), float2(u, Get(cbuf0_ps)[6]));
+    float opacity = Get(cbuf0_ps)[3];
+#elif defined (PAINT_PATTERN)
+    #if defined (CUSTOM_PATTERN)
+        #error not defined
+    #elif defined (CLAMP_PATTERN)
+        float2 clampedUV = clamp(In.uv0, In.rect.xy, In.rect.zw);
+        float inside = float(In.uv0.x == clampedUV.x && In.uv0.y == clampedUV.y);
+        float4 paint = inside * SampleTex2D(Get(uPatternTex), Get(uPatternSampler), In.uv0);
+    #elif defined (REPEAT_PATTERN) || defined (MIRRORU_PATTERN) || defined (MIRRORV_PATTERN) || defined (MIRROR_PATTERN)
+        float2 uv = (In.uv0 - In.tile.xy) / In.tile.zw;
+        #if defined(REPEAT_PATTERN)
+            uv = frac(uv);
+        #elif defined(MIRRORU_PATTERN)
+            uv.x = abs(uv.x - 2.0f * floor((uv.x - 1.0f) / 2.0f) - 2.0f);
+            uv.y = frac(uv.y);
+        #elif defined(MIRRORV_PATTERN)
+            uv.x = frac(uv.x);
+            uv.y = abs(uv.y - 2.0f * floor((uv.y - 1.0f) / 2.0f) - 2.0f);
+        #else 
+            uv = abs(uv - 2.0f * floor((uv - 1.0f) / 2.0f) - 2.0f);
+        #endif
+        uv = uv * In.tile.zw + In.tile.xy;
+        float2 clampedUV = clamp(uv, In.rect.xy, In.rect.zw);
+        float inside = float(uv.x == clampedUV.x && uv.y == clampedUV.y);
+        float4 paint = inside * SampleGradTex2D(Get(uPatternTex), Get(uPatternSampler), uv, ddx(In.uv0), ddy(In.uv0));
+    #else
+        float4 paint = SampleTex2D(Get(uPatternTex), Get(uPatternSampler), In.uv0);
+    #endif
+    float opacity = Get(cbuf0_ps)[0];
+#endif
+
+    float4 Out = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+#if defined (EFFECT_RGBA)
+    Out = float4(Get(cbuf0_ps)[0], Get(cbuf0_ps)[1], Get(cbuf0_ps)[2], Get(cbuf0_ps)[3]);
+#elif defined (EFFECT_MASK)
+    Out = float4(1.0f, 1.0f, 1.0f, 1.0f);
+#elif defined (EFFECT_CLEAR)
+    Out = float4(0.0f, 0.0f, 0.0f, 0.0f);
+#elif defined (EFFECT_PATH)
+    Out = opacity * paint;
+#elif defined (EFFECT_PATH_AA)
+    Out = (opacity * In.coverage) * paint;
+#elif defined (EFFECT_OPACITY)
+    Out = SampleTex2D(Get(uImageTex), Get(uImageSampler), In.uv1) * (opacity * paint.a);
+#elif defined (EFFECT_SHADOW)
+    #error not defined
+#elif defined (EFFECT_BLUR)
+    #error not defined
+#elif defined (EFFECT_SDF)
+    float distance = SDF_SCALE * (SampleTex2D(Get(uGlyphsTex), Get(uGlyphsSampler), In.uv1).r - SDF_BIAS);
+    float2 grad = ddx(In.st1);
+
+    float gradLen = length(grad);
+    float scale = 1.0f / gradLen;
+    float base = SDF_BASE_DEV * (1.0 - (clamp(scale, SDF_BASE_MIN, SDF_BASE_MAX) - SDF_BASE_MIN) / (SDF_BASE_MAX - SDF_BASE_MIN));
+    float range = SDF_AA_FACTOR * gradLen;
+    float alpha = smoothstep(base - range, base + range, distance);
+    Out = (alpha * opacity) * paint;
+#elif defined (EFFECT_DOWNSAMPLE)
+    #error not defined
+#elif defined (EFFECT_UPSAMPLE)
+    #error not defined
+#else
+    #error not defined
+#endif
+    
+	RETURN(Out);
+}

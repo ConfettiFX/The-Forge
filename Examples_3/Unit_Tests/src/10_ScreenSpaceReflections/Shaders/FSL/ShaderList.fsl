@@ -1,0 +1,161 @@
+#include "../Shared.h"
+
+#comp BRDFIntegration_SAMPLES_0.comp
+#define IMPORTANCE_SAMPLE_COUNT 0
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_64.comp
+#define IMPORTANCE_SAMPLE_COUNT 64
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_128.comp
+#define IMPORTANCE_SAMPLE_COUNT 128
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_256.comp
+#define IMPORTANCE_SAMPLE_COUNT 256
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_1024.comp
+#define IMPORTANCE_SAMPLE_COUNT 1024
+#include "BRDFIntegration.comp.fsl"
+#end
+
+#comp computeIrradianceMap_SAMPLE_DELTA_025.comp
+#define SAMPLE_DELTA 0.25f
+#include "computeIrradianceMap.comp.fsl"
+#end
+#comp computeIrradianceMap_SAMPLE_DELTA_0025.comp
+#define SAMPLE_DELTA 0.025f
+#include "computeIrradianceMap.comp.fsl"
+#end
+
+#comp computeSpecularMap_SAMPLES_0.comp
+#define IMPORTANCE_SAMPLE_COUNT 0
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_64.comp
+#define IMPORTANCE_SAMPLE_COUNT 64
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_128.comp
+#define IMPORTANCE_SAMPLE_COUNT 128
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_256.comp
+#define IMPORTANCE_SAMPLE_COUNT 256
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_1024.comp
+#define IMPORTANCE_SAMPLE_COUNT 1024
+#include "computeSpecularMap.comp.fsl"
+#end
+
+#comp copyDepth.comp
+#include "copyDepth.comp.fsl"
+#end
+
+#comp DepthDownsample.comp
+#include "DepthDownsample.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW fillGbuffers.frag
+#include "fillGbuffers.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW fillGbuffers.vert
+#include "fillGbuffers.vert.fsl"
+#end
+
+#if defined(TARGET_IOS)
+
+#frag VR_MULTIVIEW fillGbuffers_TEX_FALLBACK.frag
+#define USE_TEXTURES_FALLBACK
+#include "fillGbuffers.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW fillGbuffers_TEX_FALLBACK.vert
+#define USE_TEXTURES_FALLBACK
+#include "fillGbuffers.vert.fsl"
+#end
+
+#endif
+
+#comp VR_MULTIVIEW generateMips.comp
+#include "generateMips.comp.fsl"
+#end
+
+#comp panoToCube.comp
+#include "panoToCube.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW PPR_Holepatching.frag
+#include "PPR_Holepatching.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW PPR_Holepatching.vert
+#include "PPR_Holepatching.vert.fsl"
+#end
+
+#comp VR_MULTIVIEW PPR_Projection.comp
+#include "PPR_Projection.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW PPR_Reflection.frag
+#include "PPR_Reflection.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW PPR_Reflection.vert
+#include "PPR_Reflection.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW renderSceneBRDF.frag
+#include "renderSceneBRDF.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW renderSceneBRDF.vert
+#include "renderSceneBRDF.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ClassifyTiles.comp
+#include "SSSR_ClassifyTiles.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_Intersect.comp
+#include "SSSR_Intersect.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_PrepareIndirectArgs.comp
+#include "SSSR_PrepareIndirectArgs.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ResolveEaw.comp
+#include "SSSR_ResolveEaw.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ResolveEawStride_2.comp
+#define FFX_SSSR_EAW_STRIDE 2
+#include "SSSR_ResolveEawStride.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ResolveEawStride_4.comp
+#define FFX_SSSR_EAW_STRIDE 4
+#include "SSSR_ResolveEawStride.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ResolveSpatial.comp
+#include "SSSR_ResolveSpatial.comp.fsl"
+#end
+
+#comp VR_MULTIVIEW SSSR_ResolveTemporal.comp
+#include "SSSR_ResolveTemporal.comp.fsl"
+#end
+

@@ -1,0 +1,161 @@
+#include "../Shared.h"
+
+#comp BRDFIntegration_SAMPLES_0.comp
+#define IMPORTANCE_SAMPLE_COUNT 0
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_64.comp
+#define IMPORTANCE_SAMPLE_COUNT 64
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_128.comp
+#define IMPORTANCE_SAMPLE_COUNT 128
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_256.comp
+#define IMPORTANCE_SAMPLE_COUNT 256
+#include "BRDFIntegration.comp.fsl"
+#end
+#comp BRDFIntegration_SAMPLES_1024.comp
+#define IMPORTANCE_SAMPLE_COUNT 1024
+#include "BRDFIntegration.comp.fsl"
+#end
+
+#comp computeIrradianceMap_SAMPLE_DELTA_025.comp
+#define SAMPLE_DELTA 0.25f
+#include "computeIrradianceMap.comp.fsl"
+#end
+#comp computeIrradianceMap_SAMPLE_DELTA_0025.comp
+#define SAMPLE_DELTA 0.025f
+#include "computeIrradianceMap.comp.fsl"
+#end
+
+#comp computeSpecularMap_SAMPLES_0.comp
+#define IMPORTANCE_SAMPLE_COUNT 0
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_64.comp
+#define IMPORTANCE_SAMPLE_COUNT 64
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_128.comp
+#define IMPORTANCE_SAMPLE_COUNT 128
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_256.comp
+#define IMPORTANCE_SAMPLE_COUNT 256
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_1024.comp
+#define IMPORTANCE_SAMPLE_COUNT 1024
+#include "computeSpecularMap.comp.fsl"
+#end
+
+#vert VR_MULTIVIEW fullscreen.vert
+#include "fullscreen.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW hair.frag
+#include "hair.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW hair.vert
+#include "hair.vert.fsl"
+#end
+
+#comp hair_integrate.comp
+#include "hair_integrate.comp.fsl"
+#end
+
+#comp hair_length_constraints.comp
+#include "hair_length_constraints.comp.fsl"
+#end
+
+#comp hair_local_constraints.comp
+#include "hair_local_constraints.comp.fsl"
+#end
+
+#comp hair_pre_warm.comp
+#include "hair_pre_warm.comp.fsl"
+#end
+
+#frag hair_shadow.frag
+#include "hair_shadow.frag.fsl"
+#end
+
+#vert hair_shadow.vert
+#include "hair_shadow.vert.fsl"
+#end
+
+#comp hair_shock_propagation.comp
+#include "hair_shock_propagation.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW hair_short_cut_clear.frag
+#include "hair_short_cut_clear.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW hair_short_cut_depth_peeling.frag
+#include "hair_short_cut_depth_peeling.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW hair_short_cut_fill_color.frag
+#include "hair_short_cut_fill_color.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW hair_short_cut_resolve_color.frag
+#include "hair_short_cut_resolve_color.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW hair_short_cut_resolve_depth.frag
+#include "hair_short_cut_resolve_depth.frag.fsl"
+#end
+
+#comp hair_update_follow_hairs.comp
+#include "hair_update_follow_hairs.comp.fsl"
+#end
+
+#comp panoToCube.comp
+#include "panoToCube.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW renderSceneBRDF.frag
+#include "renderSceneBRDF.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW renderSceneBRDF.vert
+#include "renderSceneBRDF.vert.fsl"
+#end
+
+#frag renderSceneShadows.frag
+#include "renderSceneShadows.frag.fsl"
+#end
+
+#vert renderSceneShadows.vert
+#include "renderSceneShadows.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW showCapsules.frag
+#include "showCapsules.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW showCapsules.vert
+#include "showCapsules.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skeleton.frag
+#include "skeleton.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skeleton.vert
+#include "skeleton.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+

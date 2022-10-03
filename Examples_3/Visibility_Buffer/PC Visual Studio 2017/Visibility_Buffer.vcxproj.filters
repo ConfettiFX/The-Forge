@@ -12,25 +12,25 @@
     <ClInclude Include="..\src\Geometry.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\packing.h">
+    <ClInclude Include="..\src\Shaders\FSL\packing.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h">
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\shading.h">
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h">
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </ClInclude>
   </ItemGroup>
@@ -149,6 +149,9 @@
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\Shaders\FSL\clear_buffers.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
   </ItemGroup>

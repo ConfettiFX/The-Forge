@@ -51,6 +51,7 @@ benchmarkFiles = {}
 sanitizer_UTs = {
 	"06_MaterialPlayground",
 	"09_LightShadowPlayground",
+	"36_AlgorithmsAndContainers",
 	"Visibility_Buffer",
 	"Aura",
 	"Ephemeris"
@@ -81,34 +82,38 @@ def SaveConfigFileArgs(args):
 		if arg_value != None:
 			config_file_options.append((macroname, arg_value))
 
+def FormatTime(timeSeconds):
+	return time.strftime("%H:%M:%S", time.gmtime(timeSeconds))
+
 def PrintResults():
 	if len(successfulBuilds) > 0:
 		print ("Successful Builds list:")
 		for build in successfulBuilds:
-			print(build['name'], build['conf'], build['platform'])
+			print(build['name'], build['conf'], build['platform'], 'in', FormatTime(build['time']))
 	
 	print ("")
 	if len(failedBuilds) > 0:
 		print ("Failed Builds list:")
 		for build in failedBuilds:
-			print(build['name'], build['conf'], build['platform'])
+			print(build['name'], build['conf'], build['platform'], 'in', FormatTime(build['time']))
 			
 	if len(successfulTests) > 0:
 		print ("Successful tests list:")
 		for test in successfulTests:
 			if test['gpu'] == "":
-				print(test['name'])
+				print(test['name'], 'in', FormatTime(test['time']))
 			else:
-				print(test['name'], test['gpu'])
+				print(test['name'], test['gpu'], 'in', FormatTime(test['time']))
 	
 	print ("")
 	if len(failedTests) > 0:
 		print ("Failed Tests list:")
 		for test in failedTests:
+			timeStr = ""
 			if test['gpu'] == "":
-				print(test['name'], test['reason'])
+				print(test['name'], test['reason'], 'in', FormatTime(test['time']))
 			else:
-				print(test['name'], test['gpu'], test['reason'])
+				print(test['name'], test['gpu'], test['reason'], 'in', FormatTime(test['time']))
 
 def FindMSBuild17():
 	ls_output = ""
@@ -126,7 +131,7 @@ def FindMSBuild17():
 		#check if vswhere opened correctly
 		if proc.returncode != 0:
 			print("Could not find vswhere")
-		else:			
+		elif ls_output != "":
 			msbuildPath = ls_output.strip() + "/MSBuild/15.0/Bin/MSBuild.exe"
 
 	except Exception as ex:
@@ -235,11 +240,11 @@ def AddTestingPreProcessor(enabledGpuSelection):
 		macro = "#define AUTOMATED_TESTING 1"
 		if enabledGpuSelection:
 			macro += "\n#define ACTIVE_TESTING_GPU 1"
-		AddPreprocessorToFile("Common_3/OS/Core/Config.h", macro + "\n", "#pragma")
+		AddPreprocessorToFile("Common_3/Application/Config.h", macro + "\n", "#pragma")
 
 	if config_file_options:
 		print('Adding config options preprocessor defines')
-		AddConfigOptions("Common_3/OS/Core/Config.h", config_file_options)
+		AddConfigOptions("Common_3/Application/Config.h", config_file_options)
 	
 
 def RemoveTestingPreProcessor():
@@ -247,11 +252,11 @@ def RemoveTestingPreProcessor():
 	memTrackingDefines = ["#define USE_MEMORY_TRACKING"]
 	if setDefines == True:
 		print("Removing automated testing preprocessor defines")
-		RemovePreprocessorFromFile("Common_3/OS/Core/Config.h", testingDefines)
+		RemovePreprocessorFromFile("Common_3/Application/Config.h", testingDefines)
 
 	if config_file_options:
 		print('Removing config options preprocessor defines')
-		RemoveConfigOptions("Common_3/OS/Core/Config.h", config_file_options)
+		RemoveConfigOptions("Common_3/Application/Config.h", config_file_options)
 	
 def ExecuteTimedCommand(cmdList, printStdout: bool):
 	try:		
@@ -331,6 +336,28 @@ def ExecuteCommand(cmdList,outStream):
 		print(ex)
 		print("-------------------------------------")
 		return (-1, f"{ex}".encode(encoding='utf8'), "".encode(encoding='utf8')) # error return code
+
+def SilentExecuteCommand(cmdList):
+	try:
+		print("")
+		if isinstance(cmdList, list): 
+			print("Executing command with no output: " + ' '.join(cmdList))
+		else:
+			print("Executing command with no output: " + cmdList)		
+		print("") 
+		proc = subprocess.Popen(cmdList, stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+		proc.wait()
+
+		return (proc.returncode, proc.stderr, proc.stdout)
+	except Exception as ex:
+		print("-------------------------------------")
+		if isinstance(cmdList, list): 
+			print("Failed Executing command: " + ' '.join(cmdList))
+		else:
+			print("Failed Executing command: " + cmdList)		
+		print(ex)
+		print("-------------------------------------")
+		return (-1, f"{ex}".encode(encoding='utf8'), "".encode(encoding='utf8')) # error return code
 	
 def ExecuteCommandErrorOnly(cmdList):
 	try:
@@ -352,7 +379,7 @@ def ExecuteCommandErrorOnly(cmdList):
 	
 	return 0 #success error code
 
-def CheckTest(test, fileName, gpuLine, check_ub_error, is_iOS):
+def CheckTest(test, fileName, gpuLine, check_ub_error, is_iOS, elapsedTime):
 	returnCode = test[0]
 	stdStreams = (test[1], test[2])
 
@@ -392,30 +419,38 @@ def CheckTest(test, fileName, gpuLine, check_ub_error, is_iOS):
 	if returnCode != 0:
 		print("FAILED TESTING ", fileName)
 		print("Return code: ", returnCode)
-		failedTests.append({'name':fileName, 'gpu':gpuLine, 'reason':'Runtime Failure'})
+		failedTests.append({'name':fileName, 'gpu':gpuLine, 'reason':'Runtime Failure', 'time':elapsedTime})
 	else:
-		successfulTests.append({'name':fileName, 'gpu':gpuLine})
+		successfulTests.append({'name':fileName, 'gpu':gpuLine, 'time':elapsedTime})
 
 	return returnCode
 
 def ExecuteBuild(cmdList, fileName, configuration, platform):
+	startTime = time.time()
 	returnCode = ExecuteCommand(cmdList, sys.stdout)[0]
+	elapsedTime = time.time() - startTime
 	
 	if returnCode != 0:
 		print("FAILED BUILDING ", fileName, configuration)
-		failedBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
+		failedBuilds.append({'name':fileName,'conf':configuration, 'platform':platform, 'time':elapsedTime})
 	else:
-		successfulBuilds.append({'name':fileName,'conf':configuration, 'platform':platform})
+		successfulBuilds.append({'name':fileName,'conf':configuration, 'platform':platform, 'time':elapsedTime})
 	
 	return returnCode
 
 def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = "", printStdout: bool = False, check_ub_error = False, is_iOS = False):
 	returnCode = 0
 
+	startTime = time.time()
+
 	if regularCommand:
-		returnCode = CheckTest(ExecuteCommand(cmdList, None), fileName, gpuLine, check_ub_error, is_iOS)
+		cmdResult = ExecuteCommand(cmdList, None)
+		elapsedTime = time.time() - startTime
+		returnCode = CheckTest(cmdResult, fileName, gpuLine, check_ub_error, is_iOS, elapsedTime)
 	else:
-		returnCode = CheckTest(ExecuteTimedCommand(cmdList, printStdout), fileName, gpuLine, check_ub_error, is_iOS)
+		cmdResult = ExecuteTimedCommand(cmdList, printStdout)
+		elapsedTime = time.time() - startTime
+		returnCode = CheckTest(cmdResult, fileName, gpuLine, check_ub_error, is_iOS, elapsedTime)
 
 	if returnCode == 0:
 		print("Success")
@@ -612,6 +647,9 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId, benchmarkFrames, sa
 
 	for proj in projects:
 		if config in proj:
+			#skip asset  pipeline tool during sanitizer
+			if sanitizer_pass and "AssetPipeline" in proj:
+				continue
 			#we don't want to build Xbox one solutions when building PC
 			if "_iOS" in proj:
 				iosApps.append(proj)
@@ -749,7 +787,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId, benchmarkFrames, sa
 		
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
-			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 			errorOccured = True
 			
 		if retCode != 0:
@@ -803,31 +841,37 @@ def ListDirs(path):
 	return [dir for dir in os.listdir(path) if os.path.isdir(os.path.join(path,dir))]
 
 
-def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, skipReleaseBuild, printXcodeBuild, derivedDataPath, ubsan, asan, tsan):
-	sanitizer_pass = ubsan or asan or tsan
+def BuildXcodeProjects(args):
+	sanitizer_pass = (args.ubsan or args.asan or args.tsan) and not args.assetpipeline
 	errorOccured = False
 	buildConfigurations = ["Debug", "Release"]
 
-	if skipDebugBuild:
+	if args.skipdebugbuild:
 		buildConfigurations.remove("Debug")
-	if skipReleaseBuild:
+	if args.skipreleasebuild:
 		buildConfigurations.remove("Release")
 
 	#since our projects for macos are all under a macos Xcode folder we can search for
 	#that specific folder name to gather source folders containing project/workspace for xcode
 	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
 	xcodeProjects = ["/Examples_3/Ephemeris/macOS Xcode/Ephemeris.xcodeproj", 
-				"/Examples_3/Aura/macOS Xcode/Aura.xcodeproj",
-				"/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj",
-				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
+					"/Examples_3/Aura/macOS Xcode/Aura.xcodeproj",
+					"/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj",
+					"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
+
+	if not sanitizer_pass:
+		xcodeProjects.append("/Common_3/Tools/AssetPipeline/Apple/AssetPipelineCmd.xcodeproj")
+	#if --assetpipeline fully ignore
+	if args.assetpipeline and not sanitizer_pass:
+		xcodeProjects = ["/Common_3/Tools/AssetPipeline/Apple/AssetPipelineCmd.xcodeproj"]
 
 
 	#if derivedDataPath is not specified then use the default location
-	if derivedDataPath == 'Null':
-		DDpath = derivedDataPath
+	if args.xcodederiveddatapath == 'Null':
+		DDpath = args.xcodederiveddatapath
 	else:
 		#Custom Derived Data location relative to root of project
-		DDpath = os.path.join(os.getcwd(), derivedDataPath)
+		DDpath = os.path.join(os.getcwd(), args.xcodederiveddatapath)
 		if os.path.exists(DDpath):
 			#delete the contents of subdirectories at the location
 			shutil.rmtree(DDpath)
@@ -850,27 +894,36 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 
 		if isWorkspace:
 			if sanitizer_pass:
-				if skipIos:
+				if args.skipiosbuild:
 					schemesList = ["SanitizerPass_macOS"]
 				else:
 					schemesList = ["SanitizerPass"]
 			else:
-				if skipIos:
+				if args.skipiosbuild:
 					schemesList = ["BuildAll_macOS"]
-				elif skipMacos:
+				elif args.skipmacosbuild:
 					schemesList = ["BuildAll_iOS"]
 				else:
 					schemesList = ["BuildAll"]
 		else:
-			# if we support Aura, VB or Ephemeris on iOS later on, this section needs to be updated
-			schemesList = [filename]
+			# if we're passing a project instead of a workspace
+			# enumate available targets and use them as the scheme destination
+			# use targets instead of schemes directly as a scheme might not be active / used by valid target.
+			output = ExecuteCommandWOutput(f"xcodebuild -list -project {filenameWExt} -json".split(' '), False)
+			output = (b"".join(output)).decode('utf-8')
+			try:
+				jsonOutput = json.loads(output)
+				schemesList = jsonOutput["project"]['targets']
+			except Exception as ex: 
+				print(f"Error loading targets from {filenameWExt} with exception {ex}")
+				schemesList = [filename]
 
 		for conf in buildConfigurations:
 			#will build all targets for vien project
 			#canot remove ios / macos for now
 			
 			for scheme in schemesList:
-				command = CreateXcodeBuildCommand(skipMacos,skipIos,skipIosCodeSigning,filenameWExt,scheme,conf,isWorkspace,DDpath,printXcodeBuild,ubsan,asan,tsan)
+				command = CreateXcodeBuildCommand(args.skipmacosbuild,args.skipiosbuild,args.skipioscodesigning,filenameWExt,scheme,conf,isWorkspace,DDpath,args.printbuildoutput,args.ubsan,args.asan,args.tsan)
 
 				if scheme == "BuildAll" or scheme == "SanitizerPass":
 					platformName = "macOS/iOS"
@@ -892,18 +945,31 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 #this needs the vulkan environment variables set up correctly
 #if they are not in ~/.profile then they need to be set up for every subprocess
 #If it is in ~/.profile then it needs to be maintaned by updating the version number in ~/.profile.
-def BuildLinuxProjects():
+def BuildLinuxProjects(args):
 	errorOccured = False
 	
 	projsToBuild = GetFilesPathByExtension("./Examples_3/","workspace", False)
+	# Add Asset pipeline project
+	if args.assetpipeline:
+		#if argument is passed then we do it exlusively
+		projsToBuild = GetFilesPathByExtension("./Common_3/Tools/AssetPipeline/","workspace", False)
+	else:
+		#otherwise just append to existing list of projects to build
+		projsToBuild.extend(GetFilesPathByExtension("./Common_3/Tools/AssetPipeline/","workspace", False))
+
 	for projectPath in projsToBuild:
 		#get working directory (excluding the workspace in path)
 		rootPath = os.sep.join(projectPath.split(os.sep)[0:-1])
 		#save current work dir
 		currDir = os.getcwd()
+		buildSettings = currDir + "/Examples_3/Unit_Tests/UbuntuCodelite/build_settings.xml"
 		#change dir to workspace location
 		os.chdir(rootPath)
 		configurations = ["Debug", "Release"]
+		listOfDependenciesToSkip = [ "OSBase", "OS", "EASTL", "Renderer","SpirVTools","PaniniProjection",
+									 "gainput","LuaManager","AssetPipeline", "astc-encoder", "ozz_base",
+									 "ozz_animation","ozz_animation_offline" ]
+
 		for conf in configurations:					
 			#create command for xcodebuild
 			#filename = projectPath.split(os.sep)[-1].split(os.extsep)[0]
@@ -916,18 +982,18 @@ def BuildLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "EASTL" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and child.attrib["Name"] != "ozz_animation_offline":
+					if child.attrib["Name"] not in listOfDependenciesToSkip: 
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
-				command = ["codelite-make","-w",filename,"-p", proj,"-c",conf]
+				command = ["codelite-make","-w",filename,"-p", proj,"-c",conf, "--settings="+buildSettings]
 				#sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
-				sucess = ExecuteCommand(command, sys.stdout)[0]
+				sucess = SilentExecuteCommand(command)[0]
 				
 				if sucess != 0:
 					errorOccured = True
 				
-				command = ["make", "-s"]
+				command = ["/usr/bin/make","-j8", "-e","-f","Makefile"]
 				sucess = ExecuteBuild(command, filename+"/"+proj,conf, "Ubuntu")
 				
 				if sucess != 0:
@@ -940,6 +1006,155 @@ def BuildLinuxProjects():
 		return -1
 	return 0
 
+def MakeDir(path, dirName):
+	try:
+		os.makedirs(path, exist_ok = True)
+		print(f"Directory {dirName} created successfully")
+	except OSError as error:
+		print(f"Directory {dirName} can not be created")
+		print(error)
+
+def TestAssetPipeline():
+
+	errorOccured = False
+
+	#manjaro/macos by default, no extension
+	filename = "AssetPipelineCmd"	
+
+	#this should not be hardcoded but the purpose of the test now its okay
+	#also we should have non compressed formats as in. this will not work yet.
+	#this could be passed down as args
+	textureArgs = ["--in-dds", "--out-dds"]
+	platformPath = "Win64/x64"
+	#Build for Mac OS (Darwin system)
+	if platform.system() == "Darwin":
+		textureArgs = ["--in-dds", "--out-ktx"]
+		platformPath = "Apple/Bin"
+	elif platform.system().lower() == "linux" or platform.system().lower() == "linux2":
+		platformPath = "Linux/Bin"
+	else: #Windows
+		filename = f"{filename}.exe"
+
+	config = "Release"
+
+	#absolute path to pipeline cmd
+	#takes into account if we run from different directory
+	pipelineCmd = os.path.join(os.getcwd(), os.path.normpath(f"Common_3/Tools/AssetPipeline/{platformPath}/{config}/{filename}"))
+
+	#get parent dir path
+	rootPath = os.sep.join(pipelineCmd.split(os.sep)[0:-1])
+	exeLoc = "./" + filename
+
+	#relative paths
+	examplesRelativeResourcePath = "../../../../../../Examples_3/Unit_Tests/UnitTestResources"
+	examplesRelativeProcessedPath = os.path.join(examplesRelativeResourcePath, "ProcessedFiles")
+	
+	#absolute paths
+	examplesAbsoluteResourcePath = os.path.join(os.getcwd(), os.path.normpath("Examples_3/Unit_Tests/UnitTestResources"))
+	examplesAbsoluteProcessedPath = os.path.join(examplesAbsoluteResourcePath, "ProcessedFiles")
+
+	#create needed dirs if they don't exist.
+	MakeDir(examplesAbsoluteProcessedPath, "ProcessedFiles")
+	MakeDir(os.path.join(f"{examplesAbsoluteProcessedPath}/Animation"), "ProcessedFiles/Animation")
+	MakeDir(os.path.join(f"{examplesAbsoluteProcessedPath}/Animation/stormtrooper"), "ProcessedFiles/Animation/stormtrooper")
+	MakeDir(os.path.join(f"{examplesAbsoluteProcessedPath}/Animation/stormtrooper/animations"), "ProcessedFiles/Animation/stormtrooper/animations")
+	MakeDir(os.path.join(f"{examplesAbsoluteProcessedPath}/Textures"), "ProcessedFiles/Textures")
+	MakeDir(os.path.join(f"{examplesAbsoluteProcessedPath}/Meshes")  , "ProcessedFiles/Meshes")
+	MakeDir(os.path.join(f"{examplesAbsoluteResourcePath}/ZipFiles") , "ZipFiles")
+
+	# cook commands
+	processAnimations = [exeLoc, "-pa", "--input", os.path.join(examplesRelativeResourcePath, os.path.normpath("Animation/")), "--output", os.path.join(examplesRelativeProcessedPath,"Animation"), "--force"]
+	processTextures = [exeLoc, "-pt", "--input", os.path.join(examplesRelativeResourcePath,"Textures"), "--output", os.path.join(examplesRelativeProcessedPath,"Textures"), "--force"] + textureArgs
+	processGltf = [exeLoc, "-pgltf", "--input", os.path.join(examplesRelativeResourcePath,"Meshes"), "--output", os.path.join(examplesRelativeProcessedPath,"Meshes"), "--force"]
+	processWriteZipAll = [exeLoc, "-pwza", "--input", examplesRelativeProcessedPath, "--output", os.path.join(examplesRelativeResourcePath,"ZipFiles"), "--name", "28-ZipFileSystem.zip", "--force"]
+
+	# Temporal untill we can process all textures at once
+	tempProcessTexture = [ exeLoc, "-pt", "--input-file", os.path.join(examplesRelativeResourcePath, "Textures", "TheForge.png"), "--output", os.path.join(examplesRelativeProcessedPath, "Textures"), "--force"]
+	tempProcessTextureDDS = tempProcessTexture + [ "--out-dds" ]
+	tempProcessTextureKTX = tempProcessTexture + [ "--out-ktx" ]
+
+	# Temporal untill we process all textures in the asset pipeline
+	skyboxTextures = [
+		"Skybox_right1",
+		"Skybox_left2",
+		"Skybox_top3",
+		"Skybox_bottom4",
+		"Skybox_front5",
+		"Skybox_back6",
+	]
+
+	MakeDir(os.path.join(examplesAbsoluteProcessedPath, "Textures", "Skybox"), "Skybox")
+	skyboxTexturesDestPath = os.path.join(examplesAbsoluteProcessedPath, "Textures", "Skybox")
+	for skyboxTexture in skyboxTextures:
+		texturePath = os.path.join(examplesAbsoluteResourcePath, "Textures", skyboxTexture)
+		try:
+			print(f"Copying Skybox texture: {texturePath} to {skyboxTexturesDestPath}")
+			dstFilename = os.path.join(skyboxTexturesDestPath, skyboxTexture)
+			shutil.copyfile(texturePath + ".dds", dstFilename + ".dds")
+			shutil.copyfile(texturePath + ".ktx", dstFilename + ".ktx")
+		except Exception as ex:
+			print(f"Error Copying {texturePath} to {skyboxTexturesDestPath}")
+			print(ex)
+			errorOccured = True
+
+	allCommands = [
+		{"Command":processAnimations,"Label":"Process Animations"},
+		#{"Command":processTextures,"Label":"Process Textures"},
+		{"Command":processGltf,"Label":"Process GLTF"},
+        {"Command":tempProcessTextureDDS, "Label":"Test Process Texture DDS"},
+        {"Command":tempProcessTextureKTX, "Label":"Test Process Texture KTX"},
+
+		# Zip is the last to cover all previously cooked assets
+		{"Command":processWriteZipAll,"Label":"Write Zip"},
+	]
+
+	#relative to working directory below
+	memleakFile = f"AssetPipeline.memleaks"
+	logFile = f"AssetPipeline.log"
+	
+	for command in allCommands:
+		leaksDetected = False
+		
+		#save current work dir
+		currDir = os.getcwd()
+		#change dir to xcodeproj location
+		os.chdir(rootPath)
+		retCode = -1
+		
+		#don't time test for now
+		retCode = ExecuteTest(command["Command"], f"{filename} {command['Label']}", False, "", False)
+
+		tryPrintLog(logFile)
+		memleaksFilename = os.path.join(os.getcwd(),memleakFile)
+		leaksDetected = FindMemoryLeaks(memleaksFilename)
+		print("")
+		
+		if retCode == 0 and leaksDetected == True:
+			lastSuccess = successfulTests.pop()
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
+			errorOccured = True
+			
+		if retCode != 0:
+			errorOccured = True
+
+		#set working dir to initial
+		os.chdir(currDir)
+
+	# Copy stormtrooper animation to the Animations folder so that we test it when running UT28_Skinning
+	try:
+		src = os.path.join(examplesAbsoluteProcessedPath, "Animation", "stormtrooper")
+		dst = os.path.join(examplesAbsoluteResourcePath, "Animation", "stormtrooper")
+		print("Copying cooked stormtrooper animation files: ", src, " -> ", dst)
+		shutil.copytree(src, dst, dirs_exist_ok = True)
+	except Exception as ex:
+		print(f"Couldn't copy stormtrooper converted files to test UT28_Skinning")
+		print(ex)
+		failedTests.append({'name':'CopyProcessedAnimationFiles', 'gpu':'', 'reason':"shutil.copytree failed", 'time':0})
+		errorOccured = True
+	
+	if errorOccured == True:
+		return -1
+	return 0
 
 #this needs the vulkan environment variables set up correctly
 #if they are not in ~/.profile then they need to be set up for every subprocess
@@ -989,7 +1204,7 @@ def TestLinuxProjects(benchmarkFrames):
 					errorOccured = True
 				
 				if not errorOccured and benchmarkFrames > 0:
-					benchmarkData = RecordBenchmarkFilePath("Ubuntu", proj, os.path.join(os.getcwd(),proj,conf))
+					benchmarkData = RecordBenchmarkFilePath("Manjaro", proj, os.path.join(os.getcwd(),proj,conf))
 					print(benchmarkData)
 
 				memleaksFilename = os.path.join(os.getcwd(),proj,conf,GetMemLeakFile(proj))
@@ -997,7 +1212,7 @@ def TestLinuxProjects(benchmarkFrames):
 				
 				if retCode == 0 and leaksDetected == True:
 					lastSuccess = successfulTests.pop()
-					failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+					failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 					errorOccured = True
 
 		#set working dir to initial
@@ -1102,7 +1317,7 @@ def TestWindowsProjects(useActiveGpuConfig, benchmarkFrames):
 
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
-			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 			errorOccured = True
 
 		if retCode != 0:
@@ -1169,13 +1384,13 @@ def TestXboxProjects(benchmarkFrames):
 				shutil.rmtree(fullDir)
 			os.makedirs(fullDir)
 
-	cleanupSharedFiles()
-
 	#Clean all apps
 	print ("Cleaning XBox apps and data (this will reboot the console)")
 	command = [gdkDir+'xbcleanup','/U','/D','/P','/S','/C','/L']
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 	print ("Done cleaning...")
+	
+	cleanupSharedFiles()
 
 	command = [gdkDir+'xbconfig','EnableKernelDebugging=true',"/X"+consoleIP]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
@@ -1225,7 +1440,7 @@ def TestXboxProjects(benchmarkFrames):
 				print ("Successfully registered: " + appName)
 		if appName == "InvalidAppName":
 			print ("Failed to register network share: " + filename)
-			failedTests.append({'name':filename, 'gpu':"", 'reason':"Invalid app name"})
+			failedTests.append({'name':filename, 'gpu':"", 'reason':"Invalid app name", 'time':0.0})
 			errorOccured = True
 		print ("")
 
@@ -1259,6 +1474,7 @@ def TestXboxProjects(benchmarkFrames):
 			command.append("-b")
 			command.append(str(benchmarkFrames))
 
+		startTime = time.time()
 		output = XBoxCommand(command)
 		print(output)
 		#Make sure app launches
@@ -1267,7 +1483,7 @@ def TestXboxProjects(benchmarkFrames):
 			command = [gdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
 			output = XBoxCommand(command)
 			print ("The operation failed")
-			failedTests.append({'name':appName, 'gpu':"", 'reason':"Failed to launch app"})
+			failedTests.append({'name':appName, 'gpu':"", 'reason':"Failed to launch app", 'time':time.time()-startTime})
 			continue
 
 
@@ -1287,13 +1503,15 @@ def TestXboxProjects(benchmarkFrames):
 			else:
 				time.sleep(0.7)
 
+		elapsedTime = time.time() - startTime
+
 		# Timeout Error
 		if isRunning != 0:
 			errorOccured = True
 			print ("Timeout: " + appName + "\n")
 			command = [gdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
 			output = XBoxCommand(command)
-			failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure"})
+			failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure", 'time':elapsedTime})
 		else:
 			testingComplete = True
 			
@@ -1332,14 +1550,14 @@ def TestXboxProjects(benchmarkFrames):
 			
 			if testingComplete and leaksDetected == True:
 				errorOccured = True
-				failedTests.append({'name':appName, 'gpu':"", 'reason':"Memory Leaks"})
+				failedTests.append({'name':appName, 'gpu':"", 'reason':"Memory Leaks", 'time':elapsedTime})
 			elif testingComplete:
 				print ("Successfully ran " + appName + "\n")
-				successfulTests.append({'name': appName, 'gpu': ""})
+				successfulTests.append({'name': appName, 'gpu': "", 'time':elapsedTime})
 			else:
 				errorOccured = True
 				print ("Application Terminated Early: " + appName + "\n")
-				failedTests.append({'name': appName, 'gpu': "", 'reason': "Runtime failure"})
+				failedTests.append({'name': appName, 'gpu': "", 'reason': "Runtime failure", 'time':elapsedTime})
 		
 		logFilePath = f"\\\\{consoleIP}\\SystemScratch\\" + filenameWithoutExe + ".log"
 		if os.path.exists(logFilePath) and os.path.isfile(logFilePath):
@@ -1526,7 +1744,7 @@ def TestOrbisProjects(benchmarkFrames, sanitizer_pass):
 		leaksDetected = FindMemoryLeaks(memleakFile)
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
-			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 			errorOccured = True
 
 		if retCode != 0:
@@ -1625,7 +1843,7 @@ def TestProsperoProjects(benchmarkFrames, sanitizer_pass):
 		leaksDetected = FindMemoryLeaks(memleakFile)
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
-			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 			errorOccured = True
 
 		if retCode != 0:
@@ -1674,11 +1892,15 @@ def TestProsperoProjects(benchmarkFrames, sanitizer_pass):
 	if errorOccured:
 		return -1
 
-	return 0    
+	return 0
+
+def GetAndroidKeyEventCmd(key):
+	return ["adb", "shell","input" ,"keyevent", key]
 
 def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 	output = processName
 	waitingForExit = True
+	counter = 0
 	while waitingForExit == True:
 		output = ExecuteCommandWOutput(adbCommand, False)
 		output = (b"".join(output)).decode('utf-8')
@@ -1693,10 +1915,15 @@ def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 			#try to print only section containing the source of leaks
 			if value == "D":
 				return True
+			if counter > 50:
+				ExecuteCommand(GetAndroidKeyEventCmd("96"), None)
+				counter = 0
 		
 		if processName not in output:
 			waitingForExit = False
-		
+
+		counter = counter + 1
+
 	return True
 
 def TestAndroidProjects(benchmarkFrames, quest):
@@ -1711,9 +1938,9 @@ def TestAndroidProjects(benchmarkFrames, quest):
 	fileList = []
 
 	for proj in projects:
-		if solutionDir in proj and "Release" in proj and "Packaging" not in proj:
+		if solutionDir in proj and "Release" in proj and "Packaging" not in proj and "debug" not in proj.lower():
 			fileList.append(proj)
-
+	
 	for proj in fileList:
 		leaksDetected = False
 		#get current path for sln file
@@ -1752,9 +1979,6 @@ def TestAndroidProjects(benchmarkFrames, quest):
 		lockScreenCommand = ["adb", "shell","input" ,"keyevent", "82", "&&", "adb", "shell", "input" ,"keyevent", "26", "&&", "adb", "shell", "input" ,"keyevent", "26"]
 		disableProximitySensorCommand = ["adb", "shell","am" ,"broadcast", "-a", "com.oculus.vrpowermanager.prox_close"]
 		enableProximitySensorCommand = ["adb", "shell","am" ,"broadcast", "-a", "com.oculus.vrpowermanager.automation_disable"]
-		
-		def GetAndroidKeyEventCmd(key):
-			return ["adb", "shell","input" ,"keyevent", key]
 			
 		def LockScreenCmd():
 			ExecuteCommand(GetAndroidKeyEventCmd("82"), None)
@@ -1782,9 +2006,9 @@ def TestAndroidProjects(benchmarkFrames, quest):
 		if "Success terminating application" not in output:
 			retCode = 1
 			lastSuccess = successfulTests.pop()
-			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Runtime Failure"})
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Runtime Failure", 'time':lastSuccess['time']})
 		else : retCode = 0
-			
+
 		ExecuteCommand(stopAppCommand, sys.stdout)
 		LockScreenCmd()
 
@@ -1805,7 +2029,7 @@ def TestAndroidProjects(benchmarkFrames, quest):
 				leaksDetected = FindMemoryLeaks(memleakFile)
 				if leaksDetected == True:
 					lastSuccess = successfulTests.pop()
-					failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+					failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks", 'time':lastSuccess['time']})
 					retCode = 1
 			else:
 				print("Couldn't find mem leak file")
@@ -1816,7 +2040,7 @@ def TestAndroidProjects(benchmarkFrames, quest):
 		
 		
 		if retCode != 0:
-			print("Error while running " + filenameNoExt)
+			print("Error while running " + filenameNoExt + " (possibly overheating issue)")
 			errorOccured = True
 				
 		os.chdir(currDir)
@@ -1824,7 +2048,6 @@ def TestAndroidProjects(benchmarkFrames, quest):
 	if errorOccured == True:
 		return -1
 	return 0	
-
 
 #this needs the JAVA_HOME environment variable set up correctly
 def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
@@ -1847,8 +2070,8 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 	platformName = "Android" if not quest else "Quest"
 	
 	if quest:
-		if os.path.isdir("C:\\ovr_sdk_mobile_1.46.0"):
-			copy_tree("C:\\ovr_sdk_mobile_1.46.0", "Common_3\\ThirdParty\\OpenSource\\ovr_sdk_mobile_1.46.0")
+		if os.path.isdir("C:\\ovr_sdk_mobile_1.50.0"):
+			copy_tree("C:\\ovr_sdk_mobile_1.50.0", "Common_3\\OS\\ThirdParty\\OpenSource\\ovr_sdk_mobile")
 		if os.path.isdir("C:\\Vulkan-ValidationLayer-1.2.182.0"):
 			copy_tree("C:\\Vulkan-ValidationLayer-1.2.182.0", "Common_3\\ThirdParty\\OpenSource\\Vulkan-ValidationLayer-1.2.182.0")
 		
@@ -1900,10 +2123,19 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild, quest):
 
 		if retCode != 0:
 			errorOccured = True
-
 		
 		os.chdir(currDir)
-				
+	
+	if errorOccured == False:
+		# Verify APKs
+		print("Validating APKs...")
+		apks = GetFilesPathByExtension(solutionPath,"apk",False)
+		for apk in apks:
+			apkCmd = [os.environ['ANDROID_SDK_ROOT'] + "/cmdline-tools/latest/bin/apkanalyzer.bat", "apk", "summary", apk]
+			retCode = ExecuteCommand(apkCmd, sys.stdout)[0]
+			if retCode != 0:
+				print("Failed validating " + apk + ", retCode = " + str(retCode))
+				errorOccured = True
 
 	if errorOccured == True:
 		return -1
@@ -1971,8 +2203,8 @@ def RemoveSanitizerSolution(arguments):
 		if "Sanitizer_Pass" in sln:
 			os.remove(sln)
 
-def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura, skipDX11, isSwitch, ubsan):
-	sanitizer_pass = isSwitch and ubsan
+def BuildWindowsProjects(args):
+	sanitizer_pass = args.switchNX and args.ubsan and not args.assetpipeline
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 	if msBuildPath == "":
@@ -1983,17 +2215,11 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 	pcPlatform = "x64"
 	isWindows7 = int(platform.release()) < 10
 	
-	if skipDebug:
+	if args.skipdebugbuild:
 		pcConfigurations.remove("Debug")
 		
-	if skipRelease:
+	if args.skipreleasebuild:
 		pcConfigurations.remove("Release")
-
-	#if skipDX11:
-	#	if "DebugDx11" in pcConfigurations : pcConfigurations.remove("DebugDx11")
-	#	if "ReleaseDx11" in pcConfigurations : pcConfigurations.remove("ReleaseDx11")
-	#	if "Debug" in pcConfigurations : pcConfigurations.remove("Debug")
-	#	if "Release" in pcConfigurations : pcConfigurations.remove("Release")
 
 	switchPlatform = "NX64"
 
@@ -2009,6 +2235,8 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 	xboxPlatform = "Gaming.Xbox.XboxOne.x64"
 
 	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)
+	if args.assetpipeline:
+		projects = [path for path in projects if"assetpipeline" in path.lower()]
 	
 	#if MSBuild tasks were not found then parse all projects
 	if len(projects) == 0:
@@ -2018,19 +2246,21 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 	msbuildVerbosity = "/verbosity:minimal"
 	msbuildVerbosityClp = "/clp:ErrorsOnly;WarningsOnly;Summary"
 	
-	if printMSBuild: 
+	if args.printbuildoutput: 
 		msbuildVerbosity = "/verbosity:normal"
 		msbuildVerbosityClp = "/clp:Summary;PerformanceSummary"
 
-	if not xboxOnly and not isSwitch:
+	if not args.xboxonly and not args.switchNX:
 		# if true, filter everything that doesn't contain Win7 or contains HLSLParser
 		# else, filter all platforms which aren't W10
 		if isWindows7:
 			filter_pattern = "^((?!Win7).)*$|HLSLParser"
+		elif args.assetpipeline:
+			filter_pattern = "^AssetPipeline"
 		else:
 			filter_pattern = "Android|Orbis|Prospero|Switch|Xbox|XBOXOne|Win7|Quest"
 
-		if skipAura:
+		if args.skipaura:
 			filter_pattern += "|Aura"
 		
 		proj_filters = re.compile(filter_pattern)
@@ -2043,14 +2273,14 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 			fileList.append(proj)
 
 
-	if xboxDefined:
+	if args.xbox:
 		for proj in projects:
-			if skipAura == True and "Aura" in proj:
+			if args.skipaura == True and "Aura" in proj:
 				continue
 			if "Xbox" in proj or "XBOXOne" in proj:
 				fileList.append(proj)
 				
-	if isSwitch:
+	if args.switchNX:
 		if sanitizer_pass:
 			for proj in projects:
 				if "Sanitizer_Pass_Switch" in proj:
@@ -2058,7 +2288,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 					break
 
 			vcxprojects = GetFilesPathByExtension("./Switch/Examples_3/","vcxproj",False)
-			AddSanitizers(vcxprojects, ubsan, False, isSwitch=True)	
+			AddSanitizers(vcxprojects, args.ubsan, False, isSwitch=True)	
 			solutions = GetFilesPathByExtension("./Switch/Examples_3/Unit_Tests","sln",False)
 			FilterSolutionProjects(solutions[0])
 		else:
@@ -2106,7 +2336,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		#for conf in configurations:
 		if ".sln" in filename:
 			for conf in configurations:
-				if isSwitch:
+				if args.switchNX:
 					command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + currPlatform,"/p:BuildInParallel=true","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
 				else:
 					command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + currPlatform,"/m","/p:BuildInParallel=true","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
@@ -2436,17 +2666,26 @@ def RecordBenchmarkFilePath(platform, appName, pathToSearch ):
 	return lineContents
 
 def CheckDiffContents(relevantChangeStr, targetBranch="origin/master"):
-	gitDiffCommand = ["git", "diff", targetBranch]
-	output = ExecuteCommandWOutput(gitDiffCommand)
+	output = ExecuteCommandWOutput(["git", "diff", targetBranch]) + ['\n'] + ExecuteCommandWOutput(["git", "submodule", "foreach", "--recursive", "git", "diff", targetBranch])
+
 	retValue = 0
+	currentDiff = ""
 	for line in output:
 		try:
 			utfLine = line.decode('utf-8')
+
+			if utfLine.startswith('diff'):
+				currentDiff = utfLine
+
 			if utfLine.startswith('+') or utfLine.startswith('-'):
+				#filter out diffs on the actual jenkinsfile
+				if "JenkinsPipeline_Gitlab" in currentDiff:
+					continue
 				if relevantChangeStr in utfLine:
 					print("{} is found in diff against {}".format(relevantChangeStr, targetBranch))
-					print("Relevant diffed line is: {}".format(utfLine))
+					print("Relevant {} line: \n {}".format(currentDiff, utfLine))
 					retValue = 1
+
 		except:
 			continue
 
@@ -2550,6 +2789,7 @@ def MainLogic():
 	parser.add_argument("--asan", action="store_true", help='Enable the Address sanitizer. Can be paired with --ubsan only.')
 	parser.add_argument("--tsan", action="store_true", help='Enable the Thread sanitizer. Can be paired with --ubsan only.')
 	parser.add_argument('--benchmark',type=int, default="-1", help='Specify number of frames to benchmark. Default value is -1 which means no benchmarking.')
+	parser.add_argument("--assetpipeline", action="store_true", default=False, help='Build the asset pipeline exclusively, on macos, windows and manjaro')
 
 	AddConfigFileArgs(parser)
 
@@ -2557,8 +2797,29 @@ def MainLogic():
 	arguments = parser.parse_args()
 	systemOS = platform.system()
 
+	# filter out arguments
 	sanitizer_pass = arguments.ubsan or arguments.asan or arguments.tsan
 	sanitizers_cleanup = sanitizer_pass and (arguments.orbis or arguments.prospero or arguments.switchNX) and not arguments.testing
+	
+	#early out for unsupported options
+	if arguments.assetpipeline:
+		def errorMessageUnsupported(message):
+			print(message)
+			sys.exit(-1)
+		if arguments.xbox:
+			errorMessageUnsupported("--assetpipeline command invalid with --xbox ")
+		if arguments.switchNX:
+			errorMessageUnsupported("--assetpipeline command invalid with --switchNX ")
+		if arguments.orbis:
+			errorMessageUnsupported("--assetpipeline command invalid with --orbis ")
+		if arguments.prospero:
+			errorMessageUnsupported("--assetpipeline command invalid with --prospero ")
+		if arguments.android:
+			errorMessageUnsupported("--assetpipeline command invalid with --android ")
+		if arguments.quest:
+			errorMessageUnsupported("--assetpipeline command invalid with --quest ")
+		if sanitizer_pass:
+			errorMessageUnsupported("--assetpipeline command invalid with sanitizer options ")
 
 	if sanitizer_pass and not SanitizersSupported(arguments, systemOS == "Darwin"):
 		sys.exit(-1) # fail Jenkins if sanitizers not supported
@@ -2622,11 +2883,17 @@ def MainLogic():
 			else:
 				ExecuteCommand(["sh","PRE_BUILD.command"], sys.stdout)
 	
-	if arguments.testing:
+	#exclusing asset pipeline testing
+	if arguments.assetpipeline and  arguments.testing:
+		returnCode = TestAssetPipeline()		
+	elif arguments.testing:
 		platformName = "MacOS"
 		maxIdleTime = max(arguments.timeout,1)
+		assetPipelineReturnCode = 0
 		#Build for Mac OS (Darwin system)
 		if systemOS == "Darwin":
+			if not sanitizer_pass:
+				assetPipelineReturnCode = TestAssetPipeline()
 			returnCode = TestXcodeProjects(arguments.ios, arguments.macos, arguments.iosid, arguments.benchmark, sanitizer_pass)
 		elif systemOS == "Windows":
 			if arguments.orbis == True:
@@ -2649,11 +2916,17 @@ def MainLogic():
 				returnCode = TestAndroidProjects(arguments.benchmark, True)
 			else:
 				platformName = "Windows"
+				assetPipelineReturnCode = TestAssetPipeline()
 				returnCode = TestWindowsProjects(arguments.gpuselection, arguments.benchmark)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
-			platformName = "Ubuntu"
+			platformName = "Manjaro"
+			assetPipelineReturnCode = TestAssetPipeline()
 			returnCode = TestLinuxProjects(arguments.benchmark)
 		
+		#make sure both tests pass
+		if assetPipelineReturnCode != 0:
+			returnCode = assetPipelineReturnCode
+
 		if arguments.benchmark > 0:
 			filename = f"{platformName}Benchmarks.results"
 			if os.path.exists(filename):
@@ -2669,7 +2942,7 @@ def MainLogic():
 			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git clean -fdfx"], sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
-			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.xcodederiveddatapath, arguments.ubsan, arguments.asan, arguments.tsan)
+			returnCode = BuildXcodeProjects(arguments)
 		elif systemOS == "Windows":
 			if arguments.quest:
 				returnCode = BuildAndroidProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, True)
@@ -2680,9 +2953,9 @@ def MainLogic():
 			elif arguments.prospero:
 				returnCode = BuildProsperoProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.ubsan, arguments.asan)
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura, arguments.skipdx11, arguments.switchNX, arguments.ubsan)
+				returnCode = BuildWindowsProjects(arguments)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
-			returnCode = BuildLinuxProjects()
+			returnCode = BuildLinuxProjects(arguments)
 
 	PrintResults()
 	

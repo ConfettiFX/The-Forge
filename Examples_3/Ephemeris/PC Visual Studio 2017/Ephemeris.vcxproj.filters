@@ -313,5 +313,20 @@
     <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricCloud_2ndWithDepth.frag.fsl">
       <Filter>Shaders\FSL\Ephemeris\VolumetricClouds</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders\FSL\Example</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\FSL\Sky_ShaderList.fsl">
+      <Filter>Shaders\FSL\Ephemeris\Sky</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\FSL\SpaceObjects_ShaderList.fsl">
+      <Filter>Shaders\FSL\Ephemeris\SpaceObjects</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\FSL\Terrain_ShaderList.fsl">
+      <Filter>Shaders\FSL\Ephemeris\Terrain</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\FSL\VolumetricClouds_ShaderList.fsl">
+      <Filter>Shaders\FSL\Ephemeris\VolumetricClouds</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

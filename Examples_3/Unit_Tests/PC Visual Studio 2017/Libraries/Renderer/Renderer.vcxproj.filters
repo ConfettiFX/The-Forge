@@ -24,112 +24,112 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp">
-      <Filter>Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp">
-      <Filter>DX12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp">
-      <Filter>DX12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp">
-      <Filter>DX12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp">
-      <Filter>DX12</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11.cpp">
       <Filter>DX11</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Raytracing.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Raytracing.cpp">
       <Filter>DX11</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11ShaderReflection.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11ShaderReflection.cpp">
       <Filter>DX11</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp">
+      <Filter>DX12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp">
+      <Filter>DX12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp">
+      <Filter>DX12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp">
+      <Filter>DX12</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\DependencyTracking.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Graphics.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
+      <Filter>Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
       <Filter>Dependencies\meshoptimizer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
       <Filter>Dependencies\meshoptimizer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
       <Filter>Dependencies\meshoptimizer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
       <Filter>Dependencies\meshoptimizer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
       <Filter>Dependencies\meshoptimizer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\ags\AgsHelper.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRay.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRenderer.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IResourceLoader.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IShaderReflection.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\nvapi\NvApiHelper.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12CapBuilder.h">
-      <Filter>DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h">
-      <Filter>DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\D3D12MemoryAllocator\Direct3D12MemoryAllocator.h">
-      <Filter>DX12</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11CapBuilder.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11CapBuilder.h">
       <Filter>DX11</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Commands.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Config.h">
       <Filter>DX11</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\RendererConfig.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Config.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h">
       <Filter>DX12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanConfig.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h">
+      <Filter>DX12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h">
+      <Filter>DX12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
       <Filter>Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Config.h">
-      <Filter>DX11</Filter>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h">
+      <Filter>Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h">
+      <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

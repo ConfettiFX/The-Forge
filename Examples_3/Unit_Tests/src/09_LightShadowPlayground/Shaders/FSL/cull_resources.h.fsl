@@ -38,6 +38,11 @@ RES(RWBuffer(atomic_uint),              indirectDrawArgsBufferNoAlpha[NUM_CULLIN
 RES(RWByteBuffer,                       filteredIndicesBuffer[NUM_CULLING_VIEWPORTS],         UPDATE_FREQ_PER_FRAME, u1, binding = 11);
 RES(Buffer(UncompactedDrawArguments),   uncompactedDrawArgs[NUM_CULLING_VIEWPORTS],           UPDATE_FREQ_PER_FRAME, t0,  binding = 0);
 RES(RWByteBuffer,                       indirectMaterialBuffer,                               UPDATE_FREQ_PER_FRAME, u0, binding = 7);
+#if defined(INDIRECT_COMMAND_BUFFER)
+RES(COMMAND_BUFFER, icbAlpha[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u9, binding=14);
+RES(COMMAND_BUFFER, icbNoAlpha[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u11, binding=14 + NUM_CULLING_VIEWPORTS);
+#endif
+
 CBUFFER(visibilityBufferConstants, UPDATE_FREQ_PER_FRAME, b13, binding = 6)
 {
 	DATA(float4x4, mWorldViewProjMat[NUM_CULLING_VIEWPORTS], None);

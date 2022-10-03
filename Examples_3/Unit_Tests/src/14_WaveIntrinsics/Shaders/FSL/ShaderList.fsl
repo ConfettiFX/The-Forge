@@ -1,0 +1,16 @@
+#frag magnify.frag
+#include "magnify.frag.fsl"
+#end
+
+#vert magnify.vert
+#include "magnify.vert.fsl"
+#end
+
+#frag wave.frag
+#include "wave.frag.fsl"
+#end
+
+#vert wave.vert
+#include "wave.vert.fsl"
+#end
+

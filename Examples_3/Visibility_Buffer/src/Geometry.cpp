@@ -24,13 +24,13 @@
 
 #include "Geometry.h"
 
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_set.h"
 
-#include "../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../Common_3/OS/Interfaces/ILog.h"
+#include "../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../Common_3/Utilities/Interfaces/ILog.h"
 
-#include "../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 #define DEFAULT_ALBEDO "Default"
 #define DEFAULT_NORMAL "Default_NRM"
@@ -918,7 +918,7 @@ Scene* loadScene(const char* pFileName, float scale, float offsetX, float offset
 	loadDesc.ppGeometry = &scene->geom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
-	loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_ALL;
+
 	SyncToken token = {};
 	addResource(&loadDesc, &token);
 

@@ -26,20 +26,10 @@
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(VsInOpaque)
-{
-    DATA(float3, position, POSITION);
-};
-
-STRUCT(PsInOpaque)
-{
-	DATA(float4, position, SV_Position);
-};
-
-PsInOpaque VS_MAIN( VsInOpaque In )
+PsInShadowOpaque VS_MAIN( VsInShadowOpaque In )
 {
 	INIT_MAIN;
-	PsInOpaque Out;
+	PsInShadowOpaque Out;
 	Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, float4(In.position, 1.0f));
 	RETURN(Out);
 }

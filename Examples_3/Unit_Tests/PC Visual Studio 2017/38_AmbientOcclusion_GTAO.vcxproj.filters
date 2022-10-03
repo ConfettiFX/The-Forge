@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\38_AmbientOcclusion_GTAO\38_AmbientOcclusion_GTAO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\38_AmbientOcclusion_GTAO\Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{899360c9-6d4b-40cb-895c-97998d84cb14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{c623bd60-b2cb-4c6c-bf7c-b6afcb2d7405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{85499b51-592c-4343-a10e-eb0608cba541}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\fillFSQ.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\fillFSQ.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\prefilterDepths.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\GTAO.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\generateMips.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\denoiseAO.comp.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\visibilityBuffer_pass.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\visibilityBuffer_pass.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\TemporalAA.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\Triangular.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\packing.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\triangle_helper.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\38_AmbientOcclusion_GTAO\Shaders\FSL\shader_defs.h">
+      <Filter>Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\38_AmbientOcclusion_GTAO\Geometry.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

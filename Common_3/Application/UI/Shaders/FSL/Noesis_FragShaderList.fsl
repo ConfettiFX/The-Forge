@@ -1,0 +1,213 @@
+#frag Noesis_RGBA.frag
+#define EFFECT_RGBA
+#end
+
+#frag Noesis_Mask.frag
+#define EFFECT_MASK
+#end
+
+#frag Noesis_Clear.frag
+#define EFFECT_CLEAR
+#end
+
+#frag Noesis_Path_Solid.frag
+#define EFFECT_PATH
+#define PAINT_SOLID
+#end
+
+#frag Noesis_Path_Linear.frag
+#define EFFECT_PATH
+#define PAINT_LINEAR
+#end
+
+#frag Noesis_Path_Radial.frag
+#define EFFECT_PATH
+#define PAINT_RADIAL
+#end
+
+#frag Noesis_Path_Pattern.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#end
+
+#frag Noesis_Path_Pattern_Clamp.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#define CLAMP_PATTERN
+#end
+
+#frag Noesis_Path_Pattern_Repeat.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#define REPEAT_PATTERN
+#end
+
+#frag Noesis_Path_Pattern_MirrorU.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#define MIRRORU_PATTERN
+#end
+
+#frag Noesis_Path_Pattern_MirrorV.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#define MIRRORV_PATTERN
+#end
+
+#frag Noesis_Path_Pattern_Mirror.frag
+#define EFFECT_PATH
+#define PAINT_PATTERN
+#define MIRROR_PATTERN
+#end
+
+#frag Noesis_Path_AA_Solid.frag
+#define EFFECT_PATH_AA
+#define PAINT_SOLID
+#end
+
+#frag Noesis_Path_AA_Linear.frag
+#define EFFECT_PATH_AA
+#define PAINT_LINEAR
+#end
+
+#frag Noesis_Path_AA_Radial.frag
+#define EFFECT_PATH_AA
+#define PAINT_RADIAL
+#end
+
+#frag Noesis_Path_AA_Pattern.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#end
+
+#frag Noesis_Path_AA_Pattern_Clamp.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#define CLAMP_PATTERN
+#end
+
+#frag Noesis_Path_AA_Pattern_Repeat.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#define REPEAT_PATTERN
+#end
+
+#frag Noesis_Path_AA_Pattern_MirrorU.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#define MIRRORU_PATTERN
+#end
+
+#frag Noesis_Path_AA_Pattern_MirrorV.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#define MIRRORV_PATTERN
+#end
+
+#frag Noesis_Path_AA_Pattern_Mirror.frag
+#define EFFECT_PATH_AA
+#define PAINT_PATTERN
+#define MIRROR_PATTERN
+#end
+
+#frag Noesis_SDF_Solid.frag
+#define EFFECT_SDF
+#define PAINT_SOLID
+#end
+
+#frag Noesis_SDF_Linear.frag
+#define EFFECT_SDF
+#define PAINT_LINEAR
+#end
+
+#frag Noesis_SDF_Radial.frag
+#define EFFECT_SDF
+#define PAINT_RADIAL
+#end
+
+#frag Noesis_SDF_Pattern.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#end
+
+#frag Noesis_SDF_Pattern_Clamp.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#define CLAMP_PATTERN
+#end
+
+#frag Noesis_SDF_Pattern_Repeat.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#define REPEAT_PATTERN
+#end
+
+#frag Noesis_SDF_Pattern_MirrorU.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#define MIRRORU_PATTERN
+#end
+
+#frag Noesis_SDF_Pattern_MirrorV.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#define MIRRORV_PATTERN
+#end
+
+#frag Noesis_SDF_Pattern_Mirror.frag
+#define EFFECT_SDF
+#define PAINT_PATTERN
+#define MIRROR_PATTERN
+#end
+
+#frag Noesis_Opacity_Solid.frag
+#define EFFECT_OPACITY
+#define PAINT_SOLID
+#end
+
+#frag Noesis_Opacity_Linear.frag
+#define EFFECT_OPACITY
+#define PAINT_LINEAR
+#end
+
+#frag Noesis_Opacity_Radial.frag
+#define EFFECT_OPACITY
+#define PAINT_RADIAL
+#end
+
+#frag Noesis_Opacity_Pattern.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#end
+
+#frag Noesis_Opacity_Pattern_Clamp.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#define CLAMP_PATTERN
+#end
+
+#frag Noesis_Opacity_Pattern_Repeat.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#define REPEAT_PATTERN
+#end
+
+#frag Noesis_Opacity_Pattern_MirrorU.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#define MIRRORU_PATTERN
+#end
+
+#frag Noesis_Opacity_Pattern_MirrorV.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#define MIRRORV_PATTERN
+#end
+
+#frag Noesis_Opacity_Pattern_Mirror.frag
+#define EFFECT_OPACITY
+#define PAINT_PATTERN
+#define MIRROR_PATTERN
+#end
+
+#include "Noesis.frag.fsl"

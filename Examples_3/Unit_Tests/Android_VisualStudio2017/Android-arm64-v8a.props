@@ -7,7 +7,7 @@
   <PropertyGroup>
     <IncludePath>$(ANDROID_SDK_ROOT)\ndk\$(AndroidNdkVersion)\sources\android\native_app_glue</IncludePath>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\$(PlatformTarget)\</OutDir>
     <TargetName>libForgeGame</TargetName>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
@@ -27,8 +27,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary/</BinaryOutDir>
+      <OutDir>$(OutDir)/../../assets/Shaders/</OutDir>
+      <BinaryOutDir>$(OutDir)/../../assets/CompiledShaders/</BinaryOutDir>
       <Language>GLES VULKAN</Language>
     </FSLShader>
 

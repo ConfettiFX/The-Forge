@@ -30,40 +30,40 @@
 *
 *********************************************************************************************************/
 
-#define MAX_NUM_BONES 200
+#include "Shaders/Shared.h"
 
 // Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
 // Rendering
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 // Middleware packages
-#include "../../../../Middleware_3/Animation/SkeletonBatcher.h"
-#include "../../../../Middleware_3/Animation/AnimatedObject.h"
-#include "../../../../Middleware_3/Animation/Animation.h"
-#include "../../../../Middleware_3/Animation/Clip.h"
-#include "../../../../Middleware_3/Animation/ClipController.h"
-#include "../../../../Middleware_3/Animation/Rig.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/SkeletonBatcher.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/Animation.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/Clip.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/ClipController.h"
+#include "../../../../Common_3/Resources/AnimationSystem/Animation/Rig.h"
 
 // tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 
 // Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 // Memory
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
@@ -125,11 +125,32 @@ Buffer*          pUniformBufferBones[gImageCount] = { NULL };
 UniformDataBones gUniformDataBones;
 Texture*         pTextureDiffuse = NULL;
 
+struct shadow_cap
+{
+	Vector4 a;
+	Vector4 b;
+};
+
+
+static shadow_cap generate_cap(const Vector3& a, const Vector3& b, float r)
+{
+	Vector3 ab = a - b;
+	ab = normalize(ab);
+
+	return shadow_cap{
+		Vector4(a - (ab * r * 0.5f)),
+		Vector4(b + (ab * r * 0.5f), r)
+	};
+}
+
 struct UniformBlockPlane
 {
 	CameraMatrix mProjectView;
 	mat4 mToWorldMat;
+	shadow_cap capsules[MAX_NUM_BONES];
+	uint capsules_count;
 };
+
 UniformBlockPlane gUniformDataPlane;
 
 Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
@@ -174,7 +195,7 @@ const char* gDiffuseTexture = "Stormtrooper_D";
 float* pJointPoints = 0;
 float* pBonePoints = 0;
 
-const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
+const int   gSphereResolution = 8;                   // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
 const float gJointRadius = gBoneWidthRatio * 0.5f;    // set to replicate Ozz skeleton
 
@@ -201,13 +222,14 @@ struct UIData
 		bool mShowBindPose = false;
 		bool mDrawBones = false;
 		bool mDrawPlane = true;
+		bool mDrawShadows = true;
 	};
 	GeneralSettingsData mGeneralSettings;
 };
 UIData gUIData;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
-void ClipTimeChangeCallback() { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
+void ClipTimeChangeCallback(void* pUserData) { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
 eastl::vector<mat4> inverseBindMatrices;
 
 //--------------------------------------------------------------------------------------------
@@ -221,7 +243,7 @@ class Skinning: public IApp
 		initHiresTimer(&gAnimationUpdateTimer);
         // FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
@@ -344,47 +366,6 @@ class Skinning: public IApp
 
 		// INITIALIZE PIPILINE STATES
 		//
-		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-
-		char           maxNumBonesMacroBuffer[4] = {};
-		sprintf(maxNumBonesMacroBuffer, "%u", gStickFigureRig.GetNumJoints());
-		ShaderMacro    maxNumBonesMacro = { "MAX_NUM_BONES", maxNumBonesMacroBuffer };
-		ShaderLoadDesc skinningShader = {};
-		skinningShader.mStages[0] = { "skinning.vert", &maxNumBonesMacro, 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		skinningShader.mStages[1] = { "skinning.frag", &maxNumBonesMacro, 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-
-		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
-		addShader(pRenderer, &basicShader, &pSkeletonShader);
-		addShader(pRenderer, &skinningShader, &pShaderSkinning);
-
-		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		const char* staticSamplers[] = { "DefaultSampler" };
-
-		RootSignatureDesc skinningRootSignatureDesc = {};
-		skinningRootSignatureDesc.mShaderCount = 1;
-		skinningRootSignatureDesc.ppShaders = &pShaderSkinning;
-		skinningRootSignatureDesc.mStaticSamplerCount = 1;
-		skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
-		skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
-		addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
-
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
-		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
-		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
-
 		uint64_t       jointDataSize = gNumberOfJointPoints * sizeof(float);
 		BufferLoadDesc jointVbDesc = {};
 		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -463,13 +444,15 @@ class Skinning: public IApp
 		loadDesc.pFileName = "stormtrooper/riggedMesh.gltf";
 		loadDesc.pVertexLayout = &gVertexLayoutSkinned;
 		loadDesc.ppGeometry = &pGeom;
+		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
 		addResource(&loadDesc, NULL);
 
 		BufferLoadDesc boneBufferDesc = {};
 		boneBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		boneBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		boneBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		boneBufferDesc.mDesc.mSize = sizeof(mat4) * gStickFigureRig.GetNumJoints();
+        ASSERT(MAX_NUM_BONES >= gStickFigureRig.mNumJoints);
+		boneBufferDesc.mDesc.mSize = sizeof(mat4) * MAX_NUM_BONES;
 		boneBufferDesc.pData = NULL;
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -492,7 +475,6 @@ class Skinning: public IApp
 		SkeletonRenderDesc skeletonRenderDesc = {};
 		skeletonRenderDesc.mRenderer = pRenderer;
 		skeletonRenderDesc.mSkeletonPipeline = pSkeletonPipeline;
-		skeletonRenderDesc.mRootSignature = pRootSignature;
 		skeletonRenderDesc.mJointVertexBuffer = pJointVertexBuffer;
 		skeletonRenderDesc.mNumJointPoints = gNumberOfJointPoints;
 		skeletonRenderDesc.mDrawBones = true;
@@ -500,10 +482,11 @@ class Skinning: public IApp
 		skeletonRenderDesc.mNumBonePoints = gNumberOfBonePoints;
 		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
 		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
+		skeletonRenderDesc.mMaxAnimatedObjects = 1;
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// Add the rig to the list of skeletons to render
-		gSkeletonBatcher.AddRig(&gStickFigureRig);
+		gSkeletonBatcher.AddAnimatedObject(&gStickFigureAnimObject);
 
 		// Add the GUI Panels/Windows
 
@@ -520,112 +503,149 @@ class Skinning: public IApp
 		//
 
 		// Clip
-		gUIData.mClip.mPlay = gClipController.GetPlayPtr();
-		gUIData.mClip.mLoop = gClipController.GetLoopPtr();
-		gUIData.mClip.mPlaybackSpeed = gClipController.GetPlaybackSpeedPtr();
+		gUIData.mClip.mPlay = &gClipController.mPlay;
+		gUIData.mClip.mLoop = &gClipController.mLoop;
+		gUIData.mClip.mPlaybackSpeed = &gClipController.mPlaybackSpeed;
 
 		// SET UP GUI BASED ON gUIData STRUCT
 		//
 		{
+			enum
+			{
+				CLIP_PARAM_SEPARATOR_0,
+				CLIP_PARAM_PLAY,
+				CLIP_PARAM_SEPARATOR_1,
+				CLIP_PARAM_LOOP,
+				CLIP_PARAM_SEPARATOR_2,
+				CLIP_PARAM_ANIMATION_TIME,
+				CLIP_PARAM_SEPARATOR_3,
+				CLIP_PARAM_PLAYBACK_SPEED,
+				CLIP_PARAM_SEPARATOR_4,
+
+				CLIP_PARAM_COUNT
+			};
+
+			enum
+			{
+				GENERAL_PARAM_SEPARATOR_0,
+				GENERAL_PARAM_SHOW_BIND_POS,
+				GENERAL_PARAM_SEPARATOR_1,
+				GENERAL_PARAM_DRAW_BONES,
+				GENERAL_PARAM_SEPARATOR_2,
+				GENERAL_PARAM_DRAW_PLANE,
+				GENERAL_PARAM_SEPARATOR_3,
+				GENERAL_PARAM_DRAW_SHADOWS,
+
+				GENERAL_PARAM_COUNT
+			};
+
+			static const uint32_t maxWidgetCount = max((uint32_t)CLIP_PARAM_COUNT, (uint32_t)GENERAL_PARAM_COUNT);
+
+			UIWidget widgetBases[maxWidgetCount] = {};
+			UIWidget* widgets[maxWidgetCount];
+			for (uint32_t i = 0; i < maxWidgetCount; ++i)
+				widgets[i] = &widgetBases[i];
+
+			// Set all separators
 			SeparatorWidget separator;
-			CheckboxWidget checkbox;
-			SliderFloatWidget sliderFloat;
+			for (uint32_t i = 0; i < maxWidgetCount; i += 2)
+			{
+				widgets[i]->mType = WIDGET_TYPE_SEPARATOR;
+				widgets[i]->mLabel[0] = '\0';
+				widgets[i]->pWidget = &separator;
+			}
 
 			// STAND CLIP
 			//
-			CollapsingHeaderWidget CollapsingClipWidgets;
+			CollapsingHeaderWidget collapsingClipWidgets;
+			collapsingClipWidgets.pGroupedWidgets = widgets;
+			collapsingClipWidgets.mWidgetsCount = CLIP_PARAM_COUNT;
 
 			// Play/Pause - Checkbox
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
-			checkbox.pData = gUIData.mClip.mPlay;
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "Play", &checkbox, WIDGET_TYPE_CHECKBOX);
+			CheckboxWidget playCheckbox = {};
+			playCheckbox.pData = gUIData.mClip.mPlay;
+			widgets[CLIP_PARAM_PLAY]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[CLIP_PARAM_PLAY]->mLabel, "Play");
+			widgets[CLIP_PARAM_PLAY]->pWidget = &playCheckbox;
 
 			// Loop - Checkbox
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
-			checkbox.pData = gUIData.mClip.mLoop;
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "Loop", &checkbox, WIDGET_TYPE_CHECKBOX);
+			CheckboxWidget loopCheckbox = {};
+			loopCheckbox.pData = gUIData.mClip.mLoop;
+			widgets[CLIP_PARAM_LOOP]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[CLIP_PARAM_LOOP]->mLabel, "Loop");
+			widgets[CLIP_PARAM_LOOP]->pWidget = &loopCheckbox;
 
 			// Animation Time - Slider
 			float             fValMin = 0.0f;
-			float             fValMax = gClipController.GetDuration();
+			float             fValMax = gClipController.mDuration;
 			float             sliderStepSize = 0.01f;
 
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
-			sliderFloat.pData = &gUIData.mClip.mAnimationTime;
-			sliderFloat.mMin = fValMin;
-			sliderFloat.mMax = fValMax;
-			sliderFloat.mStep = sliderStepSize;
-			uiSetWidgetOnActiveCallback(uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "Animation Time", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT), ClipTimeChangeCallback);
+			SliderFloatWidget animationTime;
+			animationTime.pData = &gUIData.mClip.mAnimationTime;
+			animationTime.mMin = fValMin;
+			animationTime.mMax = fValMax;
+			animationTime.mStep = sliderStepSize;
+			widgets[CLIP_PARAM_ANIMATION_TIME]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+			strcpy(widgets[CLIP_PARAM_ANIMATION_TIME]->mLabel, "Animation Time");
+			widgets[CLIP_PARAM_ANIMATION_TIME]->pWidget = &animationTime;
+			uiSetWidgetOnActiveCallback(widgets[CLIP_PARAM_ANIMATION_TIME], nullptr, ClipTimeChangeCallback);
 
 			// Playback Speed - Slider
 			fValMin = -5.0f;
 			fValMax = 5.0f;
 			sliderStepSize = 0.1f;
 
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			SliderFloatWidget playbackSpeed;
+			playbackSpeed.pData = gUIData.mClip.mPlaybackSpeed;
+			playbackSpeed.mMin = fValMin;
+			playbackSpeed.mMax = fValMax;
+			playbackSpeed.mStep = sliderStepSize;
+			widgets[CLIP_PARAM_PLAYBACK_SPEED]->mType = WIDGET_TYPE_SLIDER_FLOAT;
+			strcpy(widgets[CLIP_PARAM_PLAYBACK_SPEED]->mLabel, "Playback Speed");
+			widgets[CLIP_PARAM_PLAYBACK_SPEED]->pWidget = &playbackSpeed;
 
-			sliderFloat.pData = gUIData.mClip.mPlaybackSpeed; //-V519
-			sliderFloat.mMin = fValMin; //-V519
-			sliderFloat.mMax = fValMax; //-V519
-			sliderFloat.mStep = sliderStepSize; //-V519
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "Playback Speed", &sliderFloat, WIDGET_TYPE_SLIDER_FLOAT);
-
-			uiCreateCollapsingHeaderSubWidget(&CollapsingClipWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Clip", &collapsingClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
+			
 			// GENERAL SETTINGS
 			//
-			CollapsingHeaderWidget CollapsingGeneralSettingsWidgets;
+			CollapsingHeaderWidget collapsingGeneralSettingsWidgets;
+			collapsingGeneralSettingsWidgets.pGroupedWidgets = widgets;
+			collapsingGeneralSettingsWidgets.mWidgetsCount = GENERAL_PARAM_COUNT;
 
 			// ShowBindPose - Checkbox
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
-			checkbox.pData = &gUIData.mGeneralSettings.mShowBindPose;
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Show Bind Pose", &checkbox, WIDGET_TYPE_CHECKBOX);
+			CheckboxWidget showBindPose;
+			showBindPose.pData = &gUIData.mGeneralSettings.mShowBindPose;
+			widgets[GENERAL_PARAM_SHOW_BIND_POS]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[GENERAL_PARAM_SHOW_BIND_POS]->mLabel, "Show Bind Pose");
+			widgets[GENERAL_PARAM_SHOW_BIND_POS]->pWidget = &showBindPose;
 
 			// DrawBones - Checkbox
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
-
-			checkbox.pData = &gUIData.mGeneralSettings.mDrawBones;
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "DrawBones", &checkbox, WIDGET_TYPE_CHECKBOX);
+			CheckboxWidget drawBones;
+			drawBones.pData = &gUIData.mGeneralSettings.mDrawBones;
+			widgets[GENERAL_PARAM_DRAW_BONES]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[GENERAL_PARAM_DRAW_BONES]->mLabel, "DrawBones");
+			widgets[GENERAL_PARAM_DRAW_BONES]->pWidget = &drawBones;
 
 			// DrawPlane - Checkbox
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			CheckboxWidget drawPlane;
+			drawPlane.pData = &gUIData.mGeneralSettings.mDrawPlane;
+			widgets[GENERAL_PARAM_DRAW_PLANE]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[GENERAL_PARAM_DRAW_PLANE]->mLabel, "Draw Plane");
+			widgets[GENERAL_PARAM_DRAW_PLANE]->pWidget = &drawPlane;
+			widgets[GENERAL_PARAM_DRAW_PLANE]->pOnActive = NULL;  // Clear pointer to &ClipTimeChangeCallback
 
-			checkbox.pData = &gUIData.mGeneralSettings.mDrawPlane;
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "Draw Plane", &checkbox, WIDGET_TYPE_CHECKBOX);
+			// DrawShadows - Checkbox
+			CheckboxWidget drawShadows;
+			drawShadows.pData = &gUIData.mGeneralSettings.mDrawShadows;
+			widgets[GENERAL_PARAM_DRAW_SHADOWS]->mType = WIDGET_TYPE_CHECKBOX;
+			strcpy(widgets[GENERAL_PARAM_DRAW_SHADOWS]->mLabel, "Draw Shadows");
+			widgets[GENERAL_PARAM_DRAW_SHADOWS]->pWidget = &drawShadows;
 
-			uiCreateCollapsingHeaderSubWidget(&CollapsingGeneralSettingsWidgets, "", &separator, WIDGET_TYPE_SEPARATOR);
+			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "General Settings", &collapsingGeneralSettingsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 
-			// Add all widgets to the window
-
-			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "Clip", &CollapsingClipWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
-			luaRegisterWidget(uiCreateComponentWidget(pStandaloneControlsGUIWindow, "General Settings", &CollapsingGeneralSettingsWidgets, WIDGET_TYPE_COLLAPSING_HEADER));
 		}
 
 		waitForAllResourceLoads();
-
-		// Prepare descriptor sets
-		DescriptorData params[1] = {};
-		params[0].pName = "DiffuseTexture";
-		params[0].ppTextures = &pTextureDiffuse;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			DescriptorData params[2] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
-
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[i];
-			params[1].pName = "boneMatrices";
-			params[1].ppBuffers = &pUniformBufferBones[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, params);
-		}
 
 		// SETUP THE MAIN CAMERA
 		//
@@ -643,37 +663,41 @@ class Skinning: public IApp
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 		
 		gFrameIndex = 0; 
 
@@ -697,9 +721,6 @@ class Skinning: public IApp
 
 		exitProfiler();
 
-		// Animation data
-		gSkeletonBatcher.Exit();
-
 		exitUserInterface();
 
 		exitFontSystem(); 
@@ -718,15 +739,6 @@ class Skinning: public IApp
 		removeResource(pBoneVertexBuffer);
 		removeResource(pPlaneVertexBuffer);
 
-		removeShader(pRenderer, pShaderSkinning);
-		removeShader(pRenderer, pSkeletonShader);
-		removeShader(pRenderer, pPlaneDrawShader);
-		removeDescriptorSet(pRenderer, pDescriptorSet);
-		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
-		removeRootSignature(pRenderer, pRootSignatureSkinning);
-		removeRootSignature(pRenderer, pRootSignature);
-
 		removeSampler(pRenderer, pDefaultSampler);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -742,134 +754,86 @@ class Skinning: public IApp
 			removeCmdPool(pRenderer, pCmdPools[i]);
 		}
 
+		// Animation data
+		gSkeletonBatcher.Exit();
+
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		exitRenderer(pRenderer);
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		// INITIALIZE SWAP-CHAIN AND DEPTH BUFFER
-		//
-		if (!addSwapChain())
-			return false;
-		if (!addDepthBuffer())
-			return false;
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
+		}
 
-		// LOAD USER INTERFACE
-		//
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
 
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
+			if (!addDepthBuffer())
+				return false;
+		}
 
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
 
-		//layout and pipeline for skeleton draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+		prepareDescriptorSets();
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
 
-		RasterizerStateDesc skeletonRasterizerStateDesc = {};
-		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSkeletonShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pSkeletonPipeline);
-
-		// Update the mSkeletonPipeline pointer now that the pipeline has been loaded
-		gSkeletonBatcher.LoadPipeline(pSkeletonPipeline);
-
-		//layout and pipeline for plane draw
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
-
-		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		pipelineSettings.pShaderProgram = pPlaneDrawShader;
-		addPipeline(pRenderer, &desc, &pPlaneDrawPipeline);
-
-		// layout and pipeline for skinning
-		pipelineSettings = {};
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pRootSignature = pRootSignatureSkinning;
-		pipelineSettings.pShaderProgram = pShaderSkinning;
-		pipelineSettings.pVertexLayout = &gVertexLayoutSkinned;
-		pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pPipelineSkinning);
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
 
-		removePipeline(pRenderer, pPipelineSkinning);
-		removePipeline(pRenderer, pPlaneDrawPipeline);
-		removePipeline(pRenderer, pSkeletonPipeline);
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+		}
 
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 
@@ -900,12 +864,12 @@ class Skinning: public IApp
 		if (!gUIData.mGeneralSettings.mShowBindPose)
 		{
 			// Pose the rig based on the animated object's updated values
-			gStickFigureAnimObject.PoseRig();
+			gStickFigureAnimObject.ComputePose(gStickFigureAnimObject.mRootTransform);
 		}
 		else
 		{
 			// Ignore the updated values and pose in bind
-			gStickFigureAnimObject.PoseRigInBind();
+			gStickFigureAnimObject.ComputeBindPose(gStickFigureAnimObject.mRootTransform);
 		}
 
 		// Record animation update time
@@ -917,16 +881,62 @@ class Skinning: public IApp
 		for (uint i = 0; i < pGeom->mJointCount; ++i)
 		{
 			gUniformDataBones.mBoneMatrix[i] = //mat4::scale(vec3(1, 1, -1)) *
-				gStickFigureRig.GetJointWorldMat(pGeom->pJointRemaps[i]) * 
+				gStickFigureAnimObject.mJointWorldMats[pGeom->pJointRemaps[i]] *
 				pGeom->pInverseBindPoses[i];
 
 		}
+
+		/************************************************************************/
+		// Shadow Capsules
+		/************************************************************************/
+
+		if (gUIData.mGeneralSettings.mDrawShadows)
+		{
+			gUniformDataPlane.capsules_count = 8;
+			//head
+			gUniformDataPlane.capsules[0] = generate_cap(getBonePos(19), getBonePos(76), 0.2f);
+
+			//spine
+			gUniformDataPlane.capsules[1] = generate_cap(getBonePos(1), getBonePos(19), 0.2f);
+
+			//upleg
+			gUniformDataPlane.capsules[2] = generate_cap(getBonePos(2), getBonePos(5), 0.15f);
+			gUniformDataPlane.capsules[3] = generate_cap(getBonePos(3), getBonePos(10), 0.15f); 
+
+			//leg
+			gUniformDataPlane.capsules[4] = generate_cap(getBonePos(5), getBonePos(6), 0.1f);
+			gUniformDataPlane.capsules[5] = generate_cap(getBonePos(10), getBonePos(11), 0.1f);
+
+			//foot
+			gUniformDataPlane.capsules[6] = generate_cap(getBonePos(6), getBonePos(8), 0.1f); 
+			gUniformDataPlane.capsules[7] = generate_cap(getBonePos(11), getBonePos(13), 0.1f);
+
+			//looks better without the arms as capsules look weird when they align with light vector
+			////arm
+			//gUniformDataPlane.capsules[8] = generate_cap(getBonePos(20), getBonePos(21), 0.08f);
+			//gUniformDataPlane.capsules[9] = generate_cap(getBonePos(48), getBonePos(49), 0.08f);
+
+			////forearm
+			//gUniformDataPlane.capsules[8] = generate_cap(getBonePos(21), getBonePos(22), 0.08f);
+			//gUniformDataPlane.capsules[9] = generate_cap(getBonePos(49), getBonePos(50), 0.08f);
+		}
+		else
+		{
+			gUniformDataPlane.capsules_count = 0;
+		}
+
+		
 		/************************************************************************/
 		// Plane
 		/************************************************************************/
 		gUniformDataPlane.mProjectView = projViewMat;
 		gUniformDataPlane.mToWorldMat = mat4::identity();
 	}
+
+	Vector3 getBonePos(uint i)
+	{
+		return gStickFigureAnimObject.mJointWorldMats[i].getCol3().getXYZ();
+	};
 
 	void Draw()
 	{
@@ -963,7 +973,7 @@ class Skinning: public IApp
 
 		BufferUpdateDesc boneBufferUpdateDesc = { pUniformBufferBones[gFrameIndex] };
 		beginUpdateResource(&boneBufferUpdateDesc);
-		memcpy(boneBufferUpdateDesc.pMappedData, &gUniformDataBones, sizeof(mat4) * gStickFigureRig.GetNumJoints());
+		memcpy(boneBufferUpdateDesc.pMappedData, &gUniformDataBones, sizeof(mat4) * gStickFigureRig.mNumJoints);
 		endUpdateResource(&boneBufferUpdateDesc, NULL);
 
 		// Acquire the main render target from the swapchain
@@ -1094,6 +1104,189 @@ class Skinning: public IApp
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[0]);
+		setDesc = { pRootSignatureSkinning, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkinning[1]);
+
+		gSkeletonBatcher.AddDescriptorSets(pRootSignature);
+	}
+
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSet);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkinning[1]);
+
+		gSkeletonBatcher.RemoveDescriptorSets();
+	}
+
+	void addRootSignatures()
+	{
+		Shader*           shaders[] = { pSkeletonShader, pPlaneDrawShader };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		const char* staticSamplers[] = { "DefaultSampler" };
+
+		RootSignatureDesc skinningRootSignatureDesc = {};
+		skinningRootSignatureDesc.mShaderCount = 1;
+		skinningRootSignatureDesc.ppShaders = &pShaderSkinning;
+		skinningRootSignatureDesc.mStaticSamplerCount = 1;
+		skinningRootSignatureDesc.ppStaticSamplerNames = staticSamplers;
+		skinningRootSignatureDesc.ppStaticSamplers = &pDefaultSampler;
+		addRootSignature(pRenderer, &skinningRootSignatureDesc, &pRootSignatureSkinning);
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignatureSkinning);
+		removeRootSignature(pRenderer, pRootSignature);
+	}
+
+	void addShaders()
+	{
+		ShaderLoadDesc planeShader = {};
+		planeShader.mStages[0] = { "plane.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		planeShader.mStages[1] = { "plane.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		ShaderLoadDesc skinningShader = {};
+		skinningShader.mStages[0] = { "skinning.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skinningShader.mStages[1] = { "skinning.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+
+		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
+		addShader(pRenderer, &basicShader, &pSkeletonShader);
+		addShader(pRenderer, &skinningShader, &pShaderSkinning);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pShaderSkinning);
+		removeShader(pRenderer, pSkeletonShader);
+		removeShader(pRenderer, pPlaneDrawShader);
+	}
+
+	void addPipelines()
+	{
+		//layout and pipeline for skeleton draw
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc skeletonRasterizerStateDesc = {};
+		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSkeletonShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pSkeletonPipeline);
+
+		// Update the mSkeletonPipeline pointer now that the pipeline has been loaded
+		gSkeletonBatcher.LoadPipeline(pSkeletonPipeline);
+
+		//layout and pipeline for plane draw
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
+
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pShaderProgram = pPlaneDrawShader;
+		addPipeline(pRenderer, &desc, &pPlaneDrawPipeline);
+
+		// layout and pipeline for skinning
+		pipelineSettings = {};
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		pipelineSettings.pRootSignature = pRootSignatureSkinning;
+		pipelineSettings.pShaderProgram = pShaderSkinning;
+		pipelineSettings.pVertexLayout = &gVertexLayoutSkinned;
+		pipelineSettings.pRasterizerState = &skeletonRasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pPipelineSkinning);
+	}
+
+	void removePipelines()
+	{
+		removePipeline(pRenderer, pPipelineSkinning);
+		removePipeline(pRenderer, pPlaneDrawPipeline);
+		removePipeline(pRenderer, pSkeletonPipeline);
+	}
+
+	void prepareDescriptorSets()
+	{
+		gSkeletonBatcher.PrepareDescriptorSets();
+
+		DescriptorData params[1] = {};
+		params[0].pName = "DiffuseTexture";
+		params[0].ppTextures = &pTextureDiffuse;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[2] = {};
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pPlaneUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
+
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pPlaneUniformBuffer[i];
+			params[1].pName = "boneMatrices";
+			params[1].ppBuffers = &pUniformBufferBones[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetSkinning[1], 2, params);
+		}
 	}
 
 	bool addDepthBuffer()

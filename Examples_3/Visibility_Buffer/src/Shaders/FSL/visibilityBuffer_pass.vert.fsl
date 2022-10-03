@@ -26,32 +26,11 @@
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
-#ifdef VULKAN
-	#extension GL_ARB_shader_draw_parameters : enable
-#endif
-
-STRUCT(VsInOpaque)
-{
-    DATA(float3, position, POSITION);
-};
-
-STRUCT(PsInOpaque)
-{
-	DATA(float4, position, SV_Position);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
-PsInOpaque VS_MAIN( VsInOpaque In, SV_InstanceID(uint) instanceId )
+PsInVBOpaque VS_MAIN( VsInVBOpaque In, SV_InstanceID(uint) instanceId )
 {
 	INIT_MAIN;
-	PsInOpaque Out;
+	PsInVBOpaque Out;
 	Out.position = mul(Get(transform)[VIEW_CAMERA].mvp, float4(In.position.xyz, 1.0f));
-#ifdef VULKAN
-	Out.drawId = gl_DrawIDARB;
-#elif defined(ORBIS) || defined(PROSPERO)
-	Out.drawId = instanceId;
-#endif
+	SET_DRAW_ID(Out, drawId, instanceId);
 	RETURN(Out);
 }

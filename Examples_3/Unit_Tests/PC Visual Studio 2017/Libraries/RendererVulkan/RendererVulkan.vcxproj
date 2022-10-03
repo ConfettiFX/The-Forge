@@ -11,9 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />

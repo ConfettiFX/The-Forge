@@ -14,6 +14,9 @@
     <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{2ddf16a2-15f2-4559-8e3b-0c63292f85d1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\FSL">
+      <UniqueIdentifier>{4290f80e-8483-4de5-a94c-6c89ea77b8dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\16_Raytracing\16_Raytracing.cpp">
@@ -21,12 +24,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\16_Raytracing\Shaders\D3D12\DisplayTexture.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\16_Raytracing\Shaders\D3D12\DisplayTexture.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
     <None Include="..\src\16_Raytracing\Shaders\D3D12\ClosestHit.rchit">
       <Filter>Shaders\D3D12</Filter>
     </None>
@@ -42,12 +39,6 @@
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\ClosestHit.rchit">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\16_Raytracing\Shaders\Vulkan\DisplayTexture.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\16_Raytracing\Shaders\Vulkan\DisplayTexture.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\Miss.rmiss">
       <Filter>Shaders\Vulkan</Filter>
     </None>
@@ -57,5 +48,21 @@
     <None Include="..\src\16_Raytracing\Shaders\Vulkan\RayGen.rgen">
       <Filter>Shaders\Vulkan</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\16_Raytracing\Shaders\Shared.h">
+      <Filter>Shaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.vert.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\src\16_Raytracing\Shaders\FSL\DisplayTexture.frag.fsl">
+      <Filter>Shaders\FSL</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

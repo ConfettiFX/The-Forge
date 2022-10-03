@@ -45,6 +45,7 @@ float length(int2 x)
 #define UPDATE_FREQ_PER_BATCH 2
 #define UPDATE_FREQ_PER_DRAW  3
 #define UPDATE_FREQ_USER      4
+#define MAX_BUFFER_BINDINGS  31
 
 #define STATIC constant
 #define INLINE inline
@@ -374,6 +375,9 @@ int2 GetDimensions(const texture2d<T, A> t, uint _NO_SAMPLER)
 template<typename T, metal::access A>
 int2 GetDimensions(const texturecube<T, A> t, uint _NO_SAMPLER)
     { return int2(t.get_width(), t.get_height()); }
+	
+#define GetDimensionsMS(tex, dim) int2 dim = int2(tex.get_width(), tex.get_height());
+	
 #define NO_SAMPLER 0u
 
 #define Buffer(T) T
@@ -579,5 +583,44 @@ bool any(float3 x) { return any(x!= 0.0f); }
     #define VR_VIEW_ID 0
 #endif
 #define VR_MULTIVIEW_COUNT 1
+
+#if __METAL_VERSION__ >= 210
+// Code that requires features introduced in Metal 2.1.
+// #TODO - Define this
+// #define INDIRECT_COMMAND_BUFFER 1
+
+#define COMMAND_BUFFER command_buffer
+#define PRIMITIVE_TYPE primitive_type
+#define PRIMITIVE_TYPE_POINT PRIMITIVE_TYPE::point
+#define PRIMITIVE_TYPE_LINE PRIMITIVE_TYPE::line
+#define PRIMITIVE_TYPE_LINE_STRIP PRIMITIVE_TYPE::line_strip
+#define PRIMITIVE_TYPE_TRIANGLE PRIMITIVE_TYPE::triangle
+#define PRIMITIVE_TYPE_TRIANGLE_STRIP PRIMITIVE_TYPE::triangle_strip
+
+void cmdDrawInstanced(command_buffer cmdbuf, uint slot, PRIMITIVE_TYPE prim, uint vertexCount, uint firstVertex, uint instanceCount, uint firstInstance)
+{
+	render_command cmd(cmdbuf, slot);
+	cmd.draw_primitives(prim, firstVertex, vertexCount, instanceCount, firstInstance);
+}
+
+void cmdDraw(command_buffer cmdbuf, uint slot, PRIMITIVE_TYPE prim, uint vertexCount, uint firstVertex, uint instanceCount, uint firstInstance)
+{
+	cmdDrawInstanced(cmdbuf, slot, prim, vertexCount, firstVertex, 1, 0);
+}
+
+template<typename T>
+void cmdDrawIndexedInstanced(command_buffer cmdbuf, uint slot, PRIMITIVE_TYPE prim, T indexBuffer, uint indexCount, uint firstIndex, uint firstVertex, uint instanceCount, uint firstInstance)
+{
+	render_command cmd(cmdbuf, slot);
+	cmd.draw_indexed_primitives(prim, indexCount, indexBuffer + firstIndex, instanceCount, firstVertex, firstInstance);
+}
+
+template<typename T>
+void cmdDrawIndexed(command_buffer cmdbuf, uint slot, PRIMITIVE_TYPE prim, T indexBuffer, uint indexCount, uint firstIndex, uint firstVertex)
+{
+	cmdDrawIndexedInstanced(cmdbuf, slot, prim, indexBuffer, indexCount, firstIndex, firstVertex, 1, 0);
+}
+
+#endif
 
 #endif // _METAL_H

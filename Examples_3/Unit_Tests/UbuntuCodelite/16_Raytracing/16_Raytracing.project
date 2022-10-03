@@ -10,6 +10,24 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/16_Raytracing/16_Raytracing.cpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="gainput"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <VirtualDirectory Name="Shaders">
+    <File Name="../../src/16_Raytracing/Shaders/FSL/DisplayTexture.frag.fsl"/>
+    <File Name="../../src/16_Raytracing/Shaders/FSL/DisplayTexture.vert.fsl"/>
+  </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -19,7 +37,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -29,7 +47,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -55,7 +73,10 @@
         <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VULKAN/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Sponza/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
@@ -75,7 +96,13 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -85,7 +112,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-msse4.1; " C_Options="-g;-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -95,7 +122,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -121,7 +148,10 @@
         <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VULKAN/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/Sponza/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
@@ -141,7 +171,14 @@
       </CustomBuild>
       <AdditionalRules>
         <CustomPostBuild/>
-        <CustomPreBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -151,18 +188,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="gainput"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
 </CodeLite_Project>

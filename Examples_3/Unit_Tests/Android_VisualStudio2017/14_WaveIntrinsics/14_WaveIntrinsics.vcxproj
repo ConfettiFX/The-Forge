@@ -16,6 +16,7 @@
   <ItemGroup>
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.frag.fsl" />
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\magnify.vert.fsl" />
+    <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.frag.fsl" />
     <FSLShader Include="..\..\src\14_WaveIntrinsics\Shaders\FSL\wave.vert.fsl" />
   </ItemGroup>
@@ -74,6 +75,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -95,16 +97,22 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.*"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 </Command>
     </PreLinkEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -149,13 +157,13 @@ xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(So
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.*"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 </Command>
     </PreLinkEvent>
     <PreBuildEvent />

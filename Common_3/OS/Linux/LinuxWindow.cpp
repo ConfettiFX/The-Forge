@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef __linux__
 
@@ -34,26 +34,24 @@
 
 #include <gtk/gtk.h>
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
+#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IProfiler.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Application/Interfaces/IProfiler.h"
 
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 //------------------------------------------------------------------------
 // STATIC STRUCTS
@@ -265,42 +263,48 @@ void collectMonitorInfo()
 			XRRScreenSize* screenSizes = XRRConfigSizes(screenConfig, &numScreenSizes);
 			ASSERT(screenSizes && numScreenSizes > 0);
 
-			gMonitors[i].resolutionCount = numScreenSizes;
-			gMonitors[i].resolutions = (Resolution*)tf_calloc(numScreenSizes, sizeof(Resolution));
+			gMonitors[i].resolutions = NULL;
+			arrsetcap(gMonitors[i].resolutions, numScreenSizes);
 
-			int tail = 0;
 			for (int j = 0; j < numScreenSizes; ++j)
 			{
 				ASSERT(screenSizes[j].width >= 0);
 				ASSERT(screenSizes[j].height >= 0);
 
-				gMonitors[i].resolutions[tail++] = { (uint32_t)screenSizes[j].width, (uint32_t)screenSizes[j].height };
+				Resolution resolution = { (uint32_t)screenSizes[j].width, (uint32_t)screenSizes[j].height };
 
 				if (flipped)
-					eastl::swap(gMonitors[i].resolutions[j].mWidth, gMonitors[i].resolutions[j].mHeight);
-
-				for (int k = 0; k < j; ++k)
 				{
-					if (gMonitors[i].resolutions[k].mWidth == gMonitors[i].resolutions[j].mWidth &&
-						gMonitors[i].resolutions[k].mHeight == gMonitors[i].resolutions[j].mHeight)
+					uint32_t temp = resolution.mHeight;
+					resolution.mHeight = resolution.mWidth;
+					resolution.mWidth = temp;
+				}
+				
+				bool exists = false;
+				for (ptrdiff_t k = 0; k < arrlen(gMonitors[i].resolutions); ++k)
+				{
+					if (gMonitors[i].resolutions[k].mWidth == resolution.mWidth &&
+						gMonitors[i].resolutions[k].mHeight == resolution.mHeight)
 					{
-						tail--;
-						gMonitors[i].resolutionCount--;
+						exists = true;
 						break;
 					}
 				}
+				
+				if (!exists)
+					arrpush(gMonitors[i].resolutions, resolution);
 			}
 
 			XRRFreeScreenConfigInfo(screenConfig);
 		}
 		else
 		{
-			gMonitors[i].resolutionCount = 1;
-			gMonitors[i].resolutions = (Resolution*)tf_calloc(1, sizeof(Resolution));
+			gMonitors[i].resolutions = NULL;
+			arrsetlen(gMonitors[i].resolutions, 1);
 			gMonitors[i].resolutions[0] = { (uint32_t)width, (uint32_t)height };
 		}
 
-		for (uint32_t j = 0; j < gMonitors[i].resolutionCount; ++i)
+		for (ptrdiff_t j = 0; j < arrlen(gMonitors[i].resolutions); ++j)
 		{
 			Resolution res = gMonitors[i].resolutions[j];
 
@@ -316,7 +320,7 @@ void collectMonitorInfo()
 void destroyMonitorInfo()
 {
 	for (uint32_t i = 0; i < gMonitorCount; ++i)
-		tf_free(gMonitors[i].resolutions);
+		arrfree(gMonitors[i].resolutions);
 
 	tf_free(gMonitors);
 	tf_free(gDirtyModes);
@@ -357,7 +361,9 @@ static void onResize(WindowDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pWindowAppRef->mSettings.mHeight = newSizeY;
 	pWindowAppRef->mSettings.mFullScreen = wnd->fullScreen;
 
-	onRequestReload();
+    ReloadDesc reloadDesc;
+    reloadDesc.mType = RELOAD_TYPE_RESIZE;
+    requestReload(&reloadDesc);
 }
 
 static void onFocusChanged(bool focused)
@@ -777,7 +783,11 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 	for (int i = 0; i < screenRes->nmode; ++i)
 	{
 		if (crtcInfo->rotation == RR_Rotate_90 || crtcInfo->rotation == RR_Rotate_270)
-			eastl::swap(screenRes->modes[i].width, screenRes->modes[i].height);
+		{
+			uint32_t tmp = screenRes->modes[i].width;
+			screenRes->modes[i].width = screenRes->modes[i].height;
+			screenRes->modes[i].height = tmp;
+		}
 
 		if (screenRes->modes[i].width == pRes->mWidth && screenRes->modes[i].height == pRes->mHeight)
 		{
@@ -814,7 +824,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 {
-	for (uint32_t i = 0; i < pMonitor->resolutionCount; ++i)
+	for (ptrdiff_t i = 0; i < arrlen(pMonitor->resolutions); ++i)
 	{
 		if (pMonitor->resolutions[i].mWidth == pRes->mWidth && pMonitor->resolutions[i].mHeight == pRes->mHeight)
 			return true;
@@ -822,7 +832,6 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 
 	return false;
 }
-
 MonitorDesc* getMonitor(uint32_t index)
 {
 	ASSERT(index < gMonitorCount);

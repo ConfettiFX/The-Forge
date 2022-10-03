@@ -64,5 +64,5 @@ float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
 
 	clip(-1.0f);
 	
-	return float4(0, 0, 0, 0); 
+	RETURN(float4(0, 0, 0, 0)); 
 }

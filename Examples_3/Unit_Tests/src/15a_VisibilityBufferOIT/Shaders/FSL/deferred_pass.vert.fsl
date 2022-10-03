@@ -26,10 +26,6 @@
 #include "packing.h.fsl"
 #include "deferred_resources.h.fsl"
 
-#ifdef VULKAN
-    #extension GL_ARB_shader_draw_parameters : enable
-#endif
-
 STRUCT(VsIn)
 {
     DATA(float3, Position, POSITION);
@@ -44,7 +40,7 @@ STRUCT(PsIn)
     DATA(float2, TexCoord, TEXCOORD0);
     DATA(float3, Normal, TEXCOORD1);
     DATA(float3, Tangent, TEXCOORD2);
-#if defined(VULKAN ) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+#if !defined(INDIRECT_ROOT_CONSTANT)
     DATA(FLAT(uint), drawId, TEXCOORD3);
 #endif
 };
@@ -57,10 +53,6 @@ PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId )
     Out.TexCoord = unpack2Floats(In.TexCoord);
     Out.Normal = decodeDir(unpackUnorm2x16(In.Normal));
     Out.Tangent = decodeDir(unpackUnorm2x16(In.Tangent));
-#ifdef VULKAN
-    Out.drawId = gl_DrawIDARB;
-#elif defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-	Out.drawId = instanceId;
-#endif
+    SET_DRAW_ID(Out, drawId, instanceId);
     RETURN(Out);
 }
