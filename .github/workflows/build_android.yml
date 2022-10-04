@@ -102,7 +102,7 @@ jobs:
         Write-Host "Downloading Oculus Mobile SDK 1.50..."
         Invoke-WebRequest https://securecdn.oculus.com/binaries/download/?id=4643347799061523 -OutFile ovr_sdk_mobile_1.50.0.zip
         Write-Host "Extracting Oculus SDK.."
-        Expand-Archive ovr_sdk_mobile_1.50.0.zip -DestinationPath The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile
+        Expand-Archive ovr_sdk_mobile_1.50.0.zip -DestinationPath The-Forge/Common_3/OS/ThirdParty/OpenSource/ovr_sdk_mobile
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
