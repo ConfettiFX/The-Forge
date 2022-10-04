@@ -1974,7 +1974,7 @@ char *strkey(int n)
 #if defined(_WIN32) && defined(__STDC_WANT_SECURE_LIB__)
    sprintf_s(buffer, sizeof(buffer), "test_%d", n);
 #else
-   sprintf(buffer, "test_%d", n);
+   snprintf(buffer,256, "test_%d", n);
 #endif
    return buffer;
 }

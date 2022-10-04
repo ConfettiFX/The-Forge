@@ -167,7 +167,7 @@ static const char* dumpCstring (const char* s)
 		static char msg[64];
 		int i;
 
-		sprintf (msg, "cstr[%p] -> ", (void *)s);
+		snprintf (msg, 64, "cstr[%p] -> ", (void *)s);
 		bcatcstr (&dumpOut[rot], msg);
 
 		bcatliteral(&dumpOut[rot], "\"");

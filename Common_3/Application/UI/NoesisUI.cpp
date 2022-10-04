@@ -662,14 +662,13 @@ public:
 	/// Begins rendering offscreen commands
 	virtual void BeginOffscreenRender() override
 	{
-		if (pCurrentUpdateTexture)
+		if (mTextureUpdateDesc.pTexture)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			memcpy(mTextureUpdateDesc.pMappedData, pCurrentUpdateTexture->pData, pCurrentUpdateTexture->mSize);
 			endUpdateResource(&mTextureUpdateDesc, nullptr);
 			waitForAllResourceLoads();
 			mTextureUpdateDesc = TextureUpdateDesc{};
-			pCurrentUpdateTexture = nullptr;
 		}
 
 		cmdBindIndexBuffer(pCmd, mIndexBuffers[mFrameIndex], INDEX_TYPE_UINT16, 0);
@@ -686,14 +685,13 @@ public:
 	/// Begins rendering onscreen commands
 	virtual void BeginOnscreenRender() override
 	{
-		if (pCurrentUpdateTexture)
+		if (mTextureUpdateDesc.pTexture)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			memcpy(mTextureUpdateDesc.pMappedData, pCurrentUpdateTexture->pData, pCurrentUpdateTexture->mSize);
 			endUpdateResource(&mTextureUpdateDesc, nullptr);
 			waitForAllResourceLoads();
 			mTextureUpdateDesc = TextureUpdateDesc{};
-			pCurrentUpdateTexture = nullptr;
 		}
 
 		LoadActionsDesc loadActions{};
