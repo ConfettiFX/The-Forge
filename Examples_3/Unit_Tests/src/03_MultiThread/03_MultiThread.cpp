@@ -316,9 +316,9 @@ class MultiThread: public IApp
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
 			if (i == 0)
-				sprintf(gpuProfileNames[i], "Graphics");
+				snprintf(gpuProfileNames[i], 64, "Graphics");
 			else
-				sprintf(gpuProfileNames[i], "Gpu Particle thread %u", i - 1);
+				snprintf(gpuProfileNames[i], 64, "Gpu Particle thread %u", i - 1);
 
 			ppConstGpuProfileNames[i] = gpuProfileNames[i];    //-V507
 			ppQueues[i] = pGraphicsQueue;
@@ -902,7 +902,7 @@ class MultiThread: public IApp
 		txtSizePx.y = 15.0f;
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
-			sprintf(gParticleThreadText, "GPU Particle Thread %u - %f ms", i, getGpuProfileAvgTime(pGpuProfiletokens[i]));
+			snprintf(gParticleThreadText, 64, "GPU Particle Thread %u - %f ms", i, getGpuProfileAvgTime(pGpuProfiletokens[i]));
 			gFrameTimeDraw.pText = gParticleThreadText;
 			cmdDrawTextWithFont(cmd, float2(xTxtOffset, yTxtOrig), &gFrameTimeDraw);
 			yTxtOrig += txtSizePx.y + yTxtOffset;

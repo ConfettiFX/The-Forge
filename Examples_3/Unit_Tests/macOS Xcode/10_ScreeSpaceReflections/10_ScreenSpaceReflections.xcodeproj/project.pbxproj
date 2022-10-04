@@ -733,7 +733,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_LANGUAGE_REVISION = Metal20;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.-10-ScreenSpaceReflections";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

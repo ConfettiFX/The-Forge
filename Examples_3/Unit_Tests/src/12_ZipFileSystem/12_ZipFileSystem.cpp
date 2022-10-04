@@ -583,7 +583,7 @@ static bool testWriteFile(const char* testName, ResourceDirectory rd,
 	if (noerr && !isWriteOnly)
 	{
 		char modifiedName[4096] = { 0 };
-		sprintf(modifiedName, "%s(check content)", testName);
+		snprintf(modifiedName, 4096, "%s(check content)", testName);
 		noerr = testReadFile(modifiedName, READ_NO_ERROR, rd, pFileName, pFilePassword, content, contentSize);
 	}
 	
@@ -602,7 +602,7 @@ static bool runReadZipTests()
 	{
 		static char testNameFormat[] = "Read test #%lu";
 		char testName[256] = {0};
-		sprintf(testName, testNameFormat, (unsigned long)i);
+		snprintf(testName, 256, testNameFormat, (unsigned long)i);
 
 		ReadError         expectedError = pReadErrors[i];
 		const char*       pFileName = pTestReadFiles[i];
@@ -640,7 +640,7 @@ static bool runReadZipTests()
 	{
 		static char testNameFormat[] = "Read test by index #%lu";
 		char testName[256] = { 0 };
-		sprintf(testName, testNameFormat, (unsigned long)i);
+		snprintf(testName, 256, testNameFormat, (unsigned long)i);
 
 		ReadError         expectedError = pReadErrors[i];
 		uint64_t          fileIndex = gTestReadFilesIds[i];
@@ -677,7 +677,7 @@ static bool runReadZipTests()
 	{
 		static char testNameFormat[] = "Read test by index #%lu";
 		char testName[256] = { 0 };
-		sprintf(testName, testNameFormat, (unsigned long)i);
+		snprintf(testName, 256, testNameFormat, (unsigned long)i);
 
 		ReadError         expectedError = pReadErrors[i];
 		uint64_t          fileIndex = gTestReadFilesIds[i];
@@ -703,7 +703,7 @@ static bool runWriteZipTests()
 	{
 		static char testNameFormat[] = "Write test #%lu";
 		char testName[256] = { 0 };
-		sprintf(testName, testNameFormat, (unsigned long)i);
+		snprintf(testName, 256, testNameFormat, (unsigned long)i);
 
 		const char*       pFileName = pTestWriteFiles[i];
 		const char*       pFilePassword = pWritePasswords[i];

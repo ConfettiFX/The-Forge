@@ -2903,7 +2903,7 @@ public:
 		gFrameTimeDraw.mFontID = gFontID;
         float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
-		sprintf(gAnimationUpdateText, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
+		snprintf(gAnimationUpdateText, 64, "Animation Update %f ms", getHiresTimerUSecAverage(&gAnimationUpdateTimer) / 1000.0f);
 
 		gFrameTimeDraw.pText = gAnimationUpdateText; 
 		cmdDrawTextWithFont(cmd, float2(8.f, txtSize.y + 50.0f), &gFrameTimeDraw);
