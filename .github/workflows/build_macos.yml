@@ -16,6 +16,9 @@ jobs:
     - name: Print disk space
       shell: pwsh
       run: Get-PSDrive
+    
+    - name: Get rsync version
+      run: rsync --version
 
     - name: Checkout The-Forge
       uses: actions/checkout@v3
