@@ -930,7 +930,14 @@ namespace Internal
 	};
 }// namespace Internal
 
-const Internal::ignore_t ignore;
+#ifdef __GNUC__
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+static const Internal::ignore_t ignore;
+#ifdef __GNUC__
+	#pragma GCC diagnostic pop
+#endif
 
 
 // tie 
