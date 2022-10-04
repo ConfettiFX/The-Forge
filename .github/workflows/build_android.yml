@@ -24,7 +24,7 @@ jobs:
       working-directory: C:\
       run: |
         Write-Host "Free space before cleanup:"
-        Get-Volume
+        Get-PSDrive
 
         Write-Host "Removing Android SDK..."
         Remove-Item -Path C:\Android -Recurse -ErrorAction Continue
@@ -41,7 +41,7 @@ jobs:
         New-Item -Path C:\VulkanSDK -ItemType Junction -Value D:\VulkanSDK | Out-Null
 
         Write-Host "Free space after cleanup:"
-        Get-Volume
+        Get-PSDrive
 
     - name: Checkout The-Forge
       uses: actions/checkout@v3
@@ -111,7 +111,7 @@ jobs:
 
     - name: "[DEBUG] Print free space"
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Build
       working-directory: The-Forge
@@ -123,4 +123,4 @@ jobs:
     - name: "[DEBUG] Print free space"
       if: always()
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive

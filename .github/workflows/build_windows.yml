@@ -15,7 +15,7 @@ jobs:
     steps:
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Checkout The-Forge
       uses: actions/checkout@v3
@@ -24,7 +24,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Checkout Custom-Middleware
       uses: actions/checkout@v3
@@ -35,7 +35,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -44,21 +44,21 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Install Vulkan SDK
       run: choco install vulkan-sdk --version 1.2.162.0
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Install VS2017
       run: choco install VisualStudio2017Community visualstudio2017-workload-nativedesktop
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
@@ -67,7 +67,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Build
       working-directory: The-Forge
@@ -78,4 +78,4 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive

@@ -15,7 +15,7 @@ jobs:
     steps:
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Checkout The-Forge
       uses: actions/checkout@v3
@@ -24,7 +24,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Checkout Custom-Middleware
       uses: actions/checkout@v3
@@ -35,7 +35,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -44,7 +44,7 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
 
     - name: Build
       working-directory: The-Forge
@@ -52,4 +52,4 @@ jobs:
 
     - name: Print disk space
       shell: pwsh
-      run: Get-Volume
+      run: Get-PSDrive
