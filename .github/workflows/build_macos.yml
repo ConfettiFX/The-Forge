@@ -13,10 +13,18 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+    - name: Print disk space
+      shell: pwsh
+      run: Get-Volume
+
     - name: Checkout The-Forge
       uses: actions/checkout@v3
       with:
         path: The-Forge
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-Volume
 
     - name: Checkout Custom-Middleware
       uses: actions/checkout@v3
@@ -25,11 +33,23 @@ jobs:
         repository: ConfettiFX/Custom-Middleware
         ref: ${{ github.ref_name }}  # Checkout the Custom-Middleware branch with the same name as the The-Forge branch we're building
 
+    - name: Print disk space
+      shell: pwsh
+      run: Get-Volume
+
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
 
+    - name: Print disk space
+      shell: pwsh
+      run: Get-Volume
+
     - name: Build
       working-directory: The-Forge
       run: python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput --skipioscodesigning
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-Volume
