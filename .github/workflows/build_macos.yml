@@ -42,9 +42,6 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Setup homebrew packages
-      run: brew install rsync
-
     - name: Print disk space
       shell: pwsh
       run: Get-PSDrive
