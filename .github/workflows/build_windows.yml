@@ -1,0 +1,81 @@
+name: "[Windows] Build TF Examples"
+
+on:
+  push:
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019, windows-2022]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Checkout The-Forge
+      uses: actions/checkout@v3
+      with:
+        path: The-Forge
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Checkout Custom-Middleware
+      uses: actions/checkout@v3
+      with:
+        path: Custom-Middleware
+        repository: ConfettiFX/Custom-Middleware
+        ref: ${{ github.ref_name }}  # Checkout the Custom-Middleware branch with the same name as the The-Forge branch we're building
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Install Vulkan SDK
+      run: choco install vulkan-sdk --version 1.2.162.0
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Install VS2017
+      run: choco install VisualStudio2017Community visualstudio2017-workload-nativedesktop
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        vs-version: '[15.0,16.0)'
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
+    - name: Build
+      working-directory: The-Forge
+      shell: cmd
+      run: python -u ./CI/PyBuild.py --preserveworkingdir --printbuildoutput
+      env:
+        VULKAN_SDK: "C:\\VulkanSDK\\1.2.162.0"
+
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
