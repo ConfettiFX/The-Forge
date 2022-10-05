@@ -4,8 +4,8 @@ The Forge is a cross-platform rendering framework supporting
 - PC 
   * Windows 10
      * with DirectX 12 / Vulkan 1.1
-     * with DirectX Ray Tracing API
-     * DirectX 11 Fallback Layer for older Windows paltforms
+     * with DXR / RTX Ray Tracing API
+     * DirectX 11 Fallback Layer for older Windows platforms
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie or higher with 
   * Vulkan 1.1
@@ -30,7 +30,6 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - [Lua Scripting System](https://www.lua.org/) - currently used for automatic testing and in 06_Playground to load models and textures and animate the camera and in several other unit tests to cycle through the options they offer during automatic testing.
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms. It also supports now Double precision.
-- Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
 - Consistent Memory Managament: 
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) and the [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
@@ -54,10 +53,76 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # Build Status 
 
-* Windows [![Build status](https://ci.appveyor.com/api/projects/status/leqbpaqtqj549yhh/branch/master?svg=true)](https://ci.appveyor.com/project/wolfgangfengel/the-forge/branch/master)
-* macOS [![Build Status](https://app.travis-ci.com/ConfettiFX/The-Forge.svg?branch=master)](https://app.travis-ci.com/ConfettiFX/The-Forge)
+
+[![Windows](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_windows.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_windows.yml)
+[![MacOS + iOS](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_macos.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_macos.yml)
+[![Linux](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_linux.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_linux.yml)
+[![Android + Meta Quest](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_android.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_android.yml)
 
 # News
+
+## Release 1.53 - October 3rd, 2022 - Steamdeck Support | App life cycle changes | Shader Byte Code Offline Generation | GTAO Unit Test | Improved gradient calculation in Visibility Buffer | New C Containers | Reorg TF Directory Structure | Upgraded to newer ImGUI | The Forge Blog
+
+The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleasure to see The Forge running in AAA games like this:
+
+[![Starfield](Screenshots/starfield-screenshot.jpg)](https://www.youtube.com/watch?v=ZHZOTFMyMyM)
+
+We added The Forge to the Creation Engine in 2019.
+
+The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
+
+[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
+
+
+- We switched our Linux OS to Manjaro to have an easier upgrade path to the Steamdeck. Please note the changed Linux requirements below.
+
+- Shader byte code can now be generated offline.
+  * Shader binaries are compiled through FSL
+  * Introduced ShaderList files that determine all the binary shaders that FSL needs to produce. Defines, shader target and other specific configuration can be specified per shader binary declaration
+  * Update all projects (UT, VB, Aura, Ephemeris) to use the new ShaderLists
+  * Remove all ShaderStageLoadDesc::pMacros, shaders are compiled offline through ShaderLists
+  * Remove all Renderer::pBuiltinShaderDefines, all configuration is done through FSL
+
+- Over the last few projects we had always challenges with EASTL. So over the last 9 months we slowly removed it and replaced it by new C language based containers that prefer stack allocations over heap allocations.
+There is a new unit test that helps us to test the new libraries.
+
+For string management:
+[bstrlib](https://github.com/websnarf/bstrlib)
+
+For dynamic arrays and hash tables:
+[stb_ds.h](https://github.com/nothings/stb/blob/master/stb_ds.h)
+
+There is a new unit test to make sure those new containers are tested. It is called 36_AlgorithmsAndContainers
+
+- We changed the App life cycle: modern APIs have so many ways to reset the driver or reload assets, so we made a more flexible "reload" mechanism that generalizes all the special cases we had in there before.
+  * App extended with reload functionality by making use of ReloadDesc* parameter for the Load/Unload functions
+  * define reload/reset descriptors structs
+  * define reload/reset enum types
+  * Updated OS base files regarding new structs
+  * Able to reload shaders on all examples
+This is a breaking change to all of our rendering interfaces.
+
+- New Animation test that unifies most of the former animation tests into one. This way we can save some testing time in our Jenkins setup.
+
+
+- We added a new unit test called 38_AmbientOcclusion_GTAO. It implements the paper ...
+
+- We improved the gradient calculation in the Visibility Buffer. Thanks to Stephen Hill @self_shadow who brought this to our attention. 
+
+- We reorganized the whole TF directory structure to allow development in more areas. Here is an image representing the new structure:
+
+![The Forge Reorg](Screenshots/TheForgeOverview.png)
+
+What is still missing is the "Render Abstraction Layer", "Scene Loader" and we have to populate the "Game Layer" more.
+
+- We upgraded to ImGUI 1.88 to get access to the docking feature. In the process we improved the ImGUI integration substantially.
+
+- We started a blog for The Forge at [The-Forge-Blog](https://github.com/ConfettiFX/The-Forge-Blog). We have no idea where we can find the time to write blog posts ... let's see what is happening ...
+
+- Retired Unit/Functional Tests: 
+  * 08_GltfViewer - generally glTF is not a model format that is applicable for game development. So we use it as an intermediate format in the Resource loader. In the future we might only use it in the offline asset pipline. The main idea is to extract the data and bring it into a form that is usable in games. Unfortunately many people thought that the glTF viewer is a good model to start with. So we want to guide them in the right diretion here by not offering direct access to a glTF reader anymore. 
+  * Most of the animation unit tests are now merged into 21_Animations, to reduce our hardware testing time. Our Jenkins testing environment that tests all platforms before someone can merge code is taking too long.
+
 
 ## Release 1.52 - April 29th, 2022 - C Code Hot Reloading Unit Test | Visibility Buffer OIT | Pre-Computed DLUT Test | Unified Window and Resolution control | Android Vulkan Validation Layer | CPU Features | Upgraded Vulkan and DX GPU allocator | macOS / iOS improvements | Double precision Math Library | Impoved Input System with HID support
 
@@ -165,8 +230,8 @@ This library is the stepping stone of utilizing more CPU instrinsics on various 
 - Retired unit test: we are going to retire many unit tests now because our automated testing cycle takes too long and heats up the "engine" room (see above passage on us looking for an consultant to scale up our testing environment). Today we retire:
   * 02_Compute
   * 05_FontRendering
-  * 13_UserInterface - we might create a much more advanced one for tools development in the future  
-  * 16a_SphereTracing  
+  * 13_UserInterface - we might create a much more advanced one for tools development in the future
+  * 16a_SphereTracing
   * 32_Windows - not necessary anymore with every unit test now offering windows management
 
 - Resolved GitHub Issues:
@@ -176,94 +241,6 @@ This library is the stepping stone of utilizing more CPU instrinsics on various 
   * [https://github.com/ConfettiFX/The-Forge/issues/220](https://github.com/ConfettiFX/The-Forge/issues/220)
   * [vk_removeBuffer takes a lot of CPU time when exit application #243](https://github.com/ConfettiFX/The-Forge/issues/243)
 
-
-## Release 1.51 - December 21st, 2021 - ECS uses flecs | Better Borderless Window | Descriptor Management improvements | sRGB | Android Game Development Extensions | FSL Improvements | Ray Tracing | Meshoptimizer | Buildbox | Lethis
-<br>
-<br>  
-  
-    Happy Holidays! 🎄🎅🔥🎁🧨
-
-We wish you and your loved ones all the best for the Holidays and a Happy New Year 2022! <br>
-<br>
-<br>
-
-
-This update is again a mixture of things we learned while integrating The Forge and feedback and contributions from our users. Thanks for all the support!
-
-In one of the next updates we will remove EASTL and offer dedicated containers compatible with C99. Over time EASTL was a huge productivity burner. The inefficient memory access patterns hugged too much CPU time in games where we integrated TF and we always had to go back and fix those later manually.
-We know this is a breaking change but considering that STL was a good idea on CPUs 20+ years ago, we would like to align more with what modern CPUs are expecting. 
-
-- We keep moving towards C99 usage. We replaced the old ECS code with Flecs:
-
-[![flecs](https://user-images.githubusercontent.com/9919222/104115165-0a4e4700-52c1-11eb-85d6-9bdfa9a0265f.png)](https://github.com/SanderMertens/flecs)
-
-Now our build times are much better and the overall system runs faster:
-
-```
-CPU: Intel i7-7700k
-GPU: AMD Radeon RX570
-
-Old ECS
-Debug
-Single Threaded: 90.0ms 
-Multi Threaded 29.0ms
-
-Release:
-Single Threaded: 5.7ms
-Multi Threaded: 2.3ms
-
-
-flecs
-Debug
-Single Threaded: 23.0ms   
-Multi Threaded 6.8ms
-
-Release
-Single Threaded 1.7ms
-Multi Threaded 0.9ms
-```
-
-- Descriptor Management improvements - we changed the rendering interface for all platforms - cmdBindPushConstants now takes an index instead of a name, we also allow partial updates of array descriptors
-
-- Borderless window - there are improvements to borderless windows support
-  * remove borderless window "top white bar" on Windows OS
-  * add "Win Key + arrow" behavior (for standard maximize/minimize/split of the borderless window using keyboard)
-  * top resize area necessarily overlaps rendering (this is how we can remove the top white bar)
-
-- FSL improvements
-  * incremental shader generation and build with header dependencies
-  * improved error reported by extending line directives, errors now show up at the correct line in source fsl file
-  * extended matrix column/row access functions for all targets
-  * vec type padding to match our math lib datatypes
-
-* sRGB - all examples should be now more correct when it comes to linear lighting and sRGB
-
-* Android Game Extension usage: in one of our AAA game engine projects, we are now using successfully for the first time Android Game Extensions. So we also brought it to The Forge. 
-  
-  [Android Game Extension](https://developer.android.com/games/agde)
-  
-  We redid a lot of the Android development setup to streamline the experience a bit. We still use Visual Studio 2017 because it allows to be more productive compared to other IDEs. Two years ago we went back and forth between IDEs but concluded that the only IDE that we could efficiently integrate into our Jenkins testing setup was Visual Studio. 
-  Please check out the new Readme below and let us know if we missed anything.
-
-- Vulkan: moved to KHR ray tracing extensions. Upgraded max spec to Vulkan SDK 1.2.162 and tested ray tracing support on an AMD RX 6700 XT GPU
-
-- [meshoptimizer](https://github.com/zeux/meshoptimizer) - somehow the  integration of meshoptimizer "got lost" over time and we just re-integrated it into the resource loader. Here are some numbers that we got
-
-meshoptimizer on various art assets
-![meshoptimizer improvements](Screenshots/meshoptimizer.PNG)
-
-
-- Buildbox 
-
-The game engine BuildBox is now using The Forge (click on Image to go to Buildbox website): 
-
-[![BuildBox](Screenshots/BuildBox.PNG)](https://signup.buildbox.com/product/bb3)
-
-- Lethis 
-
-The game Lethis Path of Progress uses The Forge now (click on image to go to the Steam Store)
-
-[![Lethis](Screenshots/Lethis.PNG)](https://store.steampowered.com/app/359230/Lethis__Path_of_Progress/)
 
 
 
@@ -337,23 +314,56 @@ We are currently testing on:
 * iPad Pro with M1 with 14.7.1
 
 
-# PC Linux Requirements:
+# PC Linux Manjaro Requirements:
 
-1. [Ubuntu 18.04 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: 4.15.0-20-generic
+### Manjaro environment installation
 
-2. GPU Drivers:
-  * AMD GPUs: we are testing on the [Mesa RADV driver](https://launchpad.net/~paulo-miguel-dias/+archive/ubuntu/pkppa/)
-  * NVIDIA GPUs: we are testing with the [NVIDIA driver](http://www.nvidia.com/object/unix.html)
+> **_NOTE:_** The forge is tested only on proprietary graphics drivers (specifically the one mentioned below), please choose them when installing Manjaro.
 
-3. Workspace file is provided for [codelite 12.0.6](https://codelite.org/)
+- Update your pacman repos
 
-4. Vulkan SDK Version 1.1.108: download the native Ubuntu Linux package for all the elements of the Vulkan SDK [LunarG Vulkan SDK Packages for Ubuntu 16.04 and 18.04](https://packages.lunarg.com/)
+```shell
+ $ sudo pacman -Syyu 
+ ``` 
+
+- Install GCC version 12 (Main version supported by current The Forge linux version)
+
+```shell
+  $ sudo pacman -S base-devel 
+  $ sudo pacman -S gcc12
+```
+
+- Install codelite version 15 from [AUR](https://aur.archlinux.org/packages/codelite-bin)
+
+```shell
+$ pamac build codelite-bin
+```
+> **Note:** if you get errors including gtk-devel packages conflicts you can try using yay to install codelite-bin package as it solves the conflicts found on some specific KDE installations, check yay [here](https://github.com/Jguer/yay), Potentially if you have errors with Pamac installation on Manjaro or if you're running another Arch based distro.
 
 
-5. The Forge is currently tested on Ubuntu with the following GPUs:
- * AMD RADEON RX 480
- * AMD RADEON VEGA 56
- * NVIDIA GeForce 2070 RTX
+- Install VulkanSDK 1.2.162
+  - Download VulkanSDK from [here](https://sdk.lunarg.com/sdk/download/1.2.162.0/linux/vulkansdk-linux-x86_64-1.2.162.0.tar.gz)
+  - Create a common VulkanSDK directory and install it there,
+  ```shell
+    $ cd ~
+    $ mkdir vulkan
+    $ cd vulkan
+  ```
+  - Extract SDK
+  ```shell
+    $ tar xf $HOME/Downloads/vulkansdk-linux-x86-64-1.2.162.0.tar.gz
+    ```
+  - Setup runtime environment persistently
+  ```shell
+    $ sudo echo "source /home/forge/vulkan/1.2.162.0/setup-env.sh" > /etc/profile.d/vulkanRuntime.sh
+  ```
+  - Restart shell session
+  - Test VulkanSDK installation 
+  ```shell
+    $ vkcube
+  ```
+- Open codelite at least once and use .workspace files provided with The Forge.
+- Our Jenkins machine tests on an NVIDIA 2060 GPU with driver reversion 515.65.1.0
 
 
 # Android Requirements:
@@ -388,7 +398,7 @@ At the moment, the Android run-time does not support the following unit tests du
     - Install Android NDK r21e (21.4.7075529)
     The versions might not be visible so be sure to check the "Show Package Details" option.
     - Set `ANDROID_SDK_ROOT` environment variable to point at the installed SDK
-    - Use Java SDK jdk-11.0.14
+    - Use Java SDK jdk-11.0.14 - others might not work ...
 
 ### Steps if You want to create a new Project
 
@@ -404,7 +414,7 @@ At the moment, the Android run-time does not support the following unit tests du
     2. `AGDEVersions.props` needs to be added manually into the project between the ` <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />` and `<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />` lines (see Unit Tests for reference)
 
 For link directories,
-- $(SolutionDir)$(Platform)\$(Configuration)\ (this is where we have all our libs. set it accordingly)
+- `$(SolutionDir)$(Platform)\$(Configuration)\` (this is where we have all our libs. set it accordingly)
   - *NOTE* This can be avoided by adding our libs as references (Right-click project -> Add -> Reference -> Pick the ones you want to link -> Ok)
 
 Notes:
@@ -416,9 +426,9 @@ Notes:
 # Quest 2 Requirements:
 1. Follow the Android setup instructions specified above
 2. Download OVR mobile sdk from oculus website.
-  - https://developer.oculus.com/downloads/package/oculus-mobile-sdk/
-  - Tested with ovr-mobile-sdk version 1.46
-3. Place unzipped sdk in `The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0`
+    - https://developer.oculus.com/downloads/package/oculus-mobile-sdk/
+    - Tested with ovr-mobile-sdk version 1.50
+3. Place unzipped sdk in `The-Forge/Common_3/ThirdParty/OpenSource/ovr_sdk_mobile`
 4. Run examples from `Examples_3/Unit_Tests/Quest_VisualStudio2017`. 
 As a side note the following examples may not be current compatible with the Quest:
 * 04_ExecuteIndirect
@@ -488,31 +498,6 @@ Wood:
 This unit test showcases the rendering of grass with the help of hardware tessellation.
 
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
-
-## 8. glTF Model Viewer
-A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. 
-This modelviewer can utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
-
-glTF Viewer running on Android Galaxy Note 9
-![glTF Viewer running on Android Galaxy Note 9](Screenshots/ModelViewer/AndroidGalaxyNote9.png)
-
-glTF Viewer running on iPhone 7
-![glTF Viewer running on iPhone 7](Screenshots/ModelViewer/iPhone7.png)
-
-glTF Viewer running on Linux with NVIDIA RTX 2060
-![glTF Viewer running on Linux with NVIDIA RTX 2060](Screenshots/ModelViewer/LinuxRTX2060.png)
-
-glTF Viewer running on Mac Mini M1
-![glTF Viewer running on Mac Mini M1](Screenshots/ModelViewer/MacMiniM1.png)
-
-glTF Viewer running on PS5
-![glTF Viewer running on PS5](Screenshots/ModelViewer/PS5.png)
-
-glTF Viewer running on Switch
-![glTF Viewer running on Switch](Screenshots/ModelViewer/Switch.png)
-
-glTF Viewer running on XBOX One Original 
-![glTF Viewer running on XBOX One Original](Screenshots/ModelViewer/XBOXOneOriginal.png)
 
 
 ## 9. Light and Shadow Playground
@@ -736,60 +721,12 @@ How to use it: While the Main project is running open 19_CodeHotReload_Game.cpp 
 Note: In this implementation we can't call any functions from The Forge from the HotReloadable project (19a_CodeHotReload_Game), this is because we are compiling OS and Renderer as static libraries and linking them directly to the exe. Ideally these projects should be compiled as dynamic libraries in order to expose their functionality to the exe and hot reloadable dll. The reason we didn't implement it in this way is because all our other projects are already setup to use static libraries.
 
 
-
-## 21. Ozz Playback Animation
-This unit test shows how to playback a clip on a rig.
-
-![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
-
-## 22. Ozz Playback Blending
-This unit test shows how to blend multiple clips and play them back on a rig.
-
-![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
-
-## 23. Ozz Joint Attachment
-This unit test shows how to attach an object to a rig which is being posed by an animation.
-
-![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
-
-## 24. Ozz Partial Blending
-This unit test shows how to blend clips having each only effect a certain portion of joints.
-
-![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
-
-## 25. Ozz Additive Blending
-This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
-
-![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
-
-## 26. Ozz Baked Physics
-This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
-
-![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
-
-## 27. Ozz Multi Threading
-This unit test shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates.
-
-![Image of Ozz Multi Threading in The Forge](Screenshots/09_MultiThread.gif)
+## 21. Animation
 
 ## 28. Ozz Skinning
 This unit test shows how to use skinning with Ozz
 
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
-
-## 29. Ozz Inverse Kinematic
-This unit test shows how to use a Aim and a Two bone IK solvers
-
-Aim IK
-![Ozz Aim IK](Screenshots/Ozz_Aim_IK.gif)
-
-Two Bone IK
-![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
-
-## 33. YUV Support
-YUV support: we have now YUV support for all our Vulkan API platforms PC, Linux, Android and Switch. There is a new functional test for YUV. It runs on all these platforms:
-
-![YUV unit test](Screenshots/34_YUV.png)
 
 
 ## 35. Variable Shading Rate
@@ -812,6 +749,36 @@ The cubes are using per-draw shading rate while the background is using per-tile
     - The tile size is enforced by the GPU and is readable, as shown in the example.
     - The shading rates available can vary based on the active GPU.
 
+## 36 AlgorithmsAndContainers
+
+
+## 37 Pre-Computed DLUT Test
+This test implements pre-computing volume transmittance in Blender or Houdini for 6 directions and shading clouds/smoke based on the following tweets:
+
+https://twitter.com/Vuthric/status/1286796950214307840
+
+A detailed description can be found here: https://realtimevfx.com/t/smoke-lighting-and-texture-re-usability-in-skull-bones/5339
+
+![DLUT Test Blender Support](Screenshots/37_DLUT_Blender.png)
+
+In this repository is a "dlut.blend" file that contains a minimal volumetric render setup. In order to generate DLUT image do the following steps:
+
+   - Set the viewport shading to "Rendered"
+   - Select the "Sun" object
+   - Set the X rotation to 0 degrees
+   - Press F12 to render the image and wait for a few minutes until it's done
+   - Save the rendered image to "dlut_0.png"
+   - Repeat steps 3-5 for 90, 180 and 270 degrees and save "dlut_90.png", "dlut_180.png" and "dlut_270.png"
+   - Run the "combine_dlut.py" Python script or manually combine rendered images in your image editor of choice, each color channel should contain the red channel from the corresponding "dlut_*.png" image multiplied by the alpha channel of the same image. For example, green channel should contain the red channel from "dlut_90.png" multiplied by the alpha channel of "dlut_90.png"
+   - Experiment and implement further ideas from the article above. Setting up a Mantaflow simulation in Blender and exporting animated smoke and simulation attributes like temperature can yield interesting results!
+
+Resulting DLUT image should look like this:
+
+![DLUT Test Blender Support](Screenshots/37_DLUT_Result.png)
+
+The example program running on Android:
+
+![DLUT Test running on Android](Screenshots/37_DLUT_Android.png)
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -910,8 +877,11 @@ Hades is also a technology showcase for Intel's integrated GPUs on macOS and Win
 
 ## Bethesda's Creation Engine
 Bethesda based their rendering layer for their next-gen engine on The Forge. We helped integrate and optimize it. 
+The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleasure to see The Forge running in AAA games like this:
 
-![Bethesda's Creation Engine](Screenshots/Starfield-The-Elder-Scrolls-6-Bethesda.jpg)
+[![Starfield](Screenshots/starfield-screenshot.jpg)](https://www.youtube.com/watch?v=ZHZOTFMyMyM)
+
+We added The Forge to the Creation Engine in 2019.
 
 Here is more info about this game engine:
 
@@ -927,7 +897,7 @@ Here is a YouTube video on what they do:
 [![M²H on YouTube](Screenshots/M2Hscreenshot.PNG)](https://www.youtube.com/watch?v=l2Gr2Ts48e8&t=12s)
 
 ## StarVR One SDK
-The Forge is used to build the StarVR One SDK:
+The Forge was used to build the StarVR One SDK from 2016 - 2017:
 
 <a href="https://www.starvr.com" target="_blank"><img src="Screenshots/StarVR.PNG" 
 alt="StarVR" width="300" height="159" border="0" /></a>
