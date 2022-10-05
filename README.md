@@ -69,9 +69,9 @@ The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleas
 
 We added The Forge to the Creation Engine in 2019.
 
-The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
+The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below. No Man's Sky is around 1:22:40
 
-[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
+[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://youtu.be/q5D55G7Ejs8?t=4960)
 
 
 - We switched our Linux OS to Manjaro to have an easier upgrade path to the Steamdeck. Please note the changed Linux requirements below.
