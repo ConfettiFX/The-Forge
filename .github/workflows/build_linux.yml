@@ -47,6 +47,10 @@ jobs:
         sudo apt update
         sudo apt install build-essential codelite make pkg-config libx11-dev libxrandr-dev libgtk-3-dev vulkan-sdk libudev-dev
 
+    - name: Print disk space
+      shell: pwsh
+      run: Get-PSDrive
+
     - name: Build
       working-directory: The-Forge
       run: |
@@ -54,3 +58,8 @@ jobs:
         ls -la
         echo "Running pybuild..."
         python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput
+
+    - name: Print disk space
+      if: always()
+      shell: pwsh
+      run: Get-PSDrive

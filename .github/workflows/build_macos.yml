@@ -9,22 +9,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-10.15, macos-11]
+        skipbuild: ["--skipmacosbuild", "--skipiosbuild"]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Print disk space
-      shell: pwsh
-      run: Get-PSDrive
-
     - name: Checkout The-Forge
       uses: actions/checkout@v3
       with:
         path: The-Forge
-
-    - name: Print disk space
-      shell: pwsh
-      run: Get-PSDrive
 
     - name: Checkout Custom-Middleware
       uses: actions/checkout@v3
@@ -33,17 +26,10 @@ jobs:
         repository: ConfettiFX/Custom-Middleware
         ref: ${{ github.ref_name }}  # Checkout the Custom-Middleware branch with the same name as the The-Forge branch we're building
 
-    - name: Print disk space
-      shell: pwsh
-      run: Get-PSDrive
-
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-
-    - name: Setup homebrew packages
-      run: brew install rsync
 
     - name: Print disk space
       shell: pwsh
@@ -51,8 +37,9 @@ jobs:
 
     - name: Build
       working-directory: The-Forge
-      run: python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput --skipioscodesigning
+      run: python -u ./CI/PyBuild.py --preserveworkingdir --prebuild --printbuildoutput --skipioscodesigning ${{ matrix.skipbuild }}
 
     - name: Print disk space
+      if: always()
       shell: pwsh
       run: Get-PSDrive
