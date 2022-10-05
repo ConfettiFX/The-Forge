@@ -48,7 +48,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Common_3\Renderer\IRenderer.h">
+    <ClInclude Include="..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\IFileSystem.h">

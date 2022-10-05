@@ -1,0 +1,261 @@
+#comp batch_compaction.comp
+#include "batch_compaction.comp.fsl"
+#end
+
+#comp clear_buffers.comp
+#include "clear_buffers.comp.fsl"
+#end
+
+#comp triangle_filtering.comp
+#include "triangle_filtering.comp.fsl"
+#end
+
+#if defined(METAL)
+#comp batch_compaction_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "batch_compaction.comp.fsl"
+#end
+
+#comp clear_buffers_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "clear_buffers.comp.fsl"
+#end
+
+#comp triangle_filtering_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "triangle_filtering.comp.fsl"
+#end
+#endif
+
+#comp clear_light_clusters.comp
+#include "clear_light_clusters.comp.fsl"
+#end
+
+#comp cluster_lights.comp
+#include "cluster_lights.comp.fsl"
+#end
+
+#frag CurveConversion.frag
+#include "CurveConversion.frag.fsl"
+#end
+
+#frag deferred_pass.frag
+#include "deferred_pass.frag.fsl"
+#end
+
+#vert deferred_pass.vert
+#include "deferred_pass.vert.fsl"
+#end
+
+#frag deferred_pass_alpha.frag
+#include "deferred_pass_alpha.frag.fsl"
+#end
+
+#frag deferred_pass_transparent.frag
+#include "deferred_pass_transparent.frag.fsl"
+#end
+
+#vert deferred_shade.vert
+#include "deferred_shade.vert.fsl"
+#end
+
+#vert deferred_shade_pointlight.vert
+#include "deferred_shade_pointlight.vert.fsl"
+#end
+
+#frag display.frag
+#include "display.frag.fsl"
+#end
+
+#vert display.vert
+#include "display.vert.fsl"
+#end
+
+#frag godray.frag
+#include "godray.frag.fsl"
+#end
+
+#frag HDAO.frag
+#include "HDAO.frag.fsl"
+#end
+
+#vert HDAO.vert
+#include "HDAO.vert.fsl"
+#end
+
+#frag oitClear.frag
+#include "oitClear.frag.fsl"
+#end
+
+#comp panoToCube.comp
+#include "panoToCube.comp.fsl"
+#end
+
+#vert resolve.vert
+#include "resolve.vert.fsl"
+#end
+
+#frag resolveGodray_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "resolveGodray.frag.fsl"
+#end
+#frag resolveGodray_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "resolveGodray.frag.fsl"
+#end
+#frag resolveGodray_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "resolveGodray.frag.fsl"
+#end
+
+#vert shadow_pass.vert
+#include "shadow_pass.vert.fsl"
+#end
+
+#frag shadow_pass_alpha.frag
+#include "shadow_pass_alpha.frag.fsl"
+#end
+
+#vert shadow_pass_alpha.vert
+#include "shadow_pass_alpha.vert.fsl"
+#end
+
+#frag shadow_pass_transparent.frag
+#include "shadow_pass_transparent.frag.fsl"
+#end
+
+#vert shadow_pass_transparent.vert
+#include "shadow_pass_transparent.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#frag sun.frag
+#include "sun.frag.fsl"
+#end
+
+#vert sun.vert
+#include "sun.vert.fsl"
+#end
+
+#vert ORBIS_GEOM visibilityBuffer_pass.vert
+#include "visibilityBuffer_pass.vert.fsl"
+#end
+
+#frag visibilityBuffer_pass.frag
+#include "visibilityBuffer_pass.frag.fsl"
+#end
+
+#vert ORBIS_GEOM visibilityBuffer_pass_alpha.vert
+#include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
+#frag visibilityBuffer_pass_alpha.frag
+#include "visibilityBuffer_pass_alpha.frag.fsl"
+#end
+
+#vert ORBIS_GEOM visibilityBuffer_pass_transparent_ret.vert
+#include "visibilityBuffer_pass_transparent_ret.vert.fsl"
+#end
+
+#if !defined(ORBIS) && !defined(PROSPERO)
+#frag visibilityBuffer_pass_transparent_void.frag
+#include "visibilityBuffer_pass_transparent_void.frag.fsl"
+#end
+#endif
+
+#frag visibilityBuffer_pass_transparent_ret.frag
+#include "visibilityBuffer_pass_transparent_ret.frag.fsl"
+#end
+
+#vert visibilityBuffer_shade.vert
+#include "visibilityBuffer_shade.vert.fsl"
+#end
+
+#frag visibilityBuffer_shade_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_1_AO.frag
+#define SAMPLE_COUNT 1
+#define USE_AMBIENT_OCCLUSION 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_2_AO.frag
+#define SAMPLE_COUNT 2
+#define USE_AMBIENT_OCCLUSION 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+#frag visibilityBuffer_shade_SAMPLE_COUNT_4_AO.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#frag deferred_shade_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "deferred_shade.frag.fsl"
+#end
+#frag deferred_shade_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "deferred_shade.frag.fsl"
+#end
+#frag deferred_shade_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "deferred_shade.frag.fsl"
+#end
+#frag deferred_shade_SAMPLE_COUNT_1_AO.frag
+#define SAMPLE_COUNT 1
+#define USE_AMBIENT_OCCLUSION 1
+#include "deferred_shade.frag.fsl"
+#end
+#frag deferred_shade_SAMPLE_COUNT_2_AO.frag
+#define SAMPLE_COUNT 2
+#define USE_AMBIENT_OCCLUSION 1
+#include "deferred_shade.frag.fsl"
+#end
+#frag deferred_shade_SAMPLE_COUNT_4_AO.frag
+#define SAMPLE_COUNT 4
+#define USE_AMBIENT_OCCLUSION 1
+#include "deferred_shade.frag.fsl"
+#end
+
+#frag deferred_shade_pointlight_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "deferred_shade_pointlight.frag.fsl"
+#end
+#frag deferred_shade_pointlight_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "deferred_shade_pointlight.frag.fsl"
+#end
+#frag deferred_shade_pointlight_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "deferred_shade_pointlight.frag.fsl"
+#end
+
+#frag resolve_SAMPLE_COUNT_1.frag
+#define SAMPLE_COUNT 1
+#include "resolve.frag.fsl"
+#end
+#frag resolve_SAMPLE_COUNT_2.frag
+#define SAMPLE_COUNT 2
+#include "resolve.frag.fsl"
+#end
+#frag resolve_SAMPLE_COUNT_4.frag
+#define SAMPLE_COUNT 4
+#include "resolve.frag.fsl"
+#end

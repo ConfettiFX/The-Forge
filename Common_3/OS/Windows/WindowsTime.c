@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
 
 #include <time.h>
 #include <stdint.h>
@@ -58,7 +58,7 @@ static void initTime(void)
 	LARGE_INTEGER frequency;
 	BOOL qpcResult = QueryPerformanceFrequency(&frequency);
 	ASSERT(qpcResult);
-	if (qpcResult)
+	if (qpcResult) //-V547
 	{
 		highResTimerFrequency = frequency.QuadPart;
 	}
@@ -70,7 +70,7 @@ static void initTime(void)
 	LARGE_INTEGER counter;
 	qpcResult = QueryPerformanceCounter(&counter);
 	ASSERT(qpcResult);
-	if (qpcResult)
+	if (qpcResult) //-V547
 	{
 		highResTimerStart = counter.QuadPart;
 	}

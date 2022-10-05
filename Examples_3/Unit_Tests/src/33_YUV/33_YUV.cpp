@@ -27,24 +27,24 @@
 
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
 //Renderer
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 
 ///Demo structures
@@ -97,7 +97,7 @@ public:
 		// File paths
 		{
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_SHADER_SOURCES,  "Shaders");
-			fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,	RD_SHADER_BINARIES, "CompiledShaders");
+			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_SHADER_BINARIES, "CompiledShaders");
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_GPU_CONFIG,		"GPUCfg");
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,	RD_TEXTURES,		"Textures");
 			fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT,  RD_MESHES,			"Meshes");
@@ -201,50 +201,6 @@ public:
 
 		waitForAllResourceLoads();
 
-		// Init
-		if (bYCbCrSupported)
-		{
-			// Simple
-			{
-				ShaderLoadDesc shader = {};
-				shader.mStages[0] = { "basic.vert", NULL, 0 };
-				shader.mStages[1] = { "basic.frag", NULL, 0 };
-				addShader(pRenderer, &shader, &pSimpleShader);
-				Shader* shaders[] = { pSimpleShader };
-
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = &pSamplerName;
-				rootDesc.ppStaticSamplers = &pSimpleSampler;
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = shaders;
-				addRootSignature(pRenderer, &rootDesc, &pSimpleRootSignature);
-
-				DescriptorSetDesc desc = { pSimpleRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &desc, &pSimpleDescriptorSets_NoneFreq);
-			}
-
-			// YCbCr
-			{
-				ShaderLoadDesc shader = {};
-				shader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-				shader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-				addShader(pRenderer, &shader, &pYCbCrShader);
-				Shader* shaders[] = { pYCbCrShader };
-
-				RootSignatureDesc rootDesc = {};
-				rootDesc.mStaticSamplerCount = 1;
-				rootDesc.ppStaticSamplerNames = &pSamplerName;
-				rootDesc.ppStaticSamplers = &pYCbCrSampler;
-				rootDesc.mShaderCount = 1;
-				rootDesc.ppShaders = shaders;
-				addRootSignature(pRenderer, &rootDesc, &pYCbCrRootSignature);
-
-				DescriptorSetDesc desc = { pYCbCrRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-				addDescriptorSet(pRenderer, &desc, &pYCbCrDescriptorSets_NoneFreq);
-			}
-		}
-
 		// Load fonts
 		FontDesc font = {};
 		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -297,24 +253,24 @@ public:
 			return false;
 
 		// App Actions
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
+		addInputAction(&actionDesc);
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputActionDesc actionDesc = {InputBindings::BUTTON_DUMP, [](InputActionContext *ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
-			addInputAction(&actionDesc);
-			actionDesc = {InputBindings::BUTTON_FULLSCREEN, [](InputActionContext *ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
-			addInputAction(&actionDesc);
-			actionDesc = {InputBindings::BUTTON_EXIT, [](InputActionContext *ctx) { requestShutdown(); return true; }};
-			addInputAction(&actionDesc);
-			InputActionCallback onUIInput = [](InputActionContext* ctx)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			};
-			actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-			addInputAction(&actionDesc);
-			actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-			addInputAction(&actionDesc);
-		}
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0; 
 
@@ -333,21 +289,10 @@ public:
 
 		if (bYCbCrSupported)
 		{
-			removeDescriptorSet(pRenderer, pSimpleDescriptorSets_NoneFreq);
-			removeDescriptorSet(pRenderer, pYCbCrDescriptorSets_NoneFreq);
-
-			removeShader(pRenderer, pSimpleShader);
-			removeShader(pRenderer, pYCbCrShader);
-			removeRootSignature(pRenderer, pSimpleRootSignature);
-			removeRootSignature(pRenderer, pYCbCrRootSignature);
-
-			// Remove the combined sampler
-			{
-				removeResource(pSimpleTexture);
-				removeSampler(pRenderer, pSimpleSampler);
-				removeResource(pYCbCrTexture);
-				removeSampler(pRenderer, pYCbCrSampler);
-			}
+			removeResource(pSimpleTexture);
+			removeSampler(pRenderer, pSimpleSampler);
+			removeResource(pYCbCrTexture);
+			removeSampler(pRenderer, pYCbCrSampler);
 		}
 
 
@@ -367,94 +312,73 @@ public:
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
-
-		// Load
-		if(bYCbCrSupported)
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-
-			// Create the pipeline
-			{
-				RasterizerStateDesc rasterizerStateDesc = {};
-				rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-				
-				PipelineDesc pipelineDesc = {};
-				pipelineDesc.pName = "Main Pipeline";
-				pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-				
-				GraphicsPipelineDesc & graphicsPipelineDesc = pipelineDesc.mGraphicsDesc;
-				graphicsPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-				graphicsPipelineDesc.mRenderTargetCount = 1;
-				graphicsPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-				graphicsPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-				graphicsPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-				graphicsPipelineDesc.pVertexLayout = NULL;
-				graphicsPipelineDesc.pRasterizerState = &rasterizerStateDesc;
-
-				graphicsPipelineDesc.pShaderProgram = pSimpleShader;
-				graphicsPipelineDesc.pRootSignature = pSimpleRootSignature;
-				addPipeline(pRenderer, &pipelineDesc, &pSimplePipeline);
-
-				graphicsPipelineDesc.pShaderProgram = pYCbCrShader;
-				graphicsPipelineDesc.pRootSignature = pYCbCrRootSignature;
-				addPipeline(pRenderer, &pipelineDesc, &pYCbCrPipeline);
-			}
-
-			// Prepare descriptor sets
-			{	
-				// No freq
-				{
-					constexpr uint32_t PARAMS_COUNT = 1;
-					DescriptorData params[PARAMS_COUNT] = {};
-					params[0].pName = "uYCbCrSampler";
-					params[0].ppTextures = &pSimpleTexture;
-					params[0].mCount = 1;
-					updateDescriptorSet(pRenderer, 0, pSimpleDescriptorSets_NoneFreq, PARAMS_COUNT, params);
-
-					params[0].ppTextures = &pYCbCrTexture;
-					updateDescriptorSet(pRenderer, 0, pYCbCrDescriptorSets_NoneFreq, PARAMS_COUNT, params);
-				}
-			}
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0]
-		};
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
+		}
 
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
-			return false;
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
+        
+        prepareDescriptorSets();
 
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
-
-		// Unload
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			if (bYCbCrSupported)
-			{
-				removePipeline(pRenderer, pSimplePipeline);
-				removePipeline(pRenderer, pYCbCrPipeline);
-			}
+			removePipelines();
+		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
 			removeSwapChain(pRenderer, pSwapChain);
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
 		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 	}
 
 	void Draw()
@@ -601,6 +525,137 @@ cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		
 		return NULL != pSwapChain;
+	}
+
+	void addDescriptorSets()
+	{
+		if (bYCbCrSupported)
+		{
+			DescriptorSetDesc desc = { pSimpleRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &desc, &pSimpleDescriptorSets_NoneFreq);
+
+			DescriptorSetDesc descYCbCr = { pYCbCrRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &descYCbCr, &pYCbCrDescriptorSets_NoneFreq);
+		}
+	}
+
+	void removeDescriptorSets()
+	{
+		if (bYCbCrSupported)
+		{
+			removeDescriptorSet(pRenderer, pSimpleDescriptorSets_NoneFreq);
+			removeDescriptorSet(pRenderer, pYCbCrDescriptorSets_NoneFreq);
+		}
+	}
+
+	void addRootSignatures()
+	{
+		if (bYCbCrSupported)
+		{
+			Shader* shaders[] = { pSimpleShader };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mStaticSamplerCount = 1;
+			rootDesc.ppStaticSamplerNames = &pSamplerName;
+			rootDesc.ppStaticSamplers = &pSimpleSampler;
+			rootDesc.mShaderCount = 1;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pSimpleRootSignature);
+
+
+			Shader* shadersYCbCr[] = { pYCbCrShader };
+
+			rootDesc.ppStaticSamplers = &pYCbCrSampler;
+			rootDesc.ppShaders = shadersYCbCr;
+			addRootSignature(pRenderer, &rootDesc, &pYCbCrRootSignature);
+		}
+	}
+
+	void removeRootSignatures()
+	{
+		if (bYCbCrSupported)
+		{
+			removeRootSignature(pRenderer, pSimpleRootSignature);
+			removeRootSignature(pRenderer, pYCbCrRootSignature);
+		}
+	}
+
+	void addShaders()
+	{
+		if (bYCbCrSupported)
+		{
+			ShaderLoadDesc shader = {};
+			shader.mStages[0] = { "basic.vert", NULL, 0 };
+			shader.mStages[1] = { "basic.frag", NULL, 0 };
+			addShader(pRenderer, &shader, &pSimpleShader);
+
+			shader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			shader.mStages[1] = { "basic.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			addShader(pRenderer, &shader, &pYCbCrShader);
+		}
+	}
+
+	void removeShaders()
+	{
+		if (bYCbCrSupported)
+		{
+			removeShader(pRenderer, pSimpleShader);
+			removeShader(pRenderer, pYCbCrShader);
+		}
+	}
+
+	void addPipelines()
+	{
+		if (bYCbCrSupported)
+		{
+			RasterizerStateDesc rasterizerStateDesc = {};
+			rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+			PipelineDesc pipelineDesc = {};
+			pipelineDesc.pName = "Main Pipeline";
+			pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+
+			GraphicsPipelineDesc & graphicsPipelineDesc = pipelineDesc.mGraphicsDesc;
+			graphicsPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			graphicsPipelineDesc.mRenderTargetCount = 1;
+			graphicsPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			graphicsPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+			graphicsPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+			graphicsPipelineDesc.pVertexLayout = NULL;
+			graphicsPipelineDesc.pRasterizerState = &rasterizerStateDesc;
+
+			graphicsPipelineDesc.pShaderProgram = pSimpleShader;
+			graphicsPipelineDesc.pRootSignature = pSimpleRootSignature;
+			addPipeline(pRenderer, &pipelineDesc, &pSimplePipeline);
+
+			graphicsPipelineDesc.pShaderProgram = pYCbCrShader;
+			graphicsPipelineDesc.pRootSignature = pYCbCrRootSignature;
+			addPipeline(pRenderer, &pipelineDesc, &pYCbCrPipeline);
+		}
+	}
+
+	void removePipelines()
+	{
+		if (bYCbCrSupported)
+		{
+			removePipeline(pRenderer, pSimplePipeline);
+			removePipeline(pRenderer, pYCbCrPipeline);
+		}
+	}
+	
+	void prepareDescriptorSets()
+	{
+		if (bYCbCrSupported)
+		{
+			constexpr uint32_t PARAMS_COUNT = 1;
+			DescriptorData params[PARAMS_COUNT] = {};
+			params[0].pName = "uYCbCrSampler";
+			params[0].ppTextures = &pSimpleTexture;
+			params[0].mCount = 1;
+			updateDescriptorSet(pRenderer, 0, pSimpleDescriptorSets_NoneFreq, PARAMS_COUNT, params);
+
+			params[0].ppTextures = &pYCbCrTexture;
+			updateDescriptorSet(pRenderer, 0, pYCbCrDescriptorSets_NoneFreq, PARAMS_COUNT, params);
+		}
 	}
 
 	const char* GetName() { return "33_YUV"; }

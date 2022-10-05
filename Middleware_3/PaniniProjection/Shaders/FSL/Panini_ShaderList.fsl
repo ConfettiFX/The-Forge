@@ -1,0 +1,7 @@
+#frag panini_projection.frag
+#include "panini_projection.frag.fsl"
+#end
+
+#vert panini_projection.vert
+#include "panini_projection.vert.fsl"
+#end

@@ -13,10 +13,11 @@
   <VirtualDirectory Name="Shaders">
     <File Name="../../src/19_CodeHotReload/Shaders/FSL/basic.frag.fsl"/>
     <File Name="../../src/19_CodeHotReload/Shaders/FSL/basic.vert.fsl"/>
+    <File Name="../../src/19_CodeHotReload/Shaders/FSL/ShaderList.fsl"/>
   </VirtualDirectory>
   <VirtualDirectory Name="flecs">
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.c"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/flecs/flecs.h"/>
+    <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/flecs/flecs.c"/>
+    <File Name="../../../../Common_3/Game/ThirdParty/OpenSource/flecs/flecs.h"/>
   </VirtualDirectory>
   <Dependencies Name="Release">
     <Project Name="OS"/>
@@ -52,7 +53,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -79,7 +80,9 @@
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/19_CodeHotReload/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/sprites.dds $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Fonts</Command>
@@ -99,11 +102,12 @@
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/19_CodeHotReload/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>
@@ -122,7 +126,7 @@ shaders:&#xD;
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
@@ -149,7 +153,9 @@ shaders:&#xD;
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/19_CodeHotReload/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Textures/sprites.dds $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Fonts</Command>
@@ -169,12 +175,11 @@ shaders:&#xD;
         <CustomPostBuild/>
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/19_CodeHotReload/Shaders/FSL/&#xD;
-DST = $(ProjectPath)/$(ConfigurationName)/Shaders/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST) --verbose -b $(DST)/Binary/ --incremental&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
-	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
-</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Source\astcenc.h" />
+    <ClInclude Include="..\..\Source\astcenccli_internal.h" />
+    <ClInclude Include="..\..\Source\astcenccli_version.h" />
+    <ClInclude Include="..\..\Source\astcenc_diagnostic_trace.h" />
+    <ClInclude Include="..\..\Source\astcenc_internal.h" />
+    <ClInclude Include="..\..\Source\astcenc_internal_entry.h" />
+    <ClInclude Include="..\..\Source\astcenc_mathlib.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib_avx2_8.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib_common_4.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib_neon_4.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib_none_4.h" />
+    <ClInclude Include="..\..\Source\astcenc_vecmathlib_sse_4.h" />
+    <ClInclude Include="..\..\Source\stb_image.h" />
+    <ClInclude Include="..\..\Source\stb_image_write.h" />
+    <ClInclude Include="..\..\Source\tinyexr.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Source\astcenccli_error_metrics.cpp" />
+    <ClCompile Include="..\..\Source\astcenccli_image.cpp" />
+    <ClCompile Include="..\..\Source\astcenccli_image_external.cpp" />
+    <ClCompile Include="..\..\Source\astcenccli_image_load_store.cpp" />
+    <ClCompile Include="..\..\Source\astcenccli_platform_dependents.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_averages_and_directions.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_block_sizes.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_color_quantize.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_color_unquantize.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_compress_symbolic.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_compute_variance.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_decompress_symbolic.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_diagnostic_trace.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_entry.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_find_best_partitioning.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_ideal_endpoints_and_weights.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_image.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_integer_sequence.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_mathlib.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_mathlib_softfloat.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_partition_tables.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_percentile_tables.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_pick_best_endpoint_format.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_platform_isa_detection.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_quantization.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_symbolic_physical.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_weight_align.cpp" />
+    <ClCompile Include="..\..\Source\astcenc_weight_quant_xfer_tables.cpp" />
+    <ClCompile Include="..\..\Source\wuffs-v0.3.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{AC91B518-5B5E-399D-BF31-B6272AF9D139}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>Win32</Platform>
+    <ProjectName>astc-encoder</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <PlatformToolset>v141</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <IncludePath>$(ProjectDir)..\..\..\..\include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\astc-encoder\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <PreprocessorDefinitions>_WINDOWS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\astc-encoder\Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <PreprocessorDefinitions>_WINDOWS;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

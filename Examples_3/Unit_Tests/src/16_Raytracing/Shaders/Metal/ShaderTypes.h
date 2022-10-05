@@ -27,6 +27,10 @@
 
 #include <simd/simd.h>
 
+// Include FSL metal to have access to defines: UPDATE_FREQ_*
+// This is copied to the destination folder in build script
+#include "metal.h"
+
 #define THREADS_PER_THREADGROUP 64
 #define SQRT_THREADS_PER_THREADGROUP 8
 

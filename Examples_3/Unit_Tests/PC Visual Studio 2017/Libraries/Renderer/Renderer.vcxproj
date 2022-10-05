@@ -11,43 +11,43 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Raytracing.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11ShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Renderer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\DependencyTracking.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Raytracing.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11ShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Raytracing.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12ShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Graphics.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11CapBuilder.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Commands.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Config.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12CapBuilder.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Config.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRay.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IRenderer.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IResourceLoader.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\IShaderReflection.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\RendererConfig.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanCapsBuilder.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanConfig.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\ags\AgsHelper.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\D3D12MemoryAllocator\Direct3D12MemoryAllocator.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11CapBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D11\Direct3D11Config.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12CapBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Config.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Direct3D12\Direct3D12Hooks.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GraphicsConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IRay.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IShaderReflection.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\AgsHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\NvApiHelper.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\VulkanMemoryAllocator\VulkanMemoryAllocator.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\Interfaces\IResourceLoader.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DB6193E0-3C12-450F-B344-DC4DAED8C421}</ProjectGuid>
@@ -119,13 +119,13 @@
       <AdditionalDependencies>dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;amd_ags_x64.lib;nvapi64.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib\amd_ags_x64.dll" "$(TargetDir)amd_ags_x64.dll"* /Y /D
-xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y /D
-xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"*/Y /D
-xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxil.dll" "$(TargetDir)dxil.dll"*/Y /D</Command>
+      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib\amd_ags_x64.dll" "$(TargetDir)amd_ags_x64.dll"* /Y /D
+xcopy "$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y /D
+xcopy "$(SolutionDir)\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"*/Y /D
+xcopy "$(SolutionDir)\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxil.dll" "$(TargetDir)dxil.dll"*/Y /D</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,13 +157,13 @@ xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompi
       <AdditionalDependencies>amd_ags_x64.lib;nvapi64.lib;dxcompiler.lib;WinPixEventRuntime.lib;SpirvTools.lib;</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib;$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\nvapi\amd64;$(SolutionDir)\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\lib\x64;$(SolutionDir)\..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ags\ags_lib\lib\amd_ags_x64.dll" "$(TargetDir)amd_ags_x64.dll"* /Y /D
-xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y /D
-xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"*/Y /D
-xcopy "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxil.dll" "$(TargetDir)dxil.dll"*/Y /D</Command>
+      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\ags\ags_lib\lib\amd_ags_x64.dll" "$(TargetDir)amd_ags_x64.dll"* /Y /D
+xcopy "$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y /D
+xcopy "$(SolutionDir)\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"*/Y /D
+xcopy "$(SolutionDir)\..\..\..\Common_3\Graphics\ThirdParty\OpenSource\DirectXShaderCompiler\bin\x64\dxil.dll" "$(TargetDir)dxil.dll"*/Y /D</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -107,11 +107,11 @@ float4 PS_MAIN( PSInput In )
 		{
 			// Example of wave broadcast intrinsics: WaveReadLaneFirst
 			// Broadcast the color in first lan to the wave.
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			outputColor = WaveReadLaneFirst(outputColor);
 #endif
 			// switch/xboxone only support scalar broadcast
-#if defined(TARGET_SWITCH) || defined(TARGET_XBOX_ONE)
+#if defined(TARGET_SWITCH) || defined(TARGET_XBOX)
 			outputColor = float4(
                 WaveReadLaneFirst(outputColor.r),
                 WaveReadLaneFirst(outputColor.g),
@@ -142,7 +142,7 @@ float4 PS_MAIN( PSInput In )
 			// First, compute the prefix sum of distance each lane to first lane.
 			// Then, use the prefix sum value to color each pixel.
 
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			float4 basePos = WaveReadLaneFirst(In.position);
 			float4 prefixSumPos = WavePrefixSum(In.position - basePos);
 			
@@ -172,7 +172,7 @@ float4 PS_MAIN( PSInput In )
 			//  Y
 			//
 
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX_ONE)
+#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			float dx = QuadReadAcrossX(In.position.x) - In.position.x;
 			float dy = QuadReadAcrossY(In.position.y) - In.position.y;
 

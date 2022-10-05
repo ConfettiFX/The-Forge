@@ -52,7 +52,13 @@ float4 PS_MAIN( VSOutputFullscreen In )
 {
 	INIT_MAIN;
 	float4 Out;
+
+#if VR_MULTIVIEW_ENABLED
+	float invAlpha = LoadTex3D(Get(InvAlphaTexture), Get(PointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
+#else
 	float invAlpha = LoadTex2D(Get(InvAlphaTexture), Get(PointSampler), uint2(In.Position.xy), 0).r;
+#endif
+
 	float alpha = 1.0f - invAlpha;
 
 	if (alpha < SHORT_CUT_MIN_ALPHA)
@@ -61,7 +67,11 @@ float4 PS_MAIN( VSOutputFullscreen In )
 		RETURN(Out);
 	}
 
+#if VR_MULTIVIEW_ENABLED
+	float4 color = LoadTex3D(Get(ColorsTexture), Get(PointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0);
+#else
 	float4 color = LoadTex2D(Get(ColorsTexture), Get(PointSampler), uint2(In.Position.xy), 0);
+#endif
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;

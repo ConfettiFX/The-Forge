@@ -27,29 +27,30 @@
 
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 // Raytracing
-#include "../../../../Common_3/Renderer/IRay.h"
-
-//Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Graphics/Interfaces/IRay.h"
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+
+//Math
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
+
 
 // The denoiser is only supported on macOS Catalina and higher. If you want to use the denoiser, set
 // USE_DENOISER to 1 in the #if block below.
@@ -554,7 +555,6 @@ bool initSponza()
 	return true;
 }
 
-
 void exitSponza()
 {
 	if (!SponzaProp.pGeom)
@@ -564,8 +564,6 @@ void exitSponza()
 		removeResource(pMaterialTextures[i]);
 
 	gSponzaTextureIndexForMaterial.set_capacity(0);
-	
-	tf_free(SponzaProp.pGeom->pShadow);
 	
 	removeResource(SponzaProp.pGeom);
 	removeResource(SponzaProp.pMaterialIdStream);
@@ -618,7 +616,7 @@ public:
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
@@ -691,15 +689,6 @@ public:
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
 		uiCreateComponent(GetName(), &guiDesc, &pGuiWindow);
 
-		/************************************************************************/
-		// Blit texture
-		/************************************************************************/
-		ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
-		ShaderLoadDesc displayShader = {};
-		displayShader.mStages[0] = { "DisplayTexture.vert", &denoiserMacro, 1 };
-		displayShader.mStages[1] = { "DisplayTexture.frag", &denoiserMacro, 1 };
-		addShader(pRenderer, &displayShader, &pDisplayTextureShader);
-
 		SamplerDesc samplerDesc = { FILTER_NEAREST,
 									FILTER_NEAREST,
 									MIPMAP_MODE_NEAREST,
@@ -708,28 +697,9 @@ public:
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSampler);
 
-		const char*       pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSampler;
-		rootDesc.mShaderCount = 1;
-		rootDesc.ppShaders = &pDisplayTextureShader;
-		addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
-
-		bool deviceSupported = true;
-
-#ifdef TARGET_IOS
-		if (![pRenderer->pDevice supportsFeatureSet : MTLFeatureSet_iOS_GPUFamily4_v1])
-			deviceSupported = false;
-#endif
-
-		if (!isRaytracingSupported(pRenderer) || !deviceSupported) //-V560
+		if (!isRaytracingSupported(pRenderer)) //-V560
 		{
 			pRaytracing = NULL;
-			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-
 			LabelWidget notSupportedLabel;
 			luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Raytracing is not supported on this GPU", &notSupportedLabel, WIDGET_TYPE_LABEL));
 		}
@@ -823,72 +793,13 @@ public:
 			queueSubmit(pQueue, &submitDesc);
 			waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 
-			/************************************************************************/
-			// 03 - Create Raytracing Shaders
-			/************************************************************************/
-			{
-
-				ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
-				ShaderLoadDesc desc = {};
-				desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, "rayGen" };
-				desc.mTarget = shader_target_6_3;
-				addShader(pRenderer, &desc, &pShaderRayGen);
-
-				desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, "chs" };
-				addShader(pRenderer, &desc, &pShaderClosestHit);
-
-				desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, "miss" };
-				addShader(pRenderer, &desc, &pShaderMiss);
-
-				desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, "missShadow" };
-				addShader(pRenderer, &desc, &pShaderMissShadow);
-			}
-
+			
 
 			samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
 										ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 			addSampler(pRenderer, &samplerDesc, &pLinearSampler);
 
-			pStaticSamplers[0] = "linearSampler";
 
-			Shader* pShaders[] = { pShaderRayGen, pShaderClosestHit, pShaderMiss, pShaderMissShadow };
-			RootSignatureDesc signatureDesc = {};
-			signatureDesc.ppShaders = pShaders;
-			signatureDesc.mShaderCount = 4;
-			signatureDesc.ppStaticSamplerNames = pStaticSamplers;
-			signatureDesc.ppStaticSamplers = &pLinearSampler;
-			signatureDesc.mStaticSamplerCount = 1;
-			addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
-			/************************************************************************/
-			// 03 - Create Raytracing Pipelines
-			/************************************************************************/
-			RaytracingHitGroup hitGroups[2] = {};
-			hitGroups[0].pClosestHitShader = pShaderClosestHit;
-			hitGroups[0].pHitGroupName = "hitGroup";
-
-			hitGroups[1].pHitGroupName = "missHitGroup";
-
-			Shader* pMissShaders[] = { pShaderMiss, pShaderMissShadow };
-			PipelineDesc rtPipelineDesc = {};
-			rtPipelineDesc.mType = PIPELINE_TYPE_RAYTRACING;
-			RaytracingPipelineDesc& pipelineDesc = rtPipelineDesc.mRaytracingDesc;
-			pipelineDesc.mAttributeSize = sizeof(float2);
-			pipelineDesc.mMaxTraceRecursionDepth = 5;
-#ifdef METAL
-			pipelineDesc.mPayloadSize = sizeof(float4) * (5 + USE_DENOISER); // The denoiser additionally stores the albedo.
-#else
-			pipelineDesc.mPayloadSize = sizeof(float4);
-#endif
-			pipelineDesc.pGlobalRootSignature = pRootSignature;
-			pipelineDesc.pRayGenShader = pShaderRayGen;
-			pipelineDesc.pRayGenRootSignature = nullptr;// pRayGenSignature; //nullptr to bind empty LRS
-			pipelineDesc.ppMissShaders = pMissShaders;
-			pipelineDesc.mMissShaderCount = 2;
-			pipelineDesc.pHitGroups = hitGroups;
-			pipelineDesc.mHitGroupCount = 2;
-			pipelineDesc.pRaytracing = pRaytracing;
-			pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
-			addPipeline(pRenderer, &rtPipelineDesc, &pPipeline);
 			/************************************************************************/
 			// 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
 			/************************************************************************/
@@ -902,36 +813,49 @@ public:
 				ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
 				addResource(&ubDesc, NULL);
 			}
-
-			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
-			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing);
-			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
-
-			const char* hitGroupNames[2] = { "hitGroup", "missHitGroup" };
-			const char* missShaderNames[2] = { "miss", "missShadow" };
-
-			RaytracingShaderTableDesc shaderTableDesc = {};
-			shaderTableDesc.pPipeline = pPipeline;
-			shaderTableDesc.pRayGenShader = "rayGen";
-			shaderTableDesc.mMissShaderCount = 2;
-			shaderTableDesc.pMissShaders = missShaderNames;
-			shaderTableDesc.mHitGroupCount = 2;
-			shaderTableDesc.pHitGroups = hitGroupNames;
-			addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
-
-			waitForAllResourceLoads();
-
-			DescriptorData params[1] = {};
-			params[0].pName = "gSettings";
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				params[0].ppBuffers = &pRayGenConfigBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-			}
 		}
+
+		TextureDesc uavDesc = {};
+		uavDesc.mArraySize = 1;
+		uavDesc.mDepth = 1;
+#if USE_DENOISER
+		uavDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+#else
+		uavDesc.mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+#endif
+		uavDesc.mHeight = mSettings.mHeight;
+		uavDesc.mMipLevels = 1;
+		uavDesc.mSampleCount = SAMPLE_COUNT_1;
+		uavDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		uavDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		uavDesc.mWidth = mSettings.mWidth;
+#ifdef METAL
+		uavDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
+		TextureLoadDesc loadDesc = {};
+		loadDesc.pDesc = &uavDesc;
+		loadDesc.ppTexture = &pComputeOutput;
+		addResource(&loadDesc, NULL);
+
+#if USE_DENOISER
+		{
+			uavDesc.mFormat = TinyImageFormat_B10G10R10A2_UNORM;
+			loadDesc.ppTexture = &pAlbedoTexture;
+			addResource(&loadDesc, NULL);
+
+			BufferLoadDesc ubDesc = {};
+			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			ubDesc.mDesc.mSize = sizeof(DenoiserUniforms);
+			for (uint32_t i = 0; i < gImageCount; i++)
+			{
+				ubDesc.ppBuffer = &pDenoiserInputsUniformBuffer[i];
+				addResource(&ubDesc, NULL);
+			}
+
+			addSSVGFDenoiser(pRenderer, &pDenoiser);
+		}
+#endif
 
 		InputSystemDesc inputDesc = {};
 		inputDesc.pRenderer = pRenderer;
@@ -948,47 +872,62 @@ public:
 		pCameraController->setMotionParameters(cmp);
 		
 		// App Actions
-        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
-        addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		mFrameIdx = 0; 
+
+		waitForAllResourceLoads();
 
 		return true;
 	}
 	
 	void Exit()
 	{
+#if USE_DENOISER
+		for (uint32_t i = 0; i < gImageCount; i += 1)
+		{
+			removeResource(pDenoiserInputsUniformBuffer[i]);
+		}
+		removeResource(pAlbedoTexture);
+
+		removeSSVGFDenoiser(pDenoiser);
+#endif
+		removeResource(pComputeOutput);
+
 		exitInputSystem();
 
 		exitCameraController(pCameraController);
@@ -1003,29 +942,18 @@ public:
 		{
 			exitSponza();
 
-			removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
-			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-
-			removeRaytracingShaderTable(pRaytracing, pShaderTable);
-			removePipeline(pRenderer, pPipeline);
 			removeSampler(pRenderer, pLinearSampler);
-			removeRootSignature(pRenderer, pRootSignature);
+
 			for (uint32_t i = 0; i < gImageCount; i++)
 			{
 				removeResource(pRayGenConfigBuffer[i]);
 			}
-			removeShader(pRenderer, pShaderRayGen);
-			removeShader(pRenderer, pShaderClosestHit);
-			removeShader(pRenderer, pShaderMiss);
-			removeShader(pRenderer, pShaderMissShadow);
+
 			removeAccelerationStructure(pRaytracing, pSponzaAS);
 			removeRaytracing(pRenderer, pRaytracing);
 		}
-		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
 
 		removeSampler(pRenderer, pSampler);
-		removeShader(pRenderer, pDisplayTextureShader);
-		removeRootSignature(pRenderer, pDisplayTextureSignature);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -1044,273 +972,107 @@ public:
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		/************************************************************************/
-		// 04 - Create Output Resources
-		/************************************************************************/
-		TextureDesc uavDesc = {};
-		uavDesc.mArraySize = 1;
-		uavDesc.mDepth = 1;
-#if USE_DENOISER
-		uavDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
-#else
-		uavDesc.mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-#endif
-		uavDesc.mHeight = mSettings.mHeight;
-		uavDesc.mMipLevels = 1;
-		uavDesc.mSampleCount = SAMPLE_COUNT_1;
-		uavDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		uavDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		uavDesc.mWidth = mSettings.mWidth;
-#ifdef METAL
-        uavDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
-		TextureLoadDesc loadDesc = {};
-		loadDesc.pDesc = &uavDesc;
-		loadDesc.ppTexture = &pComputeOutput;
-		addResource(&loadDesc, NULL);
-		
-#if USE_DENOISER
-		uavDesc.mFormat = TinyImageFormat_B10G10R10A2_UNORM;
-		loadDesc.ppTexture = &pAlbedoTexture;
-		addResource(&loadDesc, NULL);
-#endif
-
-		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.mColorClearValue = { { 1, 1, 1, 1 } };
-		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
-		swapChainDesc.mEnableVsync = false;
-		swapChainDesc.mHeight = mSettings.mHeight;
-		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.ppPresentQueues = &pQueue;
-		swapChainDesc.mPresentQueueCount = 1;
-		swapChainDesc.mWindowHandle = pWindow->handle;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-		
-#if USE_DENOISER
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			RenderTargetDesc rtDesc = {};
-			rtDesc.mClearValue = { FLT_MAX, 0, 0, 0 };
-			rtDesc.mWidth = mSettings.mWidth;
-			rtDesc.mHeight = mSettings.mHeight;
-			rtDesc.mDepth = 1;
-			rtDesc.mSampleCount = SAMPLE_COUNT_1;
-			rtDesc.mSampleQuality = 0;
-			rtDesc.mArraySize = 1;
-			
-			rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
-			addRenderTarget(pRenderer, &rtDesc, &pDepthNormalRenderTarget[0]);
-			addRenderTarget(pRenderer, &rtDesc, &pDepthNormalRenderTarget[1]);
-			
-			rtDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
-			rtDesc.mClearValue = { 0, 0 };
-			addRenderTarget(pRenderer, &rtDesc, &pMotionVectorRenderTarget);
-			
-			rtDesc.mFormat = TinyImageFormat_D32_SFLOAT;
-			rtDesc.mClearValue = { 1.0f, 0 };
-			rtDesc.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
-			addRenderTarget(pRenderer, &rtDesc, &pDepthRenderTarget);
-			
-			ShaderLoadDesc denoiserShader = {};
-			denoiserShader.mStages[0] = { "DenoiserInputsPass.vert", NULL, 0 };
-			denoiserShader.mStages[1] = { "DenoiserInputsPass.frag", NULL, 0 };
-			addShader(pRenderer, &denoiserShader, &pDenoiserInputsShader);
-			
-			RootSignatureDesc rootSignature = {};
-			rootSignature.ppShaders = &pDenoiserInputsShader;
-			rootSignature.mShaderCount = 1;
-			addRootSignature(pRenderer, &rootSignature, &pDenoiserInputsRootSignature);
-			
-			RasterizerStateDesc rasterState = {};
-			rasterState.mCullMode = CULL_MODE_BACK;
-			rasterState.mFrontFace = FRONT_FACE_CW;
-			
-			DepthStateDesc depthStateDesc = {};
-			depthStateDesc.mDepthTest = true;
-			depthStateDesc.mDepthWrite = true;
-			depthStateDesc.mDepthFunc = CMP_LEQUAL;
-			
-			PipelineDesc pipelineDesc = {};
-			pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-			
-			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
-			
-			VertexLayout vertexLayout = {};
-			vertexLayout.mAttribCount = 2;
-			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-			vertexLayout.mAttribs[0].mBinding = 0;
-			vertexLayout.mAttribs[0].mLocation = 0;
-			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-			vertexLayout.mAttribs[1].mBinding = 1;
-			vertexLayout.mAttribs[1].mLocation = 1;
-			
-			GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
-			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.pRasterizerState = &rasterState;
-			pipelineSettings.mRenderTargetCount = 2;
-			pipelineSettings.pColorFormats = rtFormats;
-			pipelineSettings.mDepthStencilFormat = pDepthRenderTarget->mFormat;
-			pipelineSettings.pDepthState = &depthStateDesc;
-			pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
-			pipelineSettings.mSampleQuality = 0;
-			pipelineSettings.pVertexLayout = &vertexLayout;
-			pipelineSettings.pRootSignature = pDenoiserInputsRootSignature;
-			pipelineSettings.pShaderProgram = pDenoiserInputsShader;
-
-			addPipeline(pRenderer, &pipelineDesc, &pDenoiserInputsPipeline);
-			
-			BufferLoadDesc ubDesc = {};
-			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			ubDesc.mDesc.mSize = sizeof(DenoiserUniforms);
-			for (uint32_t i = 0; i < gImageCount; i++)
-			{
-				ubDesc.ppBuffer = &pDenoiserInputsUniformBuffer[i];
-				addResource(&ubDesc, NULL);
-			}
-			
-			DescriptorSetDesc setDesc = { pDenoiserInputsRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &setDesc, &pDenoiserInputsDescriptorSet);
-			
-			DescriptorData params[1] = {};
-			
-			params[0].pName = "uniforms";
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				params[0].ppBuffers = &pDenoiserInputsUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDenoiserInputsDescriptorSet, 1, params);
-			}
-			
-			addSSVGFDenoiser(pRenderer, &pDenoiser);
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
-#endif
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-        
-        VertexLayout vertexLayout = {};
-        vertexLayout.mAttribCount = 0;
-		PipelineDesc graphicsPipelineDesc = {};
-		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-        GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
-        pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-        pipelineSettings.mRenderTargetCount = 1;
-        pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-        pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-        pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-        pipelineSettings.pVertexLayout = &vertexLayout;
-        pipelineSettings.pRootSignature = pDisplayTextureSignature;
-        pipelineSettings.pShaderProgram = pDisplayTextureShader;
-        addPipeline(pRenderer, &graphicsPipelineDesc, &pDisplayTexturePipeline);
-		/************************************************************************/
-		/************************************************************************/
-		
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 1, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		waitForAllResourceLoads();
-		
-		DescriptorData params[9] = {};
-
-		if (pRaytracing != NULL)
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			params[0].pName = "gOutput";
-			params[0].ppTextures = &pComputeOutput;
-			
-			
-			params[1].pName = "indices";
-			params[1].ppBuffers = &SponzaProp.pGeom->pIndexBuffer;
-			params[2].pName = "positions";
-			params[2].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[0];
-			params[3].pName = "normals";
-			params[3].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[1];
-			params[4].pName = "uvs";
-			params[4].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[2];
-			params[5].pName = "materialIndices";
-			params[5].ppBuffers = &SponzaProp.pMaterialIdStream;
-			params[6].pName = "materialTextureIndices";
-			params[6].ppBuffers = &SponzaProp.pMaterialTexturesStream;
-			params[7].pName = "materialTextures";
-			params[7].ppTextures = pMaterialTextures;
-			params[7].mCount = TOTAL_IMGS;
+			if (!addSwapChain())
+				return false;
 
 #if USE_DENOISER
-			params[8].pName = "gAlbedoTex";
-			params[8].ppTextures = &pAlbedoTexture;
-#endif
-#ifndef METAL
-			params[8 + USE_DENOISER].pName = "gRtScene";
-			params[8 + USE_DENOISER].ppAccelerationStructures = &pSponzaAS;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 9 + USE_DENOISER, params);
-#else
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 8 + USE_DENOISER, params);
+			{
+				RenderTargetDesc rtDesc = {};
+				rtDesc.mClearValue = { { FLT_MAX, 0, 0, 0 } };
+				rtDesc.mWidth = mSettings.mWidth;
+				rtDesc.mHeight = mSettings.mHeight;
+				rtDesc.mDepth = 1;
+				rtDesc.mSampleCount = SAMPLE_COUNT_1;
+				rtDesc.mSampleQuality = 0;
+				rtDesc.mArraySize = 1;
+
+				rtDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+				addRenderTarget(pRenderer, &rtDesc, &pDepthNormalRenderTarget[0]);
+				addRenderTarget(pRenderer, &rtDesc, &pDepthNormalRenderTarget[1]);
+
+				rtDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
+				rtDesc.mClearValue = { { 0, 0 } };
+				addRenderTarget(pRenderer, &rtDesc, &pMotionVectorRenderTarget);
+
+				rtDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+				rtDesc.mClearValue = { { 1.0f, 0 } };
+				rtDesc.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
+				addRenderTarget(pRenderer, &rtDesc, &pDepthRenderTarget);
+			}
 #endif
 		}
 
-		params[0].pName = "uTex0";
-		params[0].ppTextures = &pComputeOutput;
-#if USE_DENOISER
-		params[1].pName = "albedoTex";
-		params[1].ppTextures = &pAlbedoTexture;
-#endif
-		for (uint32_t i = 0; i < gImageCount; i += 1)
-			updateDescriptorSet(pRenderer, i, pDescriptorSetTexture, 1 + USE_DENOISER, params);
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
+
+		prepareDescriptorSets();
+
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
         waitQueueIdle(pQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
-		
-		removePipeline(pRenderer, pDisplayTexturePipeline);
-
-		removeSwapChain(pRenderer, pSwapChain);
-
-		removeResource(pComputeOutput);
-		
-#if USE_DENOISER
-		for (uint32_t i = 0; i < gImageCount; i += 1)
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			removeResource(pDenoiserInputsUniformBuffer[i]);
+			removePipelines();
 		}
-		removeResource(pAlbedoTexture);
-		
-		removeDescriptorSet(pRenderer, pDenoiserInputsDescriptorSet);
-		
-		removeRenderTarget(pRenderer, pMotionVectorRenderTarget);
-		removeRenderTarget(pRenderer, pDepthNormalRenderTarget[0]);
-		removeRenderTarget(pRenderer, pDepthNormalRenderTarget[1]);
-		removeRenderTarget(pRenderer, pDepthRenderTarget);
-		
-		removePipeline(pRenderer, pDenoiserInputsPipeline);
-		removeRootSignature(pRenderer, pDenoiserInputsRootSignature);
-		removeShader(pRenderer, pDenoiserInputsShader);
-		removeSSVGFDenoiser(pDenoiser);
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+#if USE_DENOISER	
+			removeRenderTarget(pRenderer, pMotionVectorRenderTarget);
+			removeRenderTarget(pRenderer, pDepthNormalRenderTarget[0]);
+			removeRenderTarget(pRenderer, pDepthNormalRenderTarget[1]);
+			removeRenderTarget(pRenderer, pDepthRenderTarget);
 #endif
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
         PROFILER_SET_CPU_SCOPE("Cpu Profile", "update", 0x222222);
 
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 
@@ -1429,11 +1191,11 @@ public:
 			RenderTarget* denoiserRTs[] = { depthNormalTarget, pMotionVectorRenderTarget };
 			LoadActionsDesc loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[0] = { FLT_MAX, 0, 0, 0 };
+			loadActions.mClearColorValues[0] = { { FLT_MAX, 0, 0, 0 } };
 			loadActions.mLoadActionsColor[1] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[1] = { 0, 0, 0, 0 };
+			loadActions.mClearColorValues[1] = { { 0, 0, 0, 0 } };
 			loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-			loadActions.mClearDepth = { 1.f };
+			loadActions.mClearDepth = { { 1.f } };
 			
 			cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Generate Denoiser Inputs");
 			cmdBindRenderTargets(pCmd, 2, denoiserRTs, pDepthRenderTarget, &loadActions, NULL, NULL, 0, 0);
@@ -1578,6 +1340,369 @@ public:
 		mFrameIdx = (mFrameIdx + 1) % gImageCount;
 		/************************************************************************/
 		/************************************************************************/
+	}
+
+	bool addSwapChain()
+	{
+		SwapChainDesc swapChainDesc = {};
+		swapChainDesc.mColorClearValue = { { 1, 1, 1, 1 } };
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
+		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mImageCount = gImageCount;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.ppPresentQueues = &pQueue;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.mWindowHandle = pWindow->handle;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		if (!isRaytracingSupported(pRenderer)) //-V560
+		{
+			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		}
+		else
+		{
+			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing);
+			setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
+		}
+
+#if USE_DENOISER
+		DescriptorSetDesc setDesc = { pDenoiserInputsRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDenoiserInputsDescriptorSet);
+#endif
+	}
+
+	void removeDescriptorSets()
+	{
+#if USE_DENOISER
+		removeDescriptorSet(pRenderer, pDenoiserInputsDescriptorSet);
+#endif
+		if (pRaytracing != NULL)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+		}
+
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+	}
+
+	void addRootSignatures()
+	{
+		const char*       pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSampler;
+		rootDesc.mShaderCount = 1;
+		rootDesc.ppShaders = &pDisplayTextureShader;
+		addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
+
+		if (isRaytracingSupported(pRenderer))
+		{
+			pStaticSamplers[0] = "linearSampler";
+
+			Shader* pShaders[] = { pShaderRayGen, pShaderClosestHit, pShaderMiss, pShaderMissShadow };
+			RootSignatureDesc signatureDesc = {};
+			signatureDesc.ppShaders = pShaders;
+			signatureDesc.mShaderCount = 4;
+			signatureDesc.ppStaticSamplerNames = pStaticSamplers;
+			signatureDesc.ppStaticSamplers = &pLinearSampler;
+			signatureDesc.mStaticSamplerCount = 1;
+			addRootSignature(pRenderer, &signatureDesc, &pRootSignature);
+		}
+
+#if USE_DENOISER
+		RootSignatureDesc rootSignature = {};
+		rootSignature.ppShaders = &pDenoiserInputsShader;
+		rootSignature.mShaderCount = 1;
+		addRootSignature(pRenderer, &rootSignature, &pDenoiserInputsRootSignature);
+#endif
+	}
+
+	void removeRootSignatures()
+	{
+#if USE_DENOISER
+		removeRootSignature(pRenderer, pDenoiserInputsRootSignature);
+#endif
+		if (pRaytracing != NULL)
+		{
+			removeRootSignature(pRenderer, pRootSignature);
+		}
+
+		removeRootSignature(pRenderer, pDisplayTextureSignature);
+	}
+
+	void addShaders()
+	{
+		/************************************************************************/
+		// Blit texture
+		/************************************************************************/
+		const char* displayTextureVertShader[2] =
+		{
+			"DisplayTexture.vert",
+			"DisplayTexture_USE_DENOISER.vert"
+		};
+
+		const char* displayTextureFragShader[2] =
+		{
+			"DisplayTexture.frag",
+			"DisplayTexture_USE_DENOISER.frag"
+		};
+
+		ShaderLoadDesc displayShader = {};
+		displayShader.mStages[0] = { displayTextureVertShader[USE_DENOISER] };
+		displayShader.mStages[1] = { displayTextureFragShader[USE_DENOISER] };
+		addShader(pRenderer, &displayShader, &pDisplayTextureShader);
+
+		/************************************************************************/
+		// Create Raytracing Shaders
+		/************************************************************************/
+		if (isRaytracingSupported(pRenderer))
+		{
+
+			ShaderMacro denoiserMacro = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
+			ShaderLoadDesc desc = {};
+			desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, "rayGen" };
+			desc.mTarget = shader_target_6_3;
+			addShader(pRenderer, &desc, &pShaderRayGen);
+
+			desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, "chs" };
+			addShader(pRenderer, &desc, &pShaderClosestHit);
+
+			desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, "miss" };
+			addShader(pRenderer, &desc, &pShaderMiss);
+
+			desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, "missShadow" };
+			addShader(pRenderer, &desc, &pShaderMissShadow);
+		}
+
+#if USE_DENOISER
+		ShaderLoadDesc denoiserShader = {};
+		denoiserShader.mStages[0] = { "DenoiserInputsPass.vert", NULL, 0 };
+		denoiserShader.mStages[1] = { "DenoiserInputsPass.frag", NULL, 0 };
+		addShader(pRenderer, &denoiserShader, &pDenoiserInputsShader);
+#endif
+	}
+
+	void removeShaders()
+	{
+#if USE_DENOISER
+		removeShader(pRenderer, pDenoiserInputsShader);
+#endif
+		if (pRaytracing != NULL)
+		{
+			removeShader(pRenderer, pShaderRayGen);
+			removeShader(pRenderer, pShaderClosestHit);
+			removeShader(pRenderer, pShaderMiss);
+			removeShader(pRenderer, pShaderMissShadow);
+		}
+
+		removeShader(pRenderer, pDisplayTextureShader);
+	}
+
+	void addPipelines()
+	{
+		/************************************************************************/
+		//  Create Raytracing Pipelines
+		/************************************************************************/
+		if (isRaytracingSupported(pRenderer))
+		{
+			RaytracingHitGroup hitGroups[2] = {};
+			hitGroups[0].pClosestHitShader = pShaderClosestHit;
+			hitGroups[0].pHitGroupName = "hitGroup";
+
+			hitGroups[1].pHitGroupName = "missHitGroup";
+
+			Shader* pMissShaders[] = { pShaderMiss, pShaderMissShadow };
+			PipelineDesc rtPipelineDesc = {};
+			rtPipelineDesc.mType = PIPELINE_TYPE_RAYTRACING;
+			RaytracingPipelineDesc& pipelineDesc = rtPipelineDesc.mRaytracingDesc;
+			pipelineDesc.mAttributeSize = sizeof(float2);
+			pipelineDesc.mMaxTraceRecursionDepth = 5;
+#ifdef METAL
+			pipelineDesc.mPayloadSize = sizeof(float4) * (5 + USE_DENOISER); // The denoiser additionally stores the albedo.
+#else
+			pipelineDesc.mPayloadSize = sizeof(float4);
+#endif
+			pipelineDesc.pGlobalRootSignature = pRootSignature;
+			pipelineDesc.pRayGenShader = pShaderRayGen;
+			pipelineDesc.pRayGenRootSignature = nullptr;// pRayGenSignature; //nullptr to bind empty LRS
+			pipelineDesc.ppMissShaders = pMissShaders;
+			pipelineDesc.mMissShaderCount = 2;
+			pipelineDesc.pHitGroups = hitGroups;
+			pipelineDesc.mHitGroupCount = 2;
+			pipelineDesc.pRaytracing = pRaytracing;
+			pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
+			addPipeline(pRenderer, &rtPipelineDesc, &pPipeline);
+
+
+			const char* hitGroupNames[2] = { "hitGroup", "missHitGroup" };
+			const char* missShaderNames[2] = { "miss", "missShadow" };
+
+			RaytracingShaderTableDesc shaderTableDesc = {};
+			shaderTableDesc.pPipeline = pPipeline;
+			shaderTableDesc.pRayGenShader = "rayGen";
+			shaderTableDesc.mMissShaderCount = 2;
+			shaderTableDesc.pMissShaders = missShaderNames;
+			shaderTableDesc.mHitGroupCount = 2;
+			shaderTableDesc.pHitGroups = hitGroupNames;
+			addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
+		}
+
+#if USE_DENOISER
+		{
+			RasterizerStateDesc rasterState = {};
+			rasterState.mCullMode = CULL_MODE_BACK;
+			rasterState.mFrontFace = FRONT_FACE_CW;
+
+			DepthStateDesc depthStateDesc = {};
+			depthStateDesc.mDepthTest = true;
+			depthStateDesc.mDepthWrite = true;
+			depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+			PipelineDesc pipelineDesc = {};
+			pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+
+			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
+
+			VertexLayout vertexLayout = {};
+			vertexLayout.mAttribCount = 2;
+			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[0].mBinding = 0;
+			vertexLayout.mAttribs[0].mLocation = 0;
+			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[1].mBinding = 1;
+			vertexLayout.mAttribs[1].mLocation = 1;
+
+			GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.pRasterizerState = &rasterState;
+			pipelineSettings.mRenderTargetCount = 2;
+			pipelineSettings.pColorFormats = rtFormats;
+			pipelineSettings.mDepthStencilFormat = pDepthRenderTarget->mFormat;
+			pipelineSettings.pDepthState = &depthStateDesc;
+			pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
+			pipelineSettings.mSampleQuality = 0;
+			pipelineSettings.pVertexLayout = &vertexLayout;
+			pipelineSettings.pRootSignature = pDenoiserInputsRootSignature;
+			pipelineSettings.pShaderProgram = pDenoiserInputsShader;
+
+			addPipeline(pRenderer, &pipelineDesc, &pDenoiserInputsPipeline);
+		}
+#endif
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 0;
+		PipelineDesc graphicsPipelineDesc = {};
+		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRootSignature = pDisplayTextureSignature;
+		pipelineSettings.pShaderProgram = pDisplayTextureShader;
+		addPipeline(pRenderer, &graphicsPipelineDesc, &pDisplayTexturePipeline);
+	}
+
+	void removePipelines()
+	{
+		removePipeline(pRenderer, pDisplayTexturePipeline);
+#if USE_DENOISER
+		removePipeline(pRenderer, pDenoiserInputsPipeline);
+#endif
+
+		if (pRaytracing != NULL)
+		{
+			removeRaytracingShaderTable(pRaytracing, pShaderTable);
+			removePipeline(pRenderer, pPipeline);
+		}
+	}
+
+	void prepareDescriptorSets()
+	{
+		DescriptorData params[9] = {};
+
+		if (pRaytracing != NULL)
+		{
+			params[0].pName = "gOutput";
+			params[0].ppTextures = &pComputeOutput;
+
+
+			params[1].pName = "indices";
+			params[1].ppBuffers = &SponzaProp.pGeom->pIndexBuffer;
+			params[2].pName = "positions";
+			params[2].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[0];
+			params[3].pName = "normals";
+			params[3].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[1];
+			params[4].pName = "uvs";
+			params[4].ppBuffers = &SponzaProp.pGeom->pVertexBuffers[2];
+			params[5].pName = "materialIndices";
+			params[5].ppBuffers = &SponzaProp.pMaterialIdStream;
+			params[6].pName = "materialTextureIndices";
+			params[6].ppBuffers = &SponzaProp.pMaterialTexturesStream;
+			params[7].pName = "materialTextures";
+			params[7].ppTextures = pMaterialTextures;
+			params[7].mCount = TOTAL_IMGS;
+
+#if USE_DENOISER
+			params[8].pName = "gAlbedoTex";
+			params[8].ppTextures = &pAlbedoTexture;
+#endif
+#ifndef METAL
+			params[8 + USE_DENOISER].pName = "gRtScene";
+			params[8 + USE_DENOISER].ppAccelerationStructures = &pSponzaAS;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 9 + USE_DENOISER, params);
+#else
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 8 + USE_DENOISER, params);
+#endif
+		}
+
+		params[0].pName = "uTex0";
+		params[0].ppTextures = &pComputeOutput;
+#if USE_DENOISER
+		params[1].pName = "albedoTex";
+		params[1].ppTextures = &pAlbedoTexture;
+#endif
+		for (uint32_t i = 0; i < gImageCount; i += 1)
+			updateDescriptorSet(pRenderer, i, pDescriptorSetTexture, 1 + USE_DENOISER, params);
+
+#if USE_DENOISER
+		params[0].pName = "uniforms";
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].ppBuffers = &pDenoiserInputsUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDenoiserInputsDescriptorSet, 1, params);
+		}
+#endif
+
+		if (isRaytracingSupported(pRenderer)) //-V560
+		{
+			params[0].pName = "gSettings";
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				params[0].ppBuffers = &pRayGenConfigBuffer[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+			}
+		}
 	}
 
 	const char* GetName()

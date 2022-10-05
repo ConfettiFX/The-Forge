@@ -57,9 +57,9 @@ void PS_MAIN( VSOutputFullscreen In )
     Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(1.0f);
     Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(1.0f);
 #else
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 0), asuint(1.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 1), asuint(1.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 2), asuint(1.0f));
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 0 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 1 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 2 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
 #endif
 	RETURN();
 }

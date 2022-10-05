@@ -14,10 +14,10 @@
     <ClCompile Include="..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\src\06_MaterialPlayground\loadGroundTextures.lua" />
-    <None Include="..\..\src\06_MaterialPlayground\loadModels.lua" />
-    <None Include="..\..\src\06_MaterialPlayground\loadTextures.lua" />
-    <None Include="..\..\src\06_MaterialPlayground\updateCamera.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadGroundTextures.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadModels.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\loadTextures.lua" />
+    <None Include="..\..\src\06_MaterialPlayground\Scripts\updateCamera.lua" />
   </ItemGroup>
   <ItemGroup Condition="!$(Configuration.EndsWith('Dx11'))">
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\hair_length_constraints.comp.fsl" />
@@ -46,6 +46,7 @@
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneBRDF.vert.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.frag.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\renderSceneShadows.vert.fsl" />
+    <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.frag.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\showCapsules.vert.fsl" />
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\skeleton.frag.fsl" />
@@ -54,10 +55,10 @@
     <FSLShader Include="..\..\src\06_MaterialPlayground\Shaders\FSL\skybox.vert.fsl" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
       <Project>{2f0e7e67-ff8e-4a4e-8271-11614a284790}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
       <Project>{055fad37-a3d6-4d9a-a63a-c81716339982}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
@@ -113,6 +114,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -130,17 +132,17 @@
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>:: Copy Art files
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
 xcopy $(ProjectDir)..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y
@@ -158,6 +160,12 @@ xcopy "$(ProjectDir)..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Conf
 </Command>
     </PreLinkEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -201,17 +209,16 @@ xcopy "$(ProjectDir)..\..\..\..\Art\PBR\*.ktx" "$(SolutionDir)$(Platform)\$(Conf
       </Command>
     </PostBuildEvent>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>:: Copy Art files
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
 xcopy $(ProjectDir)..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animation\stickFigure\ /s /y

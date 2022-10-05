@@ -1,0 +1,28 @@
+#frag VR_MULTIVIEW basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW basic.vert
+#include "basic.vert.fsl"
+#end
+
+#comp VR_MULTIVIEW ComputeUpdate.comp
+#include "ComputeUpdate.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW ExecuteIndirect.frag
+#include "ExecuteIndirect.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW ExecuteIndirect.vert
+#include "ExecuteIndirect.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+

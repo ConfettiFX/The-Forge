@@ -25,13 +25,6 @@
 #ifndef _SHADER_DEFS_H
 #define _SHADER_DEFS_H
 
-#ifndef SAMPLE_COUNT
-#define SAMPLE_COUNT 4
-#endif
-#ifndef USE_AMBIENT_OCCLUSION
-#define USE_AMBIENT_OCCLUSION 1
-#endif
-
 #ifdef NO_FSL_DEFINITIONS
     #define STATIC static
     #define STRUCT(NAME) struct NAME
@@ -75,22 +68,30 @@
 // in the scene. Changing a scene will require to change this value accordingly.
 #define MAX_DRAWS_INDIRECT 256
 
-// The following values point to the position in the indirect draw buffer that holds the
-// number of draw calls to draw after triangle filtering and batch compaction.
-// This value number is stored in the last position of the indirect draw buffer.
-// So it depends on MAX_DRAWS_INDIRECT
+#if defined(DIRECT3D12)
+#define INDIRECT_ROOT_CONSTANT 1
+#define SET_DRAW_ID(o, drawId, instanceId)
+#else
+#define SET_DRAW_ID(o, drawId, instanceId) o.drawId = instanceId
+#endif
+
 #if defined(ORBIS)
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
 #else
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
 #endif
-#if defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   0
-#else
+#if defined(INDIRECT_ROOT_CONSTANT)
 #define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   1
+#else
+#define INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET   0
 #endif
-#define DRAW_COUNTER_SLOT_POS ((MAX_DRAWS_INDIRECT-1)*INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
-#define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS*sizeof(uint))
+
+// The following values point to the position in the indirect draw buffer that holds the
+// number of draw calls to draw after triangle filtering and batch compaction.
+// This value number is stored in the last position of the indirect draw buffer.
+// So it depends on MAX_DRAWS_INDIRECT
+#define DRAW_COUNTER_SLOT_POS ((MAX_DRAWS_INDIRECT - 1) * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
+#define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES (DRAW_COUNTER_SLOT_POS * sizeof(uint))
 
 // Define different geometry sets (opaque, alpha tested, and transparent geometry)
 #define GEOMSET_OPAQUE      0

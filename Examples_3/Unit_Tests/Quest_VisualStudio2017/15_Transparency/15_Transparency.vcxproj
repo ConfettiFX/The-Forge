@@ -14,33 +14,33 @@
     <ClCompile Include="..\..\src\15_Transparency\15_Transparency.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AOIT.h" />
-    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shaderDefs.h" />
-    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shading.h" />
-    <ClInclude Include="..\..\src\15_Transparency\Shaders\FSL\Quest\varianceShadowMapping.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOIT.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOITClear.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\AdaptiveOITComposite.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\copy.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\downsample.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\forward.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\forward.vert.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\fullscreen.vert.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\gaussianBlur.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\generateMips.comp.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\phenomenologicalTransparency.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\phenomenologicalTransparencyComposite.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shadow.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\shadow.vert.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\skybox.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\skybox.vert.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\stochasticShadow.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOIT.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITComposite.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITVolition.frag.fsl" />
-    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\Quest\weightedBlendedOITVolitionComposite.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\AdaptiveOIT.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\AdaptiveOITClear.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\AdaptiveOITComposite.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\AOIT.h.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\copy.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\downsample.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\forward.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\forward.vert.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\fullscreen.vert.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\fullscreenMultiView.vert.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\gaussianBlur.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\generateMips.comp.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\phenomenologicalTransparency.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\phenomenologicalTransparencyComposite.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\shaderDefs.h.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\shading.h.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\shadow.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\shadow.vert.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\stochasticShadow.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\varianceShadowMapping.h.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\weightedBlendedOIT.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\weightedBlendedOITComposite.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\weightedBlendedOITVolition.frag.fsl" />
+    <FSLShader Include="..\..\src\15_Transparency\Shaders\FSL\weightedBlendedOITVolitionComposite.frag.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
@@ -114,9 +114,7 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
@@ -125,12 +123,10 @@
         xcopy $(ProjectDir)..\..\UnitTestResources\Textures\grid.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
         xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
         xcopy $(ProjectDir)..\..\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
-        xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -174,9 +170,7 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>        
@@ -185,11 +179,10 @@
         xcopy $(ProjectDir)..\..\UnitTestResources\Textures\grid.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y /d
         xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\ /s /y /d
         xcopy $(ProjectDir)..\..\UnitTestResources\Meshes\* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\ /s /y /d
-        xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\" /s /y /d
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />

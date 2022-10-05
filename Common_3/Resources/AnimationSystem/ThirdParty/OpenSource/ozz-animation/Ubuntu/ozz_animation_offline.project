@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="ozz_animation_offline" InternalType="" Version="11000">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="source">
+    <File Name="../src/animation/offline/raw_animation.cc"/>
+    <File Name="../src/animation/offline/raw_animation_archive.cc"/>
+    <File Name="../src/animation/offline/raw_animation_utils.cc"/>
+    <File Name="../src/animation/offline/animation_builder.cc"/>
+    <File Name="../src/animation/offline/animation_optimizer.cc"/>
+    <File Name="../src/animation/offline/additive_animation_builder.cc"/>
+    <File Name="../src/animation/offline/raw_skeleton.cc"/>
+    <File Name="../src/animation/offline/raw_skeleton_archive.cc"/>
+    <File Name="../src/animation/offline/skeleton_builder.cc"/>
+    <File Name="../src/animation/offline/raw_track.cc"/>
+    <File Name="../src/animation/offline/track_builder.cc"/>
+    <File Name="../src/animation/offline/track_optimizer.cc"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <File Name="../include/ozz/animation/offline/raw_animation.h"/>
+    <File Name="../include/ozz/animation/offline/raw_animation_utils.h"/>
+    <File Name="../include/ozz/animation/offline/animation_builder.h"/>
+    <File Name="../include/ozz/animation/offline/animation_optimizer.h"/>
+    <File Name="../include/ozz/animation/offline/additive_animation_builder.h"/>
+    <File Name="../include/ozz/animation/offline/raw_skeleton.h"/>
+    <File Name="../include/ozz/animation/offline/skeleton_builder.h"/>
+    <File Name="../include/ozz/animation/offline/raw_track.h"/>
+    <File Name="../include/ozz/animation/offline/track_builder.h"/>
+    <File Name="../include/ozz/animation/offline/track_optimizer.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+  </Dependencies>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="../include"/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=gnu++14;-Wall;-Werror;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(VULKAN_SDK)/include/"/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

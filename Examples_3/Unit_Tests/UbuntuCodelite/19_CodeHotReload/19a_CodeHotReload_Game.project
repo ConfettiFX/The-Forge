@@ -30,7 +30,7 @@
         <IncludePath Value="$(ProjectPath)/../.."/>
       </Compiler>
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -73,7 +73,7 @@
         <IncludePath Value="$(ProjectPath)/../.."/>
       </Compiler>
       <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0);" Required="yes">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>

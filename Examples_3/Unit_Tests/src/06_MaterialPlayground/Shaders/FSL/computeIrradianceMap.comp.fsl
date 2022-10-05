@@ -22,10 +22,6 @@
  * under the License.
 */
 
-#ifndef SAMPLE_DELTA
-	#define SAMPLE_DELTA 0.25f
-#endif
-
 STATIC const float Pi = 3.14159265359;
 STATIC float SampleDelta = SAMPLE_DELTA;
 

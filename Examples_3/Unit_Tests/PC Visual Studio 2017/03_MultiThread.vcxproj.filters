@@ -33,6 +33,9 @@
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\03_MultiThread\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\03_MultiThread\03_MultiThread.cpp">

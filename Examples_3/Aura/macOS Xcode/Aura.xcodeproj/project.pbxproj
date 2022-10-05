@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -38,28 +38,7 @@
 		B2AD184A263C07930088347E /* lpvInjectRSMLight.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2AD1842263C07930088347E /* lpvInjectRSMLight.vert.fsl */; };
 		B2AD184B263C07930088347E /* lpvLightCopy.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2AD1843263C07930088347E /* lpvLightCopy.frag.fsl */; };
 		B2AD184C263C07930088347E /* lpvLightPropagateN.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2AD1844263C07930088347E /* lpvLightPropagateN.vert.fsl */; };
-		B2D96F6B26206EC4002CC19E /* cluster_lights.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F6026206C20002CC19E /* cluster_lights.comp.fsl */; };
-		B2D96F6E262072D6002CC19E /* clear_light_clusters.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F6626206C21002CC19E /* clear_light_clusters.comp.fsl */; };
-		B2D96F85262431F5002CC19E /* visibilityBuffer_shade.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F7D262431EE002CC19E /* visibilityBuffer_shade.frag.fsl */; };
-		B2D96F87262431F8002CC19E /* visibilityBuffer_shade.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F7E262431EE002CC19E /* visibilityBuffer_shade.vert.fsl */; };
-		B2D96F89262431FD002CC19E /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F81262431EE002CC19E /* skybox.vert.fsl */; };
-		B2D96F8B26243200002CC19E /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F83262431EE002CC19E /* skybox.frag.fsl */; };
-		B2D96F8D26243203002CC19E /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F84262431EE002CC19E /* panoToCube.comp.fsl */; };
-		B2D96FA526248567002CC19E /* fill_rsm_alpha.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F9C262466F9002CC19E /* fill_rsm_alpha.vert.fsl */; };
-		B2D96FA626248567002CC19E /* fill_rsm.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F9A262466F9002CC19E /* fill_rsm.vert.fsl */; };
-		B2D96FA726248567002CC19E /* fill_rsm_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F9E262466F9002CC19E /* fill_rsm_alpha.frag.fsl */; };
-		B2D96FA826248567002CC19E /* fill_rsm.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F9B262466F9002CC19E /* fill_rsm.frag.fsl */; };
-		B2D96FAD262492F0002CC19E /* shadow_pass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FAA262492F0002CC19E /* shadow_pass.vert.fsl */; };
-		B2D96FAE262492F0002CC19E /* shadow_pass_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FAB262492F0002CC19E /* shadow_pass_alpha.frag.fsl */; };
-		B2D96FAF262492F0002CC19E /* shadow_pass_alpha.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FAC262492F0002CC19E /* shadow_pass_alpha.vert.fsl */; };
-		B2D96FBD2624B2DB002CC19E /* visibilityBuffer_pass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FB52624B2CE002CC19E /* visibilityBuffer_pass.frag.fsl */; };
-		B2D96FBE2624B2DB002CC19E /* visibilityBuffer_pass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FBC2624B2CE002CC19E /* visibilityBuffer_pass.vert.fsl */; };
-		B2D96FC02624B848002CC19E /* visibilityBuffer_pass_alpha.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FBA2624B2CE002CC19E /* visibilityBuffer_pass_alpha.vert.fsl */; };
-		B2D96FC22624B84B002CC19E /* visibilityBuffer_pass_alpha.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96FBB2624B2CE002CC19E /* visibilityBuffer_pass_alpha.frag.fsl */; };
-		B2D96FC62624BB42002CC19E /* clear_buffers.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F5726206606002CC19E /* clear_buffers.comp.fsl */; };
-		B2D96FC72624BB42002CC19E /* batch_compaction.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F6426206C21002CC19E /* batch_compaction.comp.fsl */; };
-		B2D96FC82624BB42002CC19E /* triangle_filtering.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F6526206C21002CC19E /* triangle_filtering.comp.fsl */; };
-		B2D96FCB2624BCF0002CC19E /* icb.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2D96F6326206C20002CC19E /* icb.comp.fsl */; };
+		B2ADA89D282960D900598289 /* Aura_ShaderList.fsl in Resources */ = {isa = PBXBuildFile; fileRef = B2ADA89A282960D900598289 /* Aura_ShaderList.fsl */; };
 		D2B157271F1CD2CA0037A8C8 /* Aura.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* Aura.cpp */; };
 		D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
 		E94B94B5234C3589006EA1F3 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = E94B94AC234C3589006EA1F3 /* macOSAppDelegate.m */; };
@@ -71,22 +50,6 @@
 		EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
 		EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXBuildRule section */
-		B296CD99261F50C70011E416 /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
-		};
-/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		B296CD86261F501E0011E416 /* PBXContainerItemProxy */ = {
@@ -106,14 +69,47 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5C24D99028A2EE9A00CEBD10 /* visibilityBuffer_shade.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_shade.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.vert.fsl; sourceTree = "<group>"; };
+		5C24D99128A2EE9A00CEBD10 /* visibilityBuffer_shade.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_shade.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.frag.fsl; sourceTree = "<group>"; };
+		5C24D99228A2EE9A00CEBD10 /* clear_light_clusters.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = clear_light_clusters.comp.fsl; path = ../src/Shaders/FSL/clear_light_clusters.comp.fsl; sourceTree = "<group>"; };
+		5C24D99328A2EE9A00CEBD10 /* skybox.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = skybox.vert.fsl; path = ../src/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
+		5C24D99428A2EE9A00CEBD10 /* fill_rsm_alpha.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm_alpha.frag.fsl; path = ../src/Shaders/FSL/fill_rsm_alpha.frag.fsl; sourceTree = "<group>"; };
+		5C24D99528A2EE9A00CEBD10 /* packing.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = packing.h.fsl; path = ../src/Shaders/FSL/packing.h.fsl; sourceTree = "<group>"; };
+		5C24D99628A2EE9A00CEBD10 /* shadow_pass.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shadow_pass.vert.fsl; path = ../src/Shaders/FSL/shadow_pass.vert.fsl; sourceTree = "<group>"; };
+		5C24D99728A2EE9A00CEBD10 /* lightPropagation_example.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = lightPropagation_example.h.fsl; path = ../src/Shaders/FSL/lightPropagation_example.h.fsl; sourceTree = "<group>"; };
+		5C24D99828A2EE9A00CEBD10 /* cull_resources.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = cull_resources.h.fsl; path = ../src/Shaders/FSL/cull_resources.h.fsl; sourceTree = "<group>"; };
+		5C24D99928A2EE9A00CEBD10 /* light_cull_resources.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = light_cull_resources.h.fsl; path = ../src/Shaders/FSL/light_cull_resources.h.fsl; sourceTree = "<group>"; };
+		5C24D99A28A2EE9A00CEBD10 /* ShaderList.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = ShaderList.fsl; path = ../src/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
+		5C24D99B28A2EE9A00CEBD10 /* fill_rsm.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm.frag.fsl; path = ../src/Shaders/FSL/fill_rsm.frag.fsl; sourceTree = "<group>"; };
+		5C24D99C28A2EE9A00CEBD10 /* shader_defs.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shader_defs.h.fsl; path = ../src/Shaders/FSL/shader_defs.h.fsl; sourceTree = "<group>"; };
+		5C24D99D28A2EE9A00CEBD10 /* shading.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shading.h.fsl; path = ../src/Shaders/FSL/shading.h.fsl; sourceTree = "<group>"; };
+		5C24D99E28A2EE9A00CEBD10 /* visibilityBuffer_pass_alpha.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass_alpha.frag.fsl; sourceTree = "<group>"; };
+		5C24D99F28A2EE9A00CEBD10 /* visibilityBuffer_pass.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass.vert.fsl; sourceTree = "<group>"; };
+		5C24D9A028A2EE9A00CEBD10 /* lpvLightApply.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = lpvLightApply.h.fsl; path = ../src/Shaders/FSL/lpvLightApply.h.fsl; sourceTree = "<group>"; };
+		5C24D9A128A2EE9A00CEBD10 /* lpvSHMaths_example.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = lpvSHMaths_example.h.fsl; path = ../src/Shaders/FSL/lpvSHMaths_example.h.fsl; sourceTree = "<group>"; };
+		5C24D9A228A2EE9A00CEBD10 /* visibilityBuffer_pass.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass.frag.fsl; sourceTree = "<group>"; };
+		5C24D9A328A2EE9A00CEBD10 /* skybox.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = skybox.frag.fsl; path = ../src/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
+		5C24D9A428A2EE9A00CEBD10 /* visibilityBuffer_pass_alpha.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass_alpha.vert.fsl; sourceTree = "<group>"; };
+		5C24D9A528A2EE9A00CEBD10 /* panoToCube.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../src/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
+		5C24D9A628A2EE9B00CEBD10 /* clear_buffers.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = clear_buffers.comp.fsl; path = ../src/Shaders/FSL/clear_buffers.comp.fsl; sourceTree = "<group>"; };
+		5C24D9A728A2EE9B00CEBD10 /* wind.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = wind.h.fsl; path = ../src/Shaders/FSL/wind.h.fsl; sourceTree = "<group>"; };
+		5C24D9A828A2EE9B00CEBD10 /* shadow_pass_alpha.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shadow_pass_alpha.vert.fsl; path = ../src/Shaders/FSL/shadow_pass_alpha.vert.fsl; sourceTree = "<group>"; };
+		5C24D9A928A2EE9B00CEBD10 /* fill_rsm.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm.vert.fsl; path = ../src/Shaders/FSL/fill_rsm.vert.fsl; sourceTree = "<group>"; };
+		5C24D9AA28A2EE9B00CEBD10 /* shadow_pass_alpha.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = shadow_pass_alpha.frag.fsl; path = ../src/Shaders/FSL/shadow_pass_alpha.frag.fsl; sourceTree = "<group>"; };
+		5C24D9AB28A2EE9B00CEBD10 /* cluster_lights.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = cluster_lights.comp.fsl; path = ../src/Shaders/FSL/cluster_lights.comp.fsl; sourceTree = "<group>"; };
+		5C24D9AC28A2EE9B00CEBD10 /* batch_compaction.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = batch_compaction.comp.fsl; path = ../src/Shaders/FSL/batch_compaction.comp.fsl; sourceTree = "<group>"; };
+		5C24D9AD28A2EE9B00CEBD10 /* vb_rsm_resources.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = vb_rsm_resources.h.fsl; path = ../src/Shaders/FSL/vb_rsm_resources.h.fsl; sourceTree = "<group>"; };
+		5C24D9AE28A2EE9B00CEBD10 /* lpvCommon_example.h.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = lpvCommon_example.h.fsl; path = ../src/Shaders/FSL/lpvCommon_example.h.fsl; sourceTree = "<group>"; };
+		5C24D9AF28A2EE9B00CEBD10 /* fill_rsm_alpha.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm_alpha.vert.fsl; path = ../src/Shaders/FSL/fill_rsm_alpha.vert.fsl; sourceTree = "<group>"; };
+		5C24D9B028A2EE9B00CEBD10 /* triangle_filtering.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = triangle_filtering.comp.fsl; path = ../src/Shaders/FSL/triangle_filtering.comp.fsl; sourceTree = "<group>"; };
 		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		B204599325EE57E0004548FC /* TaskManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = TaskManager.cpp; path = ../../src/AuraMiddlewareImpl/TaskManager.cpp; sourceTree = "<group>"; };
 		B204599425EE57E0004548FC /* AuraTaskManagerImpl.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AuraTaskManagerImpl.cpp; path = ../../src/AuraMiddlewareImpl/AuraTaskManagerImpl.cpp; sourceTree = "<group>"; };
 		B204599525EE57E0004548FC /* TaskManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TaskManager.h; path = ../../src/AuraMiddlewareImpl/TaskManager.h; sourceTree = "<group>"; };
-		B204599B25EE58DD004548FC /* MTDefaultAppInterop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTDefaultAppInterop.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTDefaultAppInterop.cpp; sourceTree = "<group>"; };
-		B204599C25EE58DD004548FC /* MTFiberContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTFiberContext.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTFiberContext.cpp; sourceTree = "<group>"; };
-		B204599D25EE58DD004548FC /* MTScheduler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTScheduler.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTScheduler.cpp; sourceTree = "<group>"; };
-		B204599E25EE58DD004548FC /* MTThreadContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTThreadContext.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTThreadContext.cpp; sourceTree = "<group>"; };
+		B204599B25EE58DD004548FC /* MTDefaultAppInterop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTDefaultAppInterop.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTDefaultAppInterop.cpp; sourceTree = "<group>"; };
+		B204599C25EE58DD004548FC /* MTFiberContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTFiberContext.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTFiberContext.cpp; sourceTree = "<group>"; };
+		B204599D25EE58DD004548FC /* MTScheduler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTScheduler.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTScheduler.cpp; sourceTree = "<group>"; };
+		B204599E25EE58DD004548FC /* MTThreadContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MTThreadContext.cpp; path = ../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Source/MTThreadContext.cpp; sourceTree = "<group>"; };
 		B225219425E7B76E002CBF00 /* LightPropagationGrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationGrid.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationGrid.h"; sourceTree = "<group>"; };
 		B225219525E7B76E002CBF00 /* LightPropagationGrid.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LightPropagationGrid.cpp; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationGrid.cpp"; sourceTree = "<group>"; };
 		B225219625E7B76E002CBF00 /* LightPropagationCascade.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LightPropagationCascade.h; path = "../../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationCascade.h"; sourceTree = "<group>"; };
@@ -147,7 +143,6 @@
 		B296CDAA261F51BE0011E416 /* lpvVisualize.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvVisualize.frag.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvVisualize.frag.fsl"; sourceTree = "<group>"; };
 		B296CDAB261F51BE0011E416 /* lpvLightCopy.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvLightCopy.comp.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightCopy.comp.fsl"; sourceTree = "<group>"; };
 		B296CDAC261F51BE0011E416 /* lpvLightPropagateFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = lpvLightPropagateFunctions.h; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightPropagateFunctions.h"; sourceTree = "<group>"; };
-		B296CDB8261F51EF0011E416 /* wind.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wind.h; path = ../src/Shaders/FSL/wind.h; sourceTree = "<group>"; };
 		B2AD183D263C07920088347E /* lpvLightPropagate1.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvLightPropagate1.frag.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightPropagate1.frag.fsl"; sourceTree = "<group>"; };
 		B2AD183E263C07920088347E /* lpvLightPropagateN.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvLightPropagateN.frag.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightPropagateN.frag.fsl"; sourceTree = "<group>"; };
 		B2AD183F263C07920088347E /* lpvInjectRSMLight.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvInjectRSMLight.frag.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvInjectRSMLight.frag.fsl"; sourceTree = "<group>"; };
@@ -156,30 +151,21 @@
 		B2AD1842263C07930088347E /* lpvInjectRSMLight.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvInjectRSMLight.vert.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvInjectRSMLight.vert.fsl"; sourceTree = "<group>"; };
 		B2AD1843263C07930088347E /* lpvLightCopy.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvLightCopy.frag.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightCopy.frag.fsl"; sourceTree = "<group>"; };
 		B2AD1844263C07930088347E /* lpvLightPropagateN.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lpvLightPropagateN.vert.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/lpvLightPropagateN.vert.fsl"; sourceTree = "<group>"; };
+		B2ADA89A282960D900598289 /* Aura_ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Aura_ShaderList.fsl; path = "../../../../../Custom-Middleware/Aura/Shaders/FSL/Aura_ShaderList.fsl"; sourceTree = "<group>"; };
 		B2D96F5726206606002CC19E /* clear_buffers.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = clear_buffers.comp.fsl; path = ../src/Shaders/FSL/clear_buffers.comp.fsl; sourceTree = "<group>"; };
-		B2D96F5A26206648002CC19E /* shader_defs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shader_defs.h; path = ../src/Shaders/FSL/shader_defs.h; sourceTree = "<group>"; };
-		B2D96F5B26206648002CC19E /* cull_resources.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cull_resources.h; path = ../src/Shaders/FSL/cull_resources.h; sourceTree = "<group>"; };
 		B2D96F6026206C20002CC19E /* cluster_lights.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = cluster_lights.comp.fsl; path = ../src/Shaders/FSL/cluster_lights.comp.fsl; sourceTree = "<group>"; };
-		B2D96F6126206C20002CC19E /* light_cull_resources.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = light_cull_resources.h; path = ../src/Shaders/FSL/light_cull_resources.h; sourceTree = "<group>"; };
-		B2D96F6226206C20002CC19E /* shading.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = shading.h; path = ../src/Shaders/FSL/shading.h; sourceTree = "<group>"; };
 		B2D96F6326206C20002CC19E /* icb.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = icb.comp.fsl; path = ../src/Shaders/FSL/icb.comp.fsl; sourceTree = "<group>"; };
 		B2D96F6426206C21002CC19E /* batch_compaction.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = batch_compaction.comp.fsl; path = ../src/Shaders/FSL/batch_compaction.comp.fsl; sourceTree = "<group>"; };
 		B2D96F6526206C21002CC19E /* triangle_filtering.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = triangle_filtering.comp.fsl; path = ../src/Shaders/FSL/triangle_filtering.comp.fsl; sourceTree = "<group>"; };
 		B2D96F6626206C21002CC19E /* clear_light_clusters.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = clear_light_clusters.comp.fsl; path = ../src/Shaders/FSL/clear_light_clusters.comp.fsl; sourceTree = "<group>"; };
-		B2D96F77262431EE002CC19E /* lightPropagation_example.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lightPropagation_example.h; path = ../src/Shaders/FSL/lightPropagation_example.h; sourceTree = "<group>"; };
-		B2D96F7C262431EE002CC19E /* lpvSHMaths_example.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lpvSHMaths_example.h; path = ../src/Shaders/FSL/lpvSHMaths_example.h; sourceTree = "<group>"; };
 		B2D96F7D262431EE002CC19E /* visibilityBuffer_shade.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_shade.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.frag.fsl; sourceTree = "<group>"; };
 		B2D96F7E262431EE002CC19E /* visibilityBuffer_shade.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_shade.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_shade.vert.fsl; sourceTree = "<group>"; };
-		B2D96F7F262431EE002CC19E /* lpvCommon_example.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lpvCommon_example.h; path = ../src/Shaders/FSL/lpvCommon_example.h; sourceTree = "<group>"; };
-		B2D96F80262431EE002CC19E /* lpvLightApply.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = lpvLightApply.h; path = ../src/Shaders/FSL/lpvLightApply.h; sourceTree = "<group>"; };
 		B2D96F81262431EE002CC19E /* skybox.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = skybox.vert.fsl; path = ../src/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
-		B2D96F82262431EE002CC19E /* packing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = packing.h; path = ../src/Shaders/FSL/packing.h; sourceTree = "<group>"; };
 		B2D96F83262431EE002CC19E /* skybox.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = skybox.frag.fsl; path = ../src/Shaders/FSL/skybox.frag.fsl; sourceTree = "<group>"; };
 		B2D96F84262431EE002CC19E /* panoToCube.comp.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../src/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
 		B2D96F9A262466F9002CC19E /* fill_rsm.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm.vert.fsl; path = ../src/Shaders/FSL/fill_rsm.vert.fsl; sourceTree = "<group>"; };
 		B2D96F9B262466F9002CC19E /* fill_rsm.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm.frag.fsl; path = ../src/Shaders/FSL/fill_rsm.frag.fsl; sourceTree = "<group>"; };
 		B2D96F9C262466F9002CC19E /* fill_rsm_alpha.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm_alpha.vert.fsl; path = ../src/Shaders/FSL/fill_rsm_alpha.vert.fsl; sourceTree = "<group>"; };
-		B2D96F9D262466F9002CC19E /* vb_rsm_resources.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = vb_rsm_resources.h; path = ../src/Shaders/FSL/vb_rsm_resources.h; sourceTree = "<group>"; };
 		B2D96F9E262466F9002CC19E /* fill_rsm_alpha.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = fill_rsm_alpha.frag.fsl; path = ../src/Shaders/FSL/fill_rsm_alpha.frag.fsl; sourceTree = "<group>"; };
 		B2D96FAA262492F0002CC19E /* shadow_pass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass.vert.fsl; path = ../src/Shaders/FSL/shadow_pass.vert.fsl; sourceTree = "<group>"; };
 		B2D96FAB262492F0002CC19E /* shadow_pass_alpha.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = shadow_pass_alpha.frag.fsl; path = ../src/Shaders/FSL/shadow_pass_alpha.frag.fsl; sourceTree = "<group>"; };
@@ -188,12 +174,7 @@
 		B2D96FBA2624B2CE002CC19E /* visibilityBuffer_pass_alpha.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass_alpha.vert.fsl; sourceTree = "<group>"; };
 		B2D96FBB2624B2CE002CC19E /* visibilityBuffer_pass_alpha.frag.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass_alpha.frag.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass_alpha.frag.fsl; sourceTree = "<group>"; };
 		B2D96FBC2624B2CE002CC19E /* visibilityBuffer_pass.vert.fsl */ = {isa = PBXFileReference; lastKnownFileType = text; name = visibilityBuffer_pass.vert.fsl; path = ../src/Shaders/FSL/visibilityBuffer_pass.vert.fsl; sourceTree = "<group>"; };
-		C97EC02E2010BED00044D188 /* ModelIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ModelIO.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/ModelIO.framework; sourceTree = DEVELOPER_DIR; };
-		C97EC0302010BED90044D188 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		C97EC0322010BEE80044D188 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.2.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		D018D75C20CB9AF9000BEB0D /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		D018D75D20CB9AF9000BEB0D /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
-		D018D75E20CB9AF9000BEB0D /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		B2DF829B28225EB60023CDE0 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../src/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
 		D26E80601F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		D26E80621F471B2300C043F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D26E80651F471B2300C043F1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -342,6 +323,7 @@
 		B296CD9D261F519A0011E416 /* FSL */ = {
 			isa = PBXGroup;
 			children = (
+				B2ADA89A282960D900598289 /* Aura_ShaderList.fsl */,
 				B2AD183F263C07920088347E /* lpvInjectRSMLight.frag.fsl */,
 				B2AD1842263C07930088347E /* lpvInjectRSMLight.vert.fsl */,
 				B2AD1843263C07930088347E /* lpvLightCopy.frag.fsl */,
@@ -368,39 +350,39 @@
 		B296CDB3261F51DC0011E416 /* FSL */ = {
 			isa = PBXGroup;
 			children = (
-				B2D96F6426206C21002CC19E /* batch_compaction.comp.fsl */,
-				B2D96F5726206606002CC19E /* clear_buffers.comp.fsl */,
-				B2D96F6626206C21002CC19E /* clear_light_clusters.comp.fsl */,
-				B2D96F6026206C20002CC19E /* cluster_lights.comp.fsl */,
-				B2D96F5B26206648002CC19E /* cull_resources.h */,
-				B2D96F9E262466F9002CC19E /* fill_rsm_alpha.frag.fsl */,
-				B2D96F9C262466F9002CC19E /* fill_rsm_alpha.vert.fsl */,
-				B2D96F9B262466F9002CC19E /* fill_rsm.frag.fsl */,
-				B2D96F9A262466F9002CC19E /* fill_rsm.vert.fsl */,
-				B2D96F6326206C20002CC19E /* icb.comp.fsl */,
-				B2D96F6126206C20002CC19E /* light_cull_resources.h */,
-				B2D96F77262431EE002CC19E /* lightPropagation_example.h */,
-				B2D96F7F262431EE002CC19E /* lpvCommon_example.h */,
-				B2D96F80262431EE002CC19E /* lpvLightApply.h */,
-				B2D96F7C262431EE002CC19E /* lpvSHMaths_example.h */,
-				B2D96F82262431EE002CC19E /* packing.h */,
-				B2D96F84262431EE002CC19E /* panoToCube.comp.fsl */,
-				B2D96F5A26206648002CC19E /* shader_defs.h */,
-				B2D96F6226206C20002CC19E /* shading.h */,
-				B2D96FAB262492F0002CC19E /* shadow_pass_alpha.frag.fsl */,
-				B2D96FAC262492F0002CC19E /* shadow_pass_alpha.vert.fsl */,
-				B2D96FAA262492F0002CC19E /* shadow_pass.vert.fsl */,
-				B2D96F83262431EE002CC19E /* skybox.frag.fsl */,
-				B2D96F81262431EE002CC19E /* skybox.vert.fsl */,
-				B2D96F6526206C21002CC19E /* triangle_filtering.comp.fsl */,
-				B2D96F9D262466F9002CC19E /* vb_rsm_resources.h */,
-				B2D96FBB2624B2CE002CC19E /* visibilityBuffer_pass_alpha.frag.fsl */,
-				B2D96FBA2624B2CE002CC19E /* visibilityBuffer_pass_alpha.vert.fsl */,
-				B2D96FB52624B2CE002CC19E /* visibilityBuffer_pass.frag.fsl */,
-				B2D96FBC2624B2CE002CC19E /* visibilityBuffer_pass.vert.fsl */,
-				B2D96F7D262431EE002CC19E /* visibilityBuffer_shade.frag.fsl */,
-				B2D96F7E262431EE002CC19E /* visibilityBuffer_shade.vert.fsl */,
-				B296CDB8261F51EF0011E416 /* wind.h */,
+				5C24D9AC28A2EE9B00CEBD10 /* batch_compaction.comp.fsl */,
+				5C24D9A628A2EE9B00CEBD10 /* clear_buffers.comp.fsl */,
+				5C24D99228A2EE9A00CEBD10 /* clear_light_clusters.comp.fsl */,
+				5C24D9AB28A2EE9B00CEBD10 /* cluster_lights.comp.fsl */,
+				5C24D99828A2EE9A00CEBD10 /* cull_resources.h.fsl */,
+				5C24D99428A2EE9A00CEBD10 /* fill_rsm_alpha.frag.fsl */,
+				5C24D9AF28A2EE9B00CEBD10 /* fill_rsm_alpha.vert.fsl */,
+				5C24D99B28A2EE9A00CEBD10 /* fill_rsm.frag.fsl */,
+				5C24D9A928A2EE9B00CEBD10 /* fill_rsm.vert.fsl */,
+				5C24D99928A2EE9A00CEBD10 /* light_cull_resources.h.fsl */,
+				5C24D99728A2EE9A00CEBD10 /* lightPropagation_example.h.fsl */,
+				5C24D9AE28A2EE9B00CEBD10 /* lpvCommon_example.h.fsl */,
+				5C24D9A028A2EE9A00CEBD10 /* lpvLightApply.h.fsl */,
+				5C24D9A128A2EE9A00CEBD10 /* lpvSHMaths_example.h.fsl */,
+				5C24D99528A2EE9A00CEBD10 /* packing.h.fsl */,
+				5C24D9A528A2EE9A00CEBD10 /* panoToCube.comp.fsl */,
+				5C24D99C28A2EE9A00CEBD10 /* shader_defs.h.fsl */,
+				5C24D99A28A2EE9A00CEBD10 /* ShaderList.fsl */,
+				5C24D99D28A2EE9A00CEBD10 /* shading.h.fsl */,
+				5C24D9AA28A2EE9B00CEBD10 /* shadow_pass_alpha.frag.fsl */,
+				5C24D9A828A2EE9B00CEBD10 /* shadow_pass_alpha.vert.fsl */,
+				5C24D99628A2EE9A00CEBD10 /* shadow_pass.vert.fsl */,
+				5C24D9A328A2EE9A00CEBD10 /* skybox.frag.fsl */,
+				5C24D99328A2EE9A00CEBD10 /* skybox.vert.fsl */,
+				5C24D9B028A2EE9B00CEBD10 /* triangle_filtering.comp.fsl */,
+				5C24D9AD28A2EE9B00CEBD10 /* vb_rsm_resources.h.fsl */,
+				5C24D99E28A2EE9A00CEBD10 /* visibilityBuffer_pass_alpha.frag.fsl */,
+				5C24D9A428A2EE9A00CEBD10 /* visibilityBuffer_pass_alpha.vert.fsl */,
+				5C24D9A228A2EE9A00CEBD10 /* visibilityBuffer_pass.frag.fsl */,
+				5C24D99F28A2EE9A00CEBD10 /* visibilityBuffer_pass.vert.fsl */,
+				5C24D99128A2EE9A00CEBD10 /* visibilityBuffer_shade.frag.fsl */,
+				5C24D99028A2EE9A00CEBD10 /* visibilityBuffer_shade.vert.fsl */,
+				5C24D9A728A2EE9B00CEBD10 /* wind.h.fsl */,
 			);
 			name = FSL;
 			sourceTree = "<group>";
@@ -473,12 +455,6 @@
 				B235DC7F20EC387C00592362 /* ModelIO.framework */,
 				B235DC7B20EC387500592362 /* Metal.framework */,
 				B235DC7C20EC387500592362 /* MetalKit.framework */,
-				D018D75D20CB9AF9000BEB0D /* assimp.a */,
-				D018D75C20CB9AF9000BEB0D /* IrrXML.a */,
-				D018D75E20CB9AF9000BEB0D /* zlibstatic.a */,
-				C97EC0322010BEE80044D188 /* Metal.framework */,
-				C97EC0302010BED90044D188 /* MetalKit.framework */,
-				C97EC02E2010BED00044D188 /* ModelIO.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -511,9 +487,9 @@
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
 				B22521C725E7CF8C002CBF00 /* ShellScript */,
+				09F9CC69284FD8620064E142 /* ShellScript */,
 			);
 			buildRules = (
-				B296CD99261F50C70011E416 /* PBXBuildRule */,
 			);
 			dependencies = (
 			);
@@ -585,47 +561,45 @@
 			files = (
 				B2AD1845263C07930088347E /* lpvLightPropagate1.frag.fsl in Resources */,
 				EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */,
-				B2D96FC62624BB42002CC19E /* clear_buffers.comp.fsl in Resources */,
 				B2AD184B263C07930088347E /* lpvLightCopy.frag.fsl in Resources */,
 				B2AD184C263C07930088347E /* lpvLightPropagateN.vert.fsl in Resources */,
-				B2D96FBE2624B2DB002CC19E /* visibilityBuffer_pass.vert.fsl in Resources */,
 				B296CDAE261F51BE0011E416 /* lpvLightPropagate1.comp.fsl in Resources */,
-				B2D96FC02624B848002CC19E /* visibilityBuffer_pass_alpha.vert.fsl in Resources */,
-				B2D96FAD262492F0002CC19E /* shadow_pass.vert.fsl in Resources */,
-				B2D96F6B26206EC4002CC19E /* cluster_lights.comp.fsl in Resources */,
+				B2ADA89D282960D900598289 /* Aura_ShaderList.fsl in Resources */,
 				B296CDB1261F51BE0011E416 /* lpvLightCopy.comp.fsl in Resources */,
 				EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */,
-				B2D96FAF262492F0002CC19E /* shadow_pass_alpha.vert.fsl in Resources */,
-				B2D96F87262431F8002CC19E /* visibilityBuffer_shade.vert.fsl in Resources */,
-				B2D96FA826248567002CC19E /* fill_rsm.frag.fsl in Resources */,
-				B2D96F8B26243200002CC19E /* skybox.frag.fsl in Resources */,
-				B2D96FA526248567002CC19E /* fill_rsm_alpha.vert.fsl in Resources */,
 				B2AD1848263C07930088347E /* lpvLightPropagate1.vert.fsl in Resources */,
 				B2AD1849263C07930088347E /* lpvLightCopy.vert.fsl in Resources */,
-				B2D96FCB2624BCF0002CC19E /* icb.comp.fsl in Resources */,
-				B2D96F6E262072D6002CC19E /* clear_light_clusters.comp.fsl in Resources */,
-				B2D96FA726248567002CC19E /* fill_rsm_alpha.frag.fsl in Resources */,
-				B2D96FAE262492F0002CC19E /* shadow_pass_alpha.frag.fsl in Resources */,
-				B2D96FC22624B84B002CC19E /* visibilityBuffer_pass_alpha.frag.fsl in Resources */,
 				B2AD1847263C07930088347E /* lpvInjectRSMLight.frag.fsl in Resources */,
-				B2D96F85262431F5002CC19E /* visibilityBuffer_shade.frag.fsl in Resources */,
 				B2AD184A263C07930088347E /* lpvInjectRSMLight.vert.fsl in Resources */,
 				B296CDAD261F51BE0011E416 /* lpvVisualize.vert.fsl in Resources */,
-				B2D96FA626248567002CC19E /* fill_rsm.vert.fsl in Resources */,
-				B2D96F89262431FD002CC19E /* skybox.vert.fsl in Resources */,
-				B2D96F8D26243203002CC19E /* panoToCube.comp.fsl in Resources */,
-				B2D96FC72624BB42002CC19E /* batch_compaction.comp.fsl in Resources */,
-				B2D96FBD2624B2DB002CC19E /* visibilityBuffer_pass.frag.fsl in Resources */,
 				B296CDB0261F51BE0011E416 /* lpvVisualize.frag.fsl in Resources */,
 				B296CDAF261F51BE0011E416 /* lpvLightPropagateN.comp.fsl in Resources */,
 				B2AD1846263C07930088347E /* lpvLightPropagateN.frag.fsl in Resources */,
-				B2D96FC82624BB42002CC19E /* triangle_filtering.comp.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		09F9CC69284FD8620064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../src/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Aura/Shaders/FSL/Aura_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
 		B22521C725E7CF8C002CBF00 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -641,7 +615,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/\"\nRES=\"$SRCROOT/../Resources\"\nART=\"$SRCROOT/../../../Art/SanMiguel_3\"\nMID=\"$SRCROOT/../../../Middleware_3\"\nCMID=\"$SRCROOT/../../../../Custom-Middleware\"\nSRC=\"$SRCROOT/../src\"\nSHD=\"Shaders/Metal\"\n\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures\"\n# Resources\nrsync -u -r \"$RES/Fonts/\" \"$DST/Fonts\"\nrsync -u -r \"$RES/cameraPath.bin\" \"$DST/\"\n# UI + Text Shaders\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\n# Aura Shaders\nrsync -u -r \"$CMID/Aura/$SHD/\" \"$DST/Shaders/Aura\"\n\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/\"\nRES=\"$SRCROOT/../Resources\"\nART=\"$SRCROOT/../../../Art/SanMiguel_3\"\nMID=\"$SRCROOT/../../../Middleware_3\"\nCMID=\"$SRCROOT/../../../../Custom-Middleware\"\nSRC=\"$SRCROOT/../src\"\nSHD=\"Shaders/Metal\"\n\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures\"\n# Resources\nrsync -u -r \"$RES/Fonts/\" \"$DST/Fonts\"\nrsync -u -r \"$RES/cameraPath.bin\" \"$DST/\"\n# UI + Text Shaders\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Aura Shaders\n\n\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -806,7 +780,6 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -825,7 +798,7 @@
 					../,
 					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
 					"$(PROJECT_DIR)/../../../",
-					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/",
+					"$(PROJECT_DIR)/../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Aura/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -833,7 +806,6 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
-				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.Aura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -854,7 +826,7 @@
 					../,
 					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/",
 					"$(PROJECT_DIR)/../../../",
-					"$(PROJECT_DIR)/../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/",
+					"$(PROJECT_DIR)/../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Aura/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -862,7 +834,6 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = "";
-				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.confetti.Examples.Aura;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

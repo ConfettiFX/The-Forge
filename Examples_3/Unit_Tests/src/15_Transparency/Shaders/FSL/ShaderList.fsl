@@ -1,0 +1,90 @@
+#include "../Shared.h"
+
+#frag VR_MULTIVIEW AdaptiveOIT.frag
+#include "AdaptiveOIT.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW AdaptiveOITClear.frag
+#include "AdaptiveOITClear.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW AdaptiveOITComposite.frag
+#include "AdaptiveOITComposite.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW copy.frag
+#include "copy.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW downsample.frag
+#include "downsample.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW forward.frag
+#include "forward.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW forward.vert
+#include "forward.vert.fsl"
+#end
+
+#vert VR_MULTIVIEW fullscreenMultiView.vert
+#include "fullscreenMultiView.vert.fsl"
+#end
+
+#vert fullscreen.vert
+#include "fullscreen.vert.fsl"
+#end
+
+#frag gaussianBlur.frag
+#include "gaussianBlur.frag.fsl"
+#end
+
+#comp VR_MULTIVIEW generateMips.comp
+#include "generateMips.comp.fsl"
+#end
+
+#frag VR_MULTIVIEW phenomenologicalTransparency.frag
+#include "phenomenologicalTransparency.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW phenomenologicalTransparencyComposite.frag
+#include "phenomenologicalTransparencyComposite.frag.fsl"
+#end
+
+#frag shadow.frag
+#include "shadow.frag.fsl"
+#end
+
+#vert shadow.vert
+#include "shadow.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW stochasticShadow.frag
+#include "stochasticShadow.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW weightedBlendedOIT.frag
+#include "weightedBlendedOIT.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW weightedBlendedOITComposite.frag
+#include "weightedBlendedOITComposite.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW weightedBlendedOITVolition.frag
+#include "weightedBlendedOITVolition.frag.fsl"
+#end
+
+#frag VR_MULTIVIEW weightedBlendedOITVolitionComposite.frag
+#include "weightedBlendedOITVolitionComposite.frag.fsl"
+#end
+

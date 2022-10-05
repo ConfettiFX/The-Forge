@@ -8,18 +8,21 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="Common">
-    <File Name="../../../../Common_3/Renderer/CommonShaderReflection.cpp"/>
     <File Name="../../../../Common_3/Renderer/IMemoryAllocator.h"/>
-    <File Name="../../../../Common_3/Renderer/IRenderer.h"/>
-    <File Name="../../../../Common_3/Renderer/IShaderReflection.h"/>
-    <File Name="../../../../Common_3/Renderer/ResourceLoader.cpp"/>
-    <File Name="../../../../Common_3/Renderer/IResourceLoader.h"/>
-    <File Name="../../../../Common_3/Renderer/Renderer.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Interfaces/IGraphics.h"/>
+    <File Name="../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"/>
+    <File Name="../../../../Common_3/Graphics/CommonShaderReflection.cpp"/>
+    <File Name="../../../../Common_3/Graphics/DependencyTracking.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Interfaces/IShaderReflection.h"/>
+    <File Name="../../../../Common_3/Graphics/Graphics.cpp"/>
+    <File Name="../../../../Common_3/Resources/ResourceLoader/ResourceLoader.cpp"/>
+    <File Name="../../../../Common_3/Graphics/GPUConfig.h"/>
+    <File Name="../../../../Common_3/Graphics/GPUConfig.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">
-    <File Name="../../../../Common_3/Renderer/Vulkan/Vulkan.cpp"/>
-    <File Name="../../../../Common_3/Renderer/Vulkan/VulkanRaytracing.cpp"/>
-    <File Name="../../../../Common_3/Renderer/Vulkan/VulkanShaderReflection.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Vulkan/Vulkan.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Vulkan/VulkanRaytracing.cpp"/>
+    <File Name="../../../../Common_3/Graphics/Vulkan/VulkanShaderReflection.cpp"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>
@@ -30,7 +33,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -69,7 +72,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=c++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -110,11 +113,11 @@
   </Settings>
   <VirtualDirectory Name="Dependencies">
     <VirtualDirectory Name="meshoptimizer">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
+      <File Name="../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
+      <File Name="../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
+      <File Name="../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
+      <File Name="../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
+      <File Name="../../../../Common_3/Resources/ResourceLoader/ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
     </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>

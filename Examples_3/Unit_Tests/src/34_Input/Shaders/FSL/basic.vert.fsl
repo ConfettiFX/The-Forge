@@ -32,15 +32,6 @@ STRUCT(VSOutput)
 {
     DATA(float4, Position, SV_Position);
     DATA(float2, TexCoords, TEXCOORD0);
-    DATA(float2, Color, TEXCOORD1);
-};
-
-PUSH_CONSTANT(KPCRootConstant, b0)
-{
-    DATA(float2, positionOffset, None);
-    DATA(float2, color, None);
-    DATA(float, angle, None);
-    DATA(float, projectionScale, None);
 };
 
 VSOutput VS_MAIN(VSInput In)
@@ -48,15 +39,8 @@ VSOutput VS_MAIN(VSInput In)
     INIT_MAIN;
 
     VSOutput Out;
-    float cosTheta = cos(Get(angle));
-    float sinTheta = sin(Get(angle));
-    Out.Position.x = In.Position.x * cosTheta - In.Position.y * sinTheta;
-    Out.Position.y = In.Position.x * sinTheta + In.Position.y * cosTheta;
-    Out.Position.y *= Get(projectionScale);
-    Out.Position.zw = In.Position.zw;
-    Out.Position.xy += Get(positionOffset);
+    Out.Position = In.Position;
     Out.TexCoords = In.TexCoords;
-    Out.Color = Get(color);
 
     RETURN(Out);
 }

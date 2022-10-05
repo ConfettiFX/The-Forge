@@ -16,6 +16,7 @@
   <ItemGroup>
     <FSLShader Include="..\..\src\33_YUV\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\..\src\33_YUV\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\33_YUV\Shaders\FSL\ShaderList.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
@@ -68,21 +69,28 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <FSLShader>
       <Language>VULKAN</Language>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy $(ProjectDir)..\..\UnitTestResources\Textures\test_224x116_IYUV.dds $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
 xcopy $(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
 xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\ /s /y
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -108,14 +116,15 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
     </Manifest>
     <FSLShader>
       <Language>VULKAN</Language>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
     </FSLShader>
     <PreLinkEvent>
       <Command>xcopy $(ProjectDir)..\..\UnitTestResources\Textures\test_224x116_IYUV.dds $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
 xcopy $(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\ /s /y
 xcopy $(ProjectDir)..\..\UnitTestResources\Fonts\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\ /s /y
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

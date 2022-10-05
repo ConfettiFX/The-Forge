@@ -24,8 +24,13 @@
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
+	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, projView, None);
 	DATA(float4x4, invProjView, None);
+#endif
 	DATA(float3, camPos, None);
 };
 
@@ -49,8 +54,11 @@ VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
+#if VR_MULTIVIEW_ENABLED
+	Out.Position = mul(Get(projView)[VR_VIEW_ID], In.Position);
+#else
 	Out.Position = mul(Get(projView), In.Position);
-	Out.Position = Out.Position.xyww;
+#endif
 	Out.pos = In.Position.xyz;
     RETURN(Out);
 }

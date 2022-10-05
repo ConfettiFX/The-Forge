@@ -67,8 +67,13 @@ RES(SamplerState, bilinearClampedSampler, UPDATE_FREQ_NONE, s6, binding = 14);
 // UPDATE_FREQ_PER_FRAME
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
+	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, projView, None);
 	DATA(float4x4, invProjView, None);
+#endif
 
 	DATA(float4, camPos, None);
 

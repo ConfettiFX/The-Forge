@@ -52,7 +52,11 @@ VSOutput VS_MAIN(VSInput In)
     
     Out.Position = mul(boneTransform, float4(In.Position, 1.0f));
     Out.Position = mul(Get(modelMatrix), Out.Position);
+#if VR_MULTIVIEW_ENABLED
+    Out.Position = mul(Get(vpMatrix)[VR_VIEW_ID], Out.Position);
+#else
     Out.Position = mul(Get(vpMatrix), Out.Position);
+#endif
     Out.Normal = normalize(mul(Get(modelMatrix), float4(In.Normal, 0.0f)).xyz);
     Out.UV = In.UV;
 

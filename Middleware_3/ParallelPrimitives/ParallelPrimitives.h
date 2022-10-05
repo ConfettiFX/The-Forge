@@ -42,15 +42,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ********************************************************************/
 
-#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/OS/Interfaces/ILog.h"
+#include "../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../Common_3/Utilities/Interfaces/ILog.h"
 
 struct IndirectCountBuffer {
 	Buffer *pBuffer; // Containing four `uint32_t`s: the count, the threadgroups X (ceil(count / THREADS_PER_THREADGROUP)), and threadgroups Y/Z (should be 1).
 	uint32_t mUpperLimit;
 	
-	IndirectCountBuffer(uint32_t count, Buffer* buffer) : mUpperLimit(count), pBuffer(buffer) {};
+	IndirectCountBuffer(uint32_t count, Buffer* buffer) : pBuffer(buffer), mUpperLimit(count) {};
 };
 
 struct ParallelPrimitives {

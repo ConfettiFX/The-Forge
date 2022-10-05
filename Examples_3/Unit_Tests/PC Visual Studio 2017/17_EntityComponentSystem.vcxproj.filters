@@ -2,7 +2,7 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c">
+    <ClCompile Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c">
       <Filter>Source Files\flecs</Filter>
     </ClCompile>
   </ItemGroup>
@@ -21,16 +21,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h">
-      <Filter>Source Files\flecs</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
     <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\basic.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
     <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\basic.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\17_EntityComponentSystem\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h">
+      <Filter>Source Files\flecs</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

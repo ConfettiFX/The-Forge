@@ -143,6 +143,9 @@
     <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\SDF_Constant.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\09_LightShadowPlayground\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h">

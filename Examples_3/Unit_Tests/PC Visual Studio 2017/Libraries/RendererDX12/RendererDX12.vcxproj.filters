@@ -9,13 +9,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp">

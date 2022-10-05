@@ -23,26 +23,26 @@
 */
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
 
 //Renderer
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 const uint32_t gImageCount = 3;
 Renderer* pRenderer = NULL;
@@ -69,7 +69,7 @@ uint32_t gFontID = 0;
 FontDrawDesc gFrameTimeDraw;
 
 bool gTakeScreenshot = false;
-void takeScreenshot()
+void takeScreenshot(void* pUserData)
 {
 	if (!gTakeScreenshot)
 		gTakeScreenshot = true;
@@ -114,7 +114,7 @@ public:
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
@@ -151,6 +151,14 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
+		SamplerDesc samplerClampDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
+			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
+		};
+		addSampler(pRenderer, &samplerClampDesc, &gPrecomputedDLUTSampler);
+
+		addPrecomputedDLUTResources();
+
 		// Load fonts
 		FontDesc font = {};
 		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
@@ -186,7 +194,7 @@ public:
 		// Take a screenshot with a button.
 		ButtonWidget screenshot;
 		UIWidget* pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-		uiSetWidgetOnEditedCallback(pScreenshot, takeScreenshot);
+		uiSetWidgetOnEditedCallback(pScreenshot, nullptr, takeScreenshot);
 		luaRegisterWidget(pScreenshot);
 
 		SliderFloat2Widget sunX;
@@ -226,42 +234,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-
-		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
 
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0;
 
@@ -270,6 +277,10 @@ public:
 
 	void Exit()
 	{
+		removePrecomputedDLUTResources();
+
+		removeSampler(pRenderer, gPrecomputedDLUTSampler);
+
 		exitInputSystem();
 
 		exitCameraController(pCameraController);
@@ -278,7 +289,6 @@ public:
 
 		exitFontSystem();
 
-		// Exit profile
 		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -300,43 +310,72 @@ public:
 		pRenderer = NULL;
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
+		}
 
-		if (!addDepthBuffer())
-			return false;
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
 
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
+			if (!addDepthBuffer())
+				return false;
+		}
 
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
 
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
+		prepareDescriptorSets();
 
-		if (!addPrecomputedDLUT())
-			return false;
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
-		
-		removePrecomputedDLUT();
-		
-		removeUserInterfacePipelines();
 
-		removeFontSystemPipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
@@ -348,7 +387,7 @@ public:
 			gFrameIndex = 0;
 		}
 
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -376,11 +415,6 @@ public:
 		vec3 lightDirDest = -(inverse(nextRotation) * vec4(0, 0, 1, 0)).getXYZ();
 		float f = float((static_cast<uint32_t>(gSunCurrentTime) >> 5) & 0xfff) / 8096.0f;
 		vec3 sunLightDir = normalize(lerp(newLightDir, lightDirDest, fabsf(f * 2.f)));
-
-		// vec3 sunLightDir = normalize(vec3(gSunDirection.x, gSunDirection.y, gSunDirection.z));
-
-		static float currentTime = 0.0f;
-		currentTime += deltaTime * 1000.0f;
 
 		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
@@ -550,78 +584,23 @@ public:
 		return pDepthBuffer != NULL;
 	}
 
-	bool addPrecomputedDLUT()
+	void addDescriptorSets()
 	{
-		TextureLoadDesc textureLoadDesc = {};
-		textureLoadDesc.mContainer = TEXTURE_CONTAINER_KTX;
-		textureLoadDesc.ppTexture = &gPrecomputedDLUT;
-		textureLoadDesc.pFileName = "dlut";
+		DescriptorSetDesc descriptorSetDescPerFrame = { gPrecomputedDLUTRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &descriptorSetDescPerFrame, &gPrecomputedDLUTPerFrameDescriptorSet);
 
-		addResource(&textureLoadDesc, NULL);
+		DescriptorSetDesc descriptorSetDescTexture = { gPrecomputedDLUTRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &descriptorSetDescTexture, &gPrecomputedDLUTTextureDescriptorSet);
+	}
 
-		BufferLoadDesc bufferLoadDesc = {};
-		bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		bufferLoadDesc.mDesc.mSize = sizeof(PerFrame);
-		bufferLoadDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		bufferLoadDesc.pData = NULL;
-		for (uint32_t frame = 0; frame < gImageCount; ++frame)
-		{
-			bufferLoadDesc.ppBuffer = &gPrecomputedDLUTPerFrameBuffer[frame];
-			addResource(&bufferLoadDesc, NULL);
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, gPrecomputedDLUTPerFrameDescriptorSet);
+		removeDescriptorSet(pRenderer, gPrecomputedDLUTTextureDescriptorSet);
+	}
 
-			if (gPrecomputedDLUTPerFrameBuffer[frame] == NULL)
-				return false;
-		}
-
-		const Vertex vbData[4] = {
-			{ float2(-50.0F, -50.0F), float2(0.0F, 0.0F) },
-			{ float2(50.0F, -50.0F), float2(1.0F, 0.0F) },
-			{ float2(-50.0F,  50.0F), float2(0.0F, 1.0F) },
-			{ float2(50.0F,  50.0F), float2(1.0F, 1.0F) }
-		};
-
-		BufferLoadDesc vbLoadDesc = {};
-		vbLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		vbLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		vbLoadDesc.mDesc.mSize = sizeof(Vertex) * 4;
-		vbLoadDesc.pData = vbData;
-		vbLoadDesc.ppBuffer = &gPrecomputedDLUTVertexBuffer;
-		addResource(&vbLoadDesc, NULL);
-
-		const uint16_t ibData[6] = { 0, 1, 2, 2, 1, 3 };
-
-		BufferLoadDesc ibLoadDesc = {};
-		ibLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		ibLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		ibLoadDesc.mDesc.mSize = sizeof(uint16_t) * 6;
-		ibLoadDesc.pData = ibData;
-		ibLoadDesc.ppBuffer = &gPrecomputedDLUTIndexBuffer;
-		addResource(&ibLoadDesc, NULL);
-
-		waitForAllResourceLoads();
-
-		if (gPrecomputedDLUT == NULL || gPrecomputedDLUTVertexBuffer == NULL || gPrecomputedDLUTIndexBuffer == NULL)
-			return false;
-
-		ShaderLoadDesc shaderLoadDesc = {};
-		shaderLoadDesc.mStages[0] = { "PrecomputedDLUT.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		shaderLoadDesc.mStages[1] = { "PrecomputedDLUT.frag", NULL, 0 };
-
-		addShader(pRenderer, &shaderLoadDesc, &gPrecomputedDLUTShader);
-
-		if (gPrecomputedDLUTShader == NULL)
-			return false;
-
-		SamplerDesc samplerClampDesc = {
-			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
-			ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE, ADDRESS_MODE_CLAMP_TO_EDGE
-		};
-		addSampler(pRenderer, &samplerClampDesc, &gPrecomputedDLUTSampler);
-
-		if (gPrecomputedDLUTSampler == NULL)
-			return false;
-
+	void addRootSignatures()
+	{
 		const char* pStaticSamplerNames[] = { "gPrecomputedDLUTSampler" };
 		Sampler* pStaticSamplers[] = { gPrecomputedDLUTSampler };
 
@@ -632,10 +611,29 @@ public:
 		rootSignatureDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		rootSignatureDesc.ppStaticSamplers = pStaticSamplers;
 		addRootSignature(pRenderer, &rootSignatureDesc, &gPrecomputedDLUTRootSignature);
+	}
 
-		if (gPrecomputedDLUTRootSignature == NULL)
-			return false;
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, gPrecomputedDLUTRootSignature);
+	}
 
+	void addShaders()
+	{
+		ShaderLoadDesc shaderLoadDesc = {};
+		shaderLoadDesc.mStages[0] = { "PrecomputedDLUT.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		shaderLoadDesc.mStages[1] = { "PrecomputedDLUT.frag", NULL, 0 };
+
+		addShader(pRenderer, &shaderLoadDesc, &gPrecomputedDLUTShader);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, gPrecomputedDLUTShader);
+	}
+
+	void addPipelines()
+	{
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -685,19 +683,15 @@ public:
 		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.mVRFoveatedRendering = true;
 		addPipeline(pRenderer, &desc, &gPrecomputedDLUTPipeline);
+	}
 
-		if (gPrecomputedDLUTPipeline == NULL)
-			return false;
+	void removePipelines()
+	{
+		removePipeline(pRenderer, gPrecomputedDLUTPipeline);
+	}
 
-		DescriptorSetDesc descriptorSetDescPerFrame = { gPrecomputedDLUTRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &descriptorSetDescPerFrame, &gPrecomputedDLUTPerFrameDescriptorSet);
-
-		DescriptorSetDesc descriptorSetDescTexture = { gPrecomputedDLUTRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &descriptorSetDescTexture, &gPrecomputedDLUTTextureDescriptorSet);
-
-		if (gPrecomputedDLUTPerFrameDescriptorSet == NULL || gPrecomputedDLUTTextureDescriptorSet == NULL)
-			return false;
-
+	void prepareDescriptorSets()
+	{
 		for (uint32_t frame = 0; frame < gImageCount; ++frame)
 		{
 			DescriptorData params = {};
@@ -711,18 +705,59 @@ public:
 		params.pName = "gPrecomputedDLUT";
 		params.ppTextures = &gPrecomputedDLUT;
 		updateDescriptorSet(pRenderer, 0, gPrecomputedDLUTTextureDescriptorSet, 1, &params);
-
-		return true;
 	}
 
-	void removePrecomputedDLUT()
+	void addPrecomputedDLUTResources()
 	{
-		removeDescriptorSet(pRenderer, gPrecomputedDLUTPerFrameDescriptorSet);
-		removeDescriptorSet(pRenderer, gPrecomputedDLUTTextureDescriptorSet);
-		removePipeline(pRenderer, gPrecomputedDLUTPipeline);
-		removeRootSignature(pRenderer, gPrecomputedDLUTRootSignature);
-		removeShader(pRenderer, gPrecomputedDLUTShader);
-		removeSampler(pRenderer, gPrecomputedDLUTSampler);
+		TextureLoadDesc textureLoadDesc = {};
+		textureLoadDesc.mContainer = TEXTURE_CONTAINER_KTX;
+		textureLoadDesc.ppTexture = &gPrecomputedDLUT;
+		textureLoadDesc.pFileName = "dlut";
+
+		addResource(&textureLoadDesc, NULL);
+
+		BufferLoadDesc bufferLoadDesc = {};
+		bufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufferLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		bufferLoadDesc.mDesc.mSize = sizeof(PerFrame);
+		bufferLoadDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		bufferLoadDesc.pData = NULL;
+		for (uint32_t frame = 0; frame < gImageCount; ++frame)
+		{
+			bufferLoadDesc.ppBuffer = &gPrecomputedDLUTPerFrameBuffer[frame];
+			addResource(&bufferLoadDesc, NULL);
+		}
+
+		const Vertex vbData[4] = {
+			{ float2(-50.0F, -50.0F), float2(0.0F, 0.0F) },
+			{ float2(50.0F, -50.0F), float2(1.0F, 0.0F) },
+			{ float2(-50.0F,  50.0F), float2(0.0F, 1.0F) },
+			{ float2(50.0F,  50.0F), float2(1.0F, 1.0F) }
+		};
+
+		BufferLoadDesc vbLoadDesc = {};
+		vbLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		vbLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		vbLoadDesc.mDesc.mSize = sizeof(Vertex) * 4;
+		vbLoadDesc.pData = vbData;
+		vbLoadDesc.ppBuffer = &gPrecomputedDLUTVertexBuffer;
+		addResource(&vbLoadDesc, NULL);
+
+		const uint16_t ibData[6] = { 0, 1, 2, 2, 1, 3 };
+
+		BufferLoadDesc ibLoadDesc = {};
+		ibLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+		ibLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		ibLoadDesc.mDesc.mSize = sizeof(uint16_t) * 6;
+		ibLoadDesc.pData = ibData;
+		ibLoadDesc.ppBuffer = &gPrecomputedDLUTIndexBuffer;
+		addResource(&ibLoadDesc, NULL);
+
+		waitForAllResourceLoads();
+	}
+
+	void removePrecomputedDLUTResources()
+	{
 		removeResource(gPrecomputedDLUT);
 		for (uint32_t frame = 0; frame < gImageCount; ++frame)
 		{

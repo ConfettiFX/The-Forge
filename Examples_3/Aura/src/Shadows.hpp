@@ -16,7 +16,7 @@
 #ifndef Shadows_hpp
 #define Shadows_hpp
 
-#include "../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../Common_3/Utilities/Math/MathTypes.h"
 #include "Camera.hpp"
 
 

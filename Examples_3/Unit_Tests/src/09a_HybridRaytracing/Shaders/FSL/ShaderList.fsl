@@ -1,0 +1,28 @@
+#comp compositePass.comp
+#include "compositePass.comp.fsl"
+#end
+
+#frag display.frag
+#include "display.frag.fsl"
+#end
+
+#vert display.vert
+#include "display.vert.fsl"
+#end
+
+#frag gbufferPass.frag
+#include "gbufferPass.frag.fsl"
+#end
+
+#vert gbufferPass.vert
+#include "gbufferPass.vert.fsl"
+#end
+
+#comp lightingPass.comp
+#include "lightingPass.comp.fsl"
+#end
+
+#comp raytracedShadowsPass.comp
+#include "raytracedShadowsPass.comp.fsl"
+#end
+

@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef __APPLE__
 
-#include "../Core/CPUConfig.h"
+#include "../../OS/CPUConfig.h"
 
 #import <UIKit/UIKit.h>
 #import "iOSAppDelegate.h"
@@ -38,25 +38,23 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IProfiler.h"
-#include "../Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IApp.h"
 
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 #define FORGE_WINDOW_CLASS L"The Forge"
 #define MAX_KEYS 256
@@ -70,16 +68,11 @@ extern float2 gRetinaScale;
 extern int     gDeviceWidth;
 extern int     gDeviceHeight;
 
-extern eastl::vector<MonitorDesc> gMonitors;
-extern uint32_t                   gMonitorCount;
-
-static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
 static bool    gShowPlatformUI = true;
 
 /// CPU
 static CpuInfo gCpu;
-
-static eastl::vector<MonitorDesc> monitors;
 
 static IApp* pApp = NULL;
 extern IApp* pWindowAppRef;
@@ -131,19 +124,9 @@ void requestShutdown()
 	// NOT SUPPORTED ON THIS PLATFORM
 }
 
-void onRequestReload()
+void requestReload(const ReloadDesc* pReloadDesc)
 {
-	gResetScenario |= RESET_SCENARIO_RELOAD;
-}
-
-void onDeviceLost()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
-}
-
-void onAPISwitch()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
+	gReloadDescriptor = *pReloadDesc;
 }
 
 void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
@@ -399,7 +382,7 @@ int iOSMain(int argc, char** argv, IApp* app)
 extern void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device);
 
 // Timer used in the update function.
-Timer           deltaTimer;
+HiresTimer      deltaTimer;
 IApp::Settings* pSettings;
 #ifdef AUTOMATED_TESTING
 uint32_t frameCounter;
@@ -414,7 +397,7 @@ char benchmarkOutput[1024] = { "\0" };
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider, ForgeViewDelegate>)renderDestinationProvider
 {
 	initCpuInfo(&gCpu);
-	initTimer(&deltaTimer);
+	initHiresTimer(&deltaTimer);
 	
 	self = [super init];
 	if (self)
@@ -496,7 +479,7 @@ char benchmarkOutput[1024] = { "\0" };
 			setupPlatformUI();
 			pApp->mSettings.mInitialized = true;
 
-			if (!pApp->Load())
+			if (!pApp->Load(&gReloadDescriptor))
 				exit(1);
 		}
 	}
@@ -526,7 +509,9 @@ char benchmarkOutput[1024] = { "\0" };
 
 	if (needToUpdateApp)
 	{
-		onRequestReload();
+		ReloadDesc reloadDesc;
+		reloadDesc.mType = RELOAD_TYPE_RESIZE;
+		requestReload(&reloadDesc);
 	}
 }
 
@@ -546,16 +531,16 @@ char benchmarkOutput[1024] = { "\0" };
 
 - (void)update
 {
-	if (gResetScenario & RESET_SCENARIO_RELOAD)
+	if(gReloadDescriptor.mType != RELOAD_TYPE_ALL)
 	{
-		pApp->Unload();
-		pApp->Load();
-
-		gResetScenario &= ~RESET_SCENARIO_RELOAD;
+		pApp->Unload(&gReloadDescriptor);
+		pApp->Load(&gReloadDescriptor);
+		
+		gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 		return;
 	}
 
-	float deltaTime = getTimerMSec(&deltaTimer, true) / 1000.0f;
+	float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
 	// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 	if (deltaTime > 0.15f)
 		deltaTime = 0.05f;
@@ -592,7 +577,8 @@ char benchmarkOutput[1024] = { "\0" };
 	}
 #endif
 	pApp->mSettings.mQuit = true;
-	pApp->Unload();
+	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+	pApp->Unload(&gReloadDescriptor);
 	pApp->Exit();
 	pApp->mSettings.mInitialized = false;
 	

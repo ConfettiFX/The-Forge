@@ -22,14 +22,14 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #if defined(_WINDOWS) || defined(XBOX)
 
-#include "../Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 #include <process.h>    // _beginthreadex
 
@@ -120,6 +120,8 @@ void setCurrentThreadName(const char* name) { strcpy_s(thread_name(), MAX_THREAD
 
 bool isMainThread() { return getCurrentThreadID() == mainThreadID; }
 
+typedef int(__cdecl *SETTHREADDESCFUNC)(HANDLE, PCWSTR);
+
 unsigned WINAPI ThreadFunctionStatic(void* data)
 {
 	ThreadDesc item = *((ThreadDesc*)(data));
@@ -131,11 +133,18 @@ unsigned WINAPI ThreadFunctionStatic(void* data)
 		setCurrentThreadName(item.mThreadName);
 
 #ifdef _WINDOWS
-		// OS Thread name, for debugging purposes
-		WCHAR windowsThreadName[sizeof(item.mThreadName)] = { 0 };
-		mbstowcs(windowsThreadName, item.mThreadName, strlen(item.mThreadName) + 1);
-		HRESULT res = SetThreadDescription(GetCurrentThread(), windowsThreadName);
-		ASSERT(!FAILED(res));
+		HINSTANCE hinstLib = GetModuleHandle(TEXT("KernelBase.dll"));
+		if (hinstLib != NULL)
+		{
+			SETTHREADDESCFUNC ProcAdd = (SETTHREADDESCFUNC)GetProcAddress(hinstLib, "SetThreadDescription");
+			if (ProcAdd != NULL)
+			{
+				WCHAR windowsThreadName[sizeof(item.mThreadName)] = { 0 };
+				mbstowcs(windowsThreadName, item.mThreadName, strlen(item.mThreadName) + 1);
+				HRESULT res = ProcAdd(GetCurrentThread(), windowsThreadName);
+				ASSERT(!FAILED(res));
+			}
+		}
 #endif
 	}
 

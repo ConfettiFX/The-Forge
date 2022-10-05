@@ -21,7 +21,7 @@
 
 #include <stdio.h>
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 using namespace MT;
 

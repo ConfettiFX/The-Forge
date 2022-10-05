@@ -30,13 +30,6 @@
 #define e 2.71828183
 #define EPSILON 1e-7f
 
-#ifndef MAX_NUM_POINT_LIGHTS
-	#define MAX_NUM_POINT_LIGHTS 8
-#endif
-#ifndef MAX_NUM_DIRECTIONAL_LIGHTS
-	#define MAX_NUM_DIRECTIONAL_LIGHTS 1
-#endif
-
 struct PointLight
 {
     float4 positionAndRadius;
@@ -56,8 +49,13 @@ struct DirectionalLight
 
 struct Camera
 {
+#if VR_MULTIVIEW_ENABLED
+	float4x4 VPMatrix[VR_MULTIVIEW_COUNT];
+	float4x4 InvVPMatrix[VR_MULTIVIEW_COUNT];
+#else
 	float4x4 VPMatrix;
 	float4x4 InvVPMatrix;
+#endif
 	float3 Pos;
 #ifndef METAL
 	float __dumm;
@@ -88,6 +86,16 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6)
 	DATA(uint, NumPointLights, None);
 };
 
+RES(SamplerState, PointSampler,  UPDATE_FREQ_NONE, s1, binding = 9);
+
+#if VR_MULTIVIEW_ENABLED
+RES(Tex2DArray(float4), ColorsTexture, UPDATE_FREQ_NONE, t5, binding = 6);
+RES(Tex2DArray(float), InvAlphaTexture, UPDATE_FREQ_NONE, t6, binding = 7);
+#else
+RES(Tex2D(float4), ColorsTexture,  UPDATE_FREQ_NONE, t5, binding = 6);
+RES(Tex2D(float), InvAlphaTexture,  UPDATE_FREQ_NONE, t6, binding = 7);
+#endif
+
 // TODO: fix this
 #ifdef METAL
 	RES(RWBuffer(uint), DepthsTexture,  UPDATE_FREQ_NONE, u0, binding = 6);
@@ -99,10 +107,6 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6)
 	#endif
 #endif
 
-RES(SamplerState, PointSampler,  UPDATE_FREQ_NONE, s1, binding = 9);
-
-RES(Tex2D(float4), ColorsTexture,  UPDATE_FREQ_NONE, t5, binding = 6);
-RES(Tex2D(float), InvAlphaTexture,  UPDATE_FREQ_NONE, t6, binding = 7);
 #endif
 
 // UPDATE_FREQ_PER_FRAME
@@ -208,12 +212,18 @@ STRUCT(VSOutput)
 	DATA(float4, P0P1, POINT);
 	DATA(float4, Color, COLOR);
 	DATA(float2, W0W1, POINT1);
+#if VR_MULTIVIEW_ENABLED
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 STRUCT(VSOutputFullscreen)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, UV, TEXCOORD);
+#if VR_MULTIVIEW_ENABLED
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 #endif /* hair_h */

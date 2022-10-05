@@ -75,7 +75,11 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 	t = normalize(mul(Get(Transform), float4(t, 0.0f)).xyz);
 
 	float3 right = normalize(cross(t, normalize(v - Get(Cam).Pos)));
+#if VR_MULTIVIEW_ENABLED
+	float2 projRight = normalize(mul(Get(Cam).VPMatrix[VR_VIEW_ID], float4(right, 0)).xy);
+#else
 	float2 projRight = normalize(mul(Get(Cam).VPMatrix, float4(right, 0)).xy);
+#endif
 
 	float expandPixels = 0.71f;
 
@@ -84,8 +88,13 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 	float4 hairEdgePositions[2];
 	hairEdgePositions[0] = float4(v + -right * thickness * Get(FiberRadius), 1.0f);
 	hairEdgePositions[1] = float4(v + right * thickness * Get(FiberRadius), 1.0f);
+#if VR_MULTIVIEW_ENABLED
+	hairEdgePositions[0] = mul(Get(Cam).VPMatrix[VR_VIEW_ID], hairEdgePositions[0]);
+	hairEdgePositions[1] = mul(Get(Cam).VPMatrix[VR_VIEW_ID], hairEdgePositions[1]);
+#else
 	hairEdgePositions[0] = mul(Get(Cam).VPMatrix, hairEdgePositions[0]);
 	hairEdgePositions[1] = mul(Get(Cam).VPMatrix, hairEdgePositions[1]);
+#endif
 
 	float dir = (vertexID & 1) != 0 ? 1.0f : -1.0f;
 
@@ -94,5 +103,8 @@ VSOutput VS_MAIN( SV_VertexID(uint) vertexID )
 	Out.P0P1 = float4(hairEdgePositions[0].xy, hairEdgePositions[1].xy);
 	Out.Color = GetStrandColor(int(index));
 	Out.W0W1 = float2(hairEdgePositions[0].w, hairEdgePositions[1].w);
+#if VR_MULTIVIEW_ENABLED
+	Out.ViewID = VR_VIEW_ID;
+#endif
 	RETURN(Out);
 }

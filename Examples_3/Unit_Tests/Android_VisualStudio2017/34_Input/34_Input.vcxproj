@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
+      <Project>{30dd3d57-0026-48c8-bfd1-6392f319e23a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
+      <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
+      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
+      <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\34_Input\Shaders\FSL\basic.frag.fsl" />
+    <FSLShader Include="..\..\src\34_Input\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\34_Input\Shaders\FSL\ShaderList.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\34_Input\34_Input.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\34_Input\ButtonDefs.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{c7fc5bca-5bfa-40f0-88da-2d04deafe352}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Input</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="..\AGDEVersions.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="..\Android-arm64-v8a.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <FSLShader>
+      <Language>VULKAN</Language>
+    </FSLShader>
+    <PreLinkEvent>
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\Input\*.ktx"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
+
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
+    </PreLinkEvent>
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <FSLShader>
+      <Language>VULKAN</Language>
+    </FSLShader>
+    <PreLinkEvent>
+      <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\Input\*.ktx"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
+
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
+  </ImportGroup>
+</Project>

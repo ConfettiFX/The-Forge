@@ -28,30 +28,30 @@
 // based on https://interplayoflight.wordpress.com/2018/07/04/hybrid-raytraced-shadows-and-reflections/
 
 //EASTL includes
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 //ui
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 Timer      gAccumTimer;
 
@@ -419,7 +419,7 @@ const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughne
 
 PropData SponzaProp;
 
-#define TOTAL_IMGS 84
+#include "Shaders/Shared.h"
 Texture* pMaterialTextures[TOTAL_IMGS];
 
 eastl::vector<int> gSponzaTextureIndexforMaterial;
@@ -851,7 +851,7 @@ public:
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
@@ -914,40 +914,6 @@ public:
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-		//Load shaders
-		{
-			//Load shaders for GPrepass
-			char           totalImagesShaderMacroBuffer[5] = {};
-			sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
-
-			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
-			ShaderLoadDesc shaderGPrepass = {};
-			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
-			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
-			addShader(pRenderer, &shaderGPrepass, &pShader[GBuffer]);
-
-			//shader for Shadow pass
-			ShaderLoadDesc shadowsShader = {};
-			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
-			addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
-
-			//shader for Lighting pass
-			ShaderLoadDesc lightingShader = {};
-			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
-			addShader(pRenderer, &lightingShader, &pShader[Lighting]);
-
-			//shader for Composite pass
-			ShaderLoadDesc compositeShader = {};
-			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
-			addShader(pRenderer, &compositeShader, &pShader[Composite]);
-
-			//Load shaders for copy to backbufferpass
-			ShaderLoadDesc copyShader = {};
-			copyShader.mStages[0] = { "display.vert", NULL, 0 };
-			copyShader.mStages[1] = { "display.frag", NULL, 0 };
-			addShader(pRenderer, &copyShader, &pShader[CopyToBackbuffer]);
-		}
-
 		//Create sampler state objects
 		{ //point sampling with clamping
 			{ SamplerDesc samplerDesc = { FILTER_NEAREST, FILTER_NEAREST, MIPMAP_MODE_NEAREST, ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -961,47 +927,6 @@ public:
 											ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 				addSampler(pRenderer, &samplerDesc, &pSamplerLinearWrap);
 			}
-		}
-
-		//Create root signatures
-		{
-			const char* pStaticSamplers[] = { "samplerLinear" };
-
-			Shader* shaders[] = { pShader[GBuffer], pShader[CopyToBackbuffer] };
-
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 1;
-			rootDesc.ppStaticSamplerNames = pStaticSamplers;
-			rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
-			rootDesc.mShaderCount = 2;
-			rootDesc.ppShaders = shaders;
-#ifndef TARGET_IOS
-			rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-			gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbTextureRootConstants");
-
-			Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
-
-			RootSignatureDesc rootCompDesc = {};
-			rootCompDesc.mShaderCount = 3;
-			rootCompDesc.ppShaders = compShaders;
-#ifndef TARGET_IOS
-			rootCompDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
-			addRootSignature(pRenderer, &rootCompDesc, &pRootSignatureComp);
-
-			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
-			addDescriptorSet(pRenderer, &desc, &pDescriptorSetNonFreq);
-
-			desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-			addDescriptorSet(pRenderer, &desc, &pDescriptorSetFreq);
-
-			DescriptorSetDesc compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_NONE, TextureCount };
-			addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompNonFreq);
-
-			compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * TextureCount };
-			addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompFreq);
 		}
 
 		//Create Constant buffers
@@ -1073,13 +998,8 @@ public:
 			return false;
 
 		waitForToken(&token);
-
+		
 		CreateBVHBuffers();
-
-#ifdef TARGET_IOS
-		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFreqPerDraw);
-#endif
 
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 		vec3                   camPos{ 100.0f, 25.0f, 0.0f };
@@ -1096,37 +1016,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0; 
 
@@ -1154,30 +1078,12 @@ public:
 		removeSampler(pRenderer, pSamplerLinearWrap);
 		removeSampler(pRenderer, pSamplerPointClamp);
 
-		//Delete rendering passes
-		removeDescriptorSet(pRenderer, pDescriptorSetNonFreq);
-		removeDescriptorSet(pRenderer, pDescriptorSetFreq);
-#ifdef TARGET_IOS
-		removeDescriptorSet(pRenderer, pDescriptorSetFreqPerDraw);
-#endif
-		removeDescriptorSet(pRenderer, pDescriptorSetCompNonFreq);
-		removeDescriptorSet(pRenderer, pDescriptorSetCompFreq);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pGPrepassUniformBuffer[i]);
 			removeResource(pShadowpassUniformBuffer[i]);
 			removeResource(pLightpassUniformBuffer[i]);
 		}
-
-		removeShader(pRenderer, pShader[GBuffer]);
-		removeShader(pRenderer, pShader[Lighting]);
-		removeShader(pRenderer, pShader[Composite]);
-		removeShader(pRenderer, pShader[RaytracedShadows]);
-		removeShader(pRenderer, pShader[CopyToBackbuffer]);
-
-		removeRootSignature(pRenderer, pRootSignature);
-		removeRootSignature(pRenderer, pRootSignatureComp);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -1440,7 +1346,6 @@ public:
 		loadDesc.ppGeometry = &SponzaProp.Geom;
 		loadDesc.pVertexLayout = &gVertexLayoutGPrepass;
 		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
-		loadDesc.mOptimizationFlags = MESH_OPTIMIZATION_FLAG_VERTEXCACHE | MESH_OPTIMIZATION_FLAG_VERTEXFETCH;
 		addResource(&loadDesc, token);
 
 		//set constant buffer for sponza
@@ -1472,7 +1377,7 @@ public:
 
 		addPropToPrimitivesAABBList(triBBoxes, SponzaProp);
 
-		tf_free(SponzaProp.Geom->pShadow);
+		removeGeometryShadowData(SponzaProp.Geom);
 
 		int count = (int)triBBoxes.size();
 		//BVHNode* bvhRoot = createBVHNode(triBBoxes, 0, count-1);
@@ -1510,9 +1415,8 @@ public:
 		deleteBVHTree(bvhRoot);
 	}
 
-	void CreateRenderTargets()
+	void addRenderTargets()
 	{
-		//Create rendertargets
 		{
 			ClearValue colorClearBlack = { {0.0f, 0.0f, 0.0f, 0.0f} };
 
@@ -1613,7 +1517,7 @@ public:
 		}
 	}
 
-	void RemoveRenderTargets()
+	void removeRenderTargets()
 	{
 		removeRenderTarget(pRenderer, pRenderTargets[Albedo]);
 		removeRenderTarget(pRenderer, pRenderTargets[Normal]);
@@ -1623,156 +1527,87 @@ public:
 		removeResource(pTextures[Texture_RaytracedShadows]);
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
-
-		CreateRenderTargets();
-
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		//Create rasteriser state objects
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-
-		//Create depth state objects
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		DepthStateDesc depthStateNoneDesc = {};
-		depthStateNoneDesc.mDepthTest = false;
-		depthStateNoneDesc.mDepthWrite = false;
-		depthStateNoneDesc.mDepthFunc = CMP_ALWAYS;
-
-		//add gbuffer pipeline
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			//set up g-prepass buffer formats
-			TinyImageFormat deferredFormats[GbufferCount] = {};
-			for (uint32_t i = 0; i < GbufferCount; ++i)
-			{
-				deferredFormats[i] = pRenderTargets[i]->mFormat;
-			}
-
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_GRAPHICS;
-			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = GbufferCount;
-			pipelineSettings.pDepthState = &depthStateDesc;
-
-			pipelineSettings.pColorFormats = deferredFormats;
-
-			pipelineSettings.mSampleCount = pRenderTargets[0]->mSampleCount;
-			pipelineSettings.mSampleQuality = pRenderTargets[0]->mSampleQuality;
-
-			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-			pipelineSettings.pRootSignature = pRootSignature;
-			pipelineSettings.pShaderProgram = pShader[GBuffer];
-			pipelineSettings.pVertexLayout = &gVertexLayoutGPrepass;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-
-			addPipeline(pRenderer, &desc, &pPipeline[GBuffer]);
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
-		//create shadows pipeline
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = pRootSignatureComp;
-			pipelineDesc.pShaderProgram = pShader[RaytracedShadows];
-			addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadows]);
+			if (!addSwapChain())
+				return false;
+
+			addRenderTargets();
 		}
 
-		//create lighting pipeline
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = pRootSignatureComp;
-			pipelineDesc.pShaderProgram = pShader[Lighting];
-			addPipeline(pRenderer, &desc, &pPipeline[Lighting]);
+			addPipelines();
 		}
 
-		//create composite pipeline
+		if (pReloadDesc->mType == RELOAD_TYPE_ALL)
 		{
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
-			pipelineDesc.pRootSignature = pRootSignatureComp;
-			pipelineDesc.pShaderProgram = pShader[Composite];
-			addPipeline(pRenderer, &desc, &pPipeline[Composite]);
+			//make the camera point towards the centre of the scene;
+			vec3 midpoint = 0.5f * (gWholeSceneBBox.MaxBounds + gWholeSceneBBox.MinBounds);
+			pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
+			pCameraController->lookAt(midpoint - vec3(0, 450, 0));
 		}
-
-		//create copy to backbuffer pipeline
-		{
-			PipelineDesc desc = {};
-			desc.mType = PIPELINE_TYPE_GRAPHICS;
-			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.mRenderTargetCount = 1;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-			pipelineSettings.pDepthState = &depthStateNoneDesc;
-
-			pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-
-			pipelineSettings.pRootSignature = pRootSignature;
-			pipelineSettings.pShaderProgram = pShader[CopyToBackbuffer];
-
-			addPipeline(pRenderer, &desc, &pPipeline[CopyToBackbuffer]);
-		}
-
-		//make the camera point towards the centre of the scene;
-		vec3 midpoint = 0.5f * (gWholeSceneBBox.MaxBounds + gWholeSceneBBox.MinBounds);
-		pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
-		pCameraController->lookAt(midpoint - vec3(0, 450, 0));
 
 		waitForAllResourceLoads();
 
 		prepareDescriptorSets();
 
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
+
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
 
-		RemoveRenderTargets();
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+			removeRenderTargets();
+		}
 
-		removePipeline(pRenderer, pPipeline[GBuffer]);
-		removePipeline(pRenderer, pPipeline[RaytracedShadows]);
-		removePipeline(pRenderer, pPipeline[Lighting]);
-		removePipeline(pRenderer, pPipeline[Composite]);
-		removePipeline(pRenderer, pPipeline[CopyToBackbuffer]);
-
-		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeSwapChain(pRenderer, pSwapChain);
-		pDepthBuffer = NULL;
-		pSwapChain = NULL;
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 
@@ -1924,22 +1759,23 @@ public:
 
 			//draw sponza
 			{
-				struct MaterialMaps
-				{
-					uint mapIDs[5];
-				} data;
-
 				cmdBindVertexBuffer(cmd, 3, SponzaProp.Geom->pVertexBuffers, SponzaProp.Geom->mVertexStrides, NULL);
 				cmdBindIndexBuffer(cmd, SponzaProp.Geom->pIndexBuffer, SponzaProp.Geom->mIndexType, 0);
 
 				for (uint32_t i = 0; i < (uint32_t)SponzaProp.Geom->mDrawArgCount; ++i)
 				{
 					const IndirectDrawIndexArguments& draw = SponzaProp.Geom->pDrawArgs[i];
-					int materialID = gMaterialIds[i];
-					materialID *= 5;    //because it uses 5 basic textures for rendering BRDF
 
 					//use bindless textures on all platforms except for iOS
 #ifndef TARGET_IOS
+					struct MaterialMaps
+					{
+						uint mapIDs[5];
+					} data;
+
+					int materialID = gMaterialIds[i];
+					materialID *= 5;    //because it uses 5 basic textures for rendering BRDF
+
 					for (int j = 0; j < 5; ++j)
 					{
 						data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
@@ -2220,6 +2056,218 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetNonFreq);
+
+		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetFreq);
+
+		DescriptorSetDesc compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_NONE, TextureCount };
+		addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompNonFreq);
+
+		compDesc = { pRootSignatureComp, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * TextureCount };
+		addDescriptorSet(pRenderer, &compDesc, &pDescriptorSetCompFreq);
+
+#ifdef TARGET_IOS
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.Geom->mDrawArgCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFreqPerDraw);
+#endif
+	}
+
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSetNonFreq);
+		removeDescriptorSet(pRenderer, pDescriptorSetFreq);
+#ifdef TARGET_IOS
+		removeDescriptorSet(pRenderer, pDescriptorSetFreqPerDraw);
+#endif
+		removeDescriptorSet(pRenderer, pDescriptorSetCompNonFreq);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompFreq);
+	}
+
+	void addRootSignatures()
+	{
+		const char* pStaticSamplers[] = { "samplerLinear" };
+
+		Shader* shaders[] = { pShader[GBuffer], pShader[CopyToBackbuffer] };
+
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerLinearWrap;
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = shaders;
+#ifndef TARGET_IOS
+		rootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+		gMapIDRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbTextureRootConstants");
+
+		Shader* compShaders[] = { pShader[Lighting], pShader[Composite], pShader[RaytracedShadows] };
+
+		RootSignatureDesc rootCompDesc = {};
+		rootCompDesc.mShaderCount = 3;
+		rootCompDesc.ppShaders = compShaders;
+#ifndef TARGET_IOS
+		rootCompDesc.mMaxBindlessTextures = TOTAL_IMGS;
+#endif
+		addRootSignature(pRenderer, &rootCompDesc, &pRootSignatureComp);
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pRootSignatureComp);
+	}
+
+	void addShaders()
+	{
+		//Load shaders for GPrepass
+		ShaderLoadDesc shaderGPrepass = {};
+		shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
+		shaderGPrepass.mStages[1] = { "gbufferPass.frag", NULL, 0 };
+		addShader(pRenderer, &shaderGPrepass, &pShader[GBuffer]);
+
+		//shader for Shadow pass
+		ShaderLoadDesc shadowsShader = {};
+		shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
+		addShader(pRenderer, &shadowsShader, &pShader[RaytracedShadows]);
+
+		//shader for Lighting pass
+		ShaderLoadDesc lightingShader = {};
+		lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
+		addShader(pRenderer, &lightingShader, &pShader[Lighting]);
+
+		//shader for Composite pass
+		ShaderLoadDesc compositeShader = {};
+		compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
+		addShader(pRenderer, &compositeShader, &pShader[Composite]);
+
+		//Load shaders for copy to backbufferpass
+		ShaderLoadDesc copyShader = {};
+		copyShader.mStages[0] = { "display.vert", NULL, 0 };
+		copyShader.mStages[1] = { "display.frag", NULL, 0 };
+		addShader(pRenderer, &copyShader, &pShader[CopyToBackbuffer]);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pShader[GBuffer]);
+		removeShader(pRenderer, pShader[Lighting]);
+		removeShader(pRenderer, pShader[Composite]);
+		removeShader(pRenderer, pShader[RaytracedShadows]);
+		removeShader(pRenderer, pShader[CopyToBackbuffer]);
+	}
+
+	void addPipelines()
+	{
+		//Create rasteriser state objects
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		//Create depth state objects
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		DepthStateDesc depthStateNoneDesc = {};
+		depthStateNoneDesc.mDepthTest = false;
+		depthStateNoneDesc.mDepthWrite = false;
+		depthStateNoneDesc.mDepthFunc = CMP_ALWAYS;
+
+		//add gbuffer pipeline
+		{
+			//set up g-prepass buffer formats
+			TinyImageFormat deferredFormats[GbufferCount] = {};
+			for (uint32_t i = 0; i < GbufferCount; ++i)
+			{
+				deferredFormats[i] = pRenderTargets[i]->mFormat;
+			}
+
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = GbufferCount;
+			pipelineSettings.pDepthState = &depthStateDesc;
+
+			pipelineSettings.pColorFormats = deferredFormats;
+
+			pipelineSettings.mSampleCount = pRenderTargets[0]->mSampleCount;
+			pipelineSettings.mSampleQuality = pRenderTargets[0]->mSampleQuality;
+
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+			pipelineSettings.pRootSignature = pRootSignature;
+			pipelineSettings.pShaderProgram = pShader[GBuffer];
+			pipelineSettings.pVertexLayout = &gVertexLayoutGPrepass;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+
+			addPipeline(pRenderer, &desc, &pPipeline[GBuffer]);
+		}
+
+		//create shadows pipeline
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[RaytracedShadows];
+			addPipeline(pRenderer, &desc, &pPipeline[RaytracedShadows]);
+		}
+
+		//create lighting pipeline
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[Lighting];
+			addPipeline(pRenderer, &desc, &pPipeline[Lighting]);
+		}
+
+		//create composite pipeline
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& pipelineDesc = desc.mComputeDesc;
+			pipelineDesc.pRootSignature = pRootSignatureComp;
+			pipelineDesc.pShaderProgram = pShader[Composite];
+			addPipeline(pRenderer, &desc, &pPipeline[Composite]);
+		}
+
+		//create copy to backbuffer pipeline
+		{
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			pipelineSettings.pDepthState = &depthStateNoneDesc;
+
+			pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+
+			pipelineSettings.pRootSignature = pRootSignature;
+			pipelineSettings.pShaderProgram = pShader[CopyToBackbuffer];
+
+			addPipeline(pRenderer, &desc, &pPipeline[CopyToBackbuffer]);
+		}
+	}
+
+	void removePipelines()
+	{
+		removePipeline(pRenderer, pPipeline[GBuffer]);
+		removePipeline(pRenderer, pPipeline[RaytracedShadows]);
+		removePipeline(pRenderer, pPipeline[Lighting]);
+		removePipeline(pRenderer, pPipeline[Composite]);
+		removePipeline(pRenderer, pPipeline[CopyToBackbuffer]);
 	}
 };
 

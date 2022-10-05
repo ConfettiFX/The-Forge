@@ -41,13 +41,17 @@ STRUCT(VSOutput)
 
 VSOutput VS_MAIN( VSInput In )
 {
-    INIT_MAIN;
-    VSOutput Out;
+	INIT_MAIN;
+	VSOutput Out;
+#if VR_MULTIVIEW_ENABLED
+	float4x4 tempMat = mul(Get(projView)[VR_VIEW_ID], Get(worldMat));
+#else
 	float4x4 tempMat = mul(Get(projView), Get(worldMat));
+#endif
 	Out.Position = mul(tempMat, float4(In.Position.xyz, 1.0f));
 
 	Out.pos = float3(mul(Get(worldMat), float4(In.Position.xyz, 1.0f)).rgb);
 	Out.normal = mul(Get(worldMat), float4(In.Normal.rgb, 0.0f)).rgb;
 	Out.uv = In.Uv;
-    RETURN(Out);
+	RETURN(Out);
 }

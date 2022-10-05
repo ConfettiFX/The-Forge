@@ -78,9 +78,9 @@ float PS_MAIN( VSOutput In )
 	};
 #else
 	const uint3 coords[] = {
-		uint3(In.Position.x, In.Position.y, 0),
-		uint3(In.Position.x, In.Position.y, 1),
-		uint3(In.Position.x, In.Position.y, 2),
+		uint3(In.Position.x, In.Position.y, 0 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(In.Position.x, In.Position.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
+		uint3(In.Position.x, In.Position.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 	};
 #endif
 

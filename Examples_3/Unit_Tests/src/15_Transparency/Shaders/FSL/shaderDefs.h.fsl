@@ -94,8 +94,13 @@ STRUCT(ObjectInfo)
 
 RES(Tex2D(float4), VSM, UPDATE_FREQ_NONE, t1, binding = 2);
 #if PT_USE_DIFFUSION != 0
+#if VR_MULTIVIEW_ENABLED
+RES(Tex2DArray(float4), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 1);
+#else
 RES(Tex2D(float4), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 #endif
+#endif
+
 #if PT_USE_CAUSTICS != 0
 RES(Tex2D(float4), VSMRed, UPDATE_FREQ_NONE, t2, binding = 3);
 RES(Tex2D(float4), VSMGreen, UPDATE_FREQ_NONE, t3, binding = 4);
@@ -162,3 +167,4 @@ PUSH_CONSTANT(DrawInfoRootConstant, b0)
 };
 
 #endif
+

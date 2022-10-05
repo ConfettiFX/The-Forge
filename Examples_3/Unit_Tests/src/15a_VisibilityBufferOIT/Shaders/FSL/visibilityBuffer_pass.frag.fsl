@@ -29,7 +29,7 @@
 STRUCT(PsInOpaque)
 {
 	DATA(float4, position, SV_Position);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+#if !defined(INDIRECT_ROOT_CONSTANT)
     DATA(FLAT(uint), drawId, TEXCOORD3);
 #endif
 };

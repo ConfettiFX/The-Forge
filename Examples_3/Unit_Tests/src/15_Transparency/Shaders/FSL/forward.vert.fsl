@@ -44,6 +44,9 @@ STRUCT(VSOutput)
 #if PT_USE_REFRACTION != 0
 	DATA(float4, CSNormal, NORMAL1);
 #endif
+#if VR_MULTIVIEW_ENABLED
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
 VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID) 
@@ -64,6 +67,10 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 #if PT_USE_REFRACTION != 0
 	Out.CSNormal  = mul(Get(camViewMat), float4(Out.Normal.xyz, 0));
 	Out.CSNormal.xyz = normalize(Out.CSNormal.xyz);
+#endif
+
+#if VR_MULTIVIEW_ENABLED
+	Out.ViewID = VR_VIEW_ID;
 #endif
 
 	RETURN(Out);

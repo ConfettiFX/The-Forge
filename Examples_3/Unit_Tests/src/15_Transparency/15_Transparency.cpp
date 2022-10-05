@@ -23,50 +23,32 @@
 */
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/sort.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/sort.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
-#include "../../../../Common_3/OS/Core/ThreadSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Utilities/Threading/ThreadSystem.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 //input
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
-#define MAX_NUM_OBJECTS 128
-#define MAX_NUM_PARTICLES 2048    // Per system
-#define CUBES_EACH_ROW 5
-#define CUBES_EACH_COL 5
-#define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
-#define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
-#if (defined(DIRECT3D12) || defined(VULKAN) || defined(PROSPERO)) && !(defined(XBOX) || defined(QUEST_VR))
-#define AOIT_ENABLE 1
-#endif
-#define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
-#if AOIT_NODE_COUNT == 2
-#define AOIT_RT_COUNT 1
-#else
-#define AOIT_RT_COUNT (AOIT_NODE_COUNT / 4)
-#endif
-#define USE_SHADOWS 1
-#define PT_USE_REFRACTION 1
-#define PT_USE_DIFFUSION 1
-#define PT_USE_CAUSTICS (0 & USE_SHADOWS)
+#include "Shaders/Shared.h"
 
 namespace eastl
 {
@@ -639,9 +621,8 @@ TransparencyType  GuiController::currentTransparencyType;
 //////////////////////////////////////////////////////////////
 
 const char* gTestScripts[] = { "Test_AlphaBlend.lua", "Test_WeightedBlendedOIT.lua", "Test_WeightedBlendedOITVolition.lua", "Test_Phenomenological.lua", "Test_AdaptiveOIT.lua" };
-uint32_t gScriptIndexes[] = { 0, 1, 2, 3, 4 };
 uint32_t gCurrentScriptIndex = 0;
-void RunScript()
+void RunScript(void* pUserData)
 {
 	LuaScriptDesc runDesc = {};
 	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
@@ -657,7 +638,7 @@ public:
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
@@ -692,14 +673,11 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-		LoadModels();
+		addModels();
 
-		CreateSamplers();
-		CreateShaders();
-		CreateRootSignatures();
-		CreateResources();
-		CreateUniformBuffers();
-		CreateDescriptorSets();
+		addSamplers();
+		addResources();
+		addUniformBuffers();
 
 		CreateScene();
 
@@ -761,44 +739,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
-        actionDesc = { InputBindings::BUTTON_R3, [](InputActionContext* ctx) 
-        { 
-            if (ctx->mPhase == INPUT_ACTION_PHASE_STARTED)
-                gTransparencyType = (gTransparencyType + 1) % TRANSPARENCY_TYPE_COUNT;
-            return true; 
-        } };
-        addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0; 
 
@@ -825,12 +800,9 @@ public:
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
 
-		DestroySamplers();
-		DestroyShaders();
-		DestroyDescriptorSets();
-		DestroyRootSignatures();
-		DestroyResources();
-		DestroyUniformBuffers();
+		removeSamplers();
+		removeResources();
+		removeUniformBuffers();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -856,47 +828,77 @@ public:
 		gTransparentDrawCalls.set_capacity(0);
 	}
 
-	bool Load() override
+	bool Load(ReloadDesc* pReloadDesc) override
 	{
-		if (!CreateRenderTargetsAndSwapChain())
-			return false;
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
+		}
 
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pRenderTargetDepth
-		};
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
 
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
+			addRenderTargets();
+		}
 
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		CreatePipelines();
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
 
 		waitForAllResourceLoads();
+		prepareDescriptorSets();
 
-		PrepareDescriptorSets();
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload() override
+	void Unload(ReloadDesc* pReloadDesc) override
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
 
-		DestroyPipelines();
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeRenderTargets();
+			removeSwapChain(pRenderer, pSwapChain);
+		}
 
-		DestroyRenderTargetsAndSwapChian();
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime) override
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		resetHiresTimer(&gCpuTimer);
 
@@ -2015,7 +2017,7 @@ public:
 	/************************************************************************/
 	// Init and Exit functions
 	/************************************************************************/
-	void CreateSamplers()
+	void addSamplers()
 	{
 		SamplerDesc samplerPointDesc = {};
 		addSampler(pRenderer, &samplerPointDesc, &pSamplerPoint);
@@ -2070,7 +2072,7 @@ public:
 #endif
 	}
 
-	void DestroySamplers()
+	void removeSamplers()
 	{
 		removeSampler(pRenderer, pSamplerTrilinearAniso);
 		removeSampler(pRenderer, pSamplerBilinear);
@@ -2082,125 +2084,101 @@ public:
 #endif
 	}
 
-	void CreateShaders()
+	void addShaders()
 	{
-		// Define shader macros
-		char maxNumObjectsMacroBuffer[5] = {}; sprintf(maxNumObjectsMacroBuffer, "%i", MAX_NUM_OBJECTS);
-		char maxNumTexturesMacroBuffer[5] = {}; sprintf(maxNumTexturesMacroBuffer, "%i", TEXTURE_COUNT);
-		char aoitNodeCountMacroBuffer[5] = {}; sprintf(aoitNodeCountMacroBuffer, "%i", AOIT_NODE_COUNT);
-		char useShadowsMacroBuffer[5] = {}; sprintf(useShadowsMacroBuffer, "%i", USE_SHADOWS);
-		char useRefractionMacroBuffer[5] = {}; sprintf(useRefractionMacroBuffer, "%i", PT_USE_REFRACTION);
-		char useDiffusionMacroBuffer[5] = {}; sprintf(useDiffusionMacroBuffer, "%i", PT_USE_DIFFUSION);
-		char useCausticsMacroBuffer[5] = {}; sprintf(useCausticsMacroBuffer, "%i", PT_USE_CAUSTICS);
-
-		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", maxNumObjectsMacroBuffer };
-		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", maxNumTexturesMacroBuffer };
-		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", aoitNodeCountMacroBuffer };
-		ShaderMacro useShadowsMacro = { "USE_SHADOWS", useShadowsMacroBuffer };
-		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", useRefractionMacroBuffer };
-		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", useDiffusionMacroBuffer };
-		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", useCausticsMacroBuffer };
-
-		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro,
-									   useRefractionMacro, useDiffusionMacro,   useCausticsMacro };
-		const uint  numShaderMacros = sizeof(shaderMacros) / sizeof(shaderMacros[0]);
 
 		// Skybox shader
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 #if USE_SHADOWS != 0
 		// Shadow mapping shader
 		ShaderLoadDesc shadowShaderDesc = {};
-		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros };
-		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros };
+		shadowShaderDesc.mStages[0] = { "shadow.vert", NULL, 0 };
+		shadowShaderDesc.mStages[1] = { "shadow.frag", NULL, 0 };
 		addShader(pRenderer, &shadowShaderDesc, &pShaderShadow);
 
 		// Gaussian blur shader
 		ShaderLoadDesc blurShaderDesc = {};
-		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
-		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros };
+		blurShaderDesc.mStages[0] = { "fullscreen.vert", NULL, 0 };
+		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", NULL, 0 };
 		addShader(pRenderer, &blurShaderDesc, &pShaderGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
 		// Stochastic shadow mapping shader
 		ShaderLoadDesc stochasticShadowShaderDesc = {};
-		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &stochasticShadowShaderDesc, &pShaderPTShadow);
 
 		// Downsample shader
 		ShaderLoadDesc downsampleShaderDesc = {};
-		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		downsampleShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		downsampleShaderDesc.mStages[1] = { "downsample.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &downsampleShaderDesc, &pShaderPTDownsample);
 
 		// Shadow map copy shader
 		ShaderLoadDesc copyShadowDepthShaderDesc = {};
-		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		copyShadowDepthShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &copyShadowDepthShaderDesc, &pShaderPTCopyShadowDepth);
 #endif
 #endif
 
 		// Forward shading shader
 		ShaderLoadDesc forwardShaderDesc = {};
-		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		forwardShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		forwardShaderDesc.mStages[1] = { "forward.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &forwardShaderDesc, &pShaderForward);
 
 		// WBOIT shade shader
 		ShaderLoadDesc wboitShadeShaderDesc = {};
-		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitShadeShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitShadeShaderDesc, &pShaderWBOITShade);
 
 		// WBOIT composite shader
 		ShaderLoadDesc wboitCompositeShaderDesc = {};
-		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitCompositeShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitCompositeShaderDesc, &pShaderWBOITComposite);
 
 		// WBOIT Volition shade shader
 		ShaderLoadDesc wboitVolitionShadeShaderDesc = {};
-		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitVolitionShadeShaderDesc, &pShaderWBOITVShade);
 
 		// WBOIT Volition composite shader
 		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
-		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
-		ShaderMacro ptShaderMacros[numShaderMacros + 1];
-		for (uint32_t i = 0; i < numShaderMacros; ++i)
-			ptShaderMacros[i] = shaderMacros[i];
-		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
-		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
 
 		// PT composite shader
 		ShaderLoadDesc ptCompositeShaderDesc = {};
-		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCompositeShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptCompositeShaderDesc, &pShaderPTComposite);
 
 #if PT_USE_DIFFUSION != 0
 		// PT copy depth shader
 		ShaderLoadDesc ptCopyShaderDesc = {};
-		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCopyShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptCopyShaderDesc.mStages[1] = { "copy.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptCopyShaderDesc, &pShaderPTCopyDepth);
 
 		// PT generate mips shader
 		ShaderLoadDesc ptGenMipsShaderDesc = {};
-		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 		addShader(pRenderer, &ptGenMipsShaderDesc, &pShaderPTGenMips);
 #endif
 
@@ -2209,26 +2187,26 @@ public:
 		{
 			// AOIT shade shader
 			ShaderLoadDesc aoitShadeShaderDesc = {};
-			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitShadeShaderDesc.mStages[1] = { "AdaptiveOIT.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitShadeShaderDesc.mStages[0] = { "forward.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitShadeShaderDesc.mStages[1] = { "AdaptiveOIT.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
 
 			// AOIT composite shader
 			ShaderLoadDesc aoitCompositeShaderDesc = {};
-			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitCompositeShaderDesc.mStages[1] = { "AdaptiveOITComposite.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitCompositeShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitCompositeShaderDesc.mStages[1] = { "AdaptiveOITComposite.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
 
 			// AOIT clear shader
 			ShaderLoadDesc aoitClearShaderDesc = {};
-			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-			aoitClearShaderDesc.mStages[1] = { "AdaptiveOITClear.frag", shaderMacros, numShaderMacros, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitClearShaderDesc.mStages[0] = { "fullscreenMultiView.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+			aoitClearShaderDesc.mStages[1] = { "AdaptiveOITClear.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
 		}
 #endif
 	}
 
-	void DestroyShaders()
+	void removeShaders()
 	{
 		removeShader(pRenderer, pShaderSkybox);
 #if USE_SHADOWS != 0
@@ -2261,7 +2239,7 @@ public:
 #endif
 	}
 
-	void CreateRootSignatures()
+	void addRootSignatures()
 	{
 		// Define static samplers
 		const char* skyboxSamplerName = "SkySampler";
@@ -2414,7 +2392,7 @@ public:
 #endif
 	}
 
-	void DestroyRootSignatures()
+	void removeRootSignatures()
 	{
 		removeRootSignature(pRenderer, pRootSignatureSkybox);
 #if USE_SHADOWS != 0
@@ -2441,7 +2419,7 @@ public:
 #endif
 	}
 
-	void CreateDescriptorSets()
+	void addDescriptorSets()
 	{
 		// Skybox
 		DescriptorSetDesc setDesc = { pRootSignatureSkybox, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
@@ -2495,7 +2473,7 @@ public:
 #endif
 	}
 
-	void DestroyDescriptorSets()
+	void removeDescriptorSets()
 	{
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
@@ -2521,7 +2499,7 @@ public:
 #endif
 	}
 
-	void PrepareDescriptorSets()
+	void prepareDescriptorSets()
 	{
 		// Skybox
 		{
@@ -2734,9 +2712,9 @@ public:
 #endif
 	}
 
-	void CreateResources()
+	void addResources()
 	{
-		LoadTextures();
+		addTextures();
 
 		const float gSkyboxPointArray[] = {
 			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
@@ -2848,7 +2826,7 @@ public:
 #endif
 	}
 
-	void DestroyResources()
+	void removeResources()
 	{
 		removeResource(pBufferSkyboxVertex);
 #if USE_SHADOWS != 0
@@ -2869,11 +2847,11 @@ public:
 #endif
 #endif
 
-		DestroyTextures();
-		DestroyModels();
+		removeTextures();
+		removeModels();
 	}
 
-	void LoadModel(size_t m)
+	void addModel(size_t m)
 	{
 		static const char* modelNames[MESH_COUNT] = { "cube.gltf", "sphere.gltf", "plane.gltf", "lion.gltf" };
 
@@ -2884,7 +2862,7 @@ public:
 		addResource(&loadDesc, NULL);
 	}
 
-	void LoadModels()
+	void addModels()
 	{
 		vertexLayoutDefault.mAttribCount = 3;
 		vertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -2905,17 +2883,17 @@ public:
 
 		for (size_t i = 0; i < MESH_COUNT; i += 1)
 		{
-			LoadModel(i);
+			addModel(i);
 		}
 	}
 
-	void DestroyModels()
+	void removeModels()
 	{
 		for (int i = 0; i < MESH_COUNT; ++i)
 			removeResource(pMeshes[i]);
 	}
 
-	void LoadTextures()
+	void addTextures()
 	{
 		const char* textureNames[TEXTURE_COUNT] = {
 			"skybox/hw_sahara/sahara_rt",
@@ -2938,13 +2916,13 @@ public:
 		}
 	}
 
-	void DestroyTextures()
+	void removeTextures()
 	{
 		for (uint i = 0; i < TEXTURE_COUNT; ++i)
 			removeResource(pTextures[i]);
 	}
 
-	void CreateUniformBuffers()
+	void addUniformBuffers()
 	{
 		BufferLoadDesc materialUBDesc = {};
 		materialUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3035,7 +3013,7 @@ public:
 		}
 	}
 
-	void DestroyUniformBuffers()
+	void removeUniformBuffers()
 	{
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -3053,7 +3031,29 @@ public:
 	/************************************************************************/
 	// Load and Unload functions
 	/************************************************************************/
-	bool CreateRenderTargetsAndSwapChain() const
+	bool addSwapChain()
+	{
+		const uint32_t width = mSettings.mWidth;
+		const uint32_t height = mSettings.mHeight;
+		SwapChainDesc  swapChainDesc = {};
+		swapChainDesc.mWindowHandle = pWindow->handle;
+		swapChainDesc.mPresentQueueCount = 1;
+		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
+		swapChainDesc.mWidth = width;
+		swapChainDesc.mHeight = height;
+		swapChainDesc.mImageCount = gImageCount;
+		// This unit test doesn't support SRGB swapchain
+		// TODO: Add tone mapping as a separate pass
+		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, false);
+		swapChainDesc.mColorClearValue = { {1, 0, 1, 1} };
+
+		swapChainDesc.mEnableVsync = false;
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	bool addRenderTargets() const
 	{
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
@@ -3085,30 +3085,7 @@ public:
 		depthRT.pName = "Depth RT PT";
 		addRenderTarget(pRenderer, &depthRT, &pRenderTargetPTDepthCopy);
 #endif
-		/************************************************************************/
-		// Swapchain
-		/************************************************************************/
-		{
-			const uint32_t width = mSettings.mWidth;
-			const uint32_t height = mSettings.mHeight;
-			SwapChainDesc  swapChainDesc = {};
-			swapChainDesc.mWindowHandle = pWindow->handle;
-			swapChainDesc.mPresentQueueCount = 1;
-			swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-			swapChainDesc.mWidth = width;
-			swapChainDesc.mHeight = height;
-			swapChainDesc.mImageCount = gImageCount;
-			// This unit test doesn't support SRGB swapchain
-			// TODO: Add tone mapping as a separate pass
-			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, false);
-			swapChainDesc.mColorClearValue = {{1, 0, 1, 1}};
 
-			swapChainDesc.mEnableVsync = false;
-			::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
-
-			if (pSwapChain == NULL)
-				return false;
-		}
 		/************************************************************************/
 		// WBOIT render targets
 		/************************************************************************/
@@ -3233,7 +3210,7 @@ public:
 		return true;
 	}
 
-	void DestroyRenderTargetsAndSwapChian()
+	void removeRenderTargets()
 	{
 #if AOIT_ENABLE
 		if (pRenderer->pActiveGpuSettings->mROVsSupported)
@@ -3263,10 +3240,9 @@ public:
 			removeRenderTarget(pRenderer, pRenderTargetPT[i]);
 		}
 		removeRenderTarget(pRenderer, pRenderTargetPTBackground);
-		removeSwapChain(pRenderer, pSwapChain);
 	}
 
-	void CreatePipelines()
+	void addPipelines()
 	{
 		// Define vertex layouts
 		VertexLayout vertexLayoutSkybox = {};
@@ -3731,7 +3707,7 @@ public:
 #endif
 	}
 
-	void DestroyPipelines()
+	void removePipelines()
 	{
 		removePipeline(pRenderer, pPipelineSkybox);
 #if USE_SHADOWS != 0
@@ -3797,49 +3773,27 @@ void GuiController::AddGui()
 		"(WBOIT) Weighted blended order independent transparency - Volition",
 		"(PT) Phenomenological transparency",
 #if AOIT_ENABLE
-		"(AOIT) Adaptive order independent transparency",
+		"(AOIT) Adaptive order independent transparency"
 #endif
-		NULL    //needed for unix
 	};
 
-	static const uint32_t transparencyTypeValues[] = {
-		TRANSPARENCY_TYPE_ALPHA_BLEND,
-		TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT,
-		TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION,
-		TRANSPARENCY_TYPE_PHENOMENOLOGICAL,
-#if AOIT_ENABLE
-		TRANSPARENCY_TYPE_ADAPTIVE_OIT,
-#endif
-		0    //needed for unix
-	};
-
-	uint32_t dropDownCount = 4;
-#if AOIT_ENABLE
-	if (pRenderer->pActiveGpuSettings->mROVsSupported)
-		dropDownCount = 5;
-#endif
+	uint32_t dropDownCount = sizeof(transparencyTypeNames) / sizeof(transparencyTypeNames[0]);
 
 	DropdownWidget ddTestScripts;
 	ddTestScripts.pData = &gCurrentScriptIndex;
-	for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
-	{
-		ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
-		ddTestScripts.mValues.push_back(gScriptIndexes[i]);
-	}
+	ddTestScripts.pNames = gTestScripts;
+	ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
 	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 	ButtonWidget bRunScript;
 	UIWidget* pRunScript = uiCreateComponentWidget(pGuiWindow, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+	uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
 	luaRegisterWidget(pRunScript);
 
 	DropdownWidget ddTransparency;
 	ddTransparency.pData = &gTransparencyType;
-	for (uint32_t i = 0; i < dropDownCount; ++i)
-	{
-		ddTransparency.mNames.push_back((char*)transparencyTypeNames[i]);
-		ddTransparency.mValues.push_back(transparencyTypeValues[i]);
-	}
+	ddTransparency.pNames = transparencyTypeNames;
+	ddTransparency.mCount = dropDownCount;
 	luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Transparency Type", &ddTransparency, WIDGET_TYPE_DROPDOWN));
 
 	// TRANSPARENCY_TYPE_ALPHA_BLEND Widgets
@@ -3894,8 +3848,8 @@ void GuiController::AddGui()
 
 		ButtonWidget resetButton;
 		UIWidget* pResetButton = uiCreateDynamicWidgets(&GuiController::weightedBlendedOitDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-		WidgetCallback resetCallback = ([]() { gWBOITSettingsData = WBOITSettings(); });
-		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, resetCallback);
+		WidgetCallback resetCallback = ([](void* pUserData) { gWBOITSettingsData = WBOITSettings(); });
+		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, nullptr, resetCallback);
 		luaRegisterWidget(pResetButton);
 	}
 	// TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION Widgets
@@ -3941,8 +3895,8 @@ void GuiController::AddGui()
 
 		ButtonWidget resetButton;
 		UIWidget* pResetButton = uiCreateDynamicWidgets(&GuiController::weightedBlendedOitVolitionDynamicWidgets, "Reset", &resetButton, WIDGET_TYPE_BUTTON);
-		WidgetCallback resetCallback = ([]() { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
-		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, resetCallback); 
+		WidgetCallback resetCallback = ([](void* pUserData) { gWBOITVolitionSettingsData = WBOITVolitionSettings(); });
+		uiSetWidgetOnDeactivatedAfterEditCallback(pResetButton, nullptr, resetCallback); 
 		luaRegisterWidget(pResetButton);
 	}
 

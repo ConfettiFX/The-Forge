@@ -11,12 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c" />
     <ClCompile Include="..\..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\ShaderList.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
@@ -33,7 +34,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6E3EA66-19D5-46EE-B111-877DD965AB89}</ProjectGuid>
@@ -77,6 +78,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -97,21 +99,27 @@
       <Outputs>
       </Outputs>
     </CustomBuildStep>
-    <FSLShader />
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\sprites.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 </Command>
     </PreLinkEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -156,18 +164,18 @@ xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir
       <Outputs>
       </Outputs>
     </CustomBuildStep>
-    <FSLShader />
     <PreLinkEvent>
       <Command>xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
 
-xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\
 
 xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\sprites.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
 
-xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d
 </Command>
     </PreLinkEvent>
     <PreBuildEvent />

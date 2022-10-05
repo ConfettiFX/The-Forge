@@ -22,8 +22,13 @@
 * under the License.
 */
 
+#if VR_MULTIVIEW_ENABLED
+RES(RTex2DArray(float3), Source, UPDATE_FREQ_PER_DRAW, u0, binding = 0);
+RES(WTex2DArray(float3), Destination, UPDATE_FREQ_PER_DRAW, u1, binding = 1);
+#else
 RES(RTex2D(float3), Source, UPDATE_FREQ_PER_DRAW, u0, binding = 0);
 RES(WTex2D(float3), Destination, UPDATE_FREQ_PER_DRAW, u1, binding = 1);
+#endif
 
 PUSH_CONSTANT(RootConstant, b0)
 {
@@ -40,9 +45,19 @@ void CS_MAIN( SV_DispatchThreadID(uint3) id)
 		UNROLL for (int x = 0; x < 2; ++x)
 		{
 			UNROLL for (int y = 0; y < 2; ++y)
+			{
+#if VR_MULTIVIEW_ENABLED
+				color += LoadRWTex3D(Get(Source), uint3(id.xy * 2 + uint2(x, y), id.z)).rgb;
+#else
 				color += LoadRWTex2D(Get(Source), id.xy * 2 + uint2(x, y)).rgb;
+#endif
+			}
 		}
+#if VR_MULTIVIEW_ENABLED
+		Write3D(Get(Destination), id.xyz, color * 0.25f);
+#else
 		Write2D(Get(Destination), id.xy, color * 0.25f);
+#endif
 	}
 	RETURN();
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="AssetPipelineCmd" Version="10.0.0" InternalType="Console">
+<CodeLite_Project Name="AssetPipelineCmd" Version="11000" InternalType="Console">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -8,26 +8,26 @@
   <VirtualDirectory Name="src">
     <File Name="../src/AssetPipelineCmd.cpp"/>
     <File Name="../src/AssetPipeline.cpp"/>
-    <File Name="../../../ThirdParty/OpenSource/TressFX/TressFXAsset.cpp"/>
+    <File Name="../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXAsset.cpp"/>
   </VirtualDirectory>
   <Description/>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../FileSystem/IToolFileSystem.h"/>
-    <File Name="../../FileSystem/LinuxToolsFileSystem.cpp"/>
+    <File Name="../../../OS/Linux/LinuxToolsFileSystem.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
-    <Project Name="ozz_base"/>
     <Project Name="OS"/>
+    <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
-    <Project Name="EASTL"/>
+    <Project Name="astc-encoder"/>
   </Dependencies>
   <Dependencies Name="Release">
-    <Project Name="ozz_base"/>
     <Project Name="OS"/>
+    <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
-    <Project Name="EASTL"/>
+    <Project Name="astc-encoder"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -40,23 +40,23 @@
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-Wall;-Wno-unknown-pragmas;-Werror;" C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../ThirdParty/OpenSource/ozz-animation/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_animation/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_base/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_animation/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/astc-encoder/Debug"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
-        <Library Value="libEASTL.a"/>
+        <Library Value="libastc-encoder.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="-pa /home/confetti/Desktop/Gitlab/The-Forge/Examples_3/Unit_Tests/UnitTestResources/Animation/ /home/confetti/Desktop/Gitlab/The-Forge/Examples_3/Unit_Tests/UnitTestResources/Animation/" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(WorkspacePath)/Bin/Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="yes" DebugArguments="-pwza --input ../../../../../Examples_3/Unit_Tests/UnitTestResources/ProcessedFiles --output ../../../../../Examples_3/Unit_Tests/UnitTestResources/ZipFiles --name 28-ZipFileSystem.zip" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>
@@ -92,24 +92,24 @@
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-O2;-Wall;-Werror;-Wno-stringop-overflow;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../ThirdParty/OpenSource/ozz-animation/include"/>
+        <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
       <Linker Options="-pthread" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_base/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(WorkspacePath)/ozz_animation/$(IntermediateDirectory)"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_base/Release"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Release"/>
+        <LibraryPath Value="$(WorkspacePath)/ozz_animation/Release"/>
+        <LibraryPath Value="$(WorkspacePath)/astc-encoder/Release"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
-        <Library Value="libEASTL.a"/>
+        <Library Value="libastc-encoder.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
-      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="processanimations &quot;../../../../../Examples_3/Unit_Tests_Animation/UnitTestResources/Animation/fbx&quot; &quot;test&quot;" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(WorkspacePath)/Bin/Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
       <BuildSystem Name="Default"/>
       <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
         <![CDATA[]]>

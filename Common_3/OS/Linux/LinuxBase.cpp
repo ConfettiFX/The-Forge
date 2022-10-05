@@ -22,11 +22,11 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef __linux__
 
-#include "../Core/CPUConfig.h"
+#include "../CPUConfig.h"
 
 #include <ctime>
 #include <X11/Xlib.h>
@@ -36,28 +36,26 @@
 
 #include <gtk/gtk.h>
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
+#include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/IProfiler.h"
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
 
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IFont.h"
-#include "../Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IUI.h"
 
-#include "../../Renderer/IRenderer.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
 
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 static IApp* pApp = NULL;
 static WindowDesc* gWindowDesc = NULL;
@@ -79,7 +77,7 @@ extern Display*      gDefaultDisplay;
 
 static bool         gQuit;
 
-static uint8_t gResetScenario = RESET_SCENARIO_NONE;
+static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
 static bool    gShowPlatformUI = true;
 
 /// CPU
@@ -95,19 +93,9 @@ CpuInfo* getCpuInfo() {
 	return &gCpu;
 }
 
-void onRequestReload()
+void requestReload(const ReloadDesc* pReloadDesc)
 {
-	gResetScenario |= RESET_SCENARIO_RELOAD;
-}
-
-void onDeviceLost()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
-}
-
-void onAPISwitch()
-{
-	// NOT SUPPORTED ON THIS PLATFORM
+	gReloadDescriptor = *pReloadDesc;
 }
 
 void requestShutdown()
@@ -333,9 +321,9 @@ int LinuxMain(int argc, char** argv, IApp* app)
     setupPlatformUI(pSettings->mWidth, pSettings->mHeight); 
 	pApp->mSettings.mInitialized = true;
 
-	if (!pApp->Load())
+	if (!pApp->Load(&gReloadDescriptor))
 		return EXIT_FAILURE;
-		
+            
 #ifdef AUTOMATED_TESTING
 	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
 #endif
@@ -360,17 +348,21 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 		gQuit = handleMessages(gWindowDesc);
 
-		if (gResetScenario & RESET_SCENARIO_RELOAD)
+		if (gReloadDescriptor.mType != RELOAD_TYPE_ALL)
 		{
-			pApp->Unload();
+			Timer t;
+			initTimer(&t);
 
-			if (!pApp->Load())
+			pApp->Unload(&gReloadDescriptor);
+			
+			if (!pApp->Load(&gReloadDescriptor))
 				return EXIT_FAILURE;
 
-			gResetScenario &= ~RESET_SCENARIO_RELOAD;
+			LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
 			continue;
 		}
-
+        
 		// If window is minimized let other processes take over
 		if (gWindow.minimized)
 		{
@@ -414,7 +406,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	pApp->mSettings.mQuit = true;
 	restoreResolutions();
 
-	pApp->Unload();
+	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+	pApp->Unload(&gReloadDescriptor);
 
 	closeWindow(&gWindow);
 	destroyMonitorInfo();

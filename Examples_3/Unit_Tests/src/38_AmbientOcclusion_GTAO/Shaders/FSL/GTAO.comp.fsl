@@ -1,0 +1,529 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+// Uncomment this definition to use ray differentials method for calculating
+// gradients instead of screen-space projected triangles method.
+// #define USE_RAY_DIFFERENTIALS
+
+#include "packing.h"
+#include "triangle_helper.h"
+#include "shader_defs.h"
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The following code is a port of XeGTAO implementation that can be found at: https://github.com/GameTechDev/XeGTAO
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define PI       (3.1415926535897932384626433832795)
+#define PI_HALF  (1.5707963267948966192313216916398)
+
+#define XE_GTAO_OCCLUSION_TERM_SCALE (1.0f) // (1.5f) for packing in UNORM (because raw, pre-denoised occlusion term can overshoot 1 but will later average out to 1)
+
+CBUFFER(cbGTAOConsts, UPDATE_FREQ_NONE, b0, binding = 0)
+{
+	DATA(float2, ViewportPixelSize, None);
+    DATA(float2, NDCToViewMul, None);
+    DATA(float2, NDCToViewAdd, None);
+    DATA(float2, NDCToViewMul_x_PixelSize, None);
+	DATA(float, EffectRadius, None);
+    DATA(float, EffectFalloffRange, None);
+    DATA(float, RadiusMultiplier, None);
+	DATA(float, SampleDistributionPower, None);
+	DATA(float, ThinOccluderCompensation, None);
+	DATA(float, SliceCount, None);
+	DATA(float, StepsPerSlice, None);
+    DATA(float, DepthMIPSamplingOffset, None);
+    DATA(float, FinalValuePower, None);
+	DATA(uint, NoiseIndex, None);
+    DATA(float, DenoiseBlurBeta, None);
+};
+
+CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
+{
+	DATA(float4x4, view, None);
+	DATA(float4x4, projView, None);
+	DATA(float4x4, prevProjView, None);
+    DATA(float4x4, proj, None);
+    DATA(float4x4, invProjView, None);
+	DATA(float4, camPos, None);
+    DATA(float, zNear, None);
+    DATA(float, zFar, None);
+};
+
+CBUFFER(cbObject, UPDATE_FREQ_NONE, b2, binding = 2)
+{
+	DATA(float4x4, worldMat, None);
+};
+
+PUSH_CONSTANT(RootConstant, b3)
+{
+	DATA(float, UseMipLevels, None);
+};
+
+RES(Tex2D(float), g_viewspaceDepth, UPDATE_FREQ_NONE, t0, binding = 3);
+
+RES(RWTex2D(float), g_outWorkingAOTerm, UPDATE_FREQ_NONE, u0, binding = 5);
+RES(RWTex2D(float), g_outWorkingEdges, UPDATE_FREQ_NONE, u1, binding = 6);
+RES(WTex2D(float4), g_outDebugViewNormals, UPDATE_FREQ_NONE, u2, binding = 17);
+RES(WTex2D(float4), g_outDebugViewNormalsNegated, UPDATE_FREQ_NONE, u3, binding = 18);
+RES(WTex2D(float4), g_outDebugViewspacePositions, UPDATE_FREQ_NONE, u4, binding = 19);
+
+RES(Tex2D(float4), g_vbTex, UPDATE_FREQ_NONE, t1, binding = 7);
+
+RES(ByteBuffer, g_indices, UPDATE_FREQ_NONE, t2, binding = 8);
+RES(ByteBuffer, g_vertexNormals, UPDATE_FREQ_NONE, t3, binding = 9);
+RES(ByteBuffer, g_vertexPositions, UPDATE_FREQ_NONE, t4, binding = 10);
+RES(Buffer(uint), g_drawArgs_opaque, UPDATE_FREQ_NONE, t5, binding = 11);
+RES(Buffer(uint), g_drawArgs_alphatest, UPDATE_FREQ_NONE, t6, binding = 12);
+RES(Buffer(uint), g_indirectMaterialBuffer, UPDATE_FREQ_NONE, t7, binding = 13);
+RES(Buffer(uint), g_isTwoSidedMaterialBuffer, UPDATE_FREQ_NONE, t8, binding = 14);
+
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s0, binding = 15);
+RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s1, binding = 16);
+
+float4 XeGTAO_CalculateEdges( const float centerZ, const float leftZ, const float rightZ, const float topZ, const float bottomZ )
+{
+    float4 edgesLRTB = float4( leftZ, rightZ, topZ, bottomZ ) - centerZ;
+
+    float slopeLR = (edgesLRTB.y - edgesLRTB.x) * 0.5f;
+    float slopeTB = (edgesLRTB.w - edgesLRTB.z) * 0.5f;
+    float4 edgesLRTBSlopeAdjusted = edgesLRTB + float4( slopeLR, -slopeLR, slopeTB, -slopeTB );
+    edgesLRTB = min( abs( edgesLRTB ), abs( edgesLRTBSlopeAdjusted ) );
+    return float4(saturate( ( 1.25 - edgesLRTB / (centerZ * 0.011) ) ));
+}
+
+// packing/unpacking for edges; 2 bits per edge mean 4 gradient values (0, 0.33, 0.66, 1) for smoother transitions!
+float XeGTAO_PackEdges( float4 edgesLRTB )
+{
+    // integer version:
+    // edgesLRTB = saturate(edgesLRTB) * 2.9f.xxxx + 0.5f.xxxx;
+    // return (((uint)edgesLRTB.x) << 6) + (((uint)edgesLRTB.y) << 4) + (((uint)edgesLRTB.z) << 2) + (((uint)edgesLRTB.w));
+    // 
+    // optimized, should be same as above
+    edgesLRTB = round( clamp( edgesLRTB, 0.0f, 1.0f ) * 2.9f );
+    return dot( edgesLRTB, float4( 64.0f / 255.0f, 16.0f / 255.0f, 4.0f / 255.0f, 1.0f / 255.0f ) ) ;
+}
+
+// Inputs are screen XY and viewspace depth, output is viewspace position
+float3 XeGTAO_ComputeViewspacePosition( const float2 screenPos, const float viewspaceDepth)
+{
+    float3 ret;
+    ret.xy = (Get(NDCToViewMul) * screenPos.xy + Get(NDCToViewAdd)) * float2(viewspaceDepth, viewspaceDepth);
+    ret.z = viewspaceDepth;
+    return ret;
+}
+
+void XeGTAO_OutputWorkingTerm( const uint2 pixCoord, float visibility, float3 bentNormal)
+{
+    visibility = clamp( visibility / float(XE_GTAO_OCCLUSION_TERM_SCALE), 0.0f, 1.0f );
+    Write2D(Get(g_outWorkingAOTerm), pixCoord, visibility);
+}
+
+void XeGTAO_MainPass(const uint2 pixCoord, const float2 localNoise, float3 viewspaceNormal)
+{
+    float2 normalizedScreenPos = (float2(pixCoord) + float2(0.5f, 0.5f)) * Get(ViewportPixelSize);
+	
+	float4 valuesUL = GatherRedTex2D(Get(g_viewspaceDepth), Get(depthSampler), float2(pixCoord              ) * Get(ViewportPixelSize) );
+    float4 valuesBR = GatherRedTex2D(Get(g_viewspaceDepth), Get(depthSampler), float2(pixCoord + uint2(1, 1)) * Get(ViewportPixelSize) );
+
+    // viewspace Z at the center
+    float viewspaceZ  = valuesUL.y;
+
+    // viewspace Zs left top right bottom
+    const float pixLZ = valuesUL.x;
+    const float pixTZ = valuesUL.z;
+    const float pixRZ = valuesBR.z;
+    const float pixBZ = valuesBR.x;
+
+    float4 edgesLRTB  = XeGTAO_CalculateEdges( viewspaceZ,pixLZ, pixRZ, pixTZ, pixBZ );
+    Write2D(Get(g_outWorkingEdges), pixCoord, XeGTAO_PackEdges(edgesLRTB));
+
+    // Move center pixel slightly towards camera to avoid imprecision artifacts due to depth buffer imprecision; offset depends on depth texture format used
+#ifdef METAL
+	// TODO: Look into this issue. For some reason in metal we need a bigger movement of the pixel, otherwise surfaces facing towards the left are darkened.
+    viewspaceZ *= 0.999f;
+#else
+	viewspaceZ *= 0.99999f;     // this is good for FP32 depth buffer
+#endif
+
+    const float3 viewPos = XeGTAO_ComputeViewspacePosition( normalizedScreenPos, viewspaceZ );
+    const float3 viewVec = normalize(-viewPos);
+    
+    // prevents normals that are facing away from the view vector - xeGTAO struggles with extreme cases, but in Vanilla it seems rare so it's disabled by default
+    // viewspaceNormal = normalize( viewspaceNormal + max( 0, -dot( viewspaceNormal, viewVec ) ) * viewVec );
+
+    Write2D(Get(g_outDebugViewspacePositions), pixCoord, float4(viewPos, 1.f));
+    Write2D(Get(g_outDebugViewNormals), pixCoord, float4(viewspaceNormal, 1.f));
+    Write2D(Get(g_outDebugViewNormalsNegated), pixCoord, float4(-viewspaceNormal, 1.f));
+
+    const float effectRadius              = Get(EffectRadius) * Get(RadiusMultiplier);
+    const float sampleDistributionPower   = Get(SampleDistributionPower);
+    const float thinOccluderCompensation  = Get(ThinOccluderCompensation);
+    const float falloffRange              = Get(EffectFalloffRange) * effectRadius;
+
+    const float falloffFrom       = effectRadius * (1.f - Get(EffectFalloffRange));
+
+    // fadeout precompute optimisation
+    const float falloffMul        = -1.0f / ( falloffRange );
+    const float falloffAdd        = falloffFrom / ( falloffRange ) + 1.0f;
+
+    float visibility = 0;
+    float3 bentNormal = viewspaceNormal;
+
+    // see "Algorithm 1" in https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
+    {
+        const float noiseSlice  = localNoise.x;
+        const float noiseSample = localNoise.y;
+
+        // quality settings / tweaks / hacks
+        const float pixelTooCloseThreshold  = 1.3f;      // if the offset is under approx pixel size (pixelTooCloseThreshold), push it out to the minimum distance
+
+        // approx viewspace pixel size at pixCoord; approximation of NDCToViewspace( normalizedScreenPos.xy + consts.ViewportPixelSize.xy, viewPos.z ).xy - viewPos.xy;
+        const float2 pixelDirRBViewspaceSizeAtCenterZ = float2(viewspaceZ, viewspaceZ) * Get(NDCToViewMul_x_PixelSize);
+
+        float screenspaceRadius = effectRadius / pixelDirRBViewspaceSizeAtCenterZ.x;
+
+        // fade out for small screen radii 
+        visibility += saturate((10.f - screenspaceRadius) / 100.f) * 0.5f;
+
+        // this is the min distance to start sampling from to avoid sampling from the center pixel (no useful data obtained from sampling center pixel)
+        const float minS = pixelTooCloseThreshold / screenspaceRadius;
+
+        float sliceCount = Get(SliceCount);
+        /*UNROLL*/ for( float slice = 0; slice < sliceCount; slice++ )
+        {
+            float sliceK = (slice + noiseSlice) / sliceCount;
+            // lines 5, 6 from the paper
+            float phi = sliceK * PI;
+            float cosPhi = cos(phi);
+            float sinPhi = sin(phi);
+            float2 omega = float2(cosPhi, -sinPhi);
+
+            // convert to screen units (pixels) for later use
+            omega *= screenspaceRadius;
+
+            // line 8 from the paper
+            const float3 directionVec = float3(cosPhi, sinPhi, 0);
+
+            // line 9 from the paper
+            const float3 orthoDirectionVec = directionVec - (dot(directionVec, viewVec) * viewVec);
+
+            // line 10 from the paper
+            //axisVec is orthogonal to directionVec and viewVec, used to define projectedNormal
+            const float3 axisVec = normalize( cross(orthoDirectionVec, viewVec) );
+
+            // alternative line 9 from the paper
+            // float3 orthoDirectionVec = cross( viewVec, axisVec );
+
+            // line 11 from the paper
+            float3 projectedNormalVec = viewspaceNormal - axisVec * dot(viewspaceNormal, axisVec);
+
+            // line 13 from the paper
+            float signNorm = float( sign( dot( orthoDirectionVec, projectedNormalVec ) ) );
+
+            // line 14 from the paper
+            float projectedNormalVecLength = length(projectedNormalVec);
+            float cosNorm = clamp(dot(projectedNormalVec, viewVec) / projectedNormalVecLength, 0.0f, 1.0f);
+
+            // line 15 from the paper
+            float n = signNorm * acos(cosNorm); // Fast acos can be used here for better performance
+
+            // this is a lower weight target; not using -1 as in the original paper because it is under horizon, so a 'weight' has different meaning based on the normal
+            const float lowHorizonCos0  = cos(n + PI_HALF);
+            const float lowHorizonCos1  = cos(n - PI_HALF);
+
+            // lines 17, 18 from the paper, manually unrolled the 'side' loop
+            float horizonCos0           = lowHorizonCos0; //-1;
+            float horizonCos1           = lowHorizonCos1; //-1;
+
+            const float stepsPerSlice = Get(StepsPerSlice);
+            /*UNROLL*/ for( float step = 0; step < stepsPerSlice; step++ ) // TODO: figure out why can't this loop be unrolled
+            {
+                // R1 sequence (http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
+                const float stepBaseNoise = float(slice + step * stepsPerSlice) * 0.6180339887498948482; // <- this should unroll
+                float stepNoise = frac( noiseSample + stepBaseNoise );
+
+                // approx line 20 from the paper, with added noise
+                float s = (step+stepNoise) / (stepsPerSlice);
+
+                // additional distribution modifier
+                s       = pow( s, sampleDistributionPower );
+
+                // avoid sampling center pixel
+                s       += minS;
+
+                // approx lines 21-22 from the paper, unrolled
+                float2 sampleOffset = s * omega;
+
+                float sampleOffsetLength = length( sampleOffset );
+
+                // note: when sampling, using point_point_point or point_point_linear sampler works, but linear_linear_linear will cause unwanted interpolation between neighbouring depth values on the same MIP level!
+                const float mipLevel    = (Get(UseMipLevels) != 0.0f) ? clamp( log2( sampleOffsetLength ) - Get(DepthMIPSamplingOffset), 0.f, 5.f ) : 0;
+
+                // Snap to pixel center (more correct direction math, avoids artifacts due to sampling pos not matching depth texel center - messes up slope - but adds other 
+                // artifacts due to them being pushed off the slice). Also use full precision for high res cases.
+                sampleOffset = round(sampleOffset) * Get(ViewportPixelSize);
+
+                float2 sampleScreenPos0 = normalizedScreenPos + sampleOffset;
+                float  SZ0 = SampleLvlTex2D( Get(g_viewspaceDepth), Get(depthSampler), sampleScreenPos0, mipLevel ).x;
+                float3 samplePos0 = XeGTAO_ComputeViewspacePosition( sampleScreenPos0, SZ0 );
+
+                float2 sampleScreenPos1 = normalizedScreenPos - sampleOffset;
+                float  SZ1 = SampleLvlTex2D( Get(g_viewspaceDepth), Get(depthSampler), sampleScreenPos1, mipLevel ).x;
+                float3 samplePos1 = XeGTAO_ComputeViewspacePosition( sampleScreenPos1, SZ1 );
+
+                float3 sampleDelta0   = samplePos0 - viewPos;
+                float3 sampleDelta1   = samplePos1 - viewPos;
+
+                // approx lines 23, 24 from the paper, unrolled
+                float3 sampleHorizonVec0 = normalize(sampleDelta0);
+                float3 sampleHorizonVec1 = normalize(sampleDelta1);
+
+                // any sample out of radius should be discarded - also use fallof range for smooth transitions; this is a modified idea from "4.3 Implementation details, Bounding the sampling area"
+/*#if XE_GTAO_USE_DEFAULT_CONSTANTS != 0 && XE_GTAO_DEFAULT_THIN_OBJECT_HEURISTIC == 0
+                float weight0         = saturate( sampleDist0 * falloffMul + falloffAdd );
+                float weight1         = saturate( sampleDist1 * falloffMul + falloffAdd );
+#else*/
+                // this is our own thickness heuristic that relies on sooner discarding samples behind the center
+                float falloffBase0    = length( float3(sampleDelta0.x, sampleDelta0.y, sampleDelta0.z * (1+thinOccluderCompensation) ) );
+                float falloffBase1    = length( float3(sampleDelta1.x, sampleDelta1.y, sampleDelta1.z * (1+thinOccluderCompensation) ) );
+                float weight0         = clamp( falloffBase0 * falloffMul + falloffAdd, 0.0f, 1.0f );
+                float weight1         = clamp( falloffBase1 * falloffMul + falloffAdd, 0.0f, 1.0f );
+//#endif
+
+                // sample horizon cos 
+                float shc0 = dot(sampleHorizonVec0, viewVec);
+                float shc1 = dot(sampleHorizonVec1, viewVec);
+
+                // discard unwanted samples
+                shc0 = lerp( lowHorizonCos0, shc0, weight0 ); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos0), acos(shc0), weight0 ));
+                shc1 = lerp( lowHorizonCos1, shc1, weight1 ); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos1), acos(shc1), weight1 ));
+
+                // thickness heuristic - see "4.3 Implementation details, Height-field assumption considerations"
+#if 0   // (disabled, not used) this should match the paper
+                float newhorizonCos0 = max( horizonCos0, shc0 );
+                float newhorizonCos1 = max( horizonCos1, shc1 );
+                horizonCos0 = (horizonCos0 > shc0)?( lerp( newhorizonCos0, shc0, thinOccluderCompensation ) ):( newhorizonCos0 );
+                horizonCos1 = (horizonCos1 > shc1)?( lerp( newhorizonCos1, shc1, thinOccluderCompensation ) ):( newhorizonCos1 );
+#elif 0 // (disabled, not used) this is slightly different from the paper but cheaper and provides very similar results
+                horizonCos0 = lerp( max( horizonCos0, shc0 ), shc0, thinOccluderCompensation );
+                horizonCos1 = lerp( max( horizonCos1, shc1 ), shc1, thinOccluderCompensation );
+#else   // this is a version where thicknessHeuristic is completely disabled
+                horizonCos0 = max( horizonCos0, shc0 );
+                horizonCos1 = max( horizonCos1, shc1 );
+#endif
+            }
+
+#if 1       // XeGTAO does this for fixing slight overdarkening on high slopes.
+            projectedNormalVecLength = lerp( projectedNormalVecLength, 1, 0.05 );
+#endif
+
+            // line ~27, unrolled
+            float h0 = -acos(horizonCos1); // Fast acos can be used here for better performance
+            float h1 = acos(horizonCos0);  // Fast acos can be used here for better performance
+#if 0       // we can skip clamping for a tiny little bit more performance
+            h0 = n + clamp( h0-n, -PI_HALF, PI_HALF );
+            h1 = n + clamp( h1-n, -PI_HALF, PI_HALF );
+#endif
+            float iarc0 = (cosNorm + 2.f * h0 * sin(n)-cos(2.f * h0-n))/4.f;
+            float iarc1 = (cosNorm + 2.f * h1 * sin(n)-cos(2.f * h1-n))/4.f;
+            float localVisibility = projectedNormalVecLength * (iarc0+iarc1);
+            visibility += localVisibility;
+        }
+        visibility /= sliceCount;
+        visibility = pow( visibility, Get(FinalValuePower) );
+        visibility = max( 0.03f, visibility ); // disallow total occlusion (which wouldn't make any sense anyhow since pixel is visible but also helps with packing bent normals)
+    }
+
+    XeGTAO_OutputWorkingTerm( pixCoord, visibility, bentNormal );
+}
+
+// From https://www.shadertoy.com/view/3tB3z3 - except we're using R2 here
+#define XE_HILBERT_LEVEL    6U
+#define XE_HILBERT_WIDTH    ( (1U << XE_HILBERT_LEVEL) )
+uint HilbertIndex( uint posX, uint posY )
+{   
+	uint index = 0U;
+	for( uint curLevel = XE_HILBERT_WIDTH/2U; curLevel > 0U; curLevel /= 2U )
+	{
+		uint regionX = uint(( posX & curLevel ) > 0U);
+		uint regionY = uint(( posY & curLevel ) > 0U);
+		index += curLevel * curLevel * ( (3U * regionX) ^ regionY);
+		if( regionY == 0U )
+		{
+			if( regionX == 1U )
+			{
+				posX = uint( (XE_HILBERT_WIDTH - 1U) ) - posX;
+				posY = uint( (XE_HILBERT_WIDTH - 1U) ) - posY;
+			}
+
+			uint temp = posX;
+			posX = posY;
+			posY = temp;
+		}
+	}
+	return index;
+}
+
+// Engine-specific screen & temporal noise loader
+float2 SpatioTemporalNoise( uint2 pixCoord, uint temporalIndex ) // without TAA, temporalIndex is always 0
+{
+	// Hilbert curve driving R2 (see https://www.shadertoy.com/view/3tB3z3)
+	// precompute Hilbert LUT lookup texture for better performance
+	uint index = HilbertIndex( pixCoord.x, pixCoord.y );
+    index += 288 * (temporalIndex % 64); // why 288? tried out a few and that's the best so far - but there's probably better :)
+
+    // R2 sequence - see http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
+    return float2( frac( 0.5 + index * float2(0.75487766624669276005, 0.5698402909980532659114) ) );
+}
+
+float3 GetViewspaceNormal(uint2 samplePos, float2 screenPos)
+{
+    // Use visibility buffer data to calculate current viewspace normal
+    float4 visRaw = LoadTex2D(Get(g_vbTex), Get(defaultSampler), samplePos, 0);
+    // Unpack float4 render target data into uint to extract data
+	uint alphaBit_drawID_triID = packUnorm4x8(visRaw);
+
+	// Early exit if this pixel doesn't contain triangle data
+	if (alphaBit_drawID_triID == ~0u)
+	{
+		return float3(0, 0, 0);
+	}
+
+    // Extract packed data
+	uint drawID = (alphaBit_drawID_triID >> 23) & 0x000000FF;
+	uint triangleID = (alphaBit_drawID_triID & 0x007FFFFF);
+	uint alpha1_opaque0 = (alphaBit_drawID_triID >> 31);
+
+	// This is the start vertex of the current draw batch
+	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2;
+	uint startIndex = alpha1_opaque0 == 0 ? 
+		Get(g_drawArgs_opaque)[drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset] :
+		Get(g_drawArgs_alphatest)[drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset];
+
+	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
+	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
+	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+
+	uint index0 = LoadByte(Get(g_indices), triIdx0 << 2);
+	uint index1 = LoadByte(Get(g_indices), triIdx1 << 2);
+	uint index2 = LoadByte(Get(g_indices), triIdx2 << 2);
+
+	// Load vertex data of the 3 vertices
+	float3 v0pos = asfloat(LoadByte4(Get(g_vertexPositions), index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(Get(g_vertexPositions), index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(Get(g_vertexPositions), index2 * 12)).xyz;
+
+    // Transform positions to clip space
+    const float4x4 mv = mul(Get(view), Get(worldMat));
+    const float4x4 mvp = mul(Get(proj), mv);
+	float4 pos0 = mul(mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(mvp, float4(v2pos, 1.0f));
+
+	float4 wPos0 = mul(Get(invProjView),pos0);
+	float4 wPos1 = mul(Get(invProjView),pos1);
+	float4 wPos2 = mul(Get(invProjView),pos2);
+
+	// Calculate the inverse of w, since it's going to be used several times
+	float3 one_over_w = 1.0f / float3(pos0.w, pos1.w, pos2.w);
+
+	// Project vertex positions to calculate 2D post-perspective positions
+	pos0 *= one_over_w[0];
+	pos1 *= one_over_w[1];
+	pos2 *= one_over_w[2];
+
+	float2 pos_scr[3] = { pos0.xy, pos1.xy, pos2.xy };
+
+    // Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,screenPos,Get(ViewportPixelSize));  
+
+	// Interpolate the 1/w (one_over_w) for all three vertices of the triangle
+	// using the barycentric coordinates and the delta vector
+	float w = 1.0f / 1.0f / dot(one_over_w,derivativesOut.m_lambda);
+
+	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
+	// operations that involve computing Z
+	float z = w * getElem(Get(proj), 2, 2) + getElem(Get(proj), 3, 2);
+
+	// Calculate the world position coordinates:
+	// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
+	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
+	float3 position = mul(Get(invProjView), float4(screenPos * w, z, w)).xyz;
+
+    // NORMAL INTERPOLATION
+#if defined(USE_RAY_DIFFERENTIALS)
+
+    float3 positionDX = mul(Get(invProjView), float4((screenPos+Get(ViewportPixelSize).x/2) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(invProjView), float4((screenPos+Get(ViewportPixelSize).y/2) * w, z, w)).xyz;
+
+	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
+												Get(camPos).xyz);
+	// We don't apply perspective correction in case of ray differentials
+	float3x3 normals = make_f3x3_rows(
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index2 << 2))) 
+	);
+#else
+	float3x3 normals = make_f3x3_rows(
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index0 << 2))) * one_over_w[0],
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index1 << 2))) * one_over_w[1],
+		decodeDir(unpackUnorm2x16(LoadByte(Get(g_vertexNormals), index2 << 2))) * one_over_w[2]
+	);
+#endif
+	float3 normal =  normalize(InterpolateWithDeriv(derivativesOut, normals));
+
+	uint materialBaseSlot = BaseMaterialBuffer(alpha1_opaque0 == 1, 0);
+
+	uint materialID = Get(g_indirectMaterialBuffer)[materialBaseSlot + drawID];
+
+	bool isTwoSided = (alpha1_opaque0 == 1) && bool(Get(g_isTwoSidedMaterialBuffer)[materialID]);
+
+	float3 ViewVec = normalize(Get(camPos).xyz - position);
+	
+	//if it is backface
+	//this should be < 0 but our mesh's edge normals are smoothed, badly
+	if (isTwoSided && dot(normal, ViewVec) < 0.0f)
+	{
+		//flip normal
+		normal = -normal;
+	}
+
+	normal = normalize(mul(mv, float4(normal, 0.f)).xyz);
+
+    return normal;
+}
+
+NUM_THREADS(8,  8,  1)
+void CS_MAIN( SV_DispatchThreadID(uint2) did )
+{
+	INIT_MAIN;
+
+	float2 localNoise = SpatioTemporalNoise(did, Get(NoiseIndex));
+
+    float3 interpolatedNormal = GetViewspaceNormal(did, float2(did) * float2(2.f, -2.f) * Get(ViewportPixelSize) - float2(1.f, -1.f));
+
+	XeGTAO_MainPass(did, localNoise, interpolatedNormal);
+
+    RETURN();
+}

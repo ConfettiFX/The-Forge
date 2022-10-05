@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="astc-encoder" InternalType="" Version="11000">
+  <VirtualDirectory Name="Source">
+    <File Name="../Source/astcenc_mathlib.cpp"/>
+    <File Name="../Source/astcenc_compute_variance.cpp"/>
+    <File Name="../Source/astcenc.h"/>
+    <File Name="../Source/astcenc_integer_sequence.cpp"/>
+    <File Name="../Source/astcenc_platform_isa_detection.cpp"/>
+    <File Name="../Source/astcenc_weight_align.cpp"/>
+    <File Name="../Source/astcenc_color_unquantize.cpp"/>
+    <File Name="../Source/astcenccli_internal.h"/>
+    <File Name="../Source/astcenc_averages_and_directions.cpp"/>
+    <File Name="../Source/astcenc_compress_symbolic.cpp"/>
+    <File Name="../Source/tinyexr.h"/>
+    <File Name="../Source/astcenc_diagnostic_trace.cpp"/>
+    <File Name="../Source/astcenccli_error_metrics.cpp"/>
+    <File Name="../Source/astcenc_color_quantize.cpp"/>
+    <File Name="../Source/astcenc_ideal_endpoints_and_weights.cpp"/>
+    <File Name="../Source/astcenc_block_sizes.cpp"/>
+    <File Name="../Source/astcenc_image.cpp"/>
+    <File Name="../Source/astcenc_find_best_partitioning.cpp"/>
+    <File Name="../Source/astcenccli_image_external.cpp"/>
+    <File Name="../Source/astcenc_vecmathlib_common_4.h"/>
+    <File Name="../Source/astcenc_pick_best_endpoint_format.cpp"/>
+    <File Name="../Source/astcenccli_image.cpp"/>
+    <File Name="../Source/astcenc_internal_entry.h"/>
+    <File Name="../Source/astcenc_diagnostic_trace.h"/>
+    <File Name="../Source/astcenc_mathlib_softfloat.cpp"/>
+    <File Name="../Source/astcenc_vecmathlib.h"/>
+    <File Name="../Source/astcenc_symbolic_physical.cpp"/>
+    <File Name="../Source/astcenc_vecmathlib_sse_4.h"/>
+    <File Name="../Source/astcenccli_image_load_store.cpp"/>
+    <File Name="../Source/astcenc_mathlib.h"/>
+    <File Name="../Source/astcenc_quantization.cpp"/>
+    <File Name="../Source/astcenc_vecmathlib_none_4.h"/>
+    <File Name="../Source/stb_image.h"/>
+    <File Name="../Source/stb_image_write.h"/>
+    <File Name="../Source/wuffs-v0.3.c"/>
+    <File Name="../Source/astcenc_vecmathlib_avx2_8.h"/>
+    <File Name="../Source/astcenccli_platform_dependents.cpp"/>
+    <File Name="../Source/astcenc_entry.cpp"/>
+    <File Name="../Source/astcenc_decompress_symbolic.cpp"/>
+    <File Name="../Source/astcenc_partition_tables.cpp"/>
+    <File Name="../Source/astcenc_internal.h"/>
+    <File Name="../Source/astcenc_vecmathlib_neon_4.h"/>
+    <File Name="../Source/astcenc_percentile_tables.cpp"/>
+    <File Name="../Source/astcenccli_version.h"/>
+    <File Name="../Source/astcenc_weight_quant_xfer_tables.cpp"/>
+  </VirtualDirectory>
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=gnu++14;-Wall;-Werror;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(VULKAN_SDK)/include/"/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

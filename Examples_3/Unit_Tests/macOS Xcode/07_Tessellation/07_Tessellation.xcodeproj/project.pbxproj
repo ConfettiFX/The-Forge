@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,16 +18,7 @@
 		5CABF3782141544600EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3772141544600EFD76A /* GameController.framework */; };
 		650CCC592223C6BC003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC582223C6BC003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC5B2223C83C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC5A2223C83C003533D9 /* MetalPerformanceShaders.framework */; };
-		973288B225C834010076E8FF /* compute.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9096025BF41A2003C978D /* compute.comp.fsl */; };
-		973288B325C834010076E8FF /* grass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095D25BF41A1003C978D /* grass.frag.fsl */; };
-		973288B425C834010076E8FF /* grass.tesc.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095B25BF41A1003C978D /* grass.tesc.fsl */; };
-		973288B525C834010076E8FF /* grass.tese.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095E25BF41A1003C978D /* grass.tese.fsl */; };
-		973288B625C834010076E8FF /* grass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095F25BF41A2003C978D /* grass.vert.fsl */; };
-		97C9096125BF41A2003C978D /* grass.tesc.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095B25BF41A1003C978D /* grass.tesc.fsl */; };
-		97C9096225BF41A2003C978D /* grass.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095D25BF41A1003C978D /* grass.frag.fsl */; };
-		97C9096325BF41A2003C978D /* grass.tese.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095E25BF41A1003C978D /* grass.tese.fsl */; };
-		97C9096425BF41A2003C978D /* grass.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9095F25BF41A2003C978D /* grass.vert.fsl */; };
-		97C9096525BF41A2003C978D /* compute.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9096025BF41A2003C978D /* compute.comp.fsl */; };
+		99E0AC7728594DDC00AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC7628594DDC00AB602D /* CoreHaptics.framework */; };
 		B2087DEB21421A54006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE921421A54006F372D /* MetalKit.framework */; };
 		B2087DEC21421A54006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DEA21421A54006F372D /* Metal.framework */; };
 		B21F76DC21420EC000DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D921420EC000DF2297 /* UIKit.framework */; };
@@ -36,35 +27,6 @@
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXBuildRule section */
-		973288B125C833D00076E8FF /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
-		};
-		97C9095A25BF416A003C978D /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
-		};
-/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		5C172F9421414AA80074EE71 /* PBXContainerItemProxy */ = {
@@ -98,6 +60,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		09D4FF332821FD7B000E3229 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../../../src/07_Tessellation/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
 		283F14712019EB8C005026E7 /* 07_Tessellation.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 07_Tessellation.cpp; path = ../../../src/07_Tessellation/07_Tessellation.cpp; sourceTree = "<group>"; };
 		28A5ADA7201F7587000E571F /* 07_Tessellation_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 07_Tessellation_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5ADB8201F7587000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -117,6 +80,7 @@
 		97C9095E25BF41A1003C978D /* grass.tese.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = grass.tese.fsl; path = ../../../src/07_Tessellation/Shaders/FSL/grass.tese.fsl; sourceTree = "<group>"; };
 		97C9095F25BF41A2003C978D /* grass.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = grass.vert.fsl; path = ../../../src/07_Tessellation/Shaders/FSL/grass.vert.fsl; sourceTree = "<group>"; };
 		97C9096025BF41A2003C978D /* compute.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = compute.comp.fsl; path = ../../../src/07_Tessellation/Shaders/FSL/compute.comp.fsl; sourceTree = "<group>"; };
+		99E0AC7628594DDC00AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DE921421A54006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DEA21421A54006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76D921420EC000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -135,6 +99,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				99E0AC7728594DDC00AB602D /* CoreHaptics.framework in Frameworks */,
 				650CCC5B2223C83C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76DC21420EC000DF2297 /* UIKit.framework in Frameworks */,
 				B21F76DD21420EC000DF2297 /* MetalKit.framework in Frameworks */,
@@ -173,12 +138,13 @@
 		28A5ADC3201F75C4000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				09D4FF332821FD7B000E3229 /* ShaderList.fsl */,
 				97C9096025BF41A2003C978D /* compute.comp.fsl */,
 				97C9095D25BF41A1003C978D /* grass.frag.fsl */,
 				97C9095B25BF41A1003C978D /* grass.tesc.fsl */,
 				97C9095E25BF41A1003C978D /* grass.tese.fsl */,
 				97C9095F25BF41A2003C978D /* grass.vert.fsl */,
-				97C9095C25BF41A1003C978D /* resources.h */,
+				97C9095C25BF41A1003C978D /* resources.h.fsl */,
 			);
 			name = Shaders;
 			path = 07_Tessellation_iOS;
@@ -187,6 +153,7 @@
 		28A5ADF8201F7679000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				99E0AC7628594DDC00AB602D /* CoreHaptics.framework */,
 				E970F790233C5EE2009FE7C4 /* libbz2.tbd */,
 				E970F792233C5EEB009FE7C4 /* libbz2.tbd */,
 				650CCC582223C6BC003533D9 /* MetalPerformanceShaders.framework */,
@@ -255,9 +222,9 @@
 				28A5ADA4201F7587000E571F /* Frameworks */,
 				28A5ADA5201F7587000E571F /* Resources */,
 				5CC501C724D21B58003B62CC /* ShellScript */,
+				09934197284E96DF00215997 /* ShellScript */,
 			);
 			buildRules = (
-				973288B125C833D00076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
 				5C17304221414E660074EE71 /* PBXTargetDependency */,
@@ -275,9 +242,9 @@
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
 				5C13A4DC24D1AB590023D339 /* ShellScript */,
+				09934196284E96D000215997 /* ShellScript */,
 			);
 			buildRules = (
-				97C9095A25BF416A003C978D /* PBXBuildRule */,
 			);
 			dependencies = (
 				E958920C23415B9B00B68D6A /* PBXTargetDependency */,
@@ -355,11 +322,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				973288B225C834010076E8FF /* compute.comp.fsl in Resources */,
-				973288B325C834010076E8FF /* grass.frag.fsl in Resources */,
-				973288B425C834010076E8FF /* grass.tesc.fsl in Resources */,
-				973288B525C834010076E8FF /* grass.tese.fsl in Resources */,
-				973288B625C834010076E8FF /* grass.vert.fsl in Resources */,
 				28A5ADBC201F7587000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5ADB9201F7587000E571F /* Assets.xcassets in Resources */,
 			);
@@ -369,19 +331,52 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97C9096325BF41A2003C978D /* grass.tese.fsl in Resources */,
-				97C9096525BF41A2003C978D /* compute.comp.fsl in Resources */,
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				97C9096425BF41A2003C978D /* grass.vert.fsl in Resources */,
-				97C9096125BF41A2003C978D /* grass.tesc.fsl in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
-				97C9096225BF41A2003C978D /* grass.frag.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		09934196284E96D000215997 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
+		09934197284E96DF00215997 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
 		5C13A4DC24D1AB590023D339 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -397,7 +392,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 		5CC501C724D21B58003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -414,7 +409,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -504,6 +499,7 @@
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -540,6 +536,7 @@
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};
@@ -593,7 +590,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -646,7 +643,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -677,7 +674,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -686,6 +683,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -720,6 +718,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};

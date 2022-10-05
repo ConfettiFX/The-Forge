@@ -1,0 +1,120 @@
+This file summarizes new major features of each MCPP release.  (kmatsui)
+
+MCPP V.2.7.2 (2008/11)
+
+1. This is a bug-fixed version of V.2.7.1, fixing several bugs of the
+    previous release.
+
+2. Enabled some CPU-specific predefined macros in compiler-independent-
+    build as well as compiler-specific-build.
+
+
+MCPP V.2.7.1 (2008/05)
+
+1. This is a bug-fixed version of V.2.7, fixing several bugs of the
+    previous release.
+
+2. Made subroutine-build also install an mcpp executable and minimal
+    documents as well as libmcpp for a convenience of library package.
+
+
+MCPP V.2.7 (2008/03)
+
+1. Implemented -K option to enable macro notification mode.  This mode
+    is designed for C/C++ refactoring tools and embeds macro annotations
+    into comments.  This mode is also enabled by '#pragma MCPP debug
+    macro_call' sub-directive.
+
+2. Fixed several bugs of the previous release, including a bug of UTF-8
+    multibyte character handling.
+
+3. Ported to Mac OS X / GCC and Visual C++ 2008.
+
+4. Made GCC-specific-build closer to GCC.
+
+5. Added documentation on source checking of firefox 3.0pre.
+
+
+MCPP V.2.6.4 (2007/05)
+
+1. This is a bug-fixed version of V.2.6.3, fixing memory leaks in
+    subroutine-build, and fixing a bug of accessing non-allocated memory.
+
+2. Also changed the installation directory of some documents in stand-
+    alone-and-compiler-independent-build by configure or by binary
+    packages.
+
+
+MCPP V.2.6.3 (2007/04)
+
+1. Revised subtle points of #include and '#pragma once' handling, such
+    as dereferencing symbolic linked directory and others.
+
+2. Relaxed syntax checking and token checking in lang_asm mode.
+    Implemented variadic macro of GCC3-specification for GCC-specific-
+    build.  Increased compatibility of GCC-specific-build to GCC.
+
+3. Implemented optional memory buffer output (other than file) in
+    subroutine-build.
+
+4. Added 'mcpplib' target to make subroutine-build in configure.ac and
+    noconfig/*.mak.
+
+5. Abolished 'install-data' and 'uninstall-data' targets of configured
+    makefile.  On the other hand, made 'install' target install also
+    mcpp-manual.html.
+
+6. Provided stand-alone-and-compiler-independent-build binary packages
+    port, rpm, deb, zip and their corresponding source packages on
+    SourceForge.
+
+7. Added documentation on source checking of glibc 2.4.
+
+
+MCPP V.2.6.2 (2006/11)
+
+1. Fixed several bugs of the previous release.
+
+2. Added subroutine-build to use MCPP as a subroutine from other main
+    program.
+
+3. Changed the terms of building methods in the documents.  The building
+    methods now have two axis:
+        1. stand-alone-build vs subroutine-build
+        2. compiler-independent-build vs compiler-specific-build
+    Refer to INSTALL #1.
+    Note that this change of terminology does not affect the two
+    building methods of stand-alone preprocessor so far: 'compiler-
+    independent-build' and 'compiler-specific-build'. ('compiler-
+    independent-build' was called 'stand-alone-build' in the previous
+    releases).
+
+4. Rewrote and converted the text files in 'doc' and 'doc-jp'
+    directories into html files.
+
+
+MCPP V.2.6.1 (2006/08)
+
+1. Fixed several bugs of the previous release.
+
+2. Revised path-list handling on CygWIN.
+
+3. Added porting to MinGW/MSYS.
+
+
+MCPP V.2.6 (2006/07)
+
+1. Integrated STANDARD mode and PRE_STANDARD mode into one executable,
+    differentiating the modes by the execution time options.
+
+2. Changed --enable-maintainer-mode option of configure to --enable-
+    replace-cpp option which generates compiler-specific-build of mcpp.
+
+3. Made compiler-independent-build really independent from any compiler-
+    systems.  It no longer requires GCC-specific header files.
+
+4. Removed settings for pre-C90 compiler.
+    Removed settings for MS-DOS compiler, DJGPP and Plan9.
+
+5. Added portings to GCC V.4.0, CygWIN 1.5.18, Visual C++ 2005 and LCC-
+    Win32 2006-03.

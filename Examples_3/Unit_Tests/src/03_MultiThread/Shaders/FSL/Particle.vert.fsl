@@ -156,8 +156,11 @@ VSOutput VS_MAIN( VSInput In )
         c += (0.1 * sin(theta));
     }
 
-
+#if VR_MULTIVIEW_ENABLED
+    Out.Position = mul(Get(mvp)[VR_VIEW_ID], p);
+#else
     Out.Position = mul(Get(mvp), p);
+  #endif
     Out.TexCoord = c;
     Out.PointSize = 1.0f;
 

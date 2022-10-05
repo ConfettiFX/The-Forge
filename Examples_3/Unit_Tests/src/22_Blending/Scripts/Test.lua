@@ -1,7 +1,0 @@
-math.randomseed( os.time() )
-loader.SetBlendRatio(math.random())
-loader.SetAutoSetBlendParams(0)
-loader.SetClipWeightWalk(math.random())
-loader.SetClipWeightJog(math.random())
-loader.SetClipWeightRun(math.random())
-loader.SetThreshold(math.random())

@@ -25,6 +25,25 @@
 #ifndef resources_h
 #define resources_h
 
+STRUCT(VsInDeferred)
+{
+    DATA(float3, Position, POSITION);
+    DATA(uint,   TexCoord, TEXCOORD);
+    DATA(uint,   Normal, NORMAL);
+    DATA(uint,   Tangent, TANGENT);
+};
+
+STRUCT(PsInDeferred)
+{
+    DATA(float4, Position, SV_Position);
+    DATA(float2, TexCoord, TEXCOORD0);
+    DATA(float3, Normal, TEXCOORD1);
+    DATA(float3, Tangent, TEXCOORD2);
+#if !defined(INDIRECT_ROOT_CONSTANT)
+    DATA(FLAT(uint), drawId, TEXCOORD3);
+#endif
+};
+
 RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
@@ -40,16 +59,13 @@ RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t1, binding = 3 + MAX_TEXTURE_UNITS * 3);
 RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
 
-#if defined(METAL)
-	RES(Buffer(uint), mtlDrawID, UPDATE_FREQ_PER_DRAW, t0, binding=1);
-	#define getDrawID() Get(mtlDrawID)[0]
-#elif defined(DIRECT3D12)
+#if defined(INDIRECT_ROOT_CONSTANT)
 	PUSH_CONSTANT(indirectRootConstant, b1)
 	{
 		DATA(uint, indirectDrawId, None);
 	};
 	#define getDrawID() indirectDrawId
-#elif defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#else
     #define getDrawID() In.drawId
 #endif
 

@@ -28,14 +28,15 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Interfaces/IApp.h"
+#include "../../Application/Interfaces/IApp.h"
 #include "../Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 
 IApp* pWindowAppRef = NULL;
 
@@ -43,8 +44,7 @@ float2 gRetinaScale = { 1.0f, 1.0f };
 int     gDeviceWidth;
 int     gDeviceHeight;
 
-eastl::vector<MonitorDesc> gMonitors;
-uint32_t                   gMonitorCount = 0;
+MonitorDesc* gMonitors = NULL;
 
 //------------------------------------------------------------------------
 // STATIC STRUCTS
@@ -119,10 +119,10 @@ uint32_t                   gMonitorCount = 0;
 {
 	self = [super init];
 	self.view = [[ForgeMTLView alloc] initWithFrame:FrameRect];
-	CAMetalLayer* metalLayer = (CAMetalLayer*)self.view.layer;
 
 	if (@available(iOS 13.0, *))
 	{
+		CAMetalLayer* metalLayer = (CAMetalLayer*)self.view.layer;
 		metalLayer.device = device;
 		metalLayer.framebufferOnly = YES;    //todo: optimized way
 		metalLayer.pixelFormat = hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
@@ -137,6 +137,21 @@ uint32_t                   gMonitorCount = 0;
 	return pWindowAppRef->mSettings.mShowStatusBar ? NO : YES;
 }
 
+- (BOOL) prefersHomeIndicatorAutoHidden
+{
+    // when YES is passed then it's using default behavior
+    // when NO is passed, it's deferred based on gestures below.
+    return pWindowAppRef->mSettings.mShowStatusBar ? YES : NO;
+}
+
+- (UIRectEdge) preferredScreenEdgesDeferringSystemGestures
+{
+    // If status bar is shown then we use default rect edge none which allows tapping anywhere.
+    // If status bar is hidden, then we need to specific only top and bottom otherwise gestures still
+    // might trigger notification / background manager.
+    return pWindowAppRef->mSettings.mShowStatusBar ? UIRectEdgeNone : UIRectEdgeBottom | UIRectEdgeTop;
+}
+
 @end
 
 //------------------------------------------------------------------------
@@ -149,7 +164,7 @@ uint32_t                   gMonitorCount = 0;
 
 void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device)
 {
-	CGRect    ViewRect{ 0, 0, 1280, 720 };    //Initial default values
+	CGRect    ViewRect{ { 0, 0 }, { 1280, 720 } };    //Initial default values
 	UIWindow* Window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
 
 	[Window setOpaque:YES];
@@ -279,7 +294,7 @@ void captureCursor(WindowDesc* winDesc, bool bEnable)
 
 MonitorDesc* getMonitor(uint32_t index)
 {
-	ASSERT(gMonitorCount > index);
+	ASSERT(arrlenu(gMonitors) > index);
 	return &gMonitors[index];
 }
 

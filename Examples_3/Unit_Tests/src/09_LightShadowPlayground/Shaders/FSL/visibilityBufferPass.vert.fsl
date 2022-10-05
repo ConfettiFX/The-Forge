@@ -22,11 +22,8 @@
  * under the License.
 */
 
+#include "Shader_Defs.h.fsl"
 #include "vb_resources.h.fsl"
-
-#ifdef VULKAN
-	#extension GL_ARB_shader_draw_parameters : enable
-#endif
 
 STRUCT(VsIn)
 {
@@ -36,7 +33,7 @@ STRUCT(VsIn)
 STRUCT(PsIn)
 {
 	DATA(float4, Position, SV_Position);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
+#if !defined(INDIRECT_ROOT_CONSTANT)
 	DATA(FLAT(uint), drawId, TEXCOORD0);
 #endif
 };
@@ -46,11 +43,7 @@ PsIn VS_MAIN( VsIn In, SV_InstanceID(uint) instanceId)
 	INIT_MAIN;
 	PsIn Out;
 	Out.Position = mul(Get(WorldViewProjMat), float4(In.Position.xyz, 1.0f));
-#ifdef VULKAN
-	Out.drawId = gl_DrawIDARB;
-#elif defined(ORBIS) || defined(PROSPERO)
-	Out.drawId = instanceId;
-#endif
+	SET_DRAW_ID(Out, drawId, instanceId);
 	RETURN(Out);
 }
 

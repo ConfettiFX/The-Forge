@@ -15,68 +15,48 @@ sys.path.extend( [fsl_root, fsl_orbis_root, fsl_prospero_root, fsl_xbox_root])
 
 # set default compiler paths
 if not 'FSL_COMPILER_FXC' in os.environ:
-    os.environ['FSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/10.0.17763.0/x64')
+    os.environ['FSL_COMPILER_FXC'] = os.path.normpath('C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64')
 if not 'FSL_COMPILER_DXC' in os.environ:
-    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/bin/x64')
-if not 'FSL_COMPILER_METAL' in os.environ:
-    os.environ['FSL_COMPILER_METAL'] = os.path.normpath('C:/Program Files/Metal Developer Tools/macos/bin')
+    os.environ['FSL_COMPILER_DXC'] = os.path.normpath(forge_root+'/Common_3/Graphics/ThirdParty/OpenSource/DirectXShaderCompiler/bin/x64')
+if not 'FSL_COMPILER_MACOS' in os.environ:
+    os.environ['FSL_COMPILER_MACOS'] = os.path.normpath('C:/Program Files/Metal Developer Tools/macos/bin')
+if not 'FSL_COMPILER_IOS' in os.environ:
+    os.environ['FSL_COMPILER_IOS'] = os.path.normpath('C:/Program Files/Metal Developer Tools/ios/bin')
 
 from utils import *
 import generators, compilers
+from compilers import compile_binary
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--destination', help='output directory', required=True)
     parser.add_argument('-b', '--binaryDestination', help='output directory', required=True)
     parser.add_argument('-l', '--language', help='language, defaults to all')
+    parser.add_argument('-I', '--includes', help='optional include dirs', nargs='+')
     parser.add_argument('fsl_input', help='fsl file to generate from')
     parser.add_argument('--verbose', default=False, action='store_true')
     parser.add_argument('--compile', default=False, action='store_true')
+    parser.add_argument('--debug', default=True, action='store_true')
     parser.add_argument('--rootSignature', default=None)
     parser.add_argument('--incremental', default=False, action='store_true')
     args = parser.parse_args()
-    args.language = args.language.split()
+    if args.language:
+        args.language = args.language.split()
     return args
 
 def main():
     args = get_args()
 
-    ''' collect shader languages '''
-    languages = []
-    for language in args.language:
-        fsl_assert(language in [l.name for l in Languages], filename=args.fsl_input, message='Invalid target language {}'.format(language))
-        languages += [Languages[language]]
 
-    class Gen:
-        def __init__(self, g,c):
-            self.gen, self.compile = g,c
-        gen = None
-        compile = None
-
-    gen_map = {
-        Languages.DIRECT3D11:       Gen(generators.d3d,    compilers.d3d11),
-        Languages.DIRECT3D12:       Gen(generators.d3d12,  compilers.d3d12),
-        Languages.VULKAN:      Gen(generators.vulkan, compilers.vulkan),
-        Languages.METAL:       Gen(generators.metal,  compilers.metal),
-        Languages.ORBIS:       Gen(generators.pssl,   compilers.orbis),
-        Languages.PROSPERO:    Gen(generators.prospero,   compilers.prospero),
-        Languages.XBOX :       Gen(generators.xbox,   compilers.xbox),
-        Languages.SCARLETT :   Gen(generators.scarlett,   compilers.scarlett),
-        Languages.GLES :       Gen(generators.gles,   compilers.gles),
-    }
-
-    # Seperate folders per render API
-    folder_map = {
-        Languages.DIRECT3D11:       "DIRECT3D11",
-        Languages.DIRECT3D12:       "DIRECT3D12",
-        Languages.VULKAN:           "VULKAN",
-        Languages.METAL:            "",
-        Languages.ORBIS:            "",
-        Languages.PROSPERO:         "",
-        Languages.XBOX :            "DIRECT3D12",
-        Languages.SCARLETT :        "DIRECT3D12",
-        Languages.GLES :            "GLES",
-    }
+    ''' collect shader Platforms '''
+    platforms = []
+    if args.language:
+        for language in args.language:
+            fsl_assert(language in [l.name for l in Platforms], filename=args.fsl_input, message='Invalid target language {}'.format(language))
+            platforms += [Platforms[language]]
+    else:
+        for platform in Platforms:
+            platforms += [platform]
 
     if args.fsl_input.endswith('.h.fsl'):
         return 0
@@ -85,42 +65,85 @@ def main():
         print(__file__+'('+str(currentframe().f_lineno)+'): error FSL: Cannot open source file \''+args.fsl_input+'\'')
         sys.exit(1)
 
-    fsl_assert(args.destination, filename=args.fsl_input, message='Missing destionation directory')
+    fsl_input = os.path.normpath(args.fsl_input).replace(os.sep, '/')
 
-    for language in languages:
-        out_filename = os.path.basename(args.fsl_input).replace('.fsl', '')
+    dependency_filepath = os.path.join(args.destination, os.path.basename(args.fsl_input)) + '.deps'
+    regen = set()
+    dependencies = {}
+    if args.incremental:
+        if not needs_regen(args, dependency_filepath, platforms, regen, dependencies):
+            return 0
+        if 'deps' in regen:
+            regen = None
 
-        if language == Languages.METAL:
-            out_filename = out_filename.replace('.tesc', '.tesc.comp')
-            out_filename = out_filename.replace('.tese', '.tese.vert')
-            out_filename += '.metal'
+    fsl_assert(args.destination, filename=fsl_input, message='Missing destionation directory')
+    binary_declarations, fsl_dependencies = collect_shader_decl(args, fsl_input, platforms, regen, dependencies, [])
 
-        # Create per-language subdirectories
-        dst_dir = os.path.join(args.destination, folder_map[language])
+    if not binary_declarations:
+        return 0
+
+    if args.verbose:
+        print('FSL: Generating {}, from {}'.format([p.name for p in platforms], args.fsl_input))
+    
+    os.makedirs(args.destination, exist_ok=True)
+
+    if args.incremental:
+        with open(dependency_filepath, 'w') as deps:
+            deps.write(':{}\n\n'.format(os.path.normpath(os.path.abspath(args.fsl_input)).replace(os.sep, '/')))
+            deps.write('\n'.join( '\n'.join(kv[1]) for kv in fsl_dependencies.items() ))
+
+    for platform in platforms:
+    
+        # Create per-platform subdirectories
+        dst_dir = os.path.join(args.destination, platform.name)
         os.makedirs(dst_dir, exist_ok=True)
-        out_filepath = os.path.normpath(os.path.join(dst_dir, out_filename)).replace(os.sep, '/')
 
-        if args.incremental and (max_timestamp(args.fsl_input) < max_timestamp(out_filepath) and os.path.exists(out_filepath) ):
-            continue
-
-        if args.verbose:
-            print('FSL: Generating {}, from {}'.format(language.name, args.fsl_input))
-
-        rootSignature = None
-        if args.rootSignature and args.rootSignature != 'None':
-            assert os.path.exists(args.rootSignature)
-            rootSignature = open(args.rootSignature).read()
-            status = gen_map[language].gen(args.fsl_input, out_filepath, rootSignature=rootSignature)
-        else:
-            status = gen_map[language].gen(args.fsl_input, out_filepath)
-        if status != 0: return 1
 
         if args.compile:
-            fsl_assert(dst_dir, filename=args.fsl_input, message='Missing destination binary directory')
-            if not os.path.exists(args.binaryDestination): os.makedirs(args.binaryDestination)
-            bin_filepath = os.path.join( args.binaryDestination, os.path.basename(out_filepath) )
-            status = gen_map[language].compile(out_filepath, bin_filepath)
+            bin_dir = os.path.join( args.binaryDestination, platform.name)
+            os.makedirs(bin_dir, exist_ok=True)
+
+        for i, binary in enumerate(binary_declarations):
+
+            out_filename = binary.filename
+
+            if platform == Platforms.MACOS or platform == Platforms.IOS:
+                out_filename = out_filename.replace('.tesc', '.tesc.comp')
+                out_filename = out_filename.replace('.tese', '.tese.vert')
+                out_filename += '.metal'
+
+            # generate
+            out_filepath = os.path.normpath(os.path.join(dst_dir, out_filename)).replace(os.sep, '/')
+
+            if args.incremental and regen is not None and out_filename not in regen:
+                continue
+            
+            if platform not in binary.preprocessed_srcs:
+                if args.verbose:
+                    print('FSL: Empty Declaration {} {}'.format(platform.name, out_filename))
+                continue
+
+            generator = getattr(generators, platform.name.lower())
+            status, deps = generator(args.debug, binary, out_filepath)
             if status != 0: return 1
+
+            # compile
+            if args.compile:
+                bin_filepath = os.path.normpath(os.path.join(bin_dir, out_filename)).replace(os.sep, '/')
+                if args.verbose:
+                    print(f'Compiling: {platform.name} {binary.stage.name} {binary.target.name}\n\t{out_filepath}\n\t{bin_filepath}')
+                status = compile_binary(platform, args.debug, binary, out_filepath, bin_filepath)
+                if status != 0: return 1
+
+                for stage, out_filepath, out_filename in deps:
+                    bin_filepath = os.path.normpath(os.path.join(bin_dir, out_filename)).replace(os.sep, '/')
+                    if args.verbose:
+                        print(f'Compiling: {platform.name} {stage.name} {binary.target.name}\n\t{out_filepath}\n\t{bin_filepath}')
+                    temp_stage = binary.stage
+                    binary.stage = stage
+                    status = compile_binary(platform, args.debug, binary, out_filepath, bin_filepath)
+                    binary.stage = temp_stage
+                    if status != 0: return 1
 
     return 0
 

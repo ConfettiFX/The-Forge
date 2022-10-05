@@ -24,5 +24,8 @@
     <FSLShader Include="..\..\src\37_PrecomputedVolumeDLUT\Shaders\FSL\PrecomputedDLUT.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\37_PrecomputedVolumeDLUT\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

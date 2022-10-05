@@ -72,7 +72,6 @@ PatchTess ConstantHS( INPUT_PATCH(VS_CONTROL_POINT_OUTPUT, 1) ip, SV_PrimitiveID
 	PCF_RETURN(Output);
 }
 
-TESS_VS_SHADER("grass.vert.fsl")
 PATCH_CONSTANT_FUNC("ConstantHS")
 TESS_LAYOUT("quad", "integer", "triangle_ccw")
 OUTPUT_CONTROL_POINTS(1)

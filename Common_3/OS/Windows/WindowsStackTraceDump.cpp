@@ -22,10 +22,10 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #include "WindowsStackTraceDump.h"
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #pragma warning(push)
 #pragma warning(disable : 4091)
 #include <DbgHelp.h>

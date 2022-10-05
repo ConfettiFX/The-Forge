@@ -15,36 +15,36 @@
 
 #include "../../../../Custom-Middleware/Aura/LightPropagation/LightPropagationVolume.h"
 
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
-#include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
-#include "../../../Common_3/Renderer/IRenderer.h"
-#include "../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../Common_3/OS/Core/RingBuffer.h"
-#include "../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../Common_3/OS/Interfaces/IThread.h"
-#include "../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../Common_3/Utilities/RingBuffer.h"
+#include "../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../Common_3/Utilities/Interfaces/IThread.h"
+#include "../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../Common_3/Application/Interfaces/IFont.h"
 
-#include "../../../Common_3/OS/Core/ThreadSystem.h"
+#include "../../../Common_3/Utilities/Threading/ThreadSystem.h"
 
 #include "Geometry.h"
 #include "Shadows.hpp"
 #include "Camera.hpp"
 
 #if defined(XBOX)
-#include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
-#include "../../../Xbox/Common_3/Renderer/IESRAMManager.h"
+#include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
+#include "../../../Xbox/Common_3/Graphics/IESRAMManager.h"
 #endif
 
-#include "../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 #define NO_FSL_DEFINITIONS
 #include "Shaders/FSL/wind.h.fsl"
@@ -78,27 +78,11 @@ float3                gCameraPathData[29084];
 
 uint  gCameraPoints;
 float gTotalElpasedTime;
-
-typedef struct VisBufferIndirectCommand
-{
-#if defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-	IndirectDrawIndexArguments arg;
-#if !defined(ORBIS)
-	uint32_t                   pad[3];
-#endif
-#else
-	// Draw ID is sent as indirect argument through root constant in DX12
-	uint32_t                   drawId;
-	IndirectDrawIndexArguments arg;
-	uint32_t                   pad[2];
-#endif
-} VisBufferIndirectCommand;
-
 /************************************************************************/
 // GUI CONTROLS
 /************************************************************************/
 typedef struct AppSettings
-{
+{ //-V802
 	LightingMode mLightingMode = LIGHTING_PBR;
 
 	// Set this variable to true to bypass triangle filtering calculations, holding and representing the last filtered data.
@@ -175,11 +159,7 @@ const uint32_t gRSMResolution = 256;
 const uint32_t gShadowMapSize = 1024;
 
 const uint32_t gNumViews = NUM_CULLING_VIEWPORTS;
-#ifdef METAL
-const uint32_t gNumStages = 5;
-#else
 const uint32_t gNumStages = 3;
-#endif
 
 struct UniformDataSkybox
 {
@@ -305,13 +285,6 @@ DescriptorSet*    pDescriptorSetTriangleFiltering[2] = { NULL };
 /************************************************************************/
 Shader*           pShaderBatchCompaction = nullptr;
 Pipeline*         pPipelineBatchCompaction = nullptr;
-
-#if defined(METAL)
-// Metal ICB
-Shader*           pShaderICBGenerator = nullptr;
-Pipeline*         pPipelineICBGenerator = nullptr;
-#endif
-
 /************************************************************************/
 // Clear light clusters pipeline
 /************************************************************************/
@@ -444,17 +417,6 @@ UIComponent* pAuraGuiWindow = nullptr;
 #if TEST_RSM
 UIComponent* pAuraRSMTexturesWindow = nullptr;
 #endif
-
-/************************************************************************/
-// Metal ICB
-/************************************************************************/
-#if defined(METAL)
-Buffer* pIndirectCommandBuffers[gImageCount][gNumViews];
-Buffer* pDrawIDBuffer = { NULL }; // temporary DrawId buffer to pass to ICB
-CommandSignature* pCmdSignatureICBOptimize = NULL;
-uint32_t gMaxDrawsRootConstantIndex = 0;
-#endif
-
 /************************************************************************/
 // Triangle filtering data
 /************************************************************************/
@@ -490,12 +452,13 @@ RenderTarget* pScreenRenderTarget = NULL;
 #if defined(_WINDOWS)
 struct ResolutionData
 {
-	eastl::vector<eastl::string> resNameContainer;
-	eastl::vector<const char*>     resNamePointers;
-	eastl::vector<uint32_t>        resValues;
+	// Buffer for all res name strings
+	char*			mResNameContainer;
+	// Array of const char*
+	const char**	mResNamePointers;
 };
 
-static ResolutionData gGuiResolution;
+static ResolutionData gGuiResolution = { NULL, NULL };
 #endif
 /************************************************************************/
 /************************************************************************/
@@ -524,30 +487,30 @@ UIWidget* addResolutionProperty(
 	{
 		ResolutionData& data = gGuiResolution;
 
-		data.resNameContainer.clear();
-		data.resNamePointers.clear();
-		data.resValues.clear();
+		static const uint32_t maxResNameLength = 16;
+		arrsetlen(data.mResNameContainer, 0);
+		arrsetcap(data.mResNameContainer, maxResNameLength* resCount);
+		arrsetlen(data.mResNamePointers, resCount);
+		
+		char* pBuf = data.mResNameContainer;
+		int remainingLen = (int)arrcap(data.mResNameContainer);
 
 		for (uint32_t i = 0; i < resCount; ++i)
 		{
-			data.resNameContainer.push_back(eastl::string().sprintf("%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight));
-			data.resValues.push_back(i);
-		}
+			int res = snprintf(pBuf, remainingLen, "%ux%u", pResolutions[i].mWidth, pResolutions[i].mHeight);
+			ASSERT(res >= 0 && res < remainingLen);
 
-		data.resNamePointers.resize(data.resNameContainer.size() + 1);
-		for (uint32_t i = 0; i < (uint32_t)data.resNameContainer.size(); ++i)
-		{
-			data.resNamePointers[i] = data.resNameContainer[i].c_str();
+			data.mResNamePointers[i] = pBuf;
+
+			pBuf += res + 1;
+			remainingLen -= res + 1;
 		}
-		data.resNamePointers[data.resNamePointers.size() - 1] = NULL;
 
 		DropdownWidget control;
 		control.pData = &resolutionIndex;
-		for (uint32_t i = 0; i < data.resValues.size(); ++i)
-		{
-			control.mNames.push_back((char*)data.resNamePointers[i]);
-			control.mValues.push_back(data.resValues[i]);
-		}
+		control.pNames = data.mResNamePointers;
+		control.mCount = resCount;
+
 		UIWidget* pControl = uiCreateComponentWidget(pUIManager, "Screen Resolution", &control, WIDGET_TYPE_DROPDOWN);
 		pControl->pOnEdited = onResolutionChanged;
 		return pControl;
@@ -566,7 +529,7 @@ public:
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_PIPELINE_CACHE,  "PipelineCaches");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
@@ -632,6 +595,14 @@ public:
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			addFence(pRenderer, &pRenderCompleteFences[i]);
+			addFence(pRenderer, &pComputeCompleteFences[i]);
+			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
+		}
+
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
@@ -675,16 +646,29 @@ public:
 		initProfiler(&profiler);
 
 		/************************************************************************/
+		// Initialize Aura
+		/************************************************************************/
+		HiresTimer auraTimer;
+		initHiresTimer(&auraTimer);
+
+		aura::LightPropagationVolumeParams params;
+		aura::CPUPropagationParams cpuParams;
+		fillAuraParams(&params, &cpuParams);
+
+		initAura(pRenderer, 1024, 1024, params, gImageCount, gRSMCascadeCount, &pAura);
+
+
+#if defined(ENABLE_CPU_PROPAGATION)
+		initTaskManager(&pTaskManager);
+#endif
+		LOGF(LogLevel::eINFO, "Init Aura : %f ms", getHiresTimerUSec(&auraTimer, true) / 1000.0f);
+
+		/************************************************************************/
 		// Start timing the scene load
 		/************************************************************************/
 		HiresTimer totalTimer;
 		initHiresTimer(&totalTimer);
 
-		HiresTimer shaderTimer;
-		initHiresTimer(&shaderTimer);
-		// Load shaders
-		addShaders();
-		LOGF(LogLevel::eINFO, "Load shaders : %f ms", getHiresTimerUSec(&shaderTimer, true) / 1000.0f);
 		/************************************************************************/
 		// Init Aura settings
 		/************************************************************************/
@@ -695,11 +679,7 @@ public:
 		gAppSettings.alternateGPUUpdates = false;
 		gAppSettings.propagationScale = 1.0f;
 		gAppSettings.giStrength = 12.0f;
-#if defined(ORBIS)
 		gAppSettings.propagationValueIndex = 5;
-#else
-		gAppSettings.propagationValueIndex = 5;
-#endif
 		gAppSettings.specularQuality = 2;
 		gAppSettings.useLPV = true;
 		gAppSettings.enableSun = false;
@@ -801,95 +781,8 @@ public:
 			Material* material = pScene->materials + i;
 			createClusters(material->twoSided, pScene, pScene->geom->pDrawArgs + i, mesh);
 		}
-		tf_free(pScene->geom->pShadow);
+		removeGeometryShadowData(pScene->geom);
 		LOGF(LogLevel::eINFO, "Load clusters : %f ms", getHiresTimerUSec(&clusterTimer, true) / 1000.0f);
-		/************************************************************************/
-		// Setup root signatures
-		/************************************************************************/
-		// Graphics root signatures
-		const char* pTextureSamplerNames[] = { "textureFilter", "alphaFilterBilinear", "rsmFilter", "alphaFilterPoint" };
-		Sampler*    pTextureSamplers[] = { pSamplerPointClamp, pSamplerPointClamp, pSamplerTrilinearAniso, pSamplerPointClamp };
-		const char* pShadingSamplerNames[] = { "depthSampler", "textureSampler", "linearBorderSampler" };
-		Sampler*    pShadingSamplers[] = { pSamplerBilinearClamp, pSamplerBilinear, pSamplerLinearBorder };
-
-		const int shaderCount = 3;
-		Shader* pShaders[gNumGeomSets * shaderCount] = {};
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
-		{
-			pShaders[i * shaderCount] = pShaderVisibilityBufferPass[i];
-			pShaders[i * shaderCount + 1] = pShaderFillRSM[i];
-			pShaders[i * shaderCount + 2] = pShaderShadowPass[i];
-		}
-
-		RootSignatureDesc vbRootDesc = { pShaders, gNumGeomSets * shaderCount };
-		vbRootDesc.mMaxBindlessTextures = gMaterialCount;
-		vbRootDesc.ppStaticSamplerNames = pTextureSamplerNames;
-		vbRootDesc.ppStaticSamplers = pTextureSamplers;
-		vbRootDesc.mStaticSamplerCount = 4;
-		addRootSignature(pRenderer, &vbRootDesc, &pRootSignatureVBPass);
-		gVBPassRootConstantIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "materialRootConstant");
-
-		RootSignatureDesc shadeRootDesc = { pShaderVisibilityBufferShade, gVbShadeConfigCount };
-		// Set max number of bindless textures in the root signature
-		shadeRootDesc.mMaxBindlessTextures = gMaterialCount;
-		shadeRootDesc.ppStaticSamplerNames = pShadingSamplerNames;
-		shadeRootDesc.ppStaticSamplers = pShadingSamplers;
-		shadeRootDesc.mStaticSamplerCount = 3;
-		addRootSignature(pRenderer, &shadeRootDesc, &pRootSignatureVBShade);
-
-		// Triangle filtering root signatures
-#if defined(METAL)
-		Shader* pCullingShaders[] = { pShaderClearBuffers, pShaderTriangleFiltering, pShaderBatchCompaction, pShaderICBGenerator };
-#else
-		Shader* pCullingShaders[] = { pShaderClearBuffers, pShaderTriangleFiltering, pShaderBatchCompaction };
-#endif
-		RootSignatureDesc triangleFilteringRootDesc = { pCullingShaders, sizeof(pCullingShaders) / sizeof(pCullingShaders[0]) };
-
-		addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
-		Shader* pClusterShaders[] = { pShaderClearLightClusters, pShaderClusterLights };
-		RootSignatureDesc clearLightRootDesc = { pClusterShaders, 2 };
-		addRootSignature(pRenderer, &clearLightRootDesc, &pRootSignatureLightClusters);
-
-		const char*       pSkyboxSamplerName = "skyboxSampler";
-		RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
-		skyboxRootDesc.mStaticSamplerCount = 1;
-		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxSamplerName;
-		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
-		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSingatureSkybox);
-		/************************************************************************/
-		// Setup descriptor binder
-		/************************************************************************/
-		addDescriptorSets();
-		/************************************************************************/
-		// Setup indirect command signatures
-		/************************************************************************/
-#if defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-		// Indicate the renderer that we want to use non-indexed geometry.
-		IndirectArgumentDescriptor indirectArgs[1] = {};
-#if defined(METAL)
-		indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER;
-#else
-		indirectArgs[0].mType = INDIRECT_DRAW_INDEX;
-#endif
-		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 1 };
-		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
-#else
-		IndirectArgumentDescriptor indirectArgs[2] = {};
-		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
-		indirectArgs[0].mByteSize = sizeof(uint32_t);
-		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
-		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, 2 };
-		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);	
-#endif
-
-#if defined(METAL)
-		indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER_OPTIMIZE;
-		CommandSignatureDesc icbOptimizationPassDesc = { NULL, indirectArgs, 1 };
-		addIndirectCommandSignature(pRenderer, &icbOptimizationPassDesc, &pCmdSignatureICBOptimize);
-
-		gMaxDrawsRootConstantIndex = getDescriptorIndexFromName(pRootSignatureTriangleFiltering, "maxDrawsRootConstant");
-#endif
 
 		// Create geometry for light rendering
 		createCubeBuffers(pRenderer, pCmdPools[0], &pVertexBufferCube, &pIndexBufferCube);
@@ -932,42 +825,6 @@ public:
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
 		addResource(&skyboxVbDesc, NULL);
 
-		/************************************************************************/
-		// Setup compute pipelines for triangle filtering
-		/************************************************************************/
-		PipelineDesc pipelineDesc = {};
-		pipelineDesc.pCache = pPipelineCache;
-		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
-		pipelineSettings.pShaderProgram = pShaderClearBuffers;
-		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineClearBuffers);
-
-		// Create the compute pipeline for GPU triangle filtering
-		pipelineSettings.pShaderProgram = pShaderTriangleFiltering;
-		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineTriangleFiltering);
-
-		pipelineSettings.pShaderProgram = pShaderBatchCompaction;
-		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineBatchCompaction);
-
-#if defined(METAL)
-		pipelineSettings.pShaderProgram = pShaderICBGenerator;
-		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineICBGenerator);
-#endif
-
-		// Setup the clearing light clusters pipeline
-		pipelineSettings.pShaderProgram = pShaderClearLightClusters;
-		pipelineSettings.pRootSignature = pRootSignatureLightClusters;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineClearLightClusters);
-
-		// Setup the compute the light clusters pipeline
-		pipelineSettings.pShaderProgram = pShaderClusterLights;
-		pipelineSettings.pRootSignature = pRootSignatureLightClusters;
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
-
 		UIComponentDesc UIComponentDesc = {};
 		UIComponentDesc.mStartPosition = vec2(225.0f, 100.0f);
 		uiCreateComponent(GetName(), &UIComponentDesc, &pGuiWindow);
@@ -1009,54 +866,6 @@ public:
 		HiresTimer setupBuffersTimer;
 		initHiresTimer(&setupBuffersTimer);
 		addTriangleFilteringBuffers(pScene);
-
-#if defined(METAL)
-		BufferLoadDesc indirectCommandBuffertDesc = {};
-		indirectCommandBuffertDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-		indirectCommandBuffertDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT; // required for ICB in Metal that allocated on device
-		indirectCommandBuffertDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		indirectCommandBuffertDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * 2; // opaque + alpha
-		indirectCommandBuffertDesc.mDesc.mICBDrawType = INDIRECT_DRAW_INDEX;
-		indirectCommandBuffertDesc.mDesc.mICBMaxVertexBufferBind = UNIT_VBPASS_MAX;
-		indirectCommandBuffertDesc.mDesc.mICBMaxFragmentBufferBind = UNIT_VBPASS_MAX;
-		
-		const char* names[] = 
-		{
-			"Indirect Command Buffer Shadow",
-			"Indirect Command Buffer Camera",
-			"Indirect Command Buffer Cascade0",
-			"Indirect Command Buffer Cascade1",
-			"Indirect Command Buffer Cascade2"
-		};
-		
-		for (uint32_t j = 0; j < gImageCount; ++j)
-		{
-			for (uint32_t v = 0; v < gNumViews; ++v)
-			{
-				indirectCommandBuffertDesc.ppBuffer = &pIndirectCommandBuffers[j][v];
-				indirectCommandBuffertDesc.mDesc.pName = names[v];
-				addResource(&indirectCommandBuffertDesc, NULL);
-			}
-		}
-
-		// drawId buffer for ICB
-		uint32_t drawIds[MAX_DRAWS_INDIRECT * 2] = {};
-		for (uint32_t i = 0; i < MAX_DRAWS_INDIRECT * 2; ++i)
-		{
-			drawIds[i] = i;
-		}
-
-		BufferLoadDesc drawIDBufferDesc = {};
-		drawIDBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-		drawIDBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		drawIDBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * 2;
-		drawIDBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
-		drawIDBufferDesc.mDesc.mSize = drawIDBufferDesc.mDesc.mElementCount * drawIDBufferDesc.mDesc.mStructStride;
-		drawIDBufferDesc.ppBuffer = &pDrawIDBuffer;
-		drawIDBufferDesc.pData = drawIds;
-		drawIDBufferDesc.mDesc.pName = "DrawId Buffer";
-		addResource(&drawIDBufferDesc, NULL);
-#endif
 
 		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", getHiresTimerUSec(&setupBuffersTimer, true) / 1000.0f);
 
@@ -1122,34 +931,42 @@ public:
 		if (!initInputSystem(&inputDesc))
 			return false;
 
-		// Microprofiler Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		// App Actions
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
 		addInputAction(&actionDesc);
-		actionDesc =
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
+		addInputAction(&actionDesc);
+		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				bool capture = uiOnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-				return true;
-			}, this
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+			}
+			return true;
 		};
-		addInputAction(&actionDesc);
+
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!uiIsFocused() && *ctx->pCaptured)
-				index ? gActiveCamera->pCameraController->onRotate(ctx->mFloat2) : gActiveCamera->pCameraController->onMove(ctx->mFloat2);
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? gActiveCamera->pCameraController->onRotate(delta) : gActiveCamera->pCameraController->onMove(delta);
+			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { gActiveCamera->pCameraController->resetView(); return true; }};
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) gActiveCamera->pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameCount = 0;
 
@@ -1158,11 +975,17 @@ public:
 
 	void Exit()
 	{
+		// Remove default fences, semaphores
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeFence(pRenderer, pRenderCompleteFences[i]);
+			removeFence(pRenderer, pComputeCompleteFences[i]);
+			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
+		}
+
 		removeResource(pSkybox);
 		
-		// Remove descriptor binder
-		removeDescriptorSets();
-
 		removeTriangleFilteringBuffers();
 
 		uiDestroyDynamicWidgets(&gAppSettings.mDynamicUIWidgetsGR);
@@ -1188,29 +1011,6 @@ public:
 		removeResource(pVertexBufferCube);
 		removeResource(pIndexBufferCube);
 
-		// Destroy triangle filtering pipelines
-		removePipeline(pRenderer, pPipelineClusterLights);
-		removePipeline(pRenderer, pPipelineClearLightClusters);
-		removePipeline(pRenderer, pPipelineTriangleFiltering);
-		removePipeline(pRenderer, pPipelineBatchCompaction);
-		removePipeline(pRenderer, pPipelineClearBuffers);
-#if defined(METAL)
-		removePipeline(pRenderer, pPipelineICBGenerator);
-#endif
-
-		// Remove root signatures
-		removeRootSignature(pRenderer, pRootSingatureSkybox);
-
-		removeRootSignature(pRenderer, pRootSignatureLightClusters);
-		removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
-		removeRootSignature(pRenderer, pRootSignatureVBShade);
-		removeRootSignature(pRenderer, pRootSignatureVBPass);
-		
-		// Remove indirect command signatures
-		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
-#if defined(METAL)
-		removeIndirectCommandSignature(pRenderer, pCmdSignatureICBOptimize);
-#endif
 		/************************************************************************/
 		// Remove loaded scene
 		/************************************************************************/
@@ -1218,21 +1018,6 @@ public:
 		removeResource(pGeom);
 
 		removeResource(pSkyboxVertexBuffer);
-
-		/************************************************************************/
-		// Remove ICB resources
-		/************************************************************************/
-#if defined(METAL)
-		for (uint32_t j = 0; j < gImageCount; ++j)
-		{
-			for (uint32_t v = 0; v < gNumViews; ++v)
-			{
-				removeResource(pIndirectCommandBuffers[j][v]);
-			}
-		}
-
-		removeResource(pDrawIDBuffer);
-#endif
 
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
@@ -1259,13 +1044,11 @@ public:
 
 		gPositionsDirections.set_capacity(0);
 #if defined(_WINDOWS)
-		gGuiResolution.resNameContainer.set_capacity(0);
-		gGuiResolution.resNamePointers.set_capacity(0);
-		gGuiResolution.resValues.set_capacity(0);
+		arrfree(gGuiResolution.mResNameContainer);
+		arrfree(gGuiResolution.mResNamePointers);
 #endif
 		/************************************************************************/
 		/************************************************************************/
-		removeShaders();
 
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
@@ -1296,6 +1079,12 @@ public:
 		savePipelineCache(pRenderer, pPipelineCache, &saveDesc);
 		removePipelineCache(pRenderer, pPipelineCache);
 
+#if defined(ENABLE_CPU_PROPAGATION)
+		removeTaskManager(pTaskManager);
+#endif
+
+		exitAura(pRenderer, pTaskManager, pAura);
+
 		exitResourceLoaderInterface(pRenderer);
 
 		exitRenderer(pRenderer);
@@ -1312,378 +1101,98 @@ public:
 	// The only render target that is being currently used stores the results of the Visibility Buffer pass.
 	// As described earlier, this render target uses 32 bit per pixel to store draw / triangle IDs that will be
 	// loaded later by the shade step to reconstruct interpolated triangle data per pixel.
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			addFence(pRenderer, &pRenderCompleteFences[i]);
-			addFence(pRenderer, &pComputeCompleteFences[i]);
-			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
-			addSemaphore(pRenderer, &pComputeCompleteSemaphores[i]);
-		}
-
 		gFrameCount = 0;
 
-		if (!addRenderTargets())
-			return false;
-
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		/************************************************************************/
-		// Initialize Aura
-		/************************************************************************/
-		HiresTimer auraTimer;
-		initHiresTimer(&auraTimer);
-
-		aura::LightPropagationCascadeDesc cascades[gRSMCascadeCount] =
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			{ gLPVCascadeSpans[0], 0.1f, 0 },
-			{ gLPVCascadeSpans[1], 1.0f, 0 },
-			{ gLPVCascadeSpans[2], 10.0f, 0 },
-		};
-		uint32_t LPVFlags = aura::LPV_NO_FRESNEL | aura::LPV_UNPACK_NORMAL;
-
-		aura::LightPropagationVolumeParams params;
-		aura::CPUPropagationParams cpuParams;
-		fillAuraParams(&params, &cpuParams);
-
-		initAura(
-			pRenderer, pPipelineCache,
-			1024, 1024, params, gImageCount, LPVFlags, (aura::TinyImageFormat)pSwapChain->ppRenderTargets[0]->mFormat, (aura::TinyImageFormat)pDepthBuffer->mFormat,
-			(aura::SampleCount)pSwapChain->ppRenderTargets[0]->mSampleCount, pSwapChain->ppRenderTargets[0]->mSampleQuality, gRSMCascadeCount,
-			cascades, &pAura);
-
-		setCascadeCenter(pAura, 2, aura::vec3(0.0f, 0.0f, 0.0f));
-
-#if defined(ENABLE_CPU_PROPAGATION)
-		initTaskManager(&pTaskManager);
-#endif
-
-		LOGF(LogLevel::eINFO, "Init Aura : %f ms", getHiresTimerUSec(&auraTimer, true) / 1000.0f);
-
-		float2 screenSize = { (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight };
-		SetupGuiWindows(screenSize);
-
-		/************************************************************************/
-		// Vertex layout used by all geometry passes (shadow, visibility)
-		/************************************************************************/
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 4;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
-		vertexLayout.mAttribs[1].mBinding = 1;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32_UINT;
-		vertexLayout.mAttribs[2].mBinding = 2;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
-		vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32_UINT;
-		vertexLayout.mAttribs[3].mBinding = 3;
-		vertexLayout.mAttribs[3].mLocation = 3;
-
-		VertexLayout vertexLayoutPosAndTex = {};
-		vertexLayoutPosAndTex.mAttribCount = 2;
-		vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutPosAndTex.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
-		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
-		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutPosAndTex.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
-		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
-		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
-
-		// Position only vertex stream that is used in shadow opaque pass
-		VertexLayout vertexLayoutPositionOnly = {};
-		vertexLayoutPositionOnly.mAttribCount = 1;
-		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutPositionOnly.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
-		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
-		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
-		/************************************************************************/
-		// Setup the Shadow Pass Pipeline
-		/************************************************************************/
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		DepthStateDesc depthStateDisableDesc = {};
-
-		RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
-		RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
-		//RasterizerStateDesc rasterizerStateCullBackDesc = { CULL_MODE_BACK };
-		RasterizerStateDesc rasterizerStateCullFrontDepthClampedDesc = rasterizerStateCullFrontDesc;
-		rasterizerStateCullFrontDepthClampedDesc.mDepthClampEnable = true;
-		RasterizerStateDesc rasterizerStateCullNoneDepthClampedDesc = rasterizerStateCullNoneDesc;
-		rasterizerStateCullNoneDepthClampedDesc.mDepthClampEnable = true;
-
-		BlendStateDesc blendStateSkyBoxDesc = {};
-		blendStateSkyBoxDesc.mBlendModes[0] = BM_ADD;
-		blendStateSkyBoxDesc.mBlendAlphaModes[0] = BM_ADD;
-
-		blendStateSkyBoxDesc.mSrcFactors[0] = BC_ONE_MINUS_DST_ALPHA;
-		blendStateSkyBoxDesc.mDstFactors[0] = BC_DST_ALPHA;
-
-		blendStateSkyBoxDesc.mSrcAlphaFactors[0] = BC_ZERO;
-		blendStateSkyBoxDesc.mDstAlphaFactors[0] = BC_ONE;
-
-		blendStateSkyBoxDesc.mMasks[0] = ALL;
-		blendStateSkyBoxDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-
-		// Setup pipeline settings
-		PipelineDesc pipelineDesc = {};
-		pipelineDesc.pCache = pPipelineCache;
-		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& shadowPipelineSettings = pipelineDesc.mGraphicsDesc;
-		shadowPipelineSettings = { 0 };
-		shadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		shadowPipelineSettings.pDepthState = &depthStateDesc;
-		shadowPipelineSettings.mDepthStencilFormat = pRenderTargetShadow->mFormat;
-		shadowPipelineSettings.mSampleCount = pRenderTargetShadow->mSampleCount;
-		shadowPipelineSettings.mSampleQuality = pRenderTargetShadow->mSampleQuality;
-		shadowPipelineSettings.pRootSignature = pRootSignatureVBPass;
-#if defined(METAL)
-		shadowPipelineSettings.mSupportIndirectCommandBuffer = true;
-#endif
-		shadowPipelineSettings.pRasterizerState = &rasterizerStateCullNoneDepthClampedDesc;
-		shadowPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
-		shadowPipelineSettings.pShaderProgram = pShaderShadowPass[0];
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineShadowPass[0]);
-
-		shadowPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
-		shadowPipelineSettings.pShaderProgram = pShaderShadowPass[1];
-		addPipeline(pRenderer, &pipelineDesc, &pPipelineShadowPass[1]);
-
-		/************************************************************************/
-		// Setup the Visibility Buffer Pass Pipeline
-		/************************************************************************/
-		// Setup pipeline settings
-		GraphicsPipelineDesc& vbPassPipelineSettings = pipelineDesc.mGraphicsDesc;
-		vbPassPipelineSettings = { 0 };
-		vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		vbPassPipelineSettings.mRenderTargetCount = 1;
-		vbPassPipelineSettings.pDepthState = &depthStateDesc;
-		vbPassPipelineSettings.pColorFormats = &pRenderTargetVBPass->mFormat;
-		vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mSampleCount;
-		vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mSampleQuality;
-		vbPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
-		vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
-#if defined(METAL)
-		vbPassPipelineSettings.mSupportIndirectCommandBuffer = true;
-#endif
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
-		{
-			if (i == GEOMSET_OPAQUE)
-				vbPassPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
-			else
-				vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
-
-			vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? &rasterizerStateCullNoneDesc : &rasterizerStateCullFrontDesc;
-			vbPassPipelineSettings.pShaderProgram = pShaderVisibilityBufferPass[i];
-
-#if defined(XBOX)
-			ExtendedGraphicsPipelineDesc edescs[2] = {};
-			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
-			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
-			edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
-
-			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
-			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
-			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
-
-			pipelineDesc.pPipelineExtensions = edescs;
-			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
-#endif
-			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferPass[i]);
-
-			pipelineDesc.mExtensionCount = 0;
-		}
-		/************************************************************************/
-		// Setup the resources needed for the Visibility Buffer Shade Pipeline
-		/************************************************************************/
-		// Create pipeline
-		// Note: the vertex layout is set to null because the positions of the fullscreen triangle are being calculated automatically
-		// in the vertex shader using each vertex_id.
-		GraphicsPipelineDesc& vbShadePipelineSettings = pipelineDesc.mGraphicsDesc;
-		vbShadePipelineSettings = { 0 };
-		vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		vbShadePipelineSettings.mRenderTargetCount = 1;
-		vbShadePipelineSettings.pDepthState = &depthStateDisableDesc;
-		vbShadePipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
-		vbShadePipelineSettings.pRootSignature = pRootSignatureVBShade;
-
-		for (uint32_t i = 0; i < gVbShadeConfigCount; ++i)
-		{
-			vbShadePipelineSettings.pShaderProgram = pShaderVisibilityBufferShade[i];
-			vbShadePipelineSettings.mSampleCount = (SampleCount)1;
-			vbShadePipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-			vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-
-#if defined(XBOX)
-			ExtendedGraphicsPipelineDesc edescs[2] = {};
-			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
-			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
-			//edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
-
-			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
-			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
-			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
-
-			pipelineDesc.pPipelineExtensions = edescs;
-			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
-#endif
-			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferShadeSrgb[i]);
-
-			pipelineDesc.mExtensionCount = 0;
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
-		/************************************************************************/
-		// Setup Skybox pipeline
-		/************************************************************************/
-
-		//layout and pipeline for skybox draw
-		VertexLayout vertexLayoutSkybox = {};
-		vertexLayoutSkybox.mAttribCount = 1;
-		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSkybox.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
-		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
-		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
-
-		GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
-		pipelineSettings = { 0 };
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = NULL;
-
-		pipelineSettings.pBlendState = &blendStateSkyBoxDesc;
-
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		//pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pRootSignature = pRootSingatureSkybox;
-		pipelineSettings.pShaderProgram = pShaderSkybox;
-		pipelineSettings.pVertexLayout = &vertexLayoutSkybox;
-		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
-		addPipeline(pRenderer, &pipelineDesc, &pSkyboxPipeline);
-
-		/************************************************************************/
-		// Setup Fill RSM pipeline
-		/************************************************************************/
-#if TEST_RSM
-		TinyImageFormat rsmColorFormats[] =
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			pRenderTargetRSMAlbedo[0]->mFormat,
-			pRenderTargetRSMNormal[0]->mFormat,
-		};
-#else
-		TinyImageFormat rsmColorFormats[] =
-		{
-			pRenderTargetRSMAlbedo->mFormat,
-			pRenderTargetRSMNormal->mFormat,
-		};
-#endif
-		PipelineDesc fillRSMPipelineSettings = {};
-		fillRSMPipelineSettings.mType = PIPELINE_TYPE_GRAPHICS;
-		fillRSMPipelineSettings.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		fillRSMPipelineSettings.mGraphicsDesc.mRenderTargetCount = 2;
-		fillRSMPipelineSettings.mGraphicsDesc.pDepthState = &depthStateDesc;
-#if TEST_RSM
-		fillRSMPipelineSettings.mGraphicsDesc.mDepthStencilFormat = pRenderTargetRSMDepth[0]->mFormat;
-		fillRSMPipelineSettings.mGraphicsDesc.mSampleCount = pRenderTargetRSMAlbedo[0]->mSampleCount;
-		fillRSMPipelineSettings.mGraphicsDesc.mSampleQuality = pRenderTargetRSMAlbedo[0]->mSampleQuality;
-#else
-		fillRSMPipelineSettings.mGraphicsDesc.mDepthStencilFormat = pRenderTargetRSMDepth->mFormat;
-		fillRSMPipelineSettings.mGraphicsDesc.mSampleCount = pRenderTargetRSMAlbedo->mSampleCount;
-		fillRSMPipelineSettings.mGraphicsDesc.mSampleQuality = pRenderTargetRSMAlbedo->mSampleQuality;
-#endif
+			if (!addSwapChain())
+				return false;
 
-		fillRSMPipelineSettings.mGraphicsDesc.pColorFormats = rsmColorFormats;
-		fillRSMPipelineSettings.mGraphicsDesc.pRootSignature = pRootSignatureVBPass;
-		fillRSMPipelineSettings.mGraphicsDesc.pVertexLayout = &vertexLayout;
-#if defined(METAL)
-		fillRSMPipelineSettings.mGraphicsDesc.mSupportIndirectCommandBuffer = true;
-#endif
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
-		{
-			fillRSMPipelineSettings.mGraphicsDesc.pRasterizerState = i == GEOMSET_ALPHATESTED ? &rasterizerStateCullNoneDepthClampedDesc : &rasterizerStateCullFrontDepthClampedDesc;
-			fillRSMPipelineSettings.mGraphicsDesc.pShaderProgram = pShaderFillRSM[i];
-			addPipeline(pRenderer, &fillRSMPipelineSettings, &pPipelineFillRSM[i]);
+			addRenderTargets();
+
+			if (pReloadDesc->mType & RELOAD_TYPE_RESIZE)
+			{
+				setCascadeCenter(pAura, 2, aura::vec3(0.0f, 0.0f, 0.0f));
+				float2 screenSize = { (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight };
+				SetupGuiWindows(screenSize);
+			}
 		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
+
 		prepareDescriptorSets();
+
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 		waitQueueIdle(pComputeQueue);
 
-		// Remove default fences, semaphores
-		for (uint32_t i = 0; i < gImageCount; ++i)
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			removeFence(pRenderer, pRenderCompleteFences[i]);
-			removeFence(pRenderer, pComputeCompleteFences[i]);
-			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
-			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
+			removePipelines();
 		}
 
-		removeUserInterfacePipelines();
-
-		removeFontSystemPipelines(); 
-
-		removeAura(pRenderer, pTaskManager, pAura);
-#if defined(ENABLE_CPU_PROPAGATION)
-		removeTaskManager(pTaskManager);
-#endif
-
-		for (uint32_t i = 0; i < 4; ++i)
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			removePipeline(pRenderer, pPipelineVisibilityBufferShadeSrgb[i]);
-		}
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTargets();
 
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
-		{
-			removePipeline(pRenderer, pPipelineFillRSM[i]);
-			removePipeline(pRenderer, pPipelineShadowPass[i]);
-			removePipeline(pRenderer, pPipelineVisibilityBufferPass[i]);
-		}
-
-		removePipeline(pRenderer, pSkyboxPipeline);
-
-		removeRenderTargets();
-
-		if (pDebugTexturesWindow)
-		{
-			uiDestroyComponent(pDebugTexturesWindow);
-			pDebugTexturesWindow = NULL;
-		}
-
+			if (pReloadDesc->mType & RELOAD_TYPE_RESIZE)
+			{
+				if (pDebugTexturesWindow)
+				{
+					uiDestroyComponent(pDebugTexturesWindow);
+					pDebugTexturesWindow = NULL;
+				}
 #if defined(XBOX)
-        esramResetAllocations(pRenderer->mD3D12.pESRAMManager);
+				esramResetAllocations(pRenderer->mD3D12.pESRAMManager);
 #endif
+			}
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 #if !defined(TARGET_IOS)
 		gActiveCamera->pCameraController->update(deltaTime);
@@ -1809,10 +1318,6 @@ public:
 				cmdEndGpuTimestampQuery(computeCmd, gGpuProfileTokens[1]);
 			}
 
-#if defined(METAL)
-			icbGeneration(computeCmd, gGpuProfileTokens[1], frameIdx);
-#endif
-
 			cmdEndGpuFrameProfile(computeCmd, gGpuProfileTokens[1]);
 
 			endCmd(computeCmd);
@@ -1889,14 +1394,6 @@ public:
 				cmdResourceBarrier(graphicsCmd, 1, barriers, 0, NULL, 0, NULL);
 				cmdEndGpuTimestampQuery(graphicsCmd, gGpuProfileTokens[0]);
 			}
-
-#ifdef METAL
-			if ((!gAppSettings.mAsyncCompute || !gAppSettings.mFilterTriangles)/* && !gAppSettings.mHoldFilteredResults*/)
-			{
-				// Indirect Command Buffer Generation
-				icbGeneration(graphicsCmd, gGpuProfileTokens[0], frameIdx);
-			}
-#endif
 
 			// Transition swapchain buffer to be used as a render target
 			RenderTargetBarrier rtBarriers[] = {
@@ -2008,11 +1505,13 @@ public:
 
 	bool addDescriptorSets()
 	{
+		aura::addDescriptorSets();
+
 		// Triangle Filtering
 		DescriptorSetDesc setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[0]);
 
-		setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumStages }; // additional buffer for ICB on Metal
+		setDesc = { pRootSignatureTriangleFiltering, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumStages };
 
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTriangleFiltering[1]);
 		// Light Clustering
@@ -2042,6 +1541,8 @@ public:
 
 	void removeDescriptorSets()
 	{
+		aura::removeDescriptorSets();
+
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetVBShade[0]);
@@ -2056,14 +1557,11 @@ public:
 
 	void prepareDescriptorSets()
 	{
+		aura::prepareDescriptorSets();
+
 		// Triangle Filtering
 		{
-#if defined(METAL)
-			const uint32_t paramsCount = 9;
-#else
-			const uint32_t paramsCount = 4;
-#endif
-			DescriptorData filterParams[paramsCount] = {};
+			DescriptorData filterParams[4] = {};
 			filterParams[0].pName = "vertexDataBuffer";
 			filterParams[0].ppBuffers = &pGeom->pVertexBuffers[0];
 			filterParams[1].pName = "indexDataBuffer";
@@ -2072,22 +1570,7 @@ public:
 			filterParams[2].ppBuffers = &pMeshConstantsBuffer;
 			filterParams[3].pName = "materialProps";
 			filterParams[3].ppBuffers = &pMaterialPropertyBuffer;
-#if defined(METAL)
-			// icb data
-			filterParams[4].pName = "vertexTexCoord";
-			filterParams[4].ppBuffers = &pGeom->pVertexBuffers[1];
-			filterParams[5].pName = "vertexTangent";
-			filterParams[5].ppBuffers = &pGeom->pVertexBuffers[3];
-			filterParams[6].pName = "vertexNormal";
-			filterParams[6].ppBuffers = &pGeom->pVertexBuffers[2];
-			filterParams[7].pName = "drawIDs";
-			filterParams[7].ppBuffers = &pDrawIDBuffer;
-			filterParams[8].pName = "texturesArgBuffer";
-			filterParams[8].mExtractBuffer = true;
-			filterParams[8].ppDescriptorSet = &pDescriptorSetVBPass[0];
-			filterParams[8].mDescriptorSetBufferIndex = 0;
-#endif
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], paramsCount, filterParams);
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetTriangleFiltering[0], 4, filterParams);
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -2114,68 +1597,27 @@ public:
 				filterParams[2].ppBuffers = &pPerFrameUniformBuffers[i];
 				updateDescriptorSet(pRenderer, i * gNumStages + 1, pDescriptorSetTriangleFiltering[1], 3, filterParams);
 
-				DescriptorData compactParams[4] = {};
+				DescriptorData compactParams[5] = {};
 				compactParams[0].pName = "indirectMaterialBuffer";
 				compactParams[0].ppBuffers = &pFilterIndirectMaterialBuffer[i];
 				compactParams[1].pName = "indirectDrawArgsBufferAlpha";
 				compactParams[1].mCount = gNumViews;
+				compactParams[1].mBindICB = true;
+				compactParams[1].pICBName = "icbAlpha";
 				compactParams[1].ppBuffers = pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_ALPHATESTED];
 				compactParams[2].pName = "indirectDrawArgsBufferNoAlpha";
 				compactParams[2].mCount = gNumViews;
+				compactParams[2].mBindICB = true;
+				compactParams[2].pICBName = "icbNoAlpha";
 				compactParams[2].ppBuffers = pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_OPAQUE];
 				compactParams[3].pName = "uncompactedDrawArgs";
 				compactParams[3].mCount = gNumViews;
 				compactParams[3].ppBuffers = pUncompactedDrawArgumentsBuffer[i];
-				updateDescriptorSet(pRenderer, i * gNumStages + 2, pDescriptorSetTriangleFiltering[1], 4, compactParams);
-
-#if defined(METAL)
-				Buffer* indexBuffersForStages[gNumViews];
-				Buffer* materialBuffersForStages[gNumViews];
-				Buffer* indirectDrawBuffersAlpha[gNumViews];
-				Buffer* indirectDrawBuffersNoAlpha[gNumViews];
-				
-				for (uint32_t view = 0; view < gNumViews; ++view)
-				{
-					indexBuffersForStages[view] = pGeom->pIndexBuffer;
-					materialBuffersForStages[view] = pIndirectMaterialBufferAll;
-					indirectDrawBuffersAlpha[view] = pIndirectDrawArgumentsBufferAll[GEOMSET_ALPHATESTED];
-					indirectDrawBuffersNoAlpha[view] = pIndirectDrawArgumentsBufferAll[GEOMSET_OPAQUE];
-				}
-				
-				for (uint32_t f = 0; f < 2; ++f) // descriptors for FILTERED and UNFILTERED mode
-				{
-					DescriptorData icbParams[10] = {};
-					icbParams[0].pName = "indirectDrawArgsBufferAlphaICB";
-					icbParams[0].mCount = gNumViews;
-					icbParams[0].ppBuffers = (f == 1) ? pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_ALPHATESTED] : indirectDrawBuffersAlpha;
-					icbParams[1].pName = "indirectDrawArgsBufferNoAlphaICB";
-					icbParams[1].mCount = gNumViews;
-					icbParams[1].ppBuffers = (f == 1) ? pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_OPAQUE] : indirectDrawBuffersNoAlpha;
-					icbParams[2].pName = "uncompactedDrawArgsRW";
-					icbParams[2].mCount = gNumViews;
-					icbParams[2].ppBuffers = pUncompactedDrawArgumentsBuffer[i];
-					icbParams[3].pName = "filteredIndicesBufferICB";
-					icbParams[3].mCount = gNumViews;
-					icbParams[3].ppBuffers = (f == 1) ? pFilteredIndexBuffer[i] : indexBuffersForStages;
-					icbParams[4].pName = "indirectMaterialBufferICB";
-					icbParams[4].ppBuffers = (f == 1) ? &pFilterIndirectMaterialBuffer[i] : materialBuffersForStages;
-					icbParams[5].pName = "PerFrameConstants";
-					icbParams[5].ppBuffers = &pPerFrameUniformBuffers[i];
-					icbParams[6].pName = "icbContainers";
-					icbParams[6].mCount = gNumViews;
-					icbParams[6].ppBuffers = pIndirectCommandBuffers[i];
-					icbParams[7].pName = "pipelineStatesShadow";
-					icbParams[7].mCount = gNumGeomSets;
-					icbParams[7].ppPipelines = pPipelineShadowPass;
-					icbParams[8].pName = "pipelineStatesCamera";
-					icbParams[8].mCount = gNumGeomSets;
-					icbParams[8].ppPipelines = pPipelineVisibilityBufferPass;
-					icbParams[9].pName = "pipelineStatesRSMCascades";
-					icbParams[9].mCount = gNumGeomSets;
-					icbParams[9].ppPipelines = pPipelineFillRSM;
-					updateDescriptorSet(pRenderer, i * gNumStages + (3 + f), pDescriptorSetTriangleFiltering[1], 10, icbParams);
-				}
-#endif
+				// Required to generate ICB (to bind index buffer)
+				compactParams[4].pName = "filteredIndicesBuffer";
+				compactParams[4].mCount = gNumViews;
+				compactParams[4].ppBuffers = pFilteredIndexBuffer[i];
+				updateDescriptorSet(pRenderer, i * gNumStages + 2, pDescriptorSetTriangleFiltering[1], 5, compactParams);
 			}
 		}
 		// Light Clustering
@@ -2203,7 +1645,6 @@ public:
 			params[0].ppTextures = gDiffuseMapsStorage;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetVBPass[0], 1, params);
 			
-#ifndef METAL
 			params[0] = {};
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
@@ -2216,7 +1657,6 @@ public:
 					updateDescriptorSet(pRenderer, i * 2 + j, pDescriptorSetVBPass[1], 2, params);
 				}
 			}
-#endif
 		}
 		// VB Shade
 		{
@@ -2314,23 +1754,37 @@ public:
 	/************************************************************************/
 	// Add render targets
 	/************************************************************************/
-	bool addRenderTargets()
+	bool addSwapChain()
 	{
-		const uint32_t width = mSettings.mWidth;
-		const uint32_t height = mSettings.mHeight;
-
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-		swapChainDesc.mWidth = width;
-		swapChainDesc.mHeight = height;
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true, true);
 
-		swapChainDesc.mColorClearValue = {{1, 1, 1, 1}};
+		swapChainDesc.mColorClearValue = { {1, 1, 1, 1} };
 		swapChainDesc.mEnableVsync = false;
-		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
+
+		return pSwapChain != NULL;
+	}
+
+	void addRenderTargets()
+	{
+		const uint32_t width = mSettings.mWidth;
+		const uint32_t height = mSettings.mHeight;
+
+		aura::LightPropagationCascadeDesc cascades[gRSMCascadeCount] =
+		{
+			{ gLPVCascadeSpans[0], 0.1f, 0 },
+			{ gLPVCascadeSpans[1], 1.0f, 0 },
+			{ gLPVCascadeSpans[2], 10.0f, 0 },
+		};
+		aura::addRenderTargets(cascades);
+
 		/************************************************************************/
 		/************************************************************************/
 		ClearValue optimizedDepthClear = {{1.0f, 0}};
@@ -2395,7 +1849,7 @@ public:
 		rsmRTDesc.mArraySize = 1;
 		rsmRTDesc.mClearValue = optimizedColorClearBlack;
 		rsmRTDesc.mDepth = 1;
-		rsmRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		rsmRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		rsmRTDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
 		rsmRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		rsmRTDesc.mHeight = gRSMResolution;
@@ -2420,18 +1874,19 @@ public:
 		addRenderTarget(pRenderer, &rsmRTDesc, &pRenderTargetRSMNormal);
 
 		rsmRTDesc.mClearValue = optimizedDepthClear;
+		rsmRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		rsmRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		addRenderTarget(pRenderer, &rsmRTDesc, &pRenderTargetRSMDepth);
 #endif
 
 		/************************************************************************/
 		/************************************************************************/
-
-		return true;
 	}
 
 	void removeRenderTargets()
 	{
+		aura::removeRenderTargets();
+
 		removeRenderTarget(pRenderer, pDepthBuffer);
 		removeRenderTarget(pRenderer, pRenderTargetVBPass);
 
@@ -2448,33 +1903,97 @@ public:
 		removeRenderTarget(pRenderer, pRenderTargetRSMNormal);
 		removeRenderTarget(pRenderer, pRenderTargetRSMDepth);
 #endif
-
-		removeSwapChain(pRenderer, pSwapChain);
 	}
+
+	void addRootSignatures()
+	{
+		aura::addRootSignatures();
+
+		// Graphics root signatures
+		const char* pTextureSamplerNames[] = { "textureFilter", "alphaFilterBilinear", "rsmFilter", "alphaFilterPoint" };
+		Sampler*    pTextureSamplers[] = { pSamplerPointClamp, pSamplerPointClamp, pSamplerTrilinearAniso, pSamplerPointClamp };
+		const char* pShadingSamplerNames[] = { "depthSampler", "textureSampler", "linearBorderSampler" };
+		Sampler*    pShadingSamplers[] = { pSamplerBilinearClamp, pSamplerBilinear, pSamplerLinearBorder };
+
+		const int shaderCount = 3;
+		Shader* pShaders[gNumGeomSets * shaderCount] = {};
+		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		{
+			pShaders[i * shaderCount] = pShaderVisibilityBufferPass[i];
+			pShaders[i * shaderCount + 1] = pShaderFillRSM[i];
+			pShaders[i * shaderCount + 2] = pShaderShadowPass[i];
+		}
+
+		RootSignatureDesc vbRootDesc = { pShaders, gNumGeomSets * shaderCount };
+		vbRootDesc.mMaxBindlessTextures = gMaterialCount;
+		vbRootDesc.ppStaticSamplerNames = pTextureSamplerNames;
+		vbRootDesc.ppStaticSamplers = pTextureSamplers;
+		vbRootDesc.mStaticSamplerCount = 4;
+		addRootSignature(pRenderer, &vbRootDesc, &pRootSignatureVBPass);
+		gVBPassRootConstantIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "materialRootConstant");
+
+		RootSignatureDesc shadeRootDesc = { pShaderVisibilityBufferShade, gVbShadeConfigCount };
+		// Set max number of bindless textures in the root signature
+		shadeRootDesc.mMaxBindlessTextures = gMaterialCount;
+		shadeRootDesc.ppStaticSamplerNames = pShadingSamplerNames;
+		shadeRootDesc.ppStaticSamplers = pShadingSamplers;
+		shadeRootDesc.mStaticSamplerCount = 3;
+		addRootSignature(pRenderer, &shadeRootDesc, &pRootSignatureVBShade);
+
+		// Triangle filtering root signatures
+		Shader* pCullingShaders[] = { pShaderClearBuffers, pShaderTriangleFiltering, pShaderBatchCompaction };
+		RootSignatureDesc triangleFilteringRootDesc = { pCullingShaders, TF_ARRAY_COUNT(pCullingShaders) };
+
+		addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
+		Shader* pClusterShaders[] = { pShaderClearLightClusters, pShaderClusterLights };
+		RootSignatureDesc clearLightRootDesc = { pClusterShaders, 2 };
+		addRootSignature(pRenderer, &clearLightRootDesc, &pRootSignatureLightClusters);
+
+		const char*       pSkyboxSamplerName = "skyboxSampler";
+		RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
+		skyboxRootDesc.mStaticSamplerCount = 1;
+		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxSamplerName;
+		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
+		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSingatureSkybox);
+
+		/************************************************************************/
+		// Setup indirect command signatures
+		/************************************************************************/
+		uint32_t indirectArgCount = 0;
+		IndirectArgumentDescriptor indirectArgs[2] = {};
+		if (pRenderer->pActiveGpuSettings->mIndirectRootConstant)
+		{
+			indirectArgs[0].mType = INDIRECT_CONSTANT;
+			indirectArgs[0].mIndex = getDescriptorIndexFromName(pRootSignatureVBPass, "indirectRootConstant");
+			indirectArgs[0].mByteSize = sizeof(uint32_t);
+			++indirectArgCount;
+		}
+		indirectArgs[indirectArgCount++].mType = INDIRECT_DRAW_INDEX;
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, indirectArgs, indirectArgCount };
+		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
+	}
+
+	void removeRootSignatures()
+	{
+		aura::removeRootSignatures();
+
+		removeRootSignature(pRenderer, pRootSingatureSkybox);
+
+		removeRootSignature(pRenderer, pRootSignatureLightClusters);
+		removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
+		removeRootSignature(pRenderer, pRootSignatureVBShade);
+		removeRootSignature(pRenderer, pRootSignatureVBPass);
+
+		// Remove indirect command signatures
+		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
+	}
+
 	/************************************************************************/
 	// Load all the shaders needed for the demo
 	/************************************************************************/
 	void addShaders()
 	{
-		char useLPVMacroBuffer[2][64] = {};
-		sprintf(useLPVMacroBuffer[0], "%d", 0);
-		sprintf(useLPVMacroBuffer[1], "%d", 1);
-		char enableSunMacroBuffer[2][64] = {};
-		sprintf(enableSunMacroBuffer[0], "%d", 0);
-		sprintf(enableSunMacroBuffer[1], "%d", 1);
-
-		enum ShadingMacro
-		{
-			USE_LPV = 0,
-			ENABLE_SUN,
-			MACRO_COUNT
-		};
-		ShaderMacro shadingMacros[gVbShadeConfigCount][MACRO_COUNT] = {};
-		for (int i = 0; i < gVbShadeConfigCount; i++)
-		{
-			shadingMacros[i][USE_LPV] = { "USE_LPV", "" };
-			shadingMacros[i][ENABLE_SUN] = { "ENABLE_SUN", "" };
-		}
+		aura::addShaders();
 
 		ShaderLoadDesc shadowPass = {};
 		ShaderLoadDesc shadowPassAlpha = {};
@@ -2489,12 +2008,6 @@ public:
 		ShaderLoadDesc clusterLights = {};
 		ShaderLoadDesc fillRSM = {};
 		ShaderLoadDesc fillRSMAlpha = {};
-
-#if defined(METAL)
-		ShaderLoadDesc icbGeneratorShaderDesc = {};
-		icbGeneratorShaderDesc.mStages[0] = { "icb.comp", NULL, NULL, 0 };
-		addShader(pRenderer, &icbGeneratorShaderDesc, &pShaderICBGenerator);
-#endif
 
 		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0 };
 		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0 };
@@ -2511,25 +2024,30 @@ public:
 		vbPassAlpha.mStages[2] = { "visibilityBuffer_pass_alpha.geom", NULL, 0 };
 #endif
 
+		const char* vbShadeShaderNames[] =
+		{
+			"visibilityBuffer_shade.frag",
+			"visibilityBuffer_shade_ENABLE_SUN.frag",
+			"visibilityBuffer_shade_USE_LPV.frag",
+			"visibilityBuffer_shade_USE_LPV_ENABLE_SUN.frag",
+		};
+
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			for (uint32_t j = 0; j < 2; ++j)
 			{
 				int configIndex = 2 * i + j;
 
-				shadingMacros[configIndex][USE_LPV].value = useLPVMacroBuffer[i];
-				shadingMacros[configIndex][ENABLE_SUN].value = enableSunMacroBuffer[j];
-
 				vbShade[configIndex].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0 };
-				vbShade[configIndex].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[configIndex], MACRO_COUNT };
+				vbShade[configIndex].mStages[1] = { vbShadeShaderNames[configIndex], NULL, 0 };
 			}
 		}
 		// Triangle culling compute shader
-		triangleCulling.mStages[0] = { "triangle_filtering.comp", NULL, 0 };
+		triangleCulling.mStages[0] = { pRenderer->pActiveGpuSettings->mIndirectCommandBuffer ? "triangle_filtering_icb.comp" : "triangle_filtering.comp", NULL, 0 };
 		// Batch compaction compute shader
-		batchCompaction.mStages[0] = { "batch_compaction.comp", NULL, 0 };
+		batchCompaction.mStages[0] = { pRenderer->pActiveGpuSettings->mIndirectCommandBuffer ? "batch_compaction_icb.comp" : "batch_compaction.comp", NULL, 0 };
 		// Clear buffers compute shader
-		clearBuffer.mStages[0] = { "clear_buffers.comp", NULL, 0 };
+		clearBuffer.mStages[0] = { pRenderer->pActiveGpuSettings->mIndirectCommandBuffer ? "clear_buffers_icb.comp" : "clear_buffers.comp", NULL, 0 };
 		// Clear light clusters compute shader
 		clearLights.mStages[0] = { "clear_light_clusters.comp", NULL, 0 };
 		// Cluster lights compute shader
@@ -2563,9 +2081,8 @@ public:
 
 	void removeShaders()
 	{
-#if defined(METAL)
-		removeShader(pRenderer, pShaderICBGenerator);
-#endif
+		aura::removeShaders();
+
 		removeShader(pRenderer, pShaderShadowPass[GEOMSET_OPAQUE]);
 		removeShader(pRenderer, pShaderShadowPass[GEOMSET_ALPHATESTED]);
 		removeShader(pRenderer, pShaderVisibilityBufferPass[GEOMSET_OPAQUE]);
@@ -2582,6 +2099,332 @@ public:
 
 		removeShader(pRenderer, pShaderFillRSM[GEOMSET_OPAQUE]);
 		removeShader(pRenderer, pShaderFillRSM[GEOMSET_ALPHATESTED]);
+	}
+
+	void addPipelines()
+	{
+		aura::addPipelines(pPipelineCache, (aura::TinyImageFormat)pSwapChain->ppRenderTargets[0]->mFormat, (aura::TinyImageFormat)pDepthBuffer->mFormat,
+			(aura::SampleCount)pSwapChain->ppRenderTargets[0]->mSampleCount, pSwapChain->ppRenderTargets[0]->mSampleQuality);
+
+		/************************************************************************/
+		// Setup compute pipelines for triangle filtering
+		/************************************************************************/
+		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
+		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& computePipelineSettings = pipelineDesc.mComputeDesc;
+		computePipelineSettings.pShaderProgram = pShaderClearBuffers;
+		computePipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
+		pipelineDesc.pName = "Clear Filtering Buffers";
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineClearBuffers);
+
+		// Create the compute pipeline for GPU triangle filtering
+		pipelineDesc.pName = "Triangle Filtering";
+		computePipelineSettings.pShaderProgram = pShaderTriangleFiltering;
+		computePipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineTriangleFiltering);
+
+		pipelineDesc.pName = "Batch Compaction";
+		computePipelineSettings.pShaderProgram = pShaderBatchCompaction;
+		computePipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineBatchCompaction);
+
+		// Setup the clearing light clusters pipeline
+		pipelineDesc.pName = "Clear Light Clusters";
+		computePipelineSettings.pShaderProgram = pShaderClearLightClusters;
+		computePipelineSettings.pRootSignature = pRootSignatureLightClusters;
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineClearLightClusters);
+
+		// Setup the compute the light clusters pipeline
+		pipelineDesc.pName = "Cluster Lights";
+		computePipelineSettings.pShaderProgram = pShaderClusterLights;
+		computePipelineSettings.pRootSignature = pRootSignatureLightClusters;
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
+
+		/************************************************************************/
+		// Vertex layout used by all geometry passes (shadow, visibility)
+		/************************************************************************/
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 4;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
+		vertexLayout.mAttribs[1].mBinding = 1;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32_UINT;
+		vertexLayout.mAttribs[2].mBinding = 2;
+		vertexLayout.mAttribs[2].mLocation = 2;
+		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
+		vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32_UINT;
+		vertexLayout.mAttribs[3].mBinding = 3;
+		vertexLayout.mAttribs[3].mLocation = 3;
+
+		VertexLayout vertexLayoutPosAndTex = {};
+		vertexLayoutPosAndTex.mAttribCount = 2;
+		vertexLayoutPosAndTex.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPosAndTex.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
+		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
+		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutPosAndTex.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
+		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
+		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
+
+		// Position only vertex stream that is used in shadow opaque pass
+		VertexLayout vertexLayoutPositionOnly = {};
+		vertexLayoutPositionOnly.mAttribCount = 1;
+		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutPositionOnly.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayoutPositionOnly.mAttribs[0].mBinding = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mLocation = 0;
+		vertexLayoutPositionOnly.mAttribs[0].mOffset = 0;
+
+		/************************************************************************/
+		// Setup the Shadow Pass Pipeline
+		/************************************************************************/
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		DepthStateDesc depthStateDisableDesc = {};
+
+		RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
+		RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
+		//RasterizerStateDesc rasterizerStateCullBackDesc = { CULL_MODE_BACK };
+		RasterizerStateDesc rasterizerStateCullFrontDepthClampedDesc = rasterizerStateCullFrontDesc;
+		rasterizerStateCullFrontDepthClampedDesc.mDepthClampEnable = true;
+		RasterizerStateDesc rasterizerStateCullNoneDepthClampedDesc = rasterizerStateCullNoneDesc;
+		rasterizerStateCullNoneDepthClampedDesc.mDepthClampEnable = true;
+
+		BlendStateDesc blendStateSkyBoxDesc = {};
+		blendStateSkyBoxDesc.mBlendModes[0] = BM_ADD;
+		blendStateSkyBoxDesc.mBlendAlphaModes[0] = BM_ADD;
+
+		blendStateSkyBoxDesc.mSrcFactors[0] = BC_ONE_MINUS_DST_ALPHA;
+		blendStateSkyBoxDesc.mDstFactors[0] = BC_DST_ALPHA;
+
+		blendStateSkyBoxDesc.mSrcAlphaFactors[0] = BC_ZERO;
+		blendStateSkyBoxDesc.mDstAlphaFactors[0] = BC_ONE;
+
+		blendStateSkyBoxDesc.mMasks[0] = ALL;
+		blendStateSkyBoxDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+
+		// Setup pipeline settings
+		pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
+		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& shadowPipelineSettings = pipelineDesc.mGraphicsDesc;
+		shadowPipelineSettings = { 0 };
+		shadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		shadowPipelineSettings.pDepthState = &depthStateDesc;
+		shadowPipelineSettings.mDepthStencilFormat = pRenderTargetShadow->mFormat;
+		shadowPipelineSettings.mSampleCount = pRenderTargetShadow->mSampleCount;
+		shadowPipelineSettings.mSampleQuality = pRenderTargetShadow->mSampleQuality;
+		shadowPipelineSettings.pRootSignature = pRootSignatureVBPass;
+		shadowPipelineSettings.mSupportIndirectCommandBuffer = true;
+		shadowPipelineSettings.pRasterizerState = &rasterizerStateCullNoneDepthClampedDesc;
+		shadowPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
+		shadowPipelineSettings.pShaderProgram = pShaderShadowPass[0];
+		pipelineDesc.pName = "Shadow Opaque";
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineShadowPass[0]);
+
+		shadowPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
+		shadowPipelineSettings.pShaderProgram = pShaderShadowPass[1];
+		pipelineDesc.pName = "Shadow AlphaTested";
+		addPipeline(pRenderer, &pipelineDesc, &pPipelineShadowPass[1]);
+
+		/************************************************************************/
+		// Setup the Visibility Buffer Pass Pipeline
+		/************************************************************************/
+		// Setup pipeline settings
+		GraphicsPipelineDesc& vbPassPipelineSettings = pipelineDesc.mGraphicsDesc;
+		vbPassPipelineSettings = { 0 };
+		vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		vbPassPipelineSettings.mRenderTargetCount = 1;
+		vbPassPipelineSettings.pDepthState = &depthStateDesc;
+		vbPassPipelineSettings.pColorFormats = &pRenderTargetVBPass->mFormat;
+		vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mSampleCount;
+		vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mSampleQuality;
+		vbPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
+		vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
+		vbPassPipelineSettings.mSupportIndirectCommandBuffer = true;
+
+		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		{
+			if (i == GEOMSET_OPAQUE)
+				vbPassPipelineSettings.pVertexLayout = &vertexLayoutPositionOnly;
+			else
+				vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
+
+			vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ? &rasterizerStateCullNoneDesc : &rasterizerStateCullFrontDesc;
+			vbPassPipelineSettings.pShaderProgram = pShaderVisibilityBufferPass[i];
+
+#if defined(XBOX)
+			ExtendedGraphicsPipelineDesc edescs[2] = {};
+			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
+			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
+			edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
+
+			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
+			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
+
+			pipelineDesc.pPipelineExtensions = edescs;
+			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
+#endif
+			pipelineDesc.pName = GEOMSET_OPAQUE == i ? "VB Opaque" : "VB AlphaTested";
+			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferPass[i]);
+
+			pipelineDesc.mExtensionCount = 0;
+		}
+
+		/************************************************************************/
+	// Setup the resources needed for the Visibility Buffer Shade Pipeline
+	/************************************************************************/
+	// Create pipeline
+	// Note: the vertex layout is set to null because the positions of the fullscreen triangle are being calculated automatically
+	// in the vertex shader using each vertex_id.
+		GraphicsPipelineDesc& vbShadePipelineSettings = pipelineDesc.mGraphicsDesc;
+		vbShadePipelineSettings = { 0 };
+		vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		vbShadePipelineSettings.mRenderTargetCount = 1;
+		vbShadePipelineSettings.pDepthState = &depthStateDisableDesc;
+		vbShadePipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
+		vbShadePipelineSettings.pRootSignature = pRootSignatureVBShade;
+
+		for (uint32_t i = 0; i < gVbShadeConfigCount; ++i)
+		{
+			vbShadePipelineSettings.pShaderProgram = pShaderVisibilityBufferShade[i];
+			vbShadePipelineSettings.mSampleCount = (SampleCount)1;
+			vbShadePipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+
+#if defined(XBOX)
+			ExtendedGraphicsPipelineDesc edescs[2] = {};
+			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
+			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
+			//edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
+
+			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
+			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
+			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
+
+			pipelineDesc.pPipelineExtensions = edescs;
+			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
+#endif
+			pipelineDesc.pName = "VB Shade";
+			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferShadeSrgb[i]);
+
+			pipelineDesc.mExtensionCount = 0;
+		}
+
+		/************************************************************************/
+		// Setup Skybox pipeline
+		/************************************************************************/
+
+		//layout and pipeline for skybox draw
+		VertexLayout vertexLayoutSkybox = {};
+		vertexLayoutSkybox.mAttribCount = 1;
+		vertexLayoutSkybox.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutSkybox.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
+		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
+		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
+
+		GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
+		pipelineSettings = { 0 };
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = NULL;
+
+		pipelineSettings.pBlendState = &blendStateSkyBoxDesc;
+
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		//pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		pipelineSettings.pRootSignature = pRootSingatureSkybox;
+		pipelineSettings.pShaderProgram = pShaderSkybox;
+		pipelineSettings.pVertexLayout = &vertexLayoutSkybox;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
+		pipelineDesc.pName = "Skybox";
+		addPipeline(pRenderer, &pipelineDesc, &pSkyboxPipeline);
+
+		/************************************************************************/
+		// Setup Fill RSM pipeline
+		/************************************************************************/
+#if TEST_RSM
+		TinyImageFormat rsmColorFormats[] =
+		{
+			pRenderTargetRSMAlbedo[0]->mFormat,
+			pRenderTargetRSMNormal[0]->mFormat,
+		};
+#else
+		TinyImageFormat rsmColorFormats[] =
+		{
+			pRenderTargetRSMAlbedo->mFormat,
+			pRenderTargetRSMNormal->mFormat,
+		};
+#endif
+		PipelineDesc fillRSMPipelineSettings = {};
+		fillRSMPipelineSettings.mType = PIPELINE_TYPE_GRAPHICS;
+		fillRSMPipelineSettings.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		fillRSMPipelineSettings.mGraphicsDesc.mRenderTargetCount = 2;
+		fillRSMPipelineSettings.mGraphicsDesc.pDepthState = &depthStateDesc;
+#if TEST_RSM
+		fillRSMPipelineSettings.mGraphicsDesc.mDepthStencilFormat = pRenderTargetRSMDepth[0]->mFormat;
+		fillRSMPipelineSettings.mGraphicsDesc.mSampleCount = pRenderTargetRSMAlbedo[0]->mSampleCount;
+		fillRSMPipelineSettings.mGraphicsDesc.mSampleQuality = pRenderTargetRSMAlbedo[0]->mSampleQuality;
+#else
+		fillRSMPipelineSettings.mGraphicsDesc.mDepthStencilFormat = pRenderTargetRSMDepth->mFormat;
+		fillRSMPipelineSettings.mGraphicsDesc.mSampleCount = pRenderTargetRSMAlbedo->mSampleCount;
+		fillRSMPipelineSettings.mGraphicsDesc.mSampleQuality = pRenderTargetRSMAlbedo->mSampleQuality;
+#endif
+
+		fillRSMPipelineSettings.mGraphicsDesc.pColorFormats = rsmColorFormats;
+		fillRSMPipelineSettings.mGraphicsDesc.pRootSignature = pRootSignatureVBPass;
+		fillRSMPipelineSettings.mGraphicsDesc.pVertexLayout = &vertexLayout;
+		fillRSMPipelineSettings.mGraphicsDesc.mSupportIndirectCommandBuffer = true;
+
+		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		{
+			fillRSMPipelineSettings.mGraphicsDesc.pRasterizerState = i == GEOMSET_ALPHATESTED ? &rasterizerStateCullNoneDepthClampedDesc : &rasterizerStateCullFrontDepthClampedDesc;
+			fillRSMPipelineSettings.mGraphicsDesc.pShaderProgram = pShaderFillRSM[i];
+			pipelineDesc.pName = GEOMSET_OPAQUE == i ? "RSM Opaque" : "RSM AlphaTested";
+			addPipeline(pRenderer, &fillRSMPipelineSettings, &pPipelineFillRSM[i]);
+		}
+	}
+
+	void removePipelines()
+	{
+		aura::removePipelines();
+
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			removePipeline(pRenderer, pPipelineVisibilityBufferShadeSrgb[i]);
+		}
+
+		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		{
+			removePipeline(pRenderer, pPipelineFillRSM[i]);
+			removePipeline(pRenderer, pPipelineShadowPass[i]);
+			removePipeline(pRenderer, pPipelineVisibilityBufferPass[i]);
+		}
+
+		removePipeline(pRenderer, pSkyboxPipeline);
+
+
+		// Destroy triangle filtering pipelines
+		removePipeline(pRenderer, pPipelineClusterLights);
+		removePipeline(pRenderer, pPipelineClearLightClusters);
+		removePipeline(pRenderer, pPipelineTriangleFiltering);
+		removePipeline(pRenderer, pPipelineBatchCompaction);
+		removePipeline(pRenderer, pPipelineClearBuffers);
 	}
 
 	// This method sets the contents of the buffers to indicate the rendering pass that
@@ -2614,10 +2457,12 @@ public:
 		// Indirect draw arguments to draw all triangles
 		/************************************************************************/
 		const uint32_t numBatches = (const uint32_t)gMeshCount;
-		eastl::vector<uint32_t> materialIDPerDrawCall(MATERIAL_BUFFER_SIZE);
-		eastl::vector<VisBufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{});
-		eastl::vector<VisBufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{});
+		uint32_t materialIDPerDrawCall[MATERIAL_BUFFER_SIZE] = {};
+		uint32_t indirectArgsNoAlphaDwords[MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS] = {};
+		uint32_t indirectArgsDwords[MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS] = {};
+
 		uint32_t iAlpha = 0, iNoAlpha = 0;
+		const uint32_t argOffset = pRenderer->pActiveGpuSettings->mIndirectRootConstant ? 1 : 0;
 		for (uint32_t i = 0; i < numBatches; ++i)
 		{
 			uint matID = i;
@@ -2625,34 +2470,43 @@ public:
 
 			if (mat->alphaTested)
 			{
-#if defined(DIRECT3D12)
-				indirectArgsAlpha[iAlpha].drawId = iAlpha;
-#endif
-				indirectArgsAlpha[iAlpha].arg = pScene->geom->pDrawArgs[i];
-#if defined(ORBIS) || defined(PROSPERO)
-				// No drawId or gl_DrawId but instance id works as expected so use that as the draw id
-				indirectArgsAlpha[iAlpha].arg.mStartInstance = iAlpha;
-#endif
+				IndirectDrawIndexArguments* arg = (IndirectDrawIndexArguments*)&indirectArgsDwords[iAlpha * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + argOffset];
+				*arg = pScene->geom->pDrawArgs[i];
+				if (pRenderer->pActiveGpuSettings->mIndirectRootConstant)
+				{
+					indirectArgsDwords[iAlpha * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS] = iAlpha;
+				}
+				else
+				{
+					// No drawId or gl_DrawId but instance id works as expected so use that as the draw id
+					arg->mStartInstance = iAlpha;
+				}
+
 				for (uint32_t j = 0; j < gNumViews; ++j)
 					materialIDPerDrawCall[BaseMaterialBuffer(true, j) + iAlpha] = matID;
 				iAlpha++;
 			}
 			else
 			{
-#if defined(DIRECT3D12)
-				indirectArgsNoAlpha[iNoAlpha].drawId = iNoAlpha;
-#endif
-				indirectArgsNoAlpha[iNoAlpha].arg = pScene->geom->pDrawArgs[i];
-#if defined(ORBIS) || defined(PROSPERO)
-				indirectArgsNoAlpha[iNoAlpha].arg.mStartInstance = iNoAlpha;
-#endif
+				IndirectDrawIndexArguments* arg = (IndirectDrawIndexArguments*)&indirectArgsNoAlphaDwords[iNoAlpha * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + argOffset];
+				*arg = pScene->geom->pDrawArgs[i];
+				if (pRenderer->pActiveGpuSettings->mIndirectRootConstant)
+				{
+					indirectArgsNoAlphaDwords[iNoAlpha * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS] = iNoAlpha;
+				}
+				else
+				{
+					// No drawId or gl_DrawId but instance id works as expected so use that as the draw id
+					arg->mStartInstance = iNoAlpha;
+				}
+
 				for (uint32_t j = 0; j < gNumViews; ++j)
 					materialIDPerDrawCall[BaseMaterialBuffer(false, j) + iNoAlpha] = matID;
 				iNoAlpha++;
 			}
-			}
-		*(((uint32_t*)indirectArgsAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iAlpha;
-		*(((uint32_t*)indirectArgsNoAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iNoAlpha;
+		}
+		indirectArgsDwords[DRAW_COUNTER_SLOT_POS] = iAlpha;
+		indirectArgsNoAlphaDwords[DRAW_COUNTER_SLOT_POS] = iNoAlpha;
 
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
@@ -2667,11 +2521,11 @@ public:
 			BufferLoadDesc indirectBufferDesc = {};
 			indirectBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			indirectBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			indirectBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
+			indirectBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
 			indirectBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 			indirectBufferDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE | RESOURCE_STATE_INDIRECT_ARGUMENT;
 			indirectBufferDesc.mDesc.mSize = indirectBufferDesc.mDesc.mElementCount * indirectBufferDesc.mDesc.mStructStride;
-			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlpha.data() : indirectArgsAlpha.data();
+			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlphaDwords : indirectArgsDwords;
 			indirectBufferDesc.ppBuffer = &pIndirectDrawArgumentsBufferAll[i];
 			indirectBufferDesc.mDesc.pName = "Indirect Buffer Desc";
 			addResource(&indirectBufferDesc, NULL);
@@ -2683,7 +2537,7 @@ public:
 		indirectDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		indirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		indirectDesc.mDesc.mSize = indirectDesc.mDesc.mElementCount * indirectDesc.mDesc.mStructStride;
-		indirectDesc.pData = materialIDPerDrawCall.data();
+		indirectDesc.pData = materialIDPerDrawCall;
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
 		indirectDesc.mDesc.pName = "Indirect Desc";
 		addResource(&indirectDesc, NULL);
@@ -2710,30 +2564,32 @@ public:
 			}
 		}
 
-		VisBufferIndirectCommand* indirectDrawArguments =
-			(VisBufferIndirectCommand*)tf_malloc(MAX_DRAWS_INDIRECT * sizeof(VisBufferIndirectCommand));
-		memset(indirectDrawArguments, 0, MAX_DRAWS_INDIRECT * sizeof(VisBufferIndirectCommand));
+		memset(indirectArgsDwords, 0, sizeof(indirectArgsDwords));
 		for (uint32_t i = 0; i < MAX_DRAWS_INDIRECT; ++i)
 		{
-#if defined(DIRECT3D12)
-			indirectDrawArguments[i].drawId = i;
-#endif
-#if defined(ORBIS) || defined(PROSPERO)
-			indirectDrawArguments[i].arg.mStartInstance = i;
-#endif
-			if (i < gMeshCount)
-				indirectDrawArguments[i].arg.mInstanceCount = 1;
+			uint32_t* arg = &indirectArgsDwords[i * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS];
+			if (pRenderer->pActiveGpuSettings->mIndirectRootConstant)
+			{
+				arg[0] = i;
+			}
+			else
+			{
+				arg[argOffset + INDIRECT_DRAW_INDEX_ELEM_INDEX(mStartInstance)] = i;
+			}
+			arg[argOffset + INDIRECT_DRAW_INDEX_ELEM_INDEX(mInstanceCount)] = (i < gMeshCount) ? 1 : 0;
 		}
 
 		BufferLoadDesc filterIndirectDesc = {};
-		filterIndirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
+		filterIndirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER;
 		filterIndirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
+		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS;
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
 		filterIndirectDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		filterIndirectDesc.mDesc.mICBDrawType = INDIRECT_DRAW_INDEX;
+		filterIndirectDesc.mDesc.mICBMaxCommandCount = MAX_DRAWS_INDIRECT;
 		filterIndirectDesc.mDesc.pName = "Filtered Indirect Desc";
-		filterIndirectDesc.pData = indirectDrawArguments;
+		filterIndirectDesc.pData = indirectArgsDwords;
 
 		BufferLoadDesc uncompactedDesc = {};
 		uncompactedDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
@@ -2772,8 +2628,6 @@ public:
 				}
 			}
 		}
-
-		tf_free(indirectDrawArguments);
 		/************************************************************************/
 		// Triangle filtering buffers
 		/************************************************************************/
@@ -3098,9 +2952,6 @@ public:
 					inverse(currentFrame->gPerFrameUniformData.transform[viewID].vp);
 				currentFrame->gPerFrameUniformData.transform[viewID].mvp =
 					currentFrame->gPerFrameUniformData.transform[viewID].vp * cameraModel;
-#ifdef METAL
-				currentFrame->gPerFrameUniformData.materialConstants[i] = { viewID, (uint32_t)gAppSettings.useColorMaps };
-#endif
 				/************************************************************************/
 				// Culling data
 				/************************************************************************/
@@ -3193,20 +3044,6 @@ public:
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_SHADOW] : pGeom->pIndexBuffer;
 		cmdBindIndexBuffer(cmd, pIndexBuffer, INDEX_TYPE_UINT32, 0);
 
-#if defined(METAL)
-		Buffer* pVertexBuffers[] = { pGeom->pVertexBuffers[0], pGeom->pVertexBuffers[1] };
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffers, pGeom->mVertexStrides, NULL);
-
-		// ICB Opaque + Alpha
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "SM Opaque and Alpha");
-
-		cmdBindPipeline(cmd, pPipelineShadowPass[1]);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]); // useResource for textures
-		// ICB alpha + opaque
-		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBuffers[frameIdx][VIEW_SHADOW], 0, NULL, 0);
-
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#else
 		const char* profileNames[gNumGeomSets] = { "SM Opaque", "SM Alpha" };
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, profileNames[0]);
@@ -3241,7 +3078,6 @@ public:
 			cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gDrawCount[1], pIndirectBuffer, 0, pIndirectBuffer,
 			DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-#endif
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
@@ -3290,7 +3126,7 @@ public:
 
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, renderTargetBarriers);
 
-			char label[30];
+			char label[32];// Increased array size to 32 to avoid overflow warning (-Wformat-overflow)
 			sprintf(label, "Fill RSM) Cascade #%u", i);
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileTokens[0], label);
 			fillRSM(cmd, frameIdx, gGpuProfileTokens[0], i);
@@ -3363,14 +3199,6 @@ public:
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][VIEW_CAMERA] : pGeom->pIndexBuffer;
 		cmdBindIndexBuffer(cmd, pIndexBuffer, pGeom->mIndexType, 0);
 
-#if defined(METAL)
-		cmdBindPipeline(cmd, pPipelineVisibilityBufferPass[1]);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]); // useResource for textures
-
-		cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, "Opaque and Alpha", true);
-		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBuffers[frameIdx][VIEW_CAMERA], 0, NULL, 0);
-		cmdEndGpuTimestampQuery(cmd, nGpuProfileToken);
-#else
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
 			cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, gProfileNames[i]);
@@ -3389,7 +3217,7 @@ public:
 				DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 			cmdEndGpuTimestampQuery(cmd, nGpuProfileToken);
 		}
-#endif
+
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
 
@@ -3486,11 +3314,6 @@ public:
 		Buffer* pIndexBuffer = gAppSettings.mFilterTriangles ? pFilteredIndexBuffer[frameIdx][viewId] : pGeom->pIndexBuffer;
 		cmdBindIndexBuffer(cmd, pIndexBuffer, pGeom->mIndexType, 0);
 
-#ifdef METAL
-		cmdBindPipeline(cmd, pPipelineFillRSM[1]);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
-		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBuffers[frameIdx][viewId], 0, NULL, 0);
-#else
 		struct RSMConstants
 		{
 			uint32_t viewId;
@@ -3514,7 +3337,6 @@ public:
 				cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gDrawCount[i], pIndirectBuffer, 0, pIndirectBuffer,
 				DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 		}
-#endif
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
@@ -3688,33 +3510,6 @@ public:
 		}
 	}
 
-#if defined(METAL)
-	void icbGeneration(Cmd* cmd, ProfileToken nGpuProfileToken, uint32_t frameIdx)
-	{
-		cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, "ICB Generation", true);
-
-		// ICP GPU generation
-		cmdBindPipeline(cmd, pPipelineICBGenerator);
-		//cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, descriptorsCount, vbICBParams);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
-
-		uint32_t x = (gAppSettings.mFilterTriangles ? 4 : 3);
-
-		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + x, pDescriptorSetTriangleFiltering[1]);
-		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, gMaxDrawsRootConstantIndex, &gPerFrame[frameIdx].gDrawCount[0]);
-		
-		cmdDispatch(cmd, 1, 1, 1);
-
-		cmdEndGpuTimestampQuery(cmd, nGpuProfileToken);
-
-		// optimization pass for ICB, remove all empty commands from buffers
-		for (uint32_t v = 0; v < gNumViews; ++v)
-		{
-			cmdExecuteIndirect(cmd, pCmdSignatureICBOptimize, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBuffers[frameIdx][v], 0, NULL, 0);
-		}
-	}
-#endif
-
 	// This function decides how to do the triangle filtering pass, depending on the flags (hold, filter triangles)
 	// - filterTriangles: enables / disables triangle filtering at all. Disabling filtering makes the CPU to set the buffer states to render the whole scene.
 	// - hold: bypasses any triangle filtering step. This is useful to inspect the filtered geometry from another viewpoint.
@@ -3722,6 +3517,19 @@ public:
 	void triangleFilteringPass(Cmd* cmd, ProfileToken nGpuProfileToken, uint32_t frameIdx)
 	{
 		cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, "Triangle Filtering Pass");
+
+		if (pRenderer->pActiveGpuSettings->mIndirectCommandBuffer)
+		{
+			CommandSignature resetCmd = {};
+			resetCmd.mDrawType = INDIRECT_COMMAND_BUFFER_RESET;
+			for (uint32_t g = 0; g < gNumGeomSets; ++g)
+			{
+				for (uint32_t v = 0; v < NUM_CULLING_VIEWPORTS; ++v)
+				{
+					cmdExecuteIndirect(cmd, &resetCmd, MAX_DRAWS_INDIRECT, pFilteredIndirectDrawArgumentsBuffer[frameIdx][g][v], 0, NULL, 0);
+				}
+			}
+		}
 
 		gPerFrame[frameIdx].gTotalClusters = 0;
 		gPerFrame[frameIdx].gCulledClusters = 0;
@@ -3769,148 +3577,8 @@ public:
 
 		cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, "Filter Triangles");
 		cmdBindPipeline(cmd, pPipelineTriangleFiltering);
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
-#endif
 		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + 1, pDescriptorSetTriangleFiltering[1]);
-#if 0
-#define SORT_CLUSTERS 1
 
-#if SORT_CLUSTERS
-		uint32_t maxClusterCount = 0;
-		for (uint32_t i = 0; i < gMeshCount; ++i)
-		{
-			Mesh* drawBatch = &pMeshes[i];
-			maxClusterCount = max(maxClusterCount, drawBatch->clusterCount);
-		}
-		Cluster** temporaryClusters = (Cluster**)tf_malloc(sizeof(Cluster) * maxClusterCount);
-#endif
-
-		for (uint32_t i = 0; i < gMeshCount; ++i)
-		{
-			Mesh* drawBatch = &pMeshes[i];
-			FilterBatchChunk* batchChunk = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];
-
-#if SORT_CLUSTERS
-			uint32_t temporaryClusterCount = 0;
-
-			//Cull clusters
-			for (uint32_t j = 0; j < drawBatch->clusterCount; ++j)
-			{
-				++gPerFrame[frameIdx].gTotalClusters;
-				Cluster* clusterInfo = &drawBatch->clusters[j];
-
-				// Run cluster culling
-				{
-					//Calculate distance from the camera
-					vec4 p0 = vec4((f3Tov3(clusterInfo->aabbMin) + f3Tov3(clusterInfo->aabbMax)) * .5f, 1.0f);
-					mat4 vm = gPerFrame[frameIdx].gPerFrameUniformData.transform[VIEW_CAMERA].vp;
-
-#if defined(VECTORMATH_MODE_SCALAR) && 0
-					float z =
-						vm.getCol0().getZ() * p0.getX() +
-						vm.getCol1().getZ() * p0.getY() +
-						vm.getCol2().getZ() * p0.getZ() +
-						vm.getCol3().getZ() * p0.getW();
-					float w =
-						vm.getCol0().getW() * p0.getX() +
-						vm.getCol1().getW() * p0.getY() +
-						vm.getCol2().getW() * p0.getZ() +
-						vm.getCol3().getW() * p0.getW();
-					clusterInfo->distanceFromCamera = z / w;
-#else
-					p0 = vm * p0;
-					clusterInfo->distanceFromCamera = p0.getZ() / p0.getW();
-#endif
-
-					if (std::isnan(clusterInfo->distanceFromCamera))
-						clusterInfo->distanceFromCamera = 0;
-
-					temporaryClusters[temporaryClusterCount++] = clusterInfo;
-
-				}
-			}
-
-			//Sort the clusters
-			sortClusters(temporaryClusters, temporaryClusterCount);
-
-			//Add clusters to batch chunk
-			for (uint32_t j = 0; j < temporaryClusterCount; ++j)
-			{
-				addClusterToBatchChunk(
-					temporaryClusters[j],
-					batchStart,
-					accumDrawCount,
-					accumNumTrianglesAtStartOfBatch,
-					i,
-					batchChunk);
-				accumNumTriangles += temporaryClusters[j]->triangleCount;
-
-				// check to see if we filled the batch
-				if (batchChunk->currentBatchCount >= BATCH_COUNT)
-				{
-					++accumDrawCount;
-
-					// run the triangle filtering and switch to the next small batch chunk
-					filterTriangles(cmd, frameIdx, batchChunk);
-					currentSmallBatchChunk = (currentSmallBatchChunk + 1) % gSmallBatchChunkCount;
-					batchChunk = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];
-
-					batchStart = 0;
-					accumNumTrianglesAtStartOfBatch = accumNumTriangles;
-				}
-			}
-#else
-			//Cull clusters
-			for (uint32_t j = 0; j < drawBatch->clusterCount; ++j)
-			{
-				++gPerFrame[frameIdx].gTotalClusters;
-				Cluster* clusterInfo = &drawBatch->clusters[j];
-
-				// Run cluster culling
-				{
-					addClusterToBatchChunk(
-						clusterInfo,
-						batchStart,
-						accumDrawCount,
-						accumNumTrianglesAtStartOfBatch,
-						i,
-						batchChunk);
-					accumNumTriangles += clusterInfo->triangleCount;
-				}
-
-				// check to see if we filled the batch
-				if (batchChunk->currentBatchCount >= BATCH_COUNT)
-				{
-					++accumDrawCount;
-
-					// run the triangle filtering and switch to the next small batch chunk
-					filterTriangles(cmd, frameIdx, batchChunk);
-					currentSmallBatchChunk = (currentSmallBatchChunk + 1) % gSmallBatchChunkCount;
-					batchChunk = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];
-					batchStart = 0;
-					accumNumTrianglesAtStartOfBatch = accumNumTriangles;
-				}
-
-			}
-#endif
-
-			// end of that mash, set it up so we can add the next mesh to this culling batch
-			if (batchChunk->currentBatchCount > 0)
-			{
-				FilterBatchChunk* batchChunk2 = pFilterBatchChunk[frameIdx][currentSmallBatchChunk];
-				++accumDrawCount;
-
-				batchStart = batchChunk2->currentBatchCount;
-				accumNumTrianglesAtStartOfBatch = accumNumTriangles;
-			}
-
-		}
-#if SORT_CLUSTERS
-		tf_free(temporaryClusters);
-#endif
-
-#else
 		uint64_t size = BATCH_COUNT * sizeof(SmallBatchData) * gSmallBatchChunkCount;
 		GPURingBufferOffset offset = getGPURingBufferOffset(pFilterBatchDataBuffer, (uint32_t)size, (uint32_t)size);
 		BufferUpdateDesc updateDesc = { offset.pBuffer, offset.mOffset };
@@ -3963,7 +3631,6 @@ public:
 				accumNumTrianglesAtStartOfBatch = accumNumTriangles;
 			}
 		}
-#endif
 
 		gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = accumDrawCount;
 		gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHATESTED] = accumDrawCount;
@@ -3983,9 +3650,6 @@ public:
 		/************************************************************************/
 		cmdBeginGpuTimestampQuery(cmd, nGpuProfileToken, "Batch Compaction");
 		cmdBindPipeline(cmd, pPipelineBatchCompaction);
-#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
-#endif
 		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + 2, pDescriptorSetTriangleFiltering[1]);
 		numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4183,7 +3847,10 @@ public:
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileTokens[0], "Draw Skybox");
 
-		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		// Load RT instead of Don't care
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
 
@@ -4206,14 +3873,15 @@ public:
     {
         UNREF_PARAM(frameIdx);
 
-        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+        cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
 		gFrameTimeDraw.mFontColor = 0xff00ffff;
 		gFrameTimeDraw.mFontSize = 18.0f;
 		gFrameTimeDraw.mFontID = gFontID;
         cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
-        // NOTE: Realtime GPU Profiling is not supported on Metal.
         if (gAppSettings.mAsyncCompute)
         {
             if (gAppSettings.mFilterTriangles && !gAppSettings.mHoldFilteredResults)
@@ -4379,20 +4047,14 @@ public:
 
 		DropdownWidget propagationSteps;
 		propagationSteps.pData = &gAppSettings.propagationValueIndex;
-		for (uint32_t i = 0; i < sizeof(NSTEPS_VALS) / sizeof(NSTEPS_VALS[0]); ++i)
-		{
-			propagationSteps.mNames.push_back((char*)NSTEPS_STRINGS[i]);
-			propagationSteps.mValues.push_back(NSTEPS_VALS[i]);
-		}
+		propagationSteps.pNames = NSTEPS_STRINGS;
+		propagationSteps.mCount = sizeof(NSTEPS_VALS) / sizeof(NSTEPS_VALS[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Propagation Steps", &propagationSteps, WIDGET_TYPE_DROPDOWN));
 
 		DropdownWidget specularQuality;
 		specularQuality.pData = &gAppSettings.specularQuality;
-		for (uint32_t i = 0; i < sizeof(aura::SPECULAR_QUALITY_VALS) / sizeof(aura::SPECULAR_QUALITY_VALS[0]); ++i)
-		{
-			specularQuality.mNames.push_back((char*)aura::SPECULAR_QUALITY_STRINGS[i]);
-			specularQuality.mValues.push_back(aura::SPECULAR_QUALITY_VALS[i]);
-		}
+		specularQuality.pNames = aura::SPECULAR_QUALITY_STRINGS;
+		specularQuality.mCount = sizeof(aura::SPECULAR_QUALITY_STRINGS) / sizeof(aura::SPECULAR_QUALITY_STRINGS[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pAuraGuiWindow, "Specular Quality", &specularQuality, WIDGET_TYPE_DROPDOWN));
 
 		checkbox.pData = &gAppSettings.enableSun;
@@ -4459,13 +4121,15 @@ public:
 			DebugTexturesWidget widget;
 			luaRegisterWidget(uiCreateComponentWidget(pAuraDebugTexturesWindow, "Debug RTs", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
 		}
-		eastl::vector<void*> pVBRTs;
-		pVBRTs.push_back(pRenderTargetVBPass->pTexture);
-		pVBRTs.push_back(pDepthBuffer->pTexture);
+
+		static const Texture* pVBRTs[2];
+		pVBRTs[0] = pRenderTargetVBPass->pTexture;
+		pVBRTs[1] = pDepthBuffer->pTexture;
 
 		if (pAuraDebugTexturesWindow)
 		{
-			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextures = eastl::move(pVBRTs);
+			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->pTextures = pVBRTs;
+			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTexturesCount = 2;
 			((DebugTexturesWidget*)(pAuraDebugTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = texSize;
 		}
 	}
@@ -4507,13 +4171,11 @@ public:
 			luaRegisterWidget(uiCreateComponentWidget(pShadowTexturesWindow, "Shadow Textures", &widget, WIDGET_TYPE_DEBUG_TEXTURES));
 		}
 
-		eastl::vector<void*> pShadowTextures;
-		pShadowTextures.push_back(pRenderTargetShadow->pTexture);
-
 		if (pShadowTexturesWindow)
 		{
 			const float scale = 0.15f;
-			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextures = eastl::move(pShadowTextures);
+			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->pTextures = &pRenderTargetShadow->pTexture;
+			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTexturesCount = 1;
 			((DebugTexturesWidget*)(pShadowTexturesWindow->mWidgets[0]->pWidget))->mTextureDisplaySize = screenSize * scale;
 		}
 	}

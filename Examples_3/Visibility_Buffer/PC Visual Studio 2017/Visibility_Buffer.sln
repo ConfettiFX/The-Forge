@@ -21,7 +21,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\Unit_Tests\PC V
 		{C5D0E437-7C52-3132-80E6-3CBE834313EF} = {C5D0E437-7C52-3132-80E6-3CBE834313EF}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gainputstatic", "..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\Win64\lib\gainputstatic.vcxproj", "{C5D0E437-7C52-3132-80E6-3CBE834313EF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Renderer", "..\..\Unit_Tests\PC Visual Studio 2017\Libraries\Renderer\Renderer.vcxproj", "{DB6193E0-3C12-450F-B344-DC4DAED8C421}"
 	ProjectSection(ProjectDependencies) = postProject

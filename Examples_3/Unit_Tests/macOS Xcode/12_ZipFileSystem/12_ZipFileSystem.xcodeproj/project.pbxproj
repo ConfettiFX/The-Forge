@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,18 +16,7 @@
 		5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3752141543F00EFD76A /* GameController.framework */; };
 		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
-		973282F125C43B670076E8FF /* basic.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425825BF47D4009F2F2B /* basic.frag.fsl */; };
-		973282F225C43B670076E8FF /* basic.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425925BF47D4009F2F2B /* basic.vert.fsl */; };
-		973282F325C43B670076E8FF /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425B25BF47D4009F2F2B /* skybox.frag.fsl */; };
-		973282F425C43B670076E8FF /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425625BF47D4009F2F2B /* skybox.vert.fsl */; };
-		973282F525C43B670076E8FF /* zipTexture.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425A25BF47D4009F2F2B /* zipTexture.frag.fsl */; };
-		973282F625C43B670076E8FF /* zipTexture.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425725BF47D4009F2F2B /* zipTexture.vert.fsl */; };
-		97E9425C25BF47D4009F2F2B /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425625BF47D4009F2F2B /* skybox.vert.fsl */; };
-		97E9425D25BF47D4009F2F2B /* zipTexture.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425725BF47D4009F2F2B /* zipTexture.vert.fsl */; };
-		97E9425E25BF47D4009F2F2B /* basic.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425825BF47D4009F2F2B /* basic.frag.fsl */; };
-		97E9425F25BF47D4009F2F2B /* basic.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425925BF47D4009F2F2B /* basic.vert.fsl */; };
-		97E9426025BF47D4009F2F2B /* zipTexture.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425A25BF47D4009F2F2B /* zipTexture.frag.fsl */; };
-		97E9426125BF47D4009F2F2B /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97E9425B25BF47D4009F2F2B /* skybox.frag.fsl */; };
+		99E0AC8128594DF700AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC7C28594DF700AB602D /* CoreHaptics.framework */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
 		B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D321420EB300DF2297 /* UIKit.framework */; };
@@ -40,35 +29,6 @@
 		E9E4CC76234593E60062E694 /* 12_ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2F8F1D82320447D007AC807 /* 12_ZipFileSystem.cpp */; };
 		E9E4CCA8234594460062E694 /* 12_ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2F8F1D82320447D007AC807 /* 12_ZipFileSystem.cpp */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXBuildRule section */
-		973282EA25C43B3D0076E8FF /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
-		};
-		97E9425525BF47A0009F2F2B /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
-		};
-/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		5C172F8321414A0B0074EE71 /* PBXContainerItemProxy */ = {
@@ -99,65 +59,52 @@
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		654D977321E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095D7286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 88DF3489E6364B89869CC71D;
 			remoteInfo = json;
 		};
-		654D977521E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095D9286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = AD14F53CA01347BBA91C7F42;
 			remoteInfo = ozz_animation;
 		};
-		654D977721E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095DB286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = A69A1ECFEC9145D3A46BAA96;
 			remoteInfo = ozz_base;
 		};
-		654D977921E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095DD286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = D0796ACD211ED7370028AFFD;
 			remoteInfo = ozz_animation_IOS;
 		};
-		654D977B21E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095DF286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
 			remoteInfo = ozz_base_IOS;
 		};
-		654D977D21E9218B00113964 /* PBXContainerItemProxy */ = {
+		ED6095E1286F3DF300331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
 			remoteInfo = "ozz_animation offline";
 		};
-		654D97C121E92FDB00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D0796ABD211ED7370028AFFD;
-			remoteInfo = ozz_animation_IOS;
-		};
-		654D97C321E92FDB00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D0796ACE211ED7430028AFFD;
-			remoteInfo = ozz_base_IOS;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		09D4FF422821FDB9000E3229 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = FSL/ShaderList.fsl; sourceTree = "<group>"; };
 		28A5AD43201F7276000E571F /* 12_ZipFileSystem_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 12_ZipFileSystem_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AD54201F7276000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AD57201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -170,13 +117,14 @@
 		5CABF3752141543F00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
+		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		97E9425625BF47D4009F2F2B /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = FSL/skybox.vert.fsl; sourceTree = "<group>"; };
 		97E9425725BF47D4009F2F2B /* zipTexture.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = zipTexture.vert.fsl; path = FSL/zipTexture.vert.fsl; sourceTree = "<group>"; };
 		97E9425825BF47D4009F2F2B /* basic.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.frag.fsl; path = FSL/basic.frag.fsl; sourceTree = "<group>"; };
 		97E9425925BF47D4009F2F2B /* basic.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = basic.vert.fsl; path = FSL/basic.vert.fsl; sourceTree = "<group>"; };
 		97E9425A25BF47D4009F2F2B /* zipTexture.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = zipTexture.frag.fsl; path = FSL/zipTexture.frag.fsl; sourceTree = "<group>"; };
 		97E9425B25BF47D4009F2F2B /* skybox.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.frag.fsl; path = FSL/skybox.frag.fsl; sourceTree = "<group>"; };
+		99E0AC7C28594DF700AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76D321420EB300DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -203,6 +151,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				99E0AC8128594DF700AB602D /* CoreHaptics.framework in Frameworks */,
 				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */,
 				B21F76D721420EB300DF2297 /* MetalKit.framework in Frameworks */,
@@ -241,6 +190,7 @@
 		28A5AD99201F7411000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				99E0AC7C28594DF700AB602D /* CoreHaptics.framework */,
 				E9E601BF233AFB6A00B21FD6 /* libbz2.tbd */,
 				E9E601C1233AFB9B00B21FD6 /* libbz2.tbd */,
 				650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */,
@@ -270,22 +220,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		654D976B21E9218B00113964 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				654D977421E9218B00113964 /* json_d.a */,
-				654D977621E9218B00113964 /* ozz_animation.a */,
-				654D977821E9218B00113964 /* ozz_base.a */,
-				654D977A21E9218B00113964 /* ozz_animation_IOS.a */,
-				654D977C21E9218B00113964 /* ozz_base_IOS.a */,
-				654D977E21E9218B00113964 /* ozz_animation offline.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		E9E4CC512345930A0062E694 /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				09D4FF422821FDB9000E3229 /* ShaderList.fsl */,
 				97E9425825BF47D4009F2F2B /* basic.frag.fsl */,
 				97E9425925BF47D4009F2F2B /* basic.vert.fsl */,
 				97E9425B25BF47D4009F2F2B /* skybox.frag.fsl */,
@@ -333,6 +271,19 @@
 			path = 12_ZipFileSystem;
 			sourceTree = SOURCE_ROOT;
 		};
+		ED6095CF286F3DF300331537 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				ED6095D8286F3DF300331537 /* json_d.a */,
+				ED6095DA286F3DF300331537 /* ozz_animation.a */,
+				ED6095DC286F3DF300331537 /* ozz_base.a */,
+				ED6095DE286F3DF300331537 /* ozz_animation_IOS.a */,
+				ED6095E0286F3DF300331537 /* ozz_base_IOS.a */,
+				ED6095E2286F3DF300331537 /* ozz_animation offline.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -344,13 +295,11 @@
 				28A5AD40201F7276000E571F /* Frameworks */,
 				28A5AD41201F7276000E571F /* Resources */,
 				5CC5020124D21F0B003B62CC /* ShellScript */,
+				09F9CC45284FD1160064E142 /* ShellScript */,
 			);
 			buildRules = (
-				973282EA25C43B3D0076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
-				654D97C221E92FDB00113964 /* PBXTargetDependency */,
-				654D97C421E92FDB00113964 /* PBXTargetDependency */,
 				5C17303921414E430074EE71 /* PBXTargetDependency */,
 			);
 			name = 12_ZipFileSystem_iOS;
@@ -366,9 +315,9 @@
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
 				5CC501FC24D21EB4003B62CC /* ShellScript */,
+				09F9CC4A284FD1290064E142 /* ShellScript */,
 			);
 			buildRules = (
-				97E9425525BF47A0009F2F2B /* PBXBuildRule */,
 			);
 			dependencies = (
 				5C172F8621414A1F0074EE71 /* PBXTargetDependency */,
@@ -410,7 +359,7 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 654D976B21E9218B00113964 /* Products */;
+					ProductGroup = ED6095CF286F3DF300331537 /* Products */;
 					ProjectRef = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 				},
 				{
@@ -441,46 +390,46 @@
 			remoteRef = 5C17303521414E3D0074EE71 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977421E9218B00113964 /* json_d.a */ = {
+		ED6095D8286F3DF300331537 /* json_d.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = json_d.a;
-			remoteRef = 654D977321E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095D7286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977621E9218B00113964 /* ozz_animation.a */ = {
+		ED6095DA286F3DF300331537 /* ozz_animation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation.a;
-			remoteRef = 654D977521E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095D9286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977821E9218B00113964 /* ozz_base.a */ = {
+		ED6095DC286F3DF300331537 /* ozz_base.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base.a;
-			remoteRef = 654D977721E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095DB286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977A21E9218B00113964 /* ozz_animation_IOS.a */ = {
+		ED6095DE286F3DF300331537 /* ozz_animation_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation_IOS.a;
-			remoteRef = 654D977921E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095DD286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977C21E9218B00113964 /* ozz_base_IOS.a */ = {
+		ED6095E0286F3DF300331537 /* ozz_base_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base_IOS.a;
-			remoteRef = 654D977B21E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095DF286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977E21E9218B00113964 /* ozz_animation offline.a */ = {
+		ED6095E2286F3DF300331537 /* ozz_animation offline.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
-			remoteRef = 654D977D21E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED6095E1286F3DF300331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -490,12 +439,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				973282F125C43B670076E8FF /* basic.frag.fsl in Resources */,
-				973282F225C43B670076E8FF /* basic.vert.fsl in Resources */,
-				973282F325C43B670076E8FF /* skybox.frag.fsl in Resources */,
-				973282F425C43B670076E8FF /* skybox.vert.fsl in Resources */,
-				973282F525C43B670076E8FF /* zipTexture.frag.fsl in Resources */,
-				973282F625C43B670076E8FF /* zipTexture.vert.fsl in Resources */,
 				28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AD55201F7276000E571F /* Assets.xcassets in Resources */,
 				B2F8F1D523203C33007AC807 /* Default-568h@2x.png in Resources */,
@@ -506,21 +449,53 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				97E9426025BF47D4009F2F2B /* zipTexture.frag.fsl in Resources */,
-				97E9425F25BF47D4009F2F2B /* basic.vert.fsl in Resources */,
-				97E9425D25BF47D4009F2F2B /* zipTexture.vert.fsl in Resources */,
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				97E9425C25BF47D4009F2F2B /* skybox.vert.fsl in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 				B2F8F1D72320416A007AC807 /* Info.plist in Resources */,
-				97E9425E25BF47D4009F2F2B /* basic.frag.fsl in Resources */,
-				97E9426125BF47D4009F2F2B /* skybox.frag.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		09F9CC45284FD1160064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
+		09F9CC4A284FD1290064E142 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
 		5CC501FC24D21EB4003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -536,7 +511,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFiles/\" \"$DST/ZipFiles\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFiles/\" \"$DST/ZipFiles\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n";
 		};
 		5CC5020124D21F0B003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -553,7 +528,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFiles/\" \"$DST/ZipFiles\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Zip Files\nrsync -u -r \"$ASSETS/ZipFiles/\" \"$DST/ZipFiles\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -588,16 +563,6 @@
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
 			targetProxy = 5C17303821414E430074EE71 /* PBXContainerItemProxy */;
-		};
-		654D97C221E92FDB00113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_animation_IOS;
-			targetProxy = 654D97C121E92FDB00113964 /* PBXContainerItemProxy */;
-		};
-		654D97C421E92FDB00113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_base_IOS;
-			targetProxy = 654D97C321E92FDB00113964 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -655,6 +620,7 @@
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -693,6 +659,7 @@
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};
@@ -747,7 +714,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
@@ -803,7 +770,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
@@ -839,7 +806,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.12-ZipFileSystem";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -848,6 +815,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -886,6 +854,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};

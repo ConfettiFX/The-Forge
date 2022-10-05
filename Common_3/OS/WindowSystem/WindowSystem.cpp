@@ -22,21 +22,22 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Interfaces/IUI.h"
-#include "../Interfaces/IApp.h"
-#include "../Interfaces/ITime.h"
-#include "../Interfaces/IInput.h"
-#include "../Interfaces/IScripting.h"
-#include "../Interfaces/IOperatingSystem.h"
+#include "../../Application/Interfaces/IUI.h"
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../../Application/Interfaces/IInput.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../OS/Interfaces/IOperatingSystem.h"
 
 static WindowDesc* pWindowRef = NULL;
 static UIComponent* pWindowControlsComponent = NULL;
 
 Timer gHideTimer;
 
-char gPlatformName[64];
+static char gPlatformNameBuffer[64];
+static bstring gPlatformName = bemptyfromarr(gPlatformNameBuffer);
 
 static bool wndValidateWindowPos(int32_t x, int32_t y)
 {
@@ -76,7 +77,7 @@ static bool wndValidateWindowSize(int32_t width, int32_t height)
 	return true;
 }
 
-void wndSetWindowed()
+void wndSetWindowed(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
@@ -106,7 +107,7 @@ void wndSetWindowed()
 	pWindowRef->mWindowMode = WindowMode::WM_WINDOWED;
 }
 
-void wndSetFullscreen()
+void wndSetFullscreen(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
@@ -117,7 +118,7 @@ void wndSetFullscreen()
 	}
 }
 
-void wndSetBorderless()
+void wndSetBorderless(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
@@ -129,7 +130,8 @@ void wndSetBorderless()
 	if (pWindow->fullScreen)
 	{
 		toggleFullscreen(pWindow);
-		pWindowRef->mWindowMode = WindowMode::WM_WINDOWED;
+		toggleBorderless(pWindow, getRectWidth(&pWindow->clientRect), getRectHeight(&pWindow->clientRect));
+		pWindowRef->mWindowMode = WindowMode::WM_BORDERLESS;
 		LOGF(LogLevel::eINFO, "SetBorderless() Position check: %s", wndValidateWindowPos(x, y) ? "SUCCESS" : "FAIL");
 		LOGF(LogLevel::eINFO, "SetBorderless() Size check: %s", wndValidateWindowSize(w, h) ? "SUCCESS" : "FAIL");
 	}
@@ -148,14 +150,14 @@ void wndSetBorderless()
 	}
 }
 
-void wndMaximizeWindow()
+void wndMaximizeWindow(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
 	maximizeWindow(pWindow); 
 }
 
-void wndMinimizeWindow()
+void wndMinimizeWindow(void* pUserData)
 {
 	pWindowRef->mMinimizeRequested = true;
 }
@@ -174,7 +176,7 @@ void wndShowWindow()
 	showWindow(pWindow); 
 }
 
-void wndUpdateResolution()
+void wndUpdateResolution(void* pUserData)
 {
 	uint32_t monitorCount = getMonitorCount();
 	for (uint32_t i = 0; i < monitorCount; ++i)
@@ -191,11 +193,11 @@ void wndUpdateResolution()
 	}
 }
 
-void wndMoveWindow()
+void wndMoveWindow(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
-	wndSetWindowed();
+	wndSetWindowed(pUserData);
 	int clientWidthStart = (getRectWidth(&pWindow->windowedRect) - getRectWidth(&pWindow->clientRect)) >> 1,
 		clientHeightStart = getRectHeight(&pWindow->windowedRect) - getRectHeight(&pWindow->clientRect) - clientWidthStart;
 	RectDesc rectDesc{ pWindowRef->mWndX, pWindowRef->mWndY, pWindowRef->mWndX + pWindowRef->mWndW, pWindowRef->mWndY + pWindowRef->mWndH };
@@ -211,11 +213,11 @@ void wndMoveWindow()
 	pWindowRef->mWndH = rectDesc.bottom - rectDesc.top;
 }
 
-void wndSetRecommendedWindowSize()
+void wndSetRecommendedWindowSize(void* pUserData)
 {
 	WindowDesc* pWindow = pWindowRef;
 
-	wndSetWindowed();
+	wndSetWindowed(pUserData);
 
 	RectDesc rect;
 	getRecommendedResolution(&rect);
@@ -240,22 +242,21 @@ void wndShowCursor()
 	showCursor(); 
 }
 
-void wndToggleClipCursor()
+void wndUpdateClipCursor(void* pUserData)
 {
-	pWindowRef->mCursorClipped = !pWindowRef->mCursorClipped;
 #ifdef ENABLE_FORGE_INPUT
 	setEnableCaptureInput(pWindowRef->mCursorClipped);
 #endif
 }
 
 #if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
-static void HideWindow()
+static void HideWindow(void* pUserData)
 {
 	resetTimer(&gHideTimer);
 	wndHideWindow();
 }
 
-static void HideCursor()
+static void HideCursor(void* pUserData)
 {
 	resetTimer(&gHideTimer);
 	wndHideCursor();
@@ -325,18 +326,17 @@ void platformSetupWindowSystemUI(IApp* pApp)
 	uiSetComponentFlags(pWindowControlsComponent, GUI_COMPONENT_FLAGS_START_COLLAPSED);
 
 #if defined(_WINDOWS)
-	strcpy(gPlatformName, "Windows");
+	bassignliteral(&gPlatformName, "Windows");
 #elif defined(__APPLE__) && !defined(TARGET_IOS)
-	strcpy(gPlatformName, "MacOS");
+	bassignliteral(&gPlatformName, "MacOS");
 #elif defined(__linux__) && !defined(__ANDROID__)
-	strcpy(gPlatformName, "Linux");
+	bassignliteral(&gPlatformName, "Linux");
 #else
-	strcpy(gPlatformName, "Unsupported");
+	bassignliteral(&gPlatformName, "Unsupported");
 #endif
 
 	TextboxWidget Textbox;
-	Textbox.pData = gPlatformName;
-	Textbox.mLength = 64;
+	Textbox.pText = &gPlatformName;
 	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Platform Name", &Textbox, WIDGET_TYPE_TEXTBOX));
 
 #if defined(_WINDOWS) || defined(__APPLE__) && !defined(TARGET_IOS) || (defined(__linux__) && !defined(__ANDROID__))
@@ -344,7 +344,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
 	rbWindowed.pData = &pWindowRef->mWindowMode;
 	rbWindowed.mRadioId = WM_WINDOWED;
 	UIWidget* pWindowed = uiCreateComponentWidget(pWindowControlsComponent, "Windowed", &rbWindowed, WIDGET_TYPE_RADIO_BUTTON);
-	uiSetWidgetOnEditedCallback(pWindowed, wndSetWindowed);
+	uiSetWidgetOnEditedCallback(pWindowed, nullptr, wndSetWindowed);
 	uiSetWidgetDeferred(pWindowed, true);
 	REGISTER_LUA_WIDGET(pWindowed);
 
@@ -352,7 +352,7 @@ void platformSetupWindowSystemUI(IApp* pApp)
 	rbFullscreen.pData = &pWindowRef->mWindowMode;
 	rbFullscreen.mRadioId = WM_FULLSCREEN;
 	UIWidget* pFullscreen = uiCreateComponentWidget(pWindowControlsComponent, "Fullscreen", &rbFullscreen, WIDGET_TYPE_RADIO_BUTTON);
-	uiSetWidgetOnEditedCallback(pFullscreen, wndSetFullscreen);
+	uiSetWidgetOnEditedCallback(pFullscreen, nullptr, wndSetFullscreen);
 	uiSetWidgetDeferred(pFullscreen, true);
 	REGISTER_LUA_WIDGET(pFullscreen);
 
@@ -360,25 +360,25 @@ void platformSetupWindowSystemUI(IApp* pApp)
 	rbBorderless.pData = &pWindowRef->mWindowMode;
 	rbBorderless.mRadioId = WM_BORDERLESS;
 	UIWidget* pBorderless = uiCreateComponentWidget(pWindowControlsComponent, "Borderless", &rbBorderless, WIDGET_TYPE_RADIO_BUTTON);
-	uiSetWidgetOnEditedCallback(pBorderless, wndSetBorderless);
+	uiSetWidgetOnEditedCallback(pBorderless, nullptr, wndSetBorderless);
 	uiSetWidgetDeferred(pBorderless, true);
 	REGISTER_LUA_WIDGET(pBorderless);
 
 	ButtonWidget bMaximize;
 	UIWidget*     pMaximize = uiCreateComponentWidget(pWindowControlsComponent, "Maximize", &bMaximize, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pMaximize, wndMaximizeWindow);
+	uiSetWidgetOnEditedCallback(pMaximize, nullptr, wndMaximizeWindow);
 	uiSetWidgetDeferred(pMaximize, true);
 	REGISTER_LUA_WIDGET(pMaximize);
 
 	ButtonWidget bMinimize;
 	UIWidget*     pMinimize = uiCreateComponentWidget(pWindowControlsComponent, "Minimize", &bMinimize, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pMinimize, wndMinimizeWindow);
+	uiSetWidgetOnEditedCallback(pMinimize, nullptr, wndMinimizeWindow);
 	uiSetWidgetDeferred(pMinimize, true);
 	REGISTER_LUA_WIDGET(pMinimize);
 
 	ButtonWidget bHide;
 	UIWidget*     pHide = uiCreateComponentWidget(pWindowControlsComponent, "Hide for 2s", &bHide, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pHide, HideWindow);
+	uiSetWidgetOnEditedCallback(pHide, nullptr, HideWindow);
 	REGISTER_LUA_WIDGET(pHide);
 
 	CheckboxWidget rbCentered;
@@ -406,24 +406,24 @@ void platformSetupWindowSystemUI(IApp* pApp)
 	SliderIntWidget setRectSliderW;
 	setRectSliderW.pData = &pWindowRef->mWndW;
 	setRectSliderW.mMin = 144;
-	setRectSliderW.mMax = recWidth;
+	setRectSliderW.mMax = getRectWidth(&pWindowRef->fullscreenRect);
 	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window Width", &setRectSliderW, WIDGET_TYPE_SLIDER_INT));
 
 	SliderIntWidget setRectSliderH;
 	setRectSliderH.pData = &pWindowRef->mWndH;
 	setRectSliderH.mMin = 144;
-	setRectSliderH.mMax = recHeight;
+	setRectSliderH.mMax = getRectHeight(&pWindowRef->fullscreenRect);
 	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Window Height", &setRectSliderH, WIDGET_TYPE_SLIDER_INT));
 
 	ButtonWidget bSetRect;
 	UIWidget* pSetRect = uiCreateComponentWidget(pWindowControlsComponent, "Set window rectangle", &bSetRect, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pSetRect, wndMoveWindow);
+	uiSetWidgetOnEditedCallback(pSetRect, nullptr, wndMoveWindow);
 	uiSetWidgetDeferred(pSetRect, true);
 	REGISTER_LUA_WIDGET(pSetRect);
 
 	ButtonWidget bRecWndSize;
 	UIWidget* pRecWndSize = uiCreateComponentWidget(pWindowControlsComponent, "Set recommended window rectangle", &bRecWndSize, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pRecWndSize, wndSetRecommendedWindowSize);
+	uiSetWidgetOnEditedCallback(pRecWndSize, nullptr, wndSetRecommendedWindowSize);
 	uiSetWidgetDeferred(pRecWndSize, true);
 	REGISTER_LUA_WIDGET(pRecWndSize);
 
@@ -467,66 +467,112 @@ void platformSetupWindowSystemUI(IApp* pApp)
 		strcat(monitorLabel, buffer);
 		strcat(monitorLabel, " dpi; ");
 
-		sprintf(buffer, "%u", monitor->resolutionCount);
+		sprintf(buffer, "%u", (unsigned) arrlen(monitor->resolutions));
 		strcat(monitorLabel, buffer);
 		strcat(monitorLabel, " resolutions)");
 
-		CollapsingHeaderWidget monitorHeader;
+		UIWidget** monitorWidgets = (UIWidget**)tf_malloc(arrlen(monitor->resolutions) * sizeof(UIWidget*));
+		UIWidget* monitorWidgetsBases = (UIWidget*)tf_malloc(arrlen(monitor->resolutions) * sizeof(UIWidget));
+		RadioButtonWidget* radioWidgets = (RadioButtonWidget*)tf_malloc(arrlen(monitor->resolutions) * sizeof(RadioButtonWidget));
 
-		for (uint32_t j = 0; j < monitor->resolutionCount; ++j)
+		CollapsingHeaderWidget monitorHeader;
+		monitorHeader.pGroupedWidgets = monitorWidgets;
+		monitorHeader.mWidgetsCount = (uint32_t)arrlen(monitor->resolutions);
+
+		for (ptrdiff_t j = 0; j < arrlen(monitor->resolutions); ++j)
 		{
 			Resolution res = monitor->resolutions[j];
 
-			char strRes[64];
-			sprintf(strRes, "%u", res.mWidth);
-			strcat(strRes, "x");
+			radioWidgets[j].pData = &pWindowRef->pCurRes[i];
+			radioWidgets[j].mRadioId = (int32_t)j;
+
+			monitorWidgets[j] = &monitorWidgetsBases[j];
+			monitorWidgetsBases[j] = UIWidget{};
+			monitorWidgetsBases[j].mType = WIDGET_TYPE_RADIO_BUTTON;
+			monitorWidgetsBases[j].pWidget = &radioWidgets[j];
+
+
+			sprintf(monitorWidgetsBases[j].mLabel, "%u", res.mWidth);
+			strcat(monitorWidgetsBases[j].mLabel, "x");
 
 			char height[10];
 			sprintf(height, "%u", res.mHeight);
-			strcat(strRes, height);
+			strcat(monitorWidgetsBases[j].mLabel, height);
 
 			if (monitor->defaultResolution.mWidth == res.mWidth && monitor->defaultResolution.mHeight == res.mHeight)
 			{
-				strcat(strRes, " (native)");
-				pWindowRef->pCurRes[i] = j;
-				pWindowRef->pLastRes[i] = j;
+				strcat(monitorWidgetsBases[j].mLabel, " (native)");
+				pWindowRef->pCurRes[i] = (int32_t)j;
+				pWindowRef->pLastRes[i] = (int32_t)j;
 			}
-
-			RadioButtonWidget rbRes;
-			rbRes.pData = &pWindowRef->pCurRes[i];
-			rbRes.mRadioId = j;
-			UIWidget* pRbRes = uiCreateCollapsingHeaderSubWidget(&monitorHeader, strRes, &rbRes, WIDGET_TYPE_RADIO_BUTTON);
-			uiSetWidgetOnEditedCallback(pRbRes, wndUpdateResolution);
-			uiSetWidgetDeferred(pRbRes, false);
+			
+			uiSetWidgetOnEditedCallback(monitorWidgets[j], nullptr, wndUpdateResolution);
+			uiSetWidgetDeferred(monitorWidgets[j], false);
 		}
 
 		uiCreateComponentWidget(pWindowControlsComponent, monitorLabel, &monitorHeader, WIDGET_TYPE_COLLAPSING_HEADER); 
+		tf_free(radioWidgets);
+		tf_free(monitorWidgetsBases);
+		tf_free(monitorWidgets);
 	}
 
-	CollapsingHeaderWidget InputCotrolsWidget;
+
+	enum
+	{
+		CONTROLS_HIDE_CURSOR_WIDGET,
+		CONTROLS_INSIDE_WINDOW_LABEL_WIDGET,
+		CONTROLS_INSIDE_WINDOW_NO_WIDGET,
+		CONTROLS_INSIDE_WINDOW_YES_WIDGET,
+		CONTROLS_CLIP_CURSOR_WIDGET,
+
+		CONTROLS_WIDGET_COUNT
+	};
+
+	UIWidget inputControlsWidgetBases[CONTROLS_WIDGET_COUNT];
+	UIWidget* inputControlsWidgets[CONTROLS_WIDGET_COUNT];
+	for (int i = 0; i < CONTROLS_WIDGET_COUNT; ++i)
+	{
+		inputControlsWidgetBases[i] = UIWidget{};
+		inputControlsWidgets[i] = &inputControlsWidgetBases[i];
+	}
+	CollapsingHeaderWidget inputControlsWidget;
+	inputControlsWidget.pGroupedWidgets = inputControlsWidgets;
+	inputControlsWidget.mWidgetsCount = CONTROLS_WIDGET_COUNT;
 
 	ButtonWidget bHideCursor;
-	UIWidget* pHideCursor = uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Hide Cursor for 2s", &bHideCursor, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pHideCursor, HideCursor);
+	strcpy(inputControlsWidgets[CONTROLS_HIDE_CURSOR_WIDGET]->mLabel, "Hide Cursor for 2s");
+	inputControlsWidgets[CONTROLS_HIDE_CURSOR_WIDGET]->pWidget = &bHideCursor;
+	inputControlsWidgets[CONTROLS_HIDE_CURSOR_WIDGET]->mType = WIDGET_TYPE_BUTTON;
+	uiSetWidgetOnEditedCallback(inputControlsWidgets[CONTROLS_HIDE_CURSOR_WIDGET], nullptr, HideCursor);
 
 	LabelWidget lCursorInWindow;
-	uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Cursor inside window?", &lCursorInWindow, WIDGET_TYPE_LABEL);
+	strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->mLabel, "Cursor inside window?");
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->pWidget = &lCursorInWindow;
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_LABEL_WIDGET]->mType = WIDGET_TYPE_LABEL;
 
 	RadioButtonWidget rCursorInsideRectFalse;
 	rCursorInsideRectFalse.pData = &pWindowRef->mCursorInsideWindow;
 	rCursorInsideRectFalse.mRadioId = 0;
-	uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "No", &rCursorInsideRectFalse, WIDGET_TYPE_RADIO_BUTTON);
+	strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->mLabel, "No");
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->pWidget = &rCursorInsideRectFalse;
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_NO_WIDGET]->mType = WIDGET_TYPE_RADIO_BUTTON;
 
 	RadioButtonWidget rCursorInsideRectTrue;
 	rCursorInsideRectTrue.pData = &pWindowRef->mCursorInsideWindow;
 	rCursorInsideRectTrue.mRadioId = 1;
-	uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Yes", &rCursorInsideRectTrue, WIDGET_TYPE_RADIO_BUTTON);
+	strcpy(inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->mLabel, "Yes");
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->pWidget = &rCursorInsideRectTrue;
+	inputControlsWidgets[CONTROLS_INSIDE_WINDOW_YES_WIDGET]->mType = WIDGET_TYPE_RADIO_BUTTON;
 
-	ButtonWidget bClipCursor;
-	UIWidget* pClipCursor = uiCreateCollapsingHeaderSubWidget(&InputCotrolsWidget, "Clip Cursor to Window", &bClipCursor, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pClipCursor, wndToggleClipCursor);
+	CheckboxWidget bClipCursor;
+	bClipCursor.pData = &pWindowRef->mCursorClipped;
 
-	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Cursor", &InputCotrolsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
+	strcpy(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->mLabel, "Clip Cursor to Window");
+	inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->pWidget = &bClipCursor;
+	inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET]->mType = WIDGET_TYPE_CHECKBOX;
+	uiSetWidgetOnEditedCallback(inputControlsWidgets[CONTROLS_CLIP_CURSOR_WIDGET], nullptr, wndUpdateClipCursor);
+
+	REGISTER_LUA_WIDGET(uiCreateComponentWidget(pWindowControlsComponent, "Cursor", &inputControlsWidget, WIDGET_TYPE_COLLAPSING_HEADER));
 #endif
 #endif
 }

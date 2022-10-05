@@ -26,6 +26,9 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, UV, TEXCOORD);
+#if VR_MULTIVIEW_ENABLED
+    DATA(FLAT(uint), ViewID, TEXCOORD3);
+#endif
 };
 
 
@@ -37,6 +40,9 @@ VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
 
 	Out.UV = float2((VertexID << 1) & 2, VertexID & 2);
 	Out.Position = float4(Out.UV * float2(2, -2) + float2(-1, 1), 0, 1);
+#if VR_MULTIVIEW_ENABLED
+    Out.ViewID = VR_VIEW_ID;
+#endif
 
 	RETURN(Out);
 }

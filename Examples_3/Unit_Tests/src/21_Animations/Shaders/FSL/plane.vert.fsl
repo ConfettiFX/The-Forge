@@ -1,0 +1,62 @@
+/*
+ * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// Shader for ground plane in Unit Tests Animation
+
+CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+{
+#if VR_MULTIVIEW_ENABLED
+    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+#else
+    DATA(float4x4, mvp, None);
+#endif
+    DATA(float4x4, toWorld, None);
+};
+
+STRUCT(VSInput)
+{
+    DATA(float4, Position, POSITION);
+    DATA(float2, TexCoord, TEXCOORD0);
+};
+
+STRUCT(VSOutput)
+{
+    DATA(float4, Position, SV_Position);
+    DATA(float2, TexCoord, TEXCOORD);
+};
+
+VSOutput VS_MAIN(VSInput In)
+{
+    INIT_MAIN;
+    VSOutput Out;
+#if VR_MULTIVIEW_ENABLED
+    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], Get(toWorld));
+#else
+    float4x4 tempMat = mul(Get(mvp), Get(toWorld));
+#endif
+    Out.Position = mul(tempMat, In.Position);
+
+    Out.TexCoord = In.TexCoord;
+    RETURN(Out);
+}

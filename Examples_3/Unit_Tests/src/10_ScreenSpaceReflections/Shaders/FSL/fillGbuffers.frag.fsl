@@ -22,13 +22,6 @@
  * under the License.
 */
 
-#if !defined(TOTAL_IMGS)
-#if defined(TARGET_IOS)
-	#define USE_TEXTURES_FALLBACK
-#endif
-	#define TOTAL_IMGS 84
-#endif
-
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 	DATA(float4x4, projView, None);

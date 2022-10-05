@@ -32,7 +32,7 @@ STRUCT(PsIn)
     DATA(float2, TexCoord, TEXCOORD0);
     DATA(float3, Normal, TEXCOORD1);
     DATA(float3, Tangent, TEXCOORD2);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+#if !defined(INDIRECT_ROOT_CONSTANT)
     DATA(FLAT(uint), drawId, TEXCOORD3);
 #endif
 };

@@ -30,6 +30,9 @@
     <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\03_MultiThread\Shaders\FSL\resources.h">
@@ -40,5 +43,6 @@
     <ClCompile Include="..\..\src\03_MultiThread\03_MultiThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
 </Project>

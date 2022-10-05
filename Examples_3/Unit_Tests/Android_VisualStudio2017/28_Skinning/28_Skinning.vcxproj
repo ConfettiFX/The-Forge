@@ -52,6 +52,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -61,8 +62,6 @@
       <ResourceOutputFileName>$(IntDir)$(TargetName)$(TargetExt).embed.manifest.res</ResourceOutputFileName>
     </ManifestResourceCompile>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
@@ -72,8 +71,17 @@ xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.bin" "$(SolutionDir)$(Pl
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -95,8 +103,6 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
       <Language>VULKAN</Language>
     </FSLShader>
     <PreLinkEvent>
@@ -106,7 +112,10 @@ xcopy "$(ProjectDir)..\..\UnitTestResources\Animation\*.bin" "$(SolutionDir)$(Pl
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Textures\Stormtrooper_D.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\" /s /y /d
 xcopy "$(ProjectDir)..\..\UnitTestResources\Fonts\TitilliumText\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\TitilliumText\" /s /y /d
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -117,6 +126,7 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
     <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\basic.vert.fsl" />
     <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.frag.fsl" />
     <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\plane.vert.fsl" />
+    <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.frag.fsl" />
     <FSLShader Include="..\..\src\28_Skinning\Shaders\FSL\skinning.vert.fsl" />
   </ItemGroup>
@@ -124,10 +134,10 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
     <ClInclude Include="..\..\src\28_Skinning\Shaders\FSL\skinning.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
       <Project>{2f0e7e67-ff8e-4a4e-8271-11614a284790}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2017\src\base\ozz_base\ozz_base.vcxproj">
       <Project>{055fad37-a3d6-4d9a-a63a-c81716339982}</Project>
     </ProjectReference>
     <ProjectReference Include="..\Libraries\OS\OS.vcxproj">

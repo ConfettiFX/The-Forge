@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.c" />
+    <ClCompile Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.c" />
     <ClCompile Include="..\..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -29,11 +29,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\Common_3\ThirdParty\OpenSource\flecs\flecs.h" />
+    <ClInclude Include="..\..\..\..\Common_3\Game\ThirdParty\OpenSource\flecs\flecs.h" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\17_EntityComponentSystem\Shaders\FSL\ShaderList.fsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6E3EA66-19D5-46EE-B111-877DD965AB89}</ProjectGuid>
@@ -94,20 +95,16 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\sprites.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />
@@ -152,19 +149,16 @@
       </Outputs>
     </CustomBuildStep>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <Language>QUEST</Language>
     </FSLShader>
     <PreLinkEvent>
       <Command>
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.ttf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*.otf"  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\
-        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+        xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
         xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\sprites.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
-
-        xcopy $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
-        xcopy $(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+%(Command)
       </Command>
     </PreLinkEvent>
     <PreBuildEvent />

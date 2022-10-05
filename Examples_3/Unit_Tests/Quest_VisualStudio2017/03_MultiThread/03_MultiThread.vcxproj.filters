@@ -12,29 +12,30 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Graph.frag.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Particle.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Graph.vert.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\resources.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Particle.frag.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Particle.vert.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Skybox.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Skybox.frag.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Graph.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Quest\Skybox.vert.fsl">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Graph.vert.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\03_MultiThread\Shaders\FSL\resources.h">
+    <FSLShader Include="..\..\src\03_MultiThread\Shaders\FSL\Particle.frag.fsl">
       <Filter>Shaders\FSL</Filter>
-    </ClInclude>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\03_MultiThread\03_MultiThread.cpp">

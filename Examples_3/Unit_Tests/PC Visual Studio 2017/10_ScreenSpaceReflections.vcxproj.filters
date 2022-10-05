@@ -95,5 +95,8 @@
     <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\10_ScreenSpaceReflections\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

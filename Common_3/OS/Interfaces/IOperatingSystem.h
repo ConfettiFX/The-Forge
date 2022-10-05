@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
-#include "../Core/CPUConfig.h"
+#include "../CPUConfig.h"
 
 #if defined(_WINDOWS) || defined(XBOX)
 #include <sys/stat.h>
@@ -53,6 +53,8 @@ typedef uint64_t uint64;
 #endif
 #elif defined(NX64)
 #include "../../../Switch/Common_3/OS/NX/NXTypes.h"
+#elif defined(ORBIS)
+#define THREAD_STACK_SIZE_ORBIS (64u * TF_KB)
 #endif
 
 #include <stdio.h>
@@ -68,7 +70,7 @@ typedef uint64_t uint64;
 #include <stdbool.h>
 
 #define IMEMORY_FROM_HEADER
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 #if !defined(_WINDOWS) && !defined(XBOX)
 #include <unistd.h>
@@ -201,9 +203,9 @@ typedef struct
 	char  publicAdapterName[64];
 	char  publicDisplayName[64];
 #endif
+	// stb_ds array of Resolutions
 	Resolution* resolutions;
 	Resolution  defaultResolution;
-	uint32_t    resolutionCount;
 	bool        modesPruned;
 	bool        modeChanged;
 } MonitorDesc;
@@ -212,97 +214,100 @@ inline int getRectWidth(const RectDesc* rect) { return rect->right - rect->left;
 inline int getRectHeight(const RectDesc* rect) { return rect->bottom - rect->top; }
 
 // Window handling
-void openWindow(const char* app_name, WindowDesc* winDesc);
-void closeWindow(const WindowDesc* winDesc);
-void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
-void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
-void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
-void toggleFullscreen(WindowDesc* winDesc);
-void showWindow(WindowDesc* winDesc);
-void hideWindow(WindowDesc* winDesc);
-void maximizeWindow(WindowDesc* winDesc);
-void minimizeWindow(WindowDesc* winDesc);
-void centerWindow(WindowDesc* winDesc);
-void captureCursor(WindowDesc* winDesc, bool bEnable);
+FORGE_API void openWindow(const char* app_name, WindowDesc* winDesc);
+FORGE_API void closeWindow(const WindowDesc* winDesc);
+FORGE_API void setWindowRect(WindowDesc* winDesc, const RectDesc* rect);
+FORGE_API void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height);
+FORGE_API void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height);
+FORGE_API void toggleFullscreen(WindowDesc* winDesc);
+FORGE_API void showWindow(WindowDesc* winDesc);
+FORGE_API void hideWindow(WindowDesc* winDesc);
+FORGE_API void maximizeWindow(WindowDesc* winDesc);
+FORGE_API void minimizeWindow(WindowDesc* winDesc);
+FORGE_API void centerWindow(WindowDesc* winDesc);
+FORGE_API void captureCursor(WindowDesc* winDesc, bool bEnable);
 
 // Mouse and cursor handling
-void* createCursor(const char* path);
-void  setCursor(void* cursor);
-void  showCursor(void);
-void  hideCursor(void);
-bool  isCursorInsideTrackingArea(void);
-void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
-void  setMousePositionAbsolute(int32_t x, int32_t y);
+FORGE_API void* createCursor(const char* path);
+FORGE_API void  setCursor(void* cursor);
+FORGE_API void  showCursor(void);
+FORGE_API void  hideCursor(void);
+FORGE_API bool  isCursorInsideTrackingArea(void);
+FORGE_API void  setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y);
+FORGE_API void  setMousePositionAbsolute(int32_t x, int32_t y);
 
-void getRecommendedResolution(RectDesc* rect);
+FORGE_API void getRecommendedResolution(RectDesc* rect);
 // Sets video mode for specified display
-void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
+FORGE_API void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
-MonitorDesc* getMonitor(uint32_t index);
-uint32_t     getMonitorCount(void);
+FORGE_API MonitorDesc* getMonitor(uint32_t index);
+FORGE_API uint32_t     getMonitorCount(void);
 // pArray pointer to array with at least 2 elements(x,y)
-void getDpiScale(float array[2]);
+FORGE_API void getDpiScale(float array[2]);
 
-bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+FORGE_API bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+// Reset
+#if defined(_WINDOWS) || defined(__ANDROID__)
+typedef enum ResetType
+{
+	RESET_TYPE_NONE				= 0,
+	RESET_TYPE_API_SWITCH,
+#if defined(_WINDOWS)
+	RESET_TYPE_DEVICE_LOST,
+	RESET_TYPE_GPU_MODE_SWITCH,
+#endif
+	RESET_TYPE_COUNT,
+} ResetType;
+#if defined(_WINDOWS)
+COMPILE_ASSERT(RESET_TYPE_COUNT == 4);
+#else
+COMPILE_ASSERT(RESET_TYPE_COUNT == 2);
+#endif
+
+typedef struct ResetDesc
+{
+	ResetType mType;
+} ResetDesc;
+
+FORGE_API void requestReset(const ResetDesc* pResetDesc);
+#endif
+
+// Reload
+typedef enum ReloadType
+{
+	RELOAD_TYPE_RESIZE = 0x1,
+	RELOAD_TYPE_SHADER = 0x2,
+	RELOAD_TYPE_RENDERTARGET =0x4,
+	RELOAD_TYPE_ALL	= UINT32_MAX,
+	RELOAD_TYPE_COUNT = 3,
+} ReloadType;
+COMPILE_ASSERT(RELOAD_TYPE_COUNT == 3);
+
+typedef struct ReloadDesc
+{
+	ReloadType mType;
+} ReloadDesc;
 
 //------------------------------------------------------------------------
 // PLATFORM LAYER
 //------------------------------------------------------------------------
 
-#if defined(_WINDOWS)
-typedef enum ResetScenario
-{
+FORGE_API void requestReload(const ReloadDesc* pReloadDesc);
 
-	RESET_SCENARIO_NONE = 0x0,
-	RESET_SCENARIO_RELOAD = 0x1,
-	RESET_SCENARIO_DEVICE_LOST = 0x2,
-	RESET_SCENARIO_API_SWITCH = 0x4,
-	RESET_SCENARIO_GPU_MODE_SWITCH = 0x8,
-
-} ResetScenario;
-
-void onRequestReload();
-void onDeviceLost();
-void onGpuModeSwitch();
-#elif defined(__ANDROID__)
-typedef enum ResetScenario
-{
-
-	RESET_SCENARIO_NONE = 0x0,
-	RESET_SCENARIO_RELOAD = 0x1,
-	RESET_SCENARIO_API_SWITCH = 0x2,
-
-} ResetScenario;
-
-void onRequestReload();
-void onDeviceLost();
-void onAPISwitch();
-#else
-typedef enum ResetScenario
-{
-
-	RESET_SCENARIO_NONE = 0x0,
-	RESET_SCENARIO_RELOAD = 0x1,
-
-} ResetScenario;
-
-void onRequestReload(void);
-void onDeviceLost(void);
-void onAPISwitch(void);
-#endif
 
 // API functions
-void requestShutdown(void);
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle);
+FORGE_API void requestShutdown(void);
+FORGE_API void errorMessagePopup(const char* title, const char* msg, void* windowHandle);
 
 // Custom processing of OS pipe messages
 typedef int32_t (*CustomMessageProcessor)(WindowDesc* pWindow, void* msg);
-void setCustomMessageProcessor(CustomMessageProcessor proc);
+FORGE_API void setCustomMessageProcessor(CustomMessageProcessor proc);
 
 // Shell commands
 
 /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
+FORGE_API int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile);
 
 //
 // failure research ...

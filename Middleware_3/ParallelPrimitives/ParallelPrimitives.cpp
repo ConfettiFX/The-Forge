@@ -44,9 +44,9 @@
 
 #include "ParallelPrimitives.h"
 
-#include "../../Common_3/Renderer/IResourceLoader.h"
-#include "../../Common_3/OS/Interfaces/ILog.h"
-#include "../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
+#include "../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../Common_3/Utilities/Interfaces/IMemory.h"
 
 ParallelPrimitives::PipelineComponents::PipelineComponents() : mNextSetIndex(0), pDescriptorSet(NULL), pShader(NULL), pPipeline(NULL), pRootSignature(NULL) {}
 

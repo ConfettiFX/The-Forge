@@ -28,7 +28,7 @@
 #include <cstdlib>
 #include <cmath>
 
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 // For producing random numbers used in the asteroids test
 class MyRandom

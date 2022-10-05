@@ -23,151 +23,181 @@
 */
 
 #include "AssetPipeline.h"
-#include "../../../ThirdParty/OpenSource/EASTL/string.h"
-#include "../../../OS/Interfaces/ILog.h"
+#include "../../../Utilities/Interfaces/ILog.h"
 
-#include <cstdio>
-#include <sys/stat.h>
+const char* gApplicationName = "AssetPipeline";
 
-#include "../../../OS/Interfaces/IMemory.h"
-
-const char* gApplicationName = "AssetPipelineCmd";
+const AssetPipelineProcessCommand gAssetPipelineCommands[] = {
+	{ "-pa", PROCESS_ANIMATIONS },
+	{ "-pvt", PROCESS_VIRTUAL_TEXTURES },
+	{ "-ptfx", PROCESS_TFX },
+	{ "-pgltf", PROCESS_GLTF },
+	{ "-pt", PROCESS_TEXTURES },
+	{ "-pwz", PROCESS_WRITE_ZIP },
+	{ "-pwza", PROCESS_WRITE_ZIP_ALL },
+};
 
 void PrintHelp()
 {
-	printf("AssetPipelineCmd\n");
-	printf(
-		"\nCommand: ProcessAnimations          (GLTF to OZZ) -pa   \"animation/directory/\" \"output/directory/\" [flags]\n"
-		"\nCommand: ProcessVirtualTextures     (DDS to SVT)  -pvt  \"source texture directory/\" \"output directory/\" [flags]\n"
-		"\nCommand: ProcessTFX                 (TFX to GLTF) -ptfx \"source tfx directory/\" \"output directory/\" [flags]\n"
-		"\t --fhc | -followhaircount      : Number of follow hairs around loaded guide hairs procedually\n"
-		"\t --tsf | -tipseparationfactor  : Separation factor for the follow hairs\n"
-		"\t --maxradius | -maxradius      : Max radius of the random distribution to generate follow hairs\n"
-		"\nCommon Options:\n"
-		"\t --quiet                       : Print only error messages.\n"
-		"\t --force                       : Force all assets to be processed. Including ones that are already up-to-date.\n"
-		"\t -h | -help                    : Print usage information.\n");
+	printf("Asset Pipeline\n");
+	printf("\n-command [flags]\n");
+	printf("\nCommands:\n");
+	printf("\n\t%s\t\t(GLTF to OZZ)\tProcessAnimations\n", gAssetPipelineCommands[PROCESS_ANIMATIONS].mCommandString);
+	printf("\n\t%s\t(DDS to SVT)\tProcessVirtualTextures\n", gAssetPipelineCommands[PROCESS_VIRTUAL_TEXTURES].mCommandString);
+	printf("\n\t%s\t(TFX to GLTF)\tProcessTFX\n", gAssetPipelineCommands[PROCESS_TFX].mCommandString);
+	printf("\n\t\t--fhc | -followhaircount\t\t: Number of follow hairs around loaded guide hairs procedually\n");
+	printf("\t\t--tsf | -tipseparationfactor\t: Separation factor for the follow hairs\n");
+	printf("\t\t--maxradius | -maxradius\t\t: Max radius of the random distribution to generate follow hairs\n");
+	printf("\n\t%s\t(GLTF to bin)\tProcessGLTF\n", gAssetPipelineCommands[PROCESS_GLTF].mCommandString);
+	printf("\n\t%s\t\t(PNG/DDS/KTX to PNG/DDS/KTX) 	ProcessTFX\n", gAssetPipelineCommands[PROCESS_TEXTURES].mCommandString);
+	printf("\n\t%s\t(filtered zip)\tProcessWriteZip\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP].mCommandString);
+	printf("\n\t\t--filter [extension filters]\t: Only zip files with the chosen extensions\n");
+	printf("\n\t%s\t(folder to zip)\tProcessWriteZipAll\n", gAssetPipelineCommands[PROCESS_WRITE_ZIP_ALL].mCommandString);
+	printf("\n\t\t--filter [subfolders to zip]\t: Only zip folders with the chosen names\n");
+	printf("\nCommon Options:\n");
+	printf("\n\t-h | -help\t\t: Print usage information\n");
+	printf("\n\t--input [path]\t\t\t: Choose input folder\n");
+	printf("\n\t--output [path]\t\t\t: Choose output folder\n");
+	printf("\n\t--quiet\t\t\t: Print only error messages\n");
+	printf("\n\t--force\t\t\t: Force all assets to be processed\n");
 }
-
-ResourceDirectory RD_APPLICATION = RD_MIDDLEWARE_0;
 
 int AssetPipelineCmd(int argc, char** argv)
 {
-	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_APPLICATION, "");
-
-	time_t appLastModified = 0;
-	appLastModified = fsGetLastModifiedTime(RD_APPLICATION, gApplicationName);
-
-	if (argc == 1)
+	if(argc == 1)
 	{
 		PrintHelp();
 		return 0;
 	}
-
+	
 	if (stricmp(argv[1], "-h") == 0 || stricmp(argv[1], "-help") == 0)
 	{
 		PrintHelp();
 		return 0;
 	}
-
-	if (argc < 4)
+	
+	if(argc < 2)
 	{
-		printf("ERROR: Invalid number of arguments for command processanimations.\n");
-		return 1;
+		printf("Invalid command.\n");
+		return 0;
 	}
+	
+	if (!initMemAlloc(gApplicationName))
+		return EXIT_FAILURE;
+	
+	const char* input = "";
+	const char* output = "";
+	
+	// Parse commands, fill params
+	AssetPipelineParams params = {};
+	params.mSettings.force = false;
+	params.mSettings.quiet = false;
+	params.mInFilePath = input;
+	params.mInExt = "";	
+	params.mFlagsCount = 0;
 
-	fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_INPUT, "");
-	fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_OUTPUT, "");
+	params.mRDInput = RD_MIDDLEWARE_1;
+	params.mRDOutput = RD_MIDDLEWARE_2;
+	params.mRDZipOutput = RD_MIDDLEWARE_3;
+	params.mRDZipInput = RD_MIDDLEWARE_4;
 
-	ProcessAssetsSettings settings = {};
-	settings.quiet = false;
-	settings.force = false;
-	settings.minLastModifiedTime = (unsigned int)appLastModified;
-
-	const char* command = argv[1];
-
-	for (int i = 4; i < argc; ++i)
+	char filePath[FS_MAX_PATH] = { 0 };
+	char fileNameWithoutExt[FS_MAX_PATH] = { 0 };
+	char fileName[FS_MAX_PATH] = { 0 };
+	char iext[FS_MAX_PATH] = { 0 };
+	
+	for (int i = 2; i < argc; ++i)
 	{
 		const char* arg = argv[i];
 
-		if (stricmp(arg, "--quiet") == 0)
+		if (STRCMP(arg, "--input"))
 		{
-			settings.quiet = true;
+			params.mPathMode = PROCESS_MODE_DIRECTORY;
+			input = argv[++i];
 		}
-		else if (stricmp(arg, "--force") == 0)
+		else if (STRCMP(arg, "--input-file"))
 		{
-			settings.force = true;
+			i++;
+			params.mPathMode = PROCESS_MODE_FILE;
+			fsGetPathFileName(argv[i], fileNameWithoutExt);
+			fsGetPathExtension(argv[i], iext);
+			params.mInExt = iext;
+			fsAppendPathExtension(fileNameWithoutExt, iext, fileName);
+			params.mInFilePath = fileName;
+			
+			fsGetParentPath(argv[i], filePath);
+			input = filePath;
 		}
-		else if (stricmp(arg, "-followhaircount") == 0 || stricmp(arg, "--fhc") == 0)
+		else if (STRCMP(arg, "--output"))
 		{
-			if (i + 1 < argc && isdigit(argv[i + 1][0]))
-				settings.mFollowHairCount = atoi(argv[++i]);
-			else
-				printf("WARNING: Argument expects a value: %s\n", arg);
+			output = argv[++i];
 		}
-		else if (stricmp(arg, "-tipseparationfactor") == 0 || stricmp(arg, "--tsf") == 0)
+		else if (STRCMP(arg, "--quiet"))
 		{
-			settings.mTipSeperationFactor = (float)atof(argv[++i]);
+			params.mSettings.quiet = true;
 		}
-		else if (stricmp(arg, "-maxradius") == 0 || stricmp(arg, "--maxradius") == 0)
+		else if (STRCMP(arg, "--force"))
 		{
-			settings.mMaxRadiusAroundGuideHair = (float)atof(argv[++i]);
+			params.mSettings.force = true;
 		}
-		else
-		{
-			printf("WARNING: Unrecognized argument: %s\n", arg);
+		else {
+			params.mFlags[params.mFlagsCount++] = argv[i];
 		}
 	}
-
-	if (stricmp(command, "-pa") == 0)
+	
+	params.mInDir = input;
+	params.mOutDir = output;
+	
+	FileSystemInitDesc fsDesc = {};
+	fsDesc.pAppName = gApplicationName;
+	
+	if(!initFileSystem(&fsDesc))
 	{
-		if (!AssetPipeline::ProcessAnimations(&settings))
-			return 1;
+		LOGF(eERROR, "Filesystem failed to initialize.");
+		exitMemAlloc();
+		return 1;
 	}
-	else if (stricmp(command, "-pvt") == 0)
+	
+	fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, params.mRDInput, input);
+	fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, params.mRDOutput, output);
+	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+	
+	LogLevel logLevel = params.mSettings.quiet ? eWARNING : DEFAULT_LOG_LEVEL;
+	initLog(gApplicationName, logLevel);
+	
+	
+	bool runAssetPipeline = false;
+	for(uint32_t i = 0; i < TF_ARRAY_COUNT(gAssetPipelineCommands); ++i)
 	{
-		if (!AssetPipeline::ProcessVirtualTextures(&settings))
-			return 1;
+		if (STRCMP(argv[1], gAssetPipelineCommands[i].mCommandString))
+		{
+			params.mProcessType = gAssetPipelineCommands[i].mProcessType;
+			runAssetPipeline = true;
+			break;
+		}
 	}
-	else if (stricmp(command, "-ptfx") == 0)
+	
+	// ...
+	
+	int ret = 0;
+	
+	if(runAssetPipeline)
 	{
-		if (!AssetPipeline::ProcessTFX(&settings))
-			return 1;
+		ret = AssetPipelineRun(&params);
 	}
 	else
 	{
-		printf("ERROR: Invalid command. %s\n", command);
+		LOGF(eERROR, "Unrecognized argument %s.", argv[1]);
 	}
-
-	return 0;
+	
+	exitLog();
+	exitFileSystem();
+	exitMemAlloc();
+	
+	return ret;
 }
 
 int main(int argc, char** argv)
 {
-	if (!initMemAlloc(gApplicationName))
-		return EXIT_FAILURE;
-
-	FileSystemInitDesc fsDesc = {};
-	fsDesc.pAppName = gApplicationName;
-
-	if (argc >= 4)
-	{
-		fsDesc.pResourceMounts[RM_CONTENT] = argv[2];
-		fsDesc.pResourceMounts[RM_SAVE_0] = argv[3];
-	}
-
-	if (!initFileSystem(&fsDesc))
-		return EXIT_FAILURE;
-
-	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-
-	initLog(gApplicationName, DEFAULT_LOG_LEVEL);
-
-	int ret = AssetPipelineCmd(argc, argv);
-
-	exitLog();
-	exitFileSystem();
-	exitMemAlloc();
-
-	return ret;
+	return AssetPipelineCmd(argc, argv);
 }

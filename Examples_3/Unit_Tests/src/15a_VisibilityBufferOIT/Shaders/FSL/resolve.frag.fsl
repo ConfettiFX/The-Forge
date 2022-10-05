@@ -23,9 +23,6 @@
 */
 
 // USERMACRO: SAMPLE_COUNT [1,2,4]
-#ifndef SAMPLE_COUNT
-    #define SAMPLE_COUNT 1
-#endif
 
 STRUCT(PsIn)
 {

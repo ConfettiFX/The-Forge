@@ -65,7 +65,8 @@ inline float3 sampleCosineWeightedHemisphere(float2 u) {
 	float phi = 2.0f * M_PI_F * u.x;
 	
 	float cos_phi;
-	float sin_phi = sincos(phi, cos_phi);
+	float sin_phi;
+	sincos(phi, sin_phi, cos_phi);
 	
 	float cos_theta = sqrt(u.y);
 	float sin_theta = sqrt(1.0f - cos_theta * cos_theta);

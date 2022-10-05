@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeLite_Project Name="gainput" InternalType="" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00030001N0005Debug0000000000000001N0008NoConfig0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="src">
+    <VirtualDirectory Name="lib">
+      <VirtualDirectory Name="source">
+        <VirtualDirectory Name="gainput">
+          <File Name="../../lib/source/gainput/GainputAllocator.cpp"/>
+          <File Name="../../lib/source/gainput/GainputInputDeltaState.cpp"/>
+          <File Name="../../lib/source/gainput/GainputInputDevice.cpp"/>
+          <File Name="../../lib/source/gainput/GainputInputManager.cpp"/>
+          <File Name="../../lib/source/gainput/GainputInputMap.cpp"/>
+          <File Name="../../lib/source/gainput/GainputInputState.cpp"/>
+          <File Name="../../lib/source/gainput/GainputMapFilters.cpp"/>
+          <VirtualDirectory Name="builtin">
+            <File Name="../../lib/source/gainput/builtin/GainputInputDeviceBuiltIn.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="dev">
+            <File Name="../../lib/source/gainput/dev/GainputDev.cpp"/>
+            <File Name="../../lib/source/gainput/dev/GainputMemoryStream.cpp"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetAddress.cpp"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetConnection.cpp"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetListener.cpp"/>
+          </VirtualDirectory>
+          <File Name="../../lib/source/gainput/gainput.cpp"/>
+          <VirtualDirectory Name="gestures">
+            <File Name="../../lib/source/gainput/gestures/GainputButtonStickGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputDoubleClickGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputHoldGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputPinchGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputRotateGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputSimultaneouslyDownGesture.cpp"/>
+            <File Name="../../lib/source/gainput/gestures/GainputTapGesture.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="keyboard">
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboard.cpp"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardMac.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="mouse">
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouse.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="pad">
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePad.cpp"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadMac.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="recorder">
+            <File Name="../../lib/source/gainput/recorder/GainputInputPlayer.cpp"/>
+            <File Name="../../lib/source/gainput/recorder/GainputInputRecorder.cpp"/>
+            <File Name="../../lib/source/gainput/recorder/GainputInputRecording.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="touch">
+            <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouch.cpp"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="hid">
+            <VirtualDirectory Name="hidparsers">
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS5Controller.cpp"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS5Controller.h"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS4Controller.cpp"/>
+              <File Name="../../lib/source/gainput/hid/hidparsers/HIDParserPS4Controller.h"/>
+            </VirtualDirectory>
+            <File Name="../../lib/source/gainput/hid/GainputHID.cpp"/>
+            <File Name="../../lib/source/gainput/hid/GainputHID.h"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDTypes.h"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDWhitelist.cpp"/>
+            <File Name="../../lib/source/gainput/hid/GainputHIDWhitelist.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+        <VirtualDirectory Name="hidapi">
+          <File Name="../../lib/source/hidapi/hidapi.h"/>
+          <File Name="../../lib/source/hidapi/linux/hid.c"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <VirtualDirectory Name="include">
+    <VirtualDirectory Name="lib">
+      <VirtualDirectory Name="include">
+        <VirtualDirectory Name="gainput">
+          <File Name="../../lib/include/gainput/GainputAllocator.h"/>
+          <File Name="../../lib/include/gainput/GainputContainers.h"/>
+          <File Name="../../lib/include/gainput/GainputDebugRenderer.h"/>
+          <File Name="../../lib/include/gainput/GainputHelpers.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDeltaState.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDevice.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDeviceBuiltIn.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDeviceKeyboard.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDeviceMouse.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDevicePad.h"/>
+          <File Name="../../lib/include/gainput/GainputInputDeviceTouch.h"/>
+          <File Name="../../lib/include/gainput/GainputInputListener.h"/>
+          <File Name="../../lib/include/gainput/GainputInputManager.h"/>
+          <File Name="../../lib/include/gainput/GainputInputMap.h"/>
+          <File Name="../../lib/include/gainput/GainputInputState.h"/>
+          <File Name="../../lib/include/gainput/GainputIos.h"/>
+          <File Name="../../lib/include/gainput/GainputLog.h"/>
+          <File Name="../../lib/include/gainput/GainputMapFilters.h"/>
+          <File Name="../../lib/include/gainput/gainput.h"/>
+          <VirtualDirectory Name="gestures">
+            <File Name="../../lib/include/gainput/gestures/GainputButtonStickGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputDoubleClickGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputGestures.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputHoldGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputPinchGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputRotateGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputSimultaneouslyDownGesture.h"/>
+            <File Name="../../lib/include/gainput/gestures/GainputTapGesture.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="recorder">
+            <File Name="../../lib/include/gainput/recorder/GainputInputPlayer.h"/>
+            <File Name="../../lib/include/gainput/recorder/GainputInputRecorder.h"/>
+            <File Name="../../lib/include/gainput/recorder/GainputInputRecording.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+      </VirtualDirectory>
+      <VirtualDirectory Name="source">
+        <VirtualDirectory Name="gainput">
+          <File Name="../../lib/source/gainput/GainputHelpersEvdev.h"/>
+          <File Name="../../lib/source/gainput/GainputWindows.h"/>
+          <VirtualDirectory Name="builtin">
+            <File Name="../../lib/source/gainput/builtin/GainputInputDeviceBuiltInAndroid.h"/>
+            <File Name="../../lib/source/gainput/builtin/GainputInputDeviceBuiltInImpl.h"/>
+            <File Name="../../lib/source/gainput/builtin/GainputInputDeviceBuiltInIos.h"/>
+            <File Name="../../lib/source/gainput/builtin/GainputInputDeviceBuiltInNull.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="dev">
+            <File Name="../../lib/source/gainput/dev/GainputDev.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputDevProtocol.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputMemoryStream.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetAddress.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetConnection.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputNetListener.h"/>
+            <File Name="../../lib/source/gainput/dev/GainputStream.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="keyboard">
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardAndroid.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardEvdev.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardImpl.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardLinux.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardMac.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardNull.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardWin.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputInputDeviceKeyboardWinRaw.h"/>
+            <File Name="../../lib/source/gainput/keyboard/GainputKeyboardKeyNames.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="mouse">
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseLinuxRaw.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseEvdev.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseImpl.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseLinux.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseMac.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseMacRaw.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseNull.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseWin.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputInputDeviceMouseWinRaw.h"/>
+            <File Name="../../lib/source/gainput/mouse/GainputMouseInfo.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="pad">
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadAndroid.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadImpl.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadIos.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadLinux.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadMac.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadNull.h"/>
+            <File Name="../../lib/source/gainput/pad/GainputInputDevicePadWin.h"/>
+          </VirtualDirectory>
+          <VirtualDirectory Name="touch">
+            <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouchAndroid.h"/>
+            <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouchImpl.h"/>
+            <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouchIos.h"/>
+            <File Name="../../lib/source/gainput/touch/GainputInputDeviceTouchNull.h"/>
+            <File Name="../../lib/source/gainput/touch/GainputTouchInfo.h"/>
+          </VirtualDirectory>
+        </VirtualDirectory>
+      </VirtualDirectory>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-std=gnu++14;-Wall;-Werror;" C_Options="-g;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0"/>
+      <Linker Options="-ludev" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=gnu++14;-Wall;-Werror;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+      </Compiler>
+      <Linker Options="-ludev;-ldl;-pthread;" Required="yes">
+        <LibraryPath Value="$(WorkspacePath)/OSBase/Release/"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
+</CodeLite_Project>

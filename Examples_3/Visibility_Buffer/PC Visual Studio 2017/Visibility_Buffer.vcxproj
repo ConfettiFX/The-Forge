@@ -16,13 +16,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry.h" />
-    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\packing.h" />
-    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\FSL\shading.h" />
-    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h" />
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\deferred_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\packing.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\vb_resources.h.fsl" />
   </ItemGroup>
   <ItemGroup>
     <FSLShader Include="..\src\Shaders\FSL\batch_compaction.comp.fsl" />
@@ -46,6 +46,7 @@
     <FSLShader Include="..\src\Shaders\FSL\resolve.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\resolve.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\resolveGodray.frag.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
@@ -141,14 +142,14 @@ xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"
 
 if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
 if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
-xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>
@@ -191,8 +192,8 @@ xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"
 
-xcopy /Y /S /D "$(OutDir)\OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)\OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\" "$(OutDir)CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
@@ -201,7 +202,7 @@ xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </Manifest>
     <FSLShader>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
       <Language>VULKAN DIRECT3D12</Language>
     </FSLShader>
   </ItemDefinitionGroup>

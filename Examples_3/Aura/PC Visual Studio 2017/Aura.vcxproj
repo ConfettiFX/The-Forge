@@ -16,10 +16,10 @@
     <ClCompile Include="..\..\..\..\Custom-Middleware\Aura\LightPropagation\LightPropagationGrid.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Aura\LightPropagation\LightPropagationVolume.cpp" />
     <ClCompile Include="..\..\..\..\Custom-Middleware\Aura\Math\AuraVector.cpp" />
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTDefaultAppInterop.cpp" />
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTFiberContext.cpp" />
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTScheduler.cpp" />
-    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTThreadContext.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTDefaultAppInterop.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTFiberContext.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTScheduler.cpp" />
+    <ClCompile Include="..\..\..\Common_3\Utilities\ThirdParty\OpenSource\TaskScheduler\Scheduler\Source\MTThreadContext.cpp" />
     <ClCompile Include="..\src\AuraMiddlewareImpl\AuraMemoryManagerImpl.cpp" />
     <ClCompile Include="..\src\AuraMiddlewareImpl\AuraRendererImpl.cpp" />
     <ClCompile Include="..\src\AuraMiddlewareImpl\AuraTaskManagerImpl.cpp" />
@@ -46,20 +46,21 @@
     <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvLightPropagateFunctions.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvSHMaths.h" />
     <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvVisualizeCommon.h" />
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Aura\Shaders\Shared.h" />
     <ClInclude Include="..\src\AuraMiddlewareImpl\TaskManager.h" />
     <ClInclude Include="..\src\Camera.hpp" />
     <ClInclude Include="..\src\Geometry.h" />
-    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\lightPropagation_example.h" />
-    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\lpvCommon_example.h" />
-    <ClInclude Include="..\src\Shaders\FSL\lpvLightApply.h" />
-    <ClInclude Include="..\src\Shaders\FSL\lpvSHMaths_example.h" />
-    <ClInclude Include="..\src\Shaders\FSL\packing.h" />
-    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h" />
-    <ClInclude Include="..\src\Shaders\FSL\shading.h" />
-    <ClInclude Include="..\src\Shaders\FSL\vb_rsm_resources.h" />
-    <ClInclude Include="..\src\Shaders\FSL\wind.h" />
+    <ClInclude Include="..\src\Shaders\FSL\cull_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\lightPropagation_example.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\light_cull_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\lpvCommon_example.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\lpvLightApply.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\lpvSHMaths_example.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\packing.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shader_defs.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\shading.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\vb_rsm_resources.h.fsl" />
+    <ClInclude Include="..\src\Shaders\FSL\wind.h.fsl" />
     <ClInclude Include="..\src\Shadows.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -71,6 +72,7 @@
     </ProjectReference> -->
   </ItemGroup>
   <ItemGroup>
+    <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\Aura_ShaderList.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvInjectRSMLight.frag.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvInjectRSMLight.vert.fsl" />
     <FSLShader Include="..\..\..\..\Custom-Middleware\Aura\Shaders\FSL\lpvLightCopy.comp.fsl" />
@@ -93,6 +95,7 @@
     <FSLShader Include="..\src\Shaders\FSL\fill_rsm_alpha.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\fill_rsm_alpha.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\panoToCube.comp.fsl" />
+    <FSLShader Include="..\src\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass.vert.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
     <FSLShader Include="..\src\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
@@ -225,8 +228,8 @@ xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\*" "$(OutDir)CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"</Command>
@@ -234,7 +237,7 @@ xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"</Co
     <FSLShader>
       <Language>VULKAN DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
     </FSLShader>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -327,8 +330,8 @@ xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
 
-xcopy /Y /S /D "$(OutDir)OS\Shaders\VULKAN\*.*" "$(OutDir)Shaders\VULKAN\"
-xcopy /Y /S /D "$(OutDir)OS\Shaders\DIRECT3D12\*.*" "$(OutDir)Shaders\DIRECT3D12\"
+xcopy /E /Y /S /D "$(OutDir)OS\Shaders\" "$(OutDir)Shaders\"
+xcopy /E /Y /S /D "$(OutDir)OS\CompiledShaders\*" "$(OutDir)CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"
 xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"</Command>
@@ -339,7 +342,7 @@ xcopy /Y /S /D "$(ProjectDir)..\Resources\Scripts\*.lua" "$(OutDir)Scripts\"</Co
     <FSLShader>
       <Language>VULKAN DIRECT3D12</Language>
       <OutDir>$(OutDir)/Shaders</OutDir>
-      <BinaryOutDir>$(OutDir)/Shaders/Binary</BinaryOutDir>
+      <BinaryOutDir>$(OutDir)/CompiledShaders</BinaryOutDir>
     </FSLShader>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

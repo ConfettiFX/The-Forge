@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -16,71 +16,7 @@
 		5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3752141543F00EFD76A /* GameController.framework */; };
 		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
-		654D977F21E9219800113964 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977621E9218B00113964 /* ozz_animation.a */; };
-		654D978021E9219800113964 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977821E9218B00113964 /* ozz_base.a */; };
-		654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977C21E9218B00113964 /* ozz_base_IOS.a */; };
-		654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977A21E9218B00113964 /* ozz_animation_IOS.a */; };
-		973281C325C1D3A40076E8FF /* BRDFIntegration.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */; };
-		973281C425C1D3A40076E8FF /* computeIrradianceMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */; };
-		973281C525C1D3A40076E8FF /* computeSpecularMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */; };
-		973281C625C1D3A40076E8FF /* fullscreen.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */; };
-		973281C725C1D3A40076E8FF /* hair_integrate.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */; };
-		973281C825C1D3A40076E8FF /* hair_length_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */; };
-		973281C925C1D3A40076E8FF /* hair_local_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */; };
-		973281CA25C1D3A40076E8FF /* hair_pre_warm.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */; };
-		973281CB25C1D3A40076E8FF /* hair_shadow.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */; };
-		973281CC25C1D3A40076E8FF /* hair_shadow.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */; };
-		973281CD25C1D3A40076E8FF /* hair_shock_propagation.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */; };
-		973281CE25C1D3A40076E8FF /* hair_short_cut_clear.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */; };
-		973281CF25C1D3A40076E8FF /* hair_short_cut_depth_peeling.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */; };
-		973281D025C1D3A40076E8FF /* hair_short_cut_fill_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */; };
-		973281D125C1D3A40076E8FF /* hair_short_cut_resolve_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */; };
-		973281D225C1D3A40076E8FF /* hair_short_cut_resolve_depth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */; };
-		973281D325C1D3A40076E8FF /* hair_update_follow_hairs.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */; };
-		973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093625BF40B6003C978D /* hair.frag.fsl */; };
-		973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091B25BF40B4003C978D /* hair.vert.fsl */; };
-		973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */; };
-		973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */; };
-		973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */; };
-		973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */; };
-		973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */; };
-		973281DD25C1D3A50076E8FF /* renderSceneShadows.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */; };
-		973281DE25C1D3A50076E8FF /* showCapsules.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093925BF40B6003C978D /* showCapsules.frag.fsl */; };
-		973281DF25C1D3A50076E8FF /* showCapsules.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092025BF40B4003C978D /* showCapsules.vert.fsl */; };
-		973281E025C1D3A50076E8FF /* skeleton.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092825BF40B5003C978D /* skeleton.frag.fsl */; };
-		973281E125C1D3A50076E8FF /* skeleton.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092D25BF40B5003C978D /* skeleton.vert.fsl */; };
-		973281E225C1D3A50076E8FF /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093225BF40B5003C978D /* skybox.frag.fsl */; };
-		973281E325C1D3A50076E8FF /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093825BF40B6003C978D /* skybox.vert.fsl */; };
-		97C9093B25BF40B6003C978D /* hair_shock_propagation.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */; };
-		97C9093C25BF40B6003C978D /* hair.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091B25BF40B4003C978D /* hair.vert.fsl */; };
-		97C9093D25BF40B6003C978D /* panoToCube.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */; };
-		97C9093E25BF40B6003C978D /* hair_short_cut_fill_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */; };
-		97C9093F25BF40B6003C978D /* renderSceneBRDF.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */; };
-		97C9094025BF40B6003C978D /* hair_short_cut_resolve_depth.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */; };
-		97C9094125BF40B6003C978D /* showCapsules.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092025BF40B4003C978D /* showCapsules.vert.fsl */; };
-		97C9094225BF40B6003C978D /* hair_shadow.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092125BF40B4003C978D /* hair_shadow.frag.fsl */; };
-		97C9094325BF40B6003C978D /* hair_short_cut_resolve_color.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */; };
-		97C9094425BF40B6003C978D /* hair_shadow.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092325BF40B4003C978D /* hair_shadow.vert.fsl */; };
-		97C9094525BF40B6003C978D /* hair_length_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092425BF40B4003C978D /* hair_length_constraints.comp.fsl */; };
-		97C9094625BF40B6003C978D /* hair_pre_warm.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */; };
-		97C9094725BF40B6003C978D /* hair_short_cut_clear.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */; };
-		97C9094825BF40B6003C978D /* skeleton.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092825BF40B5003C978D /* skeleton.frag.fsl */; };
-		97C9094925BF40B6003C978D /* hair_integrate.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */; };
-		97C9094A25BF40B6003C978D /* renderSceneShadows.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */; };
-		97C9094B25BF40B6003C978D /* hair_local_constraints.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */; };
-		97C9094C25BF40B6003C978D /* computeIrradianceMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */; };
-		97C9094D25BF40B6003C978D /* skeleton.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092D25BF40B5003C978D /* skeleton.vert.fsl */; };
-		97C9094E25BF40B6003C978D /* hair_short_cut_depth_peeling.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */; };
-		97C9094F25BF40B6003C978D /* renderSceneShadows.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */; };
-		97C9095025BF40B6003C978D /* renderSceneBRDF.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */; };
-		97C9095125BF40B6003C978D /* skybox.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093225BF40B5003C978D /* skybox.frag.fsl */; };
-		97C9095225BF40B6003C978D /* BRDFIntegration.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */; };
-		97C9095325BF40B6003C978D /* hair_update_follow_hairs.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */; };
-		97C9095425BF40B6003C978D /* hair.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093625BF40B6003C978D /* hair.frag.fsl */; };
-		97C9095525BF40B6003C978D /* computeSpecularMap.comp.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */; };
-		97C9095625BF40B6003C978D /* skybox.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093825BF40B6003C978D /* skybox.vert.fsl */; };
-		97C9095725BF40B6003C978D /* showCapsules.frag.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093925BF40B6003C978D /* showCapsules.frag.fsl */; };
-		97C9095825BF40B6003C978D /* fullscreen.vert.fsl in Resources */ = {isa = PBXBuildFile; fileRef = 97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */; };
+		99E0AC7528594DD400AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC7228594DD400AB602D /* CoreHaptics.framework */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
 		B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D321420EB300DF2297 /* UIKit.framework */; };
@@ -90,36 +26,11 @@
 		B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		ED60963D286F3F6000331537 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED609630286F3ECC00331537 /* ozz_animation.a */; };
+		ED60963E286F3F6000331537 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED609632286F3ECC00331537 /* ozz_base.a */; };
+		ED609643286F3F6A00331537 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED609634286F3ECC00331537 /* ozz_animation_IOS.a */; };
+		ED609644286F3F6A00331537 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = ED609636286F3ECC00331537 /* ozz_base_IOS.a */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXBuildRule section */
-		973281C225C1D37A0076E8FF /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/Binary\" -l METAL --incremental\n";
-		};
-		97C9095925BF40C2003C978D /* PBXBuildRule */ = {
-			isa = PBXBuildRule;
-			compilerSpec = com.apple.compilers.proxy.script;
-			filePatterns = "*.fsl";
-			fileType = pattern.proxy;
-			inputFiles = (
-			);
-			isEditable = 1;
-			outputFiles = (
-				"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/${INPUT_FILE_BASE}.metal",
-			);
-			script = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"${INPUT_FILE_PATH}\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/Binary\" -l METAL --incremental\n";
-		};
-/* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
 		5C172F8321414A0B0074EE71 /* PBXContainerItemProxy */ = {
@@ -136,76 +47,6 @@
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		654D977321E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 88DF3489E6364B89869CC71D;
-			remoteInfo = json;
-		};
-		654D977521E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = AD14F53CA01347BBA91C7F42;
-			remoteInfo = ozz_animation;
-		};
-		654D977721E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = A69A1ECFEC9145D3A46BAA96;
-			remoteInfo = ozz_base;
-		};
-		654D977921E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D0796ACD211ED7370028AFFD;
-			remoteInfo = ozz_animation_IOS;
-		};
-		654D977B21E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
-			remoteInfo = ozz_base_IOS;
-		};
-		654D977D21E9218B00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
-			remoteInfo = "ozz_animation offline";
-		};
-		654D978121E921A200113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B578F05FA1304339B5CEB8AB;
-			remoteInfo = ozz_animation;
-		};
-		654D978321E921A200113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
-			remoteInfo = ozz_base;
-		};
-		654D97C121E92FDB00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D0796ABD211ED7370028AFFD;
-			remoteInfo = ozz_animation_IOS;
-		};
-		654D97C321E92FDB00113964 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D0796ACE211ED7430028AFFD;
-			remoteInfo = ozz_base_IOS;
-		};
 		E95891F623415A2B00B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C172F7F21414A0B0074EE71 /* The-Forge.xcodeproj */;
@@ -220,9 +61,80 @@
 			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
 		};
+		ED60962D286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 88DF3489E6364B89869CC71D;
+			remoteInfo = json;
+		};
+		ED60962F286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AD14F53CA01347BBA91C7F42;
+			remoteInfo = ozz_animation;
+		};
+		ED609631286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A69A1ECFEC9145D3A46BAA96;
+			remoteInfo = ozz_base;
+		};
+		ED609633286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D0796ACD211ED7370028AFFD;
+			remoteInfo = ozz_animation_IOS;
+		};
+		ED609635286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
+			remoteInfo = ozz_base_IOS;
+		};
+		ED609637286F3ECC00331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
+			remoteInfo = "ozz_animation offline";
+		};
+		ED609639286F3F5800331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B578F05FA1304339B5CEB8AB;
+			remoteInfo = ozz_animation;
+		};
+		ED60963B286F3F5800331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
+			remoteInfo = ozz_base;
+		};
+		ED60963F286F3F6600331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D0796ABD211ED7370028AFFD;
+			remoteInfo = ozz_animation_IOS;
+		};
+		ED609641286F3F6600331537 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = D0796ACE211ED7430028AFFD;
+			remoteInfo = ozz_base_IOS;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		09D4FEEE2821C36B000E3229 /* ShaderList.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = ShaderList.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/ShaderList.fsl; sourceTree = "<group>"; };
 		28A5AD43201F7276000E571F /* 06_MaterialPlayground_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 06_MaterialPlayground_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AD54201F7276000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AD57201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -235,7 +147,7 @@
 		5CABF3752141543F00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
+		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shock_propagation.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shock_propagation.comp.fsl; sourceTree = "<group>"; };
 		97C9091B25BF40B4003C978D /* hair.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.vert.fsl; sourceTree = "<group>"; };
 		97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
@@ -269,6 +181,7 @@
 		97C9093825BF40B6003C978D /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
 		97C9093925BF40B6003C978D /* showCapsules.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = showCapsules.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.frag.fsl; sourceTree = "<group>"; };
 		97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = fullscreen.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/fullscreen.vert.fsl; sourceTree = "<group>"; };
+		99E0AC7228594DD400AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76D321420EB300DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -294,9 +207,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ED609643286F3F6A00331537 /* ozz_animation_IOS.a in Frameworks */,
+				ED609644286F3F6A00331537 /* ozz_base_IOS.a in Frameworks */,
 				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */,
-				654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */,
+				99E0AC7528594DD400AB602D /* CoreHaptics.framework in Frameworks */,
 				B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */,
 				B21F76D721420EB300DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76D821420EB300DF2297 /* Metal.framework in Frameworks */,
@@ -309,10 +223,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ED60963D286F3F6000331537 /* ozz_animation.a in Frameworks */,
+				ED60963E286F3F6000331537 /* ozz_base.a in Frameworks */,
 				650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C172F8721414A2C0074EE71 /* libThe-Forge.a in Frameworks */,
-				654D977F21E9219800113964 /* ozz_animation.a in Frameworks */,
-				654D978021E9219800113964 /* ozz_base.a in Frameworks */,
 				B2087DE821421A4A006F372D /* Metal.framework in Frameworks */,
 				B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */,
 			);
@@ -336,6 +250,7 @@
 		28A5AD68201F72EB000E571F /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
+				09D4FEEE2821C36B000E3229 /* ShaderList.fsl */,
 				97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */,
 				97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */,
 				97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */,
@@ -353,9 +268,9 @@
 				97C9092225BF40B4003C978D /* hair_short_cut_resolve_color.frag.fsl */,
 				97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */,
 				97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */,
-				97C9093525BF40B5003C978D /* hair.comp.h */,
+				97C9093525BF40B5003C978D /* hair.comp.h.fsl */,
 				97C9093625BF40B6003C978D /* hair.frag.fsl */,
-				97C9092725BF40B5003C978D /* hair.h */,
+				97C9092725BF40B5003C978D /* hair.h.fsl */,
 				97C9091B25BF40B4003C978D /* hair.vert.fsl */,
 				97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */,
 				97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */,
@@ -377,6 +292,7 @@
 		28A5AD99201F7411000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				99E0AC7228594DD400AB602D /* CoreHaptics.framework */,
 				E970F78A233C5DB6009FE7C4 /* libbz2.tbd */,
 				E970F78E233C5DC2009FE7C4 /* libbz2.tbd */,
 				650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */,
@@ -402,19 +318,6 @@
 			children = (
 				5C172F8421414A0B0074EE71 /* libThe-Forge.a */,
 				5C17303621414E3D0074EE71 /* libThe-Forge_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		654D976B21E9218B00113964 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				654D977421E9218B00113964 /* json_d.a */,
-				654D977621E9218B00113964 /* ozz_animation.a */,
-				654D977821E9218B00113964 /* ozz_base.a */,
-				654D977A21E9218B00113964 /* ozz_animation_IOS.a */,
-				654D977C21E9218B00113964 /* ozz_base_IOS.a */,
-				654D977E21E9218B00113964 /* ozz_animation offline.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -454,6 +357,19 @@
 			path = 06_MaterialPlayground;
 			sourceTree = SOURCE_ROOT;
 		};
+		ED609625286F3ECC00331537 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				ED60962E286F3ECC00331537 /* json_d.a */,
+				ED609630286F3ECC00331537 /* ozz_animation.a */,
+				ED609632286F3ECC00331537 /* ozz_base.a */,
+				ED609634286F3ECC00331537 /* ozz_animation_IOS.a */,
+				ED609636286F3ECC00331537 /* ozz_base_IOS.a */,
+				ED609638286F3ECC00331537 /* ozz_animation offline.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -465,14 +381,14 @@
 				28A5AD40201F7276000E571F /* Frameworks */,
 				28A5AD41201F7276000E571F /* Resources */,
 				5CC501C624D219F8003B62CC /* ShellScript */,
+				09934195284E96AD00215997 /* ShellScript */,
 			);
 			buildRules = (
-				973281C225C1D37A0076E8FF /* PBXBuildRule */,
 			);
 			dependencies = (
+				ED609640286F3F6600331537 /* PBXTargetDependency */,
+				ED609642286F3F6600331537 /* PBXTargetDependency */,
 				E95891F723415A2B00B68D6A /* PBXTargetDependency */,
-				654D97C221E92FDB00113964 /* PBXTargetDependency */,
-				654D97C421E92FDB00113964 /* PBXTargetDependency */,
 			);
 			name = 06_MaterialPlayground_iOS;
 			productName = 06_BRDF_iOS;
@@ -486,15 +402,15 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
-				5C13A4D924D1A6480023D339 /* ShellScript */,
+				5C13A4D924D1A6480023D339 /* Run Script */,
+				09934194284E969300215997 /* ShellScript */,
 			);
 			buildRules = (
-				97C9095925BF40C2003C978D /* PBXBuildRule */,
 			);
 			dependencies = (
+				ED60963A286F3F5800331537 /* PBXTargetDependency */,
+				ED60963C286F3F5800331537 /* PBXTargetDependency */,
 				E95891F923415A3200B68D6A /* PBXTargetDependency */,
-				654D978221E921A200113964 /* PBXTargetDependency */,
-				654D978421E921A200113964 /* PBXTargetDependency */,
 			);
 			name = 06_MaterialPlayground;
 			productName = 02_Texture;
@@ -517,7 +433,6 @@
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
 						CreatedOnToolsVersion = 8.3.3;
-						DevelopmentTeam = BT67ZY58A8;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -535,7 +450,7 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 654D976B21E9218B00113964 /* Products */;
+					ProductGroup = ED609625286F3ECC00331537 /* Products */;
 					ProjectRef = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
 				},
 				{
@@ -566,46 +481,46 @@
 			remoteRef = 5C17303521414E3D0074EE71 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977421E9218B00113964 /* json_d.a */ = {
+		ED60962E286F3ECC00331537 /* json_d.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = json_d.a;
-			remoteRef = 654D977321E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED60962D286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977621E9218B00113964 /* ozz_animation.a */ = {
+		ED609630286F3ECC00331537 /* ozz_animation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation.a;
-			remoteRef = 654D977521E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED60962F286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977821E9218B00113964 /* ozz_base.a */ = {
+		ED609632286F3ECC00331537 /* ozz_base.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base.a;
-			remoteRef = 654D977721E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED609631286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977A21E9218B00113964 /* ozz_animation_IOS.a */ = {
+		ED609634286F3ECC00331537 /* ozz_animation_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_animation_IOS.a;
-			remoteRef = 654D977921E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED609633286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977C21E9218B00113964 /* ozz_base_IOS.a */ = {
+		ED609636286F3ECC00331537 /* ozz_base_IOS.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = ozz_base_IOS.a;
-			remoteRef = 654D977B21E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED609635286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		654D977E21E9218B00113964 /* ozz_animation offline.a */ = {
+		ED609638286F3ECC00331537 /* ozz_animation offline.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
-			remoteRef = 654D977D21E9218B00113964 /* PBXContainerItemProxy */;
+			remoteRef = ED609637286F3ECC00331537 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -615,37 +530,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				973281C325C1D3A40076E8FF /* BRDFIntegration.comp.fsl in Resources */,
-				973281C425C1D3A40076E8FF /* computeIrradianceMap.comp.fsl in Resources */,
-				973281C525C1D3A40076E8FF /* computeSpecularMap.comp.fsl in Resources */,
-				973281C625C1D3A40076E8FF /* fullscreen.vert.fsl in Resources */,
-				973281C725C1D3A40076E8FF /* hair_integrate.comp.fsl in Resources */,
-				973281C825C1D3A40076E8FF /* hair_length_constraints.comp.fsl in Resources */,
-				973281C925C1D3A40076E8FF /* hair_local_constraints.comp.fsl in Resources */,
-				973281CA25C1D3A40076E8FF /* hair_pre_warm.comp.fsl in Resources */,
-				973281CB25C1D3A40076E8FF /* hair_shadow.frag.fsl in Resources */,
-				973281CC25C1D3A40076E8FF /* hair_shadow.vert.fsl in Resources */,
-				973281CD25C1D3A40076E8FF /* hair_shock_propagation.comp.fsl in Resources */,
-				973281CE25C1D3A40076E8FF /* hair_short_cut_clear.frag.fsl in Resources */,
-				973281CF25C1D3A40076E8FF /* hair_short_cut_depth_peeling.frag.fsl in Resources */,
-				973281D025C1D3A40076E8FF /* hair_short_cut_fill_color.frag.fsl in Resources */,
-				973281D125C1D3A40076E8FF /* hair_short_cut_resolve_color.frag.fsl in Resources */,
-				973281D225C1D3A40076E8FF /* hair_short_cut_resolve_depth.frag.fsl in Resources */,
-				973281D325C1D3A40076E8FF /* hair_update_follow_hairs.comp.fsl in Resources */,
-				973281D525C1D3A50076E8FF /* hair.frag.fsl in Resources */,
-				973281D725C1D3A50076E8FF /* hair.vert.fsl in Resources */,
-				973281D825C1D3A50076E8FF /* panoToCube.comp.fsl in Resources */,
-				973281D925C1D3A50076E8FF /* renderSceneBRDF_resources.h.fsl in Resources */,
-				973281DA25C1D3A50076E8FF /* renderSceneBRDF.frag.fsl in Resources */,
-				973281DB25C1D3A50076E8FF /* renderSceneBRDF.vert.fsl in Resources */,
-				973281DC25C1D3A50076E8FF /* renderSceneShadows.frag.fsl in Resources */,
-				973281DD25C1D3A50076E8FF /* renderSceneShadows.vert.fsl in Resources */,
-				973281DE25C1D3A50076E8FF /* showCapsules.frag.fsl in Resources */,
-				973281DF25C1D3A50076E8FF /* showCapsules.vert.fsl in Resources */,
-				973281E025C1D3A50076E8FF /* skeleton.frag.fsl in Resources */,
-				973281E125C1D3A50076E8FF /* skeleton.vert.fsl in Resources */,
-				973281E225C1D3A50076E8FF /* skybox.frag.fsl in Resources */,
-				973281E325C1D3A50076E8FF /* skybox.vert.fsl in Resources */,
 				28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AD55201F7276000E571F /* Assets.xcassets in Resources */,
 			);
@@ -656,45 +540,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				97C9093E25BF40B6003C978D /* hair_short_cut_fill_color.frag.fsl in Resources */,
-				97C9095425BF40B6003C978D /* hair.frag.fsl in Resources */,
-				97C9095525BF40B6003C978D /* computeSpecularMap.comp.fsl in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
-				97C9093B25BF40B6003C978D /* hair_shock_propagation.comp.fsl in Resources */,
-				97C9094A25BF40B6003C978D /* renderSceneShadows.vert.fsl in Resources */,
-				97C9094525BF40B6003C978D /* hair_length_constraints.comp.fsl in Resources */,
-				97C9095825BF40B6003C978D /* fullscreen.vert.fsl in Resources */,
-				97C9095325BF40B6003C978D /* hair_update_follow_hairs.comp.fsl in Resources */,
-				97C9095625BF40B6003C978D /* skybox.vert.fsl in Resources */,
-				97C9095025BF40B6003C978D /* renderSceneBRDF.vert.fsl in Resources */,
-				97C9094B25BF40B6003C978D /* hair_local_constraints.comp.fsl in Resources */,
-				97C9095225BF40B6003C978D /* BRDFIntegration.comp.fsl in Resources */,
-				97C9094925BF40B6003C978D /* hair_integrate.comp.fsl in Resources */,
-				97C9093D25BF40B6003C978D /* panoToCube.comp.fsl in Resources */,
-				97C9095125BF40B6003C978D /* skybox.frag.fsl in Resources */,
-				97C9093C25BF40B6003C978D /* hair.vert.fsl in Resources */,
-				97C9094825BF40B6003C978D /* skeleton.frag.fsl in Resources */,
-				97C9094325BF40B6003C978D /* hair_short_cut_resolve_color.frag.fsl in Resources */,
-				97C9095725BF40B6003C978D /* showCapsules.frag.fsl in Resources */,
-				97C9093F25BF40B6003C978D /* renderSceneBRDF.frag.fsl in Resources */,
-				97C9094125BF40B6003C978D /* showCapsules.vert.fsl in Resources */,
-				97C9094225BF40B6003C978D /* hair_shadow.frag.fsl in Resources */,
-				97C9094025BF40B6003C978D /* hair_short_cut_resolve_depth.frag.fsl in Resources */,
-				97C9094625BF40B6003C978D /* hair_pre_warm.comp.fsl in Resources */,
-				97C9094725BF40B6003C978D /* hair_short_cut_clear.frag.fsl in Resources */,
-				97C9094C25BF40B6003C978D /* computeIrradianceMap.comp.fsl in Resources */,
-				97C9094425BF40B6003C978D /* hair_shadow.vert.fsl in Resources */,
-				97C9094F25BF40B6003C978D /* renderSceneShadows.frag.fsl in Resources */,
-				97C9094D25BF40B6003C978D /* skeleton.vert.fsl in Resources */,
-				97C9094E25BF40B6003C978D /* hair_short_cut_depth_peeling.frag.fsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5C13A4D924D1A6480023D339 /* ShellScript */ = {
+		09934194284E969300215997 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -708,7 +563,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.dds\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
+		09934195284E96AD00215997 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\n";
+			showEnvVarsInLog = 0;
+		};
+		5C13A4D924D1A6480023D339 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.dds\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 		5CC501C624D219F8003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -725,7 +618,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.ktx\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.ktx\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -751,26 +644,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		654D978221E921A200113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_animation;
-			targetProxy = 654D978121E921A200113964 /* PBXContainerItemProxy */;
-		};
-		654D978421E921A200113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_base;
-			targetProxy = 654D978321E921A200113964 /* PBXContainerItemProxy */;
-		};
-		654D97C221E92FDB00113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_animation_IOS;
-			targetProxy = 654D97C121E92FDB00113964 /* PBXContainerItemProxy */;
-		};
-		654D97C421E92FDB00113964 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_base_IOS;
-			targetProxy = 654D97C321E92FDB00113964 /* PBXContainerItemProxy */;
-		};
 		E95891F723415A2B00B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
@@ -780,6 +653,26 @@
 			isa = PBXTargetDependency;
 			name = "The-Forge";
 			targetProxy = E95891F823415A3200B68D6A /* PBXContainerItemProxy */;
+		};
+		ED60963A286F3F5800331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_animation;
+			targetProxy = ED609639286F3F5800331537 /* PBXContainerItemProxy */;
+		};
+		ED60963C286F3F5800331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_base;
+			targetProxy = ED60963B286F3F5800331537 /* PBXContainerItemProxy */;
+		};
+		ED609640286F3F6600331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_animation_IOS;
+			targetProxy = ED60963F286F3F6600331537 /* PBXContainerItemProxy */;
+		};
+		ED609642286F3F6600331537 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ozz_base_IOS;
+			targetProxy = ED609641286F3F6600331537 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -839,6 +732,7 @@
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -879,6 +773,7 @@
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};
@@ -933,7 +828,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
@@ -989,7 +884,7 @@
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = NO;
+				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
@@ -1009,7 +904,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				DEVELOPMENT_TEAM = BT67ZY58A8;
+				DEVELOPMENT_TEAM = 8PJJ955Q6K;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
@@ -1026,7 +921,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.06-MaterialPlayground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -1035,6 +930,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
@@ -1048,7 +944,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				DEVELOPMENT_TEAM = BT67ZY58A8;
+				DEVELOPMENT_TEAM = 8PJJ955Q6K;
 				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_PREPROCESSOR_DEFINITIONS = "";
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
@@ -1073,6 +969,7 @@
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
 				);
+				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};

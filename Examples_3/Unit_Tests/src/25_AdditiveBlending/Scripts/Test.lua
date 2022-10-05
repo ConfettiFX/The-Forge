@@ -1,5 +1,0 @@
-math.randomseed( os.time() )
-loader.SetClipWeightWalk(math.random())
-loader.SetClipWeightNeckCrack(math.random())
-loader.SetJointsWeightNeckCrack(math.random())
-loader.SetRootJointIndex(math.random(0, 60))	-- (0, No of Joint Index)

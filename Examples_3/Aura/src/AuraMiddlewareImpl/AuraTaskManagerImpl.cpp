@@ -14,9 +14,9 @@
 */
 
 #include "TaskManager.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../../Custom-Middleware/Aura/Interfaces/IAuraTaskManager.h"
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 namespace aura
 {

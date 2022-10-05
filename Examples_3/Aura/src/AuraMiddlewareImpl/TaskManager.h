@@ -15,8 +15,8 @@
 
 #include "../../../../../Custom-Middleware/Aura/Config/AuraConfig.h"
 
-#include "../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/MTScheduler.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/MTAtomic.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/MTScheduler.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include/MTAtomic.h"
 
 #ifdef PROFILEGPA
 #include "../../../../Code/Pix/Pix.h"

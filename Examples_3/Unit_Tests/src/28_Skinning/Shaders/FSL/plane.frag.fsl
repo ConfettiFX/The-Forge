@@ -24,11 +24,59 @@
 
 // Shader for ground plane in Unit Tests Animation
 
+#include "resources.h.fsl"
+
 STRUCT(VSOutput)
 {
     DATA(float4, Position, SV_Position);
     DATA(float2, TexCoord, TEXCOORD);
+    DATA(float3, worldPos, POSITION0);
 };
+
+// Modified from the original implementation by Inigo Quilez
+// https://www.shadertoy.com/view/MlGczG
+// Takes world position, normalized light direction
+// k is the shadow sharpness, higher value = sharper shadows
+
+float cap_shadow( float3 ro, float3 rd, float k, float intensity)
+{
+    float shadow = 1.0;
+
+    for(uint i = 0; i < Get(capsules_count); i++)
+    {
+        capsule _cap = Get(capsules)[i];
+
+        float r = _cap.b.w;
+        
+        if(r < 0.0001) // Capsule validity check
+            break;
+
+        float3 a = _cap.a.xyz;
+        float3 b = _cap.b.xyz;
+
+        float3 ba =  b - a;
+        float3 oa = ro - a;
+
+        float oad  = dot( oa, rd );
+        float dba  = dot( rd, ba );
+        float baba = dot( ba, ba );
+        float oaba = dot( oa, ba );
+        float2 th = float2( -oad*baba + dba*oaba, oaba - oad*dba ) / (baba - dba*dba);
+        
+        th.x = max(   th.x, 0.0001 );
+        th.y = saturate( th.y );
+        
+        float3  p =  a + ba*th.y;
+        float3  q = ro + rd*th.x;
+        float d = length( p-q )-r;
+
+        float s = saturate( k*d/th.x+0.3 );
+        s = s*s*(3.0-2.0*s);
+        shadow *= s;
+    }
+    shadow = saturate( shadow * (1-intensity) + intensity);
+    return shadow;
+}
 
 float4 PS_MAIN(VSOutput In)
 {
@@ -54,5 +102,7 @@ float4 PS_MAIN(VSOutput In)
     {
         Out = backgroundColor;
     }
+
+    Out *= cap_shadow(In.worldPos, normalize(float3(1,0.8,0.5)), 2, 0.1);
     RETURN(Out);
 }

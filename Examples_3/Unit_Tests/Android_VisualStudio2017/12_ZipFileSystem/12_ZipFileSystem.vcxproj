@@ -16,6 +16,7 @@
   <ItemGroup>
     <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\basic.frag.fsl" />
     <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\basic.vert.fsl" />
+    <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\skybox.frag.fsl" />
     <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\skybox.vert.fsl" />
     <FSLShader Include="..\..\src\12_ZipFileSystem\Shaders\FSL\zipTexture.frag.fsl" />
@@ -76,6 +77,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>-u ANativeActivity_onCreate</AdditionalOptions>
+      <AdditionalLibraryDirectories>$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget);$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -96,13 +98,20 @@
       <Outputs>
       </Outputs>
     </CustomBuildStep>
-    <FSLShader />
     <PreLinkEvent>
       <Command>xcopy $(ProjectDir)..\..\UnitTestResources\ZipFiles\28-ZipFileSystem.zip $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
 xcopy $(ProjectDir)..\..\UnitTestResources\ZipFiles\28-ZipFileSystemEncrypted.zip $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
     <PreBuildEvent />
+    <PreBuildEvent>
+      <Command>
+        RD /S /Q $(AndroidGradleBuildOutputDir)
+        xcopy $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.* $(OutDir) /s /y /d
+      </Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <ClCompile>
@@ -146,11 +155,13 @@ xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir
       <Outputs>
       </Outputs>
     </CustomBuildStep>
-    <FSLShader />
     <PreLinkEvent>
       <Command>xcopy $(ProjectDir)..\..\UnitTestResources\ZipFiles\28-ZipFileSystem.zip $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
 xcopy $(ProjectDir)..\..\UnitTestResources\ZipFiles\28-ZipFileSystemEncrypted.zip $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\ZipFiles\ /s /y /d
-xcopy "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\" /s /y /d</Command>
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders\"
+xcopy /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders\"
+
+xcopy $(ProjectDir)..\..\UnitTestResources\GPUCfg\*.*  $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\ /s /y /d</Command>
     </PreLinkEvent>
     <PreBuildEvent />
   </ItemDefinitionGroup>

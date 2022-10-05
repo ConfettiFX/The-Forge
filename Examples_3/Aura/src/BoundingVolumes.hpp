@@ -13,7 +13,7 @@
  *
 */
 
-#include "../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../Common_3/Utilities/Math/MathTypes.h"
 
 #ifndef AxisAlignedBoundingBox_h
 #define AxisAlignedBoundingBox_h

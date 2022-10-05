@@ -2,10 +2,10 @@
 
 #if defined(QUEST_VR)
 
-#include "../../ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0/VrApi/Include/VrApi.h"
-#include "../../ThirdParty/OpenSource/ovr_sdk_mobile_1.46.0/VrApi/Include/VrApi_Helpers.h"
+#include "../ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi.h"
+#include "../ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Helpers.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Math/MathTypes.h"
+#include "../../Utilities/Math/MathTypes.h"
 
 struct QuestVR
 {

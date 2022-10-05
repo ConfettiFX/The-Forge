@@ -22,16 +22,17 @@
  * under the License.
 */
 
-#include "../Core/Config.h"
+#include "../../Application/Config.h"
 
 #ifdef _WINDOWS
 
 #include <io.h>    // _isatty
 
 // interfaces
-#include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/ILog.h"
-#include "../Interfaces/IMemory.h"
+#include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IThread.h"
 
 #define BUFFER_SIZE 4096
 
@@ -66,12 +67,12 @@ void _FailedAssert(const char* file, int line, const char* statement)
 		mbstowcs(wfile, file, 1024);
 		wsprintfW(str, L"Failed: (%s)\n\nFile: %s\nLine: %d\n\n", message, wfile, line);
 
-		HWND hwnd = gLogWindowHandle ? *gLogWindowHandle : NULL;
+		HWND hwnd = (gLogWindowHandle && isMainThread()) ? *gLogWindowHandle : NULL;
 
 		if (IsDebuggerPresent())
 		{
 			wcscat(str, L"Debug?");
-			int res = MessageBoxW(hwnd, str, L"Assert failed", MB_YESNOCANCEL | MB_ICONERROR);
+			int res = MessageBoxW(hwnd, str, L"Assert failed", MB_YESNOCANCEL | MB_ICONERROR | MB_SETFOREGROUND);
 			if (res == IDYES)
 			{
 #if _MSC_VER >= 1400
@@ -91,7 +92,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 			__debugbreak();
 #else
 			wcscat(str, L"Display more asserts?");
-			if (MessageBoxW(hwnd, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES)
+			if (MessageBoxW(hwnd, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2 | MB_SETFOREGROUND) != IDYES)
 			{
 				debug = false;
 			}

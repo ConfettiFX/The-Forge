@@ -26,22 +26,13 @@
 #include "packing.h.fsl"
 #include "vb_resources.h.fsl"
 
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
 uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
 {
     uint drawID_primID = ((drawID << 23) & 0x7F800000) | (primitiveID & 0x007FFFFF);
     return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
 }
 
-float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+float4 PS_MAIN( PsInVBAlphaTested In, SV_PrimitiveID(uint) primitiveId )
 {
     INIT_MAIN;
     float4 Out;

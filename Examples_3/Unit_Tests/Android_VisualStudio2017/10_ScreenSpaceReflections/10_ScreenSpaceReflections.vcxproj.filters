@@ -87,11 +87,15 @@
     <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_ResolveTemporal.comp.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\10_ScreenSpaceReflections\10_ScreenSpaceReflections.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\10_ScreenSpaceReflections\Shaders\FSL\SSSR_Common.h">

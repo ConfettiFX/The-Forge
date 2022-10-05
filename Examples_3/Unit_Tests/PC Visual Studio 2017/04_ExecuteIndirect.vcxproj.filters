@@ -76,5 +76,8 @@
     <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\shaderDefs.h.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\04_ExecuteIndirect\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

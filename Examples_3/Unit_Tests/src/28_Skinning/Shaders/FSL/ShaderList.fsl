@@ -1,0 +1,24 @@
+#frag VR_MULTIVIEW basic.frag
+#include "basic.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW basic.vert
+#include "basic.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW plane.frag
+#include "plane.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW plane.vert
+#include "plane.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW skinning.frag
+#include "skinning.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW skinning.vert
+#include "skinning.vert.fsl"
+#end
+

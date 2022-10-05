@@ -82,18 +82,32 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
 
 			uint indexCountOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 0;
 			uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2;
+			uint startInstanceOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 4;
+			uint startIndex = Get(uncompactedDrawArgs)[j][threadID.x].startIndex;
 
 			if (hasAlpha)
 			{
 				AtomicAdd(Get(indirectDrawArgsBufferAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
 				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
-				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], Get(uncompactedDrawArgs)[j][threadID.x].startIndex);
+				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+				
+				#if defined(INDIRECT_COMMAND_BUFFER)
+					// Encode draw commands in ICB
+					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+					cmdDrawIndexedInstanced(Get(icbAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
+				#endif
 			}
 			else
 			{
 				AtomicAdd(Get(indirectDrawArgsBufferNoAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
 				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
-				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], Get(uncompactedDrawArgs)[j][threadID.x].startIndex);
+				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+				
+				#if defined(INDIRECT_COMMAND_BUFFER)
+					// Encode draw commands in ICB
+					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+					cmdDrawIndexedInstanced(Get(icbNoAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
+				#endif
 			}
 			Get(indirectMaterialBuffer)[baseMatSlot + slot] = matID;
 		}

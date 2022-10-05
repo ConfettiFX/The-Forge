@@ -25,8 +25,13 @@
 #define EPSILON 1e-7f
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+	DATA(float4x4, CamVPMatrix[VR_MULTIVIEW_COUNT], None);
+	DATA(float4x4, CamInvVPMatrix[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, CamVPMatrix, None);
 	DATA(float4x4, CamInvVPMatrix, None);
+#endif
 	DATA(float3, camPos, None);
 };
 
@@ -123,7 +128,11 @@ VSOutput VS_MAIN( VSInput In )
 	// Expand sphere to a capsule.
 	pos += Get(Center0) * weight + Get(Center1) * (1.0f - weight);
 
+#if VR_MULTIVIEW_ENABLED
+	Out.Position = mul(Get(CamVPMatrix)[VR_VIEW_ID], float4(pos, 1.0f));
+#else
 	Out.Position = mul(Get(CamVPMatrix), float4(pos, 1.0f));
+#endif
 
 	RETURN(Out);
 }

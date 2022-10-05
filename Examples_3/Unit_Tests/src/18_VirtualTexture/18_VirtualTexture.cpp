@@ -29,24 +29,26 @@
 //#define GARUANTEE_PAGE_SYNC
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
+
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 /// Demo structures
 struct PlanetInfoStruct
@@ -105,7 +107,6 @@ const float					gRotOrbitZScale = 0.00001f;
 
 uint								gFrequency = 1;
 bool								gDebugMode = false;
-bool								gShowUI = true;
 float								gTimeScale = 1.0f;
 bool								gPlay = true;
 
@@ -207,7 +208,7 @@ public:
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
@@ -287,24 +288,6 @@ public:
 		gFrameIndex = 0;
 		gVirtualTextureUpdateIndex = 0;
 
-		//ShaderLoadDesc skyShader = {};
-		//skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		//skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-		ShaderLoadDesc debugShader = {};
-		debugShader.mStages[0] = { "debug.vert", NULL, 0 };
-		debugShader.mStages[1] = { "debug.frag", NULL, 0 };
-		ShaderLoadDesc sunShader = {};
-		sunShader.mStages[0] = { "basic.vert", NULL, 0 };
-		sunShader.mStages[1] = { "sun.frag", NULL, 0 };
-
-		//addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-		addShader(pRenderer, &basicShader, &pSphereShader);
-		addShader(pRenderer, &debugShader, &pDebugShader);
-		addShader(pRenderer, &sunShader, &pSunShader);
-
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
 									FILTER_LINEAR,
 									MIPMAP_MODE_NEAREST,
@@ -312,41 +295,6 @@ public:
 									ADDRESS_MODE_CLAMP_TO_EDGE,
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
-
-		Shader*           shaders[] = { pSphereShader, pDebugShader, pSunShader };
-		const char*       pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
-		rootDesc.mShaderCount = 3;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gNumPlanets };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
-		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gNumPlanets * gImageCount + gImageCount };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
-
-
-		ShaderLoadDesc clearPageCountsShader = {};
-		clearPageCountsShader.mStages[0] = { "clearPageCounts.comp", NULL, 0 };
-
-		addShader(pRenderer, &clearPageCountsShader, &pClearPageCountsShader);
-
-		ShaderLoadDesc fillPageShader = {};
-		fillPageShader.mStages[0] = { "fillPage.comp", NULL, 0 };
-
-		addShader(pRenderer, &fillPageShader, &pFillPageShader);
-
-		Shader*           computeShaders[] = { pClearPageCountsShader, pFillPageShader };
-		rootDesc = {};
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = computeShaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompute);
-
-		desc = { pRootSignatureCompute, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumPlanets };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputePerFrame);
 
 		// Generate sphere vertex buffer
 		/*
@@ -458,7 +406,7 @@ public:
 
 		UIComponentDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.3f);
-		uiCreateComponent("Micro profiler", &guiDesc, &pGui);
+		uiCreateComponent("Virtual Texture", &guiDesc, &pGui);
 
 		CheckboxWidget DeMode;
 		DeMode.pData = &gDebugMode;
@@ -546,76 +494,6 @@ public:
 		}
 
 		waitForAllResourceLoads();
-
-		// Prepare descriptor sets
-		for (uint32_t j = 0; j < gNumPlanets; ++j)
-		{
-			DescriptorData params[3] = {};
-			/*
-						params[0].pName = "RightText";
-						params[0].ppTextures = &pSkyBoxTextures[0];
-						params[1].pName = "LeftText";
-						params[1].ppTextures = &pSkyBoxTextures[1];
-						params[2].pName = "TopText";
-						params[2].ppTextures = &pSkyBoxTextures[2];
-						params[3].pName = "BotText";
-						params[3].ppTextures = &pSkyBoxTextures[3];
-						params[4].pName = "FrontText";
-						params[4].ppTextures = &pSkyBoxTextures[4];
-						params[5].pName = "BackText";
-						params[5].ppTextures = &pSkyBoxTextures[5];
-			*/
-			params[0].pName = "SparseTextureInfo";
-			params[0].ppBuffers = &pVirtualTextureInfo[j];
-			params[1].pName = "MipLevel";
-			params[1].ppBuffers = &pDebugInfo;
-
-			if (j == 0)
-			{
-				updateDescriptorSet(pRenderer, j, pDescriptorSetTexture, 2, params);
-			}
-			else
-			{
-				params[2].pName = "SparseTexture";
-				params[2].ppTextures = &pVirtualTexture[j];
-				updateDescriptorSet(pRenderer, j, pDescriptorSetTexture, 3, params);
-			}
-		}
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			DescriptorData params[4] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
-			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
-
-			for (uint32_t j = 0; j < gNumPlanets; ++j)
-			{
-				params[0].ppBuffers = &pProjViewUniformBuffer[i];
-
-				if (j == 0)
-				{
-					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 1, params);
-				}
-				else
-				{
-					params[1].pName = "VTVisBuffer";
-					params[1].ppBuffers = &pVirtualTexturePageVisBuffer[j][i];
-
-					params[2].pName = "VTBufferInfo";
-					params[2].ppBuffers = &pVirtualTextureBufferInfo[j][i];
-
-					params[3].pName = "VTReadbackBuffer";
-					params[3].ppBuffers = &pVirtualTexture[j]->pSvt->pReadbackBuffer;
-
-					// Pixel shader
-					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 3, params);
-
-					// Compute shader
-					updateDescriptorSet(pRenderer, gNumPlanets * i + j, pDescriptorSetComputePerFrame, 3, &params[1]);
-				}
-			}
-		}
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
@@ -757,39 +635,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
-		addInputAction(&actionDesc);		
-		actionDesc = { InputBindings::BUTTON_L3, [](InputActionContext* ctx) { gShowUI = !gShowUI; return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0; 
 
@@ -828,11 +708,6 @@ public:
 		}
 		removeResource(pDebugInfo);
 
-		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-
-		removeDescriptorSet(pRenderer, pDescriptorSetComputePerFrame);
-
 		removeResource(pSphere);
 		removeResource(pSaturn);
 
@@ -842,17 +717,6 @@ public:
 		*/
 
 		removeSampler(pRenderer, pSamplerSkyBox);
-
-		removeShader(pRenderer, pDebugShader);
-		removeShader(pRenderer, pSphereShader);
-		//removeShader(pRenderer, pSkyBoxDrawShader);
-		removeShader(pRenderer, pSunShader);
-
-		removeShader(pRenderer, pFillPageShader);
-		removeShader(pRenderer, pClearPageCountsShader);
-
-		removeRootSignature(pRenderer, pRootSignature);
-		removeRootSignature(pRenderer, pRootSignatureCompute);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -884,134 +748,78 @@ public:
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateDesc.mSrcFactors[0] = BC_ONE;
-		blendStateDesc.mDstFactors[0] = BC_ONE;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDesc.mIndependentBlend = false;
-
-		BlendStateDesc blendStateSaturnDesc = {};
-		blendStateSaturnDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
-		blendStateSaturnDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateSaturnDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateSaturnDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateSaturnDesc.mMasks[0] = ALL;
-		blendStateSaturnDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateSaturnDesc.mIndependentBlend = false;
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-
-		RasterizerStateDesc sphereRasterizerStateDesc = {};
-		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		//layout and pipeline for sphere draw
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSphereShader;
-		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pSpherePipeline);
-
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			pipelineSettings.pDepthState = NULL;
-			pipelineSettings.pShaderProgram = pDebugShader;
-			addPipeline(pRenderer, &desc, &pDebugPipeline);
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
 		{
-			pipelineSettings.pDepthState = &depthStateDesc;
-			pipelineSettings.pShaderProgram = pSunShader;
-			pipelineSettings.pBlendState = &blendStateDesc;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-			addPipeline(pRenderer, &desc, &pSunPipeline);
+			if (!addSwapChain())
+				return false;
+
+			if (!addDepthBuffer())
+				return false;
 		}
 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			pipelineSettings.pDepthState = &depthStateDesc;
-			pipelineSettings.pShaderProgram = pSphereShader;
-			pipelineSettings.pBlendState = &blendStateSaturnDesc;
-			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-			addPipeline(pRenderer, &desc, &pSaturnPipeline);
+			addPipelines();
 		}
 
-		{
-			PipelineDesc computeDesc = {};
-			computeDesc.mType = PIPELINE_TYPE_COMPUTE;
-			ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
+		prepareDescriptorSets();
 
-			cpipelineSettings.pShaderProgram = pClearPageCountsShader;
-			cpipelineSettings.pRootSignature = pRootSignatureCompute;
-			addPipeline(pRenderer, &computeDesc, &pClearPageCountsPipeline);
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
 
-			cpipelineSettings.pShaderProgram = pFillPageShader;
-			addPipeline(pRenderer, &computeDesc, &pFillPagePipeline);
-		}
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 		waitQueueIdle(pComputeQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
 
-		//removePipeline(pRenderer, pSkyBoxDrawPipeline);		
-		removePipeline(pRenderer, pSpherePipeline);
-		removePipeline(pRenderer, pDebugPipeline);
-		removePipeline(pRenderer, pSunPipeline);
-		removePipeline(pRenderer, pSaturnPipeline);
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+		}
 
-		removePipeline(pRenderer, pFillPagePipeline);
-		removePipeline(pRenderer, pClearPageCountsPipeline);
-
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -1229,7 +1037,7 @@ public:
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 	
-		if(gShowUI)
+		// UI
 		{
 			loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1395,6 +1203,260 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, gNumPlanets };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
+		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gNumPlanets * gImageCount + gImageCount };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
+
+		desc = { pRootSignatureCompute, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumPlanets };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputePerFrame);
+	}
+	
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+
+		removeDescriptorSet(pRenderer, pDescriptorSetComputePerFrame);
+	}
+
+	void addRootSignatures()
+	{
+		Shader*           shaders[] = { pSphereShader, pDebugShader, pSunShader };
+		const char*       pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+		rootDesc.mShaderCount = 3;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+
+		Shader*           computeShaders[] = { pClearPageCountsShader, pFillPageShader };
+		rootDesc = {};
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = computeShaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompute);
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignature);
+		removeRootSignature(pRenderer, pRootSignatureCompute);
+	}
+
+	void addShaders()
+	{
+		//ShaderLoadDesc skyShader = {};
+		//skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		//skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+		ShaderLoadDesc debugShader = {};
+		debugShader.mStages[0] = { "debug.vert", NULL, 0 };
+		debugShader.mStages[1] = { "debug.frag", NULL, 0 };
+		ShaderLoadDesc sunShader = {};
+		sunShader.mStages[0] = { "basic.vert", NULL, 0 };
+		sunShader.mStages[1] = { "sun.frag", NULL, 0 };
+
+		//addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+		addShader(pRenderer, &basicShader, &pSphereShader);
+		addShader(pRenderer, &debugShader, &pDebugShader);
+		addShader(pRenderer, &sunShader, &pSunShader);
+
+		ShaderLoadDesc clearPageCountsShader = {};
+		clearPageCountsShader.mStages[0] = { "clearPageCounts.comp", NULL, 0 };
+
+		addShader(pRenderer, &clearPageCountsShader, &pClearPageCountsShader);
+
+		ShaderLoadDesc fillPageShader = {};
+		fillPageShader.mStages[0] = { "fillPage.comp", NULL, 0 };
+
+		addShader(pRenderer, &fillPageShader, &pFillPageShader);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pDebugShader);
+		removeShader(pRenderer, pSphereShader);
+		//removeShader(pRenderer, pSkyBoxDrawShader);
+		removeShader(pRenderer, pSunShader);
+
+		removeShader(pRenderer, pFillPageShader);
+		removeShader(pRenderer, pClearPageCountsShader);
+	}
+
+	void addPipelines()
+	{
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mDstFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateSaturnDesc = {};
+		blendStateSaturnDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateSaturnDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateSaturnDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateSaturnDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateSaturnDesc.mMasks[0] = ALL;
+		blendStateSaturnDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateSaturnDesc.mIndependentBlend = false;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc sphereRasterizerStateDesc = {};
+		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		//layout and pipeline for sphere draw
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSphereShader;
+		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
+		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
+
+		{
+			pipelineSettings.pDepthState = NULL;
+			pipelineSettings.pShaderProgram = pDebugShader;
+			addPipeline(pRenderer, &desc, &pDebugPipeline);
+		}
+
+		{
+			pipelineSettings.pDepthState = &depthStateDesc;
+			pipelineSettings.pShaderProgram = pSunShader;
+			pipelineSettings.pBlendState = &blendStateDesc;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			addPipeline(pRenderer, &desc, &pSunPipeline);
+		}
+
+		{
+			pipelineSettings.pDepthState = &depthStateDesc;
+			pipelineSettings.pShaderProgram = pSphereShader;
+			pipelineSettings.pBlendState = &blendStateSaturnDesc;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			addPipeline(pRenderer, &desc, &pSaturnPipeline);
+		}
+
+		{
+			PipelineDesc computeDesc = {};
+			computeDesc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
+
+			cpipelineSettings.pShaderProgram = pClearPageCountsShader;
+			cpipelineSettings.pRootSignature = pRootSignatureCompute;
+			addPipeline(pRenderer, &computeDesc, &pClearPageCountsPipeline);
+
+			cpipelineSettings.pShaderProgram = pFillPageShader;
+			addPipeline(pRenderer, &computeDesc, &pFillPagePipeline);
+		}
+	}
+
+	void removePipelines()
+	{
+		//removePipeline(pRenderer, pSkyBoxDrawPipeline);		
+		removePipeline(pRenderer, pSpherePipeline);
+		removePipeline(pRenderer, pDebugPipeline);
+		removePipeline(pRenderer, pSunPipeline);
+		removePipeline(pRenderer, pSaturnPipeline);
+
+		removePipeline(pRenderer, pFillPagePipeline);
+		removePipeline(pRenderer, pClearPageCountsPipeline);
+	}
+
+	void prepareDescriptorSets()
+	{
+		for (uint32_t j = 0; j < gNumPlanets; ++j)
+		{
+			DescriptorData params[3] = {};
+			/*
+						params[0].pName = "RightText";
+						params[0].ppTextures = &pSkyBoxTextures[0];
+						params[1].pName = "LeftText";
+						params[1].ppTextures = &pSkyBoxTextures[1];
+						params[2].pName = "TopText";
+						params[2].ppTextures = &pSkyBoxTextures[2];
+						params[3].pName = "BotText";
+						params[3].ppTextures = &pSkyBoxTextures[3];
+						params[4].pName = "FrontText";
+						params[4].ppTextures = &pSkyBoxTextures[4];
+						params[5].pName = "BackText";
+						params[5].ppTextures = &pSkyBoxTextures[5];
+			*/
+			params[0].pName = "SparseTextureInfo";
+			params[0].ppBuffers = &pVirtualTextureInfo[j];
+			params[1].pName = "MipLevel";
+			params[1].ppBuffers = &pDebugInfo;
+
+			if (j == 0)
+			{
+				updateDescriptorSet(pRenderer, j, pDescriptorSetTexture, 2, params);
+			}
+			else
+			{
+				params[2].pName = "SparseTexture";
+				params[2].ppTextures = &pVirtualTexture[j];
+				updateDescriptorSet(pRenderer, j, pDescriptorSetTexture, 3, params);
+			}
+		}
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[4] = {};
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+
+			for (uint32_t j = 0; j < gNumPlanets; ++j)
+			{
+				params[0].ppBuffers = &pProjViewUniformBuffer[i];
+
+				if (j == 0)
+				{
+					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 1, params);
+				}
+				else
+				{
+					params[1].pName = "VTVisBuffer";
+					params[1].ppBuffers = &pVirtualTexturePageVisBuffer[j][i];
+
+					params[2].pName = "VTBufferInfo";
+					params[2].ppBuffers = &pVirtualTextureBufferInfo[j][i];
+
+					params[3].pName = "VTReadbackBuffer";
+					params[3].ppBuffers = &pVirtualTexture[j]->pSvt->pReadbackBuffer;
+
+					// Pixel shader
+					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 3, params);
+
+					// Compute shader
+					updateDescriptorSet(pRenderer, gNumPlanets * i + j, pDescriptorSetComputePerFrame, 3, &params[1]);
+				}
+			}
+		}
 	}
 
 	bool addDepthBuffer()

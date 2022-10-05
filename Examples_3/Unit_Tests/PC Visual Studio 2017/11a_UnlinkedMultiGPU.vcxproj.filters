@@ -40,5 +40,8 @@
     <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\skybox.frag.fsl">
       <Filter>Shaders\FSL</Filter>
     </FSLShader>
+    <FSLShader Include="..\src\11a_UnlinkedMultiGPU\Shaders\FSL\ShaderList.fsl">
+      <Filter>Shaders</Filter>
+    </FSLShader>
   </ItemGroup>
 </Project>

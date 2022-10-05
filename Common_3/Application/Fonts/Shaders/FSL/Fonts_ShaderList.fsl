@@ -1,0 +1,11 @@
+#frag VR_MULTIVIEW fontstash.frag
+#include "fontstash.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW fontstash2D.vert
+#include "fontstash2D.vert.fsl"
+#end
+
+#vert VR_MULTIVIEW fontstash3D.vert
+#include "fontstash3D.vert.fsl"
+#end

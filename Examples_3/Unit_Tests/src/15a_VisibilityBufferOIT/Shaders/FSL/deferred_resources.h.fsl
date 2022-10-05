@@ -57,7 +57,7 @@ RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1
 		DATA(uint, indirectDrawId, None);
 	};
 	#define getDrawID() indirectDrawId
-#elif defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
+#elif !defined(INDIRECT_ROOT_CONSTANT)
     #define getDrawID() In.drawId
 #endif
 

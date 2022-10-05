@@ -22,8 +22,8 @@
  * under the License.
 */
 
-#include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include <errno.h>
 #include <unistd.h>
@@ -31,7 +31,7 @@
 #include <sys/inotify.h>
 #include <dirent.h>
 #include <android/asset_manager.h>
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 
 bool UnixOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
 

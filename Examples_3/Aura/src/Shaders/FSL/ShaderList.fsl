@@ -1,0 +1,121 @@
+
+#vert shadow_pass.vert
+#include "shadow_pass.vert.fsl"
+#end
+
+#vert shadow_pass_alpha.vert
+#include "shadow_pass_alpha.vert.fsl"
+#end
+
+#frag shadow_pass_alpha.frag
+#include "shadow_pass_alpha.frag.fsl"
+#end
+
+#vert ORBIS_GEOM visibilityBuffer_pass.vert
+#include "visibilityBuffer_pass.vert.fsl"
+#end
+
+#frag visibilityBuffer_pass.frag
+#include "visibilityBuffer_pass.frag.fsl"
+#end
+
+#vert ORBIS_GEOM visibilityBuffer_pass_alpha.vert
+#include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
+#frag visibilityBuffer_pass_alpha.frag
+#include "visibilityBuffer_pass_alpha.frag.fsl"
+#end
+
+#vert visibilityBuffer_shade.vert
+#include "visibilityBuffer_shade.vert.fsl"
+#end
+
+#frag visibilityBuffer_shade.frag
+#define USE_LPV 0
+#define ENABLE_SUN 0
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#frag visibilityBuffer_shade_ENABLE_SUN.frag
+#define USE_LPV 0
+#define ENABLE_SUN 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#frag visibilityBuffer_shade_USE_LPV.frag
+#define USE_LPV 1
+#define ENABLE_SUN 0
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#frag visibilityBuffer_shade_USE_LPV_ENABLE_SUN.frag
+#define USE_LPV 1
+#define ENABLE_SUN 1
+#include "visibilityBuffer_shade.frag.fsl"
+#end
+
+#comp triangle_filtering.comp
+#include "triangle_filtering.comp.fsl"
+#end
+
+#comp batch_compaction.comp
+#include "batch_compaction.comp.fsl"
+#end
+
+#comp clear_buffers.comp
+#include "clear_buffers.comp.fsl"
+#end
+
+#if defined(METAL)
+#comp triangle_filtering_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "triangle_filtering.comp.fsl"
+#end
+
+#comp batch_compaction_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "batch_compaction.comp.fsl"
+#end
+
+#comp clear_buffers_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "clear_buffers.comp.fsl"
+#end
+#endif
+
+#comp clear_light_clusters.comp
+#include "clear_light_clusters.comp.fsl"
+#end
+
+#comp cluster_lights.comp
+#include "cluster_lights.comp.fsl"
+#end
+
+#vert skybox.vert
+#include "skybox.vert.fsl"
+#end
+
+#frag skybox.frag
+#include "skybox.frag.fsl"
+#end
+
+#vert fill_rsm.vert
+#include "fill_rsm.vert.fsl"
+#end
+
+#frag fill_rsm.frag
+#include "fill_rsm.frag.fsl"
+#end
+
+#vert fill_rsm_alpha.vert
+#include "fill_rsm_alpha.vert.fsl"
+#end
+
+#frag fill_rsm_alpha.frag
+#include "fill_rsm_alpha.frag.fsl"
+#end
+
+#comp panoToCube.comp
+#include "panoToCube.comp.fsl"
+#end

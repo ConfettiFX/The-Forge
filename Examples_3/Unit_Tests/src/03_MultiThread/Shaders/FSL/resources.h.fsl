@@ -38,7 +38,11 @@ RES(SamplerState,  uSkyboxSampler, UPDATE_FREQ_NONE, s10, binding = 10);
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if VR_MULTIVIEW_ENABLED
+    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+#else
     DATA(float4x4, mvp, None);
+#endif
 };
 
 // limit push_constant decl to particle shader for metal

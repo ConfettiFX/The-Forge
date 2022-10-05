@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="38_AmbientOcclusion_GTAO" InternalType="Console" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="src">
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Geometry.cpp"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Geometry.h"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/38_AmbientOcclusion_GTAO.cpp"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="Shaders">
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/denoiseAO.comp.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/fillFSQ.frag.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/fillFSQ.vert.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/generateMips.comp.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/GTAO.comp.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/packing.h"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/prefilterDepths.comp.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/shader_defs.h"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/TemporalAA.frag.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/triangle_helper.h"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/Triangular.vert.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/visibilityBuffer_pass.frag.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/visibilityBuffer_pass.vert.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/visibilityBuffer_pass_alpha.frag.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/visibilityBuffer_pass_alpha.vert.fsl"/>
+    <File Name="../../src/38_AmbientOcclusion_GTAO/Shaders/FSL/ShaderList.fsl"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Settings Type="Executable">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options=""/>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-msse4.1" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
+      </Compiler>
+      <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libX11.a"/>
+        <Library Value="libSpirVTools.a"/>
+        <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
+        <Library Value="libEASTL.a"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Textures</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="no"># Meshes</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SanMiguel_3/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SDF/ $(ProjectPath)/$(ConfigurationName)/SDF/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+      </PostBuild>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
+</CustomPreBuild>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O2;-std=c++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../.."/>
+      </Compiler>
+      <Linker Options="-ludev;-ldl;-pthread;-lXrandr;$(shell pkg-config --libs gtk+-3.0)" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libX11.a"/>
+        <Library Value="libSpirVTools.a"/>
+        <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
+        <Library Value="libEASTL.a"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="no"># rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># GpuConfig</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Textures</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="no"># Meshes</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SanMiguel_3/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SDF/ $(ProjectPath)/$(ConfigurationName)/SDF/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+      </PostBuild>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild>shaders
+SRC = $(WorkspacePath)/../src/$(ProjectName)/Shaders/FSL/&#xD;
+DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+&#xD;
+shaders:&#xD;
+	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

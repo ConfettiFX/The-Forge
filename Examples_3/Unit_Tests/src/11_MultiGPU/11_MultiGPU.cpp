@@ -30,29 +30,29 @@
 #define MAX_GPU_PROFILER_NAME_LENGTH 128
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 #include "../../../../Middleware_3/PaniniProjection/Panini.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 /// Demo structures
 struct PlanetInfoStruct
@@ -150,20 +150,21 @@ bool             gMultiGpuAvailable = false;
 float* pSpherePoints;
 
 const char* gTestScripts[] = { "Test0.lua", "Test1.lua" };
-uint32_t gScriptIndexes[] = { 0, 1 };
 uint32_t gCurrentScriptIndex = 0;
 
-void RunScript()
+void RunScript(void* pUserData)
 {
 	LuaScriptDesc runDesc = {};
 	runDesc.pScriptFileName = gTestScripts[gCurrentScriptIndex];
 	luaQueueScriptToRun(&runDesc);
 }
 
-void SwitchGpuMode()
+void SwitchGpuMode(void* pUserData)
 {
 	gMultiGPURestart = true;
-	onGpuModeSwitch();
+	ResetDesc resetDescriptor;
+	resetDescriptor.mType = RESET_TYPE_GPU_MODE_SWITCH;
+	requestReset(&resetDescriptor);
 }
 
 class MultiGPU : public IApp
@@ -175,7 +176,7 @@ public:
 
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
@@ -388,49 +389,13 @@ public:
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
-		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
-		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-
-		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-		addShader(pRenderer, &basicShader, &pSphereShader);
-
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
-									FILTER_LINEAR,
-									MIPMAP_MODE_NEAREST,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
+							FILTER_LINEAR,
+							MIPMAP_MODE_NEAREST,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
-
-		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		const char* pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
-		rootDesc.mShaderCount = 2;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		for (uint32_t i = 0; i < gViewCount; i++)
-		{
-			if (!gMultiGPU && i > 0)
-			{
-				pDescriptorSetTexture[i] = pDescriptorSetTexture[0];
-				pDescriptorSetUniforms[i] = pDescriptorSetUniforms[0];
-			}
-			else
-			{
-				DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1, i };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture[i]);
-				setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2, i };
-				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[i]);
-			}
-		}
 
 		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
@@ -534,7 +499,7 @@ public:
 			CheckboxWidget multiGpuCheckbox;
 			multiGpuCheckbox.pData = &gMultiGpuUi;
 			UIWidget* pMultiGPUToggle = uiCreateComponentWidget(pGui, "Enable Multi GPU", &multiGpuCheckbox, WIDGET_TYPE_CHECKBOX);
-			uiSetWidgetOnEditedCallback(pMultiGPUToggle, SwitchGpuMode);
+			uiSetWidgetOnEditedCallback(pMultiGPUToggle, nullptr, SwitchGpuMode);
 			luaRegisterWidget(pMultiGPUToggle);
 		}
 
@@ -568,16 +533,13 @@ public:
 
 		DropdownWidget ddTestScripts;
 		ddTestScripts.pData = &gCurrentScriptIndex;
-		for (uint32_t i = 0; i < sizeof(gTestScripts) / sizeof(gTestScripts[0]); ++i)
-		{
-			ddTestScripts.mValues.push_back(gScriptIndexes[i]);
-			ddTestScripts.mNames.push_back((char*)gTestScripts[i]);
-		}
+		ddTestScripts.pNames = gTestScripts;
+		ddTestScripts.mCount = sizeof(gTestScripts) / sizeof(gTestScripts[0]);
 		luaRegisterWidget(uiCreateComponentWidget(pGui, "Test Scripts", &ddTestScripts, WIDGET_TYPE_DROPDOWN));
 
 		ButtonWidget bRunScript;
 		UIWidget* pRunScript = uiCreateComponentWidget(pGui, "Run", &bRunScript, WIDGET_TYPE_BUTTON);
-		uiSetWidgetOnEditedCallback(pRunScript, RunScript);
+		uiSetWidgetOnEditedCallback(pRunScript, nullptr, RunScript);
 		luaRegisterWidget(pRunScript);
 
 		if (!gPanini.Init(pRenderer))
@@ -585,37 +547,6 @@ public:
 
 		gPanini.SetMaxDraws(gImageCount * 2);
 
-		// Prepare descriptor sets
-		for (uint32_t i = 0; i < gViewCount; ++i)
-		{
-			if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
-				continue;
-
-			DescriptorData params[6] = {};
-			params[0].pName = "RightText";
-			params[0].ppTextures = &pSkyBoxTextures[i][0];
-			params[1].pName = "LeftText";
-			params[1].ppTextures = &pSkyBoxTextures[i][1];
-			params[2].pName = "TopText";
-			params[2].ppTextures = &pSkyBoxTextures[i][2];
-			params[3].pName = "BotText";
-			params[3].ppTextures = &pSkyBoxTextures[i][3];
-			params[4].pName = "FrontText";
-			params[4].ppTextures = &pSkyBoxTextures[i][4];
-			params[5].pName = "BackText";
-			params[5].ppTextures = &pSkyBoxTextures[i][5];
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture[i], 6, params);
-
-			for (uint32_t f = 0; f < gImageCount; ++f)
-			{
-				DescriptorData params[1] = {};
-				params[0].pName = "uniformBlock";
-				params[0].ppBuffers = &pSkyboxUniformBuffer[f];
-				updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
-				params[0].ppBuffers = &pProjViewUniformBuffer[f];
-				updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
-			}
-		}
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 600.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -631,37 +562,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
+		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0;
 		gMultiGPURestart = false;
@@ -689,25 +624,18 @@ public:
 			removeResource(pSkyboxUniformBuffer[i]);
 		}
 
+		removeSampler(pRenderer, pSamplerSkyBox);
+
 		for (uint32_t view = 0; view < gViewCount; ++view)
 		{
 			if (!gMultiGPU && view > 0)
 				continue;
-
-			removeDescriptorSet(pRenderer, pDescriptorSetTexture[view]);
-			removeDescriptorSet(pRenderer, pDescriptorSetUniforms[view]);
-
 			removeResource(pSphereVertexBuffer[view]);
 			removeResource(pSkyBoxVertexBuffer[view]);
 
 			for (uint i = 0; i < 6; ++i)
 				removeResource(pSkyBoxTextures[view][i]);
 		}
-
-		removeSampler(pRenderer, pSamplerSkyBox);
-		removeShader(pRenderer, pSphereShader);
-		removeShader(pRenderer, pSkyBoxDrawShader);
-		removeRootSignature(pRenderer, pRootSignature);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -742,118 +670,93 @@ public:
 		}
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
 		gFrameIndex = 0;
 
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffers[0]
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		if (!gPanini.Load(pSwapChain->ppRenderTargets))
-			return false;
-
-		//layout and pipeline for sphere draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mFormat;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSphereShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		addPipeline(pRenderer, &desc, &pSpherePipeline);
-
-		//layout and pipeline for skybox draw
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
-		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
-
-		for (uint32_t i = 0; i < gImageCount; ++i)
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			for (uint32_t view = 0; view < gViewCount; ++view)
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
+		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
+
+			if (!addDepthBuffer())
+				return false;
+
+			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
-				gPanini.SetSourceTexture(pRenderTargets[i][view]->pTexture, i * gViewCount + view);
+				for (uint32_t view = 0; view < gViewCount; ++view)
+				{
+					gPanini.SetSourceTexture(pRenderTargets[i][view]->pTexture, i * gViewCount + view);
+				}
 			}
 		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
+
+		prepareDescriptorSets();
+
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			waitQueueIdle(pGraphicsQueue[i]);
 
-		gPanini.Unload();
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			removePipelines();
+		}
 
-		removePipeline(pRenderer, pSkyBoxDrawPipeline);
-		removePipeline(pRenderer, pSpherePipeline);
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
+				for (uint32_t i = 0; i < gViewCount; ++i)
+					removeRenderTarget(pRenderer, pRenderTargets[frameIdx][i]);
 
-		removeSwapChain(pRenderer, pSwapChain);
-		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 			for (uint32_t i = 0; i < gViewCount; ++i)
-				removeRenderTarget(pRenderer, pRenderTargets[frameIdx][i]);
+				removeRenderTarget(pRenderer, pDepthBuffers[i]);
+		}
 
-		for (uint32_t i = 0; i < gViewCount; ++i)
-			removeRenderTarget(pRenderer, pDepthBuffers[i]);
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mHeight, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mHeight, mSettings.mHeight);
 
 		/************************************************************************/
 		// Update GUI
@@ -1104,6 +1007,173 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		for (uint32_t i = 0; i < gViewCount; i++)
+		{
+			if (!gMultiGPU && i > 0)
+			{
+				pDescriptorSetTexture[i] = pDescriptorSetTexture[0];
+				pDescriptorSetUniforms[i] = pDescriptorSetUniforms[0];
+			}
+			else
+			{
+				DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1, i };
+				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture[i]);
+				setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2, i };
+				addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms[i]);
+			}
+		}
+	}
+
+	void removeDescriptorSets()
+	{
+		for (uint32_t view = 0; view < gViewCount; ++view)
+		{
+			if (!gMultiGPU && view > 0)
+				continue;
+
+			removeDescriptorSet(pRenderer, pDescriptorSetTexture[view]);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms[view]);
+		}
+	}
+
+	void addRootSignatures()
+	{
+		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
+		const char* pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignature);
+	}
+
+	void addShaders()
+	{
+		ShaderLoadDesc skyShader = {};
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+		addShader(pRenderer, &basicShader, &pSphereShader);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pSphereShader);
+		removeShader(pRenderer, pSkyBoxDrawShader);
+	}
+
+	void addPipelines()
+	{
+		gPanini.Load(pSwapChain->ppRenderTargets);
+
+		//layout and pipeline for sphere draw
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mFormat;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSphereShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
+
+		//layout and pipeline for skybox draw
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
+	}
+	
+	void removePipelines()
+	{
+		gPanini.Unload();
+
+		removePipeline(pRenderer, pSkyBoxDrawPipeline);
+		removePipeline(pRenderer, pSpherePipeline);
+	}
+
+	void prepareDescriptorSets()
+	{
+		for (uint32_t i = 0; i < gViewCount; ++i)
+		{
+			if (i > 0 && pDescriptorSetTexture[i] == pDescriptorSetTexture[0])
+				continue;
+
+			DescriptorData params[6] = {};
+			params[0].pName = "RightText";
+			params[0].ppTextures = &pSkyBoxTextures[i][0];
+			params[1].pName = "LeftText";
+			params[1].ppTextures = &pSkyBoxTextures[i][1];
+			params[2].pName = "TopText";
+			params[2].ppTextures = &pSkyBoxTextures[i][2];
+			params[3].pName = "BotText";
+			params[3].ppTextures = &pSkyBoxTextures[i][3];
+			params[4].pName = "FrontText";
+			params[4].ppTextures = &pSkyBoxTextures[i][4];
+			params[5].pName = "BackText";
+			params[5].ppTextures = &pSkyBoxTextures[i][5];
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture[i], 6, params);
+
+			for (uint32_t f = 0; f < gImageCount; ++f)
+			{
+				DescriptorData params[1] = {};
+				params[0].pName = "uniformBlock";
+				params[0].ppBuffers = &pSkyboxUniformBuffer[f];
+				updateDescriptorSet(pRenderer, f * 2 + 0, pDescriptorSetUniforms[i], 1, params);
+				params[0].ppBuffers = &pProjViewUniformBuffer[f];
+				updateDescriptorSet(pRenderer, f * 2 + 1, pDescriptorSetUniforms[i], 1, params);
+			}
+		}
 	}
 
 	bool addDepthBuffer()

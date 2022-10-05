@@ -5,10 +5,10 @@
       <ClCompile Include="..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <PropertyGroup>
-    <IncludePath>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\3rdParty\khronos\vulkan_1.1.100.0;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Include;$(VS_NDKRoot)sources/android/native_app_glue;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Include;$(VS_NDKRoot)sources/android/native_app_glue;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\Intermediate\</IntDir>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\$(PlatformTarget)\</OutDir>
     <TargetName>libForgeGame</TargetName>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
@@ -29,9 +29,9 @@
 
   <ItemDefinitionGroup>
     <FSLShader>
-      <OutDir>$(OutDir)/assets/Shaders/</OutDir>
-      <BinaryOutDir>$(OutDir)/assets/Shaders/Binary/</BinaryOutDir>
-      <Language>VULKAN</Language>
+      <OutDir>$(OutDir)/../../assets/Shaders/</OutDir>
+      <BinaryOutDir>$(OutDir)/../../assets/CompiledShaders/</BinaryOutDir>
+      <Language>QUEST</Language>
     </FSLShader>
     <Link>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -45,17 +45,24 @@
         RD /S /Q $(AndroidGradleBuildOutputDir) 
       </Command>
     </PreBuildEvent>
+    <PreLinkEvent>
+      <Command>
+        xcopy  $(VS_NdkRoot)sources\third_party\vulkan\src\build-android\jniLibs\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y /d
+		xcopy  $(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a\ /s /y
+        xcopy  $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\libs\arm64-v8a /s /y /d
+      </Command>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
     <Link>
       <LibraryDependencies>atomic;android;log;GLESv2;EGL;vrapi;shaderc_combined;VkLayer_khronos_validation</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\Graphics\ThirdParty\OpenSource\AndroidVulkanValidationLayers\$(PlatformTarget)\;$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
     <Link>
       <LibraryDependencies>atomic;android;log;GLESv2;EGL;vrapi;shaderc_combined;</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\ovr_sdk_mobile_1.46.0\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);$(VS_NdkRoot)sources\third_party\shaderc\obj\local\$(PlatformTarget)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
 

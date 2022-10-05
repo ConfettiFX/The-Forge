@@ -1,0 +1,47 @@
+#comp denoiseAO.comp
+#include "denoiseAO.comp.fsl"
+#end
+
+#vert fillFSQ.vert
+#include "fillFSQ.vert.fsl"
+#end
+
+#frag fillFSQ.frag
+#include "fillFSQ.frag.fsl"
+#end 
+
+#comp generateMips.comp
+#include "generateMips.comp.fsl"
+#end
+
+#comp GTAO.comp
+#include "GTAO.comp.fsl"
+#end
+
+#comp prefilterDepths.comp
+#include "prefilterDepths.comp.fsl"
+#end
+
+#vert Triangular.vert
+#include "Triangular.vert.fsl"
+#end
+
+#frag TemporalAA.frag
+#include "TemporalAA.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW ORBIS_GEOM visibilityBuffer_pass.vert
+#include "visibilityBuffer_pass.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW visibilityBuffer_pass.frag
+#include "visibilityBuffer_pass.frag.fsl"
+#end
+
+#vert VR_MULTIVIEW ORBIS_GEOM visibilityBuffer_pass_alpha.vert
+#include "visibilityBuffer_pass_alpha.vert.fsl"
+#end
+
+#frag VR_MULTIVIEW visibilityBuffer_pass_alpha.frag
+#include "visibilityBuffer_pass_alpha.frag.fsl"
+#end

@@ -29,25 +29,29 @@
 
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
 
 //Renderer
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
+
+#ifdef NOESIS_TEST
+#include "../../../../Common_3/Application/UI/NoesisUI.h"
+#endif
 
 /// Demo structures
 struct PlanetInfoStruct
@@ -124,6 +128,12 @@ UIComponent*    pGuiWindow = NULL;
 
 uint32_t gFontID = 0; 
 
+#ifdef NOESIS_TEST
+NoesisXaml* gNoesisXaml = NULL;
+NoesisView* gNoesisView = NULL;
+bool gDrawNoesis = false;
+#endif
+
 /// Breadcrumb
 /* Markers to be used to pinpoint which command has caused GPU hang.
  * In this example, two markers get injected into the command list.
@@ -181,7 +191,7 @@ const float gSkyBoxPoints[] = {
 };
 
 bool gTakeScreenshot = false;
-void takeScreenshot() 
+void takeScreenshot(void* pUserData) 
 {
 	if (!gTakeScreenshot)
 		gTakeScreenshot = true;
@@ -203,13 +213,14 @@ public:
 	bool Init()
 	{
 		// FILE PATHS
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SCREENSHOTS,     "Screenshots");
-		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS,         "Scripts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SCREENSHOTS, "Screenshots");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "Noesis");
 
 		// Generate sphere vertex buffer
 		generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
@@ -218,7 +229,7 @@ public:
 		RendererDesc settings;
 		memset(&settings, 0, sizeof(settings));
 		settings.mD3D11Supported = true;
-		settings.mGLESSupported = true;
+		settings.mGLESSupported = false;
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -258,54 +269,14 @@ public:
 			addResource(&textureDesc, NULL);
 		}
 
-		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
-		ShaderLoadDesc basicShader = {};
-        basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
-		ShaderLoadDesc crashShader = {};
-		crashShader.mStages[0] = { "crash.vert", NULL, 0 };
-		crashShader.mStages[1] = { "basic.frag", NULL, 0 };
 
-		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
-		addShader(pRenderer, &basicShader, &pSphereShader); 
-
-		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
-			addShader(pRenderer, &crashShader, &pCrashShader);
-
-		SamplerDesc samplerDesc = { FILTER_LINEAR,
+		SamplerDesc samplerDesc = {FILTER_LINEAR,
 									FILTER_LINEAR,
 									MIPMAP_MODE_NEAREST,
 									ADDRESS_MODE_CLAMP_TO_EDGE,
 									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
+									ADDRESS_MODE_CLAMP_TO_EDGE};
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
-
-		Shader* shaders[3];
-		uint32_t shadersCount = 2;
-		shaders[0] = pSphereShader;
-		shaders[1] = pSkyBoxDrawShader;
-
-		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
-		{
-			shaders[2] = pCrashShader;
-			shadersCount = 3;
-		}
-
-		const char*       pStaticSamplers[] = { "uSampler0" };
-		RootSignatureDesc rootDesc = {};
-		rootDesc.mStaticSamplerCount = 1;
-		rootDesc.ppStaticSamplerNames = pStaticSamplers;
-		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
-		rootDesc.mShaderCount = shadersCount;
-		rootDesc.ppShaders = shaders;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-
-		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
-		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
-		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
 
 		uint64_t       sphereDataSize = gNumberOfSpherePoints * sizeof(float);
 		BufferLoadDesc sphereVbDesc = {};
@@ -351,7 +322,7 @@ public:
 		// Load fonts
 		FontDesc font = {};
 		font.pFontPath = "TitilliumText/TitilliumText-Bold.otf";
-		fntDefineFonts(&font, 1, &gFontID); 
+		fntDefineFonts(&font, 1, &gFontID);
 
 		FontSystemDesc fontRenderDesc = {};
 		fontRenderDesc.pRenderer = pRenderer;
@@ -365,9 +336,9 @@ public:
 
 		// Initialize micro profiler and its UI.
 		ProfilerDesc profiler = {};
-		profiler.pRenderer = pRenderer; 
+		profiler.pRenderer = pRenderer;
 		profiler.mWidthUI = mSettings.mWidth;
-		profiler.mHeightUI = mSettings.mHeight; 
+		profiler.mHeightUI = mSettings.mHeight;
 		initProfiler(&profiler);
 
 		// Gpu profiler can only be added after initProfile.
@@ -383,18 +354,18 @@ public:
 		// Take a screenshot with a button.
 		ButtonWidget screenshot;
 		UIWidget* pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-		uiSetWidgetOnEditedCallback(pScreenshot, takeScreenshot);
+		uiSetWidgetOnEditedCallback(pScreenshot, nullptr, takeScreenshot);
 		luaRegisterWidget(pScreenshot);
 
 		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
 		{
 			ButtonWidget crashButton;
 			UIWidget* pCrashButton = uiCreateComponentWidget(pGuiWindow, "Simulate crash", &crashButton, WIDGET_TYPE_BUTTON);
-			WidgetCallback crashCallback = []() { bSimulateCrash = true; };
-			uiSetWidgetOnEditedCallback(pCrashButton, crashCallback); 
+			WidgetCallback crashCallback = [](void* pUserData) { bSimulateCrash = true; };
+			uiSetWidgetOnEditedCallback(pCrashButton, nullptr, crashCallback);
 			luaRegisterWidget(pCrashButton);
 		}
-		
+
 		const uint32_t numScripts = sizeof(gWindowTestScripts) / sizeof(gWindowTestScripts[0]);
 		LuaScriptDesc scriptDescs[numScripts] = {};
 		for (uint32_t i = 0; i < numScripts; ++i)
@@ -503,9 +474,9 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.07f, 0.07f, 0.13f, 1.0f);
 
-		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
-		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
-		vec3                   lookAt{ vec3(0) };
+		CameraMotionParameters cmp{160.0f, 600.0f, 200.0f};
+		vec3                   camPos{48.0f, 48.0f, 20.0f};
+		vec3                   lookAt{vec3(0)};
 
 		pCameraController = initFpsCameraController(camPos, lookAt);
 
@@ -518,44 +489,61 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
-		InputActionCallback onUIInput = [](InputActionContext* ctx)
+		InputActionCallback onAnyInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
+			{
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
+
+#ifdef NOESIS_TEST
+				if (ctx->mActionId == UISystemInputActions::UI_ACTION_KEY_F2)
+					gDrawNoesis = !gDrawNoesis;
+#endif
+			}
+
+#ifdef NOESIS_TEST
+			if (gDrawNoesis)
+				inputNoesisUI(gNoesisView, ctx);
+#endif
 			return true;
 		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
 
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (*ctx->pCaptured)
+			if (*(ctx->pCaptured))
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
 			}
 			return true;
 		};
-
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true;}, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);		
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onAnyInput, this };
+		setGlobalInputAction(&globalInputActionDesc);
 
-		updateDescriptorSets();
+#ifdef NOESIS_TEST
+		initNoesisUI(&mSettings, pRenderer, 20, pGraphicsQueue);
+
+		char const* fontFallbacks[]{ "Hermeneus/#HermeneusOne" };
+		setNoesisUIResources("NoesisTheme.DarkBlue.xaml", sizeof(fontFallbacks) / sizeof(fontFallbacks[0]), fontFallbacks);
+
+		gNoesisXaml = addNoesisUIXaml("NoesisTestView.xaml");
+		gNoesisView = addNoesisUIView(gNoesisXaml);
+#endif
 
 		gFrameIndex = 0; 
 
@@ -564,6 +552,12 @@ public:
 
 	void Exit()
 	{
+#ifdef NOESIS_TEST
+		removeNoesisUIView(gNoesisView);
+		removeNoesisUIXaml(gNoesisXaml);
+		exitNoesisUI();
+#endif
+
 		exitInputSystem();
 
 		exitCameraController(pCameraController);
@@ -585,10 +579,7 @@ public:
 			removeResource(pProjViewUniformBuffer[i]);
 			removeResource(pSkyboxUniformBuffer[i]);
 		}
-
-		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
-		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
-
+		
 		removeResource(pSphereVertexBuffer);
 		removeResource(pSkyBoxVertexBuffer);
 
@@ -596,13 +587,6 @@ public:
 			removeResource(pSkyBoxTextures[i]);
 
 		removeSampler(pRenderer, pSamplerSkyBox);
-		removeShader(pRenderer, pSphereShader);
-		removeShader(pRenderer, pSkyBoxDrawShader);
-
-		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
-			removeShader(pRenderer, pCrashShader);
-
-		removeRootSignature(pRenderer, pRootSignature);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -623,112 +607,85 @@ public:
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-		RenderTarget* ppPipelineRenderTargets[] = { 
-			pSwapChain->ppRenderTargets[0], 
-			pDepthBuffer 
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		//layout and pipeline for sphere draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 2;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-
-		RasterizerStateDesc sphereRasterizerStateDesc = {};
-		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_GEQUAL;
-
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pShaderProgram = pSphereShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
-        pipelineSettings.mVRFoveatedRendering = true;
-		addPipeline(pRenderer, &desc, &pSpherePipeline);
-
-		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			pipelineSettings.pShaderProgram = pCrashShader;
-			addPipeline(pRenderer, &desc, &pCrashPipeline);
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
 		}
 
-		//layout and pipeline for skybox draw
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 1;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
 
-		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		pipelineSettings.pShaderProgram = pSkyBoxDrawShader; //-V519
-		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
+			if (!addDepthBuffer())
+				return false;
+		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
+		}
+
+		prepareDescriptorSets();
+
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
+
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
+
+#ifdef NOESIS_TEST
+		loadNoesisUI(gNoesisView, pReloadDesc, pSwapChain->ppRenderTargets[0]);
+#endif
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines();
-
-		removePipeline(pRenderer, pSkyBoxDrawPipeline);
-		removePipeline(pRenderer, pSpherePipeline);
-
-		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			removePipeline(pRenderer, pCrashPipeline);
+			removePipelines();
 		}
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+		}
+
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
+
+#ifdef NOESIS_TEST
+		unloadNoesisUI(gNoesisView, pReloadDesc);
+#endif
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -774,6 +731,11 @@ public:
 		viewMat.setTranslation(vec3(0));
 		gUniformDataSky = gUniformData;
         gUniformDataSky.mProjectView = projMat * viewMat;
+
+#ifdef NOESIS_TEST
+		if (gDrawNoesis)
+			updateNoesisUI(gNoesisView, deltaTime);
+#endif
 	}
 
 	void Draw()
@@ -838,7 +800,6 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.depth = 0.0f;
-		loadActions.mClearDepth.stencil = 0;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
@@ -894,7 +855,7 @@ public:
 
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
 		gFrameTimeDraw.mFontColor = 0xff00ffff;
@@ -904,6 +865,11 @@ public:
 		cmdDrawGpuProfile(cmd, float2(8.f, txtSizePx.y + 75.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawUserInterface(cmd);
+
+#ifdef NOESIS_TEST
+		if (gDrawNoesis)
+			drawNoesisUI(gNoesisView, cmd, gFrameIndex, pRenderTarget);
+#endif
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -986,7 +952,155 @@ public:
 		return pDepthBuffer != NULL;
 	}
 
-	void updateDescriptorSets()
+	void addDescriptorSets()
+	{
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
+		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
+	}
+
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+	}
+
+	void addRootSignatures()
+	{
+		Shader* shaders[3];
+		uint32_t shadersCount = 2;
+		shaders[0] = pSphereShader;
+		shaders[1] = pSkyBoxDrawShader;
+
+		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		{
+			shaders[2] = pCrashShader;
+			shadersCount = 3;
+		}
+
+		const char*       pStaticSamplers[] = { "uSampler0" };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 1;
+		rootDesc.ppStaticSamplerNames = pStaticSamplers;
+		rootDesc.ppStaticSamplers = &pSamplerSkyBox;
+		rootDesc.mShaderCount = shadersCount;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignature);
+	}
+
+	void addShaders()
+	{
+		ShaderLoadDesc skyShader = {};
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
+		ShaderLoadDesc basicShader = {};
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_VR_MULTIVIEW };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
+
+		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
+		addShader(pRenderer, &basicShader, &pSphereShader);
+
+		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		{
+			ShaderLoadDesc crashShader = {};
+			crashShader.mStages[0] = { "crash.vert", NULL, 0 };
+			crashShader.mStages[1] = { "basic.frag", NULL, 0 };
+			addShader(pRenderer, &crashShader, &pCrashShader);
+		}
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pSphereShader);
+		removeShader(pRenderer, pSkyBoxDrawShader);
+
+		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+			removeShader(pRenderer, pCrashShader);
+	}
+
+	void addPipelines()
+	{
+		//layout and pipeline for sphere draw
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc sphereRasterizerStateDesc = {};
+		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_GEQUAL;
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_GRAPHICS;
+		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineSettings.mRenderTargetCount = 1;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+		pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pShaderProgram = pSphereShader;
+		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
+		pipelineSettings.mVRFoveatedRendering = true;
+		addPipeline(pRenderer, &desc, &pSpherePipeline);
+
+		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		{
+			pipelineSettings.pShaderProgram = pCrashShader;
+			addPipeline(pRenderer, &desc, &pCrashPipeline);
+		}
+
+		//layout and pipeline for skybox draw
+		vertexLayout = {};
+		vertexLayout.mAttribCount = 1;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		pipelineSettings.pDepthState = NULL;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pShaderProgram = pSkyBoxDrawShader; //-V519
+		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
+	}
+
+	void removePipelines()
+	{
+		removePipeline(pRenderer, pSkyBoxDrawPipeline);
+		removePipeline(pRenderer, pSpherePipeline);
+
+		if (pRenderer->pActiveGpuSettings->mGpuBreadcrumbs)
+		{
+			removePipeline(pRenderer, pCrashPipeline);
+		}
+	}
+
+	void prepareDescriptorSets()
 	{
 		// Prepare descriptor sets
 		DescriptorData params[6] = {};
@@ -1014,7 +1128,7 @@ public:
 			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pProjViewUniformBuffer[i];
 			updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
-	}
+		}
 	}
 
 	void initMarkers()

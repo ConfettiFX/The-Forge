@@ -25,7 +25,7 @@
 #include "vb_resources.h.fsl"
 
 #ifdef VULKAN
-	#extension GL_ARB_shader_draw_parameters : enable
+	@fsl_extension GL_ARB_shader_draw_parameters : enable
 #endif
 
 STRUCT(VsIn)

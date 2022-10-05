@@ -27,26 +27,26 @@
 */
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILog.h"
-#include "../../../../Common_3/OS/Interfaces/IInput.h"
-#include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITime.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-#include "../../../../Common_3/OS/Interfaces/IScripting.h"
-#include "../../../../Common_3/OS/Interfaces/IScreenshot.h"
-#include "../../../../Common_3/OS/Interfaces/IUI.h"
-#include "../../../../Common_3/OS/Interfaces/IFont.h"
+#include "../../../../Common_3/Application/Interfaces/ICameraController.h"
+#include "../../../../Common_3/Application/Interfaces/IApp.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+#include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/IFileSystem.h"
+#include "../../../../Common_3/Utilities/Interfaces/ITime.h"
+#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
+#include "../../../../Common_3/Game/Interfaces/IScripting.h"
+#include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
+#include "../../../../Common_3/Application/Interfaces/IUI.h"
+#include "../../../../Common_3/Application/Interfaces/IFont.h"
 
 //Renderer
-#include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/IResourceLoader.h"
+#include "../../../../Common_3/Graphics/Interfaces/IGraphics.h"
+#include "../../../../Common_3/Resources/ResourceLoader/Interfaces/IResourceLoader.h"
 
 //Math
-#include "../../../../Common_3/OS/Math/MathTypes.h"
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../../../Common_3/Utilities/Interfaces/IMemory.h"
 
 /// Demo structures
 #define CUBES_COUNT 2 // Must match with the shader
@@ -131,7 +131,7 @@ FontDrawDesc gFrameTimeDraw;
 uint32_t gFontID = 0; 
 
 bool gTakeScreenshot = false;
-void takeScreenshot()
+void takeScreenshot(void* pUserData)
 {
 	if (!gTakeScreenshot)
 		gTakeScreenshot = true;
@@ -150,7 +150,7 @@ public:
 	{
 		// FILE PATHS
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
-		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,	   "GPUCfg");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,		   "Textures");
 		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,		   "Fonts");
@@ -212,67 +212,8 @@ public:
 		};
 		addSampler(pRenderer, &samplerDesc, &pStaticSampler);
 
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
-		{
-			ShaderLoadDesc shader = {};
-			ShaderMacro shaderMacro = { "ADDITIONAL_SUPPORT", "1" };
-			if (pRenderer->pActiveGpuSettings->mShadingRates & SHADING_RATE_2X4) // does it have additional rates support
-			{
-				shader.mStages[0] = { "compShadingRate.comp", &shaderMacro, 1U };
-			}
-			else
-			{
-				shader.mStages[0] = { "compShadingRate.comp", NULL, 0 };
-			}
-			addShader(pRenderer, &shader, &pShadingRateShader);
-
-			Shader* shaders[] = { pShadingRateShader };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 0;
-			rootDesc.ppStaticSamplerNames = 0;
-			rootDesc.ppStaticSamplers = 0;
-			rootDesc.mShaderCount = 1;
-			rootDesc.ppShaders = shaders;
-			addRootSignature(pRenderer, &rootDesc, &pShadingRateRootSignature);
-			gShadingRateRootConstantIndex = getDescriptorIndexFromName(pShadingRateRootSignature, "cbRootConstant");
-
-			DescriptorSetDesc desc = { pShadingRateRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &desc, &pShadingRateDescriptorSet_PerFrame);
-		}
-
 		// Color palette
 		{
-			ShaderLoadDesc shader = {};
-			shader.mStages[0] = { "basic.vert", NULL, 0 };
-			shader.mStages[1] = { "basic.frag", NULL, 0 };
-			shader.mTarget = shader_target_6_4; // for shading rate debug view
-			addShader(pRenderer, &shader, &pPlaneShader);
-
-			shader.mStages[0] = { "basic.vert", NULL, 0 };
-			shader.mStages[1] = { "basic.frag", NULL, 0 };
-			addShader(pRenderer, &shader, &pResolveShader);
-
-			shader.mStages[0] = { "cube.vert", NULL, 0 };
-			shader.mStages[1] = { "cube.frag", NULL, 0 };
-			addShader(pRenderer, &shader, &pCubeShader);
-
-			Shader* shaders[] = { pPlaneShader, pCubeShader, pResolveShader };
-			RootSignatureDesc rootDesc = {};
-			rootDesc.mStaticSamplerCount = 0;
-			rootDesc.ppStaticSamplerNames = &pStaticSamplerName;
-			rootDesc.ppStaticSamplers = &pStaticSampler;
-			rootDesc.mShaderCount = 3;
-			rootDesc.ppShaders = shaders;
-			addRootSignature(pRenderer, &rootDesc, &pRootSignature);
-			gDebugViewRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbRootConstant");
-
-			DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-			addDescriptorSet(pRenderer, &desc, &pDescriptorSet_NonFreq);
-			addDescriptorSet(pRenderer, &desc, &pResolveDescriptorSet_NonFreq);
-
-			desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
-			addDescriptorSet(pRenderer, &desc, &pDescriptorSet_PerFrame);
-
 			BufferLoadDesc ubDesc = {};
 			ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
@@ -296,6 +237,12 @@ public:
 
 			// Vertex buffer
 			addCube(0.4f, 0.4f, 0.4f);
+		}
+
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			if (!addShadingRateTexture())
+				return false;
 		}
 
 		// Load fonts
@@ -332,7 +279,7 @@ public:
 
 		ButtonWidget screenshot;
 		UIWidget* pScreenshot = uiCreateComponentWidget(pGuiWindow, "Screenshot", &screenshot, WIDGET_TYPE_BUTTON);
-		uiSetWidgetOnEditedCallback(pScreenshot, takeScreenshot);
+		uiSetWidgetOnEditedCallback(pScreenshot, nullptr, takeScreenshot);
 		luaRegisterWidget(pScreenshot);
 
 		if (pRenderer->pActiveGpuSettings->mShadingRateCaps)
@@ -361,7 +308,6 @@ public:
 						"SHADING_RATE_FULL", "SHADING_RATE_HALF", "SHADING_RATE_1X2", "SHADING_RATE_2X1",
 						"SHADING_RATE_2X4", "SHADING_RATE_4X2", "SHADING_RATE_QUARTER"
 					};
-					static const uint32_t indicies[count] = { 0, 1, 2, 3, 4, 5, 6 };
 
 					pShadingRates = (ShadingRate*)tf_calloc(count, sizeof(ShadingRate));
 					ASSERT(pShadingRates);
@@ -376,18 +322,14 @@ public:
 
 					DropdownWidget ddCubeSR;
 					ddCubeSR.pData = &gCubesShadingRateIndex;
-					for (uint32_t i = 0; i < count; ++i)
-					{
-						ddCubeSR.mNames.push_back((char*)names[i]);
-						ddCubeSR.mValues.push_back(indicies[i]);
-					}
+					ddCubeSR.pNames = names;
+					ddCubeSR.mCount = count;
 					luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
 				}
 				else // tier-1 support
 				{
 					const uint32_t count = 4;
 					static const char* names[count] = { "SHADING_RATE_FULL", "SHADING_RATE_HALF", "SHADING_RATE_1X2", "SHADING_RATE_2X1" };
-					static const uint32_t indicies[count] = { 0, 1, 2, 3 };
 
 					pShadingRates = (ShadingRate*)tf_calloc(count, sizeof(ShadingRate));
 					ASSERT(pShadingRates);
@@ -399,11 +341,8 @@ public:
 
 					DropdownWidget ddCubeSR;
 					ddCubeSR.pData = &gCubesShadingRateIndex;
-					for (uint32_t i = 0; i < count; ++i)
-					{
-						ddCubeSR.mNames.push_back((char*)names[i]);
-						ddCubeSR.mValues.push_back(indicies[i]);
-					}
+					ddCubeSR.pNames = names;
+					ddCubeSR.mCount = count;
 					luaRegisterWidget(uiCreateComponentWidget(pGuiWindow, "Cubes shading rate: ", &ddCubeSR, WIDGET_TYPE_DROPDOWN));
 				}
 #endif
@@ -416,25 +355,6 @@ public:
 		}
 
 		waitForAllResourceLoads();
-
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps)
-		{
-			// Prepare descriptor sets
-			const uint32_t paramsCount = 2;
-			DescriptorData params[paramsCount] = {};
-			params[0].pName = "uTexture";
-			params[0].ppTextures = &pPaletteTexture;
-			params[1].pName = "uTexture1";
-			params[1].ppTextures = &pTestTexture;
-			updateDescriptorSet(pRenderer, 0, pDescriptorSet_NonFreq, paramsCount, params);
-
-			params[0].pName = "uniformBlock";
-			for (uint32_t i = 0; i < gImageCount; ++i)
-			{
-				params[0].ppBuffers = &pUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSet_PerFrame, 1, params);
-			}
-		}
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -449,40 +369,41 @@ public:
 			return false;
 
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
+		InputActionDesc actionDesc = {DefaultInputActions::DUMP_PROFILE_DATA, [](InputActionContext* ctx) {  dumpProfileData(((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		actionDesc = {DefaultInputActions::TOGGLE_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		actionDesc = {DefaultInputActions::EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; }};
 		addInputAction(&actionDesc);
 		InputActionCallback onUIInput = [](InputActionContext* ctx)
 		{
-			bool capture = uiOnInput(ctx->mBinding, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
-			if(ctx->mBinding != InputBindings::FLOAT_LEFTSTICK)
-				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
-			return true;
-		};
-		actionDesc = { InputBindings::BUTTON_ANY, onUIInput, this };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, onUIInput, this, 20.0f, 200.0f, 1.0f };
-		addInputAction(&actionDesc);
-
-		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
-		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
-		{
-			if (*ctx->pCaptured)
+			if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
 			{
-				float2 val = uiIsFocused() ? float2(0.0f) : ctx->mFloat2;
-				index ? pCameraController->onRotate(val) : pCameraController->onMove(val);
+				uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
 			}
 			return true;
 		};
-		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+
+		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (*(ctx->pCaptured))
+			{
+				float2 delta = uiIsFocused() ? float2(0.f, 0.f) : ctx->mFloat2;
+				index ? pCameraController->onRotate(delta) : pCameraController->onMove(delta);
+			}
+			return true;
+		};
+		actionDesc = {DefaultInputActions::CAPTURE_INPUT, [](InputActionContext* ctx) {setEnableCaptureInput(!uiIsFocused() && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);	return true; }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		actionDesc = {DefaultInputActions::ROTATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL};
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		actionDesc = {DefaultInputActions::TRANSLATE_CAMERA, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL};
 		addInputAction(&actionDesc);
+		actionDesc = {DefaultInputActions::RESET_CAMERA, [](InputActionContext* ctx) { if (!uiWantTextInput()) pCameraController->resetView(); return true; }};
+		addInputAction(&actionDesc);
+		GlobalInputActionDesc globalInputActionDesc = {GlobalInputActionDesc::ANY_BUTTON_ACTION, onUIInput, this};
+		setGlobalInputAction(&globalInputActionDesc);
 
 		gFrameIndex = 0; 
 
@@ -509,25 +430,14 @@ public:
 			removeResource(pUniformBuffer[i]);
 		}
 
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			removeResource(pShadingRateTexture);
+		}
+
 		removeResource(pPaletteTexture);
 		removeResource(pTestTexture);
 		removeResource(pCuboidVertexBuffer);
-
-		removeDescriptorSet(pRenderer, pDescriptorSet_NonFreq);
-		removeDescriptorSet(pRenderer, pDescriptorSet_PerFrame);
-		removeDescriptorSet(pRenderer, pResolveDescriptorSet_NonFreq);
-
-		removeShader(pRenderer, pResolveShader);
-		removeShader(pRenderer, pPlaneShader);
-		removeShader(pRenderer, pCubeShader);
-		removeRootSignature(pRenderer, pRootSignature);
-
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
-		{
-			removeDescriptorSet(pRenderer, pShadingRateDescriptorSet_PerFrame);
-			removeShader(pRenderer, pShadingRateShader);
-			removeRootSignature(pRenderer, pShadingRateRootSignature);
-		}
 
 		removeSampler(pRenderer, pStaticSampler);
 
@@ -547,146 +457,81 @@ public:
 		pRenderer = NULL; 
 	}
 
-	bool Load()
+	bool Load(ReloadDesc* pReloadDesc)
 	{
-		if (!addSwapChain())
-			return false;
-
-		if (!addDepthBuffer())
-			return false;
-
-		if (!addColorRenderTarget())
-				return false;
-
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
 		{
-			if (!addShadingRateTexture())
+			addShaders();
+			addRootSignatures();
+			addDescriptorSets();
+		}
+
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			if (!addSwapChain())
+				return false;
+
+			if (!addDepthBuffer())
+				return false;
+
+			if (!addColorRenderTarget())
 				return false;
 		}
 
-		RenderTarget* ppPipelineRenderTargets[] = {
-			pSwapChain->ppRenderTargets[0],
-			pDepthBuffer
-		};
-
-		if (!addFontSystemPipelines(ppPipelineRenderTargets, 2, NULL))
-			return false;
-
-		if (!addUserInterfacePipelines(ppPipelineRenderTargets[0]))
-			return false;
-
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
-		{		
-			PipelineDesc pipelineDesc = {};
-			pipelineDesc.pName = "Shading Rate Pipeline";
-			pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
-
-			ComputePipelineDesc & computePipelineDesc = pipelineDesc.mComputeDesc;
-			computePipelineDesc.pRootSignature = pShadingRateRootSignature;
-			computePipelineDesc.pShaderProgram = pShadingRateShader;
-			addPipeline(pRenderer, &pipelineDesc, &pShadingRatePipeline);
-			
-			if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
-			{
-				const uint32_t paramsCount = 1;
-				DescriptorData params[1] = {};
-				params[0].pName = "outputTexture";
-				params[0].ppTextures = &pShadingRateTexture;
-				for (uint32_t i = 0; i < gImageCount; ++i)
-				{
-					updateDescriptorSet(pRenderer, i, pShadingRateDescriptorSet_PerFrame, paramsCount, params);
-				}
-			}
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
+		{
+			addPipelines();
 		}
 
-		// Color palette
-		PipelineDesc pipelineDesc = {};
-		pipelineDesc.pName = "Color Palette Pipeline";
-		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-			
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		prepareDescriptorSets();
 
-		GraphicsPipelineDesc & graphicsPipelineDesc = pipelineDesc.mGraphicsDesc;
-		graphicsPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		graphicsPipelineDesc.mRenderTargetCount = 1;
-		graphicsPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		graphicsPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		graphicsPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		graphicsPipelineDesc.pVertexLayout = NULL;
-		graphicsPipelineDesc.pRasterizerState = &rasterizerStateDesc;
+		UserInterfaceLoadDesc uiLoad = {};
+		uiLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		uiLoad.mHeight = mSettings.mHeight;
+		uiLoad.mWidth = mSettings.mWidth;
+		uiLoad.mLoadType = pReloadDesc->mType;
+		loadUserInterface(&uiLoad);
 
-		graphicsPipelineDesc.pShaderProgram = pPlaneShader;
-		graphicsPipelineDesc.pRootSignature = pRootSignature;
-		addPipeline(pRenderer, &pipelineDesc, &pPlanePipeline);
-
-		graphicsPipelineDesc.pShaderProgram = pResolveShader;
-		addPipeline(pRenderer, &pipelineDesc, &pResolvePipeline);
-
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 3;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-
-		graphicsPipelineDesc.mDepthStencilFormat = pDepthBuffer->mFormat;
-		graphicsPipelineDesc.pDepthState = &depthStateDesc;
-		graphicsPipelineDesc.pShaderProgram = pCubeShader;
-		graphicsPipelineDesc.pVertexLayout = &vertexLayout;
-		addPipeline(pRenderer, &pipelineDesc, &pCubePipeline);
-
-		const uint32_t paramsCount = 1;
-		DescriptorData params[paramsCount] = {};
-		params[0].pName = "uTexture";
-		params[0].ppTextures = &pColorRenderTarget->pTexture;
-		updateDescriptorSet(pRenderer, 0, pResolveDescriptorSet_NonFreq, paramsCount, params);
+		FontSystemLoadDesc fontLoad = {};
+		fontLoad.mColorFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		fontLoad.mHeight = mSettings.mHeight;
+		fontLoad.mWidth = mSettings.mWidth;
+		fontLoad.mLoadType = pReloadDesc->mType;
+		loadFontSystem(&fontLoad);
 
 		return true;
 	}
 
-	void Unload()
+	void Unload(ReloadDesc* pReloadDesc)
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		removeUserInterfacePipelines();
+		unloadFontSystem(pReloadDesc->mType);
+		unloadUserInterface(pReloadDesc->mType);
 
-		removeFontSystemPipelines(); 
-
-		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		if (pReloadDesc->mType & (RELOAD_TYPE_SHADER | RELOAD_TYPE_RENDERTARGET))
 		{
-			removeResource(pShadingRateTexture);
-			removePipeline(pRenderer, pShadingRatePipeline);		
+			removePipelines();
 		}
 
-		removePipeline(pRenderer, pResolvePipeline);
-		removePipeline(pRenderer, pPlanePipeline);
-		removePipeline(pRenderer, pCubePipeline);
+		if (pReloadDesc->mType & (RELOAD_TYPE_RESIZE | RELOAD_TYPE_RENDERTARGET))
+		{
+			removeSwapChain(pRenderer, pSwapChain);
+			removeRenderTarget(pRenderer, pDepthBuffer);
+			removeRenderTarget(pRenderer, pColorRenderTarget);
+		}
 
-		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeRenderTarget(pRenderer, pColorRenderTarget);
+		if (pReloadDesc->mType & RELOAD_TYPE_SHADER)
+		{
+			removeDescriptorSets();
+			removeRootSignatures();
+			removeShaders();
+		}
 	}
 
 	void Update(float deltaTime)
 	{
-		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+		updateInputSystem(deltaTime, mSettings.mWidth, mSettings.mHeight);
 		pCameraController->update(deltaTime);
 
 		// Update Scene
@@ -1000,6 +845,227 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
+	}
+
+	void addDescriptorSets()
+	{
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			DescriptorSetDesc desc = { pShadingRateRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+			addDescriptorSet(pRenderer, &desc, &pShadingRateDescriptorSet_PerFrame);
+		}
+
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSet_NonFreq);
+		addDescriptorSet(pRenderer, &desc, &pResolveDescriptorSet_NonFreq);
+
+		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSet_PerFrame);
+	}
+
+	void removeDescriptorSets()
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSet_NonFreq);
+		removeDescriptorSet(pRenderer, pDescriptorSet_PerFrame);
+		removeDescriptorSet(pRenderer, pResolveDescriptorSet_NonFreq);
+
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			removeDescriptorSet(pRenderer, pShadingRateDescriptorSet_PerFrame);
+		}
+	}
+
+	void addRootSignatures()
+	{
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			Shader* shaders[] = { pShadingRateShader };
+			RootSignatureDesc rootDesc = {};
+			rootDesc.mStaticSamplerCount = 0;
+			rootDesc.ppStaticSamplerNames = 0;
+			rootDesc.ppStaticSamplers = 0;
+			rootDesc.mShaderCount = 1;
+			rootDesc.ppShaders = shaders;
+			addRootSignature(pRenderer, &rootDesc, &pShadingRateRootSignature);
+			gShadingRateRootConstantIndex = getDescriptorIndexFromName(pShadingRateRootSignature, "cbRootConstant");
+		}
+
+		Shader* shaders[] = { pPlaneShader, pCubeShader, pResolveShader };
+		RootSignatureDesc rootDesc = {};
+		rootDesc.mStaticSamplerCount = 0;
+		rootDesc.ppStaticSamplerNames = &pStaticSamplerName;
+		rootDesc.ppStaticSamplers = &pStaticSampler;
+		rootDesc.mShaderCount = 3;
+		rootDesc.ppShaders = shaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
+		gDebugViewRootConstantIndex = getDescriptorIndexFromName(pRootSignature, "cbRootConstant");
+	}
+
+	void removeRootSignatures()
+	{
+		removeRootSignature(pRenderer, pRootSignature);
+
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			removeRootSignature(pRenderer, pShadingRateRootSignature);
+		}
+	}
+
+	void addShaders()
+	{
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			ShaderLoadDesc shader = {};
+			if (pRenderer->pActiveGpuSettings->mShadingRates & SHADING_RATE_2X4) // does it have additional rates support
+			{
+				shader.mStages[0] = { "compShadingRate_ADDITIONAL_SUPPORT.comp", NULL, 0 };
+			}
+			else
+			{
+				shader.mStages[0] = { "compShadingRate.comp", NULL, 0 };
+			}
+			addShader(pRenderer, &shader, &pShadingRateShader);
+		}
+
+		ShaderLoadDesc shader = {};
+		shader.mStages[0] = { "basic.vert", NULL, 0 };
+		shader.mStages[1] = { "basic.frag", NULL, 0 };
+		shader.mTarget = shader_target_6_4; // for shading rate debug view
+		addShader(pRenderer, &shader, &pPlaneShader);
+
+		shader.mStages[0] = { "basic.vert", NULL, 0 };
+		shader.mStages[1] = { "basic.frag", NULL, 0 };
+		addShader(pRenderer, &shader, &pResolveShader);
+
+		shader.mStages[0] = { "cube.vert", NULL, 0 };
+		shader.mStages[1] = { "cube.frag", NULL, 0 };
+		addShader(pRenderer, &shader, &pCubeShader);
+	}
+
+	void removeShaders()
+	{
+		removeShader(pRenderer, pResolveShader);
+		removeShader(pRenderer, pPlaneShader);
+		removeShader(pRenderer, pCubeShader);
+
+
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			removeShader(pRenderer, pShadingRateShader);
+		}
+	}
+
+	void addPipelines()
+	{
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			PipelineDesc pipelineDesc = {};
+			pipelineDesc.pName = "Shading Rate Pipeline";
+			pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+
+			ComputePipelineDesc & computePipelineDesc = pipelineDesc.mComputeDesc;
+			computePipelineDesc.pRootSignature = pShadingRateRootSignature;
+			computePipelineDesc.pShaderProgram = pShadingRateShader;
+			addPipeline(pRenderer, &pipelineDesc, &pShadingRatePipeline);
+		}
+
+		// Color palette
+		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pName = "Color Palette Pipeline";
+		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		GraphicsPipelineDesc & graphicsPipelineDesc = pipelineDesc.mGraphicsDesc;
+		graphicsPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		graphicsPipelineDesc.mRenderTargetCount = 1;
+		graphicsPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		graphicsPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		graphicsPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		graphicsPipelineDesc.pVertexLayout = NULL;
+		graphicsPipelineDesc.pRasterizerState = &rasterizerStateDesc;
+
+		graphicsPipelineDesc.pShaderProgram = pPlaneShader;
+		graphicsPipelineDesc.pRootSignature = pRootSignature;
+		addPipeline(pRenderer, &pipelineDesc, &pPlanePipeline);
+
+		graphicsPipelineDesc.pShaderProgram = pResolveShader;
+		addPipeline(pRenderer, &pipelineDesc, &pResolvePipeline);
+
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 3;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
+		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayout.mAttribs[2].mBinding = 0;
+		vertexLayout.mAttribs[2].mLocation = 2;
+		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		graphicsPipelineDesc.mDepthStencilFormat = pDepthBuffer->mFormat;
+		graphicsPipelineDesc.pDepthState = &depthStateDesc;
+		graphicsPipelineDesc.pShaderProgram = pCubeShader;
+		graphicsPipelineDesc.pVertexLayout = &vertexLayout;
+		addPipeline(pRenderer, &pipelineDesc, &pCubePipeline);
+	}
+
+	void removePipelines()
+	{
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			removePipeline(pRenderer, pShadingRatePipeline);
+		}
+
+		removePipeline(pRenderer, pResolvePipeline);
+		removePipeline(pRenderer, pPlanePipeline);
+		removePipeline(pRenderer, pCubePipeline);
+	}
+
+	void prepareDescriptorSets()
+	{
+		DescriptorData params[2] = {};
+
+		if (pRenderer->pActiveGpuSettings->mShadingRateCaps & SHADING_RATE_CAPS_PER_TILE)
+		{
+			// Prepare descriptor sets
+			params[0].pName = "uTexture";
+			params[0].ppTextures = &pPaletteTexture;
+			params[1].pName = "uTexture1";
+			params[1].ppTextures = &pTestTexture;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSet_NonFreq, 2, params);
+
+			params[0].pName = "uniformBlock";
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				params[0].ppBuffers = &pUniformBuffer[i];
+				updateDescriptorSet(pRenderer, i, pDescriptorSet_PerFrame, 1, params);
+			}
+
+			params[0].pName = "outputTexture";
+			params[0].ppTextures = &pShadingRateTexture;
+			for (uint32_t i = 0; i < gImageCount; ++i)
+			{
+				updateDescriptorSet(pRenderer, i, pShadingRateDescriptorSet_PerFrame, 1, params);
+			}
+		}
+
+		params[0].pName = "uTexture";
+		params[0].ppTextures = &pColorRenderTarget->pTexture;
+		updateDescriptorSet(pRenderer, 0, pResolveDescriptorSet_NonFreq, 1, params);
 	}
 
 	bool addDepthBuffer()

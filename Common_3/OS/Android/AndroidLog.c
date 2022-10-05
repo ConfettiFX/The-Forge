@@ -29,9 +29,9 @@
 #include "../Interfaces/IOperatingSystem.h"
 
 // interfaces
-#include "../Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #include <assert.h>
-#include "../Interfaces/IMemory.h"
+#include "../../Utilities/Interfaces/IMemory.h"
 #include <android/log.h>
 
 void _OutputDebugStringV(const char* str, va_list args)
