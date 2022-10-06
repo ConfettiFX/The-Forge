@@ -34,7 +34,11 @@ jobs:
       run: choco install vulkan-sdk --version 1.2.162.0
 
     - name: Install VS2017
-      run: choco install VisualStudio2017Community visualstudio2017-workload-nativedesktop
+      uses: nick-fields/retry@v2.8.1
+      with:
+        max_attempts: 3
+        timeout_minutes: 30
+        command: choco install VisualStudio2017Community visualstudio2017-workload-nativedesktop
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1.1
