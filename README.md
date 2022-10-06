@@ -105,7 +105,7 @@ This is a breaking change to all of our rendering interfaces.
 - New Animation test that unifies most of the former animation tests into one. This way we can save some testing time in our Jenkins setup.
 
 
-- We added a new unit test called 38_AmbientOcclusion_GTAO. It implements the paper ...
+- We added a new unit test called 38_AmbientOcclusion_GTAO. It implements the paper "Practical Real-Time Strategies for Accurate Indirect Occlusion" by [Jorge Jimenez](https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf) et. all.
 
 - We improved the gradient calculation in the Visibility Buffer. Thanks to Stephen Hill @self_shadow who brought this to our attention. 
 
