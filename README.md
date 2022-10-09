@@ -61,7 +61,7 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
-## Release 1.53 - October 3rd, 2022 - Steamdeck Support | App life cycle changes | Shader Byte Code Offline Generation | GTAO Unit Test | Improved gradient calculation in Visibility Buffer | New C Containers | Reorg TF Directory Structure | Upgraded to newer ImGUI | The Forge Blog
+## Release 1.53 - October 5th, 2022 - Steamdeck Support | App life cycle changes | Shader Byte Code Offline Generation | GTAO Unit Test | Improved gradient calculation in Visibility Buffer | New C Containers | Reorg TF Directory Structure | Upgraded to newer ImGUI | The Forge Blog
 
 The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleasure to see The Forge running in AAA games like this:
 
@@ -69,9 +69,9 @@ The Starfield Official Gameplay Reveal Trailer is out. It always brings us pleas
 
 We added The Forge to the Creation Engine in 2019.
 
-The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below. No Man's Sky is around 1:22:40
+The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
 
-[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://youtu.be/q5D55G7Ejs8?t=4960)
+[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
 
 
 - We switched our Linux OS to Manjaro to have an easier upgrade path to the Steamdeck. Please note the changed Linux requirements below.
@@ -106,6 +106,25 @@ This is a breaking change to all of our rendering interfaces.
 
 
 - We added a new unit test called 38_AmbientOcclusion_GTAO. It implements the paper "Practical Real-Time Strategies for Accurate Indirect Occlusion" by [Jorge Jimenez](https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf) et. all.
+
+macOS
+![GTAO running on macOS](Screenshots/38_GTAO/38_GTAO_macOS.png)
+
+PC
+![GTAO running on PC](Screenshots/38_GTAO/38_GTAO_PC.png)
+
+PS4
+![GTAO running on PS4](Screenshots/38_GTAO/38_GTAO_PS4.png)
+
+PS5
+![GTAO running on PS5](Screenshots/38_GTAO/38_GTAO_PS5.png)
+
+Switch
+![GTAO running on Switch](Screenshots/38_GTAO/38_GTAO_Switch.png)
+
+XBOX
+![GTAO running on XBOX](Screenshots/38_GTAO/38_GTAO_XBOXONE.png)
+
 
 - We improved the gradient calculation in the Visibility Buffer. Thanks to Stephen Hill @self_shadow who brought this to our attention. 
 
@@ -730,7 +749,6 @@ This unit test shows how to use skinning with Ozz
 
 
 ## 35. Variable Shading Rate
-
  - Per tile Shading Rate
 Generating a shading rate lookup texture on-the-fly. Used for drawing the color palette which makes up the background. The rate decreases the further the pixels are located from the center. We can see artifacts becoming visible at aggressive rates, such as 4X4. There is also a slider in the UI to modify the center of the circle.
 
@@ -779,6 +797,30 @@ Resulting DLUT image should look like this:
 The example program running on Android:
 
 ![DLUT Test running on Android](Screenshots/37_DLUT_Android.png)
+
+## 38 GTAO
+This unit test implements the paper "Practical Real-Time Strategies for Accurate Indirect Occlusion" by [Jorge Jimenez](https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf) et. all.
+
+macOS
+![GTAO running on macOS](Screenshots/38_GTAO/38_GTAO_macOS.png)
+
+PC
+![GTAO running on PC](Screenshots/38_GTAO/38_GTAO_PC.png)
+
+PS4
+![GTAO running on PS4](Screenshots/38_GTAO/38_GTAO_PS4.png)
+
+PS5
+![GTAO running on PS5](Screenshots/38_GTAO/38_GTAO_PS5.png)
+
+Switch
+![GTAO running on Switch](Screenshots/38_GTAO/38_GTAO_Switch.png)
+
+XBOX
+![GTAO running on XBOX](Screenshots/38_GTAO/38_GTAO_XBOXONE.png)
+
+
+
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -888,6 +930,13 @@ Here is more info about this game engine:
 [Todd Howard Teases Bethesda's New Game Engine Behind The Elder Scrolls 6 And Starfield](https://www.thegamer.com/starfield-the-elder-scrolls-6-new-game-engine/)
 
 [Bethesda's overhauling its engine for Starfield and The Elder Scrolls 6](https://www.gamesradar.com/bethesda-engine-starfield-elder-scrolls-6/)
+
+
+## No Man's Sky
+The Forge made an appearance during the Apple developer conference 2022. We added it to the game "No Man's Sky" from Hello Games to bring this game up on macOS / iOS. For the Youtube video click on the image below and jump to 1:22:40
+
+[![No Man's Sky on YouTube](Screenshots/NoMansSky.PNG)](https://www.youtube.com/watch?v=q5D55G7Ejs8)
+
 
 ## M²H - Stroke Therapy
 M²H uses The Forge - [M²H](https://msquarehealthcare.com/) is a medical technology company. They have developed a physics-based video game therapy solution that is backed by leading edge neuroscience, powered by Artificial Intelligence and controlled by dynamic movement – all working in concert to stimulate vast improvement of cognitive and motor functions for patients with stroke and the aged.
