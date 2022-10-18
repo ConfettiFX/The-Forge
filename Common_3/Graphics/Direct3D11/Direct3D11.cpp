@@ -1059,7 +1059,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 #if defined(ENABLE_PERFORMANCE_MARKER)
 	hr = pRenderer->mD3D11.pDxContext->QueryInterface(
-		__uuidof(pRenderer->pUserDefinedAnnotation), (void**)(&pRenderer->pUserDefinedAnnotation));
+		__uuidof(pRenderer->mD3D11.pUserDefinedAnnotation), (void**)(&pRenderer->mD3D11.pUserDefinedAnnotation));
 	if (FAILED(hr))
 		LOGF(LogLevel::eERROR, "Failed to query interface ID3DUserDefinedAnnotation.");
 #endif
@@ -4220,14 +4220,14 @@ void d3d11_cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char*
 	wchar_t markerName[256] = { 0 };
 	int     nameLen = int(strlen(pName));
 	MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
-	pCmd->pRenderer->pUserDefinedAnnotation->BeginEvent(markerName);
+	pCmd->pRenderer->mD3D11.pUserDefinedAnnotation->BeginEvent(markerName);
 #endif
 }
 
 void d3d11_cmdEndDebugMarker(Cmd* pCmd)
 {
 #if defined(ENABLE_PERFORMANCE_MARKER)
-	pCmd->pRenderer->pUserDefinedAnnotation->EndEvent();
+	pCmd->pRenderer->mD3D11.pUserDefinedAnnotation->EndEvent();
 #endif
 }
 
@@ -4237,7 +4237,7 @@ void d3d11_cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* p
 	wchar_t markerName[256] = { 0 };
 	int     nameLen = int(strlen(pName));
 	MultiByteToWideChar(0, 0, pName, nameLen, markerName, nameLen);
-	pCmd->pRenderer->pUserDefinedAnnotation->SetMarker(markerName);
+	pCmd->pRenderer->mD3D11.pUserDefinedAnnotation->SetMarker(markerName);
 #endif
 
 #if defined(ENABLE_NSIGHT_AFTERMATH)
