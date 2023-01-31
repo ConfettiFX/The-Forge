@@ -27,6 +27,7 @@
 #include "../../Application/Config.h"
 
 #include "../CPUConfig.h"
+#include "OSDisplayServer.h"
 
 #if defined(_WINDOWS) || defined(XBOX)
 #include <sys/stat.h>
@@ -45,12 +46,19 @@ typedef uint64_t uint64;
 #include <android_native_app_glue.h>
 #include <android/log.h>
 #elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
-#define VK_USE_PLATFORM_XLIB_KHR
-#if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)
-#include <X11/Xutil.h>
-// X11 defines primitive types which conflict with Forge libraries
-#undef Bool
-#endif
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_WAYLAND)
+		#define VK_USE_PLATFORM_WAYLAND_KHR
+		#include "wayland-client.h"
+	#endif // defined(FORGE_ENABLE_DISPLAYSERVER_WAYLAND)
+
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
+		#define VK_USE_PLATFORM_XLIB_KHR
+		#if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)
+			#include <X11/Xutil.h>
+			// X11 defines primitive types which conflict with Forge libraries
+			#undef Bool
+		#endif // VK_USE_PLATFORM_XLIB_KHR
+	#endif // defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
 #elif defined(NX64)
 #include "../../../Switch/Common_3/OS/NX/NXTypes.h"
 #elif defined(ORBIS)
@@ -107,18 +115,35 @@ typedef struct RectDesc
 
 typedef struct WindowHandle
 {
-	// TODO: Separate vulkan ext from choosing xlib vs xcb
-#if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Display* display;
-	Window   window;
-	Atom     xlib_wm_delete_window;
-	Colormap colormap;
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-	xcb_connection_t*        connection;
-	xcb_window_t             window;
-	xcb_screen_t*            screen;
-	xcb_intern_atom_reply_t* atom_wm_delete_window;
-#elif defined(__ANDROID__)
+#if defined(FORGE_ENABLE_DISPLAYSERVER_WAYLAND)
+	struct
+	{
+		struct wl_display* display;
+		struct wl_surface* surface;
+	} mWayland;
+#endif
+
+#if defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
+	struct
+	{
+		Display* display;
+		Window   window;
+		Atom     delete_window;
+		Colormap colormap;
+	} mXlib;
+#endif
+
+#if defined(FORGE_ENABLE_DISPLAYSERVER_XCB)
+	struct
+	{
+		xcb_connection_t*        connection;
+		xcb_window_t             window;
+		xcb_screen_t*            screen;
+		xcb_intern_atom_reply_t* delete_window;
+	} mXcb;
+#endif
+
+#if defined(__ANDROID__)
 	ANativeWindow*           window;
 	ANativeActivity*         activity;
 	AConfiguration*			 configuration;
@@ -191,8 +216,11 @@ typedef struct
 	char              publicAdapterName[64];
 	char              publicDisplayName[64];
 #endif
-#elif defined(__linux__) && !defined(__ANDROID__)
-	Screen*          screen;
+#elif defined(FORGE_TARGET_LINUX)
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
+		Screen*          xlib_screen;
+	#endif
+
 	char             adapterName[32];
 	char             displayName[32];
 	char             publicAdapterName[64];

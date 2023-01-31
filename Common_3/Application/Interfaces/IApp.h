@@ -131,6 +131,8 @@ public:
 		bool     mForceLowDPI = false;
 		/// if the platform user interface is visible
 		bool     mShowPlatformUI = true; 
+		/// Display server on Unix.
+		OSDisplayServer mDisplayServer;
 
 #ifdef __ANDROID__
 		bool		mVSyncEnabled = true;

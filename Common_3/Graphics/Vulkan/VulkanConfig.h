@@ -31,22 +31,29 @@
 #define VULKAN
 
 #if defined(_WINDOWS) || defined(XBOX)
-#define VK_USE_PLATFORM_WIN32_KHR
+	#define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(__ANDROID__)
-#ifndef VK_USE_PLATFORM_ANDROID_KHR
-#define VK_USE_PLATFORM_ANDROID_KHR
-#endif
-#elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
-// TODO: Separate vulkan ext from choosing xlib vs xcb
-#define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib or Xcb as display server, defaults to Xlib
+	#ifndef VK_USE_PLATFORM_ANDROID_KHR
+		#define VK_USE_PLATFORM_ANDROID_KHR
+	#endif
+#elif defined(FORGE_TARGET_LINUX) && !defined(VK_USE_PLATFORM_GGP)
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_WAYLAND)
+		#define VK_USE_PLATFORM_WAYLAND_KHR
+	#endif
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_XCB)
+		#define VK_USE_PLATFORM_XCB_KHR    //Use Xcb as display server
+	#endif
+	#if defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
+		#define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib as display server
+	#endif
 #endif
 
 #if defined(NX64)
-#define VK_USE_PLATFORM_VI_NN
-#include <vulkan/vulkan.h>
-#include "../../../Switch/Common_3/Graphics/Vulkan/NXVulkanExt.h"
+	#define VK_USE_PLATFORM_VI_NN
+	#include <vulkan/vulkan.h>
+	#include "../../../Switch/Common_3/Graphics/Vulkan/NXVulkanExt.h"
 #else
-#include "../ThirdParty/OpenSource/volk/volk.h"
+	#include "../ThirdParty/OpenSource/volk/volk.h"
 #endif
 
 

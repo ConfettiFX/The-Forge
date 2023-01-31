@@ -2805,6 +2805,8 @@ typedef struct RendererDesc
 	};
 #endif
 
+	OSDisplayServer mDisplayServer;
+
 	LogFn        pLogFn;
 	ShaderTarget mShaderTarget;
 	GpuMode      mGpuMode;
@@ -2912,6 +2914,8 @@ typedef struct GPUSettings
 } GPUSettings;
 typedef struct DEFINE_ALIGNED(Renderer, 64)
 {
+	OSDisplayServer mDisplayServer;
+
 #if defined(USE_MULTIPLE_RENDER_APIS)
 	union
 	{

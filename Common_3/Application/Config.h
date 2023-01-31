@@ -169,8 +169,20 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 //// Platform setup
 //////////////////////////////////////////////
-#if defined(_WIN32)
 
+/*
+The-Forge supports compiling in support for multiple Displayservers on Unix,
+on all other Operating Systems we select the standard one.
+
+Full list of Displayservers:
+
+	FORGE_ENABLE_DISPLAYSERVER_WAYLAND		| 	Linux
+	FORGE_ENABLE_DISPLAYSERVER_XLIB			|	Linux (default)
+	FORGE_ENABLE_DISPLAYSERVER_XCB			|   No platform specific code yet.
+*/
+
+
+#if defined(_WIN32)
 	#ifdef _GAMING_XBOX 
 		#define XBOX
 		#ifdef _GAMING_XBOX_SCARLETT
@@ -222,6 +234,9 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 	#define ORBIS
 #elif defined(__PROSPERO__)
 	#define PROSPERO
+#elif defined(__linux__)
+	#define FORGE_TARGET_LINUX
+	#define FORGE_ENABLE_DISPLAYSERVER_XLIB
 #endif
 
 #ifndef MIN_MALLOC_ALIGNMENT

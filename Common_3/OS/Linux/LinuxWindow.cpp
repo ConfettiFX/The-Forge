@@ -32,8 +32,6 @@
 #include <X11/Xresource.h>
 #include <X11/extensions/Xrandr.h>
 
-#include <gtk/gtk.h>
-
 #include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
 #include "../../Utilities/Math/MathTypes.h"
@@ -113,6 +111,30 @@ Atom wmStateFocused;
 
 // LinuxMain.cpp
 extern CustomMessageProcessor sCustomProc;
+
+//------------------------------------------------------------------------
+// Display server helpers
+//------------------------------------------------------------------------
+OSDisplayServer OS_DEFAULT_DISPLAYSERVER = OS_DISPLAYSERVER_XLIB;
+
+int osDisplayServers() {
+	return OS_DISPLAYSERVER_XLIB | OS_DISPLAYSERVER_WAYLAND;
+}
+
+int osDisplayServersCompiledIn() {
+	int compiledIn;
+#if defined(FORGE_ENABLE_DISPLAYSERVER_WAYLAND)
+	compiledIn |= OS_DISPLAYSERVER_WAYLAND;
+#endif
+#if defined(FORGE_ENABLE_DISPLAYSERVER_XLIB)
+	compiledIn |= OS_DISPLAYSERVER_XLIB;
+#endif
+#if defined(FORGE_ENABLE_DISPLAYSERVER_XCB)
+	compiledIn |= OS_DISPLAYSERVER_XCB;
+#endif
+	return compiledIn;
+}
+
 
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
@@ -232,7 +254,7 @@ void collectMonitorInfo()
 		ASSERT(width >= 0 && height >= 0);
 		ASSERT(physWidth >= 0 && physHeight >= 0);
 
-		gMonitors[i].screen = screen;
+		gMonitors[i].xlib_screen = screen;
 		gMonitors[i].physicalSize[0] = (uint32_t)physWidth;
 		gMonitors[i].physicalSize[1] = (uint32_t)physHeight;
 		gMonitors[i].monitorRect = { 0, 0, width, height };
@@ -378,20 +400,20 @@ static void onFocusChanged(bool focused)
 
 void linuxUnmaximizeWindow(WindowDesc* winDesc)
 {
-    Atom wmState = XInternAtom(winDesc->handle.display, "_NET_WM_STATE", False);
-	Atom maxHorz = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-	Atom maxVert = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    Atom wmState = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE", False);
+	Atom maxHorz = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+	Atom maxVert = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 
 	XEvent xev = {};
 	xev.type = ClientMessage;
-	xev.xclient.window = winDesc->handle.window;
+	xev.xclient.window = winDesc->handle.mXlib.window;
 	xev.xclient.message_type = wmState;
 	xev.xclient.format = 32;
 	xev.xclient.data.l[0] = _NET_WM_STATE_REMOVE;
 	xev.xclient.data.l[1] = maxHorz;
 	xev.xclient.data.l[2] = maxVert;
 
-	XSendEvent(winDesc->handle.display, DefaultRootWindow(winDesc->handle.display), False, SubstructureNotifyMask, &xev);
+	XSendEvent(winDesc->handle.mXlib.display, DefaultRootWindow(winDesc->handle.mXlib.display), False, SubstructureNotifyMask, &xev);
 	
 	winDesc->maximized = false;
 }
@@ -413,36 +435,36 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 	XInitThreads();
 	XrmInitialize(); /* Need to initialize the DB before calling Xrm* functions */
 
-	winDesc->handle.display = gDefaultDisplay;
+	winDesc->handle.mXlib.display = gDefaultDisplay;
 	UpdateWindowDescFullScreenRect(winDesc);
 
 	long        visualMask = VisualScreenMask;
 	int         numberOfVisuals;
 	XVisualInfo vInfoTemplate = {};
-	vInfoTemplate.screen = DefaultScreen(winDesc->handle.display);
-	XVisualInfo* visualInfo = XGetVisualInfo(winDesc->handle.display, visualMask, &vInfoTemplate, &numberOfVisuals);
+	vInfoTemplate.screen = DefaultScreen(winDesc->handle.mXlib.display);
+	XVisualInfo* visualInfo = XGetVisualInfo(winDesc->handle.mXlib.display, visualMask, &vInfoTemplate, &numberOfVisuals);
 
-	winDesc->handle.colormap =
-		XCreateColormap(winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
-	ASSERT(winDesc->handle.colormap);
+	winDesc->handle.mXlib.colormap =
+		XCreateColormap(winDesc->handle.mXlib.display, RootWindow(winDesc->handle.mXlib.display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
+	ASSERT(winDesc->handle.mXlib.colormap);
 
 	XSetWindowAttributes windowAttributes = {};
-	windowAttributes.colormap = winDesc->handle.colormap;
+	windowAttributes.colormap = winDesc->handle.mXlib.colormap;
 	windowAttributes.background_pixel = 0xFFFFFFFF;
 	windowAttributes.border_pixel = 0;
 	windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask | FocusChangeMask | PropertyChangeMask;
 
-	winDesc->handle.window = XCreateWindow(
-		winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->windowedRect.left,
+	winDesc->handle.mXlib.window = XCreateWindow(
+		winDesc->handle.mXlib.display, RootWindow(winDesc->handle.mXlib.display, vInfoTemplate.screen), winDesc->windowedRect.left,
 		winDesc->windowedRect.top, winDesc->windowedRect.right - winDesc->windowedRect.left,
 		winDesc->windowedRect.bottom - winDesc->windowedRect.top, 0, visualInfo->depth, InputOutput, visualInfo->visual,
 		CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
 	winDesc->clientRect = winDesc->windowedRect;
-	ASSERT(winDesc->handle.window);
+	ASSERT(winDesc->handle.mXlib.window);
 
 	//Added
 	//set window title name
-	XStoreName(winDesc->handle.display, winDesc->handle.window, app_name);
+	XStoreName(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, app_name);
 
 	char windowName[200];
 	sprintf(windowName, "%s", app_name);
@@ -451,10 +473,10 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 	XClassHint hint;
 	hint.res_class = windowName;    //class name
 	hint.res_name = windowName;     //application name
-	XSetClassHint(winDesc->handle.display, winDesc->handle.window, &hint);
+	XSetClassHint(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, &hint);
 
 	XSelectInput(
-		winDesc->handle.display, winDesc->handle.window,
+		winDesc->handle.mXlib.display, winDesc->handle.mXlib.window,
 		ExposureMask | KeyPressMask |    //Key press
 			KeyReleaseMask |             //Key release
 			ButtonPressMask |            //Mouse click
@@ -465,42 +487,42 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 			EnterWindowMask |            //Mouse enter window
 			PropertyChangeMask           //Window Hide
 	);
-	XMapWindow(winDesc->handle.display, winDesc->handle.window);
-	XFlush(winDesc->handle.display);
+	XMapWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window);
+	XFlush(winDesc->handle.mXlib.display);
 	if (winDesc->centered)
 	{
 		centerWindow(winDesc);
 	}
-	winDesc->handle.xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->handle.xlib_wm_delete_window, 1);
+	winDesc->handle.mXlib.delete_window = XInternAtom(winDesc->handle.mXlib.display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, &winDesc->handle.mXlib.delete_window, 1);
 	
-	wmState = XInternAtom(winDesc->handle.display, "_NET_WM_STATE", False);
-	wmStateHidden = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_HIDDEN", False);
-	wmStateFocused = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_FOCUSED", False);
+	wmState = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE", False);
+	wmStateHidden = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_HIDDEN", False);
+	wmStateFocused = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_FOCUSED", False);
 	
-	Atom atoms[4] = {wmState, wmStateHidden, wmStateFocused, winDesc->handle.xlib_wm_delete_window};
-	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, atoms, 4);
+	Atom atoms[4] = {wmState, wmStateHidden, wmStateFocused, winDesc->handle.mXlib.delete_window};
+	XSetWMProtocols(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, atoms, 4);
 
 	// Restrict window min size
 	XSizeHints* size_hints = XAllocSizeHints();
 	size_hints->flags = PMinSize;
 	size_hints->min_width = 128;
 	size_hints->min_height = 128;
-	XSetWMNormalHints(winDesc->handle.display, winDesc->handle.window, size_hints);
+	XSetWMNormalHints(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, size_hints);
 	XFree(size_hints);
 
 	double baseDpi = 96.0;
-	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->handle.display) / baseDpi);
+	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->handle.mXlib.display) / baseDpi);
 
 	// Create invisible cursor that will be used when mouse is hidden
 	Pixmap      bitmapEmpty = {};
 	XColor      emptyColor = {};
 	static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-	bitmapEmpty = XCreateBitmapFromData(winDesc->handle.display, winDesc->handle.window, emptyData, 8, 8);
-	gInvisibleCursor = XCreatePixmapCursor(winDesc->handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
+	bitmapEmpty = XCreateBitmapFromData(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, emptyData, 8, 8);
+	gInvisibleCursor = XCreatePixmapCursor(winDesc->handle.mXlib.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
 
-	gCursor = XCreateFontCursor(winDesc->handle.display, 68);
+	gCursor = XCreateFontCursor(winDesc->handle.mXlib.display, 68);
 	setCursor(&gCursor);
 }
 
@@ -510,13 +532,13 @@ void closeWindow(const WindowDesc* winDesc)
 
 	XEvent event = {};
 	event.type = ClientMessage;
-	event.xclient.window = winDesc->handle.window;
-	event.xclient.message_type = XInternAtom(winDesc->handle.display, "WM_PROTOCOLS", true);
+	event.xclient.window = winDesc->handle.mXlib.window;
+	event.xclient.message_type = XInternAtom(winDesc->handle.mXlib.display, "WM_PROTOCOLS", true);
 	event.xclient.format = 32;
-	event.xclient.data.l[0] = winDesc->handle.xlib_wm_delete_window;
+	event.xclient.data.l[0] = winDesc->handle.mXlib.delete_window;
 	event.xclient.data.l[1] = CurrentTime;
 
-	XSendEvent(winDesc->handle.display, winDesc->handle.window, False, NoEventMask, &event);
+	XSendEvent(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, False, NoEventMask, &event);
 }
 
 void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
@@ -526,15 +548,15 @@ void setWindowRect(WindowDesc* winDesc, const RectDesc* pRect)
 
 	winDesc->clientRect = *pRect;
 
-	XResizeWindow(winDesc->handle.display, winDesc->handle.window, pRect->right - pRect->left, pRect->bottom - pRect->top);
+	XResizeWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, pRect->right - pRect->left, pRect->bottom - pRect->top);
 	if (winDesc->centered)
 	{
 		centerWindow(winDesc);
 	}
 	else
 	{
-		XMoveWindow(winDesc->handle.display, winDesc->handle.window, pRect->left, pRect->top);
-		XFlush(winDesc->handle.display);
+		XMoveWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, pRect->left, pRect->top);
+		XFlush(winDesc->handle.mXlib.display);
 	}
 }
 
@@ -544,31 +566,31 @@ void setWindowSize(WindowDesc* winDesc, unsigned width, unsigned height)
 	currentRect.right = currentRect.left + width;
 	currentRect.bottom = currentRect.top + height;
 
-	XResizeWindow(winDesc->handle.display, winDesc->handle.window, width, height);
-	XFlush(winDesc->handle.display);
+	XResizeWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, width, height);
+	XFlush(winDesc->handle.mXlib.display);
 }
 
 void toggleBorderless(WindowDesc* winDesc, unsigned width, unsigned height)
 {
 	if (winDesc->borderlessWindow)
 	{
-		Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
+		Atom mwmAtom = XInternAtom(winDesc->handle.mXlib.display, "_MOTIF_WM_HINTS", 0);
 
 		MWMHints hints;
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = MWM_FUNC_ALL;
 
-		XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
+		XChangeProperty(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
 	}
 	else
 	{
-		Atom mwmAtom = XInternAtom(winDesc->handle.display, "_MOTIF_WM_HINTS", 0);
+		Atom mwmAtom = XInternAtom(winDesc->handle.mXlib.display, "_MOTIF_WM_HINTS", 0);
 
 		MWMHints hints;
 		hints.flags = MWM_HINTS_DECORATIONS;
 		hints.decorations = 0;
 
-		XChangeProperty(winDesc->handle.display, winDesc->handle.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
+		XChangeProperty(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, mwmAtom, mwmAtom, 32, PropModeReplace, (unsigned char*)&hints, 5);
 	}
 
 	setWindowSize(winDesc, width, height);
@@ -584,8 +606,8 @@ void toggleFullscreen(WindowDesc* winDesc)
 	{
 		Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
 		toggleBorderless(winDesc, screen->width, screen->height);
-		XMoveWindow(winDesc->handle.display, winDesc->handle.window, 0, 0);
-		XFlush(winDesc->handle.display);
+		XMoveWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, 0, 0);
+		XFlush(winDesc->handle.mXlib.display);
 	}
 	else
 	{
@@ -597,31 +619,31 @@ void toggleFullscreen(WindowDesc* winDesc)
 void showWindow(WindowDesc* winDesc)
 {
 	winDesc->hide = false;
-	XMapWindow(winDesc->handle.display, winDesc->handle.window);
+	XMapWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window);
 }
 
 void hideWindow(WindowDesc* winDesc)
 {
 	winDesc->hide = true;
-	XUnmapWindow(winDesc->handle.display, winDesc->handle.window);
+	XUnmapWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window);
 }
 
 void maximizeWindow(WindowDesc* winDesc)
 {
-	Atom wmState = XInternAtom(winDesc->handle.display, "_NET_WM_STATE", False);
-	Atom maxHorz = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-	Atom maxVert = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+	Atom wmState = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE", False);
+	Atom maxHorz = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+	Atom maxVert = XInternAtom(winDesc->handle.mXlib.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 
 	XEvent xev = {};
 	xev.type = ClientMessage;
-	xev.xclient.window = winDesc->handle.window;
+	xev.xclient.window = winDesc->handle.mXlib.window;
 	xev.xclient.message_type = wmState;
 	xev.xclient.format = 32;
 	xev.xclient.data.l[0] = _NET_WM_STATE_ADD;
 	xev.xclient.data.l[1] = maxHorz;
 	xev.xclient.data.l[2] = maxVert;
 
-	XSendEvent(winDesc->handle.display, DefaultRootWindow(winDesc->handle.display), False, SubstructureNotifyMask, &xev);
+	XSendEvent(winDesc->handle.mXlib.display, DefaultRootWindow(winDesc->handle.mXlib.display), False, SubstructureNotifyMask, &xev);
 
     winDesc->minimized = false; 
 	winDesc->maximized = true;
@@ -633,11 +655,11 @@ void minimizeWindow(WindowDesc* winDesc)
     
     /* Get screen number */
     XWindowAttributes attr;
-    XGetWindowAttributes(winDesc->handle.display, winDesc->handle.window, &attr);
+    XGetWindowAttributes(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, &attr);
     int screen = XScreenNumberOfScreen(attr.screen);
 
     /* Minimize it */
-    XIconifyWindow(winDesc->handle.display, winDesc->handle.window, screen);
+    XIconifyWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, screen);
     
     winDesc->minimized = true;
 }
@@ -657,8 +679,8 @@ void centerWindow(WindowDesc* winDesc)
 	winDesc->windowedRect = newRect;
 	winDesc->clientRect = newRect;
 
-	XMoveWindow(winDesc->handle.display, winDesc->handle.window, X, Y);
-	XFlush(winDesc->handle.display);
+	XMoveWindow(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, X, Y);
+	XFlush(winDesc->handle.mXlib.display);
 }
 
 //------------------------------------------------------------------------
@@ -674,27 +696,27 @@ void* createCursor(const char* path)
 	foregroundColor.red = foregroundColor.green = foregroundColor.blue = 65535;
 	XColor backgroundColor = {};
 	backgroundColor.red = backgroundColor.green = backgroundColor.blue = 0;
-	XReadBitmapFile(gWindow.handle.display, gWindow.handle.window, path, &bitmap_width, &bitmap_height, &bitmap, &hotspot_x, &hotspot_y);
+	XReadBitmapFile(gWindow.handle.mXlib.display, gWindow.handle.mXlib.window, path, &bitmap_width, &bitmap_height, &bitmap, &hotspot_x, &hotspot_y);
 	Cursor* cursor = (Cursor*)tf_malloc(sizeof(Cursor));
-	*cursor = XCreatePixmapCursor(gWindow.handle.display, bitmap, bitmap, &backgroundColor, &foregroundColor, hotspot_x, hotspot_y);
+	*cursor = XCreatePixmapCursor(gWindow.handle.mXlib.display, bitmap, bitmap, &backgroundColor, &foregroundColor, hotspot_x, hotspot_y);
 	return cursor;
 }
 
 void setCursor(void* cursor)
 {
 	Cursor* linuxCursor = (Cursor*)cursor;
-	XDefineCursor(gWindow.handle.display, gWindow.handle.window, *linuxCursor);
+	XDefineCursor(gWindow.handle.mXlib.display, gWindow.handle.mXlib.window, *linuxCursor);
 }
 
 void showCursor()
 {
-	XUndefineCursor(gWindow.handle.display, gWindow.handle.window);
-	XDefineCursor(gWindow.handle.display, gWindow.handle.window, gCursor);
+	XUndefineCursor(gWindow.handle.mXlib.display, gWindow.handle.mXlib.window);
+	XDefineCursor(gWindow.handle.mXlib.display, gWindow.handle.mXlib.window, gCursor);
 }
 
 void hideCursor()
 {
-    XDefineCursor(gWindow.handle.display, gWindow.handle.window, gInvisibleCursor);
+    XDefineCursor(gWindow.handle.mXlib.display, gWindow.handle.mXlib.window, gInvisibleCursor);
 }
 
 
@@ -712,20 +734,20 @@ void captureCursor(WindowDesc* winDesc, bool bEnable)
 			XColor      emptyColor = {};
 			static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 			emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-			bitmapEmpty = XCreateBitmapFromData(winDesc->handle.display, winDesc->handle.window, emptyData, 8, 8);
-			invisibleCursor = XCreatePixmapCursor(winDesc->handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
+			bitmapEmpty = XCreateBitmapFromData(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, emptyData, 8, 8);
+			invisibleCursor = XCreatePixmapCursor(winDesc->handle.mXlib.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
 			// Capture mouse
 			unsigned int masks = PointerMotionMask |    //Mouse movement
 									ButtonPressMask |      //Mouse click
 									ButtonReleaseMask;     // Mouse release
 			int XRes = XGrabPointer(
-				winDesc->handle.display, winDesc->handle.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
+				winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
 				invisibleCursor, CurrentTime);
 			ASSERT(XRes == GrabSuccess);
 		}
 		else
 		{
-			XUngrabPointer(winDesc->handle.display, CurrentTime);
+			XUngrabPointer(winDesc->handle.mXlib.display, CurrentTime);
 		}
 
 		winDesc->cursorCaptured = bEnable;
@@ -739,8 +761,8 @@ bool isCursorInsideTrackingArea()
 
 void setMousePositionRelative(const WindowDesc* winDesc, int32_t x, int32_t y)
 {
-	XWarpPointer(winDesc->handle.display, winDesc->handle.window, None, 0, 0, 0, 0, x, y);
-	XFlush(winDesc->handle.display);
+	XWarpPointer(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window, None, 0, 0, 0, 0, x, y);
+	XFlush(winDesc->handle.mXlib.display);
 }
 
 void setMousePositionAbsolute(int32_t x, int32_t y)
@@ -764,7 +786,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 	if (!requireXRandrVersion(1, 2))
 		return;
 
-	Window rootWindow = RootWindowOfScreen(pMonitor->screen);
+	Window rootWindow = RootWindowOfScreen(pMonitor->xlib_screen);
 
 	XRRScreenResources* screenRes = XRRGetScreenResources(gDefaultDisplay, rootWindow);
 	ASSERT(screenRes);
@@ -801,7 +823,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 	uint32_t i = 0;
 	for (; i < gDirtyModeCount; ++i)
 	{
-		if (pMonitor->screen == gDirtyModes[i].screen)
+		if (pMonitor->xlib_screen == gDirtyModes[i].screen)
 			break;
 	}
 
@@ -809,7 +831,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
 	{
 		DeviceMode* devMode = &gDirtyModes[gDirtyModeCount++];
 
-		devMode->screen = pMonitor->screen;
+		devMode->screen = pMonitor->xlib_screen;
 		devMode->mode = crtcInfo->mode;
 		devMode->crtc = outputInfo->crtc;
 	}
@@ -858,9 +880,9 @@ bool handleMessages(WindowDesc* winDesc)
 	bool quit = false;
 
 	XEvent event;
-	while (XPending(winDesc->handle.display) > 0)
+	while (XPending(winDesc->handle.mXlib.display) > 0)
 	{
-		XNextEvent(winDesc->handle.display, &event);
+		XNextEvent(winDesc->handle.mXlib.display, &event);
 
 		if (sCustomProc != nullptr)
 		{
@@ -878,7 +900,7 @@ bool handleMessages(WindowDesc* winDesc)
 					unsigned long remainingBytes;
 					Atom *atoms = NULL;
 
-					XGetWindowProperty(winDesc->handle.display, winDesc->handle.window,
+					XGetWindowProperty(winDesc->handle.mXlib.display, winDesc->handle.mXlib.window,
 						event.xclient.message_type, 0, 1024, False, XA_ATOM,
 						&atomType, &format, &itemCount, &remainingBytes, (unsigned char**)&atoms);
 
@@ -908,9 +930,9 @@ bool handleMessages(WindowDesc* winDesc)
 				}
 				break;
 			case ClientMessage:
-				if ((Atom)event.xclient.data.l[0] == winDesc->handle.xlib_wm_delete_window)
+				if ((Atom)event.xclient.data.l[0] == winDesc->handle.mXlib.delete_window)
 				{
-					XFreeColormap(winDesc->handle.display, winDesc->handle.colormap);
+					XFreeColormap(winDesc->handle.mXlib.display, winDesc->handle.mXlib.colormap);
 					quit = true;
 				}
 				break;
@@ -962,7 +984,7 @@ bool handleMessages(WindowDesc* winDesc)
 		}
 	}
 
-	XFlush(winDesc->handle.display);
+	XFlush(winDesc->handle.mXlib.display);
 
 	return quit;
 }

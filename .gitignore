@@ -7,6 +7,10 @@
 *.o
 *.obj
 
+# Compiled python files
+__pycache__/
+*.pyc
+
 # Precompiled Headers
 *.gch
 *.pch
@@ -39,6 +43,7 @@
 **.log
 
 # Art
+Art.zip
 Art/
 
 # Binary Shaders

@@ -27,19 +27,23 @@
 
 #include "../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
 
-#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/gainput.h"
+#if !defined(FORGE_USE_EXTERNAL_GAINPUT)
+	#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/gainput.h"
 
-#if defined(__ANDROID__) || defined(NX64)
-#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputInputDeltaState.h"
-#endif
+	#if defined(__ANDROID__) || defined(NX64)
+	#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputInputDeltaState.h"
+	#endif
 
-#ifdef __APPLE__
-#ifdef TARGET_IOS
-#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputIos.h"
+	#ifdef __APPLE__
+	#ifdef TARGET_IOS
+	#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputIos.h"
+	#else
+	#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputMac.h"
+	#endif
+	#endif
 #else
-#include "../Application/ThirdParty/OpenSource/gainput/lib/include/gainput/GainputMac.h"
-#endif
-#endif
+	#include "gainput/gainput.h"
+#endif 
 
 #ifdef __linux__
 #include <climits>
@@ -776,10 +780,10 @@ struct InputSystemImpl: public gainput::InputListener
 			float y = 0;
 			x = (pWindow->windowedRect.right - pWindow->windowedRect.left) / 2;
 			y = (pWindow->windowedRect.bottom - pWindow->windowedRect.top) / 2;
-			XWarpPointer(pWindow->handle.display, None, pWindow->handle.window, 0, 0, 0, 0, x, y);
+			XWarpPointer(pWindow->handle.mXlib.display, None, pWindow->handle.mXlib.window, 0, 0, 0, 0, x, y);
 			gainput::InputDevice* device = pInputManager->GetDevice(mRawMouseDeviceID);
 			device->WarpMouse(x, y);
-			XFlush(pWindow->handle.display);
+			XFlush(pWindow->handle.mXlib.display);
 		}
 #endif
 	}

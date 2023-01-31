@@ -242,20 +242,6 @@ VkAttachmentStoreOp gVkAttachmentStoreOpTranslator[StoreActionType::MAX_STORE_AC
 
 const char* gVkWantedInstanceExtensions[] =
 {
-	VK_KHR_SURFACE_EXTENSION_NAME,
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-	VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-	VK_KHR_XCB_SURFACE_EXTENSION_NAME,
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-	VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-#elif defined(VK_USE_PLATFORM_GGP)
-	VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME,
-#elif defined(VK_USE_PLATFORM_VI_NN)
-	VK_NN_VI_SURFACE_EXTENSION_NAME,
-#endif
 	// Debug utils not supported on all devices yet
 #ifdef ENABLE_DEBUG_UTILS_EXTENSION
 	VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -285,6 +271,8 @@ const char* gVkWantedInstanceExtensions[] =
 	/************************************************************************/
 #endif
 };
+
+static const uint32_t DISPLAYSERVER_EXTENSION_COUNT = 2;
 
 const char* gVkWantedDeviceExtensions[] =
 {
@@ -2226,18 +2214,73 @@ void CreateInstance(
 			}
 		}
 
+		// TODO(jochumdev): Find a better way to initialize dsExtensions.
+		const char** dsExtensions = { };
+		arrsetlen(dsExtensions, DISPLAYSERVER_EXTENSION_COUNT);
+		dsExtensions[0] = VK_KHR_SURFACE_EXTENSION_NAME;
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+		dsExtensions[1] = VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+#endif
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+		dsExtensions[1] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+#endif
+#if defined(FORGE_TARGET_LINUX)
+	if (0) {
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_WAYLAND) {
+		dsExtensions[1] = VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_XLIB) {
+		dsExtensions[1] = VK_KHR_XLIB_SURFACE_EXTENSION_NAME;
+#endif
+
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_XCB) {
+		dsExtensions[1] = VK_KHR_XCB_SURFACE_EXTENSION_NAME;
+#endif
+
+	} else {
+		// This should never happen as vk_initRenderer checks that.
+		LOGF(LogLevel::eERROR, "You have choosen an unsupported Displayserver on Linux");
+
+		// TODO(jochumdev): What's the best way to exit out here?
+		arrfree(dsExtensions);
+		return;
+	}
+#endif
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+		dsExtensions[1] = VK_KHR_ANDROID_SURFACE_EXTENSION_NAME;
+#endif
+#if defined(VK_USE_PLATFORM_GGP)
+		dsExtensions[1] = VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME;
+#endif
+#if defined(VK_USE_PLATFORM_VI_NN)
+		dsExtensions[1] = VK_NN_VI_SURFACE_EXTENSION_NAME;
+#endif
+
 		uint32_t                   extension_count = 0;
 		const uint32_t             initialCount = sizeof(gVkWantedInstanceExtensions) / sizeof(gVkWantedInstanceExtensions[0]);
 		const uint32_t             userRequestedCount = (uint32_t)pDesc->mVulkan.mInstanceExtensionCount;
 		const char** wantedInstanceExtensions = NULL;
-		arrsetlen(wantedInstanceExtensions, initialCount + userRequestedCount);
+		arrsetlen(wantedInstanceExtensions, DISPLAYSERVER_EXTENSION_COUNT + initialCount + userRequestedCount);
+
+		for (uint32_t i = 0; i < DISPLAYSERVER_EXTENSION_COUNT; ++i)
+		{
+			wantedInstanceExtensions[i] = dsExtensions[i];
+		}
+		arrfree(dsExtensions);
+
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
-			wantedInstanceExtensions[i] = gVkWantedInstanceExtensions[i];
+			wantedInstanceExtensions[DISPLAYSERVER_EXTENSION_COUNT + i] = gVkWantedInstanceExtensions[i];
 		}
 		for (uint32_t i = 0; i < userRequestedCount; ++i)
 		{
-			wantedInstanceExtensions[initialCount + i] = pDesc->mVulkan.ppInstanceExtensions[i];
+			wantedInstanceExtensions[DISPLAYSERVER_EXTENSION_COUNT + initialCount + i] = pDesc->mVulkan.ppInstanceExtensions[i];
 		}
 		const uint32_t wanted_extension_count = (uint32_t)arrlen(wantedInstanceExtensions);
 		// Layer extensions
@@ -3246,7 +3289,20 @@ void vk_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 	uint8_t* mem = (uint8_t*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer) + sizeof(NullDescriptors));
 	ASSERT(mem);
 
+	OSDisplayServer displayServer = pDesc->mDisplayServer;
+	if (!displayServer) {
+		displayServer = OS_DEFAULT_DISPLAYSERVER;
+	}
+	
+	if (!osDisplayServerIsSupported(displayServer)) {
+		LOGF(LogLevel::eERROR, "You have choosen an unsupported Displayserver '%s'!", osDisplayServerName(displayServer));
+
+		// TODO(jochumdev): What to do here?
+		return;
+	}
+
 	Renderer* pRenderer = (Renderer*)mem;
+	pRenderer->mDisplayServer = displayServer;
 	pRenderer->mGpuMode = pDesc->mGpuMode;
 	pRenderer->mShaderTarget = pDesc->mShaderTarget;
 	pRenderer->mEnableGpuBasedValidation = pDesc->mEnableGPUBasedValidation;
@@ -3779,22 +3835,52 @@ void vk_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 	add_info.hinstance = ::GetModuleHandle(NULL);
 	add_info.hwnd = (HWND)pDesc->mWindowHandle.window;
 	CHECK_VKRESULT(vkCreateWin32SurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-	DECLARE_ZERO(VkXlibSurfaceCreateInfoKHR, add_info);
-	add_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
-	add_info.pNext = NULL;
-	add_info.flags = 0;
-	add_info.dpy = pDesc->mWindowHandle.display;      //TODO
-	add_info.window = pDesc->mWindowHandle.window;    //TODO
-	CHECK_VKRESULT(vkCreateXlibSurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+
+#elif defined(FORGE_TARGET_LINUX)
+	if (0) {
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_WAYLAND) {
+		DECLARE_ZERO(VkWaylandSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.display = pDesc->mWindowHandle.mWayland.display;
+		add_info.surface = pDesc->mWindowHandle.mWayland.surface;
+		CHECK_VKRESULT(vkCreateWaylandSurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+#endif
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_XLIB) {
+		DECLARE_ZERO(VkXlibSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.dpy = pDesc->mWindowHandle.mXlib.display;
+		add_info.window = pDesc->mWindowHandle.mXlib.window;
+		CHECK_VKRESULT(vkCreateXlibSurfaceKHR(pRenderer->mVulkan.pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+#endif
+
+#if defined(VK_USE_PLATFORM_XCB_KHR)
+	} else if (pRenderer->mDisplayServer == OS_DISPLAYSERVER_XCB) {
+		DECLARE_ZERO(VkXcbSurfaceCreateInfoKHR, add_info);
+		add_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+		add_info.pNext = NULL;
+		add_info.flags = 0;
+		add_info.connection = pDesc->mWindowHandle.mXcb.connection;
+		add_info.window = pDesc->mWindowHandle.mXcb.window;
+		CHECK_VKRESULT(vkCreateXcbSurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
+#endif
+
+	} else {
+		// This should never happen as vk_initRenderer checks that.
+		LOGF(LogLevel::eERROR, "You have choosen an unsupported Displayserver on Linux");
+
+		// TODO(jochumdev): What's the best way to exit out here?
+		return;
+	}
+
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-	DECLARE_ZERO(VkXcbSurfaceCreateInfoKHR, add_info);
-	add_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-	add_info.pNext = NULL;
-	add_info.flags = 0;
-	add_info.connection = pDesc->mWindowHandle.connection;    //TODO
-	add_info.window = pDesc->mWindowHandle.window;            //TODO
-	CHECK_VKRESULT(vkCreateXcbSurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
 	// Add IOS support here
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
@@ -9129,7 +9215,7 @@ void exitVulkanRenderer(Renderer* pRenderer)
 void initVulkanRendererContext(const char* appName, const RendererContextDesc* pSettings, RendererContext** ppContext)
 {
 	// No need to initialize API function pointers, initRenderer MUST be called before using anything else anyway.
-	vk_initRendererContext(appName, pSettings, ppContext);
+	(appName, pSettings, ppContext);
 }
 
 void exitVulkanRendererContext(RendererContext* pContext)
