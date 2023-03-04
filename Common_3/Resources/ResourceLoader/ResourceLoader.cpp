@@ -682,9 +682,9 @@ static void cleanupCopyEngine(Renderer* pRenderer, CopyEngine* pCopyEngine)
 
 		if (arrlen(resourceSet.mTempBuffers))
 			LOGF(eINFO, "Was not cleaned up %d", i);
-		for (ptrdiff_t i = 0; i < arrlen(resourceSet.mTempBuffers); ++i)
+		for (ptrdiff_t j = 0; j < arrlen(resourceSet.mTempBuffers); ++j)
 		{
-			removeBuffer(pRenderer, resourceSet.mTempBuffers[i]);
+			removeBuffer(pRenderer, resourceSet.mTempBuffers[j]);
 		}
 		arrfree(resourceSet.mTempBuffers);
 	}
