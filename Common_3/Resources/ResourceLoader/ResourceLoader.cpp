@@ -1963,8 +1963,8 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 					uint8_t*       dst = (uint8_t*)vertexUpdateDesc[binding].pMappedData + vertexCount * stride;
 					const uint32_t count = (uint32_t)prim->attributes[0].data->count;
 
-					for (uint32_t i = 0; i < count; ++i)
-						memset(dst + i * stride + offset, 0, defaultTexcoordStride);
+					for (uint32_t j = 0; j < count; ++j)
+						memset(dst + j * stride + offset, 0, defaultTexcoordStride);
 				}
 
 				/************************************************************************/
