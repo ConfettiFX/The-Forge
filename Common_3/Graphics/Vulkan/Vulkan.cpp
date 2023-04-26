@@ -7164,8 +7164,6 @@ void vk_cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint32_t indexType, uint6
 
 void vk_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, const uint32_t* pStrides, const uint64_t* pOffsets)
 {
-	UNREF_PARAM(pStrides);
-
 	ASSERT(pCmd);
 	ASSERT(0 != bufferCount);
 	ASSERT(ppBuffers);
@@ -7180,14 +7178,15 @@ void vk_cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers,
 
 	DECLARE_ZERO(VkBuffer, buffers[64]);
 	DECLARE_ZERO(VkDeviceSize, offsets[64]);
+	DECLARE_ZERO(VkDeviceSize, stride[64]);
 
 	for (uint32_t i = 0; i < capped_buffer_count; ++i)
 	{
 		buffers[i] = ppBuffers[i]->mVulkan.pVkBuffer;
 		offsets[i] = (pOffsets ? pOffsets[i] : 0);
+		stride[i] = pStrides[i];
 	}
-
-	vkCmdBindVertexBuffers(pCmd->mVulkan.pVkCmdBuf, 0, capped_buffer_count, buffers, offsets);
+	vkCmdBindVertexBuffers2(pCmd->mVulkan.pVkCmdBuf, 0, capped_buffer_count, buffers, offsets, nullptr, stride);
 }
 
 void vk_cmdDraw(Cmd* pCmd, uint32_t vertex_count, uint32_t first_vertex)
