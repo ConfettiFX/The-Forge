@@ -57,7 +57,7 @@
 #define VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME "Fence ext name"
 #endif
 
-#define TARGET_VULKAN_API_VERSION VK_API_VERSION_1_1
+#define TARGET_VULKAN_API_VERSION VK_API_VERSION_1_3
 
 /************************************************************************/
 // Debugging Macros
