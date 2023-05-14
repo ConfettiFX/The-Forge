@@ -6653,7 +6653,8 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 		dy.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 		dy.pNext = NULL;
 		dy.flags = 0;
-		dy.dynamicStateCount = sizeof(dyn_states) / sizeof(dyn_states[0]);
+		// omit VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE if no vertex layout is bound
+		dy.dynamicStateCount = (sizeof(dyn_states) / sizeof(dyn_states[0])) - (pVertexLayout == NULL ? 1 : 0);
 		dy.pDynamicStates = dyn_states;
 
 		DECLARE_ZERO(VkGraphicsPipelineCreateInfo, add_info);
