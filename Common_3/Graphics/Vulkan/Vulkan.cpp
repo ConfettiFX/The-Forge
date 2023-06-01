@@ -6061,9 +6061,9 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 			if (!pNode)
 			{
 				ShaderResource* pResource = NULL;
-				for (ptrdiff_t i = 0; i < arrlen(shaderResources); ++i)
+				for (ptrdiff_t j = 0; j < arrlen(shaderResources); ++j)
 				{
-					ShaderResource* pCurrent = &shaderResources[i];
+					ShaderResource* pCurrent = &shaderResources[j];
 					if (pCurrent->type == pRes->type &&
 						(pCurrent->used_stages == pRes->used_stages) &&
 						(((pCurrent->reg ^ pRes->reg) | (pCurrent->set ^ pRes->set)) == 0))
@@ -6123,11 +6123,11 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 					return;
 				}
 
-				for (ptrdiff_t i = 0; i < arrlen(shaderResources); ++i)
+				for (ptrdiff_t j = 0; j < arrlen(shaderResources); ++j)
 				{
-					if (strcmp(shaderResources[i].name, pNode->key) == 0)
+					if (strcmp(shaderResources[j].name, pNode->key) == 0)
 					{
-						shaderResources[i].used_stages |= pRes->used_stages;
+						shaderResources[j].used_stages |= pRes->used_stages;
 						break;
 					}
 				}
@@ -6227,11 +6227,11 @@ void vk_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 
 			// Update descriptor pool size for this descriptor type
 			VkDescriptorPoolSize* poolSize = NULL;
-			for (uint32_t i = 0; i < MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT; ++i)
+			for (uint32_t j = 0; j < MAX_DESCRIPTOR_POOL_SIZE_ARRAY_COUNT; ++j)
 			{
-				if (binding.descriptorType == pRootSignature->mVulkan.mPoolSizes[setIndex][i].type && pRootSignature->mVulkan.mPoolSizes[setIndex][i].descriptorCount)
+				if (binding.descriptorType == pRootSignature->mVulkan.mPoolSizes[setIndex][j].type && pRootSignature->mVulkan.mPoolSizes[setIndex][j].descriptorCount)
 				{
-					poolSize = &pRootSignature->mVulkan.mPoolSizes[setIndex][i];
+					poolSize = &pRootSignature->mVulkan.mPoolSizes[setIndex][j];
 					break;
 				}
 			}
