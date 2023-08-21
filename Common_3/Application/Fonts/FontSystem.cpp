@@ -498,12 +498,12 @@ void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const FontDrawDesc*
 	ASSERT(pDesc);
 	ASSERT(pDesc->pText);
 
-	const char* message = pDesc->pText; 
+	const char* message = pDesc->pText;
 	float x = screenCoordsInPx.getX();
 	float y = screenCoordsInPx.getY();
 	int fontID = pDesc->mFontID;
 	unsigned color = pDesc->mFontColor;
-	float size = pDesc->mFontSize; 
+	float size = pDesc->mFontSize;
 	float spacing = pDesc->mFontSpacing;
 	float blur = pDesc->mFontBlur;
 
@@ -593,8 +593,8 @@ void fntDefineFonts(const FontDesc* pDescs, uint32_t count, uint32_t* pOutIDs)
 #ifdef ENABLE_FORGE_FONTS
 	ASSERT(pDescs);
 	ASSERT(pOutIDs);
-	ASSERT(count > 0); 
-	
+	ASSERT(count > 0);
+
 	arrsetcap(gFontstash.mFontBuffers, arrcap(gFontstash.mFontBuffers) + count);
 	arrsetcap(gFontstash.mFontBufferSizes, arrcap(gFontstash.mFontBufferSizes) + count);
 
@@ -641,6 +641,8 @@ int2 fntGetFontAtlasSize()
 	FONScontext* fs = gFontstash.pContext;
 	fonsGetAtlasSize(fs, &size.x, &size.y);
 	return size;
+#else
+    return int2(0,0);
 #endif
 }
 

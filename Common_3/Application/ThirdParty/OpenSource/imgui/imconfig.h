@@ -21,8 +21,6 @@
 
 #include "../../../../Utilities/Interfaces/ILog.h"
 #include "../../../../Utilities/Math/MathTypes.h"
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/string.h"
 
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so it can be used as a single statement.

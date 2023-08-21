@@ -68,14 +68,14 @@ char(*array_counter(const T(&)[N]))[N];
 	#endif
 
 	#define UNREF_PARAM(x) (x)
-	#define ALIGNAS(x) __declspec( align( x ) ) 
+	#define ALIGNAS(x) __declspec( align( x ) )
 	#define DEFINE_ALIGNED(def, a) __declspec(align(a)) def
 	#define FORGE_CALLCONV __cdecl
 	#define ALIGNOF(x) __alignof(x)
 	#define THREAD_LOCAL __declspec( thread )
-	
+
 	#include <crtdbg.h>
-	#define COMPILE_ASSERT(exp) _STATIC_ASSERT(exp) 
+	#define COMPILE_ASSERT(exp) _STATIC_ASSERT(exp)
 
 	#include <BaseTsd.h>
 	typedef SSIZE_T ssize_t;
@@ -119,7 +119,7 @@ char(*array_counter(const T(&)[N]))[N];
 	#define FORGE_CALLCONV
 	#define ALIGNOF(x) __alignof__(x)
 	#define THREAD_LOCAL __thread
-	
+
 	#ifdef __clang__
 	#define COMPILE_ASSERT(exp) _Static_assert(exp, #exp)
 	#else
@@ -171,7 +171,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 #if defined(_WIN32)
 
-	#ifdef _GAMING_XBOX 
+	#ifdef _GAMING_XBOX
 		#define XBOX
 		#ifdef _GAMING_XBOX_SCARLETT
 			#ifndef SCARLETT
@@ -241,14 +241,14 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 //////////////////////////////////////////////
 //// General options
 //////////////////////////////////////////////
-#define ENABLE_FORGE_SCRIPTING
-#define ENABLE_FORGE_UI
-#define ENABLE_FORGE_FONTS
-#define ENABLE_FORGE_INPUT
+//#define ENABLE_FORGE_SCRIPTING
+//#define ENABLE_FORGE_UI
+//#define ENABLE_FORGE_FONTS
+//#define ENABLE_FORGE_INPUT
 #define ENABLE_FORGE_ANIMATION_DEBUG
 #define ENABLE_ZIP_FILESYSTEM
 #define ENABLE_SCREENSHOT
-#define ENABLE_PROFILER
+//#define ENABLE_PROFILER
 #define ENABLE_MESHOPTIMIZER
 #ifdef TARGET_IOS
 	//needed for ios haptics. Because we have to link CoreHaptics libs
@@ -278,7 +278,7 @@ COMPILE_ASSERT(sizeof(ssize_t) == sizeof(int64_t));
 
 // Compiling TheForge as a DLL:
 //   - FORGE_API: is used to expose OS functionality, which usually should be accessible from all the program (Engine and Game) because it contains the Assert/Logging/Memory functionality
-//   - FORGE_RENDERER_API: is used to expose Renderer functionality, wich usually only the Engine needs access to (the Game should leverage the Engine and never call the Renderer). 
+//   - FORGE_RENDERER_API: is used to expose Renderer functionality, wich usually only the Engine needs access to (the Game should leverage the Engine and never call the Renderer).
 //                         This define allows to hide Renderer functionality to the Game, so that if someone tries to use it it'll get a linker error.
 #define FORGE_API
 #define FORGE_RENDERER_API

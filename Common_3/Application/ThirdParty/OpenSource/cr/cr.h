@@ -182,7 +182,7 @@ Arguments
 Enum indicating the kind of step that is being executed by the `host`:
 
 - `CR_LOAD` A load caused by reload is being executed, can be used to restore any
- saved internal state. 
+ saved internal state.
 - `CR_STEP` An application update, this is the normal and most frequent operation;
 - `CR_UNLOAD` An unload for reloading the plugin will be executed, giving the
  application one chance to store any required data;
@@ -369,7 +369,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "../../../../Application/Config.h"
 #include "../../../../Utilities/Interfaces/ILog.h"
 
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/string.h"
 
 #if !FORGE_CODE_HOT_RELOAD && defined(CR_HOST)
 #error "CR_HOST can't be defined when FORGE_CODE_HOT_RELOAD is disabled."

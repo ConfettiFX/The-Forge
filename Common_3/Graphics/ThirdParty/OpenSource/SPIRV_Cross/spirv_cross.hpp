@@ -23,12 +23,6 @@
 
 
 
- //EASTL related Includes
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/string.h"
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/unordered_set.h"
-
-
 
 namespace SPIRV_CROSS_NAMESPACE
 {
