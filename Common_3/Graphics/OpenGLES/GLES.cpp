@@ -1489,6 +1489,7 @@ void gl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 	pRenderTarget->mSampleQuality = pDesc->mSampleQuality;
 	pRenderTarget->mClearValue = pDesc->mClearValue;
 	pRenderTarget->mFormat = targetFormat;
+	pRenderTarget->mDescriptors = pDesc->mDescriptors;
 
 	*ppRenderTarget = pRenderTarget;
 }

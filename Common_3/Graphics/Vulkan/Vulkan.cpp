@@ -4890,6 +4890,7 @@ void vk_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 	pRenderTarget->mClearValue = pDesc->mClearValue;
     pRenderTarget->mVRMultiview = (pDesc->mFlags & TEXTURE_CREATION_FLAG_VR_MULTIVIEW) != 0;
     pRenderTarget->mVRFoveatedRendering = (pDesc->mFlags & TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING) != 0;
+	pRenderTarget->mDescriptors = pDesc->mDescriptors;
 
 	// Unlike DX12, Vulkan textures start in undefined layout.
 	// To keep in line with DX12, we transition them to the specified layout manually so app code doesn't have to worry about this

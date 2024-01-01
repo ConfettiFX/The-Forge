@@ -2750,6 +2750,7 @@ void mtl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Ren
 	pRenderTarget->mSampleCount = pDesc->mSampleCount;
 	pRenderTarget->mSampleQuality = pDesc->mSampleQuality;
 	pRenderTarget->mFormat = pDesc->mFormat;
+	pRenderTarget->mDescriptors = pDesc->mDescriptors;
 	
 #if defined(USE_MSAA_RESOLVE_ATTACHMENTS)
 	if (pDesc->mFlags & TEXTURE_CREATION_FLAG_CREATE_RESOLVE_ATTACHMENT)

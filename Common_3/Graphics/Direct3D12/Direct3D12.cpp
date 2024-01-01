@@ -3557,6 +3557,7 @@ void d3d12_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, R
 	pRenderTarget->mSampleQuality = pDesc->mSampleQuality;
 	pRenderTarget->mFormat = pDesc->mFormat;
 	pRenderTarget->mClearValue = pDesc->mClearValue;
+	pRenderTarget->mDescriptors = pDesc->mDescriptors;
 
 	*ppRenderTarget = pRenderTarget;
 }
