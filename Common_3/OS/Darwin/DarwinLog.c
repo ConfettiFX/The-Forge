@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,17 +20,26 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "../../Application/Config.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <stdarg.h>
+
 #include "../Interfaces/IOperatingSystem.h"
 
 // interfaces
 #include "../../Utilities/Interfaces/ILog.h"
+
 #include "../../Utilities/Interfaces/IMemory.h"
+
+static bool gIsInteractiveMode = true;
+
+void _EnableInteractiveMode(bool isInteractiveMode) { gIsInteractiveMode = isInteractiveMode; }
+
+bool _IsInteractiveMode(void) { return gIsInteractiveMode; }
 
 void _OutputDebugStringV(const char* str, va_list args)
 {
@@ -42,22 +51,19 @@ void _OutputDebugStringV(const char* str, va_list args)
 void _OutputDebugString(const char* str, ...)
 {
 #if defined(FORGE_DEBUG)
-	va_list arglist;
-	va_start(arglist, str);
-	vprintf(str, arglist);
-	va_end(arglist);
+    va_list arglist;
+    va_start(arglist, str);
+    vprintf(str, arglist);
+    va_end(arglist);
 #endif
 }
 
-void _FailedAssert(const char* file, int line, const char* statement)
+void _FailedAssertImpl(const char* file, int line, const char* statement, const char* message)
 {
-	static bool debug = true;
-
-	if (debug)
-	{
-		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-		__builtin_debugtrap();
-	}
+    if (gIsInteractiveMode)
+    {
+        __builtin_debugtrap();
+    }
 }
 
 void _PrintUnicode(const char* str, bool error) { printf("%s", str); }

@@ -88,9 +88,10 @@ bool AdditiveAnimationBuilder::operator()(const RawAnimation& _input,
   }
 
   // Rebuilds output animation.
-  _output->name = _input.name;
+  bassign(&_output->name, &_input.name);
   _output->duration = _input.duration;
-  arrsetcap(_output->tracks, arrlen(_input.tracks));
+  arrsetlen(_output->tracks, arrlen(_input.tracks));
+  memset(_output->tracks, 0, sizeof(*_output->tracks) * arrlen(_input.tracks));
 
   for (size_t i = 0; i < (uint32_t)arrlen(_input.tracks); ++i) {
     const RawAnimation::JointTrack& track_in = _input.tracks[i];

@@ -1,23 +1,51 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 #if defined(QUEST_VR)
 #include "VrApiHooks.h"
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi.h"
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Vulkan.h"
-#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Helpers.h"
 
+#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi.h"
+#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Helpers.h"
+#include "../../OS/ThirdParty/OpenSource/ovr_sdk_mobile/VrApi/Include/VrApi_Vulkan.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
+
 #include "../../Utilities/Interfaces/ILog.h"
+
 #include "../../OS/Quest/VrApi.h"
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-Queue* pSynchronisationQueue = NULL;
+Queue*        pSynchronisationQueue = NULL;
 RenderTarget* pFragmentDensityMask = NULL;
 
-extern QuestVR* pQuest; 
+extern QuestVR* pQuest;
 
-bool hook_add_vk_instance_extensions(const char** instanceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer, uint bufferSize)
+bool hook_add_vk_instance_extensions(const char** instanceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer,
+                                     uint bufferSize)
 {
-    if (vrapi_GetInstanceExtensionsVulkan(pBuffer, &bufferSize)) {
+    if (vrapi_GetInstanceExtensionsVulkan(pBuffer, &bufferSize))
+    {
         LOGF(eERROR, "vrapi_GetInstanceExtensionsVulkan FAILED");
         ASSERT(false);
         return false;
@@ -66,7 +94,8 @@ bool hook_add_vk_instance_extensions(const char** instanceExtensionCache, uint* 
     return true;
 }
 
-bool hook_add_vk_device_extensions(const char** deviceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer, uint bufferSize)
+bool hook_add_vk_device_extensions(const char** deviceExtensionCache, uint* extensionCount, uint maxExtensionCount, char* pBuffer,
+                                   uint bufferSize)
 {
     const char requiredExtensions[] = "VK_KHR_multiview VK_EXT_fragment_density_map VK_EXT_fragment_density_map";
     ASSERT(bufferSize > sizeof(requiredExtensions));
@@ -75,7 +104,8 @@ bool hook_add_vk_device_extensions(const char** deviceExtensionCache, uint* exte
     pBuffer[sizeof(requiredExtensions) - 1] = ' ';
     uint remainingBufferSize = bufferSize - sizeof(requiredExtensions);
 
-    if (vrapi_GetDeviceExtensionsVulkan(pBuffer + sizeof(requiredExtensions), &remainingBufferSize)) {
+    if (vrapi_GetDeviceExtensionsVulkan(pBuffer + sizeof(requiredExtensions), &remainingBufferSize))
+    {
         LOGF(eERROR, "vrapi_GetDeviceExtensionsVulkan FAILED");
         ASSERT(false);
         return false;
@@ -132,7 +162,8 @@ bool hook_post_init_renderer(VkInstance instance, VkPhysicalDevice physicalDevic
     systemInfo.Device = device;
     systemInfo.PhysicalDevice = physicalDevice;
     ovrResult initResult = vrapi_CreateSystemVulkan(&systemInfo);
-    if (initResult != ovrSuccess) {
+    if (initResult != ovrSuccess)
+    {
         LOGF(eERROR, "Failed to create VrApi Vulkan System");
         return false;
     }
@@ -140,10 +171,7 @@ bool hook_post_init_renderer(VkInstance instance, VkPhysicalDevice physicalDevic
     return true;
 }
 
-void hook_pre_remove_renderer()
-{
-    vrapi_DestroySystemVulkan();
-}
+void hook_pre_remove_renderer() { vrapi_DestroySystemVulkan(); }
 
 void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** ppSwapChain)
 {
@@ -160,25 +188,25 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     ovrTextureSwapChain* swapChainTexture = vrapi_CreateTextureSwapChain4(&createInfo);
     ASSERT(swapChainTexture);
 
-	if (pDesc->mColorFormat == getRecommendedSwapchainFormat(true, true))
-	{
-		pQuest->isSrgb = true; 
-	}
-	else
-	{
-		pQuest->isSrgb = false;
-	}
-
+    if (pDesc->mColorFormat == getSupportedSwapchainFormat(pRenderer, pDesc, COLOR_SPACE_SDR_SRGB))
+    {
+        pQuest->isSrgb = true;
+    }
+    else
+    {
+        pQuest->isSrgb = false;
+    }
 
     uint imageCount = vrapi_GetTextureSwapChainLength(swapChainTexture);
-    
+
     ASSERT(imageCount >= pDesc->mImageCount);
 
-    SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + imageCount * 2 * sizeof(RenderTarget*) + sizeof(VkExtent2D) * imageCount + sizeof(SwapChainDesc));
+    SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + imageCount * 2 * sizeof(RenderTarget*) +
+                                                         sizeof(VkExtent2D) * imageCount + sizeof(SwapChainDesc));
     pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
     pSwapChain->mVR.ppFragmentDensityMasks = (RenderTarget**)(pSwapChain->ppRenderTargets + imageCount);
     pSwapChain->mVR.pFragmentDensityTextureSizes = (VkExtent2D*)(pSwapChain->mVR.ppFragmentDensityMasks + imageCount);
-    pSwapChain->mVulkan.pDesc = (SwapChainDesc*)(pSwapChain->mVR.pFragmentDensityTextureSizes + imageCount);
+    pSwapChain->mVk.pDesc = (SwapChainDesc*)(pSwapChain->mVR.pFragmentDensityTextureSizes + imageCount);
     ASSERT(pSwapChain);
 
     VkImage* images = (VkImage*)alloca(imageCount * 2 * sizeof(VkImage));
@@ -186,8 +214,9 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     for (int i = 0; i < imageCount; ++i)
     {
         images[i] = vrapi_GetTextureSwapChainBufferVulkan(swapChainTexture, i);
-        ovrResult result = vrapi_GetTextureSwapChainBufferFoveationVulkan(swapChainTexture, i, &images[imageCount + i], 
-            &pSwapChain->mVR.pFragmentDensityTextureSizes[i].width, &pSwapChain->mVR.pFragmentDensityTextureSizes[i].height);
+        ovrResult result = vrapi_GetTextureSwapChainBufferFoveationVulkan(swapChainTexture, i, &images[imageCount + i],
+                                                                          &pSwapChain->mVR.pFragmentDensityTextureSizes[i].width,
+                                                                          &pSwapChain->mVR.pFragmentDensityTextureSizes[i].height);
         if (result != ovrSuccess)
         {
             LOGF(eERROR, "Failed to get foveation textures from swap chain");
@@ -209,9 +238,9 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
     {
         descColor.mFlags |= TEXTURE_CREATION_FLAG_VR_FOVEATED_RENDERING;
 
-		vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_DYNAMIC_FOVEATION_ENABLED, true);
-		vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_FOVEATION_LEVEL, 4);
-		pQuest->mFoveatedRenderingEnabled = true;
+        vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_DYNAMIC_FOVEATION_ENABLED, true);
+        vrapi_SetPropertyInt(&pQuest->mJava, VRAPI_FOVEATION_LEVEL, 4);
+        pQuest->mFoveatedRenderingEnabled = true;
     }
 
     RenderTargetDesc descFragDensity = {};
@@ -237,13 +266,13 @@ void hook_add_swap_chain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapCh
 
     /************************************************************************/
     /************************************************************************/
-    *pSwapChain->mVulkan.pDesc = *pDesc;
+    *pSwapChain->mVk.pDesc = *pDesc;
     pSwapChain->mEnableVsync = pDesc->mEnableVsync;
     pSwapChain->mImageCount = imageCount;
-    pSwapChain->mVulkan.pVkSurface = NULL;
-    pSwapChain->mVulkan.mPresentQueueFamilyIndex = 0;
-    pSwapChain->mVulkan.pPresentQueue = NULL;
-    pSwapChain->mVulkan.pSwapChain = NULL;
+    pSwapChain->mVk.pSurface = NULL;
+    pSwapChain->mVk.mPresentQueueFamilyIndex = 0;
+    pSwapChain->mVk.pPresentQueue = NULL;
+    pSwapChain->mVk.pSwapChain = NULL;
 
     pSwapChain->mVR.pSwapChain = swapChainTexture;
 
@@ -258,9 +287,11 @@ void hook_remove_swap_chain(Renderer* pRenderer, SwapChain* pSwapChain)
         removeRenderTarget(pRenderer, pSwapChain->mVR.ppFragmentDensityMasks[i]);
     }
 
-    if (pSwapChain->mVR.pSwapChain) vrapi_DestroyTextureSwapChain(pSwapChain->mVR.pSwapChain);
+    if (pSwapChain->mVR.pSwapChain)
+        vrapi_DestroyTextureSwapChain(pSwapChain->mVR.pSwapChain);
 
-    if(pSwapChain) tf_free(pSwapChain);
+    if (pSwapChain)
+        tf_free(pSwapChain);
 }
 
 void hook_acquire_next_image(SwapChain* pSwapChain, uint32_t* pImageIndex)
@@ -270,7 +301,7 @@ void hook_acquire_next_image(SwapChain* pSwapChain, uint32_t* pImageIndex)
     pFragmentDensityMask = pSwapChain->mVR.ppFragmentDensityMasks[*pImageIndex];
 }
 
-inline ovrMatrix4f TanAngleMatrixFromProjectionYFlipped(const ovrMatrix4f * projection)
+inline ovrMatrix4f TanAngleMatrixFromProjectionYFlipped(const ovrMatrix4f* projection)
 {
     /*
         A projection matrix goes from a view point to NDC, or -1 to 1 space.
@@ -291,14 +322,11 @@ inline ovrMatrix4f TanAngleMatrixFromProjectionYFlipped(const ovrMatrix4f * proj
         z = projection[2][3] / ( clipZ * projection[3][2] - projection[2][2] )
         z = ( projection[2][3] / projection[3][2] ) / ( clipZ - projection[2][2] / projection[3][2] )
     */
-    const ovrMatrix4f tanAngleMatrix =
-    { {
-        { 0.5f * projection->M[0][0], 0.0f, 0.5f * projection->M[0][2] - 0.5f, 0.0f },
-        { 0.0f, -0.5f * projection->M[1][1], -0.5f * projection->M[1][2] - 0.5f, 0.0f },
-        { 0.0f, 0.0f, -1.0f, 0.0f },
-        // Store the values to convert a clip-Z to a linear depth in the unused matrix elements.
-        { projection->M[2][2], projection->M[2][3], projection->M[3][2], 1.0f }
-    } };
+    const ovrMatrix4f tanAngleMatrix = { { { 0.5f * projection->M[0][0], 0.0f, 0.5f * projection->M[0][2] - 0.5f, 0.0f },
+                                           { 0.0f, -0.5f * projection->M[1][1], -0.5f * projection->M[1][2] - 0.5f, 0.0f },
+                                           { 0.0f, 0.0f, -1.0f, 0.0f },
+                                           // Store the values to convert a clip-Z to a linear depth in the unused matrix elements.
+                                           { projection->M[2][2], projection->M[2][3], projection->M[3][2], 1.0f } } };
 
     return tanAngleMatrix;
 }
@@ -312,7 +340,8 @@ void hook_queue_present(const QueuePresentDesc* pQueuePresentDesc)
 
     ovrLayerProjection2 layer = vrapi_DefaultLayerProjection2();
     layer.HeadPose = headsetTracking.HeadPose;
-    for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++) {
+    for (int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++)
+    {
         // TODO: Support non multiview rendering
         layer.Textures[eye].ColorSwapChain = pSwapChain->mVR.pSwapChain;
         layer.Textures[eye].SwapChainIndex = pQueuePresentDesc->mIndex;

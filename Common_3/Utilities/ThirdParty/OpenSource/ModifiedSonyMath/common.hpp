@@ -12,6 +12,9 @@
 #define IMEMORY_FROM_HEADER
 #include "../../../Interfaces/IMemory.h"
 
+#include "../../../../Utilities/Math/Random.h"
+#include "../../../Interfaces/ILog.h"
+
 namespace Vectormath
 {
 
@@ -35,17 +38,11 @@ inline const float * toFloatPtr(const Matrix3 & m)    { return reinterpret_cast<
 inline const float * toFloatPtr(const Matrix4 & m)    { return reinterpret_cast<const float *>(&m); }
 inline const float * toFloatPtr(const Transform3 & t) { return reinterpret_cast<const float *>(&t); }
 
-// Shorthand to discard the last element of a Vector4 and get a Point3.
-inline Point3 toPoint3(const Vector4 & v4)
-{
-    return Point3(v4[0], v4[1], v4[2]);
-}
-
 // Convert from world (global) coordinates to local model coordinates.
 // Input matrix must be the inverse of the model matrix, e.g.: 'inverse(modelMatrix)'.
 inline Point3 worldPointToModel(const Matrix4 & invModelToWorldMatrix, const Point3 & point)
 {
-    return toPoint3(invModelToWorldMatrix * point);
+    return Point3(invModelToWorldMatrix * point);
 }
 
 // Makes a plane projection matrix that can be used for simple object shadow effects.
@@ -226,7 +223,7 @@ inline void decompose(const Matrix4& mat, Vector3* translationOut, Quat* rotatio
 #endif
 
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -277,13 +274,16 @@ static const float piMulTwo = 6.283185307179586476925f;        //!< pi*2 constan
 static const float piDivTwo = 1.570796326794896619231f;        //!< pi/2 constant
 
 // Range [0.f, 1.f]
-inline float randomFloat01() { return rand() / (float)RAND_MAX; }
+inline float randomFloat01() { return (float)getRandomInt() / (float)TF_RAND_MAX; }
 
 // Range [mn, mx]
 inline float randomFloat(float mn, float mx) { return randomFloat01() * (mx - mn) + mn; }
 
 // Range [mn, mx)
-inline int randomInt(int mn, int mx) { return rand() % (mx - mn) + mn; }
+inline int randomInt(int mn, int mx) { 
+	ASSERT(((long long)mx - (long long)mn) <= TF_RAND_MAX);
+	return getRandomInt() % (mx - mn) + mn; 
+}
 
 //----------------------------------------------------------------------------
 // Comparison operators for Vector2/3/
@@ -483,6 +483,15 @@ inline const float2& operator*=(float2&a, float2& b) { return a = a * b; }
 inline const float2& operator/=(float2& a, float b) { return a = a / b; }
 inline const float2& operator/=(float2&a, const float2& b) { return a = a / b; }
 
+inline bool operator==(const float2 &a, const float2 &b)
+{
+    return ((a.x - b.x < FLT_EPSILON && a.x - b.x > -FLT_EPSILON) &&
+            (a.y - b.y < FLT_EPSILON && a.y - b.y > -FLT_EPSILON));
+}
+inline bool operator!=(const float2 &a, const float2 &b)
+{
+    return !(a == b);
+}
 
 //----------------------------------------------------------------------------
 // float3
@@ -544,6 +553,17 @@ inline const float3& operator*=(float3&a, float3& b) { return a = a * b; }
 inline const float3& operator/=(float3& a, float b) { return a = a / b; }
 inline const float3& operator/=(float3&a, const float3& b) { return a = a / b; }
 
+inline bool operator==(const float3 &a, const float3 &b)
+{
+    return ((a.x - b.x < FLT_EPSILON && a.x - b.x > -FLT_EPSILON) &&
+            (a.y - b.y < FLT_EPSILON && a.y - b.y > -FLT_EPSILON) &&
+            (a.z - b.z < FLT_EPSILON && a.z - b.z > -FLT_EPSILON));
+}
+inline bool operator!=(const float3 &a, const float3 &b)
+{
+    return !(a == b);
+}
+
 //----------------------------------------------------------------------------
 // float4
 //----------------------------------------------------------------------------
@@ -600,6 +620,99 @@ inline const float4& operator*=(float4&a, float b) { return a = a * b; }
 inline const float4& operator*=(float4&a, float4& b) { return a = a * b; }
 inline const float4& operator/=(float4&a, const float4& b) { return a = a / b; }
 inline const float4& operator/=(float4& a, float b) { return a = a / b; }
+
+inline bool operator==(const float4 &a, const float4 &b)
+{
+    return ((a.x - b.x < FLT_EPSILON && a.x - b.x > -FLT_EPSILON) &&
+            (a.y - b.y < FLT_EPSILON && a.y - b.y > -FLT_EPSILON) &&
+            (a.z - b.z < FLT_EPSILON && a.z - b.z > -FLT_EPSILON) &&
+            (a.w - b.w < FLT_EPSILON && a.w - b.w > -FLT_EPSILON));
+}
+inline bool operator!=(const float4 &a, const float4 &b)
+{
+    return !(a == b);
+}
+
+inline float length(const float2& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return sqrtf(result);
+}
+
+inline float length(const float3& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 3; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return sqrtf(result);
+}
+
+inline float length(const float4& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 4; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return sqrtf(result);
+}
+
+inline float lengthSqr(const float2& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 2; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return result;
+}
+
+inline float lengthSqr(const float3& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 3; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return result;
+}
+
+inline float lengthSqr(const float4& vec)
+{
+	float result = 0.0f;
+	for (uint32_t i = 0; i < 4; ++i)
+	{
+		result += vec[i] * vec[i];
+	}
+	return result;
+}
+
+inline float2 normalize(const float2& x)
+{
+	const float len = length(x);
+	const float lenInv = (1.0f / len);
+	return float2((x.x * lenInv), (x.y * lenInv));
+}
+
+inline float3 normalize(const float3& x)
+{
+	const float len = length(x);
+	const float lenInv = (1.0f / len);
+	return float3((x.x * lenInv), (x.y * lenInv), (x.z * lenInv));
+}
+
+inline float4 normalize(const float4& x)
+{
+	const float len = length(x);
+	const float lenInv = (1.0f / len);
+	return float4((x.x * lenInv), (x.y * lenInv), (x.z * lenInv), (x.w * lenInv));
+}
 
 
 
@@ -686,7 +799,12 @@ inline const int2& operator/=(int2& a, int b) { return a = a / b; }
 inline const int2& operator/=(int2&a, const int2& b) { return a = a / b; }
 
 inline const bool operator==(const int2& a, const int2& b) { return a.x == b.x && a.y == b.y; }
+inline const bool operator!=(const int2& a, const int2& b) { return !(a == b); }
 
+inline bool operator<(const int2& a, const int2& b) { return a.x < b.x && a.y < b.y; }
+inline bool operator<=(const int2& a, const int2& b) { return a.x <= b.x&& a.y <= b.y; }
+inline bool operator>(const int2& a, const int2& b) { return a.x > b.x&& a.y > b.y; }
+inline bool operator>=(const int2& a, const int2& b) { return a.x >= b.x && a.y >= b.y; }
 
 //----------------------------------------------------------------------------
 // int3
@@ -739,6 +857,12 @@ inline const int3& operator/=(int3& a, int b) { return a = a / b; }
 inline const int3& operator/=(int3&a, const int3& b) { return a = a / b; }
 
 inline const bool operator==(const int3& a, const int3& b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+inline const bool operator!=(const int3& a, const int3& b) { return !(a == b); }
+
+inline bool operator<(const int3& a, const int3& b) { return a.x < b.x&& a.y < b.y && a.z < b.z; }
+inline bool operator<=(const int3& a, const int3& b) { return a.x <= b.x && a.y <= b.y && a.z <= b.z; }
+inline bool operator>(const int3& a, const int3& b) { return a.x > b.x && a.y > b.y && a.z > b.z; }
+inline bool operator>=(const int3& a, const int3& b) { return a.x >= b.x && a.y >= b.y && a.z >= b.z; }
 
 //----------------------------------------------------------------------------
 // int4
@@ -788,6 +912,12 @@ inline const int4& operator/=(int4&a, const int4& b) { return a = a / b; }
 inline const int4& operator/=(int4& a, int b) { return a = a / b; }
 
 inline const bool operator==(const int4& a, const int4& b) { return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w; }
+inline const bool operator!=(const int4& a, const int4& b) { return !(a == b); }
+
+inline bool operator<(const int4& a, const int4& b) { return a.x < b.x&& a.y < b.y&& a.z < b.z && a.w < b.w; }
+inline bool operator<=(const int4& a, const int4& b) { return a.x <= b.x && a.y <= b.y && a.z <= b.z && a.w <= b.w; }
+inline bool operator>(const int4& a, const int4& b) { return a.x > b.x && a.y > b.y && a.z > b.z && a.w > b.w; }
+inline bool operator>=(const int4& a, const int4& b) { return a.x >= b.x && a.y >= b.y && a.z >= b.z && a.w >= b.w; }
 
 #endif
 
@@ -841,6 +971,13 @@ inline const uint2& operator*=(uint2&a, uint2& b) { return a = a * b; }
 inline const uint2& operator/=(uint2& a, uint b) { return a = a / b; }
 inline const uint2& operator/=(uint2&a, const uint2& b) { return a = a / b; }
 
+inline const bool operator==(const uint2& a, const uint2& b) { return a.x == b.x && a.y == b.y; }
+inline const bool operator!=(const uint2& a, const uint2& b) { return !(a == b); }
+
+inline bool operator<(const uint2& a, const uint2& b) { return a.x < b.x&& a.y < b.y; }
+inline bool operator<=(const uint2& a, const uint2& b) { return a.x <= b.x && a.y <= b.y; }
+inline bool operator>(const uint2& a, const uint2& b) { return a.x > b.x && a.y > b.y; }
+inline bool operator>=(const uint2& a, const uint2& b) { return a.x >= b.x && a.y >= b.y; }
 
 //----------------------------------------------------------------------------
 // uint3
@@ -891,6 +1028,13 @@ inline const uint3& operator*=(uint3&a, uint3& b) { return a = a * b; }
 inline const uint3& operator/=(uint3& a, uint b) { return a = a / b; }
 inline const uint3& operator/=(uint3&a, const uint3& b) { return a = a / b; }
 
+inline const bool operator==(const uint3& a, const uint3& b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+inline const bool operator!=(const uint3& a, const uint3& b) { return !(a == b); }
+
+inline bool operator<(const uint3& a, const uint3& b) { return a.x < b.x&& a.y < b.y&& a.z < b.z; }
+inline bool operator<=(const uint3& a, const uint3& b) { return a.x <= b.x && a.y <= b.y && a.z <= b.z; }
+inline bool operator>(const uint3& a, const uint3& b) { return a.x > b.x && a.y > b.y && a.z > b.z; }
+inline bool operator>=(const uint3& a, const uint3& b) { return a.x >= b.x && a.y >= b.y && a.z >= b.z; }
 //----------------------------------------------------------------------------
 // uint4
 //----------------------------------------------------------------------------
@@ -937,6 +1081,13 @@ inline const uint4& operator*=(uint4&a, uint4& b) { return a = a * b; }
 inline const uint4& operator/=(uint4&a, const uint4& b) { return a = a / b; }
 inline const uint4& operator/=(uint4& a, uint b) { return a = a / b; }
 
+inline const bool operator==(const uint4& a, const uint4& b) { return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w; }
+inline const bool operator!=(const uint4& a, const uint4& b) { return !(a == b); }
+
+inline bool operator<(const uint4& a, const uint4& b) { return a.x < b.x&& a.y < b.y&& a.z < b.z&& a.w < b.w; }
+inline bool operator<=(const uint4& a, const uint4& b) { return a.x <= b.x && a.y <= b.y && a.z <= b.z && a.w <= b.w; }
+inline bool operator>(const uint4& a, const uint4& b) { return a.x > b.x && a.y > b.y && a.z > b.z && a.w > b.w; }
+inline bool operator>=(const uint4& a, const uint4& b) { return a.x >= b.x && a.y >= b.y && a.z >= b.z && a.w >= b.w; }
 //----------------------------------------------------------------------------
 // uint* to vec* conversions
 //----------------------------------------------------------------------------
@@ -956,6 +1107,19 @@ constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
 template <class T>
 constexpr T max(const T &x, const T &y) { return (x > y) ? x : y; }
 
+inline uint2 min(const uint2& x, const uint2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+inline uint3 min(const uint3& x, const uint3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
+inline uint4 min(const uint4& x, const uint4& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
+
+inline float2 min(const float2& x, const float2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+inline float3 min(const float3& x, const float3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
+inline float4 min(const float4& x, const float4& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
+
+inline float2 max(const float2& x, const float2& y) { return { max(x.x, y.x), max(x.y, y.y) }; }
+inline float3 max(const float3& x, const float3& y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z) }; }
+inline float4 max(const float4& x, const float4& y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z), max(x.w, y.w) }; }
+
+
 template <>
 constexpr uint2 min<>(const uint2 &x, const uint2 &y) { return { min(x.x, y.x), min(x.y, y.y) }; }
 template <>
@@ -963,16 +1127,26 @@ constexpr uint3 min<>(const uint3 &x, const uint3 &y) { return { min(x.x, y.x), 
 template <>
 constexpr uint4 min<>(const uint4 &x, const uint4 &y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
 
-inline uint2 min(const uint2 &x, const uint2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
-inline uint3 min(const uint3 &x, const uint3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
-inline uint4 min(const uint4 &x, const uint4& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
+template <>
+constexpr uint2 max<>(const uint2 &x, const uint2 &y) { return { max(x.x, y.x), max(x.y, y.y) }; }
+template <>
+constexpr uint3 max<>(const uint3 &x, const uint3 &y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z) }; }
+template <>
+constexpr uint4 max<>(const uint4 &x, const uint4 &y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z), max(x.w, y.w) }; }
 
 template <>
 constexpr float2 min<>(const float2 &x, const float2 &y) { return { min(x.x, y.x), min(x.y, y.y) }; }
 template <>
+constexpr float3 min<>(const float3 &x, const float3 &y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
+template <>
+constexpr float4 min<>(const float4 &x, const float4 &y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
+
+template <>
 constexpr float2 max<>(const float2 &x, const float2 &y) { return { max(x.x, y.x), max(x.y, y.y) }; }
-inline float2 min(const float2 &x, const float2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
-inline float2 max(const float2 &x, const float2& y) { return { max(x.x, y.x), max(x.y, y.y) }; }
+template <>
+constexpr float3 max<>(const float3 &x, const float3 &y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z) }; }
+template <>
+constexpr float4 max<>(const float4 &x, const float4 &y) { return { max(x.x, y.x), max(x.y, y.y), max(x.z, y.z), max(x.w, y.w) }; }
 
 inline Vector3 min(const Vector3 &a, const Vector3 &b)
 {
@@ -1072,24 +1246,24 @@ inline float rsqrtf(const float v) {
 #endif
 }
 
-inline float sqrf(const float x) { return x * x; }
+inline constexpr float sqrf(const float x) { return x * x; }
 inline float sincf(const float x) { return (x == 0) ? 1 : sinf(x) / x; }
 //inline float roundf(float x) { return floorf((x)+0.5f); }
 
 template <class T> 
 inline T clamp(const T& value, const T& minV, const T& maxV){ return min(max(value, minV), maxV); }
 
-inline float intAdjustf(const float x, const float diff = 0.01f) 
+inline float intAdjustf(const float x, const float diff = 0.01f)
 {
 	float f = roundf(x);
 	return (fabsf(f - x) < diff) ? f : x;
 }
 
-inline float degToRad(float degrees) { 	return (degrees * PI / 180.0f); }
-inline float radToDeg(float radians) { 	return (radians * 180.0f / PI); }
-inline bool isPowerOf2(const int x) { return (x & (x - 1)) == 0; } // Note: returns true for 0
+inline constexpr float degToRad(float degrees) { 	return (degrees * PI / 180.0f); }
+inline constexpr float radToDeg(float radians) { 	return (radians * 180.0f / PI); }
+inline constexpr bool isPowerOf2(const int x) { return (x & (x - 1)) == 0; } // Note: returns true for 0
 
-inline unsigned int getClosestPowerOfTwo(const unsigned int x) 
+inline unsigned int getClosestPowerOfTwo(const unsigned int x)
 {
 	unsigned int i = 1;
 	while (i < x) i += i;
@@ -1098,7 +1272,7 @@ inline unsigned int getClosestPowerOfTwo(const unsigned int x)
 	return i;
 }
 
-inline unsigned int getUpperPowerOfTwo(const unsigned int x) 
+inline unsigned int getUpperPowerOfTwo(const unsigned int x)
 {
 	unsigned int i = 1;
 	while (i < x) i += i;
@@ -1106,7 +1280,7 @@ inline unsigned int getUpperPowerOfTwo(const unsigned int x)
 	return i;
 }
 
-inline unsigned int getLowerPowerOfTwo(const unsigned int x) 
+inline unsigned int getLowerPowerOfTwo(const unsigned int x)
 {
 	unsigned int i = 1;
 	while (i <= x) i += i;
@@ -1114,11 +1288,11 @@ inline unsigned int getLowerPowerOfTwo(const unsigned int x)
 	return i >> 1;
 }
 
-static inline uint32_t round_up(uint32_t value, uint32_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
-static inline uint64_t round_up_64(uint64_t value, uint64_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
+static inline constexpr uint32_t round_up(uint32_t value, uint32_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
+static inline constexpr uint64_t round_up_64(uint64_t value, uint64_t multiple) { return ((value + multiple - 1) / multiple) * multiple; }
 
-static inline uint32_t round_down(uint32_t value, uint32_t multiple) { return value  - value % multiple; }
-static inline uint64_t round_down_64(uint64_t value, uint64_t multiple) { return value - value % multiple; }
+static inline constexpr uint32_t round_down(uint32_t value, uint32_t multiple) { return value  - value % multiple; }
+static inline constexpr uint64_t round_down_64(uint64_t value, uint64_t multiple) { return value - value % multiple; }
 
 template<typename T>
 static inline size_t tf_mem_hash(const T* mem, size_t size, size_t prev = 2166136261U)
@@ -1133,17 +1307,17 @@ static inline size_t tf_mem_hash(const T* mem, size_t size, size_t prev = 216613
 //----------------------------------------------------------------------------
 // Color conversions / packing / unpacking
 //----------------------------------------------------------------------------
-static const float gGammaValue = 2.4f;
+static constexpr float gGammaValue = 2.4f;
 
-inline float srgbToLinearf(float val)
+inline constexpr float srgbToLinearf(float val)
 {
-	static const float threshold = 0.04045f;
+	const float threshold = 0.04045f;
 	if (val <= threshold)
 		return val / 12.92f;
 
 	return powf((val + 0.055f) / 1.055f, gGammaValue);
 }
-inline float3 srgbToLinearf3(float3 val)
+inline constexpr float3 srgbToLinearf3(float3 val)
 {
 	return float3(
 		srgbToLinearf(val.x),
@@ -1151,7 +1325,7 @@ inline float3 srgbToLinearf3(float3 val)
 		srgbToLinearf(val.z)
 	);
 }
-inline float4 srgbToLinearf4(float4 val)
+inline constexpr float4 srgbToLinearf4(float4 val)
 {
 	return float4(
 		srgbToLinearf(val.x),
@@ -1160,14 +1334,14 @@ inline float4 srgbToLinearf4(float4 val)
 		val.w
 	);
 }
-inline float linearToSrgbf(float val)
+inline constexpr float linearToSrgbf(float val)
 {
-	static const float threshold = 0.0031308f;
+	const float threshold = 0.0031308f;
 	if (val <= threshold)
 		return val * 12.92f;
 	return 1.055f * powf(val, 1.f / gGammaValue) - 0.055f;
 }
-inline float3 linearToSrgbf3(float3 val)
+inline constexpr float3 linearToSrgbf3(float3 val)
 {
 	return float3(
 		linearToSrgbf(val.x),
@@ -1175,7 +1349,7 @@ inline float3 linearToSrgbf3(float3 val)
 		linearToSrgbf(val.z)
 	);
 }
-inline float4 linearToSrgbf4(float4 val)
+inline constexpr float4 linearToSrgbf4(float4 val)
 {
 	return float4(
 		linearToSrgbf(val.x),
@@ -1421,6 +1595,32 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 	(*ppPoints) = (float*)pPoints;
 }
 
+inline void generateQuad(float **ppPoints, int *pNumberOfPoints, float sideLength = 1.0f)
+{
+	uint32_t numberOfPoints = 4;
+	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
+	uint32_t vertexCounter = 0;
+
+	// Single quad
+	Vector3 topLeftPoint = Vector3{ -1.0f, 1.0f, 0.0f } * sideLength;
+	Vector3 topRightPoint = Vector3{ 1.0f, 1.0f, 0.0f } * sideLength;
+	Vector3 botLeftPoint = Vector3{ -1.0f, -1.0f, 0.0f } * sideLength;
+	Vector3 botRightPoint = Vector3{ 1.0f, -1.0f, 0.0f } * sideLength;
+
+	pPoints[vertexCounter++] = v3ToF3(topLeftPoint);
+	pPoints[vertexCounter++] = v3ToF3(normalize(topLeftPoint));
+	pPoints[vertexCounter++] = v3ToF3(topRightPoint);
+	pPoints[vertexCounter++] = v3ToF3(normalize(topRightPoint));
+	pPoints[vertexCounter++] = v3ToF3(botLeftPoint);
+	pPoints[vertexCounter++] = v3ToF3(normalize(botLeftPoint));
+	pPoints[vertexCounter++] = v3ToF3(botRightPoint);
+	pPoints[vertexCounter++] = v3ToF3(normalize(botRightPoint));
+
+	*pNumberOfPoints = numberOfPoints * 3 * 2;
+	(*ppPoints) = (float*)pPoints;
+}
+
+
 // Generates an array of vertices and normals for a 3D rectangle (cuboid)
 inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float width = 1.f, float height = 1.f, float depth = 1.f, Vector3 center = Vector3{ 0.f,0.f,0.f })
 {
@@ -1659,6 +1859,207 @@ inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float wid
 	*pNumberOfPoints = numberOfPoints * 3 * 2;
 	(*ppPoints) = (float*)pPoints;
 }
+
+// Generates an array of vertices and normals for a bone of length = 1.f and width = widthRatio 
+inline void generateIndexedBonePoints(float **ppPoints, int *pNumberOfPoints, float widthRatio, uint32_t boneCount, const int16_t* parentIndices)
+{
+	struct indexBonePoint
+	{
+		float3 position;
+		float3 normal;
+		uint16_t jointIndices[4];
+	};
+	uint32_t vertexSize = sizeof(indexBonePoint);
+
+	uint32_t numberOfPoints = 8 * 3 * boneCount;
+	indexBonePoint* pPoints = (indexBonePoint*)tf_malloc(numberOfPoints * vertexSize);
+	uint32_t vertexCounter = 0;
+
+
+
+	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
+	Vector3 topWidth	= Vector3{ widthRatio, .05f, .05f };
+	Vector3 botWidth	= Vector3{ widthRatio, -.05f, -.05f };
+	Vector3 frontWidth	= Vector3{ widthRatio, -.05f, .05f };
+	Vector3 backWidth	= Vector3{ widthRatio, .05f, -.05f };
+	Vector3 boneLength	= Vector3{ 1.f, 0.f, 0.f };
+
+	Vector3 frontTopLeftFaceNormal = normalize(cross(frontWidth - origin, topWidth - origin));
+	Vector3 backTopLeftFaceNormal = normalize(cross(topWidth - origin, backWidth - origin));
+	Vector3 frontBotLeftFaceNormal = normalize(cross(botWidth - origin, frontWidth - origin));
+	Vector3 backBotLeftFaceNormal = normalize(cross(backWidth - origin, botWidth - origin));
+	Vector3 frontTopRightFaceNormal = normalize(cross(boneLength - frontWidth, topWidth - frontWidth));
+	Vector3 backTopRightFaceNormal = normalize(cross(topWidth - backWidth, boneLength - backWidth));
+	Vector3 frontBotRightFaceNormal = normalize(cross(botWidth - frontWidth, boneLength - frontWidth));
+	Vector3 backBotRightFaceNormal = normalize(cross(boneLength - backWidth, botWidth - backWidth));
+
+	float rightFaceArea = length(cross(boneLength - frontWidth, topWidth - frontWidth));
+	float leftFaceArea = length(cross(frontWidth - origin, topWidth - origin));
+	float maxFaceArea = max(leftFaceArea, rightFaceArea);
+	
+	float leftRatio = leftFaceArea / maxFaceArea;
+	float rightRatio = rightFaceArea / maxFaceArea;
+
+	Vector3 originNorm = normalize((frontTopLeftFaceNormal + backTopLeftFaceNormal + frontBotLeftFaceNormal + backBotLeftFaceNormal) / 4);
+	Vector3 boneLengthNorm = normalize((frontTopRightFaceNormal + backTopRightFaceNormal + frontBotRightFaceNormal + backBotRightFaceNormal) / 4);
+	Vector3 topWidthNorm = normalize((leftRatio * frontTopLeftFaceNormal + leftRatio * backTopLeftFaceNormal + rightRatio * frontTopRightFaceNormal + rightRatio * backTopRightFaceNormal) / 4);
+	Vector3 botWidthNorm = normalize((leftRatio * frontBotLeftFaceNormal + leftRatio * backBotLeftFaceNormal + rightRatio * frontBotRightFaceNormal + rightRatio * backBotRightFaceNormal) / 4);
+	Vector3 frontWidthNorm = normalize((leftRatio * frontBotLeftFaceNormal + leftRatio * frontTopLeftFaceNormal + rightRatio * frontBotRightFaceNormal + rightRatio * frontTopRightFaceNormal) / 4);
+	Vector3 backWidthNorm = normalize((leftRatio * backBotLeftFaceNormal + leftRatio * backTopLeftFaceNormal + rightRatio * backBotRightFaceNormal + rightRatio * backTopRightFaceNormal) / 4);
+	
+	for (uint32_t boneIndex = 0; boneIndex < boneCount; boneIndex++)
+	{
+		uint16_t currBoneIndex = boneIndex;
+		uint16_t currParentIndex = parentIndices[boneIndex];
+		// root bone parents itself
+		if (boneIndex == 0)
+		{
+			currParentIndex = parentIndices[boneIndex];
+		}
+		//Front
+		// Top left triangle
+		pPoints[vertexCounter].position = v3ToF3( origin );
+		pPoints[vertexCounter].normal   = v3ToF3( normalize( originNorm ) );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( frontWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( normalize( frontWidthNorm ) );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( topWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( normalize( topWidthNorm ) );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Top right triangle
+		pPoints[vertexCounter].position = v3ToF3( topWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( frontWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( boneLength );
+		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Bot left triangle
+		pPoints[vertexCounter].position = v3ToF3( origin );
+		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( botWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( frontWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Bot right triangle
+		pPoints[vertexCounter].position = v3ToF3( frontWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( frontWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( botWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( boneLength );
+		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		//Back
+		// Top left triangle
+		pPoints[vertexCounter].position = v3ToF3( origin );
+		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( topWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( backWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Top right triangle
+		pPoints[vertexCounter].position = v3ToF3( topWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( topWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( boneLength );
+		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( backWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Bot left triangle
+		pPoints[vertexCounter].position = v3ToF3( origin );
+		pPoints[vertexCounter].normal   = v3ToF3( originNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( backWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( botWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+
+		// Bot right triangle
+		pPoints[vertexCounter].position = v3ToF3( backWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( backWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( boneLength );
+		pPoints[vertexCounter].normal   = v3ToF3( boneLengthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+		pPoints[vertexCounter].position = v3ToF3( botWidth );
+		pPoints[vertexCounter].normal   = v3ToF3( botWidthNorm );
+		pPoints[vertexCounter].jointIndices[0]  = currBoneIndex;
+		pPoints[vertexCounter].jointIndices[1]  = currParentIndex;
+		vertexCounter++;
+	}
+
+
+	*pNumberOfPoints = numberOfPoints * 8;
+	(*ppPoints) = (float*)pPoints;
+}
+
 
 
 #define MAKEQUAD(x0, y0, x1, y1, o)\
@@ -2442,10 +2843,17 @@ inline void decomposeMatrix(const Matrix4& matrix, Vector3& translation, Vector4
 		}
 	}
 	// Based on http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/christian.htm
+#if !VECTORMATH_MODE_SCALAR
 	rotation.setW(sqrt((FloatInVec)max(0.0f, 1 + matrix[0][0] + matrix[1][1] + matrix[2][2])) / 2);
 	rotation.setX(sqrt((FloatInVec)max(0.0f, 1 + matrix[0][0] - matrix[1][1] - matrix[2][2])) / 2);
 	rotation.setY(sqrt((FloatInVec)max(0.0f, 1 - matrix[0][0] + matrix[1][1] - matrix[2][2])) / 2);
 	rotation.setZ(sqrt((FloatInVec)max(0.0f, 1 - matrix[0][0] - matrix[1][1] + matrix[2][2])) / 2);
+#else
+	rotation.setW(sqrt(max(0.0f, 1 + matrix[0][0] + matrix[1][1] + matrix[2][2])) / 2);
+	rotation.setX(sqrt(max(0.0f, 1 + matrix[0][0] - matrix[1][1] - matrix[2][2])) / 2);
+	rotation.setY(sqrt(max(0.0f, 1 - matrix[0][0] + matrix[1][1] - matrix[2][2])) / 2);
+	rotation.setZ(sqrt(max(0.0f, 1 - matrix[0][0] - matrix[1][1] + matrix[2][2])) / 2);
+#endif
 }
 
 inline const Vector3 eulerAngles(const Matrix3& rotationMatrix)
@@ -2483,6 +2891,26 @@ inline const Vector4 calculateFrustumPlane(const Matrix4& invMvp,
 	const float distance = dot(dir, pointB.getXYZ());
 	const Vector4 plane = Vector4(dir, -distance);
 	return plane;
+}
+
+inline const float2 frustumPlaneSizeFovX(const float fovX, const float aspect, const float distance)
+{
+	float2 size;
+
+	size.x = 2.0f * distance * tanf(0.5f * fovX);
+	size.y = 1.0f / aspect * size.x;
+
+	return size;
+}
+
+inline const float2 frustumPlaneSizeFovY(const float fovY, const float aspect, const float distance)
+{
+	float2 size;
+
+	size.y = 2.0f * distance * tanf(0.5f * fovY);
+	size.x = aspect * size.y;
+
+	return size;
 }
 
 inline const Frustum calculateFrustumPlanesFromRect(const Matrix4& mvp,

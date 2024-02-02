@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,169 +20,179 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
+
+#include <android/asset_manager.h>
+#include <dirent.h>
+#include <errno.h>
+#include <sys/inotify.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include <errno.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/inotify.h>
-#include <dirent.h>
-#include <android/asset_manager.h>
+
 #include "../../Utilities/Interfaces/IMemory.h"
 
-bool UnixOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
-
-static size_t  AssetStreamRead(FileStream* pFile, void* outputBuffer, size_t bufferSizeInBytes)
+extern "C"
 {
-	return AAsset_read(pFile->pAsset, outputBuffer, bufferSizeInBytes);
+    bool fsIsBundledResourceDir(ResourceDirectory resourceDir);
+    bool fsMergeDirAndFileName(const char* dir, const char* path, char separator, size_t dstSize, char* dst);
 }
-
-static size_t AssetStreamWrite(FileStream* pFile, const void* sourceBuffer, size_t byteCount)
-{
-	LOGF(LogLevel::eERROR, "Bundled Android assets are not writable.");
-	return 0;
-}
-
-static bool AssetStreamSeek(FileStream* pFile, SeekBaseOffset baseOffset, ssize_t seekOffset)
-{
-	int origin = SEEK_SET;
-	switch (baseOffset)
-	{
-		case SBO_START_OF_FILE: origin = SEEK_SET; break;
-		case SBO_CURRENT_POSITION: origin = SEEK_CUR; break;
-		case SBO_END_OF_FILE: origin = SEEK_END; break;
-	}
-	return AAsset_seek64(pFile->pAsset, seekOffset, origin) != -1;
-}
-
-static ssize_t AssetStreamGetSeekPosition(const FileStream* pFile)
-{
-	return (ssize_t)AAsset_seek64(pFile->pAsset, 0, SEEK_CUR);
-}
-
-static ssize_t AssetStreamGetSize(const FileStream* pFile)
-{
-	return pFile->mSize;
-}
-
-static bool AssetStreamFlush(FileStream* pFile) 
-{ 
-	return true; 
-}
-
-static bool AssetStreamIsAtEnd(const FileStream* pFile)
-{
-	return AAsset_getRemainingLength64(pFile->pAsset) == 0;
-}
-
-static bool AssetStreamClose(FileStream* pFile)
-{
-	AAsset_close(pFile->pAsset);
-	return true;
-}
-
-static IFileSystem gBundledFileIO =
-{
-	NULL,
-	AssetStreamClose,
-	AssetStreamRead,
-	AssetStreamWrite,
-	AssetStreamSeek,
-	AssetStreamGetSeekPosition,
-	AssetStreamGetSize,
-	AssetStreamFlush,
-	AssetStreamIsAtEnd
-};
-
-static bool gInitialized = false;
-static const char* gResourceMounts[RM_COUNT];
-const char* GetResourceMount(ResourceMount mount)
-{
-	return gResourceMounts[mount];
-}
-bool fsIsBundledResourceDir(ResourceDirectory resourceDir);
 
 static ANativeActivity* pNativeActivity = NULL;
-static AAssetManager* pAssetManager = NULL;
+static AAssetManager*   pAssetManager = NULL;
+
+static bool        gInitialized = false;
+static const char* gResourceMounts[RM_COUNT];
+const char*        ioAndroidGetResourceMount(ResourceMount mount) { return gResourceMounts[mount]; }
+
+struct AndroidFileStream
+{
+    AAsset* asset;
+};
+
+#define ASD(name, fs) struct AndroidFileStream* name = (struct AndroidFileStream*)(fs)->mUser.data
+
+static size_t ioAssetStreamRead(FileStream* fs, void* dst, size_t size)
+{
+    ASD(stream, fs);
+    return AAsset_read(stream->asset, dst, size);
+}
+
+static bool ioAssetStreamSeek(FileStream* fs, SeekBaseOffset baseOffset, ssize_t seekOffset)
+{
+    int origin = SEEK_SET;
+    switch (baseOffset)
+    {
+    case SBO_START_OF_FILE:
+        origin = SEEK_SET;
+        break;
+    case SBO_CURRENT_POSITION:
+        origin = SEEK_CUR;
+        break;
+    case SBO_END_OF_FILE:
+        origin = SEEK_END;
+        break;
+    }
+    ASD(stream, fs);
+    return AAsset_seek64(stream->asset, seekOffset, origin) != -1;
+}
+
+static ssize_t ioAssetStreamGetPosition(FileStream* fs)
+{
+    ASD(stream, fs);
+    return (ssize_t)AAsset_seek64(stream->asset, 0, SEEK_CUR);
+}
+
+static ssize_t ioAssetStreamGetSize(FileStream* fs)
+{
+    ASD(stream, fs);
+    return AAsset_getLength64(stream->asset);
+}
+
+static bool ioAssetStreamIsAtEnd(FileStream* fs)
+{
+    ASD(stream, fs);
+    return AAsset_getRemainingLength64(stream->asset) == 0;
+}
+
+static bool ioAssetStreamClose(FileStream* fs)
+{
+    ASD(stream, fs);
+    AAsset_close(stream->asset);
+    return true;
+}
+
+extern IFileSystem gUnixSystemFileIO;
+
+bool ioAssetStreamOpen(IFileSystem* io, ResourceDirectory rd, const char* fileName, FileMode mode, FileStream* fs)
+{
+    // Cant write to system files
+    if (RD_SYSTEM == rd && (mode & FM_WRITE))
+    {
+        LOGF(LogLevel::eERROR, "Trying to write to system file with FileMode '%d'", mode);
+        return false;
+    }
+
+    if (!fsIsBundledResourceDir(rd))
+        return fsIoOpenStreamFromPath(&gUnixSystemFileIO, rd, fileName, mode, fs);
+
+    char filePath[FS_MAX_PATH];
+    fsMergeDirAndFileName(fsGetResourceDirectory(rd), fileName, '/', sizeof filePath, filePath);
+
+    if ((mode & FM_WRITE) != 0)
+    {
+        LOGF(LogLevel::eERROR, "Cannot open %s with mode %i: the Android bundle is read-only.", filePath, mode);
+        return false;
+    }
+
+    AAsset* file = AAssetManager_open(pAssetManager, filePath, AASSET_MODE_BUFFER);
+    if (!file)
+    {
+        LOGF(LogLevel::eERROR, "Failed to open '%s' with mode %i.", filePath, mode);
+        return false;
+    }
+
+    ASD(stream, fs);
+
+    stream->asset = file;
+
+    fs->mMode = mode;
+    fs->pIO = io;
+    fs->mMount = fsGetResourceDirectoryMount(rd);
+
+    if ((mode & FM_READ) && (mode & FM_APPEND) && !(mode & FM_WRITE))
+    {
+        if (!io->Seek(fs, SBO_END_OF_FILE, 0))
+        {
+            ioAssetStreamClose(fs);
+            return false;
+        }
+    }
+    return true;
+}
+
+static IFileSystem gBundledFileIO = {
+    ioAssetStreamOpen,    ioAssetStreamClose,        ioAssetStreamRead,    NULL,
+    ioAssetStreamSeek,    ioAssetStreamGetPosition,  ioAssetStreamGetSize, NULL,
+    ioAssetStreamIsAtEnd, ioAndroidGetResourceMount,
+};
+
+IFileSystem* pSystemFileIO = &gBundledFileIO;
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
-	if (gInitialized)
-	{
-		LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
-		return true;
-	}
-	ASSERT(pDesc);
-	pSystemFileIO->GetResourceMount = GetResourceMount;
+    if (gInitialized)
+    {
+        LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+        return true;
+    }
+    ASSERT(pDesc);
 
-	for (uint32_t i = 0; i < RM_COUNT; ++i)
-		gResourceMounts[i] = "";
+    for (uint32_t i = 0; i < RM_COUNT; ++i)
+        gResourceMounts[i] = "";
 
-	pNativeActivity = (ANativeActivity*)pDesc->pPlatformData;
-	ASSERT(pNativeActivity);
+    pNativeActivity = (ANativeActivity*)pDesc->pPlatformData;
+    ASSERT(pNativeActivity);
 
-	pAssetManager = pNativeActivity->assetManager;
-	gResourceMounts[RM_CONTENT] = "\0";
-	gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
-	gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
-	gResourceMounts[RM_SAVE_0] = pNativeActivity->externalDataPath;
-	gResourceMounts[RM_SYSTEM] = "/proc/";
-	
-	// Override Resource mounts
-	for (uint32_t i = 0; i < RM_COUNT; ++i)
-	{
-		if (pDesc->pResourceMounts[i])
-			gResourceMounts[i] = pDesc->pResourceMounts[i];
-	}
+    pAssetManager = pNativeActivity->assetManager;
+    gResourceMounts[RM_CONTENT] = "\0";
+    gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
+    gResourceMounts[RM_DOCUMENTS] = pNativeActivity->internalDataPath;
+    gResourceMounts[RM_SAVE_0] = pNativeActivity->externalDataPath;
+    gResourceMounts[RM_SYSTEM] = "/proc/";
 
-	gInitialized = true;
-	return true;
+    // Override Resource mounts
+    for (uint32_t i = 0; i < RM_COUNT; ++i)
+    {
+        if (pDesc->pResourceMounts[i])
+            gResourceMounts[i] = pDesc->pResourceMounts[i];
+    }
+
+    gInitialized = true;
+    return true;
 }
 
-void exitFileSystem()
-{
-	gInitialized = false;
-}
-
-bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
-{
-	// Cant write to system files
-	if (RD_SYSTEM == resourceDir && ((mode & FM_WRITE) || (mode & FM_APPEND)))
-	{
-		LOGF(LogLevel::eERROR, "Trying to write to system file with FileMode '%d'", mode);
-		return false;
-	}
-
-	char filePath[FS_MAX_PATH] = {};
-	const char* resourcePath = fsGetResourceDirectory(resourceDir);
-	fsAppendPathComponent(resourcePath, fileName, filePath);
-
-	if (fsIsBundledResourceDir(resourceDir))
-	{
-		if ((mode & (FM_WRITE | FM_APPEND)) != 0)
-		{
-			LOGF(LogLevel::eERROR, "Cannot open %s with mode %i: the Android bundle is read-only.",
-				filePath, mode);
-			return false;
-		}
-
-		AAsset* file = AAssetManager_open(pAssetManager, filePath, AASSET_MODE_BUFFER);
-		if (!file)
-		{
-			LOGF(LogLevel::eERROR, "Failed to open '%s' with mode %i.", filePath, mode);
-			return false;
-		}
-
-		*pOut = {};
-		pOut->pAsset = file;
-		pOut->mMode = mode;
-		pOut->pIO = &gBundledFileIO;
-		pOut->mSize = (ssize_t)AAsset_getLength64(file);
-		return true;
-	}
-
-	return UnixOpenFile(resourceDir, fileName, mode, pOut);
-}
+void exitFileSystem() { gInitialized = false; }

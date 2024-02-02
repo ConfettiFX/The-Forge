@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,12 +26,12 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, Texcoord0);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(FLAT(uint), ViewID, TEXCOORD1);
 #endif
 };
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 RES(Tex2DArray(float4), AccumulationTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 RES(Tex2DArray(float4), RevealageTexture, UPDATE_FREQ_NONE, t1, binding = 2);
 #else
@@ -50,14 +50,14 @@ float4 PS_MAIN( VSOutput In )
 {    
 	INIT_MAIN;
 	float4 Out;
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	float revealage = SampleTex2DArray(Get(RevealageTexture), Get(PointSampler), float3(In.UV.xy, VR_VIEW_ID(In.ViewID))).r;
 #else
 	float revealage = SampleTex2D(Get(RevealageTexture), Get(PointSampler), In.UV.xy).r;
 #endif
 	clip(1.0f - revealage - 0.00001f);
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	float4 accumulation = SampleTex2DArray(Get(AccumulationTexture), Get(PointSampler), float3(In.UV.xy, VR_VIEW_ID(In.ViewID)));
 #else
 	float4 accumulation = SampleTex2D(Get(AccumulationTexture), Get(PointSampler), In.UV.xy);

@@ -27,6 +27,12 @@ __declspec(dllimport) FARPROC __stdcall GetProcAddress(HMODULE, LPCSTR);
 static VkInstance loadedInstance = VK_NULL_HANDLE;
 static VkDevice loadedDevice = VK_NULL_HANDLE;
 
+#if defined(NX64)
+VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL vkGetInstanceProcAddr(
+	VkInstance                                  instance,
+	const char* pName);
+#endif
+
 static void volkGenLoadLoader(void* context, PFN_vkVoidFunction (*load)(void*, const char*));
 static void volkGenLoadInstance(void* context, PFN_vkVoidFunction (*load)(void*, const char*));
 static void volkGenLoadDevice(void* context, PFN_vkVoidFunction (*load)(void*, const char*));
@@ -34,7 +40,7 @@ static void volkGenLoadDeviceTable(struct VolkDeviceTable* table, void* context,
 
 static PFN_vkVoidFunction vkGetInstanceProcAddrStub(void* context, const char* name)
 {
-	return vkGetInstanceProcAddr((VkInstance)context, name);
+	return _vkGetInstanceProcAddr((VkInstance)context, name);
 }
 
 static PFN_vkVoidFunction vkGetDeviceProcAddrStub(void* context, const char* name)
@@ -50,7 +56,7 @@ VkResult volkInitialize(void)
 		return VK_ERROR_INITIALIZATION_FAILED;
 
 	// note: function pointer is cast through void function pointer to silence cast-function-type warning on gcc8
-	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)(void(*)(void))GetProcAddress(module, "vkGetInstanceProcAddr");
+	_vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)(void(*)(void))GetProcAddress(module, "vkGetInstanceProcAddr");
 #elif defined(__APPLE__)
 	void* module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
 	if (!module)
@@ -60,7 +66,9 @@ VkResult volkInitialize(void)
 	if (!module)
 		return VK_ERROR_INITIALIZATION_FAILED;
 
-	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+	_vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+#elif defined(NX64)
+	_vkGetInstanceProcAddr = vkGetInstanceProcAddr;
 #else
 	void* module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
 	if (!module)
@@ -68,7 +76,7 @@ VkResult volkInitialize(void)
 	if (!module)
 		return VK_ERROR_INITIALIZATION_FAILED;
 
-	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+	_vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
 #endif
 
 	volkGenLoadLoader(NULL, vkGetInstanceProcAddrStub);
@@ -78,7 +86,7 @@ VkResult volkInitialize(void)
 
 void volkInitializeCustom(PFN_vkGetInstanceProcAddr handler)
 {
-	vkGetInstanceProcAddr = handler;
+	_vkGetInstanceProcAddr = handler;
 
 	volkGenLoadLoader(NULL, vkGetInstanceProcAddrStub);
 }
@@ -581,6 +589,9 @@ static void volkGenLoadDevice(void* context, PFN_vkVoidFunction (*load)(void*, c
 	vkDebugMarkerSetObjectNameEXT = (PFN_vkDebugMarkerSetObjectNameEXT)load(context, "vkDebugMarkerSetObjectNameEXT");
 	vkDebugMarkerSetObjectTagEXT = (PFN_vkDebugMarkerSetObjectTagEXT)load(context, "vkDebugMarkerSetObjectTagEXT");
 #endif /* defined(VK_EXT_debug_marker) */
+#if defined(VK_EXT_device_fault)
+	vkGetDeviceFaultInfoEXT = (PFN_vkGetDeviceFaultInfoEXT)load(context, "vkGetDeviceFaultInfoEXT");
+#endif /* defined(VK_EXT_device_fault) */
 #if defined(VK_EXT_discard_rectangles)
 	vkCmdSetDiscardRectangleEXT = (PFN_vkCmdSetDiscardRectangleEXT)load(context, "vkCmdSetDiscardRectangleEXT");
 #endif /* defined(VK_EXT_discard_rectangles) */
@@ -1211,6 +1222,9 @@ static void volkGenLoadDeviceTable(struct VolkDeviceTable* table, void* context,
 	table->vkDebugMarkerSetObjectNameEXT = (PFN_vkDebugMarkerSetObjectNameEXT)load(context, "vkDebugMarkerSetObjectNameEXT");
 	table->vkDebugMarkerSetObjectTagEXT = (PFN_vkDebugMarkerSetObjectTagEXT)load(context, "vkDebugMarkerSetObjectTagEXT");
 #endif /* defined(VK_EXT_debug_marker) */
+#if defined(VK_EXT_device_fault)
+	table->vkGetDeviceFaultInfoEXT = (PFN_vkGetDeviceFaultInfoEXT)load(context, "vkGetDeviceFaultInfoEXT");
+#endif /* defined(VK_EXT_device_fault) */
 #if defined(VK_EXT_discard_rectangles)
 	table->vkCmdSetDiscardRectangleEXT = (PFN_vkCmdSetDiscardRectangleEXT)load(context, "vkCmdSetDiscardRectangleEXT");
 #endif /* defined(VK_EXT_discard_rectangles) */
@@ -1729,7 +1743,7 @@ PFN_vkGetFenceStatus vkGetFenceStatus;
 PFN_vkGetImageMemoryRequirements vkGetImageMemoryRequirements;
 PFN_vkGetImageSparseMemoryRequirements vkGetImageSparseMemoryRequirements;
 PFN_vkGetImageSubresourceLayout vkGetImageSubresourceLayout;
-PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+PFN_vkGetInstanceProcAddr _vkGetInstanceProcAddr;
 PFN_vkGetPhysicalDeviceFeatures vkGetPhysicalDeviceFeatures;
 PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 PFN_vkGetPhysicalDeviceImageFormatProperties vkGetPhysicalDeviceImageFormatProperties;
@@ -1904,6 +1918,9 @@ PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT;
 PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTagEXT;
 PFN_vkSubmitDebugUtilsMessageEXT vkSubmitDebugUtilsMessageEXT;
 #endif /* defined(VK_EXT_debug_utils) */
+#if defined(VK_EXT_device_fault)
+PFN_vkGetDeviceFaultInfoEXT vkGetDeviceFaultInfoEXT;
+#endif /* defined(VK_EXT_device_fault) */
 #if defined(VK_EXT_direct_mode_display)
 PFN_vkReleaseDisplayEXT vkReleaseDisplayEXT;
 #endif /* defined(VK_EXT_direct_mode_display) */

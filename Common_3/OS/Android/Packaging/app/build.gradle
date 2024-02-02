@@ -7,11 +7,12 @@ android {
     defaultConfig {
         applicationId "com.forge.unittest.${ANDROID_APPLICATION_NAME}"
         minSdkVersion MSBUILD_MIN_SDK_VERSION
-        targetSdkVersion 29
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 
         resValue "string", "app_name", ANDROID_APPLICATION_NAME
+        resValue "string", "lib_name", ANDROID_APPLICATION_LIBRARY_NAME
     }
 
     sourceSets {
@@ -28,13 +29,59 @@ android {
     }
 
     aaptOptions {
-        noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip'
+        noCompress '.bin', '.gltf', '.svt', '.ktx', '.zip', '.buny'
     }
+
+	buildFeatures {
+		prefab true
+	}
+    
+    /*
+    signingConfigs {
+        internal_build {
+        	initWith(signingConfigs.debug)
+        }
+        shipping_build {
+            // Note: This should be replaced with proper shipping signing configuration before releasing the app,
+            //       this is a workaround to be able to install release builds without signature
+        	initWith(signingConfigs.debug)
+        }
+    }
+
+    // This is an example on how to setup builds for different custom configuration types
+    buildTypes {
+        debug {
+            initWith(buildTypes.debug)
+            applicationIdSuffix ".debug"
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.internal_build
+        }
+        profile {
+            initWith(buildTypes.release)
+            applicationIdSuffix ".profile"
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.internal_build
+        }
+        release {
+            initWith(buildTypes.release)
+            applicationIdSuffix ".release"
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.shipping_build
+        }
+    }
+    */
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.games:games-memory-advice:2.0.0-beta04'
 }
 
 buildDir = MSBUILD_ANDROID_GRADLE_BUILD_OUTPUT_DIR

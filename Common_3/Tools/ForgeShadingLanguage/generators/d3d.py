@@ -1,7 +1,31 @@
-""" GLSL shader generation """
+# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# 
+# This file is part of The-Forge
+# (see https://github.com/ConfettiFX/The-Forge).
+# 
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+# 
+#   http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 
-from utils import Stages, getHeader, getShader, getMacro, genFnCall, Platforms, platform_langs, get_whitespace
-from utils import isArray, getArrayLen, getArrayBaseName, getMacroName, DescriptorSets, is_groupshared_decl, ShaderBinary
+""" HLSL shader generation """
+
+from utils import Stages, DescriptorSets, WaveopsFlags, ShaderBinary, Platforms, iter_lines
+from utils import isArray, getArrayLen, getArrayBaseName, getMacroName, is_groupshared_decl
+from utils import getMacroFirstArg, getHeader, getShader, getMacro, platform_langs, get_whitespace
+from utils import get_fn_table, Features
 import os, re
 
 def direct3d11(*args):
@@ -27,19 +51,23 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
     fsl = binary.preprocessed_srcs[platform]
 
     shader = getShader(platform, binary.fsl_filepath, fsl, dst)
+    binary.waveops_flags = shader.waveops_flags
+    # check for function overloading.
+    get_fn_table(shader.lines)
 
     shader_src = getHeader(fsl)
 
     pssl = None
 
     is_xbox = False
+    d3d11 = Platforms.DIRECT3D11 == platform
 
     dependencies = []
-
+    
     if Platforms.PROSPERO == platform:
         import prospero as prospero_utils
         pssl = prospero_utils
-        shader_src += prospero_utils.preamble()
+        shader_src += prospero_utils.preamble(binary)
 
     elif Platforms.ORBIS == platform:
         import orbis as orbis_utils
@@ -49,14 +77,14 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
     if Platforms.XBOX == platform or Platforms.SCARLETT == platform:
         is_xbox = True
         import xbox as xbox_utils
-        shader_src += xbox_utils.preamble()
+        shader_src += xbox_utils.preamble(platform, binary, shader)
 
     shader_src += [f'#define {platform.name}\n']
     shader_src += [f'#define {platform_langs[platform]}\n']
         
     shader_src += ['#define STAGE_' + shader.stage.name + '\n']
-    if shader.enable_waveops:
-        shader_src += ['#define ENABLE_WAVEOPS()\n']
+    if shader.waveops_flags != WaveopsFlags.WAVE_OPS_NONE:
+        shader_src += ['#define ENABLE_WAVEOPS(flags)\n']
 
     # directly embed d3d header in shader
     header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'd3d.h')
@@ -65,8 +93,8 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
 
     nonuniformresourceindex = None
 
-    # tesselation
-    pcf_returnType = None
+    # ray query
+    awaiting_ray_query_calls = []
 
     # for SV_PrimitiveID usage in pixel shaders, generate a pass-through gs
     passthrough_gs = False
@@ -75,35 +103,43 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             if getMacroName(dtype).upper() == 'SV_PRIMITIVEID':
                 passthrough_gs = True
                 fn = dst.replace('frag', 'geom')
-                pssl.gen_passthrough_gs(shader, fn)
+                if Platforms.PROSPERO == platform:
+                    pssl.gen_passthrough_gs(shader, binary, fn)
+                else:
+                    pssl.gen_passthrough_gs(shader, fn)
                 dependencies += [(Stages.GEOM, fn, os.path.basename(fn))]
 
-    last_res_decl = 0
-    explicit_res_decl = None
+    srt_loc = len(shader_src)+1
     srt_resources = { descriptor_set.name: [] for descriptor_set in DescriptorSets }
     srt_free_resources = []
-    srt_references = []
-
-    line_index = 0
 
     parsing_struct = None
     skip_semantics = False
-    struct_elements = []
-    srt_redirections = set()
-    for line in shader.lines:
 
-        line_index += 1
+    for fi, line_index, line in iter_lines(shader.lines):
+
         shader_src_len = len(shader_src)
-        if line.startswith('#line'):
-            line_index = int(line.split()[1]) - 1
 
-        def get_uid(name):
-            return name + '_' + str(len(shader_src))
+        if pssl:
+            if 'RayQueryCallBegin(' in line:
+                l_index = line.find('(')
+                r_index = line.find(')')
+                if l_index > -1 and r_index > -1:
+                    hit_name = line[l_index + 1 : r_index]
+                    line = line.replace(f'RayQueryCallBegin({hit_name})', '')
+                    line = line.replace('RayQueryCallEnd', '')
+                    awaiting_ray_query_calls += [[hit_name, line, len(shader_src)]]
+                    line = '{}\n'
 
-        # dont process commented lines
-        if line.strip().startswith('//'):
-            shader_src += [line]
-            continue
+            if 'RayQueryEndForEachCandidate' in line:
+                    hit_name = getMacro(line)
+                    for awaiting_call in awaiting_ray_query_calls:
+                        if awaiting_call[0] == hit_name:
+                            line = ';'
+                            line += awaiting_call[1]
+                            awaiting_ray_query_calls.remove(awaiting_call)
+                            print(line)
+                            break
 
         if is_groupshared_decl(line):
             dtype, dname = getMacro(line)
@@ -114,32 +150,27 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             else:
                 line = 'thread_group_memory '+dtype+' '+dname+';\n'
 
-        if 'DECLARE_RESOURCES' in line:
-            explicit_res_decl = len(shader_src) + 1
-            line = '//' + line
-
         if line.strip().startswith('STRUCT(') or line.strip().startswith('CBUFFER(') or line.strip().startswith('PUSH_CONSTANT('):
             parsing_struct = getMacro(line)
 
             struct_name = parsing_struct[0]
 
-            struct_elements = []
-
             if pssl and 'PUSH_CONSTANT' in line:
                 skip_semantics = True
-                macro = get_uid(struct_name)
-                shader_src += ['#define ' + macro + '\n']
-                srt_free_resources += [(macro, pssl.declare_rootconstant(struct_name))]
+                srt_free_resources += [pssl.declare_rootconstant(struct_name)]
 
             if pssl and 'CBUFFER' in line:
                 skip_semantics = True
                 res_freq = parsing_struct[1]
-                macro = get_uid(struct_name)
-                shader_src += ['#define ' + macro + '\n']
                 if 'rootcbv' in struct_name:
-                    srt_free_resources += [(macro, pssl.declare_cbuffer(struct_name))]
+                    srt_free_resources += [pssl.declare_cbuffer(struct_name)]
                 else:
-                    srt_resources[res_freq] += [(macro, pssl.declare_cbuffer(struct_name))]
+                    srt_resources[res_freq] += [pssl.declare_cbuffer(struct_name)]
+
+            if d3d11 and 'CBUFFER' in line:
+                name, freq, reg, _ = parsing_struct
+                freq = DescriptorSets[freq].value
+                shader_src += [f'#define {name} _fslF{freq}_{name}\n']
 
         if parsing_struct and line.strip().startswith('DATA('):
             data_decl = getMacro(line)
@@ -148,13 +179,8 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
 
             if pssl and type(parsing_struct) is not str:
                 basename = getArrayBaseName(data_decl[1])
-                macro = 'REF_' + get_uid(basename)
-                shader_src += ['#define ' + macro + '\n']
                 init, ref = pssl.declare_element_reference(shader, parsing_struct, data_decl)
                 shader_src += [*init, '\n']
-                srt_redirections.add(basename)
-                struct_elements += [(macro, ref)]
-                srt_references += [(macro, (init, ref))]
                 if len(parsing_struct) > 2: # only pad cbuffers
                      line = pssl.apply_cpad(data_decl)
                 shader_src += ['#line {}\n'.format(line_index), line]
@@ -167,46 +193,39 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                 shader_src += ['\tDATA(FLAT(uint), PrimitiveID, TEXCOORD8);\n']
 
             shader_src += ['#line {}\n'.format(line_index), line]
+            if list == type(parsing_struct) and 2 == len(parsing_struct):
+                srt_loc = len(shader_src)
 
             skip_semantics = False
-            if type(parsing_struct) is not str:
-                last_res_decl = len(shader_src)+1
             parsing_struct = None
             continue
 
         resource_decl = None
         if line.strip().startswith('RES('):
             resource_decl = getMacro(line)
-            last_res_decl = len(shader_src)+1
+
+        if d3d11 and resource_decl:
+            dtype, name, freq, reg, _ = resource_decl
+            freq = DescriptorSets[freq].value
+            shader_src += [f'#define {name} _fslF{freq}_{name}\n']
 
         if pssl and resource_decl:
             _, res_name, res_freq, _, _ = resource_decl
-            basename = getArrayBaseName(res_name)
-            macro = get_uid(basename)
 
-            shader_src += ['#define ', macro, '\n']
-            srt_resources[res_freq] += [(macro, pssl.declare_resource(resource_decl))]
+            srt_resources[res_freq] += [pssl.declare_resource(resource_decl)]
 
             init, ref = pssl.declare_reference(shader, resource_decl)
             shader_src += [*init, '\n']
-            srt_references += [(macro, (init, ref))]
-            srt_redirections.add(basename)
-
-            last_res_decl = len(shader_src)+1
-            # continue
-
-        if '_MAIN(' in line and shader.stage == Stages.TESC and Platforms.PROSPERO == platform:
-            shader_src += pssl.insert_tesc('vs_main')
 
         if '_MAIN(' in line and shader.returnType:
             if shader.returnType not in shader.structs:
                 if shader.stage == Stages.FRAG:
                     if not 'SV_DEPTH' in shader.returnType.upper():
-                        line = line[:-1] + ': SV_TARGET\n'
+                        line = line.rstrip() + ': SV_TARGET\n'
                     else:
-                        line = line[:-1] + ': SV_DEPTH\n'
+                        line = line.rstrip() + ': SV_DEPTH\n'
                 if shader.stage == Stages.VERT:
-                    line = line[:-1] + ': SV_POSITION\n'
+                    line = line.rstrip() + ': SV_POSITION\n'
 
         # manually transform Type(var) to Type var (necessary for DX11/fxc)
         if '_MAIN(' in line:
@@ -232,32 +251,21 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
                         line = line.replace(line[l1: l0+len('SV_PRIMITIVEID')], '')
 
             if pssl:
-                for dtype, darg in shader.flat_args:
-                    if 'SV_INSTANCEID' in dtype.upper():
-                        shader_src += pssl.set_indirect_draw()
+                if Features.ICB in binary.features or Features.VDP in binary.features:
+                    shader_src += pssl.set_indirect_draw()
+                    shader_src += pssl.set_apply_index_instance_offset()
 
-        # if '_MAIN(' in line and (pssl or xbox) and rootSignature:
-
-        #     l0 = rootSignature.find('SrtSignature')
-        #     l1 = rootSignature.find('{', l0)
-        #     srt_name = rootSignature[l0: l1].split()[-1]
-
-        #     res_sig = 'RootSignature' if xbox else 'SrtSignature'
-        #     shader_src += ['[' + res_sig + '(' + srt_name + ')]\n' + line]
-        #     continue
-
-        if 'INIT_MAIN' in line and shader.returnType:
-            # mName = getMacroName(shader.returnType)
-            # mArg = getMacro(shader.returnType)
-            # line = line.replace('INIT_MAIN', '{} {}'.format(mName, mArg))
-            line = get_whitespace(line)+'//'+line.strip()+'\n'
+        if 'INIT_MAIN' in line:
+            ws = get_whitespace(line)
+            if shader.returnType:
+                line = ws+'//'+line.strip()+'\n'
 
 
             # if this shader is the receiving end of a passthrough_gs, copy the PrimitiveID from GS output
             if passthrough_gs:
                 for dtype, dvar in shader.flat_args:
                     if 'SV_PRIMITIVEID' in dtype.upper():
-                        shader_src += ['uint ' + dvar + ' = ' + shader.struct_args[0][1] + '.PrimitiveID;\n']
+                        shader_src += [ws + 'uint ' + dvar + ' = ' + shader.struct_args[0][1] + '.PrimitiveID;\n']
 
         if 'BeginNonUniformResourceIndex(' in line:
             index, max_index = getMacro(line), None
@@ -286,25 +294,12 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
             else:
                 line = line.replace('RETURN()', 'return')
 
-        # tesselation
-        if shader.pcf and shader.pcf in line and not pcf_returnType:
-            loc = line.find(shader.pcf)
-            pcf_returnType = line[:loc].strip()
-            for dtype, dvar in shader.pcf_arguments:
-                if not 'INPUT_PATCH' in dtype and not 'OUTPUT_PATCH' in dtype:
-                    line = line.replace(dtype, getMacro(dtype))
-                    line = line.replace(dvar, dvar+': '+getMacroName(dtype))
+        if pssl and Platforms.PROSPERO == platform:
+            if 'BeginPSInterlock();' in line:
+                line = line.replace('BeginPSInterlock();', pssl.apply_begin_ps_interlock())
 
-        if pcf_returnType and re.match('\s*PCF_INIT', line):
-            line = line.replace('PCF_INIT', '')
-
-        if pcf_returnType and 'PCF_RETURN' in line:
-            line = line.replace('PCF_RETURN', 'return ')
-
-        if 'INDIRECT_DRAW(' in line:
-            if pssl:
-                shader_src += pssl.set_indirect_draw()
-            line = '//' + line
+            if 'EndPSInterlock();' in line:
+                line = line.replace('EndPSInterlock();', pssl.apply_end_ps_interlock())
 
         if 'SET_OUTPUT_FORMAT(' in line:
             if pssl:
@@ -322,18 +317,13 @@ def hlsl(platform, debug, binary: ShaderBinary, dst):
         shader_src += [line]
 
     if pssl:
-        if explicit_res_decl:
-            last_res_decl = explicit_res_decl
-        if last_res_decl > 0: # skip srt altogether if no declared resourced or not requested
-            srt = pssl.gen_srt(srt_resources, srt_free_resources, srt_references)
+        for awaiting_call in awaiting_ray_query_calls:
+            lastCharacter = awaiting_call[1].find(f', {awaiting_call[0]}Callback', )
+            shader_src[awaiting_call[2]] = awaiting_call[1][0:lastCharacter] + ");}\n"
+        if srt_loc > 0: # skip srt altogether if no declared resourced or not requested
+            srt = pssl.gen_srt(srt_resources, srt_free_resources)
             open(dst + '.srt.h', 'w').write(srt)
-            shader_src.insert(last_res_decl, '\n#include \"' + os.path.basename(dst) + '.srt.h\"\n')
-
-    # insert root signature at the end (not sure whether that will work for xbox)
-    # if rootSignature and pssl:
-    #     shader_src += [_line+'\n' for _line in rootSignature.splitlines()]# + shader.lines
-    # if rootSignature and xbox:
-    #     shader_src += rootSignature + ['\n']# + shader.lines
+            shader_src.insert(srt_loc, '\n#include \"' + os.path.basename(dst) + '.srt.h\"\n')
 
     open(dst, 'w').writelines(shader_src)
 

@@ -16,6 +16,13 @@
 		5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3752141543F00EFD76A /* GameController.framework */; };
 		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
+		7F6E00AD2A93F79100981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00AC2A93F79100981E7B /* QuartzCore.framework */; };
+		7F6E00AF2A93F79500981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00AE2A93F79400981E7B /* AppKit.framework */; };
+		7F6E00EF2A93FEBA00981E7B /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E00EE2A93FEB900981E7B /* IOKit.framework */; };
+		7F6E012F2A9409A000981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E012D2A9409A000981E7B /* QuartzCore.framework */; };
+		7F6E01312A9409A700981E7B /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01302A9409A600981E7B /* CoreVideo.framework */; };
+		997EE4E32A37F41F00FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE4E02A37F41F00FB75C1 /* GameController.framework */; };
+		997EE5082A37F4D800FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5072A37F4D800FB75C1 /* CoreHaptics.framework */; };
 		99E0AC7528594DD400AB602D /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 99E0AC7228594DD400AB602D /* CoreHaptics.framework */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
@@ -60,13 +67,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
-		};
-		ED60962D286F3ECC00331537 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 654D976A21E9218B00113964 /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 88DF3489E6364B89869CC71D;
-			remoteInfo = json;
 		};
 		ED60962F286F3ECC00331537 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -148,9 +148,20 @@
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
+		7F6E00AC2A93F79100981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		7F6E00AE2A93F79400981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		7F6E00EE2A93FEB900981E7B /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		7F6E012D2A9409A000981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
+		7F6E01302A9409A600981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
+		7F6EFFF02A93D95A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF12A93D95A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF32A93D95A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6EFFF62A93D95A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
 		97C9091A25BF40B4003C978D /* hair_shock_propagation.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_shock_propagation.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_shock_propagation.comp.fsl; sourceTree = "<group>"; };
 		97C9091B25BF40B4003C978D /* hair.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.vert.fsl; sourceTree = "<group>"; };
-		97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = panoToCube.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/panoToCube.comp.fsl; sourceTree = "<group>"; };
 		97C9091D25BF40B4003C978D /* hair_short_cut_fill_color.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_fill_color.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_fill_color.frag.fsl; sourceTree = "<group>"; };
 		97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneBRDF.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF.frag.fsl; sourceTree = "<group>"; };
 		97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_resolve_depth.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_resolve_depth.frag.fsl; sourceTree = "<group>"; };
@@ -162,12 +173,10 @@
 		97C9092525BF40B5003C978D /* hair_pre_warm.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_pre_warm.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_pre_warm.comp.fsl; sourceTree = "<group>"; };
 		97C9092625BF40B5003C978D /* hair_short_cut_clear.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_clear.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_clear.frag.fsl; sourceTree = "<group>"; };
 		97C9092725BF40B5003C978D /* hair.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.h.fsl; sourceTree = "<group>"; };
-		97C9092825BF40B5003C978D /* skeleton.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.frag.fsl; sourceTree = "<group>"; };
 		97C9092925BF40B5003C978D /* hair_integrate.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_integrate.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_integrate.comp.fsl; sourceTree = "<group>"; };
 		97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.vert.fsl; sourceTree = "<group>"; };
 		97C9092B25BF40B5003C978D /* hair_local_constraints.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_local_constraints.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_local_constraints.comp.fsl; sourceTree = "<group>"; };
 		97C9092C25BF40B5003C978D /* computeIrradianceMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeIrradianceMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeIrradianceMap.comp.fsl; sourceTree = "<group>"; };
-		97C9092D25BF40B5003C978D /* skeleton.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skeleton.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skeleton.vert.fsl; sourceTree = "<group>"; };
 		97C9092E25BF40B5003C978D /* hair_short_cut_depth_peeling.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_short_cut_depth_peeling.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_short_cut_depth_peeling.frag.fsl; sourceTree = "<group>"; };
 		97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = renderSceneBRDF_resources.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneBRDF_resources.h.fsl; sourceTree = "<group>"; };
 		97C9093025BF40B5003C978D /* renderSceneShadows.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = renderSceneShadows.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/renderSceneShadows.frag.fsl; sourceTree = "<group>"; };
@@ -176,11 +185,12 @@
 		97C9093325BF40B5003C978D /* BRDFIntegration.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = BRDFIntegration.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/BRDFIntegration.comp.fsl; sourceTree = "<group>"; };
 		97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair_update_follow_hairs.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair_update_follow_hairs.comp.fsl; sourceTree = "<group>"; };
 		97C9093525BF40B5003C978D /* hair.comp.h.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hair.comp.h.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.comp.h.fsl; sourceTree = "<group>"; };
-		97C9093625BF40B6003C978D /* hair.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = hair.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/hair.frag.fsl; sourceTree = "<group>"; };
 		97C9093725BF40B6003C978D /* computeSpecularMap.comp.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = computeSpecularMap.comp.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/computeSpecularMap.comp.fsl; sourceTree = "<group>"; };
 		97C9093825BF40B6003C978D /* skybox.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = skybox.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/skybox.vert.fsl; sourceTree = "<group>"; };
 		97C9093925BF40B6003C978D /* showCapsules.frag.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = showCapsules.frag.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/showCapsules.frag.fsl; sourceTree = "<group>"; };
 		97C9093A25BF40B6003C978D /* fullscreen.vert.fsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = fullscreen.vert.fsl; path = ../../../src/06_MaterialPlayground/Shaders/FSL/fullscreen.vert.fsl; sourceTree = "<group>"; };
+		997EE4E02A37F41F00FB75C1 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		997EE5072A37F4D800FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
 		99E0AC7228594DD400AB602D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.0.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -207,6 +217,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7F6E012F2A9409A000981E7B /* QuartzCore.framework in Frameworks */,
 				ED609643286F3F6A00331537 /* ozz_animation_IOS.a in Frameworks */,
 				ED609644286F3F6A00331537 /* ozz_base_IOS.a in Frameworks */,
 				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
@@ -215,6 +226,7 @@
 				B21F76D721420EB300DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76D821420EB300DF2297 /* Metal.framework in Frameworks */,
 				5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */,
+				7F6E01312A9409A700981E7B /* CoreVideo.framework in Frameworks */,
 				5C17303721414E3D0074EE71 /* libThe-Forge_iOS.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -224,11 +236,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				ED60963D286F3F6000331537 /* ozz_animation.a in Frameworks */,
+				997EE4E32A37F41F00FB75C1 /* GameController.framework in Frameworks */,
 				ED60963E286F3F6000331537 /* ozz_base.a in Frameworks */,
 				650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				7F6E00EF2A93FEBA00981E7B /* IOKit.framework in Frameworks */,
 				5C172F8721414A2C0074EE71 /* libThe-Forge.a in Frameworks */,
 				B2087DE821421A4A006F372D /* Metal.framework in Frameworks */,
+				997EE5082A37F4D800FB75C1 /* CoreHaptics.framework in Frameworks */,
+				7F6E00AF2A93F79500981E7B /* AppKit.framework in Frameworks */,
 				B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */,
+				7F6E00AD2A93F79100981E7B /* QuartzCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,10 +286,8 @@
 				97C9091F25BF40B4003C978D /* hair_short_cut_resolve_depth.frag.fsl */,
 				97C9093425BF40B5003C978D /* hair_update_follow_hairs.comp.fsl */,
 				97C9093525BF40B5003C978D /* hair.comp.h.fsl */,
-				97C9093625BF40B6003C978D /* hair.frag.fsl */,
 				97C9092725BF40B5003C978D /* hair.h.fsl */,
 				97C9091B25BF40B4003C978D /* hair.vert.fsl */,
-				97C9091C25BF40B4003C978D /* panoToCube.comp.fsl */,
 				97C9092F25BF40B5003C978D /* renderSceneBRDF_resources.h.fsl */,
 				97C9091E25BF40B4003C978D /* renderSceneBRDF.frag.fsl */,
 				97C9093125BF40B5003C978D /* renderSceneBRDF.vert.fsl */,
@@ -280,8 +295,6 @@
 				97C9092A25BF40B5003C978D /* renderSceneShadows.vert.fsl */,
 				97C9093925BF40B6003C978D /* showCapsules.frag.fsl */,
 				97C9092025BF40B4003C978D /* showCapsules.vert.fsl */,
-				97C9092825BF40B5003C978D /* skeleton.frag.fsl */,
-				97C9092D25BF40B5003C978D /* skeleton.vert.fsl */,
 				97C9093225BF40B5003C978D /* skybox.frag.fsl */,
 				97C9093825BF40B6003C978D /* skybox.vert.fsl */,
 			);
@@ -292,6 +305,13 @@
 		28A5AD99201F7411000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				7F6E01302A9409A600981E7B /* CoreVideo.framework */,
+				7F6E012D2A9409A000981E7B /* QuartzCore.framework */,
+				7F6E00EE2A93FEB900981E7B /* IOKit.framework */,
+				7F6E00AE2A93F79400981E7B /* AppKit.framework */,
+				7F6E00AC2A93F79100981E7B /* QuartzCore.framework */,
+				997EE5072A37F4D800FB75C1 /* CoreHaptics.framework */,
+				997EE4E02A37F41F00FB75C1 /* GameController.framework */,
 				99E0AC7228594DD400AB602D /* CoreHaptics.framework */,
 				E970F78A233C5DB6009FE7C4 /* libbz2.tbd */,
 				E970F78E233C5DC2009FE7C4 /* libbz2.tbd */,
@@ -322,9 +342,24 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		7F6EFFED2A93D95000981E7B /* BuildConfigs */ = {
+			isa = PBXGroup;
+			children = (
+				7F6EFFF12A93D95A00981E7B /* CommonSettingsDebug.xcconfig */,
+				7F6EFFF32A93D95A00981E7B /* CommonSettingsRelease.xcconfig */,
+				7F6EFFF02A93D95A00981E7B /* Debug_iOS.xcconfig */,
+				7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */,
+				7F6EFFF62A93D95A00981E7B /* Release_iOS.xcconfig */,
+				7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */,
+				7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */,
+			);
+			name = BuildConfigs;
+			sourceTree = "<group>";
+		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				7F6EFFED2A93D95000981E7B /* BuildConfigs */,
 				654D976A21E9218B00113964 /* ozz.xcodeproj */,
 				5C172F7F21414A0B0074EE71 /* The-Forge.xcodeproj */,
 				28A5AD68201F72EB000E571F /* Shaders */,
@@ -360,7 +395,6 @@
 		ED609625286F3ECC00331537 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				ED60962E286F3ECC00331537 /* json_d.a */,
 				ED609630286F3ECC00331537 /* ozz_animation.a */,
 				ED609632286F3ECC00331537 /* ozz_base.a */,
 				ED609634286F3ECC00331537 /* ozz_animation_IOS.a */,
@@ -481,13 +515,6 @@
 			remoteRef = 5C17303521414E3D0074EE71 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		ED60962E286F3ECC00331537 /* json_d.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = json_d.a;
-			remoteRef = ED60962D286F3ECC00331537 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		ED609630286F3ECC00331537 /* ozz_animation.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -563,7 +590,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		09934195284E96AD00215997 /* ShellScript */ = {
@@ -582,7 +609,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../src/$PROJECT_NAME/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS  --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C13A4D924D1A6480023D339 /* Run Script */ = {
@@ -601,7 +628,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.dds\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\n# Scripts\nrsync -u -r \"$ASSETS/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/PBR/dds/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/dds/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Particles/Textures/dds/\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair/\"\nrsync -u -r \"$ASSETS/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
 		};
 		5CC501C624D219F8003B62CC /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -618,7 +645,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$ASSETS/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/PBR/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/LA_Helipad.ktx\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ART/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\n# rsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\n# rsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/../The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\nrsync -u -r \"$ASSETS/Scripts/\" \"$DST/Scripts\"\n# GPUConfig\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/PBR/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/PBR/ktx/\" \"$DST/Textures/PBR/\"\nrsync -u \"$ASSETS/Textures/ktx/LA_Helipad3D.tex\" \"$DST/Textures/\"\nrsync -u \"$ASSETS/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ART/Particles/Textures/ktx/\" \"$DST/Textures/\"\n# Meshes\nmkdir -p \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Hair/\" \"$DST/Meshes/Hair\"\nrsync -u -r \"$ASSETS/Meshes/\" \"$DST/Meshes\"\n# Animation\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n\n# Materials\n\"$SRC/compile_materials.sh\" \"$SRCROOT/../../../../\" \"$SRC/Materials\" \"$DST/CompiledMaterials\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -698,278 +725,103 @@
 /* Begin XCBuildConfiguration section */
 		28A5AD5C201F7276000E571F /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF02A93D95A00981E7B /* Debug_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				ENABLE_BITCODE = NO;
-				EXCLUDED_ARCHS = "";
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
 					../,
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
 					"$(PROJECT_DIR)/../../../../",
 				);
-				INFOPLIST_FILE = 06_MaterialPlayground_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-6-MaterialPlayground-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.06-MaterialPlayground-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRIP_PNG_TEXT = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
 		28A5AD5D201F7276000E571F /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF62A93D95A00981E7B /* Release_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				ENABLE_BITCODE = NO;
-				EXCLUDED_ARCHS = "";
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
 					../,
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
 					"$(PROJECT_DIR)/../../../../",
 				);
-				INFOPLIST_FILE = 06_MaterialPlayground_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-6-MaterialPlayground-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.06-MaterialPlayground-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRIP_PNG_TEXT = NO;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VALIDATE_PRODUCT = YES;
-				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};
 		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_ENABLE_DEBUG_INFO = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
 		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF52A93D95A00981E7B /* TF_App_Shared.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};
 		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF22A93D95A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				DEVELOPMENT_TEAM = 8PJJ955Q6K;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
 					../,
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
 					"$(PROJECT_DIR)/../../../../",
 				);
-				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.06-MaterialPlayground";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.06-MaterialPlayground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
-				);
-				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Debug;
 		};
 		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6EFFF42A93D95A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				DEVELOPMENT_TEAM = 8PJJ955Q6K;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
 					../,
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
 					"$(PROJECT_DIR)/../../../../",
 				);
-				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.06-MaterialPlayground";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.The-Forge.06-MaterialPlayground";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				USER_HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
-					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
-				);
-				"WARNING_CFLAGS[arch=*]" = "-Wall";
 			};
 			name = Release;
 		};

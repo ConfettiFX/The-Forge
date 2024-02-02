@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,30 +22,21 @@
  * under the License.
 */
 
-#include "packing.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
-
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
 
 PS_ZORDER_EARLYZ()
 
 void PS_MAIN( PsInAlphaTested In )
 {
     INIT_MAIN;
-    uint matBaseSlot = BaseMaterialBuffer(GEOMSET_ALPHATESTED, 0); //1 is camera view, 0 is shadow map view
-    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+    
+    uint materialID = In.materialID;
 
     float alpha = 0.0f;
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
-		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
+        alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
     EndNonUniformResourceIndex();
 
     clip(alpha - 0.5f);

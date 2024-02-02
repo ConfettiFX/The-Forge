@@ -1,90 +1,86 @@
 #include "../Shared.h"
 
-#frag VR_MULTIVIEW AdaptiveOIT.frag
+#frag FT_NO_AB FT_MULTIVIEW AdaptiveOIT.frag
 #include "AdaptiveOIT.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW AdaptiveOITClear.frag
+#frag FT_MULTIVIEW AdaptiveOITClear.frag
 #include "AdaptiveOITClear.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW AdaptiveOITComposite.frag
+#frag FT_MULTIVIEW AdaptiveOITComposite.frag
 #include "AdaptiveOITComposite.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW copy.frag
+#frag FT_MULTIVIEW copy.frag
 #include "copy.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW downsample.frag
+#frag FT_MULTIVIEW downsample.frag
 #include "downsample.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW forward.frag
+#frag FT_NO_AB FT_MULTIVIEW forward.frag
 #include "forward.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW forward.vert
+#vert FT_NO_AB FT_MULTIVIEW forward.vert
 #include "forward.vert.fsl"
 #end
 
-#vert VR_MULTIVIEW fullscreenMultiView.vert
-#include "fullscreenMultiView.vert.fsl"
-#end
-
-#vert fullscreen.vert
+#vert FT_MULTIVIEW fullscreen.vert
 #include "fullscreen.vert.fsl"
 #end
 
-#frag gaussianBlur.frag
+#frag FT_MULTIVIEW gaussianBlur.frag
 #include "gaussianBlur.frag.fsl"
 #end
 
-#comp VR_MULTIVIEW generateMips.comp
+#comp FT_MULTIVIEW generateMips.comp
 #include "generateMips.comp.fsl"
 #end
 
-#frag VR_MULTIVIEW phenomenologicalTransparency.frag
+#frag FT_NO_AB FT_MULTIVIEW phenomenologicalTransparency.frag
 #include "phenomenologicalTransparency.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW phenomenologicalTransparencyComposite.frag
+#frag FT_MULTIVIEW phenomenologicalTransparencyComposite.frag
 #include "phenomenologicalTransparencyComposite.frag.fsl"
 #end
 
-#frag shadow.frag
+#frag FT_NO_AB FT_MULTIVIEW shadow.frag
 #include "shadow.frag.fsl"
 #end
 
-#vert shadow.vert
+#vert FT_NO_AB FT_MULTIVIEW shadow.vert
 #include "shadow.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW skybox.frag
+#frag skybox.frag
 #include "skybox.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW skybox.vert
+#vert FT_MULTIVIEW skybox.vert
 #include "skybox.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW stochasticShadow.frag
+#frag FT_NO_AB FT_MULTIVIEW stochasticShadow.frag
 #include "stochasticShadow.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW weightedBlendedOIT.frag
+#frag FT_NO_AB FT_MULTIVIEW weightedBlendedOIT.frag
 #include "weightedBlendedOIT.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW weightedBlendedOITComposite.frag
+#frag FT_MULTIVIEW weightedBlendedOITComposite.frag
 #include "weightedBlendedOITComposite.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW weightedBlendedOITVolition.frag
+#frag FT_NO_AB FT_MULTIVIEW weightedBlendedOITVolition.frag
 #include "weightedBlendedOITVolition.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW weightedBlendedOITVolitionComposite.frag
+#frag FT_MULTIVIEW weightedBlendedOITVolitionComposite.frag
 #include "weightedBlendedOITVolitionComposite.frag.fsl"
 #end
 

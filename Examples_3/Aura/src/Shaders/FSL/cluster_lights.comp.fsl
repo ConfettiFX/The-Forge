@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 
@@ -35,13 +35,16 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId)
 	float4 lightPosClipSpace  = mul(Get(transform)[VIEW_CAMERA].vp, lightPosWorldSpace);
 	float invLightPosW = 1.0f / lightPosClipSpace.w;
 	float3 lightPos = lightPosClipSpace.xyz * invLightPosW;
+
+	float fov = 2.0*atan( 1.0/Get(transform)[VIEW_CAMERA].projection[1][1] );
+	float projRadius = 2.0f * LIGHT_SIZE * (1 / tan(fov * 0.5f)) * invLightPosW;
+	projRadius *= windowSize.x > windowSize.y ? aspectRatio : 1 / aspectRatio;
 	
 	// Early exit light if it's behind the camera
-	if (lightPos.z < 0.0f)
+	if (lightPosClipSpace.w < 0.0f && -lightPosClipSpace.w > LIGHT_SIZE)
 		RETURN();
 	
-	float projRadius = LIGHT_SIZE * invLightPosW / 0.5f;
-	lightPos *= float3(aspectRatio, 1.0f, 1.0f);
+	lightPos.x *= aspectRatio;
 	
 	// Cluster coordinates in post perspective clip space
 	float clusterLeft   = float(threadInGroupId.x) * invClusterWidth;
@@ -65,7 +68,7 @@ void CS_MAIN(SV_GroupThreadID(uint3) threadInGroupId, SV_GroupID(uint3) groupId)
 	// Check if the light projection overlaps the cluster: add the light bit to this cluster coords
 	float distanceToCenter = distance(float2(clusterCenterX, clusterCenterY), lightPos.xy);
 
-	if (distanceToCenter  < projRadius + clusterRadius)
+	if (distanceToCenter - clusterRadius < abs(projRadius))
 	{
 		// Increase light count on this cluster
 		uint lightArrayPos = 0;

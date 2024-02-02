@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,45 +20,45 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
-#include "../../../Utilities/Math/MathTypes.h"
-
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
+
+#include "../../../Utilities/Math/MathTypes.h"
 
 #include "Rig.h"
 
 // Allows for masking the influence of a clip on a Rig
 class FORGE_API ClipMask
 {
-	public:
-	// Set up a mask associated with a rig so that it can modify any clips for that rig
-	void Initialize(Rig* rig);
+public:
+    // Set up a mask associated with a rig so that it can modify any clips for that rig
+    void Initialize(Rig* rig);
 
-	// Must be called to clean up if the clip mask was initialized
-	void Exit();
+    // Must be called to clean up if the clip mask was initialized
+    void Exit();
 
-	// Will set the weight of all joints to 1.0f
-	void EnableAllJoints();
+    // Will set the weight of all joints to 1.0f
+    void EnableAllJoints();
 
-	// Will set the weight of all joints to 0.0f
-	void DisableAllJoints();
+    // Will set the weight of all joints to 0.0f
+    void DisableAllJoints();
 
-	// Will set the weight of the joint at jointIndex and all of its children
-	// to setValue. All other joints will be set to zero
-	void SetAllChildrenOf(int32_t jointIndex, float setValue);
+    // Will set the weight of the joint at jointIndex and all of its children
+    // to setValue. All other joints will be set to zero
+    void SetAllChildrenOf(int32_t jointIndex, float setValue);
 
-	// Get the joint weights
-	inline ozz::span<Vector4> GetJointWeights() { return mJointWeights; };
+    // Get the joint weights
+    inline ozz::span<Vector4> GetJointWeights() { return mJointWeights; };
 
-	private:
-	// Pointer to the rig that this clip mask corresponds to
-	Rig* mRig;
+private:
+    // Pointer to the rig that this clip mask corresponds to
+    Rig* mRig;
 
-	// Per-joint weights used to define the partial animation mask. Allows to
-	// select which joints are considered during blending, and their individual
-	// weight_setting.
-	ozz::span<Vector4> mJointWeights;
+    // Per-joint weights used to define the partial animation mask. Allows to
+    // select which joints are considered during blending, and their individual
+    // weight_setting.
+    ozz::span<Vector4> mJointWeights;
 };

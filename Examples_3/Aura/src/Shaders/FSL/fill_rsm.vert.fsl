@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 
@@ -16,7 +16,7 @@
 
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "packing.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "wind.h.fsl"
 
 STRUCT(VsIn)
@@ -24,7 +24,6 @@ STRUCT(VsIn)
 	DATA(float3, position, POSITION);
 	DATA(uint,   texCoord, TEXCOORD0);
 	DATA(uint,   normal,   NORMAL);
-	DATA(uint,   tangent,  TANGENT);
 };
 
 STRUCT(VsOut)
@@ -41,7 +40,7 @@ VsOut VS_MAIN(VsIn In, SV_InstanceID(uint) InstanceID)
 
 	VsOut Out;
 
-	uint matBaseSlot = BaseMaterialBuffer(false, Get(viewID));
+	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_OPAQUE, Get(viewID));
 	Out.materialID   = float(Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()]); //In.meshID //IndirectMaterialBuffer[In.drawID]
 
 	float4 pos   = float4(In.position.xyz, 1.0f);

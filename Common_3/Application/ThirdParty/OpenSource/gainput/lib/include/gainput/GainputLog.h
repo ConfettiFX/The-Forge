@@ -23,7 +23,7 @@
 
 #if defined(GAINPUT_DEBUG) || defined(GAINPUT_DEV)
 	#include <android/log.h>
-	#define GAINPUT_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gainput", __VA_ARGS__))
+	#define GAINPUT_LOG(...) do { } while (0 > __android_log_print(ANDROID_LOG_INFO, "gainput", __VA_ARGS__))
 #endif
 
 #elif defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_TVOS)

@@ -3221,32 +3221,33 @@ public:
 
     // Construct viewing matrix based on eye, position looked at, and up direction
     //
-    static inline const Matrix4 lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec);
+	static inline const Matrix4 lookAtLH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec);
+    static inline const Matrix4 lookAtRH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec);
 
     // Construct a perspective projection matrix based on frustum
     //
-    static inline const Matrix4 frustum(float left, float right, float bottom, float top, float zNear, float zFar);
+    static inline const Matrix4 frustumLH(float left, float right, float bottom, float top, float zNear, float zFar);
 
     // Construct an orthographic projection matrix
     //
-    static inline const Matrix4 orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
+    static inline const Matrix4 orthographicLH(float left, float right, float bottom, float top, float zNear, float zFar);
     static inline const Matrix4 orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar);
     
 	//========================================= #TheForgeMathExtensionsBegin ================================================
 	// Construct an reversed orthographic projection matrix
 	//
-	static inline const Matrix4 orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar);
+	static inline const Matrix4 orthographicLH_ReverseZ(float left, float right, float bottom, float top, float zNear, float zFar);
 
-	// Construct a perspective projection matrix using horizontal fov
+	// Construct a perspective projection matrix using fov
 	// 
-	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
-    static inline const Matrix4 perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar);
-	static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
+	static inline const Matrix4 perspectiveLH(float fovRadians, float aspectInverse, float zNear, float zFar);
+    static inline const Matrix4 perspectiveRH(float fovRadians, float aspectInverse, float zNear, float zFar);
+	static inline const Matrix4 perspectiveLH_ReverseZ(float fovRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);
 
-    static inline const Matrix4 cubeProjection(const float zNear, const float zFar);
+    static inline const Matrix4 cubeProjectionLH(const float zNear, const float zFar);
 	static inline const Matrix4 cubeProjectionRH(const float zNear, const float zFar);
 	static inline const Matrix4 cubeView(const unsigned int side);
 	static void inline extractFrustumClipPlanes(const Matrix4& vp, Vector4& rcp, Vector4& lcp, Vector4& tcp, Vector4& bcp, Vector4& fcp, Vector4& ncp, bool const normalizePlanes);
@@ -3593,32 +3594,33 @@ public:
 
 	// Construct viewing matrix based on eye, position looked at, and up direction
 	//
-	static inline const Matrix4d lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec);
+	static inline const Matrix4d lookAtLH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec);
+	static inline const Matrix4d lookAtRH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec);
 
 	// Construct a perspective projection matrix based on frustum
 	//
-	static inline const Matrix4d frustum(double left, double right, double bottom, double top, double zNear, double zFar);
+	static inline const Matrix4d frustumLH(double left, double right, double bottom, double top, double zNear, double zFar);
 
 	// Construct an orthographic projection matrix
 	//
-	static inline const Matrix4d orthographic(double left, double right, double bottom, double top, double zNear, double zFar);
+	static inline const Matrix4d orthographicLH(double left, double right, double bottom, double top, double zNear, double zFar);
 	static inline const Matrix4d orthographicRH(double left, double right, double bottom, double top, double zNear, double zFar);
 
 	//========================================= #TheForgeMathExtensionsBegin ================================================
 	// Construct an reversed orthographic projection matrix
 	//
-	static inline const Matrix4d orthographicReverseZ(double left, double right, double bottom, double top, double zNear, double zFar);
+	static inline const Matrix4d orthographicLH_ReverseZ(double left, double right, double bottom, double top, double zNear, double zFar);
 
-	// Construct a perspective projection matrix using horizontal fov
+	// Construct a perspective projection matrix using fov
 	// 
-	static inline const Matrix4d perspective(double fovxRadians, double aspectInverse, double zNear, double zFar);
-	static inline const Matrix4d perspectiveRH(double fovxRadians, double aspectInverse, double zNear, double zFar);
-	static inline const Matrix4d perspectiveReverseZ(double fovxRadians, double aspectInverse, double zNear, double zFar);
+	static inline const Matrix4d perspectiveLH(double fovRadians, double aspectInverse, double zNear, double zFar);
+	static inline const Matrix4d perspectiveRH(double fovRadians, double aspectInverse, double zNear, double zFar);
+	static inline const Matrix4d perspectiveLH_ReverseZ(double fovRadians, double aspectInverse, double zNear, double zFar);
 
 	static inline const Matrix4d rotationYX(const double radiansY, const double radiansX);
 	static inline const Matrix4d rotationXY(const double radiansX, const double radiansY);
 
-	static inline const Matrix4d cubeProjection(const double zNear, const double zFar);
+	static inline const Matrix4d cubeProjectionLH(const double zNear, const double zFar);
 	static inline const Matrix4d cubeProjectionRH(const double zNear, const double zFar);
 	static inline const Matrix4d cubeView(const unsigned int side);
 	static void inline extractFrustumClipPlanes(const Matrix4d& vp, Vector4d& rcp, Vector4d& lcp, Vector4d& tcp, Vector4d& bcp, Vector4d& fcp, Vector4d& ncp, bool const normalizePlanes);

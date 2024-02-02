@@ -1,0 +1,35 @@
+#include "CommonSettings.xcconfig"
+
+// Whether to enable link-time optimizations (such as inlining across translation
+// units)
+LLVM_LTO = NO
+
+// Strip settings
+STRIP_STYLE = debugging
+// Whether to strip debugging symbols when copying resources (like included
+// binaries)
+COPY_PHASE_STRIP = NO
+
+//Debug Info
+DEBUG_INFORMATION_FORMAT = dwarf
+//DWARF_DSYM_FOLDER_PATH = $(CONFIGURATION_BUILD_DIR)
+//DWARF_DSYM_FILE_NAME = $(PRODUCT_NAME).dSYM
+
+//preprocessor definitions
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) DEBUG=1
+
+//common compilation - linking flags
+WARNINGS_FLAGS = -Wall -Wno-c++17-extensions $(inherited) $(WARNINGS_FLAGS)
+OTHER_CFLAGS = -gfull $(WARNINGS_FLAGS)  $(inherited)
+OTHER_CPLUSPLUSFLAGS = $(OTHER_CFLAGS)  $(inherited)
+//https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes
+//known issue when linking with >= os 12 and running on older OS versions
+OLD_LINKER_FLAG_XCODE_1500 =-gfull -Wl -ld_classic
+OLD_LINKER_FLAG_XCODE = $(OLD_LINKER_FLAG_XCODE_$(XCODE_VERSION_MAJOR):default=-gfull)
+OTHER_LDFLAGS = $(OLD_LINKER_FLAG_XCODE) $(inherited)
+
+// Only active arch for debug builds
+ONLY_ACTIVE_ARCH = YES
+
+//optimization level
+GCC_OPTIMIZATION_LEVEL = 0

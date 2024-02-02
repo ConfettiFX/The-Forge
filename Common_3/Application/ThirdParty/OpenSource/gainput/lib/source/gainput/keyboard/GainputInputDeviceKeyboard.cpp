@@ -9,17 +9,17 @@
 #include "../../../include/gainput/GainputLog.h"
 
 #if defined(GAINPUT_PLATFORM_LINUX)
-	#include "GainputInputDeviceKeyboardLinux.h"
-	#include "GainputInputDeviceKeyboardEvdev.h"
+	#include "../linux/GainputInputDeviceKeyboardLinux.h"
+	#include "../linux/GainputInputDeviceKeyboardEvdev.h"
 #elif defined(GAINPUT_PLATFORM_WIN)
-	#include "GainputInputDeviceKeyboardWin.h"
-	#include "GainputInputDeviceKeyboardWinRaw.h"
+	#include "../windows/GainputInputDeviceKeyboardWin.h"
+	#include "../windows/GainputInputDeviceKeyboardWinRaw.h"
 #elif defined(GAINPUT_PLATFORM_ANDROID)
-	#include "GainputInputDeviceKeyboardAndroid.h"
+	#include "../android/GainputInputDeviceKeyboardAndroid.h"
 #elif defined(GAINPUT_PLATFORM_MAC)
-	#include "GainputInputDeviceKeyboardMac.h"
+	#include "../apple/GainputInputDeviceKeyboardMac.h"
 #elif defined(GAINPUT_PLATFORM_IOS)
-	#include "GainputInputDeviceKeyboardIOS.h"
+	#include "../apple/GainputInputDeviceKeyboardIOS.h"
 #elif defined(GAINPUT_PLATFORM_GGP)
 	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceKeyboardGGP.h"
 #endif

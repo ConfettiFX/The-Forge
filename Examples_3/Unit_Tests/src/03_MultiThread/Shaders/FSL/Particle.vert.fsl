@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,8 +36,6 @@ STRUCT(VSOutput)
 	DATA(float,  PointSize, SV_PointSize);
 	DATA(float, TexCoord, TEXCOORD);
 };
-
-INDIRECT_DRAW()
 
 VSOutput VS_MAIN( VSInput In )
 {
@@ -156,7 +154,7 @@ VSOutput VS_MAIN( VSInput In )
         c += (0.1 * sin(theta));
     }
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     Out.Position = mul(Get(mvp)[VR_VIEW_ID], p);
 #else
     Out.Position = mul(Get(mvp), p);

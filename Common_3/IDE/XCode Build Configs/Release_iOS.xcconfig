@@ -1,0 +1,10 @@
+#include "CommonSettingsRelease.xcconfig"
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+ARCHS = arm64
+EXCLUDED_ARCHS = armv7
+IPHONEOS_DEPLOYMENT_TARGET = 12.0
+TARGETED_DEVICE_FAMILY=1,2
+SDKROOT = iphoneos
+OTHER_LDFLAGS = -framework CoreGraphics

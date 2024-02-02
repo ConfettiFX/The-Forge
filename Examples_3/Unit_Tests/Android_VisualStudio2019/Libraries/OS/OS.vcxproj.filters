@@ -1,0 +1,619 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common_3\Application">
+      <UniqueIdentifier>{609e7ceb-ff48-4ad8-a064-0f2ccaee54f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{821b56c8-5992-498f-a600-c8911091ac28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\Profiler">
+      <UniqueIdentifier>{79d756a5-6cf9-4d3c-b53d-71a205ec8b51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\imgui">
+      <UniqueIdentifier>{c49fa5a5-6552-4fd3-b169-d6b90e45dbd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource">
+      <UniqueIdentifier>{e9b1df1e-2d28-4717-8ee0-72d8289d0f24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty">
+      <UniqueIdentifier>{1f702fe3-6bab-420e-82d2-e00a979aafbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\UI">
+      <UniqueIdentifier>{a4fa8566-36c4-4d4b-abfd-f327216401b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\Scripting">
+      <UniqueIdentifier>{7655feb6-1300-4f1e-8490-96737b891db5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game">
+      <UniqueIdentifier>{d82fc338-7ab3-4c2e-a9b0-19cbfee120c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src">
+      <UniqueIdentifier>{a2884e39-22e9-4945-99a2-36d1316fa626}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\ThirdParty\OpenSource\lua-5.3.5">
+      <UniqueIdentifier>{0b1d89d7-29c8-433e-8075-1d126a580bcc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\ThirdParty\OpenSource">
+      <UniqueIdentifier>{66632dd8-5d60-4d50-a872-f49e432d13b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\ThirdParty">
+      <UniqueIdentifier>{d5450a05-2659-410f-ab14-bd6b5efbbe1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\Fonts">
+      <UniqueIdentifier>{4ecbb56c-6452-4ac7-a2c1-7953ee666773}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Android">
+      <UniqueIdentifier>{cc06e195-3664-4379-8945-213554a5d0eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS">
+      <UniqueIdentifier>{06cc531d-5abe-4017-8991-94fa6f87d9f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\ThirdParty\OpenSource\cpu_features\src">
+      <UniqueIdentifier>{a8bfd60a-9bcd-444e-b5d5-da07c536acdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\ThirdParty\OpenSource\cpu_features">
+      <UniqueIdentifier>{fb8f25d9-1e41-40ce-8736-69e9e26a79bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\ThirdParty\OpenSource">
+      <UniqueIdentifier>{16994016-bb72-411e-943e-f8a053f12667}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\ThirdParty">
+      <UniqueIdentifier>{adae87c2-0635-4fa2-adf5-c04def8f0e84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\WindowSystem">
+      <UniqueIdentifier>{a7fc6885-41eb-4b0e-8015-0213e580bb6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources\AnimationSystem\Animation">
+      <UniqueIdentifier>{cb243225-409f-4735-9dc8-bd1345aee56f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources\AnimationSystem">
+      <UniqueIdentifier>{8b426291-4e55-4d5c-9e0e-9703df3732c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources">
+      <UniqueIdentifier>{84303ff7-ca80-41b5-bc2f-a5e4d9d13009}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\FileSystem">
+      <UniqueIdentifier>{d08c116f-be06-452e-81e3-de3550032134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities">
+      <UniqueIdentifier>{1ff8c949-b1d3-4a00-9fcb-f1fb72267d4a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\Log">
+      <UniqueIdentifier>{dd170a94-7532-4548-b29f-57668a94308c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\Math">
+      <UniqueIdentifier>{7e427f12-e476-4a4c-894b-7115adb2f1e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\MemoryTracking">
+      <UniqueIdentifier>{9344c2e3-8f3d-4d41-a976-6ed3519c6dd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder">
+      <UniqueIdentifier>{3c9a76ff-b659-401c-99c5-397c956a7099}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal">
+      <UniqueIdentifier>{91799e24-ed37-4454-a410-0a4cbf1dc6ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource">
+      <UniqueIdentifier>{c31aff49-19b1-42cd-a8a6-ca518dcae4ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty">
+      <UniqueIdentifier>{17ff5ce5-a9e7-47cc-a512-695ef7553d21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\bstrlib">
+      <UniqueIdentifier>{adcf72fc-9fa4-4df2-8dba-20f1f11d7d3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\lz4">
+      <UniqueIdentifier>{36ee1b91-f97c-4302-95f3-c4645d183883}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\zstd\common">
+      <UniqueIdentifier>{14183994-b6a9-4dbe-b2ac-c757ef2bedc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\zstd">
+      <UniqueIdentifier>{bb17d140-dfdd-4110-8619-028883129f09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress">
+      <UniqueIdentifier>{ba3b0d79-8dc0-4397-b110-f7dbb84575a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\Threading">
+      <UniqueIdentifier>{379046fa-ee56-4256-839a-968530c7b4bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\Interfaces">
+      <UniqueIdentifier>{db4c55cb-30d5-449d-aa6f-e732f89a7da2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Game\Interfaces">
+      <UniqueIdentifier>{70eaaf13-0d8a-4a69-bf11-3db4ecc93e29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\Fonts\Shaders\FSL">
+      <UniqueIdentifier>{3ae7954b-ba34-4f52-8d04-6759b6801b3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\Fonts\Shaders">
+      <UniqueIdentifier>{92677230-7018-497a-939d-119a2700c3dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Graphics">
+      <UniqueIdentifier>{80c57b91-eca0-447a-976d-4796880da4fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\OS\Interfaces">
+      <UniqueIdentifier>{f7dc3199-4a61-4b28-89b8-1154baba3118}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\Interfaces">
+      <UniqueIdentifier>{f0f5ef13-520e-4bb3-98b7-ef56a5681f68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\UI\Shaders\FSL">
+      <UniqueIdentifier>{f801b0ba-178c-4d33-b976-944a0c454bc3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\UI\Shaders">
+      <UniqueIdentifier>{40a82c69-50fc-4792-bc73-f131ff13e954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources\AnimationSystem\Animation\Shaders\FSL">
+      <UniqueIdentifier>{c12a69c7-88ff-4fe5-8ddd-65b032c07085}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources\AnimationSystem\Animation\Shaders">
+      <UniqueIdentifier>{a3bf796a-d15c-49c0-b9f6-888b63ffd775}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\PaniniProjection\Shaders\FSL">
+      <UniqueIdentifier>{5298d2e3-1a76-446b-a7cd-804ad72ff47e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\PaniniProjection\Shaders">
+      <UniqueIdentifier>{069fb725-9bd7-4ff8-b573-9c2c3c1ccc6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\PaniniProjection">
+      <UniqueIdentifier>{29d8cdd9-aa18-4f4c-9e02-c7cca9fef960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3">
+      <UniqueIdentifier>{6fdcfac0-61b1-4a15-9d16-3380f885d0cf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\CameraController.cpp">
+      <Filter>Common_3\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\InputSystem.cpp">
+      <Filter>Common_3\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.cpp">
+      <Filter>Common_3\Application\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.cpp">
+      <Filter>Common_3\Application\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\RemoteControl.cpp">
+      <Filter>Common_3\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Screenshot.cpp">
+      <Filter>Common_3\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_demo.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_draw.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_tables.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\UI\UI.cpp">
+      <Filter>Common_3\Application\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\Scripting\LuaManager.cpp">
+      <Filter>Common_3\Game\Scripting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\Scripting\LuaManagerImpl.cpp">
+      <Filter>Common_3\Game\Scripting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\Scripting\LuaSystem.cpp">
+      <Filter>Common_3\Game\Scripting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lapi.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lauxlib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lbaselib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lbitlib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lcode.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lcorolib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lctype.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ldblib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ldebug.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ldo.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ldump.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lfunc.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lgc.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\linit.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\liolib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\llex.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lmathlib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lmem.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\loadlib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lobject.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lopcodes.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\loslib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lparser.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lstate.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lstring.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lstrlib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ltable.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ltablib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\ltm.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lundump.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lutf8lib.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lvm.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src\lzio.c">
+      <Filter>Common_3\Game\ThirdParty\OpenSource\lua-5.3.5\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\FontSystem.cpp">
+      <Filter>Common_3\Application\Fonts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Application\Fonts\stbtt.cpp">
+      <Filter>Common_3\Application\Fonts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.c">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.c">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.c">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidWindow.cpp">
+      <Filter>Common_3\OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\CPUConfig.cpp">
+      <Filter>Common_3\OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\hwcaps.c">
+      <Filter>Common_3\OS\ThirdParty\OpenSource\cpu_features\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\impl_aarch64_linux_or_android.c">
+      <Filter>Common_3\OS\ThirdParty\OpenSource\cpu_features\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\ThirdParty\OpenSource\cpu_features\src\impl_x86_linux_or_android.c">
+      <Filter>Common_3\OS\ThirdParty\OpenSource\cpu_features\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
+      <Filter>Common_3\OS\WindowSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\AnimatedObject.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Animation.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Clip.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\ClipController.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\ClipMask.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Rig.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.cpp">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\FileSystem.c">
+      <Filter>Common_3\Utilities\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\SystemRun.c">
+      <Filter>Common_3\Utilities\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\FileSystem\UnixFileSystem.c">
+      <Filter>Common_3\Utilities\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Log\Log.c">
+      <Filter>Common_3\Utilities\Log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.c">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\StbDs.c">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\MemoryTracking.c">
+      <Filter>Common_3\Utilities\MemoryTracking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\bstrlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\lz4\lz4.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\debug.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\entropy_common.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\error_private.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\fse_decompress.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\pool.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\threading.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\xxhash.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\common\zstd_common.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress\huf_decompress.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress\zstd_ddict.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress\zstd_decompress.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress\zstd_decompress_block.c">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\zstd\decompress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.c">
+      <Filter>Common_3\Utilities\Threading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Timer.c">
+      <Filter>Common_3\Utilities</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Config.h">
+      <Filter>Common_3\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IApp.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\ICameraController.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IInput.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IMiddleware.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IProfiler.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IScreenshot.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IUI.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Profiler\GpuProfiler.h">
+      <Filter>Common_3\Application\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerBase.h">
+      <Filter>Common_3\Application\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Profiler\ProfilerHTML.h">
+      <Filter>Common_3\Application\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imconfig.h">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui.h">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\ThirdParty\OpenSource\imgui\imgui_internal.h">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Game\Interfaces\IScripting.h">
+      <Filter>Common_3\Game\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\resources.h">
+      <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h">
+      <Filter>Common_3\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Application\Interfaces\IFont.h">
+      <Filter>Common_3\Application\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
+      <Filter>Common_3\OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\AnimatedObject.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Animation.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Clip.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\ClipController.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\ClipMask.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Rig.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\SkeletonBatcher.h">
+      <Filter>Common_3\Resources\AnimationSystem\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IFileSystem.h">
+      <Filter>Common_3\Utilities\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\ILog.h">
+      <Filter>Common_3\Utilities\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IMemory.h">
+      <Filter>Common_3\Utilities\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Interfaces\IThread.h">
+      <Filter>Common_3\Utilities\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Log\Log.h">
+      <Filter>Common_3\Utilities\Log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.h">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\AlgorithmsImpl.h">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\Random.h">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\MathTypes.h">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Math\ShaderUtilities.h">
+      <Filter>Common_3\Utilities\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\ShaderUtilities.h.fsl">
+      <Filter>Common_3\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\NoMemoryDefines.h">
+      <Filter>Common_3\Utilities\MemoryTracking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\RingBuffer.h">
+      <Filter>Common_3\Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.h">
+      <Filter>Common_3\Utilities\ThirdParty\OpenSource\bstrlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\Atomics.h">
+      <Filter>Common_3\Utilities\Threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Utilities\Threading\ThreadSystem.h">
+      <Filter>Common_3\Utilities\Threading</Filter>
+    </ClInclude>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.frag.fsl">
+      <Filter>Common_3\Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\imgui.vert.fsl">
+      <Filter>Common_3\Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.frag.fsl">
+      <Filter>Common_3\Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\textured_mesh.vert.fsl">
+      <Filter>Common_3\Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\UI\Shaders\FSL\UI_ShaderList.fsl">
+      <Filter>Common_3\Application\UI\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash.frag.fsl">
+      <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash2D.vert.fsl">
+      <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\fontstash3D.vert.fsl">
+      <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Application\Fonts\Shaders\FSL\Fonts_ShaderList.fsl">
+      <Filter>Common_3\Application\Fonts\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\Animation_ShaderList.fsl">
+      <Filter>Common_3\Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.frag.fsl">
+      <Filter>Common_3\Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\bone.vert.fsl">
+      <Filter>Common_3\Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.frag.fsl">
+      <Filter>Common_3\Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Common_3\Resources\AnimationSystem\Animation\Shaders\FSL\joint.vert.fsl">
+      <Filter>Common_3\Resources\AnimationSystem\Animation\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.frag.fsl">
+      <Filter>Middleware_3\PaniniProjection\Shaders\FSL</Filter>
+    </FSLShader>
+    <FSLShader Include="..\..\..\..\..\Middleware_3\PaniniProjection\Shaders\FSL\panini_projection.vert.fsl">
+      <Filter>Middleware_3\PaniniProjection\Shaders\FSL</Filter>
+    </FSLShader>
+  </ItemGroup>
+</Project>

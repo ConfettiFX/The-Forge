@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 //--------------------------------------------------------------------------------------------
 // NOTE: Make sure this is the last include in a .cpp file!
@@ -38,54 +38,74 @@
 #include <new>
 #include <utility> // std::forward only
 #else
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #endif
 
 #define TF_KB (1024)
 #define TF_MB (1024 * TF_KB)
 #define TF_GB (1024 * TF_MB)
 
+#ifdef ENABLE_MEMORY_TRACKING
+typedef struct MemoryStatistics
+{
+    uint32_t totalReportedMemory;
+    uint32_t totalActualMemory;
+    uint32_t peakReportedMemory;
+    uint32_t peakActualMemory;
+    uint32_t accumulatedReportedMemory;
+    uint32_t accumulatedActualMemory;
+    uint32_t accumulatedAllocUnitCount;
+    uint32_t totalAllocUnitCount;
+    uint32_t peakAllocUnitCount;
+} MemoryStatistics;
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-	FORGE_API bool initMemAlloc(const char* appName);
-	FORGE_API void exitMemAlloc(void);
+    // appName is used to create dump file, pass NULL to avoid it
+    FORGE_API bool initMemAlloc(const char* appName);
+    FORGE_API void exitMemAlloc(void);
 
-	FORGE_API void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf);
-	FORGE_API void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf);
-	FORGE_API void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf);
-	FORGE_API void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
-	FORGE_API void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf);
-	FORGE_API void  tf_free_internal(void* ptr, const char* f, int l, const char* sf);
+#ifdef ENABLE_MEMORY_TRACKING
+    FORGE_API MemoryStatistics memGetStatistics(void);
+#endif
+
+    FORGE_API void* tf_malloc_internal(size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_memalign_internal(size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_calloc_internal(size_t count, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void* tf_realloc_internal(void* ptr, size_t size, const char* f, int l, const char* sf);
+    FORGE_API void  tf_free_internal(void* ptr, const char* f, int l, const char* sf);
 
 #ifdef __cplusplus
-}    // extern "C"
+} // extern "C"
 #endif
 
 #ifdef __cplusplus
-template <typename T, typename... Args>
+template<typename T, typename... Args>
 static T* tf_placement_new(void* ptr, Args&&... args)
 {
-	return new (ptr) T(std::forward<Args>(args)...);
+    return new (ptr) T(std::forward<Args>(args)...);
 }
 
-template <typename T, typename... Args>
+template<typename T, typename... Args>
 static T* tf_new_internal(const char* f, int l, const char* sf, Args&&... args)
 {
-	T* ptr = (T*)tf_memalign_internal(alignof(T), sizeof(T), f, l, sf);
-	return tf_placement_new<T>(ptr, std::forward<Args>(args)...);
+    T* ptr = (T*)tf_memalign_internal(alignof(T), sizeof(T), f, l, sf);
+    return tf_placement_new<T>(ptr, std::forward<Args>(args)...);
 }
 
-template <typename T>
+template<typename T>
 static void tf_delete_internal(T* ptr, const char* f, int l, const char* sf)
 {
-	if (ptr)
-	{
-		ptr->~T();
-		tf_free_internal(ptr, f, l, sf);
-	}
+    if (ptr)
+    {
+        ptr->~T();
+        tf_free_internal(ptr, f, l, sf);
+    }
 }
 #endif
 

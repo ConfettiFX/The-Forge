@@ -21,11 +21,11 @@
 */
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
- * 
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -33,9 +33,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -50,16 +50,16 @@
 void PS_MAIN( VSOutputFullscreen In )
 {
 	INIT_MAIN;
-#ifdef METAL
-    uint2 p = uint2(In.Position.xy);
-    uint2 viewport = uint2(Get(Viewport).zw);
-    Get(DepthsTexture)[p.x + p.y * viewport.x] = as_type<uint>(1.0f);
-    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(1.0f);
-    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(1.0f);
+#if TEXTURE_ATOMIC_SUPPORTED
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 0 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 1 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
+	Write3D(Get(DepthsTexture), int3(In.Position.xy, 2 + VR_VIEW_ID(In.ViewID) * 3), asuint(0.0f));
 #else
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 0 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 1 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
-	Write3D(Get(DepthsTexture), int3(In.Position.xy, 2 + VR_VIEW_ID(In.ViewID) * 3), asuint(1.0f));
+	uint2 p = uint2(In.Position.xy);
+    uint2 viewport = uint2(Get(Viewport).zw);
+    Get(DepthsTexture)[p.x + p.y * viewport.x] = as_type<uint>(0.0f);
+    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(0.0f);
+    Get(DepthsTexture)[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(0.0f);
 #endif
 	RETURN();
 }

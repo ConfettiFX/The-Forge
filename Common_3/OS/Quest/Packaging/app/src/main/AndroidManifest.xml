@@ -17,7 +17,8 @@
 			android:configChanges="density|keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
 			android:screenOrientation="landscape"
 			android:launchMode="singleTask"
-			android:resizeableActivity="false">
+			android:resizeableActivity="false"
+			android:exported="true">
 			<meta-data android:name="android.app.lib_name"
 				android:value="ForgeGame" />
 			<intent-filter>
@@ -26,5 +27,6 @@
 			</intent-filter>
 		</activity>
     </application>
+	<uses-permission android:name="android.permission.INTERNET" />
 
 </manifest>

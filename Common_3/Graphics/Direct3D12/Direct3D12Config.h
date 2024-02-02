@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,9 +20,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
-#pragma once 
+#pragma once
 
 #ifndef FORGE_RENDERER_CONFIG_H
 #error "Direct3D12Config should be included from RendererConfig only"
@@ -34,11 +34,11 @@
 #include "../../../Xbox/Common_3/Graphics/Direct3D12/Direct3D12X.h"
 #else
 #include <d3d12.h>
-#include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
-#endif
 
+#include "../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
+#endif
 
 //////////////////////////////////////////////
 //// Availability macros
@@ -47,10 +47,6 @@
 
 #ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT
 #define D3D12_RAYTRACING_AVAILABLE
-#endif
-
-#ifdef D3D12_RS_SET_SHADING_RATE_COMBINER_COUNT
-#define VRS_AVAILABLE
 #endif
 
 #if defined(_WINDOWS)

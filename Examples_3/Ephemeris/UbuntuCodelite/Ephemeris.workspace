@@ -2,7 +2,6 @@
 <CodeLite_Workspace Name="Ephemeris" Database="" Version="10.0.0">
   <Project Name="Ephemeris" Path="Ephemeris/Ephemeris.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/Application/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
-  <Project Name="EASTL" Path="../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <Project Name="OSBase" Path="../../Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="../../Unit_Tests/UbuntuCodelite/Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="../../Unit_Tests/UbuntuCodelite/SpirVTools/SpirVTools.project" Active="No"/>
@@ -15,9 +14,7 @@
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="Ephemeris" ConfigName="Debug"/>
-      <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
-      <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
@@ -29,9 +26,7 @@
       <Project Name="ozz_animation" ConfigName="Release"/>
       <Project Name="ozz_animation_offline" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
-      <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
-      <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="SpirVTools" ConfigName="Release"/>

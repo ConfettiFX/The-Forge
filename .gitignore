@@ -33,28 +33,210 @@
 
 # Visual Studio
 **/.vs/
+**/.vscode/
 **/x64/
 **.vcxproj.user
 **.user
 **.log
+**.VC.db
+**.ilk
+**.pdb
+**.ipdb
+**.iobj
+**/UpgradeLog.htm
+
+#  Visual Studio User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Pycharm IDE files
+**.idea
+
+# Android build artifacts
+Examples_3/Unit_Tests/Android_VisualStudio2017/Android-*
+Examples_3/Unit_Tests/Android_VisualStudio2019/Android-*
+Examples_3/Visibility_Buffer/Android_VisualStudio2017/Android-*
+Examples_3/Visibility_Buffer/Android_VisualStudio2019/Android-*
+**/.gradle
+**/.agde
+Common_3/OS/Android/Packaging/build/**
+
+##Xcode User settings
+xcuserdata/
+## compatibility with Xcode 8 and earlier (ignoring not required starting Xcode 9)
+*.xcscmblueprint
+*.xccheckout
+
+# General Apple
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
 # Art
-Art/
+# Art/
+Art.zip
+PBR.zip
+# Examples_3/Unit_Tests/UnitTestResources/Textures/PBR/
 
 # Binary Shaders
-**/PCDX12/Binary/
-**/PCVulkan/Binary/
-**/OSXMetal/Binary/
-**/PCDX12/Compiled/
+**/D3D12/Binary/
+**/Vulkan/Binary/
+**/D3D11/Binary/
+**/Metal/Binary/
+**/D3D12/Compiled/
+**/Shaders/Compiled/
+
+# ShaderServer
+**/shader-server.txt
+**/server-log.txt
+
+# MacOS Common Shaders
+Examples_3/Aura/macOS Xcode/The-Forge/Shaders/
+Examples_3/Ephemeris/macOS Xcode/The-Forge/Shaders/
+Examples_3/Unit_Tests/macOS Xcode/The-Forge/Shaders/
+Examples_3/Aura/macOS Xcode/The-Forge/CompiledShaders/
+Examples_3/Ephemeris/macOS Xcode/The-Forge/CompiledShaders/
+Examples_3/Unit_Tests/macOS Xcode/The-Forge/CompiledShaders/
 
 # Automatically Generated Files
 **/Renderer/IRendererDLL.h
 **/Renderer/Renderer.cpp
 
 # Obj folders
-**/obj/
-**/bin/
+/**/obj/
+/**/bin/
+/**/macOS\ Xcode/**/Bin/
+/**/macOS\ Xcode/**/build/
 
 # Nuget packages
 Tools/ShaderBuildCommand/packages/
 **/ThirdParty/OpenSource/hlslparser/Ext/ShaderTranslator/packages/
+
+# Linux / UbuntuCodeLite files
+/**/UbuntuCodelite/.codelite/
+/**/UbuntuCodelite/.cache/
+/**/UbuntuCodelite/.build-debug/
+/**/UbuntuCodelite/.build-release/
+/**/UbuntuCodelite/*/*.mk
+/**/UbuntuCodelite/*/*.txt
+/**/UbuntuCodelite/Makefile
+/**/UbuntuCodelite/*/Debug
+/**/UbuntuCodelite/*/Release
+/**/Linux/*/*.mk
+/**/Linux/*/*.txt
+/**/Linux/*.mk
+/**/Linux/*.txt
+/**/Linux/*/Debug
+/**/Linux/*/Release
+/**/Linux/Debug
+/**/Linux/Release
+/**/Linux/.codelite/
+/**/Linux/.build-debug/
+/**/Linux/.build-release/
+/**/Linux/Makefile
+Examples_3/Visibility_Buffer/UbuntuCodeLite/SpirVTools/*/*.txt
+Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/*/*.txt
+Common_3/Application/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.txt
+Common_3/Tools/BunyArchive/codelite/*.mk
+Common_3/Tools/BunyArchive/codelite/.*
+Common_3/Tools/BunyArchive/codelite/Debug/*
+Common_3/Tools/BunyArchive/codelite/Release/*
+Common_3/Tools/BunyArchive/codelite/Makefile
+Common_3/Tools/BunyArchive/codelite/*.txt
+**/tags
+Common_3/Tools/BunyArchive/Xcode/Debug/*
+
+# Generated animation files
+*.ozz
+/**/ThirdParty/OpenSource/ozz-animation/**/*.mk
+/**/Tools/AssetPipeline/Apple/Release/
+/**/Tools/AssetPipeline/Apple/Debug/
+
+#assimp ignores
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/*.mk
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/build/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/Build/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/test/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/tools/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/Temp/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/Bin/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/assimp.txt/
+/**/ThirdParty/OpenSource/assimp/4.1.0/**/Assimp.txt/
+
+#Memleak files
+*.memleaks
+
+#PVS-Studio files
+*.PVS-Studio.*
+
+#MTuner files
+*.MTuner
+
+#SDF files
+/**/Unit_Tests/UnitTestResources/SDF/
+
+# Build artifacts
+/Examples_3/Visibility_Buffer/UbuntuCodelite/**/*.mk
+/Examples_3/Visibility_Buffer/UbuntuCodelite/**/*.mk
+/Examples_3/Unit_Tests/UbuntuCodelite/**/*.mk
+/Examples_3/Unit_Tests/UbuntuCodelite/**/*.mk
+/**/Ubuntu/**/*.txt
+
+/**/linux/**/*.txt
+/Common_3/Tools/AssetPipeline/Linux/*.txt
+Common_3/Tools/AssetPipeline/Linux/.build-
+/Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.mk
+/Common_3/Tools/AssetPipeline/Linux/.cache/
+/Common_3/Tools/AssetPipeline/Linux/compile_commands.json
+Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.mk
+Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.txt
+Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/Linux/compile_flags.txt
+/Examples_3/Unit_Tests/UbuntuCodelite/compile_commands.json
+/Examples_3/Unit_Tests/UbuntuCodeLite/.codelite
+/Examples_3/Visibility_Buffer/UbuntuCodelite/compile_commands.json
+
+/Examples_3/Visibility_Buffer/UbuntuCodeLite/.build
+/Examples_3/Visibility_Buffer/UbuntuCodeLite/.build-release
+
+/Examples_3/Visibility_Buffer/UbuntuCodeLite/.codelite
+/Examples_3/Visibility_Buffer/UbuntuCodelite/*/Debug
+/Examples_3/Visibility_Buffer/UbuntuCodelite/*/Release
+**.results
+**.BenchmarkCompare
+
+#Parser
+/**/Parser/**/TestData/
+
+#Python
+*.pyc
+
+#Noesis
+Common_3/Application/ThirdParty/noesisgui/Lib
+Common_3/Application/ThirdParty/noesisgui/SDK/_build/**/build
+!Common_3/Application/ThirdParty/noesisgui/SDK/_build/*.sln
+!Common_3/Application/ThirdParty/noesisgui/SDK/_build/*.vcxproj
+!Common_3/Application/ThirdParty/noesisgui/SDK/_build/*.vcxproj.filters
+
+#ISPC Texture compressor generated files
+/Common_3/Tools/ThirdParty/OpenSource/ISPCTextureCompressor/ispc_texcomp/kernel_*.h
+
+#Benchmarks
+/**/**Benchmarks/**
+
+#clang-format
+Tools/clang-tools/clang-format-files.txt
+Tools/clang-tools/out-files.txt

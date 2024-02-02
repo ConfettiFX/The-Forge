@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,22 +22,25 @@
  * under the License.
 */
 
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(float4x4, ProjectionViewMat[VR_MULTIVIEW_COUNT], None);
 #else
 	DATA(float4x4, ProjectionViewMat, None);
 #endif
     DATA(float4x4, ModelMatrixCapsule, None);
     DATA(float4x4, ModelMatrixCube, None);
+    DATA(float4x4, ModelMatrixOcclusion, None);
 };
 
 STRUCT(VSInput)
 {
     DATA(float4, Position, POSITION);
-    DATA(float4, Normal, NORMAL);
-	DATA(float2, TexCoords, TEXCOORD);
+    DATA(uint, Normal, NORMAL);
+	DATA(uint, TexCoords, TEXCOORD);
 };
 
 STRUCT(VSOutput)
@@ -55,14 +58,14 @@ VSOutput VS_MAIN( VSInput In )
 	float3 lightPos = float3(15.0f,0.0f,0.0f);
 	float3 lightCol = float3(1.0f,1.0f,1.0f);
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     float4x4 tempMat = mul(Get(ProjectionViewMat)[VR_VIEW_ID], Get(ModelMatrixCapsule));
 #else
     float4x4 tempMat = mul(Get(ProjectionViewMat), Get(ModelMatrixCapsule));
 #endif
     Out.Position = mul(tempMat, In.Position);
 
-    float4 normal = normalize(mul(Get(ModelMatrixCapsule), float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
+    float4 normal = normalize(mul(Get(ModelMatrixCapsule), float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.0f))); // Assume uniform scaling
     float4 pos = mul(Get(ModelMatrixCapsule), float4(In.Position.xyz, 1.0f));
 
     float lightIntensity = 1.0f;
@@ -79,7 +82,7 @@ VSOutput VS_MAIN( VSInput In )
 
     float3 diffuse = f3(max(dot(normal.xyz, lightDir.xyz), 0.0));
 
-	Out.texcoords = In.TexCoords;
+	Out.texcoords = unpack2Floats(In.TexCoords);
     Out.Diffuse = float4(diffuse, 1.0);
 	RETURN(Out);
 }

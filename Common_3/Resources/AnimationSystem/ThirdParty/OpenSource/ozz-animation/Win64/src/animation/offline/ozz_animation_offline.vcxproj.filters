@@ -1,81 +1,94 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\animation\offline">
+      <UniqueIdentifier>{a8ef3ab5-079a-46b1-b762-4499a90a58a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\animation">
+      <UniqueIdentifier>{93674edd-c94d-4c40-bf25-ee22695caa27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{9b3c7fc0-7873-49b6-ab3e-55a4f98f5775}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation\offline">
+      <UniqueIdentifier>{dcf2ee68-a167-4634-a877-14e361949bc5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation">
+      <UniqueIdentifier>{51e9138f-bf9b-4b13-9a95-588fd1b4db6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz">
+      <UniqueIdentifier>{2c98313e-d04f-45d5-846f-9d4424db276b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{980af20b-7b81-4864-aa3f-cc7b64f4b128}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_animation.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_animation_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_animation_utils.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\animation_builder.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\animation_optimizer.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\additive_animation_builder.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_skeleton.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_skeleton_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\skeleton_builder.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\raw_track.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\track_builder.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\src\animation\offline\track_optimizer.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\animation\offline</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\raw_animation.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\raw_animation_utils.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\animation_builder.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\animation_optimizer.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\additive_animation_builder.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\raw_skeleton.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\skeleton_builder.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\raw_track.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\track_builder.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\offline\track_optimizer.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\animation\offline</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{DD6F7058-43F0-3797-A3E3-3768D32802ED}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{53C22097-DCA9-3FC8-9A55-3B79DE0ED86A}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,18 +20,20 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #ifndef IFONT_H
 #define IFONT_H
 
 #include "../../Application/Config.h"
-#include "../../Utilities/Math/MathTypes.h"
+
 #include "../../Application/Interfaces/ICameraController.h"
 
-typedef struct Renderer Renderer;
-typedef struct Cmd Cmd;
-typedef struct RenderTarget RenderTarget;
+#include "../../Utilities/Math/MathTypes.h"
+
+typedef struct Renderer      Renderer;
+typedef struct Cmd           Cmd;
+typedef struct RenderTarget  RenderTarget;
 typedef struct PipelineCache PipelineCache;
 
 /****************************************************************************/
@@ -41,51 +43,47 @@ typedef struct PipelineCache PipelineCache;
 /// Creation information for initializing Forge Rendering for fonts and text
 typedef struct FontSystemDesc
 {
-
-	Renderer*   pRenderer = NULL;
-	uint32_t    mFontstashRingSizeBytes = 1024 * 1024;
+    Renderer* pRenderer = NULL;
+    uint32_t  mFontstashRingSizeBytes = 1024 * 1024;
 
 } FontSystemDesc;
 
 typedef struct FontSystemLoadDesc
 {
-	PipelineCache*  pCache;
-	ReloadType      mLoadType;
-	uint32_t        mColorFormat;  // enum TinyImageFormat
-	uint32_t        mDepthFormat;  // enum TinyImageFormat
-	uint32_t        mWidth;
-	uint32_t        mHeight;
-	uint32_t		mCullMode; // enum CullMode
-	uint32_t		mDepthCompareMode; // enum CompareMode
+    PipelineCache* pCache;
+    ReloadType     mLoadType;
+    uint32_t       mColorFormat; // enum TinyImageFormat
+    uint32_t       mDepthFormat; // enum TinyImageFormat
+    uint32_t       mWidth;
+    uint32_t       mHeight;
+    uint32_t       mCullMode;         // enum CullMode
+    uint32_t       mDepthCompareMode; // enum CompareMode
 } FontSystemLoadDesc;
 
 /// Creation information for loading a font from a file using The Forge
 typedef struct FontDesc
 {
-
-	const char* pFontName = "default";
-	const char* pFontPath = NULL; 
-	const char* pFontPassword = NULL; 
+    const char* pFontName = "default";
+    const char* pFontPath = NULL;
 
 } FontDesc;
 
 /// Aggregation of information necessary for drawing text with The Forge
 typedef struct FontDrawDesc
 {
+    const char* pText = NULL;
 
-	const char*   pText = NULL; 
-
-	uint32_t      mFontID = 0;
-	// Provided color should be A8B8G8R8_SRGB
-	uint32_t      mFontColor = 0xffffffff;
-	float         mFontSize = 16.0f;
-	float         mFontSpacing = 0.0f;
-	float         mFontBlur = 0.0f;
+    uint32_t mFontID = 0;
+    // Provided color should be A8B8G8R8_SRGB
+    uint32_t mFontColor = 0xffffffff;
+    float    mFontSize = 16.0f;
+    float    mFontSpacing = 0.0f;
+    float    mFontBlur = 0.0f;
 
 } FontDrawDesc;
 
 /****************************************************************************/
-// MARK: - Application Life Cycle 
+// MARK: - Application Life Cycle
 /****************************************************************************/
 
 /// Initializes Forge Rendering objects associated with Font Rendering
@@ -110,7 +108,8 @@ FORGE_API void cmdDrawTextWithFont(Cmd* pCmd, float2 screenCoordsInPx, const Fon
 
 /// Renders text as an object in the world using a loaded font w/ The Forge
 /// This function will assert if Font Rendering has not been initialized
-FORGE_API void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView, const FontDrawDesc* pDrawDesc);
+FORGE_API void cmdDrawWorldSpaceTextWithFont(Cmd* pCmd, const mat4* pMatWorld, const CameraMatrix* pMatProjView,
+                                             const FontDrawDesc* pDrawDesc);
 
 /// Debugging feature - draws the contents of the internal font atlas
 FORGE_API void cmdDrawDebugFontAtlas(Cmd* pCmd, float2 screenCoordsInPx);

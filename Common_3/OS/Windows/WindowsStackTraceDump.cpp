@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,11 +20,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
+
+#include "WindowsStackTraceDump.h"
 
 #include "../../Application/Config.h"
 
-#include "WindowsStackTraceDump.h"
 #include "../../Utilities/Interfaces/ILog.h"
 #pragma warning(push)
 #pragma warning(disable : 4091)
@@ -41,211 +42,200 @@ static LONG WINAPI dumpStackTrace(EXCEPTION_POINTERS* pExceptionInfo) { return W
 
 bool WindowsStackTrace::Init()
 {
-	if (pInst)
-	{
-		return false;
-	}
+    if (pInst)
+    {
+        return false;
+    }
 
-	ULONG stackSize = 20000;
-	if (!SetThreadStackGuarantee(&stackSize))
-		return false;
+    ULONG stackSize = 20000;
+    if (!SetThreadStackGuarantee(&stackSize))
+        return false;
 
-	SetUnhandledExceptionFilter(&dumpStackTrace);
+    SetUnhandledExceptionFilter(&dumpStackTrace);
 
-	pInst = tf_new(WindowsStackTrace);
-	initMutex(&pInst->mDbgHelpMutex);
-	pInst->mUsedMemorySize = 0;
-	pInst->mPreallocatedMemorySize = 1024LL * 1024LL;
-	pInst->pPreallocatedMemory = tf_calloc(1, pInst->mPreallocatedMemorySize);
+    pInst = tf_new(WindowsStackTrace);
+    initMutex(&pInst->mDbgHelpMutex);
+    pInst->mUsedMemorySize = 0;
+    pInst->mPreallocatedMemorySize = 1024LL * 1024LL;
+    pInst->pPreallocatedMemory = tf_calloc(1, pInst->mPreallocatedMemorySize);
 
-	return true;
+    return true;
 }
 
 void WindowsStackTrace::Exit()
 {
-	if (pInst)
-	{
-		tf_free(pInst->pPreallocatedMemory);
-		destroyMutex(&pInst->mDbgHelpMutex);
-		tf_delete(pInst);
-		pInst = NULL;
-	}
+    if (pInst)
+    {
+        tf_free(pInst->pPreallocatedMemory);
+        destroyMutex(&pInst->mDbgHelpMutex);
+        tf_delete(pInst);
+        pInst = NULL;
+    }
 }
 
 void* WindowsStackTrace::Alloc(size_t size)
 {
-	if (!pInst)
-	{
-		LOGF(LogLevel::eERROR, "StackTrace instance is not initialized");
-		return NULL;
-	}
+    if (!pInst)
+    {
+        LOGF(LogLevel::eERROR, "StackTrace instance is not initialized");
+        return NULL;
+    }
 
-	if ((pInst->mUsedMemorySize + size) > pInst->mPreallocatedMemorySize)
-	{
-		LOGF(LogLevel::eERROR, "Not enough preallocated memory for dump stack trace");
-		return NULL;
-	}
+    if ((pInst->mUsedMemorySize + size) > pInst->mPreallocatedMemorySize)
+    {
+        LOGF(LogLevel::eERROR, "Not enough preallocated memory for dump stack trace");
+        return NULL;
+    }
 
-	void* pMem = ((uint8_t*)pInst->pPreallocatedMemory + pInst->mUsedMemorySize);
-	pInst->mUsedMemorySize += size;
-	return pMem;
+    void* pMem = ((uint8_t*)pInst->pPreallocatedMemory + pInst->mUsedMemorySize);
+    pInst->mUsedMemorySize += size;
+    return pMem;
 }
 
 LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
 {
-	if (!pInst)
-	{
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
+    if (!pInst)
+    {
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
 
-	MutexLock dbgHelpLock(pInst->mDbgHelpMutex);
+    MutexLock dbgHelpLock(pInst->mDbgHelpMutex);
 
-	LOGF(LogLevel::eERROR, "APP CRASHED - See the stack trace below");
+    LOGF(LogLevel::eERROR, "APP CRASHED - See the stack trace below");
 
-	HANDLE thread = GetCurrentThread();
-	HANDLE process = GetCurrentProcess();
+    HANDLE thread = GetCurrentThread();
+    HANDLE process = GetCurrentProcess();
 
-	SymInitialize(process, NULL, FALSE);
-	DWORD options = SymGetOptions() | (SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
+    SymInitialize(process, NULL, FALSE);
+    DWORD options = SymGetOptions() | (SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
-	HMODULE* pModuleHandles;
-	DWORD    requiredSize;
-	EnumProcessModules(process, NULL, 0, &requiredSize);
-	DWORD numModules = requiredSize / sizeof(*pModuleHandles);
+    HMODULE* pModuleHandles;
+    DWORD    requiredSize;
+    EnumProcessModules(process, NULL, 0, &requiredSize);
+    DWORD numModules = requiredSize / sizeof(*pModuleHandles);
 
-	pModuleHandles = (HMODULE*)WindowsStackTrace::Alloc(requiredSize);
-	if (!pModuleHandles)
-	{
-		LOGF(LogLevel::eERROR, "Failed to allocate storage for pModuleHandles during stack trace dump");
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
+    pModuleHandles = (HMODULE*)WindowsStackTrace::Alloc(requiredSize);
+    if (!pModuleHandles)
+    {
+        LOGF(LogLevel::eERROR, "Failed to allocate storage for pModuleHandles during stack trace dump");
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
 
-	EnumProcessModules(process, pModuleHandles, requiredSize, &requiredSize);
+    EnumProcessModules(process, pModuleHandles, requiredSize, &requiredSize);
 
-	void* moduleBaseAddress = NULL;
-	for (DWORD i = 0; i < numModules; ++i)
-	{
-		MODULEINFO moduleInfo;
-		GetModuleInformation(process, pModuleHandles[i], &moduleInfo, sizeof(moduleInfo));
+    void* moduleBaseAddress = NULL;
+    for (DWORD i = 0; i < numModules; ++i)
+    {
+        MODULEINFO moduleInfo;
+        GetModuleInformation(process, pModuleHandles[i], &moduleInfo, sizeof(moduleInfo));
 
-		if (!moduleBaseAddress)
-		{
-			moduleBaseAddress = moduleInfo.lpBaseOfDll;
-		}
+        if (!moduleBaseAddress)
+        {
+            moduleBaseAddress = moduleInfo.lpBaseOfDll;
+        }
 
-		char imageName[512] = {};
-		GetModuleFileNameExA(process, pModuleHandles[i], imageName, sizeof(imageName));
-		char moduleName[512] = {};
-		GetModuleBaseNameA(process, pModuleHandles[i], moduleName, sizeof(moduleName));
-		SymLoadModule64(process, 0, imageName, moduleName, (DWORD64)moduleInfo.lpBaseOfDll, moduleInfo.SizeOfImage);
-	}
+        char imageName[512] = {};
+        GetModuleFileNameExA(process, pModuleHandles[i], imageName, sizeof(imageName));
+        char moduleName[512] = {};
+        GetModuleBaseNameA(process, pModuleHandles[i], moduleName, sizeof(moduleName));
+        SymLoadModule64(process, 0, imageName, moduleName, (DWORD64)moduleInfo.lpBaseOfDll, moduleInfo.SizeOfImage);
+    }
 
-	CONTEXT      context = *(pExceptionInfo->ContextRecord);
-	STACKFRAME64 stackFrame = {};
+    CONTEXT      context = *(pExceptionInfo->ContextRecord);
+    STACKFRAME64 stackFrame = {};
 #ifdef _M_IX86
-	stackFrame.AddrPC.Offset = context.Eip;
-	stackFrame.AddrPC.Mode = AddrModeFlat;
-	stackFrame.AddrStack.Offset = context.Esp;
-	stackFrame.AddrStack.Mode = AddrModeFlat;
-	stackFrame.AddrFrame.Offset = context.Ebp;
-	stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrPC.Offset = context.Eip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context.Esp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context.Ebp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
 #else
-	stackFrame.AddrPC.Offset = context.Rip;
-	stackFrame.AddrPC.Mode = AddrModeFlat;
-	stackFrame.AddrStack.Offset = context.Rsp;
-	stackFrame.AddrStack.Mode = AddrModeFlat;
-	stackFrame.AddrFrame.Offset = context.Rbp;
-	stackFrame.AddrFrame.Mode = AddrModeFlat;
+    stackFrame.AddrPC.Offset = context.Rip;
+    stackFrame.AddrPC.Mode = AddrModeFlat;
+    stackFrame.AddrStack.Offset = context.Rsp;
+    stackFrame.AddrStack.Mode = AddrModeFlat;
+    stackFrame.AddrFrame.Offset = context.Rbp;
+    stackFrame.AddrFrame.Mode = AddrModeFlat;
 #endif
 
-	IMAGE_NT_HEADERS* pImageHeader = ImageNtHeader(moduleBaseAddress);
-	DWORD             imageType = pImageHeader->FileHeader.Machine;
+    IMAGE_NT_HEADERS* pImageHeader = ImageNtHeader(moduleBaseAddress);
+    DWORD             imageType = pImageHeader->FileHeader.Machine;
 
-	const DWORD                        maxLength = 1024;
-	alignas(IMAGEHLP_SYMBOL64) uint8_t symbolMem[sizeof(IMAGEHLP_SYMBOL64) + maxLength];
-	IMAGEHLP_SYMBOL64*                 pSymbol = (IMAGEHLP_SYMBOL64*)symbolMem;
+    const DWORD                        maxLength = 1024;
+    alignas(IMAGEHLP_SYMBOL64) uint8_t symbolMem[sizeof(IMAGEHLP_SYMBOL64) + maxLength];
+    IMAGEHLP_SYMBOL64*                 pSymbol = (IMAGEHLP_SYMBOL64*)symbolMem;
 
-	DWORD                      maxFunctionNameLength = 0;
-	int                        maxNumLines = 100;
-	int                        numLines = 0;
-	WindowsStackTraceLineInfo* stackTraceLines =
-		(WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
-	if (!stackTraceLines)
-	{
-		LOGF(LogLevel::eERROR, "Failed to allocate WindowsStackTraceLineInfo");
-		return EXCEPTION_EXECUTE_HANDLER;
-	}
+    DWORD                      maxFunctionNameLength = 0;
+    int                        maxNumLines = 100;
+    int                        numLines = 0;
+    WindowsStackTraceLineInfo* stackTraceLines =
+        (WindowsStackTraceLineInfo*)WindowsStackTrace::Alloc(maxNumLines * sizeof(*stackTraceLines));
+    if (!stackTraceLines)
+    {
+        LOGF(LogLevel::eERROR, "Failed to allocate WindowsStackTraceLineInfo");
+        return EXCEPTION_EXECUTE_HANDLER;
+    }
 
-	do
-	{
-		if (!StackWalk64(imageType, process, thread, &stackFrame, &context, NULL, &SymFunctionTableAccess64, &SymGetModuleBase64, NULL))
-			break;
+    do
+    {
+        if (!StackWalk64(imageType, process, thread, &stackFrame, &context, NULL, &SymFunctionTableAccess64, &SymGetModuleBase64, NULL))
+            break;
 
-		if (stackFrame.AddrPC.Offset != 0)
-		{
-			if (numLines >= maxNumLines)
-			{
-				LOGF(LogLevel::eERROR, "You need to allocate more memory for stackTraceLines");
-				break;
-			}
+        if (stackFrame.AddrPC.Offset != 0)
+        {
+            if (numLines >= maxNumLines)
+            {
+                LOGF(LogLevel::eERROR, "You need to allocate more memory for stackTraceLines");
+                break;
+            }
 
-			WindowsStackTraceLineInfo& lineInfo = stackTraceLines[numLines++];
+            WindowsStackTraceLineInfo& lineInfo = stackTraceLines[numLines++];
 
-			memset(pSymbol, 0, sizeof(symbolMem));
-			pSymbol->SizeOfStruct = sizeof(*pSymbol);
-			pSymbol->MaxNameLength = maxLength;
-			DWORD64 displacement = 0;
-			SymGetSymFromAddr64(process, stackFrame.AddrPC.Offset, &displacement, pSymbol);
-			DWORD functionNameLength =
-				UnDecorateSymbolName(pSymbol->Name, lineInfo.mFunctionName, sizeof(lineInfo.mFunctionName), UNDNAME_COMPLETE);
-			if (maxFunctionNameLength < functionNameLength)
-				maxFunctionNameLength = functionNameLength;
+            memset(pSymbol, 0, sizeof(symbolMem));
+            pSymbol->SizeOfStruct = sizeof(*pSymbol);
+            pSymbol->MaxNameLength = maxLength;
+            DWORD64 displacement = 0;
+            SymGetSymFromAddr64(process, stackFrame.AddrPC.Offset, &displacement, pSymbol);
+            DWORD functionNameLength =
+                UnDecorateSymbolName(pSymbol->Name, lineInfo.mFunctionName, sizeof(lineInfo.mFunctionName), UNDNAME_COMPLETE);
+            if (maxFunctionNameLength < functionNameLength)
+                maxFunctionNameLength = functionNameLength;
 
-			IMAGEHLP_LINE64 line = {};
-			line.SizeOfStruct = sizeof(line);
-			DWORD offsetFromSymbol = 0;
+            IMAGEHLP_LINE64 line = {};
+            line.SizeOfStruct = sizeof(line);
+            DWORD offsetFromSymbol = 0;
 #ifdef _M_IX86
-			SymGetLineFromAddr64(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
+            SymGetLineFromAddr64(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
 #else
-			SymGetLineFromAddr(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
+            SymGetLineFromAddr(process, stackFrame.AddrPC.Offset, &offsetFromSymbol, &line);
 #endif
-			if (line.FileName)
-				strcpy(lineInfo.mFileName, line.FileName);
-			lineInfo.mLineNumber = line.LineNumber;
-		}
-	} while (stackFrame.AddrReturn.Offset != 0);
+            if (line.FileName)
+                strcpy(lineInfo.mFileName, line.FileName);
+            lineInfo.mLineNumber = line.LineNumber;
+        }
+    } while (stackFrame.AddrReturn.Offset != 0);
 
-	for (int i = 0; i < numLines; ++i)
-	{
-		DWORD                      padding = 5;
-		WindowsStackTraceLineInfo& lineInfo = stackTraceLines[i];
-		LOGF(
-			LogLevel::eERROR, "%-*s | %s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mFileName,
-			lineInfo.mLineNumber);
-	}
+    for (int i = 0; i < numLines; ++i)
+    {
+        DWORD                      padding = 5;
+        WindowsStackTraceLineInfo& lineInfo = stackTraceLines[i];
+        LOGF(LogLevel::eERROR, "%-*s | %s(%d)", maxFunctionNameLength + padding, lineInfo.mFunctionName, lineInfo.mFileName,
+             lineInfo.mLineNumber);
+    }
 
-	SymCleanup(process);
+    SymCleanup(process);
 
-	return EXCEPTION_EXECUTE_HANDLER;
+    return EXCEPTION_EXECUTE_HANDLER;
 }
 #else
 
-bool WindowsStackTrace::Init()
-{
-	return false;
-}
+bool WindowsStackTrace::Init() { return false; }
 
-void WindowsStackTrace::Exit()
-{
-}
+void WindowsStackTrace::Exit() {}
 
-void* WindowsStackTrace::Alloc(size_t size) {
-	return NULL;
-}
+void* WindowsStackTrace::Alloc(size_t size) { return NULL; }
 
-LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo)
-{
-	return EXCEPTION_EXECUTE_HANDLER;
-}
+LONG WindowsStackTrace::Dump(EXCEPTION_POINTERS* pExceptionInfo) { return EXCEPTION_EXECUTE_HANDLER; }
 
 #endif // ENABLE_FORGE_STACKTRACE_DUMP

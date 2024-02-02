@@ -11,5 +11,5 @@ if plat ~= "Unsupported" then
 	--[[ At this point window is non-centered, along with size, positoin should be updated ]]--
 	loader.SetwindowrectangleOnEdited()
 	
-	loader.SetCounter(3)
+	loader.SetCounter(2)
 end

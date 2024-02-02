@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="OS\Windows">
+      <UniqueIdentifier>{1d494432-2a4f-40ae-8c0d-5effd97f3f61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS">
+      <UniqueIdentifier>{4f1a777d-a37c-41c4-b268-f4a2a68c6bd6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\FileSystem">
+      <UniqueIdentifier>{e6fa47b7-11c7-488f-b6db-89ab541b5404}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{b85bbe95-c4d7-4c2d-8083-f9457b60aeb0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\BunyArchive">
+      <UniqueIdentifier>{18d3dac1-05dd-41cf-9bf5-b7a9674f11e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{88d31280-dcd9-4655-9a4e-920b51508a6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\BunyArchive\VisualStudio">
+      <UniqueIdentifier>{a689be15-504b-404b-acd2-cf599657a33e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\OS\Windows\WindowsToolsFileSystem.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\FileSystem\ToolFileSystem.c">
+      <Filter>Utilities\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\BunyTool.c">
+      <Filter>Tools\BunyArchive</Filter>
+    </ClCompile>
+    <ClInclude Include="resource.h">
+      <Filter>Tools\BunyArchive\VisualStudio</Filter>
+    </ClInclude>
+    <ResourceCompile Include="BunyTool.rc">
+      <Filter>Tools\BunyArchive\VisualStudio</Filter>
+    </ResourceCompile>
+    <Image Include="icon.ico">
+      <Filter>Tools\BunyArchive\VisualStudio</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,394 @@
+/*
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#include "Shader_Defs.h.fsl"
+#include "shading.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
+
+STRUCT(Light)
+{
+	DATA(float4, pos, None);
+	DATA(float4, col, None);
+	DATA(float,  radius, None);
+	DATA(float,  intensity, None);
+	DATA(float,  _pad0, None);
+	DATA(float,  _pad1, None);
+};
+
+STRUCT(DirectionalLight)
+{
+	DATA(float4, mCol, None); //alpha is the intesity
+	DATA(float4, mDir, None);
+};
+
+CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
+	DATA(float4x4, projMat, None);
+	DATA(float4x4, viewProjMat, None);
+	DATA(float4x4, InvViewProjMat, None);
+
+	DATA(float4, cameraWorldPos, None);
+
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
+
+	DATA(float4, mEnvColor, None);
+
+	DATA(float,  mGroundRoughness, None);
+	DATA(float,  mGroundMetallic, None);
+	DATA(uint,   mUseEnvMap, None);
+};
+
+CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
+{
+    DATA(float4x4, WorldViewProjMat,     None);
+    DATA(float4x4, prevWorldViewProjMat, None);
+};
+
+CBUFFER(cbLights, UPDATE_FREQ_NONE, b2, binding = 2)
+{
+	DATA(Light, lights[16], None);
+	DATA(int, currAmountOflights, None);
+};
+
+CBUFFER(cbDLights, UPDATE_FREQ_NONE, b3, binding = 3)
+{
+	DATA(DirectionalLight, dlights[16], None);
+	DATA(int, currAmountOfDLights, None);
+};
+
+RES(ByteBuffer,   filteredIndexBuffer,    UPDATE_FREQ_PER_FRAME, t4, binding = 4);
+RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t5, binding = 5);
+RES(Buffer(uint), indirectDrawArgs,       UPDATE_FREQ_PER_FRAME, t6, binding = 6);
+
+RES(ByteBuffer,            vertexPos,           UPDATE_FREQ_NONE, t7,  binding = 7);
+RES(ByteBuffer,            vertexTexCoord,      UPDATE_FREQ_NONE, t8,  binding = 8);
+RES(ByteBuffer,            vertexNormal,        UPDATE_FREQ_NONE, t9,  binding = 9);
+RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t10, binding = 10);
+
+RES(Tex2D(float4),   vbPassTexture,      UPDATE_FREQ_NONE, t11, binding = 11);
+RES(Tex2D(float2),   brdfIntegrationMap, UPDATE_FREQ_NONE, t12, binding = 12);
+RES(TexCube(float4), irradianceMap,      UPDATE_FREQ_NONE, t13, binding = 13);
+RES(TexCube(float4), specularMap,        UPDATE_FREQ_NONE, t14, binding = 14);
+
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t25, binding = 15);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t26, binding = 16);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t27, binding = 17);
+#else
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t20,  binding = 15); // 0   + 20
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t276, binding = 16); // 256 + 20
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t532, binding = 17); // 512 + 20
+#endif
+
+RES(SamplerState, defaultSampler,            UPDATE_FREQ_NONE, s0, binding = 18);
+RES(SamplerState, envSampler,                UPDATE_FREQ_NONE, s1, binding = 19);
+RES(SamplerState, clampMiplessLinearSampler, UPDATE_FREQ_NONE, s2, binding = 20);
+
+STRUCT(PsIn)
+{
+	DATA(float4, Position,  SV_Position);
+	DATA(float2, ScreenPos, TEXCOORD0);
+};
+
+STRUCT(PsOut)
+{
+	DATA(float4, Color,           SV_Target0);
+	DATA(float4, NormalRoughness, SV_Target1);
+};
+
+PsOut PS_MAIN( PsIn In )
+{
+	INIT_MAIN;
+	PsOut Out;
+
+	float4 visRaw = LoadTex2D(Get(vbPassTexture), Get(clampMiplessLinearSampler), uint2(In.Position.xy), 0);
+
+	uint alphaBitDrawIDTriID = packUnorm4x8(visRaw);
+
+	// Early exit if this pixel doesn't contain triangle data
+	if (alphaBitDrawIDTriID == ~0u)
+	{
+		discard;
+	}
+
+	//extract packed data
+	uint drawID = (alphaBitDrawIDTriID >> DRAW_ID_LOW_BIT) & 0x000000FF;
+	uint triangleID = (alphaBitDrawIDTriID & PRIM_ID_MASK);
+	uint alpha1_opaque0 = (alphaBitDrawIDTriID >> ALPH_IS_LOW_BIT);
+
+	//this is the start vertex of the current draw batch
+	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
+	// View is always 0, since only CAMERA_VIEW sets are stored
+    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, alpha1_opaque0, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
+	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
+
+	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
+	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
+	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+
+	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
+	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
+	uint index2 = LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
+
+	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), index0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
+
+	float4 pos0 = mul(Get(WorldViewProjMat), float4(v0pos, 1));
+	float4 pos1 = mul(Get(WorldViewProjMat), float4(v1pos, 1));
+	float4 pos2 = mul(Get(WorldViewProjMat), float4(v2pos, 1));
+
+	float4 wPos0 = mul(Get(InvViewProjMat),pos0);
+	float4 wPos1 = mul(Get(InvViewProjMat),pos1);
+	float4 wPos2 = mul(Get(InvViewProjMat),pos2);
+
+	float2 two_over_windowsize = float2(1.5f, 1.5f) / Get(viewPortSize).xy;
+
+	//Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,In.ScreenPos,two_over_windowsize);
+	
+	//interpoalte the 1/w (oneOverW) for all 3 vertices of the triangle
+	//using the barycentric coordinates and the delta vector
+	float interpolatedW = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
+
+	//reconstruct the z value at this screen point
+	float zVal = interpolatedW * getElem(Get(projMat), 2, 2) + getElem(Get(projMat), 3, 2);
+
+	// Calculate the world position coordinates:
+	// First the projected coordinates at this point are calculated using Screen Position and the Z value
+	// Then by multiplying the perspective projected coordinates by the inverse view projection matrix, it produces world coord
+	float3 WorldPos = mul(Get(InvViewProjMat), float4(In.ScreenPos * interpolatedW, zVal, interpolatedW)).xyz;
+
+	/////////////LOAD///////////////////////////////
+	// BaseInstanceBuffer returns constant offset values
+	// The following value defines the maximum amount of indirect draw calls that will be 
+	// drawn at once. This value depends on the number of submeshes or individual objects 
+	// in the scene. Changing a scene will require to change this value accordingly.
+	// #define MAX_DRAWS_INDIRECT 300 
+	//
+	// These values are offsets used to point to the material data depending on the 
+	// type of geometry and on the culling view
+	// #define MATERIAL_BASE_ALPHA0 0
+	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
+	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
+	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
+
+	uint materialBaseSlot = BaseInstanceBuffer(alpha1_opaque0, VIEW_CAMERA);
+
+	// potential results for materialBaseSlot + drawID are
+	// 0 - 299 - shadow alpha
+	// 300 - 599 - shadow no alpha
+	// 600 - 899 - camera alpha
+	uint materialID = Get(indirectMaterialBuffer)[materialBaseSlot + drawID];
+
+	//Texture coord interpolation
+	f3x2 texCoords = make_f3x2_cols(
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index0 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index1 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) 
+	);
+
+	// Interpolate texture coordinates and calculate the gradients for 
+	// texture sampling with mipmapping support
+	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);
+	
+	float2 texCoordDX = results.dx;
+	float2 texCoordDY = results.dy;
+	float2 texCoord = results.interp;
+
+	//Calculate pixel color using interpolated attributes
+	//reconstruct normal map Z from X and Y
+
+	float4 normalMapRG   = f4(0);
+	float4 diffuseColor  = f4(0);
+	float4 specularColor = f4(0);
+	BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+		normalMapRG   = SampleGradTex2D(Get(normalMaps)[materialID],   Get(defaultSampler), texCoord, texCoordDX, texCoordDY);
+		diffuseColor  = SampleGradTex2D(Get(diffuseMaps)[materialID],  Get(defaultSampler), texCoord, texCoordDX, texCoordDY);
+		specularColor = SampleGradTex2D(Get(specularMaps)[materialID], Get(defaultSampler), texCoord, texCoordDX, texCoordDY);
+	EndNonUniformResourceIndex();
+
+	float3 reconstructedNormalMap;
+	reconstructedNormalMap.xy = normalMapRG.ga * 2.f - 1.f;
+	reconstructedNormalMap.z = sqrt(saturate(1.f - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy)));
+
+	//Normal interpolation
+	float3x3 normals = make_f3x3_rows(
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index2 << 2))) 
+	);
+	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));;
+	
+	//Calculate pixel normal and tangent vectors
+	f3x3 wPositions = make_f3x3_cols(
+			wPos0.xyz,
+			wPos1.xyz,
+			wPos2.xyz
+	);
+
+	DerivativesOutput wPosDer = Cal3DDeriv(derivativesOut, wPositions);
+	DerivativesOutput uvDer = { float3(results.dx, 0.0),  float3(results.dy, 0.0) };
+	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
+
+	float Roughness = clamp(specularColor.a, 0.05f, 0.99f);
+	float Metallic = specularColor.b;
+
+	// a hack to make the San Miguel floor reflective
+	if(materialID == 203)
+	{
+		Roughness = Get(mGroundRoughness);
+		Metallic = Get(mGroundMetallic);
+	}
+
+	float3 camPos = Get(cameraWorldPos).xyz;
+
+	float3 V = normalize(camPos.xyz - WorldPos.xyz);
+
+	bool isTwoSided = (alpha1_opaque0 == 1) && (Get(meshConstantsBuffer)[materialID].twoSided == 1);
+	bool isBackFace = false;
+
+	if(isTwoSided && dot(normal, V) < 0.0)
+	{
+		//flip normal
+		normal = -normal;
+		isBackFace = true;
+	}
+
+	float3 Lo = f3(0.0f);
+	float NoV = saturate(dot(normal, V));
+	float3 R = reflect(-V, normal);
+	
+	// calculate color contribution from specular lighting
+	float3 F0 = f3(0.08); // 0.08 is the index of refraction
+	float3 SpecularColor = lerp(F0, diffuseColor.rgb, Metallic);
+	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
+
+	//Directional Lights
+	for(int i = 0; i < Get(currAmountOfDLights); ++i)
+	{
+		// Vec from world pos to light pos
+		float3 L = -normalize(Get(dlights)[i].mDir.xyz);
+
+		// halfway vec
+		float3 H = normalize(V + L);
+
+		float3 radiance = Get(dlights)[i].mCol.rgb * Get(dlights)[i].mCol.a;
+
+		float NoL = dot(normal, L);	
+		// Deal with two faced materials
+		NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+		float3 shadedColor = calculateIllumination(
+			normal,
+			V,
+			H,
+			NoL,
+			NoV,
+			camPos.xyz,
+			L.xyz,
+			WorldPos,
+			DiffuseColor,
+			SpecularColor,
+			Roughness,
+			Metallic,
+			isBackFace,
+			true,
+			1.0f
+		);
+
+		Lo += shadedColor * radiance * NoL;
+	}
+
+	//Point Lights
+	for(int pl_i = 0; pl_i < Get(currAmountOflights); ++pl_i)
+	{
+		 // Vec from world pos to light pos
+		float3 L = normalize(Get(lights)[pl_i].pos.xyz - WorldPos);
+
+		// halfway vec
+		float3 H = normalize(V + L);
+		
+		// get distance
+		float distance = length(Get(lights)[pl_i].pos.xyz - WorldPos);
+
+		// Distance attenuation from Epic Games' paper 
+		float distanceByRadius = 1.0f - pow((distance / Get(lights)[pl_i].radius), 4);
+		float clamped = pow(clamp(distanceByRadius, 0.0f, 1.0f), 2.0f);
+		float attenuation = clamped / (distance * distance + 1.0f);
+
+		//float attenuation = 1.0f;
+		// Radiance is color mul with attenuation mul intensity 
+		float3 radiance = Get(lights)[pl_i].col.rgb * attenuation * Get(lights)[pl_i].intensity;
+
+		float NoL = dot(normal, L);	
+		// Deal with two faced materials
+		NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
+
+		float3 shadedColor = calculateIllumination(
+			normal,
+			V,
+			H,
+			NoL,
+			NoV,
+			camPos.xyz,
+			L.xyz,
+			WorldPos,
+			DiffuseColor,
+			SpecularColor,
+			Roughness,
+			Metallic,
+			isBackFace,
+			true,
+			1.0f
+		);
+
+		Lo += shadedColor * radiance * NoL;
+	}
+
+	float3 F = FresnelSchlickRoughness(NoV, F0, Roughness);
+	float3 kS = F;
+	float3 kD = f3(1.0f) - kS;
+	kD *= 1.0f - Metallic;
+
+	bool useEnvMap = Get(mUseEnvMap) != 0;
+
+	float3 irradiance = SampleTexCube(Get(irradianceMap), Get(envSampler), normal).rgb;
+	float3 diffuse = irradiance * DiffuseColor;
+	float3 specColor = useEnvMap ? SampleLvlTexCube(Get(specularMap), Get(envSampler), R, Roughness * 4).rgb : Get(mEnvColor).rgb;
+	float2 brdf = SampleTex2D(Get(brdfIntegrationMap), Get(defaultSampler), float2(NoV, Roughness)).rg;
+	float3 specular = specColor * (SpecularColor * brdf.x + brdf.y);
+
+	float ao = 1.0f;
+	float3 ambient = (kD * diffuse + specular) * ao;
+	float3 color = Lo + ambient;
+
+	Out.Color = float4(color.rgb, 1.0f);
+	Out.NormalRoughness = float4(normal.xyz, Roughness);
+	RETURN(Out);
+}

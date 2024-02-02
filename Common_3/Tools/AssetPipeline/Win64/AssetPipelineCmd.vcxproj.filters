@@ -1,294 +1,163 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{6fc6f5a1-79f4-4487-9e06-cbfc850c1648}</UniqueIdentifier>
+    <Filter Include="Prospero\Common_3\Tools\AssetPipeline">
+      <UniqueIdentifier>{0c879523-f17f-4598-9f24-812441a8828c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\TressFX">
-      <UniqueIdentifier>{8b3cbcc5-1b37-4257-868f-659f20386f29}</UniqueIdentifier>
+    <Filter Include="Prospero\Common_3\Tools">
+      <UniqueIdentifier>{c23a4fa7-e8c9-4018-b1d9-fbb1c36c0842}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS">
-      <UniqueIdentifier>{78d4abca-9133-4800-8163-2d84d41f780e}</UniqueIdentifier>
+    <Filter Include="Prospero\Common_3">
+      <UniqueIdentifier>{d8217cfa-f363-4b02-88fa-a35d09403e66}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\MemoryTracking">
-      <UniqueIdentifier>{331f6717-4441-4fbc-83fc-c64d6d1f6dc0}</UniqueIdentifier>
+    <Filter Include="Prospero">
+      <UniqueIdentifier>{498a82f8-0079-4935-a4a1-74ea7a783cad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\FileSystem">
-      <UniqueIdentifier>{621e1fee-5352-415c-9ea8-474b39635941}</UniqueIdentifier>
+    <Filter Include="Xbox\Common_3\Tools\AssetPipeline">
+      <UniqueIdentifier>{2b488841-8172-4ab0-be44-6fb914588f99}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Core">
-      <UniqueIdentifier>{54f97869-1092-4bcf-a7eb-4292aba51a0d}</UniqueIdentifier>
+    <Filter Include="Xbox\Common_3\Tools">
+      <UniqueIdentifier>{7606a01b-c5c1-4490-97c8-5c7711b4551e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Interfaces">
-      <UniqueIdentifier>{0f61c7e6-61d4-4718-ae6e-787d09460473}</UniqueIdentifier>
+    <Filter Include="Xbox\Common_3">
+      <UniqueIdentifier>{57155bab-21da-4970-9fc1-6204bc812eb9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Logging">
-      <UniqueIdentifier>{0312ba67-bae2-434c-9ebb-74811f19cc80}</UniqueIdentifier>
+    <Filter Include="Xbox">
+      <UniqueIdentifier>{d907bc28-e25c-465e-8f36-8ce218acaa24}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies">
-      <UniqueIdentifier>{deb34b29-0e6b-4259-a4bd-f8d890b70b79}</UniqueIdentifier>
+    <Filter Include="Common_3\OS\Windows">
+      <UniqueIdentifier>{b6cc8caa-278d-4621-b407-3bd6818d9816}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies\rmem">
-      <UniqueIdentifier>{24819306-93bf-4863-ae9c-5c498f0d7b65}</UniqueIdentifier>
+    <Filter Include="Common_3\OS">
+      <UniqueIdentifier>{e2feba57-6897-4474-a485-f0fb6344c889}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies\minizip">
-      <UniqueIdentifier>{d24fa89e-e72d-4e4f-9e07-abe894ea1516}</UniqueIdentifier>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{78675258-79ef-4b7c-9ca0-a1d4f0ddfcb8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies\minizip\brg">
-      <UniqueIdentifier>{f0c592f9-9424-402d-99df-2d519dc4ae31}</UniqueIdentifier>
+    <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX">
+      <UniqueIdentifier>{f18d3505-df4a-4ed7-9f26-86d3dd1b6555}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies\minizip\zlib%28zip%29">
-      <UniqueIdentifier>{485a30c4-78ad-477e-93b9-64be70019c6e}</UniqueIdentifier>
+    <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty\OpenSource">
+      <UniqueIdentifier>{c53b5a8b-3baf-4521-8b8d-6f7c42f0324c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Windows">
-      <UniqueIdentifier>{37780763-e753-4b01-a374-448b26d43a07}</UniqueIdentifier>
+    <Filter Include="Common_3\Resources\AnimationSystem\ThirdParty">
+      <UniqueIdentifier>{3f68c037-e8e8-4053-986b-1c1de1130609}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\OS\Dependencies\bstrlib">
-      <UniqueIdentifier>{5d2669b5-03a2-4e85-8b18-dbea80a29541}</UniqueIdentifier>
+    <Filter Include="Common_3\Resources\AnimationSystem">
+      <UniqueIdentifier>{78eac248-1ad1-4a1b-aca5-991a00301da4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Resources">
+      <UniqueIdentifier>{6d4f298a-4555-404c-b4a3-315105d8a819}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src">
+      <UniqueIdentifier>{95480503-9be5-4610-add0-af6797ef2c83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\ThirdParty\OpenSource\meshoptimizer">
+      <UniqueIdentifier>{61a61533-f110-477e-8897-a8a275fd39a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\ThirdParty\OpenSource">
+      <UniqueIdentifier>{c3581767-81a3-4d35-aa5f-ebeb66215e8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\ThirdParty">
+      <UniqueIdentifier>{ff104f14-e849-4a84-8ed1-8c55808b5757}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools">
+      <UniqueIdentifier>{814a736c-6b31-4e08-a68e-822000cbf1fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities\FileSystem">
+      <UniqueIdentifier>{4672bc9a-6cbd-465c-87e0-86cdd5715019}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Utilities">
+      <UniqueIdentifier>{da9203b0-ae35-42a4-8361-5729e3a0d409}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\AssetPipeline\src">
+      <UniqueIdentifier>{e9a074ce-b926-440b-8bde-72da1bf51203}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Tools\AssetPipeline">
+      <UniqueIdentifier>{6f766b23-d529-4fab-b90b-a995f6f28a54}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsStackTraceDump.cpp">
-      <Filter>Source Files\OS\Windows</Filter>
+    <ClCompile Include="..\..\..\..\Prospero\Common_3\Tools\AssetPipeline\AssetPipeline_TexturesGnf.cpp">
+      <Filter>Prospero\Common_3\Tools\AssetPipeline</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsFileSystem.cpp">
-      <Filter>Source Files\OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsTime.c">
-      <Filter>Source Files\OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsLog.c">
-      <Filter>Source Files\OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsThread.c">
-      <Filter>Source Files\OS\Windows</Filter>
+    <ClCompile Include="..\..\..\..\Xbox\Common_3\Tools\AssetPipeline\AssetPipeline_TexturesXbox.cpp">
+      <Filter>Xbox\Common_3\Tools\AssetPipeline</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\OS\Windows\WindowsToolsFileSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\AssetPipeline.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\AssetPipelineCmd.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp">
-      <Filter>Source Files\TressFX</Filter>
+      <Filter>Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\MemoryTracking\MemoryTracking.c">
-      <Filter>Source Files\OS\MemoryTracking</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Log\Log.c">
-      <Filter>Source Files\OS\Logging</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\FileSystem\FileSystem.cpp">
-      <Filter>Source Files\OS\FileSystem</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\FileSystem\SystemRun.cpp">
-      <Filter>Source Files\OS\FileSystem</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\FileSystem\ZipFileSystem.c">
-      <Filter>Source Files\OS\FileSystem</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c">
-      <Filter>Source Files\OS\Dependencies\bstrlib</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt_brg.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.cpp">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_raw.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.c">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\..\..\Utilities\FileSystem\ToolFileSystem.c">
+      <Filter>Common_3\Utilities\FileSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\src\AssetPipeline.cpp">
+      <Filter>Common_3\Tools\AssetPipeline\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\src\AssetPipelineCmd.cpp">
+      <Filter>Common_3\Tools\AssetPipeline\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.c">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
+    <ClCompile Include="..\src\AssetPipeline_Textures.cpp">
+      <Filter>Common_3\Tools\AssetPipeline\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
-      <Filter>Source Files\OS\Dependencies\rmem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp">
-      <Filter>Source Files\OS\Dependencies\rmem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
-      <Filter>Source Files\OS\Dependencies\rmem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Threading\ThreadSystem.cpp">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Math\Algorithms.c">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Math\StbDs.c">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Utilities\Timer.c">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\OS\Core\GPUConfig.h">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\OS\Interfaces\IOperatingSystem.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\OS\Windows\WindowsStackTraceDump.h">
-      <Filter>Source Files\OS\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\AssetPipeline.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.h">
-      <Filter>Source Files\TressFX</Filter>
+      <Filter>Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h">
-      <Filter>Source Files\TressFX</Filter>
+      <Filter>Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\MemoryTracking\NoMemoryDefines.h">
-      <Filter>Source Files\OS\MemoryTracking</Filter>
+    <ClInclude Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h">
+      <Filter>Common_3\Tools\ThirdParty\OpenSource\meshoptimizer\src</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Log\Log.h">
-      <Filter>Source Files\OS\Logging</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IApp.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\ICameraController.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IInput.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IMiddleware.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IProfiler.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IScreenshot.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IUI.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IFileSystem.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\ILog.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IMemory.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IThread.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\ITime.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IToolFileSystem.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Game\Interfaces\IScripting.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Application\Interfaces\IFont.h">
-      <Filter>Source Files\OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.h">
-      <Filter>Source Files\OS\Dependencies\bstrlib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.h">
-      <Filter>Source Files\OS\Dependencies\minizip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\zip\miniz.h">
-      <Filter>Source Files\OS\Dependencies\minizip\zlib%28zip%29</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aes.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.h">
-      <Filter>Source Files\OS\Dependencies\minizip\brg</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Threading\Atomics.h">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Threading\ThreadSystem.h">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Math\Algorithms.h">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Math\AlgorithmsImpl.h">
-      <Filter>Source Files\OS\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Utilities\Math\BStringHashMap.h">
-      <Filter>Source Files\OS\Core</Filter>
+    <ClInclude Include="..\src\AssetPipeline.h">
+      <Filter>Common_3\Tools\AssetPipeline\src</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

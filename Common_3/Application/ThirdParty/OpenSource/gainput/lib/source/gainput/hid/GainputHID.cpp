@@ -4,11 +4,13 @@
 #include "GainputHIDTypes.h"
 #include "GainputHIDWhitelist.h"
 #include "../../hidapi/hidapi.h"
+#include "../../../include/gainput/gainput.h"
 #include "../../../../../../Utilities/Interfaces/ITime.h"
 #include "../../../../../../Utilities/Interfaces/ILog.h"
 
 #include "hidparsers/HIDParserPS4Controller.h"
 #include "hidparsers/HIDParserPS5Controller.h"
+#include "hidparsers/HIDParserSwitchController.h"
 
 #if defined(_WINDOWS)
 #undef WIN32_LEAN_AND_MEAN
@@ -40,6 +42,7 @@ DEFINE_GUID(GUID_DEVINTERFACE_USB_DEVICE, 0xA5DCBF10L, 0x6530, 0x11D2, 0x90, 0x1
 
 Timer gHIDTimer;
 static bool gHIDInitialized = false;
+static gainput::InputManager* gManager = NULL;
 
 
 // --- Notifications
@@ -48,8 +51,6 @@ static bool gNotifierInitialized = false;
 
 static bool gDevicesChanged = true;
 
-typedef void(*DeviceChangeCB)(const char*, bool, int controllerID);
-static DeviceChangeCB gDeviceChangeCallback = NULL;
 #if defined(_WINDOWS)
 HWND gHWND;
 WNDCLASSEXW gWND;
@@ -97,6 +98,7 @@ uint32_t gActiveSlots = 0;
 // --- Controllers
 
 HIDController gControllerBuffer[MAX_DEVICES_TRACKED];
+gainput::InputDevicePad* gPassThroughPads[MAX_DEVICES_TRACKED];
 
 
 // --- Forward Declarations ---------------------------------------------------
@@ -107,6 +109,8 @@ static void HIDRemoveDevice(HIDDeviceInfo *dev);
 static void HIDInitControllerTracking();
 void HIDLoadController(uint8_t devID, uint8_t playerNum);
 void HIDUnloadController(uint8_t devID);
+void HIDHandToInputManager(uint8_t devID);
+void HIDRetreiveFromInputManager(uint8_t devID);
 
 
 // --- System Communication ---------------------------------------------------
@@ -356,39 +360,44 @@ static bool CheckForDeviceInstallation(void const* message)
 
 // --- HID Management ---------------------------------------------------------
 
-int HIDInit(void* window)
+int HIDInit(void* window, gainput::InputManager* man)
 {
-    if (gHIDInitialized)
-        return 0;
+	if (gHIDInitialized)
+		return 0;
 
-    if (hid_init() != 0)
-        return -1;
+	if (hid_init() != 0)
+		return -1;
 
-    HIDInitDeviceTracking();
-    HIDInitControllerTracking();
-    InitSystemNotificationReceiver(window);
+	gManager = man;
 
-    initTimer(&gHIDTimer);
+	HIDInitDeviceTracking();
+	HIDInitControllerTracking();
+	InitSystemNotificationReceiver(window);
 
-    gHIDInitialized = true;
+	initTimer(&gHIDTimer);
 
-    return 0;
+	gHIDInitialized = true;
+	gDevicesChanged = true;
+
+	return 0;
 }
 
 int HIDExit()
 {
-    if (!gHIDInitialized)
-        return 0;
+	if (!gHIDInitialized)
+		return 0;
 
-    gHIDInitialized = false;
+	gHIDInitialized = false;
 
-    HIDExitDeviceTracking();
-    ExitSystemNotificationReceiver();
+	HIDExitDeviceTracking();
+	ExitSystemNotificationReceiver();
 
-    if (hid_exit() != 0)
-        return -1;
+	gManager = NULL;
 
-    return 0;
+	if (hid_exit() != 0)
+		return -1;
+
+	return 0;
 }
 
 // --- HID Device Tracking
@@ -423,31 +432,6 @@ static void HIDExitDeviceTracking()
             HIDRemoveDevice(devIt);
 }
 
-void HIDSetDeviceChangeCallback(void (*deviceChange)(const char*, bool, int))
-{
-	if(!deviceChange)
-	{
-		gDeviceChangeCallback = NULL;
-		return;
-	}
-
-	// no need to retrigger all the callbacks
-	if(deviceChange == gDeviceChangeCallback)
-		return;
-	gDeviceChangeCallback = deviceChange;
-
-	if(gActiveSlots > 0)
-	{
-		for(uint32_t i =0 ; i < gActiveSlots; i++)
-		{
-			if(gControllerBuffer[i].hidDev && gDeviceBuffer[i].active)
-			{
-				(*gDeviceChangeCallback)(ControllerName(gDeviceBuffer[i].type), true, gDeviceBuffer[i].id - 1);
-			}
-		}
-	}
-}
-
 static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
 {
     if (!pFreeList)
@@ -472,6 +456,7 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
 
     newDev->vendorID = dev->vendor_id;
     newDev->productID = dev->product_id;
+	newDev->interface = dev->interface_number;
     newDev->active = 1;
     newDev->wasActive = 1;
     newDev->isOpen = 0;
@@ -480,19 +465,29 @@ static void HIDAddDevice(hid_device_info *dev, uint8_t controllertype)
 
     ++gActiveDevices;
 
-    HIDLoadController(newDev->id, 0);
+    int prevActiveCount = gActiveSlots;
+	if (gActiveDevices > gActiveSlots)
+		gActiveSlots = gActiveDevices;
 
-	if(gDeviceChangeCallback && newDev->isOpen)
-		(*gDeviceChangeCallback)(ControllerName(newDev->type), true, newDev->id - 1 );
+	HIDLoadController(newDev->id, newDev->id - 1);
+    if (newDev->isOpen)
+    {
+        HIDHandToInputManager(newDev->id);
+    }
+    else // abort, failed to open device
+    {
+        gActiveSlots = prevActiveCount;
+        HIDRemoveDevice(newDev);
+    }
 }
 
 static void HIDRemoveDevice(HIDDeviceInfo *dev)
-{    
-    if(gDeviceChangeCallback)
-        (*gDeviceChangeCallback)(ControllerName(dev->type), false, dev->id - 1);
-    
+{
     if (dev->isOpen)
+    {
+        HIDRetreiveFromInputManager(dev->id);
         HIDUnloadController(dev->id);
+    }
 
     dev->next = pFreeList;
     pFreeList = dev;
@@ -534,7 +529,7 @@ static void HIDLoadDevices()
                 if (devIt->wasActive &&
                     devIt->vendorID == it->vendor_id &&
                     devIt->productID == it->product_id &&
-                    strcmp(devIt->logicalSystemPath, it->path))
+                    !strcmp(devIt->logicalSystemPath, it->path))
                     break;
 
             if (devIt != devEnd)
@@ -582,11 +577,14 @@ static void HIDLoadDevices()
                 continue;
             }
 
+            if ( !gManager->IsHIDEnabled() )
+            {
+                // HID Disabled so just don't add devices
+                continue;
+            }
+            
             HIDAddDevice(dev, type);
         }
-
-        if (gActiveDevices > gActiveSlots)
-            gActiveSlots = gActiveDevices;
 
         // deviceList should have been cleanly divided between these two at this point
         hid_free_enumeration(devicesToAdd);
@@ -623,24 +621,8 @@ bool HIDHandleSystemMessage(void const* message)
 
 // --- HID Controller Setup
 
-char const * HIDControllerName(uint8_t index)
-{
-    if (index >= gActiveSlots ||
-        !gDeviceBuffer[index].active)
-        return NULL;
-
-    return ControllerName(gDeviceBuffer[index].type);
-}
-
-bool HIDControllerConnected(uint8_t index)
-{
-    if (index >= gActiveSlots)
-        return false;
-
-    return gDeviceBuffer[index].active;
-}
-
-
+// Returns 0 if none available, devID otherwise
+//   Sets given pointers if not null
 uint8_t HIDGetNextNewControllerID(uint8_t* outPlatform, uint16_t* outVendorID, uint16_t* outproductID)
 {
     if (!gActiveSlots)
@@ -674,6 +656,7 @@ uint8_t HIDGetNextNewControllerID(uint8_t* outPlatform, uint16_t* outVendorID, u
 static void HIDInitControllerTracking()
 {
     memset((void *)gControllerBuffer, 0, sizeof(gControllerBuffer));
+    memset((void *)gPassThroughPads, 0, sizeof(gPassThroughPads));
 }
 
 static inline void UnsupportedControllerDebug(HIDDeviceInfo* dev, char const* brand)
@@ -746,6 +729,22 @@ void HIDLoadController(uint8_t devID, uint8_t playerNum)
         }
         SuccessfulOpenDebug(dev, name);
         break;
+	case ctSwitchPro:
+	case ctSwitchJoyConL:
+	case ctSwitchJoyConR:
+	case ctSwitchJoyConPair:
+		if (!HIDIsSupportedSwitchController(dev))
+		{
+			UnsupportedControllerDebug(dev, name);
+			return;
+		}
+		if (HIDOpenSwitchController(dev, con, playerNum) == -1)
+		{
+			FailedToOpenDebug(dev, name);
+			return;
+		}
+		SuccessfulOpenDebug(dev, name);
+		break;
     default:
         break;
     }
@@ -775,6 +774,37 @@ void HIDUnloadController(uint8_t devID)
     memset((void *)con, 0, sizeof *con);
 }
 
+void HIDHandToInputManager(uint8_t devID)
+{
+	uint8_t index = devID - 1;
+
+	gainput::DeviceId manId = gManager->GetNextId();
+	gPassThroughPads[index] = tf_new(gainput::InputDevicePad, *gManager, manId, devID);
+
+	gManager->AddDevice(manId, gPassThroughPads[index]);
+
+	// set manID for passing back buttons
+	HIDController* con = gControllerBuffer + index;
+	con->manID = manId;
+}
+
+void HIDRetreiveFromInputManager(uint8_t devID)
+{
+	uint8_t index = devID - 1;
+
+	HIDController* con = gControllerBuffer + index;
+	con->manID = ~0u;
+
+    if (gPassThroughPads[index] != NULL)
+    {
+        gManager->RemoveDevice(gPassThroughPads[index]->GetDeviceId());
+        tf_delete(gPassThroughPads[index]);
+        gPassThroughPads[index] = NULL;
+    }
+}
+
+
+// --- HID Controller Utils
 
 static bool GetController(uint8_t devID, HIDController** outCon)
 {
@@ -784,12 +814,80 @@ static bool GetController(uint8_t devID, HIDController** outCon)
     HIDController* con = gControllerBuffer + index;
     if (!con->hidDev)
     {
-        LOGF(LogLevel::eWARNING, "Tried to unload non-existant controller at index %i", index);
+        LOGF(LogLevel::eWARNING, "Tried to retrieve non-existant controller at index %i", index);
         return false;
     }
 
     *outCon = con;
     return true;
+}
+
+bool GetIDByMac(uint64_t mac, uint8_t* outID)
+{
+    return GetIDByMac(mac, outID, 0);
+}
+
+bool GetIDByMac(uint64_t mac, uint8_t* outID, uint8_t devIDToIgnore)
+{
+    for (uint32_t i = 0; i < gActiveSlots; ++i)
+    {
+        HIDDeviceInfo* dev = gDeviceBuffer + i;
+        if ((dev->active || dev->wasActive) &&
+            dev->id != devIDToIgnore &&
+            dev->mac == mac)
+        {
+            if (outID)
+            {
+                *outID = (uint8_t)(i + 1);
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool HIDControllerIsConnected(uint8_t devID)
+{
+	uint8_t index = devID - 1;
+	if (index >= gActiveSlots)
+		return false;
+
+	return gDeviceBuffer[index].active;
+}
+
+void HIDUpdate(uint8_t devID, gainput::InputDeltaState * state)
+{
+	HIDController* con = nullptr;
+	if (!GetController(devID, &con))
+		return;
+
+	con->Update(con, state);
+
+	if (con->rumbleEndTime &&
+		con->rumbleEndTime <= getTimerMSec(&gHIDTimer, false))
+	{
+		con->DoRumble(con, 0, 0);
+		con->rumbleEndTime = 0;
+	}
+}
+
+char const * HIDControllerName(uint8_t devID)
+{
+	uint8_t index = devID - 1;
+	if (index >= gActiveSlots)
+		return "[No controller at index]";
+
+	return ControllerName(gDeviceBuffer[index].type);
+}
+
+uint64_t HIDControllerMACAddress(uint8_t devID)
+{
+    uint8_t index = devID - 1;
+    if (index >= gActiveSlots)
+        return INVALID_MAC;
+
+    return gDeviceBuffer[index].mac;
 }
 
 void HIDSetPlayer(uint8_t devID, uint8_t playerNum)
@@ -872,4 +970,9 @@ void HIDPromptForDeviceStateReports(gainput::InputDeltaState * state)
     // Don't want to risk device connection events being intermixed with input 
     //   events from the same devices
     HIDDetectDevices();
+}
+
+uint64_t HIDGetTime()
+{
+	return getTimerMSec(&gHIDTimer, false);
 }

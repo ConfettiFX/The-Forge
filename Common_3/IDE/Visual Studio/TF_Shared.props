@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <TheForgeRoot>$([System.IO.Path]::GetFullPath("$(MSBuildThisFileDirectory)..\..\..\"))</TheForgeRoot>
+    <CustomMiddlewareRoot>$([System.IO.Path]::GetFullPath("$(TheForgeRoot)..\Custom-Middleware\"))</CustomMiddlewareRoot>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <ConformanceMode>true</ConformanceMode>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <ExceptionHandling>false</ExceptionHandling>
+      <PreprocessorDefinitions>_HAS_EXCEPTIONS=0;$(AdditionalForgeDefines);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ForcedIncludeFiles>$(TheForgeRoot)Common_3\Application\Config.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+  <ImportGroup Label="PropertySheets">
+    <Import Condition="$(SolutionDir.Contains('Quest_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Unit_Tests\Quest_VisualStudio2019\Quest-arm64-v8a.props" />
+    <Import Condition="$(SolutionDir.Contains('Android_VisualStudio2019'))" Project="$(TheForgeRoot)Examples_3\Unit_Tests\Android_VisualStudio2019\Android-arm64-v8a.props" />
+    <Import Condition="$(SolutionDir.Contains('PC Visual Studio 2019'))" Project="$(TheForgeRoot)Examples_3\Unit_Tests\PC Visual Studio 2019\Examples.x64.props" />
+    <Import Condition="$(SolutionDir.Contains('PS4 Visual Studio 2019'))" Project="$(TheForgeRoot)PS4\VSProps\PS4.props" />
+    <Import Condition="$(SolutionDir.Contains('Prospero Visual Studio 2019'))" Project="$(TheForgeRoot)Prospero\VSProps\Prospero.props" />
+    <Import Condition="$(SolutionDir.Contains('NX Visual Studio 2019'))" Project="$(TheForgeRoot)Switch\Examples_3\Unit_Tests\NX Visual Studio 2019\ImportNintendoSdk.props" />
+  </ImportGroup>
+</Project>

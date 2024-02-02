@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup />
+  <ItemGroup>
+    <ClCompile Include="ispc_texcomp.cpp" />
+    <ClCompile Include="ispc_texcomp_astc.cpp" />
+    <ClInclude Include="ispc_texcomp.h" />
+    <CustomBuild Include="kernel.ispc" />
+    <CustomBuild Include="kernel_astc.ispc" />
+  </ItemGroup>
+</Project>

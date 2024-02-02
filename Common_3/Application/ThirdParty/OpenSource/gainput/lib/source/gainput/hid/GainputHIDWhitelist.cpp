@@ -14,14 +14,14 @@ struct WhitelistedItem
 
 static WhitelistedItem whitelistedControllerIDs[] =
 {
-    //// Playstation
+    // Playstation
     { CONCAT_VID_PID(vSony,      pidSonyDS4),                   ctPS4 },
     { CONCAT_VID_PID(vSony,      pidSonyDS4Slim),               ctPS4 },
     { CONCAT_VID_PID(vSony,      pidSonyDS5),                   ctPS5 },
     //// Stadia
     //{ CONCAT_VID_PID(vGoogle,    pidGoogleStadia),              ctStadia },
-    //// Switch
-    //{ CONCAT_VID_PID(vNintendo,  pidNintendoSwitchPro),         ctSwitchPro },
+    // Switch
+    { CONCAT_VID_PID(vNintendo,  pidNintendoSwitchPro),         ctSwitchPro },
     //{ CONCAT_VID_PID(vNintendo,  pidNintendoSwitchJoyConLeft),  ctSwitchJoyConL },
     //{ CONCAT_VID_PID(vNintendo,  pidNintendoSwitchJoyConRight), ctSwitchJoyConR },
     //// Xbox

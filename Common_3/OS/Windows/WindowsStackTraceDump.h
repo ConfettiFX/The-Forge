@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 #include "../../Application/Config.h"
@@ -30,24 +30,23 @@
 
 struct WindowsStackTraceLineInfo
 {
-	char  mFunctionName[512];
-	char  mFileName[512];
-	DWORD mLineNumber;
+    char  mFunctionName[512];
+    char  mFileName[512];
+    DWORD mLineNumber;
 };
 
 class WindowsStackTrace
 {
 public:
-	static WindowsStackTrace* pInst;
+    static WindowsStackTrace* pInst;
 
-	Mutex  mDbgHelpMutex;
-	size_t mUsedMemorySize;
-	size_t mPreallocatedMemorySize;
-	void*  pPreallocatedMemory;
+    Mutex  mDbgHelpMutex;
+    size_t mUsedMemorySize;
+    size_t mPreallocatedMemorySize;
+    void*  pPreallocatedMemory;
 
-	static bool Init();
-	static void Exit();
-	static void* Alloc(size_t size);
-	static LONG Dump(EXCEPTION_POINTERS* pExceptionInfo);
+    static bool  Init();
+    static void  Exit();
+    static void* Alloc(size_t size);
+    static LONG  Dump(EXCEPTION_POINTERS* pExceptionInfo);
 };
-

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,13 +25,11 @@
 #define QUADS_ARRAY_REGS 192
 
 RES(SamplerState, clampToEdgeNearSampler, UPDATE_FREQ_NONE, s0, binding = 1);
-RES(Tex2D(float4), DepthPassTexture, UPDATE_FREQ_NONE, t1, binding = 2);
+RES(Tex2D(float4), DepthPassTexture, UPDATE_FREQ_NONE, t1, binding = 0);
 
-CBUFFER(AtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+CBUFFER(PackedAtlasQuads_CB, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-	DATA(float4, mPosData, None);
-	DATA(float4, mMiscData, None);
-	DATA(float4, mTexCoordData, None);
+	DATA(float4, mQuadsData[QUADS_ARRAY_REGS], None);
 };
 
 STRUCT(VSOutput)
@@ -41,7 +39,7 @@ STRUCT(VSOutput)
     DATA(float4, MiscData, TEXCOORD1);
 };
 
-SET_OUTPUT_FORMAT(FMT_32_ABGR)
+SET_OUTPUT_FORMAT(default, FMT_32_R)
 
 float PS_MAIN( VSOutput In )
 {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,35 +20,33 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "../GraphicsConfig.h"
 
 #if defined(GLES)
 #define RENDERER_IMPLEMENTATION
 
-#define GLES_INSTANCE_ID "gles_InstanceID"
+#define GLES_INSTANCE_ID     "gles_InstanceID"
 
 #define VAO_STATE_CACHE_SIZE 64
 
-#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
-#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
-
+#include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
-#include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
+#include "../../Utilities/ThirdParty/OpenSource/Nothings/stb_ds.h"
+#include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
 
+#include "../../Utilities/Interfaces/ILog.h"
 #include "../Interfaces/IGraphics.h"
 #include "../Interfaces/IRay.h"
 
-#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Graphics/GPUConfig.h"
 #include "../../Utilities/Math/AlgorithmsImpl.h"
 #include "../../Utilities/RingBuffer.h"
-#include "../../Graphics/GPUConfig.h"
 
-
-#include "GLESContextCreator.h"
 #include "GLESCapsBuilder.h"
+#include "GLESContextCreator.h"
 
 // Default GL ES 2.0 support
 #include "../ThirdParty/OpenSource/OpenGL/GLES2/gl2.h"
@@ -64,8 +62,8 @@ extern void gles_createShaderReflection(Shader* pProgram, ShaderReflection* pOut
 
 typedef struct DescriptorIndexMap
 {
-	char* key;
-	uint32_t value;
+    char*    key;
+    uint32_t value;
 } DescriptorIndexMap;
 
 // =================================================================================================
@@ -73,129 +71,129 @@ typedef struct DescriptorIndexMap
 // =================================================================================================
 struct GLExtensionSupport
 {
-	uint32_t mHasDebugMarkerEXT : 1;
-	uint32_t mHasDebugLabelEXT : 1;
-	uint32_t mHasDisjointTimerQueryEXT : 1;
+    uint32_t mHasDebugMarkerEXT : 1;
+    uint32_t mHasDebugLabelEXT : 1;
+    uint32_t mHasDisjointTimerQueryEXT : 1;
 
-	uint32_t mHasTextureBorderClampOES : 1;
-	uint32_t mHasDepthTextureOES : 1;
-	uint32_t mHasVertexArrayObjectOES : 1;
-	uint32_t mHasMapbufferOES : 1;
+    uint32_t mHasTextureBorderClampOES : 1;
+    uint32_t mHasDepthTextureOES : 1;
+    uint32_t mHasVertexArrayObjectOES : 1;
+    uint32_t mHasMapbufferOES : 1;
 };
 
 struct GLRasterizerState
 {
-	GLenum mCullMode;
-	GLenum mFrontFace;
-	bool   mScissorTest;
+    GLenum mCullMode;
+    GLenum mFrontFace;
+    bool   mScissorTest;
 };
 
 struct GLDepthStencilState
 {
-	bool    mDepthTest;
-	bool    mDepthWrite;
-	GLenum  mDepthFunc;
-	bool    mStencilTest;
-	GLenum  mStencilFrontFunc;
-	GLenum  mStencilBackFunc;
-	uint8_t mStencilReadMask;
-	uint8_t mStencilWriteMask;
-	GLenum  mStencilFrontFail;
-	GLenum  mDepthFrontFail;
-	GLenum  mStencilFrontPass;
-	GLenum  mStencilBackFail;
-	GLenum  mDepthBackFail;
-	GLenum  mStencilBackPass;
+    bool    mDepthTest;
+    bool    mDepthWrite;
+    GLenum  mDepthFunc;
+    bool    mStencilTest;
+    GLenum  mStencilFrontFunc;
+    GLenum  mStencilBackFunc;
+    uint8_t mStencilReadMask;
+    uint8_t mStencilWriteMask;
+    GLenum  mStencilFrontFail;
+    GLenum  mDepthFrontFail;
+    GLenum  mStencilFrontPass;
+    GLenum  mStencilBackFail;
+    GLenum  mDepthBackFail;
+    GLenum  mStencilBackPass;
 };
 
 struct GLBlendState
 {
-	bool   mBlendEnable;
-	GLenum mSrcRGBFunc;
-	GLenum mDstRGBFunc;
-	GLenum mSrcAlphaFunc;
-	GLenum mDstAlphaFunc;
-	GLenum mModeRGB;
-	GLenum mModeAlpha;
+    bool   mBlendEnable;
+    GLenum mSrcRGBFunc;
+    GLenum mDstRGBFunc;
+    GLenum mSrcAlphaFunc;
+    GLenum mDstAlphaFunc;
+    GLenum mModeRGB;
+    GLenum mModeAlpha;
 };
 
 typedef struct GlVertexAttrib
 {
-	GLint     mIndex;
-	GLint     mSize;
-	GLenum    mType;
-	GLboolean mNormalized;
-	GLsizei   mStride;
-	GLuint    mOffset;
+    GLint     mIndex;
+    GLint     mSize;
+    GLenum    mType;
+    GLboolean mNormalized;
+    GLsizei   mStride;
+    GLuint    mOffset;
 } GlVertexAttrib;
 
 typedef struct VertexAttribCache
 {
-	GLint  mAttachedBuffer;
-	GLuint mOffset;
-	bool   mIsActive;
+    GLint  mAttachedBuffer;
+    GLuint mOffset;
+    bool   mIsActive;
 } VertexAttribCache;
 
 typedef struct GLVAOState
 {
-	uint32_t mId;
-	uint32_t mVAO;
-	int32_t  mAttachedBuffers[MAX_VERTEX_ATTRIBS];
-	uint32_t mBufferOffsets[MAX_VERTEX_ATTRIBS];
-	uint32_t mActiveIndexBuffer;
-	uint32_t mAttachedBufferCount;
-	uint32_t mFirstVertex;
+    uint32_t mId;
+    uint32_t mVAO;
+    int32_t  mAttachedBuffers[MAX_VERTEX_ATTRIBS];
+    uint32_t mBufferOffsets[MAX_VERTEX_ATTRIBS];
+    uint32_t mActiveIndexBuffer;
+    uint32_t mAttachedBufferCount;
+    uint32_t mFirstVertex;
 } GLVAOState;
 
 struct CmdCache
 {
-	bool isStarted;
+    bool isStarted;
 
-	uint32_t mActiveIndexBuffer;
-	uint32_t mIndexBufferOffset;
-	Buffer*  pIndexBuffer;
+    uint32_t mActiveIndexBuffer;
+    uint32_t mIndexBufferOffset;
+    Buffer*  pIndexBuffer;
 
-	uint32_t mActiveVertexBuffer;
-	uint32_t mVertexBufferOffsets[MAX_VERTEX_ATTRIBS];
-	uint32_t mVertexBufferStrides[MAX_VERTEX_ATTRIBS];
-	Buffer*  mVertexBuffers[MAX_VERTEX_ATTRIBS];
-	uint32_t mVertexBufferCount;
+    uint32_t mActiveVertexBuffer;
+    uint32_t mVertexBufferOffsets[MAX_VERTEX_ATTRIBS];
+    uint32_t mVertexBufferStrides[MAX_VERTEX_ATTRIBS];
+    Buffer*  mVertexBuffers[MAX_VERTEX_ATTRIBS];
+    uint32_t mVertexBufferCount;
 
-	uint32_t mStencilRefValue;
-	uint32_t mRenderTargetHeight;
+    uint32_t mStencilRefValue;
+    uint32_t mRenderTargetHeight;
 
-	vec4 mViewport;
-	vec4 mScissor;
-	vec2 mDepthRange;
+    vec4 mViewport;
+    vec4 mScissor;
+    vec2 mDepthRange;
 
-	vec4     mClearColor;
-	float    mClearDepth;
-	int32_t  mClearStencil;
-	uint32_t mFramebuffer;
+    vec4     mClearColor;
+    float    mClearDepth;
+    int32_t  mClearStencil;
+    uint32_t mFramebuffer;
 
-	// Holds index ordered vertex attribute information
-	VertexAttribCache mVertexAttribCache[MAX_VERTEX_ATTRIBS];
+    // Holds index ordered vertex attribute information
+    VertexAttribCache mVertexAttribCache[MAX_VERTEX_ATTRIBS];
 
-	// VAO cache
-	uint32_t    mActiveVAO;
-	uint16_t*   pActiveVAOStateCount;
-	uint16_t*   pActiveVAOStateLoop;
-	GLVAOState* pActiveVAOStates;
+    // VAO cache
+    uint32_t    mActiveVAO;
+    uint16_t*   pActiveVAOStateCount;
+    uint16_t*   pActiveVAOStateLoop;
+    GLVAOState* pActiveVAOStates;
 
-	// Pipeline state
-	uint32_t            mPipeline;
-	RootSignature*      pRootSignature;
-	GLRasterizerState   mRasterizerState;
-	GLDepthStencilState mDepthStencilState;
-	GLBlendState        mBlendState;
-	GLenum              mGlPrimitiveTopology;
-	uint32_t            mVertexLayoutCount;
-	GlVertexAttrib      mVertexLayout[MAX_VERTEX_ATTRIBS];
-	int32_t             mInstanceLocation;
-	// Textures
-	Sampler* pTextureSampler;
-	uint32_t mBoundTexture;
-	int32_t  mActiveTexture;
+    // Pipeline state
+    uint32_t            mPipeline;
+    RootSignature*      pRootSignature;
+    GLRasterizerState   mRasterizerState;
+    GLDepthStencilState mDepthStencilState;
+    GLBlendState        mBlendState;
+    GLenum              mGlPrimitiveTopology;
+    uint32_t            mVertexLayoutCount;
+    GlVertexAttrib      mVertexLayout[MAX_VERTEX_ATTRIBS];
+    int32_t             mInstanceLocation;
+    // Textures
+    Sampler*            pTextureSampler;
+    uint32_t            mBoundTexture;
+    int32_t             mActiveTexture;
 };
 
 /************************************************************************/
@@ -240,62 +238,62 @@ static PFNGLGETBUFFERPOINTERVOESPROC glGetBufferPointervOES;
 
 void util_init_extension_support(GLExtensionSupport* pExtensionSupport, const char* availableExtensions)
 {
-	ASSERT(pExtensionSupport);
+    ASSERT(pExtensionSupport);
 
-	// Extension GL_OES_texture_border_clamp
-	pExtensionSupport->mHasTextureBorderClampOES = strstr(availableExtensions, "GL_OES_texture_border_clamp") != nullptr;
+    // Extension GL_OES_texture_border_clamp
+    pExtensionSupport->mHasTextureBorderClampOES = strstr(availableExtensions, "GL_OES_texture_border_clamp") != nullptr;
 
-	// Extension GL_OES_depth_texture
-	pExtensionSupport->mHasDepthTextureOES = strstr(availableExtensions, "GL_OES_depth_texture") != nullptr;
+    // Extension GL_OES_depth_texture
+    pExtensionSupport->mHasDepthTextureOES = strstr(availableExtensions, "GL_OES_depth_texture") != nullptr;
 
-	// Extension GL_EXT_debug_marker
-	pExtensionSupport->mHasDebugMarkerEXT = strstr(availableExtensions, "GL_EXT_debug_marker") != nullptr;
-	if (pExtensionSupport->mHasDebugMarkerEXT)
-	{
-		glInsertEventMarkerEXT = (PFNGLINSERTEVENTMARKEREXTPROC)getExtensionsFunction("glInsertEventMarkerEXT");
-		glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)getExtensionsFunction("glPushGroupMarkerEXT");
-		glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)getExtensionsFunction("glPopGroupMarkerEXT");
-	}
+    // Extension GL_EXT_debug_marker
+    pExtensionSupport->mHasDebugMarkerEXT = strstr(availableExtensions, "GL_EXT_debug_marker") != nullptr;
+    if (pExtensionSupport->mHasDebugMarkerEXT)
+    {
+        glInsertEventMarkerEXT = (PFNGLINSERTEVENTMARKEREXTPROC)getExtensionsFunction("glInsertEventMarkerEXT");
+        glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)getExtensionsFunction("glPushGroupMarkerEXT");
+        glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)getExtensionsFunction("glPopGroupMarkerEXT");
+    }
 
-	// Extension GL_EXT_debug_label
-	pExtensionSupport->mHasDebugLabelEXT = strstr(availableExtensions, "GL_EXT_debug_label") != nullptr;
-	glLabelObjectEXT = (PFNGLLABELOBJECTEXTPROC)getExtensionsFunction("glLabelObjectEXT");
+    // Extension GL_EXT_debug_label
+    pExtensionSupport->mHasDebugLabelEXT = strstr(availableExtensions, "GL_EXT_debug_label") != nullptr;
+    glLabelObjectEXT = (PFNGLLABELOBJECTEXTPROC)getExtensionsFunction("glLabelObjectEXT");
 
-	// Extension GL_EXT_disjoint_timer_query
-	pExtensionSupport->mHasDisjointTimerQueryEXT = strstr(availableExtensions, "GL_EXT_disjoint_timer_query") != nullptr;
-	if (pExtensionSupport->mHasDisjointTimerQueryEXT)
-	{
-		glGenQueriesEXT = (PFNGLGENQUERIESEXTPROC)getExtensionsFunction("glGenQueriesEXT");
-		glDeleteQueriesEXT = (PFNGLDELETEQUERIESEXTPROC)getExtensionsFunction("glDeleteQueriesEXT");
-		glBeginQueryEXT = (PFNGLBEGINQUERYEXTPROC)getExtensionsFunction("glBeginQueryEXT");
-		glEndQueryEXT = (PFNGLENDQUERYEXTPROC)getExtensionsFunction("glEndQueryEXT");
-		glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC)getExtensionsFunction("glQueryCounterEXT");
-		glGetQueryivEXT = (PFNGLGETQUERYIVEXTPROC)getExtensionsFunction("glGetQueryivEXT");
-		glGetQueryObjectivEXT = (PFNGLGETQUERYOBJECTIVEXTPROC)getExtensionsFunction("glGetQueryObjectivEXT");
-		glGetQueryObjectuivEXT = (PFNGLGETQUERYOBJECTUIVEXTPROC)getExtensionsFunction("glGetQueryObjectuivEXT");
-		glGetQueryObjecti64vEXT = (PFNGLGETQUERYOBJECTI64VEXTPROC)getExtensionsFunction("glGetQueryObjecti64vEXT");
-		glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)getExtensionsFunction("glGetQueryObjectui64vEXT");
-		glGetInteger64vEXT = (PFNGLGETINTEGER64VEXTPROC)getExtensionsFunction("glGetInteger64vEXT");
-	}
+    // Extension GL_EXT_disjoint_timer_query
+    pExtensionSupport->mHasDisjointTimerQueryEXT = strstr(availableExtensions, "GL_EXT_disjoint_timer_query") != nullptr;
+    if (pExtensionSupport->mHasDisjointTimerQueryEXT)
+    {
+        glGenQueriesEXT = (PFNGLGENQUERIESEXTPROC)getExtensionsFunction("glGenQueriesEXT");
+        glDeleteQueriesEXT = (PFNGLDELETEQUERIESEXTPROC)getExtensionsFunction("glDeleteQueriesEXT");
+        glBeginQueryEXT = (PFNGLBEGINQUERYEXTPROC)getExtensionsFunction("glBeginQueryEXT");
+        glEndQueryEXT = (PFNGLENDQUERYEXTPROC)getExtensionsFunction("glEndQueryEXT");
+        glQueryCounterEXT = (PFNGLQUERYCOUNTEREXTPROC)getExtensionsFunction("glQueryCounterEXT");
+        glGetQueryivEXT = (PFNGLGETQUERYIVEXTPROC)getExtensionsFunction("glGetQueryivEXT");
+        glGetQueryObjectivEXT = (PFNGLGETQUERYOBJECTIVEXTPROC)getExtensionsFunction("glGetQueryObjectivEXT");
+        glGetQueryObjectuivEXT = (PFNGLGETQUERYOBJECTUIVEXTPROC)getExtensionsFunction("glGetQueryObjectuivEXT");
+        glGetQueryObjecti64vEXT = (PFNGLGETQUERYOBJECTI64VEXTPROC)getExtensionsFunction("glGetQueryObjecti64vEXT");
+        glGetQueryObjectui64vEXT = (PFNGLGETQUERYOBJECTUI64VEXTPROC)getExtensionsFunction("glGetQueryObjectui64vEXT");
+        glGetInteger64vEXT = (PFNGLGETINTEGER64VEXTPROC)getExtensionsFunction("glGetInteger64vEXT");
+    }
 
-	// Extension GL_OES_vertex_array_object
-	pExtensionSupport->mHasVertexArrayObjectOES = strstr(availableExtensions, "GL_OES_vertex_array_object") != nullptr;
-	if (pExtensionSupport->mHasVertexArrayObjectOES)
-	{
-		glBindVertexArrayOES = (PFNGLBINDVERTEXARRAYOESPROC)getExtensionsFunction("glBindVertexArrayOES");
-		glDeleteVertexArraysOES = (PFNGLDELETEVERTEXARRAYSOESPROC)getExtensionsFunction("glDeleteVertexArraysOES");
-		glGenVertexArraysOES = (PFNGLGENVERTEXARRAYSOESPROC)getExtensionsFunction("glGenVertexArraysOES");
-		glIsVertexArrayOES = (PFNGLISVERTEXARRAYOESPROC)getExtensionsFunction("glIsVertexArrayOES");
-	}
+    // Extension GL_OES_vertex_array_object
+    pExtensionSupport->mHasVertexArrayObjectOES = strstr(availableExtensions, "GL_OES_vertex_array_object") != nullptr;
+    if (pExtensionSupport->mHasVertexArrayObjectOES)
+    {
+        glBindVertexArrayOES = (PFNGLBINDVERTEXARRAYOESPROC)getExtensionsFunction("glBindVertexArrayOES");
+        glDeleteVertexArraysOES = (PFNGLDELETEVERTEXARRAYSOESPROC)getExtensionsFunction("glDeleteVertexArraysOES");
+        glGenVertexArraysOES = (PFNGLGENVERTEXARRAYSOESPROC)getExtensionsFunction("glGenVertexArraysOES");
+        glIsVertexArrayOES = (PFNGLISVERTEXARRAYOESPROC)getExtensionsFunction("glIsVertexArrayOES");
+    }
 
-	// Extension GL_OES_mapbuffer
-	pExtensionSupport->mHasMapbufferOES = strstr(availableExtensions, "GL_OES_mapbuffer") != nullptr;
-	if (pExtensionSupport->mHasMapbufferOES)
-	{
-		glMapBufferOES = (PFNGLMAPBUFFEROESPROC)getExtensionsFunction("glMapBufferOES");
-		glUnmapBufferOES = (PFNGLUNMAPBUFFEROESPROC)getExtensionsFunction("glUnmapBufferOES");
-		glGetBufferPointervOES = (PFNGLGETBUFFERPOINTERVOESPROC)getExtensionsFunction("glGetBufferPointervOES");
-	}
+    // Extension GL_OES_mapbuffer
+    pExtensionSupport->mHasMapbufferOES = strstr(availableExtensions, "GL_OES_mapbuffer") != nullptr;
+    if (pExtensionSupport->mHasMapbufferOES)
+    {
+        glMapBufferOES = (PFNGLMAPBUFFEROESPROC)getExtensionsFunction("glMapBufferOES");
+        glUnmapBufferOES = (PFNGLUNMAPBUFFEROESPROC)getExtensionsFunction("glUnmapBufferOES");
+        glGetBufferPointervOES = (PFNGLGETBUFFERPOINTERVOESPROC)getExtensionsFunction("glGetBufferPointervOES");
+    }
 }
 
 /************************************************************************/
@@ -304,158 +302,214 @@ void util_init_extension_support(GLExtensionSupport* pExtensionSupport, const ch
 
 inline const char* util_get_format_string(GLenum value)
 {
-	switch (value)
-	{
-			// ASTC
-		case GL_COMPRESSED_RGBA_ASTC_4x4_KHR: return "GL_COMPRESSED_RGBA_ASTC_4x4_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_5x4_KHR: return "GL_COMPRESSED_RGBA_ASTC_5x4_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_5x5_KHR: return "GL_COMPRESSED_RGBA_ASTC_5x5_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_6x5_KHR: return "GL_COMPRESSED_RGBA_ASTC_6x5_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_6x6_KHR: return "GL_COMPRESSED_RGBA_ASTC_6x6_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_8x5_KHR: return "GL_COMPRESSED_RGBA_ASTC_8x5_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_8x6_KHR: return "GL_COMPRESSED_RGBA_ASTC_8x6_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_8x8_KHR: return "GL_COMPRESSED_RGBA_ASTC_8x8_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_10x5_KHR: return "GL_COMPRESSED_RGBA_ASTC_10x5_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_10x6_KHR: return "GL_COMPRESSED_RGBA_ASTC_10x6_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_10x8_KHR: return "GL_COMPRESSED_RGBA_ASTC_10x8_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_10x10_KHR: return "GL_COMPRESSED_RGBA_ASTC_10x10_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_12x10_KHR: return "GL_COMPRESSED_RGBA_ASTC_12x10_KHR";
-		case GL_COMPRESSED_RGBA_ASTC_12x12_KHR: return "GL_COMPRESSED_RGBA_ASTC_12x12_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR";
+    switch (value)
+    {
+        // ASTC
+    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_4x4_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_5x4_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_5x5_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_6x5_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_6x6_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_8x5_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_8x6_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_8x8_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_10x5_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_10x6_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_10x8_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_10x10_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_12x10_KHR";
+    case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+        return "GL_COMPRESSED_RGBA_ASTC_12x12_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR";
 
-		case GL_COMPRESSED_RGBA_ASTC_3x3x3_OES: return "GL_COMPRESSED_RGBA_ASTC_3x3x3_OES";
-		case GL_COMPRESSED_RGBA_ASTC_4x3x3_OES: return "GL_COMPRESSED_RGBA_ASTC_4x3x3_OES";
-		case GL_COMPRESSED_RGBA_ASTC_4x4x3_OES: return "GL_COMPRESSED_RGBA_ASTC_4x4x3_OES";
-		case GL_COMPRESSED_RGBA_ASTC_4x4x4_OES: return "GL_COMPRESSED_RGBA_ASTC_4x4x4_OES";
-		case GL_COMPRESSED_RGBA_ASTC_5x4x4_OES: return "GL_COMPRESSED_RGBA_ASTC_5x4x4_OES";
-		case GL_COMPRESSED_RGBA_ASTC_5x5x4_OES: return "GL_COMPRESSED_RGBA_ASTC_5x5x4_OES";
-		case GL_COMPRESSED_RGBA_ASTC_5x5x5_OES: return "GL_COMPRESSED_RGBA_ASTC_5x5x5_OES";
-		case GL_COMPRESSED_RGBA_ASTC_6x5x5_OES: return "GL_COMPRESSED_RGBA_ASTC_6x5x5_OES";
-		case GL_COMPRESSED_RGBA_ASTC_6x6x5_OES: return "GL_COMPRESSED_RGBA_ASTC_6x6x5_OES";
-		case GL_COMPRESSED_RGBA_ASTC_6x6x6_OES: return "GL_COMPRESSED_RGBA_ASTC_6x6x6_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES";
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES: return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES";
+    case GL_COMPRESSED_RGBA_ASTC_3x3x3_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_3x3x3_OES";
+    case GL_COMPRESSED_RGBA_ASTC_4x3x3_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_4x3x3_OES";
+    case GL_COMPRESSED_RGBA_ASTC_4x4x3_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_4x4x3_OES";
+    case GL_COMPRESSED_RGBA_ASTC_4x4x4_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_4x4x4_OES";
+    case GL_COMPRESSED_RGBA_ASTC_5x4x4_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_5x4x4_OES";
+    case GL_COMPRESSED_RGBA_ASTC_5x5x4_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_5x5x4_OES";
+    case GL_COMPRESSED_RGBA_ASTC_5x5x5_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_5x5x5_OES";
+    case GL_COMPRESSED_RGBA_ASTC_6x5x5_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_6x5x5_OES";
+    case GL_COMPRESSED_RGBA_ASTC_6x6x5_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_6x6x5_OES";
+    case GL_COMPRESSED_RGBA_ASTC_6x6x6_OES:
+        return "GL_COMPRESSED_RGBA_ASTC_6x6x6_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_3x3x3_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x3x3_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x3_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4x4_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4x4_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x4_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5x5_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5x5_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x5_OES";
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES:
+        return "GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6x6_OES";
 
-		case GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE: return "GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE";
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE:
+        return "GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE";
 
-		case GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT: return "GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT";
+    case GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
+        return "GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT";
 
-		case GL_COMPRESSED_RGBA_BPTC_UNORM_EXT: return "GL_COMPRESSED_RGBA_BPTC_UNORM_EXT";
+    case GL_COMPRESSED_RGBA_BPTC_UNORM_EXT:
+        return "GL_COMPRESSED_RGBA_BPTC_UNORM_EXT";
 
-		default: return "GL_UNKNOWN_FORMAT";
-	}
+    default:
+        return "GL_UNKNOWN_FORMAT";
+    }
 }
 
 GLsizei util_get_compressed_texture_size(GLenum format, uint32_t width, uint32_t height)
 {
-	switch (format)
-	{
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_4x4_KHR: return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_5x4_KHR: return ((uint32_t)ceil(width / 5.0f) * (uint32_t)ceil(height / 4.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_5x5_KHR: return ((uint32_t)ceil(width / 5.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_6x5_KHR: return ((uint32_t)ceil(width / 6.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_6x6_KHR: return ((uint32_t)ceil(width / 6.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_8x5_KHR: return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_8x6_KHR: return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_8x8_KHR: return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 8.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_10x5_KHR: return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_10x6_KHR: return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_10x8_KHR: return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 8.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_10x10_KHR: return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 10.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_12x10_KHR: return ((uint32_t)ceil(width / 12.0f) * (uint32_t)ceil(height / 10.0f)) << 4;
-		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
-		case GL_COMPRESSED_RGBA_ASTC_12x12_KHR: return ((uint32_t)ceil(width / 12.0f) * (uint32_t)ceil(height / 12.0f)) << 4;
-		case GL_ETC1_RGB8_OES: return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 3;
-		default:
-			LOGF(LogLevel::eERROR, "Unknown compressed GL format!");
-			ASSERT(false);
-			return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 3;
-	}
+    switch (format)
+    {
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+        return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
+        return ((uint32_t)ceil(width / 5.0f) * (uint32_t)ceil(height / 4.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
+        return ((uint32_t)ceil(width / 5.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
+        return ((uint32_t)ceil(width / 6.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
+        return ((uint32_t)ceil(width / 6.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
+        return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
+        return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
+        return ((uint32_t)ceil(width / 8.0f) * (uint32_t)ceil(height / 8.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
+        return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 5.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
+        return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 6.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
+        return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 8.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
+        return ((uint32_t)ceil(width / 10.0f) * (uint32_t)ceil(height / 10.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
+        return ((uint32_t)ceil(width / 12.0f) * (uint32_t)ceil(height / 10.0f)) << 4;
+    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+    case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
+        return ((uint32_t)ceil(width / 12.0f) * (uint32_t)ceil(height / 12.0f)) << 4;
+    case GL_ETC1_RGB8_OES:
+        return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 3;
+    default:
+        LOGF(LogLevel::eERROR, "Unknown compressed GL format!");
+        ASSERT(false);
+        return ((uint32_t)ceil(width / 4.0f) * (uint32_t)ceil(height / 4.0f)) << 3;
+    }
 }
 
 inline const char* util_get_enum_string(GLenum value)
 {
-	switch (value)
-	{
-			// Errors
-		case GL_NO_ERROR: return "GL_NO_ERROR";
-		case GL_INVALID_ENUM: return "GL_INVALID_ENUM";
-		case GL_INVALID_VALUE: return "GL_INVALID_VALUE";
-		case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
-		case GL_OUT_OF_MEMORY:
-			return "GL_OUT_OF_MEMORY";
-			// Framebuffer status
-		case GL_FRAMEBUFFER_COMPLETE: return "GL_FRAMEBUFFER_COMPLETE";
-		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: return "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-		case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS: return "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
-		case GL_FRAMEBUFFER_UNSUPPORTED: return "GL_FRAMEBUFFER_UNSUPPORTED";
+    switch (value)
+    {
+        // Errors
+    case GL_NO_ERROR:
+        return "GL_NO_ERROR";
+    case GL_INVALID_ENUM:
+        return "GL_INVALID_ENUM";
+    case GL_INVALID_VALUE:
+        return "GL_INVALID_VALUE";
+    case GL_INVALID_OPERATION:
+        return "GL_INVALID_OPERATION";
+    case GL_OUT_OF_MEMORY:
+        return "GL_OUT_OF_MEMORY";
+        // Framebuffer status
+    case GL_FRAMEBUFFER_COMPLETE:
+        return "GL_FRAMEBUFFER_COMPLETE";
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        return "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        return "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+    case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        return "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
+    case GL_FRAMEBUFFER_UNSUPPORTED:
+        return "GL_FRAMEBUFFER_UNSUPPORTED";
 
-		default: return "GL_UNKNOWN_ERROR";
-	}
+    default:
+        return "GL_UNKNOWN_ERROR";
+    }
 }
 
-inline const char* util_get_vendor_id(const char* vendor)
-{
-	if (strcmp(vendor, "Qualcomm") == 0)
-		return "0x5143";
-	if (strcmp(vendor, "AMD") == 0)
-		return "0x1002";
-	if (strcmp(vendor, "Imagination Technologies") == 0)
-		return "0x1010";
-	if (strcmp(vendor, "NVIDIA") == 0)
-		return "0x10DE";
-	if (strcmp(vendor, "ARM") == 0)
-		return "0x13B5";
-	if (strcmp(vendor, "INTEL") == 0)
-		return "0x8086";
-
-	return "0x0000";
-}
-
-#if defined(_WINDOWS)
-#pragma comment(lib, "opengl32.lib")
-#endif
 #define SAFE_FREE(p_var) \
-	if (p_var)           \
-	{                    \
-		tf_free(p_var);  \
-		p_var = NULL;    \
-	}
+    if (p_var)           \
+    {                    \
+        tf_free(p_var);  \
+        p_var = NULL;    \
+    }
 
 #if defined(__cplusplus)
 #define DECLARE_ZERO(type, var) type var = {};
@@ -465,336 +519,436 @@ inline const char* util_get_vendor_id(const char* vendor)
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
 #define CHECK_GLRESULT(exp)                                                               \
-	{                                                                                     \
-		exp;                                                                              \
-		GLenum glRes = glGetError();                                                      \
-		if (glRes != GL_NO_ERROR)                                                         \
-		{                                                                                 \
-			LOGF(eERROR, "%s: FAILED with Error: %s", #exp, util_get_enum_string(glRes)); \
-			ASSERT(false);                                                                \
-		}                                                                                 \
-	}
+    {                                                                                     \
+        exp;                                                                              \
+        GLenum glRes = glGetError();                                                      \
+        if (glRes != GL_NO_ERROR)                                                         \
+        {                                                                                 \
+            LOGF(eERROR, "%s: FAILED with Error: %s", #exp, util_get_enum_string(glRes)); \
+            ASSERT(false);                                                                \
+        }                                                                                 \
+    }
 
 #define CHECK_GL_RETURN_RESULT(var, exp)                                                  \
-	{                                                                                     \
-		var = exp;                                                                        \
-		GLenum glRes = glGetError();                                                      \
-		if (glRes != GL_NO_ERROR)                                                         \
-		{                                                                                 \
-			LOGF(eERROR, "%s: FAILED with Error: %s", #exp, util_get_enum_string(glRes)); \
-			ASSERT(false);                                                                \
-		}                                                                                 \
-	}
+    {                                                                                     \
+        var = exp;                                                                        \
+        GLenum glRes = glGetError();                                                      \
+        if (glRes != GL_NO_ERROR)                                                         \
+        {                                                                                 \
+            LOGF(eERROR, "%s: FAILED with Error: %s", #exp, util_get_enum_string(glRes)); \
+            ASSERT(false);                                                                \
+        }                                                                                 \
+    }
 #else
 #define CHECK_GLRESULT(exp) \
-	{                       \
-		exp;                \
-	}
+    {                       \
+        exp;                \
+    }
 
 #define CHECK_GL_RETURN_RESULT(var, exp) \
-	{                                    \
-		var = exp;                       \
-	}
+    {                                    \
+        var = exp;                       \
+    }
 #endif
 
 static inline uint32_t gl_type_byte_size(GLenum type)
 {
-	switch (type)
-	{
-		case GL_INT:
-		case GL_BOOL:
-		case GL_FLOAT: return 4;
-		case GL_INT_VEC2:
-		case GL_BOOL_VEC2:
-		case GL_FLOAT_VEC2: return 8;
-		case GL_INT_VEC3:
-		case GL_BOOL_VEC3:
-		case GL_FLOAT_VEC3: return 16;
-		case GL_INT_VEC4:
-		case GL_BOOL_VEC4:
-		case GL_FLOAT_VEC4: return 16;
-		case GL_FLOAT_MAT2: return 32;
-		case GL_FLOAT_MAT3: return 48;
-		case GL_FLOAT_MAT4: return 64;
-		default: ASSERT(false && "Unknown GL type"); return 0;
-	}
+    switch (type)
+    {
+    case GL_INT:
+    case GL_BOOL:
+    case GL_FLOAT:
+        return 4;
+    case GL_INT_VEC2:
+    case GL_BOOL_VEC2:
+    case GL_FLOAT_VEC2:
+        return 8;
+    case GL_INT_VEC3:
+    case GL_BOOL_VEC3:
+    case GL_FLOAT_VEC3:
+        return 16;
+    case GL_INT_VEC4:
+    case GL_BOOL_VEC4:
+    case GL_FLOAT_VEC4:
+        return 16;
+    case GL_FLOAT_MAT2:
+        return 32;
+    case GL_FLOAT_MAT3:
+        return 48;
+    case GL_FLOAT_MAT4:
+        return 64;
+    default:
+        ASSERT(false && "Unknown GL type");
+        return 0;
+    }
 }
 
 static inline void util_gl_set_uniform(uint32_t location, uint8_t* data, GLenum type, uint32_t size)
 {
-	switch (type)
-	{
-		case GL_INT:
-		case GL_BOOL:
-		case GL_SAMPLER_2D:
-		case GL_SAMPLER_CUBE: CHECK_GLRESULT(glUniform1iv(location, size, (GLint*)data)); break;
-		case GL_FLOAT: CHECK_GLRESULT(glUniform1fv(location, size, (GLfloat*)data)); break;
-		case GL_INT_VEC2:
-		case GL_BOOL_VEC2: CHECK_GLRESULT(glUniform2iv(location, size, (GLint*)data)); break;
-		case GL_FLOAT_VEC2: CHECK_GLRESULT(glUniform2fv(location, size, (GLfloat*)data)); break;
-		case GL_INT_VEC3:
-		case GL_BOOL_VEC3: CHECK_GLRESULT(glUniform3iv(location, size, (GLint*)data)); break;
-		case GL_FLOAT_VEC3: CHECK_GLRESULT(glUniform3fv(location, size, (GLfloat*)data)); break;
-		case GL_INT_VEC4:
-		case GL_BOOL_VEC4: CHECK_GLRESULT(glUniform4iv(location, size, (GLint*)data)); break;
-		case GL_FLOAT_VEC4: CHECK_GLRESULT(glUniform4fv(location, size, (GLfloat*)data)); break;
-		case GL_FLOAT_MAT2: CHECK_GLRESULT(glUniformMatrix2fv(location, size, GL_FALSE, (GLfloat*)data)); break;
-		case GL_FLOAT_MAT3: CHECK_GLRESULT(glUniformMatrix3fv(location, size, GL_FALSE, (GLfloat*)data)); break;
-		case GL_FLOAT_MAT4: CHECK_GLRESULT(glUniformMatrix4fv(location, size, GL_FALSE, (GLfloat*)data)); break;
-		default: ASSERT(false && "Unknown GL type");
-	}
+    switch (type)
+    {
+    case GL_INT:
+    case GL_BOOL:
+    case GL_SAMPLER_2D:
+    case GL_SAMPLER_CUBE:
+        CHECK_GLRESULT(glUniform1iv(location, size, (GLint*)data));
+        break;
+    case GL_FLOAT:
+        CHECK_GLRESULT(glUniform1fv(location, size, (GLfloat*)data));
+        break;
+    case GL_INT_VEC2:
+    case GL_BOOL_VEC2:
+        CHECK_GLRESULT(glUniform2iv(location, size, (GLint*)data));
+        break;
+    case GL_FLOAT_VEC2:
+        CHECK_GLRESULT(glUniform2fv(location, size, (GLfloat*)data));
+        break;
+    case GL_INT_VEC3:
+    case GL_BOOL_VEC3:
+        CHECK_GLRESULT(glUniform3iv(location, size, (GLint*)data));
+        break;
+    case GL_FLOAT_VEC3:
+        CHECK_GLRESULT(glUniform3fv(location, size, (GLfloat*)data));
+        break;
+    case GL_INT_VEC4:
+    case GL_BOOL_VEC4:
+        CHECK_GLRESULT(glUniform4iv(location, size, (GLint*)data));
+        break;
+    case GL_FLOAT_VEC4:
+        CHECK_GLRESULT(glUniform4fv(location, size, (GLfloat*)data));
+        break;
+    case GL_FLOAT_MAT2:
+        CHECK_GLRESULT(glUniformMatrix2fv(location, size, GL_FALSE, (GLfloat*)data));
+        break;
+    case GL_FLOAT_MAT3:
+        CHECK_GLRESULT(glUniformMatrix3fv(location, size, GL_FALSE, (GLfloat*)data));
+        break;
+    case GL_FLOAT_MAT4:
+        CHECK_GLRESULT(glUniformMatrix4fv(location, size, GL_FALSE, (GLfloat*)data));
+        break;
+    default:
+        ASSERT(false && "Unknown GL type");
+    }
 }
 
 static GLint util_to_gl_usage(ResourceMemoryUsage mem)
 {
-	switch (mem)
-	{
-		case RESOURCE_MEMORY_USAGE_GPU_ONLY: return GL_STATIC_DRAW;
-		case RESOURCE_MEMORY_USAGE_CPU_ONLY: return GL_NONE;
-		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: return GL_DYNAMIC_DRAW;
-		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU: return GL_STREAM_DRAW;
-		default: ASSERT(false && "Invalid Memory Usage"); return GL_DYNAMIC_DRAW;
-	}
+    switch (mem)
+    {
+    case RESOURCE_MEMORY_USAGE_GPU_ONLY:
+        return GL_STATIC_DRAW;
+    case RESOURCE_MEMORY_USAGE_CPU_ONLY:
+        return GL_NONE;
+    case RESOURCE_MEMORY_USAGE_CPU_TO_GPU:
+        return GL_DYNAMIC_DRAW;
+    case RESOURCE_MEMORY_USAGE_GPU_TO_CPU:
+        return GL_STREAM_DRAW;
+    default:
+        ASSERT(false && "Invalid Memory Usage");
+        return GL_DYNAMIC_DRAW;
+    }
 }
 
 static GLenum util_to_gl_address_mode(AddressMode mode)
 {
-	switch (mode)
-	{
-		case ADDRESS_MODE_MIRROR: return GL_MIRRORED_REPEAT;
-		case ADDRESS_MODE_REPEAT: return GL_REPEAT;
-		case ADDRESS_MODE_CLAMP_TO_EDGE: return GL_CLAMP_TO_EDGE;
-		case ADDRESS_MODE_CLAMP_TO_BORDER: return gExtensionSupport.mHasTextureBorderClampOES ? GL_CLAMP_TO_BORDER_OES : GL_CLAMP_TO_EDGE;
-		default: ASSERT(false && "Invalid AddressMode"); return GL_REPEAT;
-	}
+    switch (mode)
+    {
+    case ADDRESS_MODE_MIRROR:
+        return GL_MIRRORED_REPEAT;
+    case ADDRESS_MODE_REPEAT:
+        return GL_REPEAT;
+    case ADDRESS_MODE_CLAMP_TO_EDGE:
+        return GL_CLAMP_TO_EDGE;
+    case ADDRESS_MODE_CLAMP_TO_BORDER:
+        return gExtensionSupport.mHasTextureBorderClampOES ? GL_CLAMP_TO_BORDER_OES : GL_CLAMP_TO_EDGE;
+    default:
+        ASSERT(false && "Invalid AddressMode");
+        return GL_REPEAT;
+    }
 }
 
 static GLenum util_to_gl_blend_const(BlendConstant bconst, bool isSrc)
 {
-	switch (bconst)
-	{
-		case BC_ZERO: return GL_ZERO;
-		case BC_ONE: return GL_ONE;
-		case BC_SRC_COLOR: return GL_SRC_COLOR;
-		case BC_ONE_MINUS_SRC_COLOR: return GL_ONE_MINUS_SRC_COLOR;
-		case BC_DST_COLOR: return GL_DST_COLOR;
-		case BC_ONE_MINUS_DST_COLOR: return GL_ONE_MINUS_DST_COLOR;
-		case BC_SRC_ALPHA: return GL_SRC_ALPHA;
-		case BC_ONE_MINUS_SRC_ALPHA: return GL_ONE_MINUS_SRC_ALPHA;
-		case BC_DST_ALPHA: return GL_DST_ALPHA;
-		case BC_ONE_MINUS_DST_ALPHA: return GL_ONE_MINUS_DST_ALPHA;
-		case BC_SRC_ALPHA_SATURATE: return GL_SRC_ALPHA_SATURATE;
-		case BC_BLEND_FACTOR: return GL_CONSTANT_COLOR;
-		case BC_ONE_MINUS_BLEND_FACTOR: return GL_ONE_MINUS_CONSTANT_COLOR;
-		default: ASSERT(false && "Invalid BlendConstant"); return isSrc ? GL_ONE : GL_ZERO;
-	}
+    switch (bconst)
+    {
+    case BC_ZERO:
+        return GL_ZERO;
+    case BC_ONE:
+        return GL_ONE;
+    case BC_SRC_COLOR:
+        return GL_SRC_COLOR;
+    case BC_ONE_MINUS_SRC_COLOR:
+        return GL_ONE_MINUS_SRC_COLOR;
+    case BC_DST_COLOR:
+        return GL_DST_COLOR;
+    case BC_ONE_MINUS_DST_COLOR:
+        return GL_ONE_MINUS_DST_COLOR;
+    case BC_SRC_ALPHA:
+        return GL_SRC_ALPHA;
+    case BC_ONE_MINUS_SRC_ALPHA:
+        return GL_ONE_MINUS_SRC_ALPHA;
+    case BC_DST_ALPHA:
+        return GL_DST_ALPHA;
+    case BC_ONE_MINUS_DST_ALPHA:
+        return GL_ONE_MINUS_DST_ALPHA;
+    case BC_SRC_ALPHA_SATURATE:
+        return GL_SRC_ALPHA_SATURATE;
+    case BC_BLEND_FACTOR:
+        return GL_CONSTANT_COLOR;
+    case BC_ONE_MINUS_BLEND_FACTOR:
+        return GL_ONE_MINUS_CONSTANT_COLOR;
+    default:
+        ASSERT(false && "Invalid BlendConstant");
+        return isSrc ? GL_ONE : GL_ZERO;
+    }
 }
 
 static GLenum util_to_gl_blend_mode(BlendMode mode)
 {
-	switch (mode)
-	{
-		case BM_ADD: return GL_FUNC_ADD;
-		case BM_SUBTRACT: return GL_FUNC_ADD;
-		case BM_REVERSE_SUBTRACT: return GL_FUNC_ADD;
-		case BM_MIN: return GL_MIN;    // GLES 3.2
-		case BM_MAX: return GL_MAX;    // GLES 3.2
-		default: ASSERT(false && "Invalid BlendMode"); return GL_FUNC_ADD;
-	}
+    switch (mode)
+    {
+    case BM_ADD:
+        return GL_FUNC_ADD;
+    case BM_SUBTRACT:
+        return GL_FUNC_ADD;
+    case BM_REVERSE_SUBTRACT:
+        return GL_FUNC_ADD;
+    case BM_MIN:
+        return GL_MIN; // GLES 3.2
+    case BM_MAX:
+        return GL_MAX; // GLES 3.2
+    default:
+        ASSERT(false && "Invalid BlendMode");
+        return GL_FUNC_ADD;
+    }
 }
 
 static GLenum util_to_gl_stencil_op(StencilOp op)
 {
-	switch (op)
-	{
-		case STENCIL_OP_KEEP: return GL_KEEP;
-		case STENCIL_OP_SET_ZERO: return GL_ZERO;
-		case STENCIL_OP_REPLACE: return GL_REPLACE;
-		case STENCIL_OP_INVERT: return GL_INVERT;
-		case STENCIL_OP_INCR: return GL_INCR;
-		case STENCIL_OP_DECR: return GL_DECR;
-		case STENCIL_OP_INCR_SAT: return GL_INCR_WRAP;
-		case STENCIL_OP_DECR_SAT: return GL_DECR_WRAP;
-		default: ASSERT(false && "Invalid StencilOp"); return GL_KEEP;
-	}
+    switch (op)
+    {
+    case STENCIL_OP_KEEP:
+        return GL_KEEP;
+    case STENCIL_OP_SET_ZERO:
+        return GL_ZERO;
+    case STENCIL_OP_REPLACE:
+        return GL_REPLACE;
+    case STENCIL_OP_INVERT:
+        return GL_INVERT;
+    case STENCIL_OP_INCR:
+        return GL_INCR;
+    case STENCIL_OP_DECR:
+        return GL_DECR;
+    case STENCIL_OP_INCR_SAT:
+        return GL_INCR_WRAP;
+    case STENCIL_OP_DECR_SAT:
+        return GL_DECR_WRAP;
+    default:
+        ASSERT(false && "Invalid StencilOp");
+        return GL_KEEP;
+    }
 }
 
 static GLenum util_to_gl_compare_mode(CompareMode mode)
 {
-	switch (mode)
-	{
-		case CMP_NEVER: return GL_NEVER;
-		case CMP_LESS: return GL_LESS;
-		case CMP_EQUAL: return GL_EQUAL;
-		case CMP_LEQUAL: return GL_LEQUAL;
-		case CMP_GREATER: return GL_GREATER;
-		case CMP_NOTEQUAL: return GL_NOTEQUAL;
-		case CMP_GEQUAL: return GL_GEQUAL;
-		case CMP_ALWAYS: return GL_ALWAYS;
-		default: ASSERT(false && "Invalid CompareMode"); return GL_LESS;
-	}
+    switch (mode)
+    {
+    case CMP_NEVER:
+        return GL_NEVER;
+    case CMP_LESS:
+        return GL_LESS;
+    case CMP_EQUAL:
+        return GL_EQUAL;
+    case CMP_LEQUAL:
+        return GL_LEQUAL;
+    case CMP_GREATER:
+        return GL_GREATER;
+    case CMP_NOTEQUAL:
+        return GL_NOTEQUAL;
+    case CMP_GEQUAL:
+        return GL_GEQUAL;
+    case CMP_ALWAYS:
+        return GL_ALWAYS;
+    default:
+        ASSERT(false && "Invalid CompareMode");
+        return GL_LESS;
+    }
 }
 
 static GLBlendState util_to_blend_desc(const BlendStateDesc* pDesc)
 {
-	int blendDescIndex = 0;
+    int blendDescIndex = 0;
 #if defined(ENABLE_GRAPHICS_DEBUG)
 
-	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
-	{
-		if (pDesc->mRenderTargetMask & (1 << i))
-		{
-			ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
-			ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
-			ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
-			ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
-			ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
-			ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
-		}
+    for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
+    {
+        if (pDesc->mRenderTargetMask & (1 << i))
+        {
+            ASSERT(pDesc->mSrcFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+            ASSERT(pDesc->mDstFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+            ASSERT(pDesc->mSrcAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+            ASSERT(pDesc->mDstAlphaFactors[blendDescIndex] < BlendConstant::MAX_BLEND_CONSTANTS);
+            ASSERT(pDesc->mBlendModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+            ASSERT(pDesc->mBlendAlphaModes[blendDescIndex] < BlendMode::MAX_BLEND_MODES);
+        }
 
-		if (pDesc->mIndependentBlend)
-			++blendDescIndex;
-	}
+        if (pDesc->mIndependentBlend)
+            ++blendDescIndex;
+    }
 
-	blendDescIndex = 0;
+    blendDescIndex = 0;
 #endif
 
-	ASSERT(!pDesc->mIndependentBlend && "IndependentBlend modes not supported");
+    ASSERT(!pDesc->mIndependentBlend && "IndependentBlend modes not supported");
 
-	GLBlendState blendState = {};
+    GLBlendState blendState = {};
 
-	blendState.mSrcRGBFunc = util_to_gl_blend_const(pDesc->mSrcFactors[blendDescIndex], true);
-	blendState.mDstRGBFunc = util_to_gl_blend_const(pDesc->mDstFactors[blendDescIndex], false);
-	blendState.mSrcAlphaFunc = util_to_gl_blend_const(pDesc->mSrcAlphaFactors[blendDescIndex], true);
-	blendState.mDstAlphaFunc = util_to_gl_blend_const(pDesc->mDstAlphaFactors[blendDescIndex], false);
+    blendState.mSrcRGBFunc = util_to_gl_blend_const(pDesc->mSrcFactors[blendDescIndex], true);
+    blendState.mDstRGBFunc = util_to_gl_blend_const(pDesc->mDstFactors[blendDescIndex], false);
+    blendState.mSrcAlphaFunc = util_to_gl_blend_const(pDesc->mSrcAlphaFactors[blendDescIndex], true);
+    blendState.mDstAlphaFunc = util_to_gl_blend_const(pDesc->mDstAlphaFactors[blendDescIndex], false);
 
-	blendState.mModeRGB = util_to_gl_blend_mode(pDesc->mBlendModes[blendDescIndex]);
-	blendState.mModeAlpha = util_to_gl_blend_mode(pDesc->mBlendAlphaModes[blendDescIndex]);
+    blendState.mModeRGB = util_to_gl_blend_mode(pDesc->mBlendModes[blendDescIndex]);
+    blendState.mModeAlpha = util_to_gl_blend_mode(pDesc->mBlendAlphaModes[blendDescIndex]);
 
-	blendState.mBlendEnable = blendState.mSrcRGBFunc != GL_ONE || blendState.mDstRGBFunc != GL_ZERO || blendState.mSrcAlphaFunc != GL_ONE ||
-							  blendState.mDstAlphaFunc != GL_ZERO;
+    blendState.mBlendEnable = blendState.mSrcRGBFunc != GL_ONE || blendState.mDstRGBFunc != GL_ZERO || blendState.mSrcAlphaFunc != GL_ONE ||
+                              blendState.mDstAlphaFunc != GL_ZERO;
 
-	return blendState;
+    return blendState;
 
-	// Unhandled
-	// pDesc->mMasks[blendDescIndex]
-	// pDesc->mRenderTargetMask
-	// pDesc->mAlphaToCoverage
+    // Unhandled
+    // pDesc->mColorWriteMasks[blendDescIndex]
+    // pDesc->mRenderTargetMask
+    // pDesc->mAlphaToCoverage
 }
 
 static GLDepthStencilState util_to_depth_desc(const DepthStateDesc* pDesc)
 {
-	ASSERT(pDesc->mDepthFunc < CompareMode::MAX_COMPARE_MODES);
-	ASSERT(pDesc->mStencilFrontFunc < CompareMode::MAX_COMPARE_MODES);
-	ASSERT(pDesc->mStencilFrontFail < StencilOp::MAX_STENCIL_OPS);
-	ASSERT(pDesc->mDepthFrontFail < StencilOp::MAX_STENCIL_OPS);
-	ASSERT(pDesc->mStencilFrontPass < StencilOp::MAX_STENCIL_OPS);
-	ASSERT(pDesc->mStencilBackFunc < CompareMode::MAX_COMPARE_MODES);
-	ASSERT(pDesc->mStencilBackFail < StencilOp::MAX_STENCIL_OPS);
-	ASSERT(pDesc->mDepthBackFail < StencilOp::MAX_STENCIL_OPS);
-	ASSERT(pDesc->mStencilBackPass < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mDepthFunc < CompareMode::MAX_COMPARE_MODES);
+    ASSERT(pDesc->mStencilFrontFunc < CompareMode::MAX_COMPARE_MODES);
+    ASSERT(pDesc->mStencilFrontFail < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mDepthFrontFail < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mStencilFrontPass < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mStencilBackFunc < CompareMode::MAX_COMPARE_MODES);
+    ASSERT(pDesc->mStencilBackFail < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mDepthBackFail < StencilOp::MAX_STENCIL_OPS);
+    ASSERT(pDesc->mStencilBackPass < StencilOp::MAX_STENCIL_OPS);
 
-	GLDepthStencilState depthState = {};
-	depthState.mDepthTest = pDesc->mDepthTest;                             // glEnable / glDisable(GL_DEPTH_TEST)
-	depthState.mDepthWrite = pDesc->mDepthWrite;                           // glDepthMask(GL_TRUE / GL_FALSE);
-	depthState.mDepthFunc = util_to_gl_compare_mode(pDesc->mDepthFunc);    // glDepthFunc(GL_LESS)
+    GLDepthStencilState depthState = {};
+    depthState.mDepthTest = pDesc->mDepthTest;                          // glEnable / glDisable(GL_DEPTH_TEST)
+    depthState.mDepthWrite = pDesc->mDepthWrite;                        // glDepthMask(GL_TRUE / GL_FALSE);
+    depthState.mDepthFunc = util_to_gl_compare_mode(pDesc->mDepthFunc); // glDepthFunc(GL_LESS)
 
-	depthState.mStencilTest = pDesc->mStencilTest;              // glEnable / glDisable(GL_STENCIL_TEST)
-	depthState.mStencilWriteMask = pDesc->mStencilWriteMask;    // glStencilMask(mask)
-	depthState.mStencilReadMask = pDesc->mStencilReadMask;
+    depthState.mStencilTest = pDesc->mStencilTest;           // glEnable / glDisable(GL_STENCIL_TEST)
+    depthState.mStencilWriteMask = pDesc->mStencilWriteMask; // glStencilMask(mask)
+    depthState.mStencilReadMask = pDesc->mStencilReadMask;
 
-	depthState.mStencilFrontFunc =
-		util_to_gl_compare_mode(pDesc->mStencilFrontFunc);    // glStencilFuncSeparate(GL_FRONT, GL_ALWAYS, ref_value?, mask (1))
-	// glStencilOpSeparate(GLenum face, GLenum GL_KEEP, GLenum GL_KEEP, GLenum GL_KEEP);
-	depthState.mStencilFrontFail = util_to_gl_stencil_op(pDesc->mStencilFrontFail);
-	depthState.mDepthFrontFail = util_to_gl_stencil_op(pDesc->mDepthFrontFail);
-	depthState.mStencilFrontPass = util_to_gl_stencil_op(pDesc->mStencilFrontPass);
+    depthState.mStencilFrontFunc =
+        util_to_gl_compare_mode(pDesc->mStencilFrontFunc); // glStencilFuncSeparate(GL_FRONT, GL_ALWAYS, ref_value?, mask (1))
+    // glStencilOpSeparate(GLenum face, GLenum GL_KEEP, GLenum GL_KEEP, GLenum GL_KEEP);
+    depthState.mStencilFrontFail = util_to_gl_stencil_op(pDesc->mStencilFrontFail);
+    depthState.mDepthFrontFail = util_to_gl_stencil_op(pDesc->mDepthFrontFail);
+    depthState.mStencilFrontPass = util_to_gl_stencil_op(pDesc->mStencilFrontPass);
 
-	depthState.mStencilBackFunc =
-		util_to_gl_compare_mode(pDesc->mStencilBackFunc);    // glStencilFuncSeparate(GL_BACK, GL_ALWAYS, ref_value?, mask (1))
-	depthState.mStencilBackFail = util_to_gl_stencil_op(pDesc->mStencilBackFail);
-	depthState.mDepthBackFail = util_to_gl_stencil_op(pDesc->mDepthBackFail);
-	depthState.mStencilBackPass = util_to_gl_stencil_op(pDesc->mStencilBackPass);
+    depthState.mStencilBackFunc =
+        util_to_gl_compare_mode(pDesc->mStencilBackFunc); // glStencilFuncSeparate(GL_BACK, GL_ALWAYS, ref_value?, mask (1))
+    depthState.mStencilBackFail = util_to_gl_stencil_op(pDesc->mStencilBackFail);
+    depthState.mDepthBackFail = util_to_gl_stencil_op(pDesc->mDepthBackFail);
+    depthState.mStencilBackPass = util_to_gl_stencil_op(pDesc->mStencilBackPass);
 
-	return depthState;
+    return depthState;
 }
 
 static GLRasterizerState util_to_rasterizer_desc(const RasterizerStateDesc* pDesc)
 {
-	ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
-	ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
-	ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
+    ASSERT(pDesc->mFillMode < FillMode::MAX_FILL_MODES);
+    ASSERT(pDesc->mCullMode < CullMode::MAX_CULL_MODES);
+    ASSERT(pDesc->mFrontFace == FRONT_FACE_CCW || pDesc->mFrontFace == FRONT_FACE_CW);
 
-	GLRasterizerState rasterizationState = {};
-	switch (pDesc->mCullMode)
-	{
-		case CullMode::CULL_MODE_NONE:
-			rasterizationState.mCullMode = GL_NONE;    // if none glDisable(GL_CULL_FACE);
-			break;
-		case CullMode::CULL_MODE_BACK: rasterizationState.mCullMode = GL_BACK; break;
-		case CullMode::CULL_MODE_FRONT: rasterizationState.mCullMode = GL_FRONT; break;
-		case CullMode::CULL_MODE_BOTH: rasterizationState.mCullMode = GL_FRONT_AND_BACK; break;
-		default: ASSERT(false && "Unknown cull mode"); break;
-	}
+    GLRasterizerState rasterizationState = {};
+    switch (pDesc->mCullMode)
+    {
+    case CullMode::CULL_MODE_NONE:
+        rasterizationState.mCullMode = GL_NONE; // if none glDisable(GL_CULL_FACE);
+        break;
+    case CullMode::CULL_MODE_BACK:
+        rasterizationState.mCullMode = GL_BACK;
+        break;
+    case CullMode::CULL_MODE_FRONT:
+        rasterizationState.mCullMode = GL_FRONT;
+        break;
+    case CullMode::CULL_MODE_BOTH:
+        rasterizationState.mCullMode = GL_FRONT_AND_BACK;
+        break;
+    default:
+        ASSERT(false && "Unknown cull mode");
+        break;
+    }
 
-	switch (pDesc->mFrontFace)
-	{
-		case FrontFace::FRONT_FACE_CCW: rasterizationState.mFrontFace = GL_CCW; break;
-		case FrontFace::FRONT_FACE_CW: rasterizationState.mFrontFace = GL_CW; break;
-		default: ASSERT(false && "Unknown front face mode"); break;
-	}
-	rasterizationState.mScissorTest = pDesc->mScissor;
+    switch (pDesc->mFrontFace)
+    {
+    case FrontFace::FRONT_FACE_CCW:
+        rasterizationState.mFrontFace = GL_CCW;
+        break;
+    case FrontFace::FRONT_FACE_CW:
+        rasterizationState.mFrontFace = GL_CW;
+        break;
+    default:
+        ASSERT(false && "Unknown front face mode");
+        break;
+    }
+    rasterizationState.mScissorTest = pDesc->mScissor;
 
-	// Unhandled
-	// pDesc->mDepthBias;
-	// pDesc->mSlopeScaledDepthBias;
-	// pDesc->mFillMode; // Not supported for GLES
-	// pDesc->mMultiSample;
-	// pDesc->mDepthClampEnable;
+    // Unhandled
+    // pDesc->mDepthBias;
+    // pDesc->mSlopeScaledDepthBias;
+    // pDesc->mFillMode; // Not supported for GLES
+    // pDesc->mMultiSample;
+    // pDesc->mDepthClampEnable;
 
-	return rasterizationState;
+    return rasterizationState;
 }
 
 void util_log_program_info(GLuint program)
 {
-	GLint infoLen = 0;
-	CHECK_GLRESULT(glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLen));
-	if (infoLen > 1)
-	{
-		char* infoLog = nullptr;
-		infoLog = (char*)tf_calloc(infoLen + 1, sizeof(char));
-		CHECK_GLRESULT(glGetProgramInfoLog(program, infoLen + 1, nullptr, infoLog));
-		LOGF(LogLevel::eERROR, "GL shader program error, info log:\n%s\n", infoLog);
-		tf_free(infoLog);
-	}
-	else
-	{
-		LOGF(LogLevel::eERROR, "GL shader program error: No InfoLog available");
-	}
+    GLint infoLen = 0;
+    CHECK_GLRESULT(glGetProgramiv(program, GL_INFO_LOG_LENGTH, &infoLen));
+    if (infoLen > 1)
+    {
+        char* infoLog = nullptr;
+        infoLog = (char*)tf_calloc(infoLen + 1, sizeof(char));
+        CHECK_GLRESULT(glGetProgramInfoLog(program, infoLen + 1, nullptr, infoLog));
+        LOGF(LogLevel::eERROR, "GL shader program error, info log:\n%s\n", infoLog);
+        tf_free(infoLog);
+    }
+    else
+    {
+        LOGF(LogLevel::eERROR, "GL shader program error: No InfoLog available");
+    }
 }
 
 bool util_link_and_validate_program(GLuint program)
 {
-	CHECK_GLRESULT(glLinkProgram(program));
-	GLint status = GL_FALSE;
-	CHECK_GLRESULT(glGetProgramiv(program, GL_LINK_STATUS, &status));
-	if (status)
-	{
-		CHECK_GLRESULT(glValidateProgram(program));
-		CHECK_GLRESULT(glGetProgramiv(program, GL_VALIDATE_STATUS, &status));
-		if (!status)
-		{
-			util_log_program_info(program);
-			return false;
-		}
-	}
-	else
-	{
-		util_log_program_info(program);
-		return false;
-	}
+    CHECK_GLRESULT(glLinkProgram(program));
+    GLint status = GL_FALSE;
+    CHECK_GLRESULT(glGetProgramiv(program, GL_LINK_STATUS, &status));
+    if (status)
+    {
+        CHECK_GLRESULT(glValidateProgram(program));
+        CHECK_GLRESULT(glGetProgramiv(program, GL_VALIDATE_STATUS, &status));
+        if (!status)
+        {
+            util_log_program_info(program);
+            return false;
+        }
+    }
+    else
+    {
+        util_log_program_info(program);
+        return false;
+    }
 
-	return true;
+    return true;
 }
 
 /************************************************************************/
@@ -809,12 +963,6 @@ DECLARE_RENDERER_FUNCTION(void, cmdUpdateBuffer, Cmd* pCmd, Buffer* pBuffer, uin
 DECLARE_RENDERER_FUNCTION(void, cmdUpdateSubresource, Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc)
 DECLARE_RENDERER_FUNCTION(void, addTexture, Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 DECLARE_RENDERER_FUNCTION(void, removeTexture, Renderer* pRenderer, Texture* pTexture)
-DECLARE_RENDERER_FUNCTION(void, addVirtualTexture, Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData)
-DECLARE_RENDERER_FUNCTION(void, removeVirtualTexture, Renderer* pRenderer, VirtualTexture* pTexture)
-
-FORGE_RENDERER_API void FORGE_CALLCONV gl_compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	bool enablePrimitiveId, uint32_t macroCount, ShaderMacro* pMacros, BinaryShaderStageDesc* pOut, const char* pEntryPoint);
-
 
 /************************************************************************/
 // Internal init functions
@@ -848,15 +996,6 @@ static bool verifyGPU()
 		return false;
 	}
 
-	VkPhysicalDeviceProperties properties;
-
-	vkGetPhysicalDeviceProperties(device, &properties);
-	char vendorID[11];
-	char deviceID[11];
-
-	snprintf(vendorID, 11, "0x%x", properties.vendorID);
-	snprintf(deviceID, 11, "0x%x", properties.deviceID);
-
 	vkDestroyInstance(instance, &gVkAllocationCallbacks);
 	return true;
 }
@@ -880,9 +1019,6 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 #endif
 	LOGF(LogLevel::eINFO, "GPU detected. Vendor: %s, GPU Name: %s, GL Version: %s, GLSL Version: %s", glVendor, glRenderer, glVersion, glslVersion);
 
-	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
-	ASSERT(pRenderer->pActiveGpuSettings);
-
 	// Shader caps
 	GLboolean isShaderCompilerSupported = GL_FALSE;
 	GLint nShaderBinaryFormats = 0;
@@ -900,7 +1036,6 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	if (!isShaderCompilerSupported)
 	{
 		LOGF(LogLevel::eERROR, "Unsupported device! No shader compiler support for OpenGL ES 2.0");
-		SAFE_FREE(pRenderer->pActiveGpuSettings);
 		return false;
 	}
 
@@ -936,23 +1071,37 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &nCompressedTextureFormats);
 
 	// Set active GPU settings
-	pRenderer->pActiveGpuSettings->mUniformBufferAlignment = 4;
-	pRenderer->pActiveGpuSettings->mUploadBufferTextureAlignment = unpackAlignment;
-	pRenderer->pActiveGpuSettings->mUploadBufferTextureRowAlignment = unpackAlignment;
-	pRenderer->pActiveGpuSettings->mMaxVertexInputBindings = min((uint32_t)MAX_VERTEX_ATTRIBS, (uint32_t)maxVertexAttr);
-	pRenderer->pActiveGpuSettings->mMaxTextureImageUnits = maxCombinedTextureImageUnits;
-
-	pRenderer->pActiveGpuSettings->mMultiDrawIndirect = 0;
-	pRenderer->pActiveGpuSettings->mROVsSupported = 0;
-	pRenderer->pActiveGpuSettings->mTessellationSupported = 0;
-	pRenderer->pActiveGpuSettings->mGeometryShaderSupported = 0;
-
+	static RendererContext context = {};
+	context.mGpuCount = 1;
 	char* glExtensions = (char*)glGetString(GL_EXTENSIONS);
 	LOGF(LogLevel::eINFO, "Extensions: %s", glExtensions);
-	
 	util_init_extension_support(&gExtensionSupport, glExtensions);
 
-	gl_utils_caps_builder(pRenderer, glExtensions);
+	GPUSettings& gpuSettings = context.mGpus[0].mSettings;
+	setDefaultGPUSettings(&gpuSettings);
+	// see extension GL_NVX_gpu_memory_info or WGL_AMD_gpu_association
+	gpuSettings.mVRAM = 0;
+
+	glCapsBuilder(&context.mGpus[0], glExtensions);
+	//apply rules from gpu.cfg
+	applyConfigurationSettings(&context.mGpus[0].mSettings, &context.mGpus[0].mCapBits);
+	// set hard coded openGL limitation
+	gpuSettings.mUniformBufferAlignment = 4;
+	gpuSettings.mUploadBufferTextureAlignment = unpackAlignment;
+	gpuSettings.mUploadBufferTextureRowAlignment = unpackAlignment;
+	gpuSettings.mMaxVertexInputBindings = min((uint32_t)MAX_VERTEX_ATTRIBS, (uint32_t)maxVertexAttr);
+	gpuSettings.mMaxBoundTextures = maxCombinedTextureImageUnits;
+	gpuSettings.mMultiDrawIndirect = 0;
+	gpuSettings.mROVsSupported = 0;
+	gpuSettings.mTessellationSupported = 0;
+	gpuSettings.mGeometryShaderSupported = 0;
+	gpuSettings.mTimestampQueries = gExtensionSupport.mHasDisjointTimerQueryEXT;
+	gpuSettings.mOcclusionQueries = false;
+	gpuSettings.mPipelineStatsQueries = false;
+	gpuSettings.mMaxTotalComputeThreads = 0;
+	gpuSettings.mMaxComputeThreads[0] = 0;
+	gpuSettings.mMaxComputeThreads[1] = 0;
+	gpuSettings.mMaxComputeThreads[2] = 0;
 
 	// Validate requested device extensions
 	uint32_t supportedExtensions = 0;
@@ -973,12 +1122,11 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	if (supportedExtensions != pDesc->mGLES.mDeviceExtensionCount)
 	{
 		LOGF(LogLevel::eERROR, "Not all requested device extensions are supported on the device! Device support %u of %u requested.", supportedExtensions, pDesc->mGLES.mDeviceExtensionCount);
-		SAFE_FREE(pRenderer->pActiveGpuSettings);
 		return false;
 	}
 
-	GPUVendorPreset& gpuVendorPresets = pRenderer->pActiveGpuSettings->mGpuVendorPreset;
-	strncpy(gpuVendorPresets.mVendorId, glVendor,MAX_GPU_VENDOR_STRING_LENGTH);
+	GPUVendorPreset& gpuVendorPresets = gpuSettings.mGpuVendorPreset;
+	gpuVendorPresets.mVendorId = strtol(glVendor, NULL, 16);
 	strncpy(gpuVendorPresets.mGpuName, glRenderer, MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(gpuVendorPresets.mGpuDriverVersion, glVersion, MAX_GPU_VENDOR_STRING_LENGTH);
 	gpuVendorPresets.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW; // Default
@@ -986,6 +1134,8 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 														gpuVendorPresets.mModelId,
 														gpuVendorPresets.mRevisionId);
 
+	pRenderer->pContext = &context;
+	pRenderer->pGpu = &context.mGpus[0];
 	pRenderer->mLinkedNodeCount = 1;
 	pRenderer->mGpuMode = GPU_MODE_SINGLE;
 
@@ -994,7 +1144,8 @@ static bool addDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 static void removeDevice(Renderer* pRenderer)
 {
-	SAFE_FREE(pRenderer->pActiveGpuSettings);
+	pRenderer->pContext = NULL;
+	pRenderer->pGpu = NULL;
 }
 
 /************************************************************************/
@@ -1007,7 +1158,7 @@ static void add_default_resources(Renderer* pRenderer)
 	blendStateDesc.mDstFactors[0] = BC_ZERO;
 	blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
 	blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
-	blendStateDesc.mMasks[0] = ALL;
+	blendStateDesc.mColorWriteMasks[0] = COLOR_MASK_ALL;
 	blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
 	blendStateDesc.mIndependentBlend = false;
 	gDefaultBlendState = util_to_blend_desc(&blendStateDesc);
@@ -1062,18 +1213,16 @@ void gl_initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** 
 		return;
 	}
 
+	pRenderer->mRendererApi = RENDERER_API_GLES;
 	pRenderer->mGpuMode = pDesc->mGpuMode;
 	pRenderer->mShaderTarget = pDesc->mShaderTarget;
-	pRenderer->mEnableGpuBasedValidation = pDesc->mEnableGPUBasedValidation;
 
-	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
-	strcpy(pRenderer->pName, appName);
+	pRenderer->pName = appName;
 
 	if (!addDevice(pRenderer, pDesc))
 	{
 		removeGLContext(&pRenderer->mGLES.pContext);
 		removeGL(&pRenderer->mGLES.pConfig);
-		SAFE_FREE(pRenderer->pName);
 		SAFE_FREE(pRenderer);
 		pRenderer = nullptr;
 		return;
@@ -1098,8 +1247,6 @@ void gl_exitRenderer(Renderer* pRenderer)
 	removeGL(&pRenderer->mGLES.pConfig);
 
 	// Free all the renderer components
-	SAFE_FREE(pRenderer->pCapBits);
-	SAFE_FREE(pRenderer->pName);
 	SAFE_FREE(pRenderer);
 }
 
@@ -1211,7 +1358,7 @@ void gl_addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	pQueue->mGLES.pCmdCache->mActiveVAO = GL_NONE;
 
 	// Texture Samplers
-	pQueue->mGLES.pCmdCache->pTextureSampler = (Sampler*)tf_calloc(pRenderer->pActiveGpuSettings->mMaxTextureImageUnits, sizeof(Sampler));
+	pQueue->mGLES.pCmdCache->pTextureSampler = (Sampler*)tf_calloc(pRenderer->pGpu->mSettings.mMaxBoundTextures, sizeof(Sampler));
 	pQueue->mGLES.pCmdCache->mActiveTexture = -1;
 
 	// Provided description for queue creation.
@@ -1240,6 +1387,8 @@ void gl_addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain*
 	ASSERT(pDesc);
 	ASSERT(ppSwapChain);
 	ASSERT(pDesc->mImageCount <= MAX_SWAPCHAIN_IMAGES);
+
+	LOGF(LogLevel::eINFO, "Adding GLES swapchain @ %ux%u", pDesc->mWidth, pDesc->mHeight);
 
 	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + sizeof(RenderTarget*));
 	ASSERT(pSwapChain);
@@ -1409,7 +1558,7 @@ void gl_addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, Rend
 	}
 
 	TinyImageFormat targetFormat = pDesc->mFormat;
-	if (!pRenderer->pCapBits->canRenderTargetWriteTo[pDesc->mFormat])
+	if (!(pRenderer->pGpu->mCapBits.mFormatCaps[pDesc->mFormat] & FORMAT_CAP_RENDER_TARGET))
 	{
 		if (!isDepth)
 		{
@@ -1554,9 +1703,10 @@ void gl_removeSampler(Renderer* pRenderer, Sampler* pSampler)
 /************************************************************************/
 // Shader Functions
 /************************************************************************/
-void gl_compileShader(
-	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	bool, uint32_t macroCount, ShaderMacro* pMacros, BinaryShaderStageDesc* pOut, const char* pEntryPoint)
+bool gl_compileShader(
+	Renderer* pRenderer, ShaderStage stage,
+	const char* fileName, uint32_t codeSize, const char* code,
+	BinaryShaderStageDesc* pOut, const char* pEntryPoint)
 {
 	ASSERT(code);
 	ASSERT(codeSize > 0);
@@ -1565,21 +1715,11 @@ void gl_compileShader(
 	if (stage != SHADER_STAGE_VERT && stage != SHADER_STAGE_FRAG)
 	{
 		LOGF(LogLevel::eERROR, "Unsupported shader stage {%u} for OpenGL ES 2.0!", stage);
-		return;
-	}
-
-	// Count shader macro code size
-	const char* define = "#define ";
-	const uint32_t defineSize = strlen(define);
-	uint32_t macroCodeSize = 0;
-	for (uint32_t i = 0; i < macroCount; ++i)
-	{
-		ShaderMacro* pMacro = &pMacros[i];
-		macroCodeSize += defineSize + (uint32_t)strlen(pMacro->definition) + (uint32_t)strlen(pMacro->value) + 2;
+		return false;
 	}
 
 	// Combine shader code
-	uint32_t outCodeSize = macroCodeSize;
+	uint32_t outCodeSize = 0;
 	char* outCode = NULL;
 
 	uint32_t codeOffset = 0;
@@ -1597,30 +1737,6 @@ void gl_compileShader(
 	}
 
 	outCode = (char*)tf_calloc(1, outCodeSize);
-
-	// Handle macro's
-	if (macroCount > 0)
-	{
-		if (version) // Write version first
-		{
-			const char* end = strchr(version, '\n');
-			uint32_t length = end - version + 1;
-			memcpy(outCode + outCodeOffset, (void*)version, length);
-			outCodeOffset += length;
-			codeOffset += length;
-		}
-
-		for (uint32_t i = 0; i < macroCount; ++i)
-		{
-			char buffer[1024] = {};
-			ShaderMacro* pMacro = &pMacros[i];
-			const uint32_t size = defineSize + (uint32_t)strlen(pMacro->definition) + (uint32_t)strlen(pMacro->value) + 2;
-			sprintf(buffer, "%s%s %s\n", define, pMacro->definition, pMacro->value);
-			memcpy(outCode + outCodeOffset, (void*)buffer, size);
-			outCodeOffset += size;
-		}
-
-	}
 
 	// Copy shader code remains
 	memcpy(outCode + outCodeOffset, (void*)(code + codeOffset), codeSize - codeOffset);
@@ -1646,24 +1762,25 @@ void gl_compileShader(
 			char* infoLog = nullptr;
 			infoLog = (char*)tf_calloc(infoLen + 1, sizeof(char));
 			CHECK_GLRESULT(glGetShaderInfoLog(shader, infoLen, nullptr, (GLchar*)infoLog));
-				LOGF(LogLevel::eERROR, "Error compiling shader:\n%s\n", infoLog);
-				tf_free(infoLog);
-			}
-			else
-			{
-			LOGF(LogLevel::eERROR, "Error compiling shader: No InfoLog available");
-			}
-
-			glDeleteShader(shader);
-			ASSERT(false);
-			return;
+			LOGF(LogLevel::eERROR, "Error compiling shader:\n%s\n", infoLog);
+			tf_free(infoLog);
 		}
+		else
+		{
+			LOGF(LogLevel::eERROR, "Error compiling shader: No InfoLog available");
+		}
+
+		glDeleteShader(shader);
+		ASSERT(false);
+		return false;
+	}
 
 	pOut->mShader = shader;
 
 	// For now pass on the shader code as "bytecode"
 	pOut->pByteCode = outCode;
 	pOut->mByteCodeSize = outCodeSize;
+	return true;
 }
 
 void gl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
@@ -1715,16 +1832,12 @@ void gl_addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shad
 
 	createPipelineReflection(pShaderProgram->pReflection->mStageReflections, 1, pShaderProgram->pReflection);
 
-	addShaderDependencies(pShaderProgram, pDesc);
-
 	*ppShaderProgram = pShaderProgram;
 }
 
 void gl_removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 {
 	UNREF_PARAM(pRenderer);
-
-	removeShaderDependencies(pShaderProgram);
 
 	CHECK_GLRESULT(glDeleteProgram(pShaderProgram->mGLES.mProgram));
 
@@ -1772,7 +1885,7 @@ void gl_addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffe
 		uint64_t allocationSize = pDesc->mSize;
 		if (pDesc->mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER)
 		{
-			allocationSize = round_up_64(allocationSize, pRenderer->pActiveGpuSettings->mUniformBufferAlignment);
+			allocationSize = round_up_64(allocationSize, pRenderer->pGpu->mSettings.mUniformBufferAlignment);
 		}
 		pBuffer->mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 		pBuffer->mGLES.pGLCpuMappedAddress = tf_malloc(allocationSize);
@@ -1871,7 +1984,7 @@ void gl_addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTe
 	if (TinyImageFormat_IsSRGB(format))
 		format = TinyImageFormat_ToUNORM(format);
 	// Check image support
-	if (!pRenderer->pCapBits->canShaderReadFrom[format])
+	if (!(pRenderer->pGpu->mCapBits.mFormatCaps[format] & FORMAT_CAP_READ))
 	{
 		if (TinyImageFormat_IsCompressed(format))
 		{
@@ -1947,16 +2060,6 @@ void gl_removeTexture(Renderer* pRenderer, Texture* pTexture)
 	}
 
 	SAFE_FREE(pTexture);
-}
-
-void gl_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
-{
-	// Unavailable in OpenGL ES 2.0
-}
-
-void gl_removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
-{
-	// Unavailable in OpenGL ES 2.0
 }
 
 /************************************************************************/
@@ -2146,9 +2249,9 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 		}
 	}
 
-	if (uniqueTextureCount >= pRenderer->pActiveGpuSettings->mMaxTextureImageUnits)
+	if (uniqueTextureCount >= pRenderer->pGpu->mSettings.mMaxBoundTextures)
 	{
-		LOGF(LogLevel::eERROR, "Exceed maximum amount of texture units! required: {%d}, max: {%d}", uniqueTextureCount, pRenderer->pActiveGpuSettings->mMaxTextureImageUnits);
+		LOGF(LogLevel::eERROR, "Exceed maximum amount of texture units! required: {%d}, max: {%d}", uniqueTextureCount, pRenderer->pGpu->mSettings.mMaxBoundTextures);
 		ASSERT(false);
 	}
 
@@ -2177,14 +2280,14 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 
 	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
 	ASSERT((uintptr_t)pRootSignature->pDescriptors % alignof(DescriptorInfo) == 0);
-	
+
 	pRootSignature->mGLES.pVariables = (GlVariable*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount);
 	ASSERT((uintptr_t)pRootSignature->mGLES.pVariables % alignof(GlVariable) == 0);
 
 	pRootSignature->mGLES.pProgramTargets = (uint32_t*)(pRootSignature->mGLES.pVariables + pRootSignature->mGLES.mVariableCount);
 	pRootSignature->mGLES.pDescriptorGlLocations = (int32_t*)(pRootSignature->mGLES.pProgramTargets + pRootSignature->mGLES.mProgramCount);
 	int32_t* mem = (int32_t*)(pRootSignature->mGLES.pDescriptorGlLocations + pRootSignature->mGLES.mProgramCount * pRootSignature->mDescriptorCount);
-	
+
 	for (uint32_t i = 0; i < pRootSignature->mGLES.mVariableCount; ++i)
 	{
 		pRootSignature->mGLES.pVariables[i].pGlLocations = mem;
@@ -2262,8 +2365,6 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 		}
 	}
 
-	addRootSignatureDependencies(pRootSignature, pRootSignatureDesc);
-
 	*ppRootSignature = pRootSignature;
 	arrfree(shaderResources);
 	arrfree(uboVariableSizes);
@@ -2272,10 +2373,21 @@ void gl_addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSign
 
 void gl_removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
-	removeRootSignatureDependencies(pRootSignature);
-
 	shfree(pRootSignature->pDescriptorNameToIndexMap);
 	SAFE_FREE(pRootSignature);
+}
+
+uint32_t gl_getDescriptorIndexFromName(const RootSignature* pRootSignature, const char* pName)
+{
+	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
+	{
+		if (!strcmp(pName, pRootSignature->pDescriptors[i].pName))
+		{
+			return i;
+		}
+	}
+
+	return UINT32_MAX;
 }
 
 void addGraphicsPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipeline** ppPipeline)
@@ -2294,8 +2406,8 @@ void addGraphicsPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc,
 	// Make sure there's attributes
 	if (pVertexLayout != NULL)
 	{
-		ASSERT(pVertexLayout->mAttribCount < pRenderer->pActiveGpuSettings->mMaxVertexInputBindings);
-		attrib_count = min(pVertexLayout->mAttribCount, pRenderer->pActiveGpuSettings->mMaxVertexInputBindings);
+		ASSERT(pVertexLayout->mAttribCount < pRenderer->pGpu->mSettings.mMaxVertexInputBindings);
+		attrib_count = min(pVertexLayout->mAttribCount, pRenderer->pGpu->mSettings.mMaxVertexInputBindings);
 	}
 
 	size_t totalSize = sizeof(Pipeline);
@@ -2463,16 +2575,12 @@ void gl_addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** p
 	}
 
 	addGraphicsPipeline(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
-
-	addPipelineDependencies(*ppPipeline, pDesc);
 }
 
 void gl_removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 {
 	ASSERT(pRenderer);
 	ASSERT(pPipeline);
-
-	removePipelineDependencies(pPipeline);
 
 	if (pPipeline->mGLES.pVAOState)
     {
@@ -2630,17 +2738,10 @@ void gl_removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void gl_updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#if defined(ENABLE_GRAPHICS_DEBUG)
-#define VALIDATE_DESCRIPTOR(descriptor, ...)                                                            \
-	if (!(descriptor))                                                                                  \
+#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PVS_STUDIO)
+#define VALIDATE_DESCRIPTOR(descriptor, msgFmt, ...)                                                    \
+	if (!VERIFYMSG((descriptor), "%s : " msgFmt, __FUNCTION__, ##__VA_ARGS__))                          \
 	{                                                                                                   \
-		unsigned char messageBuf[256];																	\
-		bstring message = bemptyfromarr(messageBuf);													\
-		bassigncstr(&message, __FUNCTION__);															\
-		bformata(&message, "" __VA_ARGS__);																\
-		LOGF(LogLevel::eERROR, "%s", (const char*)message.data);                                        \
-		_FailedAssert(__FILE__, __LINE__, __FUNCTION__);												\
-		bdestroy(&message);																				\
 		continue;                                                                                       \
 	}
 #else
@@ -2885,10 +2986,6 @@ void gl_cmdBindRenderTargets(
 	{
 		CHECK_GLRESULT(glClear(clearMask));
 	}
-}
-
-void gl_cmdSetShadingRate(Cmd* pCmd, ShadingRate shadingRate, Texture* pTexture, ShadingRateCombiner postRasterizerRate, ShadingRateCombiner finalRate)
-{
 }
 
 void gl_cmdSetViewport(Cmd* pCmd, float x, float y, float width, float height, float minDepth, float maxDepth)
@@ -3201,9 +3298,9 @@ void gl_cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescript
 					for (uint32_t arr = 0; arr < descInfo->mSize; ++arr)
 					{
 						TextureDescriptorHandle* textureHandle = &pDescriptorSet->mGLES.pHandles[index].pData[i].pTextures[arr];
-						if (textureHandle->mTexture != GL_NONE) 
+						if (textureHandle->mTexture != GL_NONE)
 						{
-							if (cmdCache->mActiveTexture != textureIndex) 
+							if (cmdCache->mActiveTexture != textureIndex)
 							{
 								CHECK_GLRESULT(glActiveTexture(GL_TEXTURE0 + textureIndex));
 								cmdCache->mActiveTexture = textureIndex;
@@ -3742,7 +3839,7 @@ void gl_cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint
 }
 
 void gl_cmdDrawIndexedInstanced(
-	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstInstance, uint32_t firstVertex)
+	Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
 	ASSERT(pCmd);
 	CmdCache* cmdCache = pCmd->mGLES.pCmdPool->pCmdCache;
@@ -3862,11 +3959,6 @@ void gl_cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, c
 	}
 	pTexture->mGLES.mStateModified = true;
 	CHECK_GLRESULT(glBindTexture(pTexture->mGLES.mTarget, GL_NONE));
-}
-
-void gl_cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture, uint32_t currentImage)
-{
-	// Unavailable in OpenGL ES 2.0
 }
 
 /************************************************************************/
@@ -4030,11 +4122,15 @@ void gl_toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-TinyImageFormat gl_getRecommendedSwapchainFormat(bool hintHDR, bool hintSRGB)
+TinyImageFormat gl_getSupportedSwapchainFormat(Renderer *pRenderer, const SwapChainDesc* pDesc, ColorSpace colorSpace)
 {
 	return TinyImageFormat_R8G8B8A8_UNORM;
 }
 
+uint32_t gl_getRecommendedSwapchainImageCount(Renderer*, const WindowHandle*)
+{
+	return 1;
+}
 /************************************************************************/
 // Indirect Draw functions
 /************************************************************************/
@@ -4081,16 +4177,34 @@ void gl_addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool*
 	ASSERT(pDesc);
 	ASSERT(ppQueryPool);
 
-	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool) + pDesc->mQueryCount * sizeof(uint32_t));
-	ASSERT(pQueryPool);
-	pQueryPool->mGLES.pQueries = (uint32_t*)(pQueryPool + 1);
-	pQueryPool->mCount = pDesc->mQueryCount;
-	pQueryPool->mGLES.mType = util_to_gl_query_type(pDesc->mType);
-	pQueryPool->mGLES.mDisjointOccurred = 0;
+	if (QUERY_TYPE_TIMESTAMP != pDesc->mType)
+	{
+		ASSERT(false && "Not supported");
+		return;
+	}
 
 	// Only available as extension in OpenGL ES 2.0
-	if (glGenQueriesEXT)
-		CHECK_GLRESULT(glGenQueriesEXT(pDesc->mQueryCount, pQueryPool->mGLES.pQueries));
+	if (!pRenderer->pGpu->mSettings.mTimestampQueries)
+	{
+		ASSERT(false && "Not supported");
+		return;
+	}
+
+	uint32_t queryCount = pDesc->mQueryCount * 2;
+
+	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool) + queryCount * sizeof(uint32_t));
+	ASSERT(pQueryPool);
+	pQueryPool->mGLES.pQueries = (uint32_t*)(pQueryPool + 1);
+	pQueryPool->mCount = queryCount;
+	pQueryPool->mGLES.mType = util_to_gl_query_type(pDesc->mType);
+
+	// Only available as extension in OpenGL ES 2.0
+	CHECK_GLRESULT(glGenQueriesEXT(queryCount, pQueryPool->mGLES.pQueries));
+
+	for (uint32_t i = 0; i < queryCount; ++i)
+	{
+		CHECK_GLRESULT(glQueryCounterEXT(pQueryPool->mGLES.pQueries[i], pQueryPool->mGLES.mType));
+	}
 
 	*ppQueryPool = pQueryPool;
 }
@@ -4100,69 +4214,56 @@ void gl_removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 	ASSERT(pRenderer);
 	ASSERT(pQueryPool);
 
-	// Only available as extension in OpenGL ES 2.0
-	if (glDeleteQueriesEXT)
-		CHECK_GLRESULT(glDeleteQueriesEXT(pQueryPool->mCount, pQueryPool->mGLES.pQueries));
+	CHECK_GLRESULT(glDeleteQueriesEXT(pQueryPool->mCount, pQueryPool->mGLES.pQueries));
 
 	SAFE_FREE(pQueryPool);
 }
 
-void gl_cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+static void QueryCounter(Cmd* pCmd, QueryPool* pQueryPool, uint32_t index)
 {
 	ASSERT(pCmd);
 	ASSERT(pQueryPool);
+	ASSERT(pCmd->mGLES.pCmdPool->pCmdCache->isStarted);
+	ASSERT(index < pQueryPool->mCount);
 
 	// Only available as extension in OpenGL ES 2.0
-	if (glGenQueriesEXT)
-		CHECK_GLRESULT(glGetIntegerv(GL_GPU_DISJOINT_EXT, &pQueryPool->mGLES.mDisjointOccurred));
+	CHECK_GLRESULT(glQueryCounterEXT(pQueryPool->mGLES.pQueries[index], pQueryPool->mGLES.mType));
 }
 
 void gl_cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
-	ASSERT(pCmd);
 	ASSERT(pQuery);
-	ASSERT(pQueryPool);
-	ASSERT(pCmd->mGLES.pCmdPool->pCmdCache->isStarted);
-	ASSERT(pQuery->mIndex < pQueryPool->mCount);
-
-	// Only available as extension in OpenGL ES 2.0
-	if (glQueryCounterEXT)
-		CHECK_GLRESULT(glQueryCounterEXT(pQueryPool->mGLES.pQueries[pQuery->mIndex], pQueryPool->mGLES.mType));
+	QueryCounter(pCmd, pQueryPool, pQuery->mIndex * 2);
 }
 
 void gl_cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
-	cmdBeginQuery(pCmd, pQueryPool, pQuery);
+	ASSERT(pQuery);
+	QueryCounter(pCmd, pQueryPool, pQuery->mIndex * 2 + 1);
 }
 
-void gl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+void gl_cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
 {
-	ASSERT(pCmd);
-	ASSERT(pQueryPool);
-	ASSERT(pReadbackBuffer);
-	ASSERT(pCmd->mGLES.pCmdPool->pCmdCache->isStarted);
+}
 
-	// Only available as extension in OpenGL ES 2.0
-	if (glGetQueryObjectivEXT && queryCount)
+void gl_cmdResetQuery(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
+{
+}
+
+void gl_getQueryData(Renderer* pRenderer, QueryPool* pQueryPool, uint32_t queryIndex, QueryData* pOutData)
+{
+	GLint available = 0;
+	CHECK_GLRESULT(glGetQueryObjectivEXT(pQueryPool->mGLES.pQueries[queryIndex * 2 + 1], GL_QUERY_RESULT_AVAILABLE_EXT, &available));
+
+	int32_t disjointOccurred;
+	CHECK_GLRESULT(glGetIntegerv(GL_GPU_DISJOINT_EXT, &disjointOccurred));
+	pOutData->mValid = available && !disjointOccurred;
+	if (pOutData->mValid)
 	{
-		GLint available = 0;
-		/* Wait for the query result to become available */
-		while (!available) {
-			CHECK_GLRESULT(glGetQueryObjectivEXT(pQueryPool->mGLES.pQueries[startQuery + queryCount -1], GL_QUERY_RESULT_AVAILABLE_EXT, &available));
-		}
-
-		CHECK_GLRESULT(glGetIntegerv(GL_GPU_DISJOINT_EXT, &pQueryPool->mGLES.mDisjointOccurred));
-
-		if (!pQueryPool->mGLES.mDisjointOccurred)
-		{
-			for (uint32_t i = 0 ; i <  queryCount; ++i)
-			{
-				CHECK_GLRESULT(glGetQueryObjectui64vEXT(pQueryPool->mGLES.pQueries[i + startQuery], GL_QUERY_RESULT_EXT, (GLuint64*)pReadbackBuffer->mGLES.pGLCpuMappedAddress + i));
-			}
-		}
+		CHECK_GLRESULT(glGetQueryObjectui64vEXT(pQueryPool->mGLES.pQueries[queryIndex * 2], GL_QUERY_RESULT_EXT, &pOutData->mBeginTimestamp));
+		CHECK_GLRESULT(glGetQueryObjectui64vEXT(pQueryPool->mGLES.pQueries[queryIndex * 2 + 1], GL_QUERY_RESULT_EXT, &pOutData->mEndTimestamp));
 	}
 }
-
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
@@ -4281,11 +4382,6 @@ void gl_setPipelineName(Renderer* pRenderer, Pipeline* pPipeline, const char* pN
 #endif
 }
 
-bool gl_isRaytracingSupported(Renderer* pRenderer)
-{
-	// Unavailable in OpenGL ES 2.0
-	return false;
-}
 #endif
 
 void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Renderer** ppRenderer)
@@ -4322,8 +4418,6 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	cmdUpdateSubresource = gl_cmdUpdateSubresource;
 	addTexture = gl_addTexture;
 	removeTexture = gl_removeTexture;
-	addVirtualTexture = gl_addVirtualTexture;
-	removeVirtualTexture = gl_removeVirtualTexture;
 
 	// shader functions
 	addShaderBinary = gl_addShaderBinary;
@@ -4331,6 +4425,7 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 
 	addRootSignature = gl_addRootSignature;
 	removeRootSignature = gl_removeRootSignature;
+	getDescriptorIndexFromName = gl_getDescriptorIndexFromName;
 
 	// pipeline functions
 	addPipeline = gl_addPipeline;
@@ -4338,6 +4433,10 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	addPipelineCache = gl_addPipelineCache;
 	getPipelineCacheData = gl_getPipelineCacheData;
 	removePipelineCache = gl_removePipelineCache;
+#if defined(SHADER_STATS_AVAILABLE)
+	addPipelineStats = NULL;
+	removePipelineStats = NULL;
+#endif
 
 	// Descriptor Set functions
 	addDescriptorSet = gl_addDescriptorSet;
@@ -4349,7 +4448,6 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	beginCmd = gl_beginCmd;
 	endCmd = gl_endCmd;
 	cmdBindRenderTargets = gl_cmdBindRenderTargets;
-	cmdSetShadingRate = gl_cmdSetShadingRate;
 	cmdSetViewport = gl_cmdSetViewport;
 	cmdSetScissor = gl_cmdSetScissor;
 	cmdSetStencilReferenceValue = gl_cmdSetStencilReferenceValue;
@@ -4367,8 +4465,6 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 
 	// Transition Commands
 	cmdResourceBarrier = gl_cmdResourceBarrier;
-	// Virtual Textures
-	cmdUpdateVirtualTexture = gl_cmdUpdateVirtualTexture;
 
 	// queue/fence/swapchain functions
 	acquireNextImage = gl_acquireNextImage;
@@ -4379,7 +4475,8 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	waitForFences = gl_waitForFences;
 	toggleVSync = gl_toggleVSync;
 
-	getRecommendedSwapchainFormat = gl_getRecommendedSwapchainFormat;
+	getSupportedSwapchainFormat = gl_getSupportedSwapchainFormat;
+	getRecommendedSwapchainImageCount = gl_getRecommendedSwapchainImageCount;
 
 	//indirect Draw functions
 	addIndirectCommandSignature = gl_addIndirectCommandSignature;
@@ -4392,10 +4489,11 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	getTimestampFrequency = gl_getTimestampFrequency;
 	addQueryPool = gl_addQueryPool;
 	removeQueryPool = gl_removeQueryPool;
-	cmdResetQueryPool = gl_cmdResetQueryPool;
 	cmdBeginQuery = gl_cmdBeginQuery;
 	cmdEndQuery = gl_cmdEndQuery;
 	cmdResolveQuery = gl_cmdResolveQuery;
+	cmdResetQuery = gl_cmdResetQuery;
+	getQueryData = gl_getQueryData;
 	/************************************************************************/
 	// Stats Info Interface
 	/************************************************************************/
@@ -4416,11 +4514,6 @@ void initGLESRenderer(const char* appName, const RendererDesc* pSettings, Render
 	setTextureName = gl_setTextureName;
 	setRenderTargetName = gl_setRenderTargetName;
 	setPipelineName = gl_setPipelineName;
-
-	/************************************************************************/
-	// IRay Interface
-	/************************************************************************/
-	isRaytracingSupported = gl_isRaytracingSupported;
 
 	gl_initRenderer(appName, pSettings, ppRenderer);
 }

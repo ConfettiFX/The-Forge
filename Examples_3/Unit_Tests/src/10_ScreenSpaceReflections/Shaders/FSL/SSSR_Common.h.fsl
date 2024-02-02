@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,14 +47,14 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_COMMON
 #define FFX_SSSR_COMMON
 
-ENABLE_WAVEOPS()
+ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_BALLOT_BIT | WAVE_OPS_SHUFFLE_BIT | WAVE_OPS_VOTE_BIT)
 
 #ifndef FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT
     #define FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT float4
 #endif
 #ifndef FFX_SSSR_ROUGHNESS_UNPACK_FUNCTION
     #define FFX_SSSR_ROUGHNESS_UNPACK_FUNCTION \
-    float FfxSssrUnpackRoughness(FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT _packed) { return _packed.r; }
+    float FfxSssrUnpackRoughness(FFX_SSSR_ROUGHNESS_TEXTURE_FORMAT _packed) { return _packed.a; }
 #endif
 #ifndef FFX_SSSR_NORMALS_TEXTURE_FORMAT
     #define FFX_SSSR_NORMALS_TEXTURE_FORMAT float4
@@ -123,6 +123,7 @@ CBUFFER(Constants, UPDATE_FREQ_NONE, b0, binding = 0)
     DATA(float4x4, g_prev_view_proj, None);
 
     DATA(uint, g_frame_index, None);
+    DATA(bool, g_clear_targets, None);
     DATA(uint, g_max_traversal_intersections, None);
     DATA(uint, g_min_traversal_occupancy, None);
     DATA(uint, g_most_detailed_mip, None);
@@ -133,8 +134,6 @@ CBUFFER(Constants, UPDATE_FREQ_NONE, b0, binding = 0)
     DATA(float, g_roughness_threshold, None);
     DATA(uint, g_skip_denoiser, None);
 };
-
-DECLARE_RESOURCES()
 
 // Mat must be able to transform origin from its current space into screen space.
 float3 ProjectPosition(float3 origin, float4x4 mat)
@@ -269,7 +268,16 @@ uint GetBaseLane(uint lane, uint samples_per_quad)
     case 1u:
         return lane & ~3u; // Map to upper left
     case 2u:
-        return lane ^ 1u; // Toggle horizontal
+        if((lane & 1u) == 0u) { // even column
+            if((lane & 2u) == 2u) { // odd line
+                return lane + 1u;
+            }
+        } else { // odd column
+            if((lane & 3u) == 1u) { // even line
+                return lane - 1u;
+            }
+        }
+        return lane;
     default: // case 4:
         return lane; // Identity
     }

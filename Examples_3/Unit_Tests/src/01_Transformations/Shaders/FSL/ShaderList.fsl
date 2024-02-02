@@ -2,7 +2,7 @@
 #include "basic.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW basic.vert
+#vert FT_MULTIVIEW basic.vert
 #include "basic.vert.fsl"
 #end
 
@@ -14,7 +14,7 @@
 #include "skybox.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW skybox.vert
+#vert FT_MULTIVIEW skybox.vert
 #include "skybox.vert.fsl"
 #end
 

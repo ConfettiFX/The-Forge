@@ -1706,19 +1706,31 @@ inline const Matrix4 Matrix4::translation(const Vector3 & translateVec)
                    Vector4(translateVec, 1.0f));
 }
 
-inline const Matrix4 Matrix4::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec)
+inline const Matrix4 Matrix4::lookAtLH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec)
+{
+	Matrix4 m4EyeFrame;
+	Vector3 v3X, v3Y, v3Z;
+	v3Y = normalize(upVec);
+	v3Z = normalize(lookAtPos - eyePos);
+	v3X = normalize(cross(v3Y, v3Z));
+	v3Y = cross(v3Z, v3X);
+	m4EyeFrame = Matrix4(Vector4(v3X), Vector4(v3Y), Vector4(v3Z), Vector4(eyePos));
+	return orthoInverse(m4EyeFrame);
+}
+
+inline const Matrix4 Matrix4::lookAtRH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3 & upVec)
 {
     Matrix4 m4EyeFrame;
     Vector3 v3X, v3Y, v3Z;
     v3Y = normalize(upVec);
-    v3Z = normalize((eyePos - lookAtPos));
+    v3Z = normalize(eyePos - lookAtPos);
     v3X = normalize(cross(v3Y, v3Z));
     v3Y = cross(v3Z, v3X);
     m4EyeFrame = Matrix4(Vector4(v3X), Vector4(v3Y), Vector4(v3Z), Vector4(eyePos));
     return orthoInverse(m4EyeFrame);
 }
 
-inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, float top, float zNear, float zFar)
+inline const Matrix4 Matrix4::frustumLH(float left, float right, float bottom, float top, float zNear, float zFar)
 {
     /* function implementation based on code from STIDC SDK:           */
     /* --------------------------------------------------------------  */
@@ -1733,8 +1745,8 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
     /* S/T/I Confidential Information                                  */
     /* --------------------------------------------------------------  */
     __m128 lbf, rtn;
-    __m128 diff, sum, inv_diff;
-    __m128 diagonal, column, near2;
+    __m128 diff, inv_diff;
+    __m128 diagonalXY, diagonalZ, column, near1, near2;
     __m128 zero = _mm_setzero_ps();
     SSEFloat l, f, r, n, b, t;
     l.f[0] = left;
@@ -1748,36 +1760,26 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
     lbf = sseMergeH(lbf, b.m128);
     rtn = sseMergeH(rtn, t.m128);
     diff = _mm_sub_ps(rtn, lbf);
-    sum = _mm_add_ps(rtn, lbf);
     inv_diff = sseRecipf(diff);
-    near2 = sseSplat(n.m128, 0);
-    near2 = _mm_add_ps(near2, near2);
-    diagonal = _mm_mul_ps(near2, inv_diff);
-    column = _mm_mul_ps(sum, inv_diff);
+    near1 = sseSplat(n.m128, 0);
+	near2 = _mm_add_ps(near1, near1);
+    diagonalXY = _mm_mul_ps(near2, inv_diff);
+	diagonalZ = _mm_mul_ps(near1, inv_diff);
+	column = _mm_mul_ps(lbf, inv_diff);
     VECTORMATH_ALIGNED(unsigned int select_x[4]) = { 0xFFFFFFFF, 0, 0, 0 };
     VECTORMATH_ALIGNED(unsigned int select_y[4]) = { 0, 0xFFFFFFFF, 0, 0 };
     VECTORMATH_ALIGNED(unsigned int select_z[4]) = { 0, 0, 0xFFFFFFFF, 0 };
-    VECTORMATH_ALIGNED(unsigned int select_w[4]) = { 0, 0, 0, 0xFFFFFFFF };
-    return Matrix4(Vector4(sseSelect(zero, diagonal, select_x)),
-                   Vector4(sseSelect(zero, diagonal, select_y)),
-                   Vector4(sseSelect(column, _mm_set1_ps(-1.0f), select_w)),
-                   Vector4(sseSelect(zero, _mm_mul_ps(diagonal, sseSplat(f.m128, 0)), select_z)));
+	VECTORMATH_ALIGNED(unsigned int select_xyw[4]) = { 0xFFFFFFFF, 0xFFFFFFFF, 0, 0xFFFFFFFF };
+	Matrix4 m = Matrix4(Vector4(sseSelect(zero, diagonalXY, select_x)),
+                   Vector4(sseSelect(zero, diagonalXY, select_y)),
+                   Vector4(sseSelect(column, _mm_set_ps(-1.0f, INFINITY, 0.0f, 0.0f), select_xyw)),
+                   Vector4(sseSelect(zero, _mm_mul_ps(diagonalZ, sseSplat(f.m128, 0)), select_z)));
+	m.setCol2(-m.getCol2()); // so far we've constructed RH matrix, make it LH
+	return m;
 }
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
 // Note: If math library is updated, remember to add the below functions. search for #TheForgeMathExtensions
-
-// PROJECTION MATRIX CONVENTION
-//----------------------------------------------------------------------------------------
-// OpenGL and DirectX maps Z coordinates into different ranges in projection matrices. 
-// The OpenGL  convention maps the Z coordinate into [-1, 1] range based on zNear and zFar.
-// The DirectX convention maps the Z coordinate into [ 0, 1] range based on zNear and zFar.
-// Read more here: http://justinctlam.com/2015/05/10/opengl-vs-directx-perspective-matrix/
-//
-// Sony uses OpenGL convention by default, i.e: RH system.
-// The Forge has both RH and LH functions.
-// The default functions are using DirectX convention for perspective and orthographic projection matrices.
-// The RH functions have RH suffix in their name.
 
 // The default constructor of mat4 uses the vec4 arguments as columns.
 // This macro maps the default notation like you see on paper to this constructor.
@@ -1797,14 +1799,18 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
 //----------------------------------------------------------------------------------------
 
 #define USE_VERTICAL_FIELD_OF_VIEW 0	// The Forge uses perspective() with horizontal field of view, defined below
-#if USE_VERTICAL_FIELD_OF_VIEW
-// this function creates a perspective matrix based on vertical field of view. 
-inline const Matrix4 Matrix4::perspective(float fovyRadians, float aspect, float zNear, float zFar)
-#else
-// this function creates a perspective matrix based on horizontal field of view.
-// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
-inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse, float zNear, float zFar)
-#endif
+
+inline float FovHorizontalToVertical(float fovX, float aspectInverse)
+{
+	return 2.0f * atanf(tanf(fovX / 2.0f) * aspectInverse);
+}
+
+inline float FovVerticalToHorizontal(float fovY, float aspectInverse)
+{
+	return 2.0f * atanf(tanf(fovY / 2.0f) / aspectInverse);
+}
+
+inline const Matrix4 Matrix4::perspectiveLH(float fovRadians, float aspectInverse, float zNear, float zFar)
 {
 	static const float VECTORMATH_PI_OVER_2 = 1.570796327f;
 
@@ -1813,19 +1819,18 @@ inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse
 	__m128 col0, col1, col2, col3;
 
 #if USE_VERTICAL_FIELD_OF_VIEW
-    float aspectInverse = 1.f / aspect;
-    float fovxRadians = fovyRadians * aspectInverse;
+	fovRadians = FovVerticalToHorizontal(fovRadians, aspectInverse);
 #endif
 
 #if defined(__linux__)
 // linux build uses c++11 standard
-	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
+	f = std::tan(VECTORMATH_PI_OVER_2 - fovRadians * 0.5f);
 #else
-	f = ::tanf(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
+	f = ::tanf(VECTORMATH_PI_OVER_2 - fovRadians * 0.5f);
 #endif
 
-	// LH - DirectX: Z -> [0, 1]
 	rangeInv = 1.0f / (zFar - zNear);
+
 	const __m128 zero = _mm_setzero_ps();
 	tmp.m128 = zero;
 	tmp.f[0] = f;
@@ -1834,7 +1839,7 @@ inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse
 	tmp.f[1] = f / aspectInverse;
 	col1 = tmp.m128;
 	tmp.m128 = zero;
-	tmp.f[2] = (zFar)* rangeInv;
+	tmp.f[2] = zFar * rangeInv;
     tmp.f[3] = +1.0f;
 	col2 = tmp.m128;
 	tmp.m128 = zero;
@@ -1843,78 +1848,27 @@ inline const Matrix4 Matrix4::perspective(float fovxRadians, float aspectInverse
 
 	return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
 }
-#if USE_VERTICAL_FIELD_OF_VIEW
-inline const Matrix4 Matrix4::perspectiveRH(float fovyRadians, float aspect, float zNear, float zFar)
-#else
-inline const Matrix4 Matrix4::perspectiveRH(float fovxRadians, float aspectInverse, float zNear, float zFar)
-#endif
+inline const Matrix4 Matrix4::perspectiveRH(float fovRadians, float aspectInverse, float zNear, float zFar)
 {
-	static const float VECTORMATH_PI_OVER_2 = 1.570796327f;
-
-	float f, rangeInv;
-	SSEFloat tmp;
-	__m128 col0, col1, col2, col3;
-
-#if USE_VERTICAL_FIELD_OF_VIEW
-    float aspectInverse = 1.f / aspect;
-    float fovxRadians = fovyRadians * aspectInverse;
-#endif
-
-#if defined(__linux__)
-// linux build uses c++11 standard
-	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
-#else
-    f = ::tanf(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5f);
-#endif
-
-    // LH - OpenGL: Z -> [-1, +1]
-    rangeInv = 1.0f / (zNear - zFar);
-
-    const __m128 zero = _mm_setzero_ps();
-    tmp.m128 = zero;
-    tmp.f[0] = f;
-    col0 = tmp.m128;
-    tmp.m128 = zero;
-    tmp.f[1] = f / aspectInverse;
-    col1 = tmp.m128;
-    tmp.m128 = zero;
-    tmp.f[2] = (zNear + zFar) * rangeInv; 
-    tmp.f[3] = -1.0f;
-    col2 = tmp.m128;
-    tmp.m128 = zero;
-    tmp.f[2] = zNear * zFar * rangeInv * 2.0f;
-    col3 = tmp.m128;
-
-	return Matrix4(Vector4(col0), Vector4(col1), Vector4(col2), Vector4(col3));
+	Matrix4 m = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
-#if USE_VERTICAL_FIELD_OF_VIEW
-// this function creates a perspective matrix based on vertical field of view. 
-inline const Matrix4 Matrix4::perspectiveReverseZ(float fovyRadians, float aspect, float zNear, float zFar)
-#else
-// this function creates a perspective matrix based on horizontal field of view.
-// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
-inline const Matrix4 Matrix4::perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar)
-#endif
+inline const Matrix4 Matrix4::perspectiveLH_ReverseZ(float fovRadians, float aspectInverse, float zNear, float zFar)
 {
-  Matrix4 perspMatrix = 
-#if USE_VERTICAL_FIELD_OF_VIEW
-    perspective(fovyRadians, aspect, zNear, zFar);
-#else
-    perspective(fovxRadians, aspectInverse, zNear, zFar);
-#endif
-
-  const Vector4 &col2 = perspMatrix.mCol2;
-  const Vector4 &col3 = perspMatrix.mCol3;
-  perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
-  perspMatrix.mCol3.setZ(-col3.getZ());
-
-  return perspMatrix;
+	Matrix4 perspMatrix = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
+	
+	const Vector4 &col2 = perspMatrix.mCol2;
+	const Vector4 &col3 = perspMatrix.mCol3;
+	perspMatrix.mCol2.setZ(col2.getW() - col2.getZ());
+	perspMatrix.mCol3.setZ(-col3.getZ());
+	
+	return perspMatrix;
 }
 
-inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom, float top, float zNear, float zFar)
+inline const Matrix4 Matrix4::orthographicLH(float left, float right, float bottom, float top, float zNear, float zFar)
 {	
-	// LH - DirectX: Z -> [0, 1]
 	__m128 lbn, rtf;
 	__m128 diff, sum, inv_diff, neg_inv_diff;
 	__m128 diagonal, column;
@@ -1945,55 +1899,17 @@ inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom
 					Vector4(sseSelect(zero, diagonal, select_z)),
 					Vector4(sseSelect(column, _mm_set1_ps(1.0f), select_w)));
 }
+
 inline const Matrix4 Matrix4::orthographicRH(float left, float right, float bottom, float top, float zNear, float zFar)
 {
-	// RH - OpenGL: Z -> [-1, +1]
-    /* function implementation based on code from STIDC SDK:           */
-    /* --------------------------------------------------------------  */
-    /* PLEASE DO NOT MODIFY THIS SECTION                               */
-    /* This prolog section is automatically generated.                 */
-    /*                                                                 */
-    /* (C)Copyright                                                    */
-    /* Sony Computer Entertainment, Inc.,                              */
-    /* Toshiba Corporation,                                            */
-    /* International Business Machines Corporation,                    */
-    /* 2001,2002.                                                      */
-    /* S/T/I Confidential Information                                  */
-    /* --------------------------------------------------------------  */
-    __m128 lbf, rtn;
-    __m128 diff, sum, inv_diff, neg_inv_diff;
-    __m128 diagonal, column;
-    __m128 zero = _mm_setzero_ps();
-    SSEFloat l, f, r, n, b, t;
-    l.f[0] = left;
-    f.f[0] = zFar;
-    r.f[0] = right;
-    n.f[0] = zNear;
-    b.f[0] = bottom;
-    t.f[0] = top;
-    lbf = sseMergeH(l.m128, f.m128);
-    rtn = sseMergeH(r.m128, n.m128);
-    lbf = sseMergeH(lbf, b.m128);
-    rtn = sseMergeH(rtn, t.m128);
-    diff = _mm_sub_ps(rtn, lbf);
-    sum = _mm_add_ps(rtn, lbf);
-    inv_diff = sseRecipf(diff);
-    neg_inv_diff = sseNegatef(inv_diff);
-    diagonal = _mm_add_ps(inv_diff, inv_diff);
-    VECTORMATH_ALIGNED(unsigned int select_x[4]) = { 0xFFFFFFFF, 0, 0, 0 };
-    VECTORMATH_ALIGNED(unsigned int select_y[4]) = { 0, 0xFFFFFFFF, 0, 0 };
-    VECTORMATH_ALIGNED(unsigned int select_z[4]) = { 0, 0, 0xFFFFFFFF, 0 };
-    VECTORMATH_ALIGNED(unsigned int select_w[4]) = { 0, 0, 0, 0xFFFFFFFF };
-    column = _mm_mul_ps(sum, sseSelect(neg_inv_diff, inv_diff, select_z));
-    return Matrix4(Vector4(sseSelect(zero, diagonal, select_x)),
-                   Vector4(sseSelect(zero, diagonal, select_y)),
-                   Vector4(sseSelect(zero, diagonal, select_z)),
-                   Vector4(sseSelect(column, _mm_set1_ps(1.0f), select_w)));
+	Matrix4 m = orthographicLH(left, right, bottom, top, zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
-inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
+inline const Matrix4 Matrix4::orthographicLH_ReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
 {
-	Matrix4 orthoMatrix = orthographic(left, right, bottom, top, zNear, zFar);
+	Matrix4 orthoMatrix = orthographicLH(left, right, bottom, top, zNear, zFar);
 
 	const Vector4 &col2 = orthoMatrix.mCol2;
 	const Vector4 &col3 = orthoMatrix.mCol3;
@@ -2003,9 +1919,8 @@ inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, floa
 	return orthoMatrix;
 }
 
-inline const Matrix4 Matrix4::cubeProjection(const float zNear, const float zFar)
+inline const Matrix4 Matrix4::cubeProjectionLH(const float zNear, const float zFar)
 {
-	// LH - DirectX
 	return CONSTRUCT_TRANSPOSED_MAT4(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
@@ -2014,12 +1929,9 @@ inline const Matrix4 Matrix4::cubeProjection(const float zNear, const float zFar
 }
 inline const Matrix4 Matrix4::cubeProjectionRH(const float zNear, const float zFar)
 {
-	// RH - OpenGL
-	return CONSTRUCT_TRANSPOSED_MAT4(
-		1, 0, 0, 0,
-		0, -1, 0, 0,
-		0, 0, (zFar + zNear) / (zFar - zNear), -(2 * zFar * zNear) / (zFar - zNear),
-		0, 0, 1, 0);
+	Matrix4 m = cubeProjectionLH(zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
 inline const Matrix4 Matrix4::cubeView(const unsigned int side)
@@ -2931,7 +2843,19 @@ inline const Matrix4d Matrix4d::translation(const Vector3d & translateVec)
 				   Vector4d(translateVec, 1.0));
 }
 
-inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
+inline const Matrix4d Matrix4d::lookAtLH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
+{
+	Matrix4d m4EyeFrame;
+	Vector3d v3X, v3Y, v3Z;
+	v3Y = normalize(upVec);
+	v3Z = normalize(Vector3d(lookAtPos) - Vector3d(eyePos));
+	v3X = normalize(cross(v3Y, v3Z));
+	v3Y = cross(v3Z, v3X);
+	m4EyeFrame = Matrix4d(Vector4d(v3X), Vector4d(v3Y), Vector4d(v3Z), Vector4d(eyePos));
+	return orthoInverse(m4EyeFrame);
+}
+
+inline const Matrix4d Matrix4d::lookAtRH(const Point3 & eyePos, const Point3 & lookAtPos, const Vector3d & upVec)
 {
 	Matrix4d m4EyeFrame;
 	Vector3d v3X, v3Y, v3Z;
@@ -2943,11 +2867,11 @@ inline const Matrix4d Matrix4d::lookAt(const Point3 & eyePos, const Point3 & loo
 	return orthoInverse(m4EyeFrame);
 }
 
-inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom, double top, double zNear, double zFar)
+inline const Matrix4d Matrix4d::frustumLH(double left, double right, double bottom, double top, double zNear, double zFar)
 {
 	DSSEVec4 lbf, rtn;
-	DSSEVec4 diff, sum, inv_diff;
-	DSSEVec4 diagonal, column, near2;
+	DSSEVec4 diff, inv_diff;
+	DSSEVec4 diagonalXY, diagonalZ, column, near1, near2;
 	DSSEVec4 zero = dsseSetZero();
 	DSSEVec4 l, f, r, n, b, t;
 	l.d[0] = left;
@@ -2961,20 +2885,22 @@ inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom
 	lbf = dsseMergeH(lbf, b);
 	rtn = dsseMergeH(rtn, t);
 	diff = dsseSub(rtn, lbf);
-	sum = dsseAdd(rtn, lbf);
 	inv_diff = dsseRecipf(diff);
-	near2 = dsseSplat(n, 0);
-	near2 = dsseAdd(near2, near2);
-	diagonal = dsseMul(near2, inv_diff);
-	column = dsseMul(sum, inv_diff);
+	near1 = dsseSplat(n, 0);
+	near2 = dsseAdd(near1, near1);
+	diagonalXY = dsseMul(near2, inv_diff);
+	diagonalZ = dsseMul(near1, inv_diff);
+	column = dsseMul(lbf, inv_diff);
 	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
 	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
 	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
-	VECTORMATH_ALIGNED(unsigned long long select_w[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
-	return Matrix4d(Vector4d(dsseSelect(zero, diagonal, select_x)),
-		Vector4d(dsseSelect(zero, diagonal, select_y)),
-		Vector4d(dsseSelect(column, dsseSet1(-1.0), select_w)),
-		Vector4d(dsseSelect(zero, dsseMul(diagonal, dsseSplat(f, 0)), select_z)));
+	VECTORMATH_ALIGNED(unsigned long long select_xyw[4]) = { 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF, 0, 0xFFFFFFFFFFFFFFFF };
+	Matrix4d m = Matrix4d(Vector4d(dsseSelect(zero, diagonalXY, select_x)),
+		Vector4d(dsseSelect(zero, diagonalXY, select_y)),
+		Vector4d(dsseSelect(column, dsseSetr(0.0f, 0.0f, INFINITY, -1.0), select_xyw)),
+		Vector4d(dsseSelect(zero, dsseMul(diagonalZ, dsseSplat(f, 0)), select_z)));
+	m.setCol2(-m.getCol2()); // so far we've constructed RH matrix, make it LH
+	return m;
 }
 
 //========================================= #TheForgeMathExtensionsBegin ================================================
@@ -2987,14 +2913,18 @@ inline const Matrix4d Matrix4d::frustum(double left, double right, double bottom
 //----------------------------------------------------------------------------------------
 
 //#define USE_VERTICAL_FIELD_OF_VIEW 0	// The Forge uses perspective() with horizontal field of view, defined below
-#if USE_VERTICAL_FIELD_OF_VIEW
-// this function creates a perspective matrix based on vertical field of view.
-inline const Matrix4d Matrix4d::perspective(double fovyRadians, double aspect, double zNear, double zFar)
-#else
-// this function creates a perspective matrix based on horizontal field of view.
-// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
-inline const Matrix4d Matrix4d::perspective(double fovxRadians, double aspectInverse, double zNear, double zFar)
-#endif
+
+inline double FovHorizontalToVertical(double fovX, double aspectInverse)
+{
+	return 2.0 * atan(tan(fovX / 2.0) * aspectInverse);
+}
+
+inline double FovVerticalToHorizontal(double fovY, double aspectInverse)
+{
+	return 2.0 * atan(tan(fovY / 2.0) / aspectInverse);
+}
+
+inline const Matrix4d Matrix4d::perspectiveLH(double fovRadians, double aspectInverse, double zNear, double zFar)
 {
 	static const double VECTORMATH_PI_OVER_2 = 1.570796327;
 
@@ -3003,19 +2933,18 @@ inline const Matrix4d Matrix4d::perspective(double fovxRadians, double aspectInv
 	DSSEVec4 col0, col1, col2, col3;
 
 #if USE_VERTICAL_FIELD_OF_VIEW
-	double aspectInverse = 1.0 / aspect;
-	double fovxRadians = fovyRadians * aspectInverse;
+	fovRadians = FovVerticalToHorizontal(fovRadians, aspectInverse);
 #endif
 
 #if defined(__linux__)
 	// linux build uses c++11 standard
-	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+	f = std::tan(VECTORMATH_PI_OVER_2 - fovRadians * 0.5);
 #else
-	f = ::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
+	f = ::tan(VECTORMATH_PI_OVER_2 - fovRadians * 0.5);
 #endif
 
-	// LH - DirectX: Z -> [0, 1]
 	rangeInv = 1.0 / (zFar - zNear);
+
 	const DSSEVec4 zero = dsseSetZero();
 	tmp = zero;
 	tmp.d[0] = f;
@@ -3034,66 +2963,16 @@ inline const Matrix4d Matrix4d::perspective(double fovxRadians, double aspectInv
 	return Matrix4d(Vector4d(col0), Vector4d(col1), Vector4d(col2), Vector4d(col3));
 }
 
-#if USE_VERTICAL_FIELD_OF_VIEW
-inline const Matrix4d Matrix4d::perspectiveRH(double fovyRadians, double aspect, double zNear, double zFar)
-#else
-inline const Matrix4d Matrix4d::perspectiveRH(double fovxRadians, double aspectInverse, double zNear, double zFar)
-#endif
+inline const Matrix4d Matrix4d::perspectiveRH(double fovRadians, double aspectInverse, double zNear, double zFar)
 {
-	static const double VECTORMATH_PI_OVER_2 = 1.570796327;
-
-	double f, rangeInv;
-	DSSEVec4 tmp;
-	DSSEVec4 col0, col1, col2, col3;
-
-#if USE_VERTICAL_FIELD_OF_VIEW
-	double aspectInverse = 1.f / aspect;
-	double fovxRadians = fovyRadians * aspectInverse;
-#endif
-
-#if defined(__linux__)
-	// linux build uses c++11 standard
-	f = std::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
-#else
-	f = ::tan(VECTORMATH_PI_OVER_2 - fovxRadians * 0.5);
-#endif
-
-	// LH - OpenGL: Z -> [-1, +1]
-	rangeInv = 1.0 / (zNear - zFar);
-
-	const DSSEVec4 zero = dsseSetZero();
-	tmp = zero;
-	tmp.d[0] = f;
-	col0 = tmp;
-	tmp = zero;
-	tmp.d[1] = f / aspectInverse;
-	col1 = tmp;
-	tmp = zero;
-	tmp.d[2] = (zNear + zFar) * rangeInv;
-	tmp.d[3] = -1.0;
-	col2 = tmp;
-	tmp = zero;
-	tmp.d[2] = zNear * zFar * rangeInv * 2.0;
-	col3 = tmp;
-
-	return Matrix4d(Vector4d(col0), Vector4d(col1), Vector4d(col2), Vector4d(col3));
+	Matrix4d m = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
-#if USE_VERTICAL_FIELD_OF_VIEW
-// this function creates a perspective matrix based on vertical field of view.
-inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovyRadians, double aspect, double zNear, double zFar)
-#else
-// this function creates a perspective matrix based on horizontal field of view.
-// also note that the 2nd parameter aspectInverse is the inverse of the aspect ratio (height/width).
-inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovxRadians, double aspectInverse, double zNear, double zFar)
-#endif
+inline const Matrix4d Matrix4d::perspectiveLH_ReverseZ(double fovRadians, double aspectInverse, double zNear, double zFar)
 {
-	Matrix4d perspMatrix =
-#if USE_VERTICAL_FIELD_OF_VIEW
-		perspective(fovyRadians, aspect, zNear, zFar);
-#else
-		perspective(fovxRadians, aspectInverse, zNear, zFar);
-#endif
+	Matrix4d perspMatrix = perspectiveLH(fovRadians, aspectInverse, zNear, zFar);
 
 	const Vector4d &col2 = perspMatrix.mCol2;
 	const Vector4d &col3 = perspMatrix.mCol3;
@@ -3103,9 +2982,8 @@ inline const Matrix4d Matrix4d::perspectiveReverseZ(double fovxRadians, double a
 	return perspMatrix;
 }
 
-inline const Matrix4d Matrix4d::orthographic(double left, double right, double bottom, double top, double zNear, double zFar)
+inline const Matrix4d Matrix4d::orthographicLH(double left, double right, double bottom, double top, double zNear, double zFar)
 {
-	// LH - DirectX: Z -> [0, 1]
 	DSSEVec4 lbn, rtf;
 	DSSEVec4 diff, sum, inv_diff, neg_inv_diff;
 	DSSEVec4 diagonal, column;
@@ -3136,43 +3014,17 @@ inline const Matrix4d Matrix4d::orthographic(double left, double right, double b
 		Vector4d(dsseSelect(zero, diagonal, select_z)),
 		Vector4d(dsseSelect(column, dsseSet1(1.0), select_w)));
 }
+
 inline const Matrix4d Matrix4d::orthographicRH(double left, double right, double bottom, double top, double zNear, double zFar)
 {
-	// RH - OpenGL: Z -> [-1, +1]
-	DSSEVec4 lbf, rtn;
-	DSSEVec4 diff, sum, inv_diff, neg_inv_diff;
-	DSSEVec4 diagonal, column;
-	DSSEVec4 zero = dsseSetZero();
-	DSSEVec4 l, f, r, n, b, t;
-	l.d[0] = left;
-	f.d[0] = zFar;
-	r.d[0] = right;
-	n.d[0] = zNear;
-	b.d[0] = bottom;
-	t.d[0] = top;
-	lbf = dsseMergeH(l, f);
-	rtn = dsseMergeH(r, n);
-	lbf = dsseMergeH(lbf, b);
-	rtn = dsseMergeH(rtn, t);
-	diff = dsseSub(rtn, lbf);
-	sum = dsseAdd(rtn, lbf);
-	inv_diff = dsseRecipf(diff);
-	neg_inv_diff = dsseNegatef(inv_diff);
-	diagonal = dsseAdd(inv_diff, inv_diff);
-	VECTORMATH_ALIGNED(unsigned long long select_x[4]) = { 0xFFFFFFFFFFFFFFFF, 0, 0, 0 };
-	VECTORMATH_ALIGNED(unsigned long long select_y[4]) = { 0, 0xFFFFFFFFFFFFFFFF, 0, 0 };
-	VECTORMATH_ALIGNED(unsigned long long select_z[4]) = { 0, 0, 0xFFFFFFFFFFFFFFFF, 0 };
-	VECTORMATH_ALIGNED(unsigned long long select_w[4]) = { 0, 0, 0, 0xFFFFFFFFFFFFFFFF };
-	column = dsseMul(sum, dsseSelect(neg_inv_diff, inv_diff, select_z));
-	return Matrix4d(Vector4d(dsseSelect(zero, diagonal, select_x)),
-		Vector4d(dsseSelect(zero, diagonal, select_y)),
-		Vector4d(dsseSelect(zero, diagonal, select_z)),
-		Vector4d(dsseSelect(column, dsseSet1(1.0), select_w)));
+	Matrix4d m = orthographicLH(left, right, bottom, top, zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
-inline const Matrix4d Matrix4d::orthographicReverseZ(double left, double right, double bottom, double top, double zNear, double zFar)
+inline const Matrix4d Matrix4d::orthographicLH_ReverseZ(double left, double right, double bottom, double top, double zNear, double zFar)
 {
-	Matrix4d orthoMatrix = orthographic(left, right, bottom, top, zNear, zFar);
+	Matrix4d orthoMatrix = orthographicLH(left, right, bottom, top, zNear, zFar);
 
 	const Vector4d &col2 = orthoMatrix.mCol2;
 	const Vector4d &col3 = orthoMatrix.mCol3;
@@ -3182,9 +3034,8 @@ inline const Matrix4d Matrix4d::orthographicReverseZ(double left, double right, 
 	return orthoMatrix;
 }
 
-inline const Matrix4d Matrix4d::cubeProjection(const double zNear, const double zFar)
+inline const Matrix4d Matrix4d::cubeProjectionLH(const double zNear, const double zFar)
 {
-	// LH - DirectX
 	return CONSTRUCT_TRANSPOSED_MAT4d(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
@@ -3193,12 +3044,9 @@ inline const Matrix4d Matrix4d::cubeProjection(const double zNear, const double 
 }
 inline const Matrix4d Matrix4d::cubeProjectionRH(const double zNear, const double zFar)
 {
-	// RH - OpenGL
-	return CONSTRUCT_TRANSPOSED_MAT4d(
-		1, 0, 0, 0,
-		0, -1, 0, 0,
-		0, 0, (zFar + zNear) / (zFar - zNear), -(2 * zFar * zNear) / (zFar - zNear),
-		0, 0, 1, 0);
+	Matrix4d m = cubeProjectionLH(zNear, zFar);
+	m.setCol2(-m.getCol2());
+	return m;
 }
 
 inline const Matrix4d Matrix4d::cubeView(const unsigned int side)

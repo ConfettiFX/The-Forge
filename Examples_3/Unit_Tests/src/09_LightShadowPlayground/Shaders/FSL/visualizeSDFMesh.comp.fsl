@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,13 +50,12 @@ CBUFFER(cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 5)
 	DATA(float4x4, InvViewProject, None);
 	DATA(float4, mCameraPos, None);
 	DATA(float, mNear, None);
+	DATA(float, mFar, None);
 	DATA(float, mFarNearDiff, None);
 	DATA(float, mFarNear, None);
-	DATA(float, paddingForAlignment0, None);
 	DATA(float2, mTwoOverRes, None);
-	DATA(float, _pad1, None);
-	DATA(float, _pad2, None);
 	DATA(float2, mWindowSize, None);
+	DATA(float4, mDeviceZToWorldZ, None);
 };
 
 CBUFFER(meshSDFUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
@@ -66,6 +65,10 @@ CBUFFER(meshSDFUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
 	DATA(float4, mLocalPositionExtent[SDF_MAX_OBJECT_COUNT], None);
 	DATA(float4, mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT], None);
 	DATA(float4, mSDFMAD[SDF_MAX_OBJECT_COUNT], None);
+};
+
+PUSH_CONSTANT(meshSDFPushConstant, b3)
+{
 	DATA(uint, mNumObjects, None);
 };
 
@@ -189,7 +192,7 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 	RayTraceScene(cameraWorldPos, rayEndPos, traceDistance, 
 		minRayTime, totalStepsTaken);
 
-	float saturatedStepsTaken =  saturate(totalStepsTaken / 200.0f);
+	float saturatedStepsTaken = saturate(totalStepsTaken / 200.0f);
 
 	float3 Result = float3(saturatedStepsTaken, saturatedStepsTaken, saturatedStepsTaken);
 

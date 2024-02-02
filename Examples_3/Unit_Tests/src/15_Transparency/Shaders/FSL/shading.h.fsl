@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@
 #include "varianceShadowMapping.h.fsl"
 #endif
 
-float4 Shade(uint matID, float2 uv, float3 worldPos, float3 normal)
+float4 Shade(uint matID, float2 uv, float3 worldPos, float3 normal, uint ViewID)
 {
 	float nDotl = dot(normal, -Get(lightDirection).xyz);
 	Material mat = Get(Materials)[matID];
@@ -52,7 +52,7 @@ float4 Shade(uint matID, float2 uv, float3 worldPos, float3 normal)
 		clamp(shadowMapPos.y, 0.01f, 0.99f) == shadowMapPos.y &&
 		shadowMapPos.z > 0.0f)
 	{
-		float3 lighting = ShadowContribution(shadowMapPos.xy, shadowMapPos.z);
+		float3 lighting = ShadowContribution(shadowMapPos.xy, shadowMapPos.z, ViewID);
 		finalColor *= lighting;
 	}
 #endif

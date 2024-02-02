@@ -38,17 +38,25 @@ extern "C" {
 
 void initEntityComponentSystem(void);
 
+typedef struct EcsTFProfileToken
+{
+	uint64_t mToken;
+	uint64_t mTick;
+} EcsTFProfileToken;
+
+typedef EcsTFProfileToken (*ecs_tf_profiler_enter_fn_t)(const char* group, const char* name, uint32_t color);
+typedef void(*ecs_tf_profiler_leave_fn_t)(EcsTFProfileToken token);
+
+void setEntityComponentSystemProfileCallbacks(ecs_tf_profiler_enter_fn_t enter, ecs_tf_profiler_leave_fn_t leave);
+
 #ifdef __cplusplus
 }
 #endif
-
 
 #define ecs_os_malloc       tf_malloc
 #define ecs_os_free         tf_free
 #define ecs_os_realloc      tf_realloc
 #define ecs_os_calloc(size) tf_calloc(1, size)
-
-#define FLECS_NO_CPP
 
 // ====================END TF Specific=========================
 
@@ -131,6 +139,7 @@ void initEntityComponentSystem(void);
 // #define FLECS_CUSTOM_BUILD
 
 #ifndef FLECS_CUSTOM_BUILD
+#define FLECS_NO_CPP
 #define FLECS_NO_OS_API_IMPL
 #define FLECS_NO_PLECS
 #define FLECS_NO_HTTP
@@ -1911,6 +1920,10 @@ typedef struct ecs_os_api_t {
 
     /* Enable tracing with color */
     bool log_with_color_;
+
+    ecs_tf_profiler_enter_fn_t tf_profiler_enter_;
+    ecs_tf_profiler_leave_fn_t tf_profiler_leave_;
+
 } ecs_os_api_t;
 
 FLECS_API
@@ -2050,6 +2063,14 @@ void ecs_os_set_api_defaults(void);
 #define ecs_os_sleep(sec, nanosec) ecs_os_api.sleep_(sec, nanosec)
 #define ecs_os_now() ecs_os_api.now_()
 #define ecs_os_get_time(time_out) ecs_os_api.get_time_(time_out)
+
+#ifdef ENABLE_PROFILER
+#define ecs_os_profile_enter(tokenName, group, name, color) const EcsTFProfileToken tokenName = ecs_os_api.tf_profiler_enter_(group, name, color)
+#define ecs_os_profile_leave(tokenName) ecs_os_api.tf_profiler_leave_(tokenName)
+#else
+#define ecs_os_profile_enter(tokenName, group, name, color)
+#define ecs_os_profile_leave(token)
+#endif
 
 FLECS_API
 void ecs_os_enable_high_timer_resolution(bool enable);
@@ -12744,6 +12765,17 @@ int32_t ecs_cpp_reset_count_get(void);
 FLECS_API
 int32_t ecs_cpp_reset_count_inc(void);
 
+FLECS_API
+int32_t ecs_cpp_reset_count_inc(void);
+
+typedef void (*ecs_cpp_component_reset_function_t)(void);
+
+FLECS_API
+void ecs_cpp_register_reset_function(ecs_cpp_component_reset_function_t reset_function);
+
+FLECS_API
+void ecs_cpp_reset_all_cpp_components();
+
 #ifdef __cplusplus
 }
 #endif
@@ -19608,6 +19640,8 @@ struct cpp_type_impl {
         }
 
         s_reset_count = ecs_cpp_reset_count_get();
+
+        ecs_cpp_register_reset_function(cpp_type_impl<T>::reset);
     }
 
     // Obtain a component identifier for explicit component registration.
@@ -19982,6 +20016,7 @@ flecs::entity_t type_id() {
  * new id will be generated.
  */
 inline void reset() {
+    ecs_cpp_reset_all_cpp_components();
     ecs_cpp_reset_count_inc();
 }
 

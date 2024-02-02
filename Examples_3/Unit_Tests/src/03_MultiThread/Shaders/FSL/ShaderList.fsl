@@ -2,23 +2,23 @@
 #include "Graph.frag.fsl"
 #end
 
-#vert Graph.vert
+#vert FT_VDP Graph.vert
 #include "Graph.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW Particle.frag
+#frag FT_MULTIVIEW Particle.frag
 #include "Particle.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW Particle.vert
+#vert FT_VDP FT_MULTIVIEW Particle.vert
 #include "Particle.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW Skybox.frag
+#frag FT_MULTIVIEW Skybox.frag
 #include "Skybox.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW Skybox.vert
+#vert FT_MULTIVIEW Skybox.vert
 #include "Skybox.vert.fsl"
 #end
 

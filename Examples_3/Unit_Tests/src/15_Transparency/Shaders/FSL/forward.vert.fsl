@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,12 +23,13 @@
 */
 
 #include "shaderDefs.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
 STRUCT(VSInput)
 {
 	DATA(float4, Position, POSITION);
-	DATA(float3, Normal, NORMAL);
-	DATA(float2, UV, TEXCOORD0);
+	DATA(uint, Normal, NORMAL);
+	DATA(uint, UV, TEXCOORD0);
 };
 
 STRUCT(VSOutput)
@@ -44,7 +45,7 @@ STRUCT(VSOutput)
 #if PT_USE_REFRACTION != 0
 	DATA(float4, CSNormal, NORMAL1);
 #endif
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(FLAT(uint), ViewID, TEXCOORD1);
 #endif
 };
@@ -55,10 +56,14 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 	VSOutput Out;
 
 	uint instanceID = InstanceID + Get(baseInstance);
-	Out.UV = In.UV.xyyy;
-	Out.Normal = normalize(mul(Get(objectInfo)[instanceID].normalMat, float4(In.Normal.xyz, 0)));
+	Out.UV = unpack2Floats(In.UV).xyyy;
+	Out.Normal = normalize(mul(Get(objectInfo)[instanceID].normalMat, float4(decodeDir(unpackUnorm2x16(In.Normal)), 0)));
 	Out.WorldPosition = mul(Get(objectInfo)[instanceID].toWorld, In.Position);
+#if FT_MULTIVIEW
+	Out.Position = mul(Get(camViewProj)[VR_VIEW_ID], Out.WorldPosition);
+#else
 	Out.Position = mul(Get(camViewProj), Out.WorldPosition);
+#endif
 	Out.MatID = Get(objectInfo)[instanceID].matID;
 
 #if (PT_USE_REFRACTION + PT_USE_DIFFUSION) != 0
@@ -69,7 +74,7 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 	Out.CSNormal.xyz = normalize(Out.CSNormal.xyz);
 #endif
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	Out.ViewID = VR_VIEW_ID;
 #endif
 

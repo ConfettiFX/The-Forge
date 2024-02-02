@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,8 +49,7 @@ THE SOFTWARE.
 
 RES(Tex2D(float4),   g_lit_scene,               UPDATE_FREQ_NONE, t0, binding = 8);
 RES(Tex2D(float),    g_depth_buffer_hierarchy,  UPDATE_FREQ_NONE, t1, binding = 4);
-RES(Tex2D(float4),   g_normal,                  UPDATE_FREQ_NONE, t2, binding = 5);
-RES(Tex2D(float4),   g_roughness,               UPDATE_FREQ_NONE, t3, binding = 7);
+RES(Tex2D(float4),   g_normal_roughness,        UPDATE_FREQ_NONE, t2, binding = 5);
 RES(TexCube(float4), g_environment_map,         UPDATE_FREQ_NONE, t4, binding = 9);
 RES(Buffer(uint),    g_sobol_buffer,            UPDATE_FREQ_NONE, t5, binding = 1);
 RES(Buffer(uint),    g_ranking_tile_buffer,     UPDATE_FREQ_NONE, t6, binding = 2);
@@ -294,7 +293,7 @@ float ValidateHit(float3 hit, Ray reflected_ray, float3 world_space_ray_directio
     }
 
     // We check if we hit the surface from the back, these should be rejected.
-    float3 hit_normal = LoadNormal(texel_coords, Get(g_normal));
+    float3 hit_normal = LoadNormal(texel_coords, Get(g_normal_roughness));
     if (dot(hit_normal, world_space_ray_direction) > 0)
     {
         return 0;
@@ -324,8 +323,8 @@ void Intersect(int2 did)
     const uint skip_denoiser = Get(g_skip_denoiser);
 
     float2 uv = (float2(did) + 0.5) / screen_size;
-    float3 world_space_normal = LoadNormal(did, Get(g_normal));
-    float roughness = LoadRoughness(did, Get(g_roughness));
+    float3 world_space_normal = LoadNormal(did, Get(g_normal_roughness));
+    float roughness = LoadRoughness(did, Get(g_normal_roughness));
     bool is_mirror = IsMirrorReflection(roughness);
 
     int most_detailed_mip = is_mirror ? 0 : int(Get(g_most_detailed_mip));

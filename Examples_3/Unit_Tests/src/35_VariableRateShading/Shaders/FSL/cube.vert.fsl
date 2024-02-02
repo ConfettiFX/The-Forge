@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#define CUBES_COUNT 2
+#include "shaderDefs.h.fsl"
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
@@ -43,7 +43,6 @@ STRUCT(VSOutput)
     DATA(float4, Position,  SV_POSITION);
     DATA(float4, Color,     COLOR);
     DATA(float2, TexCoords, TEXCOORD0);
-    DATA(uint, shadingRate, SV_ShadingRate);
 };
 
 VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
@@ -55,7 +54,6 @@ VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
     Out.Position = mul(tempMat, In.Position);
     Out.Color = float4(Get(color)[InstanceID].xyz, 1.0);
     Out.TexCoords = In.TexCoords;
-    Out.shadingRate = 0;
 
     RETURN(Out);
 }

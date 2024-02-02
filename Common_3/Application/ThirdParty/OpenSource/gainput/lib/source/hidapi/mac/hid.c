@@ -369,12 +369,12 @@ static int init_hid_manager(void)
 	return hid_mgr ? 0 : -1;
 }
 
-HID_API_EXPORT const struct hid_api_version* HID_API_CALL hid_version()
+HID_API_EXPORT const struct hid_api_version* HID_API_CALL hid_version(void)
 {
 	return &api_version;
 }
 
-HID_API_EXPORT const char* HID_API_CALL hid_version_str()
+HID_API_EXPORT const char* HID_API_CALL hid_version_str(void)
 {
 	return HID_API_VERSION_STR;
 }
@@ -458,7 +458,7 @@ static struct hid_device_info *create_device_info_with_usage(IOHIDDeviceRef dev,
 		   9+1+20+1=31 bytes byffer, but allocate 32 for simple alignment */
 		cur_dev->path = tf_calloc(1, 32);
 		if (cur_dev->path != NULL) {
-			sprintf(cur_dev->path, "DevSrvsID:%llu", entry_id);
+			snprintf(cur_dev->path, 32, "DevSrvsID:%llu", entry_id);
 		}
 	}
 
@@ -879,7 +879,7 @@ hid_device * HID_API_EXPORT hid_open_path(const char *path)
 
 		/* Create the Run Loop Mode for this device.
 		   printing the reference seems to work. */
-		sprintf(str, "HIDAPI_%p", (void*) dev->device_handle);
+		snprintf(str, sizeof(str), "HIDAPI_%p", (void*) dev->device_handle);
 		dev->run_loop_mode =
 			CFStringCreateWithCString(NULL, str, kCFStringEncodingASCII);
 

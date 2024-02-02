@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,11 +24,13 @@
 
 #include "skinning.h.fsl"
 
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+
 STRUCT(VSInput)
 {
     DATA(float3, Position, POSITION);
-    DATA(float3, Normal, NORMAL);
-    DATA(float2, UV, TEXCOORD0);
+    DATA(uint, Normal, NORMAL);
+    DATA(uint, UV, TEXCOORD0);
     DATA(float4, BoneWeights, WEIGHTS);
     DATA(uint4, BoneIndices, JOINTS);
 };
@@ -52,13 +54,13 @@ VSOutput VS_MAIN(VSInput In)
     
     Out.Position = mul(boneTransform, float4(In.Position, 1.0f));
     Out.Position = mul(Get(modelMatrix), Out.Position);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     Out.Position = mul(Get(vpMatrix)[VR_VIEW_ID], Out.Position);
 #else
     Out.Position = mul(Get(vpMatrix), Out.Position);
 #endif
-    Out.Normal = normalize(mul(Get(modelMatrix), float4(In.Normal, 0.0f)).xyz);
-    Out.UV = In.UV;
+    Out.Normal = normalize(mul(Get(modelMatrix), float4(decodeDir(unpackUnorm2x16(In.Normal)), 0.f)).xyz);
+    Out.UV = unpack2Floats(In.UV);
 
     RETURN(Out);
 }

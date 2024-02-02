@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,78 +20,78 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
-
-
+ */
 
 #include "LuaManager.h"
-#include "LuaManagerImpl.h"
 
 #include "../../Utilities/Interfaces/ILog.h"
+
+#include "LuaManagerImpl.h"
+
 #include "../../Utilities/Interfaces/IMemory.h"
 
 void LuaManager::Init()
 {
-	m_Impl = (LuaManagerImpl*)tf_calloc(1, sizeof(LuaManagerImpl));
-	tf_placement_new<LuaManagerImpl>(m_Impl);
+    m_Impl = (LuaManagerImpl*)tf_calloc(1, sizeof(LuaManagerImpl));
+    tf_placement_new<LuaManagerImpl>(m_Impl);
 }
 
 void LuaManager::Exit()
 {
-	if (m_Impl != nullptr)
-	{
-		m_Impl->~LuaManagerImpl();
-		tf_free(m_Impl);
-		m_Impl = nullptr;
-	}
+    if (m_Impl != nullptr)
+    {
+        m_Impl->~LuaManagerImpl();
+        tf_free(m_Impl);
+        m_Impl = nullptr;
+    }
 }
 
 LuaManager::~LuaManager() { ASSERT(m_Impl == nullptr); }
 
 void LuaManager::SetFunction(ILuaFunctionWrap* wrap)
 {
-	ASSERT(m_Impl != nullptr);
-	m_Impl->SetFunction(wrap);
+    ASSERT(m_Impl != nullptr);
+    m_Impl->SetFunction(wrap);
 }
 
-bool LuaManager::RunScript(const char* scriptFile, const char* scriptPassword)
+bool LuaManager::RunScript(const char* scriptFile)
 {
-	ASSERT(m_Impl != nullptr);
-	return m_Impl->RunScript(scriptFile, scriptPassword);
+    ASSERT(m_Impl != nullptr);
+    return m_Impl->RunScript(scriptFile);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptFile, const char* scriptPassword, ScriptDoneCallback callback)
+void LuaManager::AddAsyncScript(const char* scriptFile, ScriptDoneCallback callback)
 {
-	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptFile, scriptPassword, callback);
+    ASSERT(m_Impl != nullptr);
+    m_Impl->AddAsyncScript(scriptFile, callback);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptFile, const char* scriptPassword)
+void LuaManager::AddAsyncScript(const char* scriptFile)
 {
-	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptFile, scriptPassword);
+    ASSERT(m_Impl != nullptr);
+    m_Impl->AddAsyncScript(scriptFile);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptFile, const char* scriptPassword, IScriptCallbackWrap* callbackLambda)
+void LuaManager::AddAsyncScript(const char* scriptFile, IScriptCallbackWrap* callbackLambda)
 {
-	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptFile, scriptPassword, callbackLambda);
+    ASSERT(m_Impl != nullptr);
+    m_Impl->AddAsyncScript(scriptFile, callbackLambda);
 }
 
-bool LuaManager::SetUpdatableScript(const char* scriptFile, const char* scriptPassword, const char* updateFunctionName, const char* exitFunctionName)
+bool LuaManager::SetUpdatableScript(const char* scriptFile, const char* updateFunctionName, const char* exitFunctionName)
 {
-	ASSERT(m_Impl != nullptr);
-	return m_Impl->SetUpdatableScript(scriptFile, scriptPassword, updateFunctionName, exitFunctionName);
+    ASSERT(m_Impl != nullptr);
+    return m_Impl->SetUpdatableScript(scriptFile, updateFunctionName, exitFunctionName);
 }
 
 bool LuaManager::ReloadUpdatableScript()
 {
-	ASSERT(m_Impl != nullptr);
-	return m_Impl->ReloadUpdatableScript();
+    ASSERT(m_Impl != nullptr);
+    return m_Impl->ReloadUpdatableScript();
 }
 
 bool LuaManager::Update(float deltaTime, const char* updateFunctionName)
 {
-	ASSERT(m_Impl != nullptr);
-	return m_Impl->Update(deltaTime, updateFunctionName);
+    ASSERT(m_Impl != nullptr);
+    return m_Impl->Update(deltaTime, updateFunctionName);
 }

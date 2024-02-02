@@ -10,9 +10,11 @@
               android:label="@string/app_name"
               android:configChanges="orientation|keyboardHidden"
               android:screenOrientation="landscape"
+              android:resizeableActivity="true"
+              android:exported="true"
               android:theme="@style/AppTheme">
               <meta-data android:name="android.app.lib_name"
-                 android:value="ForgeGame" />
+                 android:value="@string/lib_name" />
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />

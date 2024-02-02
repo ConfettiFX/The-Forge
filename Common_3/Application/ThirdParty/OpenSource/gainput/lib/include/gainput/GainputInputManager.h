@@ -6,11 +6,18 @@
 struct ANativeActivity;
 #endif
 
-#define CONTROLLER_ID 4
+#define DEV_MOUSE____ 0U
+#define DEV_RAW_MOUSE 1U
+#define DEV_KEYBOARD_ 2U
+#define DEV_TOUCH____ 3U
+#define DEV_PAD_START 4U
+#define DEV_PAD_END__ (DEV_PAD_START + MAX_INPUT_GAMEPADS)
 
 namespace gainput
 {
-    
+
+	typedef void(*DeviceListener)(void * metadata, DeviceId deviceId, InputDevice* device, bool doAdd);
+
 /// Manages all input devices and some other helpful stuff.
 /**
  * This manager takes care of all device-related things. Normally, you should only need one that contains
@@ -38,15 +45,15 @@ public:
 	 */
 	InputManager(Allocator& allocator = GetDefaultAllocator());
 
-    /**
-     * Initialize the input manager.
-     */
-    void Init(void* windowInstance);
+	/**
+	 * Initialize the input manager.
+	 */
+	void Init(void* windowInstance);
 
-    /**
-     * Shutdown the input manager and free any memory it allocated.
-     */
-    void Exit();
+	/**
+	 * Shutdown the input manager and free any memory it allocated.
+	 */
+	void Exit();
 
 	/// Sets the window resolution.
 	/**
@@ -87,7 +94,7 @@ public:
 			bool b;
 		} value;
 	};
-    void HandleDeviceInput(DeviceInput const& input);
+	void HandleDeviceInput(DeviceInput const& input);
 #endif
 
 	/// Updates the input state, call this every frame.
@@ -103,6 +110,13 @@ public:
 
 	/// Returns a monotonic time in milliseconds.
 	uint64_t GetTime() const;
+
+	void SetDeviceListener(void* metadata, DeviceListener listener);
+	void NotifyDeviceListener(DeviceId deviceId, InputDevice* device, bool doAdd);
+
+	void CreateControllers(int cnt);
+
+	DeviceId GetNextId() { return mNextDeviceID++; }
 
 	/// Creates an input device and registers it with the manager.
 	/**
@@ -123,6 +137,14 @@ public:
 	 * \return The newly created input device.
 	 */
 	template<class T> T* CreateAndGetDevice(unsigned index = InputDevice::AutoIndex, InputDevice::DeviceVariant variant = InputDevice::DV_STANDARD);
+
+	/// Remove the device from InputManager management
+	/// DOES NOT DESTROY DEVICE!
+	void RemoveDevice(DeviceId deviceId);
+
+	/// Add the device back with the given ID
+	void AddDevice(DeviceId deviceId, InputDevice* device);
+
 	/// Returns the input device with the given ID.
 	/**
 	 * \return The input device or 0 if it doesn't exist.
@@ -198,8 +220,8 @@ public:
 	/// De-registers the given modifier.
 	void RemoveDeviceStateModifier(ModifierId modifierId);
 
-    void EnqueueConcurrentChange(InputDevice& device, InputState& state, InputDeltaState* delta, DeviceButtonId buttonId, bool value);
-    void EnqueueConcurrentChange(InputDevice& device, InputState& state, InputDeltaState* delta, DeviceButtonId buttonId, float value);
+	void EnqueueConcurrentChange(InputDevice& device, InputState& state, InputDeltaState* delta, DeviceButtonId buttonId, bool value);
+	void EnqueueConcurrentChange(InputDevice& device, InputState& state, InputDeltaState* delta, DeviceButtonId buttonId, float value);
 
 	/// [IN dev BUILDS ONLY] Connect to a remote host to send device state changes to.
 	void ConnectForStateSync(const char* ip, unsigned port);
@@ -218,52 +240,63 @@ public:
 	//getter/setter for window Instance window instance 
 	void SetWindowsInstance(void* instance) { pWindowInstance = instance; }
 	void* GetWindowsInstance() { return pWindowInstance; }
+    
+    // Check whether HID is enabled.
+	bool IsHIDEnabled() { return mHIDDiscoveryEnabled; }
 private:
-    Allocator& mAllocator;
+	Allocator& mAllocator;
 
-    DeviceMap mDevices;
-    unsigned mNextDeviceID;
+	DeviceMap mDevices;
+	unsigned mNextDeviceID;
 
-    HashMap<ListenerId, InputListener*> mListeners;
-    unsigned mNextListenerID;
-    Array<InputListener*> mSortedListeners;
+	void* mDevListenerMetadata;
+	DeviceListener mDevListener;
+	int mPadCnt;
+	Array<InputDevicePad*> mPads;
+	Array<DeviceId> mToRemove;
 
-    HashMap<ModifierId, DeviceStateModifier*> mModifiers;
-    unsigned mNextModifierID;
+	HashMap<ListenerId, InputListener*> mListeners;
+	unsigned mNextListenerID;
+	Array<InputListener*> mSortedListeners;
 
-    InputDeltaState* pDeltaState;
+	HashMap<ModifierId, DeviceStateModifier*> mModifiers;
+	unsigned mNextModifierID;
+
+	InputDeltaState* pDeltaState;
 
 	float mDeltaTimeRemainderMs;
 	uint64_t mCurrentTime;
-    struct Change
-    {
-        InputDevice* device;
-        InputState* state;
-        InputDeltaState* delta;
-        DeviceButtonId buttonId;
+	struct Change
+	{
+		InputDevice* device;
+		InputState* state;
+		InputDeltaState* delta;
+		DeviceButtonId buttonId;
 		ButtonType type;
 		union
 		{
 			bool b;
 			float f;
 		};
-    };
-    
-    GAINPUT_CONC_QUEUE(Change) mConcurrentInputs;
+	};
 
-    int mDisplayWidth;
-    int mDisplayHeight;
+	GAINPUT_CONC_QUEUE(Change) mConcurrentInputs;
 
-    bool mDebugRendererEnabled;
-    DebugRenderer* pDebugRenderer;
-    void* pWindowInstance;
-    bool mInitialized;
-    
-	void DeviceCreated(InputDevice* device);
+	int mDisplayWidth;
+	int mDisplayHeight;
+
+	bool mDebugRendererEnabled;
+	DebugRenderer* pDebugRenderer;
+	void* pWindowInstance;
+	bool mInitialized;
+
+	void ApplyPendingDeletes();
 
 	// Do not copy.
 	InputManager(const InputManager &);
 	InputManager& operator=(const InputManager &);
+    
+	bool mHIDDiscoveryEnabled = true;
 public:
 };
 
@@ -273,10 +306,11 @@ inline
 DeviceId
 InputManager::CreateDevice(unsigned index, InputDevice::DeviceVariant variant)
 {
-	T* device = mAllocator.New<T>(*this, mNextDeviceID, index, variant);
-    mDevices[mNextDeviceID] = device;
-	DeviceCreated(device);
-	return mNextDeviceID++;
+	unsigned id = GetNextId();
+	T* device = mAllocator.New<T>(*this, id, index, variant);
+	mDevices[id] = device;
+	NotifyDeviceListener(id, device, true);
+	return id;
 }
 
 template<class T>
@@ -284,11 +318,36 @@ inline
 T*
 InputManager::CreateAndGetDevice(unsigned index, InputDevice::DeviceVariant variant)
 {
-	T* device = mAllocator.New<T>(*this, mNextDeviceID, index, variant);
-    mDevices[mNextDeviceID] = device;
-	DeviceCreated(device);
-    ++mNextDeviceID;
+	unsigned id = GetNextId();
+	T* device = mAllocator.New<T>(*this, id, index, variant);
+	mDevices[id] = device;
+	NotifyDeviceListener(id, device, true);
 	return device;
+}
+
+inline
+void
+InputManager::RemoveDevice(DeviceId deviceId)
+{
+	if (deviceId == InvalidDeviceId ||
+		mDevices.find(deviceId) == mDevices.end())
+		return;
+
+	NotifyDeviceListener(deviceId, mDevices[deviceId], false);
+	// delay the removal so that update loops don't break
+	mToRemove.push_back(deviceId);
+}
+
+inline
+void
+InputManager::AddDevice(DeviceId deviceId, InputDevice* device)
+{
+	if (deviceId == InvalidDeviceId ||
+		device == NULL)
+		return;
+
+	NotifyDeviceListener(deviceId, device, true);
+	mDevices[deviceId] = device;
 }
 
 inline

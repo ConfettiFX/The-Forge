@@ -1,0 +1,2 @@
+../../../Tools/vswhere.exe -version "[16.0, 17.0)" -requires Microsoft.Component.MSBuild -property installationPath -latest
+/MSBuild/Current/Bin/MSBuild.exe

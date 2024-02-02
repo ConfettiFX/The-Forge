@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 
@@ -13,7 +13,6 @@
 */
 
 #include "shader_defs.h.fsl"
-#include "cull_resources.h.fsl"
 
 // This compute shader is ran over all indirect draw arguments - 0 - MAX_INDIRECT_DRAWS
 
@@ -34,6 +33,8 @@
 // Indirect draw argument buffer layout
 // [ Indirect Draw 0, Indirect Draw 1, Indirect Draw 2, ... Indirect Draw MAX_INDIRECT_DRAWS, Draw counter passed to the execute indirect call on CPU side ]
 
+RES(RWBuffer(uint), indirectMaterialBuffer, UPDATE_FREQ_NONE, u40, binding = 40);
+#include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/batch_compaction.h.fsl"
 
 NUM_THREADS(CLEAR_THREAD_COUNT, 1, 1)
 void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
@@ -49,7 +50,7 @@ void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 	UNROLL_N(NUM_CULLING_VIEWPORTS)
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		numIndices[i] = Get(uncompactedDrawArgs)[i][threadID.x].numIndices;
+		numIndices[i] = Get(uncompactedDrawArgs)[GET_UNCOMPACT_DRAW_INDEX(i, threadID.x)].numIndices;
 		sum += numIndices[i];
 	}
 
@@ -64,38 +65,8 @@ void CS_MAIN(SV_DispatchThreadID(uint3) threadID)
 	{
 		if (numIndices[j] > 0)
 		{
-			uint matID = Get(uncompactedDrawArgs)[j][threadID.x].materialID;
-			bool hasAlpha = (Get(materialProps)[matID] == 1);
-			uint baseMatSlot = BaseMaterialBuffer(hasAlpha, j);
-
-			uint indexCountOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 0;
-			uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2;
-			uint startInstanceOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 4;
-			uint startIndex = Get(uncompactedDrawArgs)[j][threadID.x].startIndex;
-
-			if (hasAlpha)
-			{
-				AtomicAdd(Get(indirectDrawArgsBufferAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
-				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
-				AtomicStore(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
-				
-				#if defined(INDIRECT_COMMAND_BUFFER)
-					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
-					cmdDrawIndexedInstanced(Get(icbAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
-				#endif
-			}
-			else
-			{
-				AtomicAdd(Get(indirectDrawArgsBufferNoAlpha)[j][DRAW_COUNTER_SLOT_POS], 1, slot);
-				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices[j]);
-				AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
-				
-				#if defined(INDIRECT_COMMAND_BUFFER)
-					uint startInstance = AtomicLoad(Get(indirectDrawArgsBufferNoAlpha)[j][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
-					cmdDrawIndexedInstanced(Get(icbNoAlpha)[j], slot, PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[j], numIndices[j], startIndex, 0, 1, startInstance);
-				#endif
-			}
-			Get(indirectMaterialBuffer)[baseMatSlot + slot] = matID;
+			uint instanceSlot = BatchCompaction(threadID.x, j, numIndices[j], slot);
+			Get(indirectMaterialBuffer)[instanceSlot] = Get(uncompactedDrawArgs)[GET_UNCOMPACT_DRAW_INDEX(j, threadID.x)].instanceDataIndex;
 		}
 	}
 

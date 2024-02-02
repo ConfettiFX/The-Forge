@@ -53,8 +53,11 @@ template <typename _Track, typename _Adapter>
 void Decimate(const _Track& _src, const _Adapter& _adapter, float _tolerance,
               _Track* _dest) {
   // Early out if not enough data.
-  if ((uint32_t)arrlen(_src) < 2) {
-    *_dest = _src;
+  const uint32_t srclen = (uint32_t)arrlen(_src);
+  if (srclen < 2) {
+    arrsetlen(*_dest, srclen);
+    if (srclen == 1)
+      (*_dest)[0] = _src[0];
     return;
   }
 

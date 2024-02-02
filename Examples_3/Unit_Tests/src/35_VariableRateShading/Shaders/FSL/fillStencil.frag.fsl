@@ -1,0 +1,172 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#include "shaderDefs.h.fsl"
+
+RES(Tex2D(float4), prevFrameTex, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(Tex2DMS(float2, SAMPLE_COUNT), velocityTex, UPDATE_FREQ_NONE, t1, binding = 1);
+RES(Tex2DMS(uint, SAMPLE_COUNT), prevHistoryTex, UPDATE_FREQ_NONE, t2, binding = 2);
+
+PUSH_CONSTANT(cbRootConstant, b0)
+{
+    DATA(int, width, None);
+    DATA(int, height, None);
+};
+
+STRUCT(PsIn)
+{
+    DATA(float4, position,    SV_POSITION);
+    DATA(float4, uv,          TEXCOORD0);
+};
+
+STRUCT(PSOut)
+{
+	DATA(uint, rate, SV_Target0);
+	DATA(out_coverage, coverage, SV_Coverage);
+};
+
+float samplePrevFrameLuma(int2 nonMsaaPixelPos)
+{
+	float3 luminanceConv = float3(0.257, 0.504, 0.098);
+
+	float3 col = LoadTex2D(Get(prevFrameTex), NO_SAMPLER, nonMsaaPixelPos, 0).rgb;
+	return dot(luminanceConv, col);
+}
+
+uint calcRate1Sample(float qualityThreshold, float black,
+	float colorM,
+	float colorN, 
+	float colorS, 
+	float colorW, 
+	float colorE, 
+	float colorNW,
+	float colorSW,
+	float colorNE,
+	float colorSE
+)
+{
+	float tileLuma =    min( colorM,  min( colorNW, 
+						min( colorSW, min( colorSE,
+						min( colorNE, min( colorW,
+						min( colorE,  min( colorN, colorS) ) ) ) ) ) ) );
+	float visiblityThreshold = qualityThreshold * max( tileLuma, black );
+
+	// Horizontal
+	float dh = max( abs( colorW - colorM ), abs( colorE - colorM ) );
+	float ddh= max( abs( colorNW - colorNE ), abs( colorSW - colorSE ) );
+	dh = max( dh, ddh );
+
+	// Vertical
+	float dv = max( abs( colorN - colorM ), abs( colorS - colorM ) );
+	float ddv= max( abs( colorNW - colorSW ), abs( colorNE - colorSE ) );
+	dv = max( dv, ddv );
+
+	// VH
+	uint rate  = SHADING_RATE_2X2;
+	rate |= dh < visiblityThreshold ? 0 : SHADING_RATE_2X1;
+	rate |= dv < visiblityThreshold ? 0 : SHADING_RATE_1X2;
+
+	return rate;
+}
+
+uint calcRate4Samples(int2 pixelPos, float qualityThreshold, float black)
+{
+	float colors[4][4];
+	for(int yOffset=-1; yOffset<=2; yOffset++)
+	{
+		for(int xOffset=-1; xOffset<=2; xOffset++)
+		{
+			int2 samplePos = (pixelPos*2) + int2(xOffset, yOffset);
+			samplePos = clamp(samplePos, int2(1, 1), int2(Get(width)-2, Get(height)-2));
+
+			colors[xOffset+1][yOffset+1] = samplePrevFrameLuma(samplePos);
+		}
+	}
+	
+	uint rate = 0;
+
+	for(int y=1; y<=2; y++)
+	{
+		for(int x=1; x<=2; x++)
+		{
+			rate |= calcRate1Sample(qualityThreshold, black,
+							colors[x][y],   //colorM, 
+							colors[x][y-1], //colorN, 
+							colors[x][y+1], //colorS, 
+							colors[x-1][y], //colorW, 
+							colors[x+1][y], //colorE, 
+							colors[x-1][y-1],//colorNW,
+							colors[x-1][y+1],//colorSW,
+							colors[x+1][y-1],//colorNE,
+							colors[x+1][y+1] //colorSE
+							);
+
+			if(rate == SHADING_RATE_1X1)
+				return rate;
+		}
+
+		for(int xOffset=-1; xOffset<=2; xOffset++)
+		{
+			int yOffset=2;
+			int2 samplePos = (pixelPos*2) + int2(xOffset, yOffset);
+			samplePos = clamp(samplePos, int2(1, 1), int2(Get(width)-2, Get(height)-2));
+			colors[xOffset+1][yOffset+1] = samplePrevFrameLuma(samplePos);
+		}
+	}
+	return rate;
+}
+
+SET_OUTPUT_FORMAT(0, FMT_32_R)
+
+#if USE_SINGLE_SAMPLE
+PSOut PS_MAIN( PsIn In )
+#else
+PSOut PS_MAIN( PsIn In, SV_SampleIndex(uint) i)
+#endif
+{
+    INIT_MAIN;
+    PSOut Out;
+
+#if USE_SINGLE_SAMPLE
+	uint i = 0;
+#endif
+
+	int2 pixelPos = int2(In.position.xy);
+	float2 vel = LoadTex2DMS(Get(velocityTex), NO_SAMPLER, pixelPos, i).rg;
+	int2 prevPixelPos = pixelPos - int2(round(vel/2));
+
+	uint history = SHADING_RATE_2X2;
+
+	{
+		uint rate = calcRate4Samples(prevPixelPos, qualityThreshold, black);
+		int2 historyPixelPos = prevPixelPos;
+		history = LoadTex2DMS(Get(prevHistoryTex), NO_SAMPLER, historyPixelPos, 0).r;
+		history = ((history << 2) | rate) & 0xff;
+	}
+
+	Out.rate = history;
+	Out.coverage = coverage[GetConservativeRate(Out.rate)];
+    RETURN(Out);
+
+}

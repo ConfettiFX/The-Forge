@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -73,8 +73,8 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float _roughness)
 	float a = _roughness * _roughness;
 
 	float phi = 2.0 * Pi * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
-	float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+	float cosTheta = sqrt(saturate((1.0 - Xi.y) / (1.0 + (a * a - 1.0) * Xi.y)));
+	float sinTheta = sqrt(saturate(1.0 - cosTheta * cosTheta));
 
 	// from spherical coordinates to cartesian coordinates
 	float3 H;

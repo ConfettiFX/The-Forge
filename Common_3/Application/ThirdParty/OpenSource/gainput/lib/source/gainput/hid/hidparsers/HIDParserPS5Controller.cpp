@@ -658,7 +658,7 @@ static PS5ParsedInput ParseSimpleInputReport(PS5CInputReportSimple * rep)
 
 
 static void HIDParsePS5CInputReport(PS5Controller* con,
-    PS5CInputReport* currRep, gainput::InputDeltaState * state)
+    PS5CInputReport* currRep, uint32_t manID, gainput::InputDeltaState * state)
 {
     PS5ParsedInput curr = ParseFullInputReport(currRep);
 
@@ -671,10 +671,10 @@ static void HIDParsePS5CInputReport(PS5Controller* con,
     if (leftActive)
     {
         // Left Joystick X
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonLeftStickX,
+        state->AddChange(manID, gainput::PadButtonLeftStickX,
             con->last.leftJoystick[jX] / SCALING, curr.leftJoystick[jX] / SCALING);
         // Left Joystick Y
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonLeftStickY,
+        state->AddChange(manID, gainput::PadButtonLeftStickY,
             con->last.leftJoystick[jY] / -SCALING, curr.leftJoystick[jY] / -SCALING);
     }
 
@@ -684,21 +684,21 @@ static void HIDParsePS5CInputReport(PS5Controller* con,
     if (rightActive)
     {
         // Right Joystick X
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonRightStickX,
+        state->AddChange(manID, gainput::PadButtonRightStickX,
             con->last.rightJoystick[jX] / SCALING, curr.rightJoystick[jX] / SCALING);
         // Right Joystick Y
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonRightStickY,
+        state->AddChange(manID, gainput::PadButtonRightStickY,
             con->last.rightJoystick[jY] / -SCALING, curr.rightJoystick[jY] / -SCALING);
     }
 
     // Left Trigger
     if (curr.trigger[tL] || con->last.trigger[tL])
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis4,
+        state->AddChange(manID, gainput::PadButtonAxis4,
             con->last.trigger[tL] / TRIG_SCALING, curr.trigger[tL] / TRIG_SCALING);
 
     // Right Trigger
     if (curr.trigger[tR] || con->last.trigger[tR])
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis5,
+        state->AddChange(manID, gainput::PadButtonAxis5,
             con->last.trigger[tR] / TRIG_SCALING, curr.trigger[tR] / TRIG_SCALING);
 
 
@@ -709,82 +709,82 @@ static void HIDParsePS5CInputReport(PS5Controller* con,
     {
         // dpad
         if (buttonsChanged & PS5_DP_UP)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonUp, (bool)(con->last.buttons & PS5_DP_UP), (bool)(curr.buttons & PS5_DP_UP));
+            state->AddChange(manID, gainput::PadButtonUp, (bool)(con->last.buttons & PS5_DP_UP), (bool)(curr.buttons & PS5_DP_UP));
         if (buttonsChanged & PS5_DP_RT)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonRight, (bool)(con->last.buttons & PS5_DP_RT), (bool)(curr.buttons & PS5_DP_RT));
+            state->AddChange(manID, gainput::PadButtonRight, (bool)(con->last.buttons & PS5_DP_RT), (bool)(curr.buttons & PS5_DP_RT));
         if (buttonsChanged & PS5_DP_DN)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonDown, (bool)(con->last.buttons & PS5_DP_DN), (bool)(curr.buttons & PS5_DP_DN));
+            state->AddChange(manID, gainput::PadButtonDown, (bool)(con->last.buttons & PS5_DP_DN), (bool)(curr.buttons & PS5_DP_DN));
         if (buttonsChanged & PS5_DP_LT)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonLeft, (bool)(con->last.buttons & PS5_DP_LT), (bool)(curr.buttons & PS5_DP_LT));
+            state->AddChange(manID, gainput::PadButtonLeft, (bool)(con->last.buttons & PS5_DP_LT), (bool)(curr.buttons & PS5_DP_LT));
         // shape buttons
         if (buttonsChanged & PS5_SQUAR)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonX, (bool)(con->last.buttons & PS5_SQUAR), (bool)(curr.buttons & PS5_SQUAR));
+            state->AddChange(manID, gainput::PadButtonX, (bool)(con->last.buttons & PS5_SQUAR), (bool)(curr.buttons & PS5_SQUAR));
         if (buttonsChanged & PS5_CROSS)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonA, (bool)(con->last.buttons & PS5_CROSS), (bool)(curr.buttons & PS5_CROSS));
+            state->AddChange(manID, gainput::PadButtonA, (bool)(con->last.buttons & PS5_CROSS), (bool)(curr.buttons & PS5_CROSS));
         if (buttonsChanged & PS5_CIRCL)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonB, (bool)(con->last.buttons & PS5_CIRCL), (bool)(curr.buttons & PS5_CIRCL));
+            state->AddChange(manID, gainput::PadButtonB, (bool)(con->last.buttons & PS5_CIRCL), (bool)(curr.buttons & PS5_CIRCL));
         if (buttonsChanged & PS5_TRIAN)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonY, (bool)(con->last.buttons & PS5_TRIAN), (bool)(curr.buttons & PS5_TRIAN));
+            state->AddChange(manID, gainput::PadButtonY, (bool)(con->last.buttons & PS5_TRIAN), (bool)(curr.buttons & PS5_TRIAN));
         // Shoulders
         if (buttonsChanged & PS5_L_SHD)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonL1, (bool)(con->last.buttons & PS5_L_SHD), (bool)(curr.buttons & PS5_L_SHD));
+            state->AddChange(manID, gainput::PadButtonL1, (bool)(con->last.buttons & PS5_L_SHD), (bool)(curr.buttons & PS5_L_SHD));
         if (buttonsChanged & PS5_R_SHD)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonR1, (bool)(con->last.buttons & PS5_R_SHD), (bool)(curr.buttons & PS5_R_SHD));
+            state->AddChange(manID, gainput::PadButtonR1, (bool)(con->last.buttons & PS5_R_SHD), (bool)(curr.buttons & PS5_R_SHD));
         // Share
         if (buttonsChanged & PS5_SHARE)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonSelect, (bool)(con->last.buttons & PS5_SHARE), (bool)(curr.buttons & PS5_SHARE));
+            state->AddChange(manID, gainput::PadButtonSelect, (bool)(con->last.buttons & PS5_SHARE), (bool)(curr.buttons & PS5_SHARE));
         // Menu
         if (buttonsChanged & PS5_MENU_)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonStart, (bool)(con->last.buttons & PS5_MENU_), (bool)(curr.buttons & PS5_MENU_));
+            state->AddChange(manID, gainput::PadButtonStart, (bool)(con->last.buttons & PS5_MENU_), (bool)(curr.buttons & PS5_MENU_));
         // Sticks
         if (buttonsChanged & PS5_L_STK)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonL3, (bool)(con->last.buttons & PS5_L_STK), (bool)(curr.buttons & PS5_L_STK));
+            state->AddChange(manID, gainput::PadButtonL3, (bool)(con->last.buttons & PS5_L_STK), (bool)(curr.buttons & PS5_L_STK));
         if (buttonsChanged & PS5_R_STK)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonR3, (bool)(con->last.buttons & PS5_R_STK), (bool)(curr.buttons & PS5_R_STK));
+            state->AddChange(manID, gainput::PadButtonR3, (bool)(con->last.buttons & PS5_R_STK), (bool)(curr.buttons & PS5_R_STK));
         // PS Button
         if (buttonsChanged & PS5_HOME_)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonHome, (bool)(con->last.buttons & PS5_HOME_), (bool)(curr.buttons & PS5_HOME_));
+            state->AddChange(manID, gainput::PadButtonHome, (bool)(con->last.buttons & PS5_HOME_), (bool)(curr.buttons & PS5_HOME_));
         // Mic Button
         if (buttonsChanged & PS5_MICPH)
-            state->AddChange(CONTROLLER_ID, gainput::PadButton18, (bool)(con->last.buttons & PS5_MICPH), (bool)(curr.buttons & PS5_MICPH));
+            state->AddChange(manID, gainput::PadButton18, (bool)(con->last.buttons & PS5_MICPH), (bool)(curr.buttons & PS5_MICPH));
     }
 
     uint8_t touchDiff = con->last.touch ^ curr.touch;
     // Touch Pad Button
     if (touchDiff & PS5_TCHBT)
-        state->AddChange(CONTROLLER_ID, gainput::PadButton17, (bool)(con->last.touch & PS5_TCHBT), (bool)(curr.touch & PS5_TCHBT));
+        state->AddChange(manID, gainput::PadButton17, (bool)(con->last.touch & PS5_TCHBT), (bool)(curr.touch & PS5_TCHBT));
 
 
     // Touch
 
     // Touch 0
     if (touchDiff & PS5_TCH_0)
-        state->AddChange(CONTROLLER_ID, gainput::PadButton19, (bool)(con->last.touch & PS5_TCH_0), (bool)(curr.touch & PS5_TCH_0));
+        state->AddChange(manID, gainput::PadButton19, (bool)(con->last.touch & PS5_TCH_0), (bool)(curr.touch & PS5_TCH_0));
     // Touch 0 Movement
     else if (curr.touch & PS5_TCH_0)
     {
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis6, con->last.touch0[jX] / TOUCHX_SCALING, curr.touch0[jX] / TOUCHX_SCALING);
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis6, con->last.touch0[jY] / TOUCHY_SCALING, curr.touch0[jY] / TOUCHY_SCALING);
+        state->AddChange(manID, gainput::PadButtonAxis6, con->last.touch0[jX] / TOUCHX_SCALING, curr.touch0[jX] / TOUCHX_SCALING);
+        state->AddChange(manID, gainput::PadButtonAxis6, con->last.touch0[jY] / TOUCHY_SCALING, curr.touch0[jY] / TOUCHY_SCALING);
     }
     // Touch 1
     if (touchDiff & PS5_TCH_1)
-        state->AddChange(CONTROLLER_ID, gainput::PadButton20, (bool)(con->last.touch & PS5_TCH_1), (bool)(curr.touch & PS5_TCH_1));
+        state->AddChange(manID, gainput::PadButton20, (bool)(con->last.touch & PS5_TCH_1), (bool)(curr.touch & PS5_TCH_1));
     // Touch 1 Movement
     else if (curr.touch & PS5_TCH_1)
     {
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis7, con->last.touch1[jX] / TOUCHX_SCALING, curr.touch1[jX] / TOUCHX_SCALING);
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis7, con->last.touch1[jY] / TOUCHY_SCALING, curr.touch1[jY] / TOUCHY_SCALING);
+        state->AddChange(manID, gainput::PadButtonAxis7, con->last.touch1[jX] / TOUCHX_SCALING, curr.touch1[jX] / TOUCHX_SCALING);
+        state->AddChange(manID, gainput::PadButtonAxis7, con->last.touch1[jY] / TOUCHY_SCALING, curr.touch1[jY] / TOUCHY_SCALING);
     }
 
 
     // Sensors
 
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonGyroscopeX, con->last.gyro[sX] / SENSOR_SCALING, curr.gyro[sX] / SENSOR_SCALING);
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonGyroscopeY, con->last.gyro[sY] / SENSOR_SCALING, curr.gyro[sY] / SENSOR_SCALING);
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonGyroscopeZ, con->last.gyro[sZ] / SENSOR_SCALING, curr.gyro[sZ] / SENSOR_SCALING);
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonAccelerationX, con->last.accel[sX] / SENSOR_SCALING, curr.accel[sX] / SENSOR_SCALING);
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonAccelerationY, con->last.accel[sY] / SENSOR_SCALING, curr.accel[sY] / SENSOR_SCALING);
-    state->AddChange(CONTROLLER_ID, gainput::PadButtonAccelerationZ, con->last.accel[sZ] / SENSOR_SCALING, curr.accel[sZ] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonGyroscopeX, con->last.gyro[sX] / SENSOR_SCALING, curr.gyro[sX] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonGyroscopeY, con->last.gyro[sY] / SENSOR_SCALING, curr.gyro[sY] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonGyroscopeZ, con->last.gyro[sZ] / SENSOR_SCALING, curr.gyro[sZ] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonAccelerationX, con->last.accel[sX] / SENSOR_SCALING, curr.accel[sX] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonAccelerationY, con->last.accel[sY] / SENSOR_SCALING, curr.accel[sY] / SENSOR_SCALING);
+    state->AddChange(manID, gainput::PadButtonAccelerationZ, con->last.accel[sZ] / SENSOR_SCALING, curr.accel[sZ] / SENSOR_SCALING);
 
 
     // Store Data
@@ -792,7 +792,7 @@ static void HIDParsePS5CInputReport(PS5Controller* con,
 }
 
 static void HIDParsePS5ControllerSimpleReport(PS5Controller* con,
-    PS5CInputReportSimple* currRep, gainput::InputDeltaState * state)
+    PS5CInputReportSimple* currRep, uint32_t manID, gainput::InputDeltaState * state)
 {
     PS5ParsedInput curr = ParseSimpleInputReport(currRep);
 
@@ -805,10 +805,10 @@ static void HIDParsePS5ControllerSimpleReport(PS5Controller* con,
     if (leftActive)
     {
         // Left Joystick X
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonLeftStickX,
+        state->AddChange(manID, gainput::PadButtonLeftStickX,
             con->last.leftJoystick[jX] / SCALING, curr.leftJoystick[jX] / SCALING);
         // Left Joystick Y
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonLeftStickY,
+        state->AddChange(manID, gainput::PadButtonLeftStickY,
             con->last.leftJoystick[jY] / -SCALING, curr.leftJoystick[jY] / -SCALING);
     }
 
@@ -818,21 +818,21 @@ static void HIDParsePS5ControllerSimpleReport(PS5Controller* con,
     if (rightActive)
     {
         // Right Joystick X
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonRightStickX,
+        state->AddChange(manID, gainput::PadButtonRightStickX,
             con->last.rightJoystick[jX] / SCALING, curr.rightJoystick[jX] / SCALING);
         // Right Joystick Y
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonRightStickY,
+        state->AddChange(manID, gainput::PadButtonRightStickY,
             con->last.rightJoystick[jY] / -SCALING, curr.rightJoystick[jY] / -SCALING);
     }
 
     // Left Trigger
     if (curr.trigger[tL] || con->last.trigger[tL])
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis4,
+        state->AddChange(manID, gainput::PadButtonAxis4,
             con->last.trigger[tL] / TRIG_SCALING, curr.trigger[tL] / TRIG_SCALING);
 
     // Right Trigger
     if (curr.trigger[tR] || con->last.trigger[tR])
-        state->AddChange(CONTROLLER_ID, gainput::PadButtonAxis5,
+        state->AddChange(manID, gainput::PadButtonAxis5,
             con->last.trigger[tR] / TRIG_SCALING, curr.trigger[tR] / TRIG_SCALING);
 
 
@@ -843,50 +843,50 @@ static void HIDParsePS5ControllerSimpleReport(PS5Controller* con,
     {
         // dpad
         if (buttonsChanged & PS5_DP_UP)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonUp, (bool)(con->last.buttons & PS5_DP_UP), (bool)(curr.buttons & PS5_DP_UP));
+            state->AddChange(manID, gainput::PadButtonUp, (bool)(con->last.buttons & PS5_DP_UP), (bool)(curr.buttons & PS5_DP_UP));
         if (buttonsChanged & PS5_DP_RT)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonRight, (bool)(con->last.buttons & PS5_DP_RT), (bool)(curr.buttons & PS5_DP_RT));
+            state->AddChange(manID, gainput::PadButtonRight, (bool)(con->last.buttons & PS5_DP_RT), (bool)(curr.buttons & PS5_DP_RT));
         if (buttonsChanged & PS5_DP_DN)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonDown, (bool)(con->last.buttons & PS5_DP_DN), (bool)(curr.buttons & PS5_DP_DN));
+            state->AddChange(manID, gainput::PadButtonDown, (bool)(con->last.buttons & PS5_DP_DN), (bool)(curr.buttons & PS5_DP_DN));
         if (buttonsChanged & PS5_DP_LT)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonLeft, (bool)(con->last.buttons & PS5_DP_LT), (bool)(curr.buttons & PS5_DP_LT));
+            state->AddChange(manID, gainput::PadButtonLeft, (bool)(con->last.buttons & PS5_DP_LT), (bool)(curr.buttons & PS5_DP_LT));
         // shape buttons
         if (buttonsChanged & PS5_SQUAR)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonX, (bool)(con->last.buttons & PS5_SQUAR), (bool)(curr.buttons & PS5_SQUAR));
+            state->AddChange(manID, gainput::PadButtonX, (bool)(con->last.buttons & PS5_SQUAR), (bool)(curr.buttons & PS5_SQUAR));
         if (buttonsChanged & PS5_CROSS)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonA, (bool)(con->last.buttons & PS5_CROSS), (bool)(curr.buttons & PS5_CROSS));
+            state->AddChange(manID, gainput::PadButtonA, (bool)(con->last.buttons & PS5_CROSS), (bool)(curr.buttons & PS5_CROSS));
         if (buttonsChanged & PS5_CIRCL)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonB, (bool)(con->last.buttons & PS5_CIRCL), (bool)(curr.buttons & PS5_CIRCL));
+            state->AddChange(manID, gainput::PadButtonB, (bool)(con->last.buttons & PS5_CIRCL), (bool)(curr.buttons & PS5_CIRCL));
         if (buttonsChanged & PS5_TRIAN)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonY, (bool)(con->last.buttons & PS5_TRIAN), (bool)(curr.buttons & PS5_TRIAN));
+            state->AddChange(manID, gainput::PadButtonY, (bool)(con->last.buttons & PS5_TRIAN), (bool)(curr.buttons & PS5_TRIAN));
         // Shoulders
         if (buttonsChanged & PS5_L_SHD)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonL1, (bool)(con->last.buttons & PS5_L_SHD), (bool)(curr.buttons & PS5_L_SHD));
+            state->AddChange(manID, gainput::PadButtonL1, (bool)(con->last.buttons & PS5_L_SHD), (bool)(curr.buttons & PS5_L_SHD));
         if (buttonsChanged & PS5_R_SHD)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonR1, (bool)(con->last.buttons & PS5_R_SHD), (bool)(curr.buttons & PS5_R_SHD));
+            state->AddChange(manID, gainput::PadButtonR1, (bool)(con->last.buttons & PS5_R_SHD), (bool)(curr.buttons & PS5_R_SHD));
         // Share
         if (buttonsChanged & PS5_SHARE)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonSelect, (bool)(con->last.buttons & PS5_SHARE), (bool)(curr.buttons & PS5_SHARE));
+            state->AddChange(manID, gainput::PadButtonSelect, (bool)(con->last.buttons & PS5_SHARE), (bool)(curr.buttons & PS5_SHARE));
         // Menu
         if (buttonsChanged & PS5_MENU_)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonStart, (bool)(con->last.buttons & PS5_MENU_), (bool)(curr.buttons & PS5_MENU_));
+            state->AddChange(manID, gainput::PadButtonStart, (bool)(con->last.buttons & PS5_MENU_), (bool)(curr.buttons & PS5_MENU_));
         // Sticks
         if (buttonsChanged & PS5_L_STK)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonL3, (bool)(con->last.buttons & PS5_L_STK), (bool)(curr.buttons & PS5_L_STK));
+            state->AddChange(manID, gainput::PadButtonL3, (bool)(con->last.buttons & PS5_L_STK), (bool)(curr.buttons & PS5_L_STK));
         if (buttonsChanged & PS5_R_STK)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonR3, (bool)(con->last.buttons & PS5_R_STK), (bool)(curr.buttons & PS5_R_STK));
+            state->AddChange(manID, gainput::PadButtonR3, (bool)(con->last.buttons & PS5_R_STK), (bool)(curr.buttons & PS5_R_STK));
         // PS Button
         if (buttonsChanged & PS5_HOME_)
-            state->AddChange(CONTROLLER_ID, gainput::PadButtonHome, (bool)(con->last.buttons & PS5_HOME_), (bool)(curr.buttons & PS5_HOME_));
+            state->AddChange(manID, gainput::PadButtonHome, (bool)(con->last.buttons & PS5_HOME_), (bool)(curr.buttons & PS5_HOME_));
         // Mic Button
         if (buttonsChanged & PS5_MICPH)
-            state->AddChange(CONTROLLER_ID, gainput::PadButton18, (bool)(con->last.buttons & PS5_MICPH), (bool)(curr.buttons & PS5_MICPH));
+            state->AddChange(manID, gainput::PadButton18, (bool)(con->last.buttons & PS5_MICPH), (bool)(curr.buttons & PS5_MICPH));
     }
 
     uint8_t touchDiff = con->last.touch ^ curr.touch;
     // Touch Pad Button
     if (touchDiff & PS5_TCHBT)
-        state->AddChange(CONTROLLER_ID, gainput::PadButton17, (bool)(con->last.touch & PS5_TCHBT), (bool)(curr.touch & PS5_TCHBT));
+        state->AddChange(manID, gainput::PadButton17, (bool)(con->last.touch & PS5_TCHBT), (bool)(curr.touch & PS5_TCHBT));
 
 
     // Store Data
@@ -922,10 +922,10 @@ static int HIDUpdatePS5Controller(HIDController* controller, gainput::InputDelta
         {
             if (size == 10 || size == 78)
                 // Handle the occasional simplified packet
-                HIDParsePS5ControllerSimpleReport(con, (PS5CInputReportSimple*)(data), state);
+                HIDParsePS5ControllerSimpleReport(con, (PS5CInputReportSimple*)(data), controller->manID, state);
             else
                 // Normal USB input
-                HIDParsePS5CInputReport(con, (PS5CInputReport*)(data), state);
+                HIDParsePS5CInputReport(con, (PS5CInputReport*)(data), controller->manID, state);
         }
         else if (*data == PS5_REP_BLUETOOTH_IN)
         {
@@ -933,7 +933,7 @@ static int HIDUpdatePS5Controller(HIDController* controller, gainput::InputDelta
             if (con->btLightPending)
                 HIDUpdateBTLightStatusPS5Controller(controller, report->sensorTime);
 
-            HIDParsePS5CInputReport(con, report, state);
+            HIDParsePS5CInputReport(con, report, controller->manID, state);
         }
     }
 

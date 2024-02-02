@@ -94,6 +94,7 @@
 #define CGLTF_H_INCLUDED__
 
 #include <stddef.h>
+#include "../../../../../Utilities/Interfaces/IFileSystem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,6 +119,7 @@ typedef struct cgltf_options
 	void* (*memory_alloc)(void* user, cgltf_size size);
 	void (*memory_free) (void* user, void* ptr);
 	void* memory_user_data;
+	ResourceDirectory rd;
 } cgltf_options;
 
 typedef enum cgltf_result
@@ -623,12 +625,11 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 #define CGLTF_IMPLEMENTATION
 #endif
 
-#ifdef CGLTF_IMPLEMENTATION
+#if defined(CGLTF_IMPLEMENTATION) || defined(CGLTF_JSMN_IMPLEMENTATION)
 
 #include <stdint.h> /* For uint8_t, uint32_t */
 #include <string.h> /* For strncpy */
 #include <stdlib.h> /* For malloc, free */
-#include <stdio.h>  /* For fopen */
 #include <limits.h> /* For UINT_MAX etc */
 
 /* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
@@ -677,7 +678,10 @@ static int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t
  * -- jsmn.h end --
  */
 
+#endif
 
+
+#if defined(CGLTF_IMPLEMENTATION)
 static const cgltf_size GlbHeaderSize = 12;
 static const cgltf_size GlbChunkHeaderSize = 8;
 static const uint32_t GlbVersion = 2;
@@ -688,13 +692,13 @@ static const uint32_t GlbMagicBinChunk = 0x004E4942;
 static void* cgltf_default_alloc(void* user, cgltf_size size)
 {
 	(void)user;
-	return malloc(size);
+	return tf_malloc(size);
 }
 
 static void cgltf_default_free(void* user, void* ptr)
 {
 	(void)user;
-	free(ptr);
+	tf_free(ptr);
 }
 
 static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_size count)
@@ -856,42 +860,37 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
 	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
 
-	FILE* file = fopen(path, "rb");
-	if (!file)
+	FileStream file;
+	if (!fsOpenStreamFromPath(options->rd, path, FM_READ, &file))
 	{
 		return cgltf_result_file_not_found;
 	}
 
-	fseek(file, 0, SEEK_END);
-
-	long length = ftell(file);
+	ssize_t length = fsGetStreamFileSize(&file);
 	if (length < 0)
 	{
-		fclose(file);
+		fsCloseStream(&file);
 		return cgltf_result_io_error;
 	}
-
-	fseek(file, 0, SEEK_SET);
 
 	char* file_data = (char*)memory_alloc(options->memory_user_data, length);
 	if (!file_data)
 	{
-		fclose(file);
+		fsCloseStream(&file);
 		return cgltf_result_out_of_memory;
 	}
 
-	cgltf_size file_size = (cgltf_size)length;
-	cgltf_size read_size = fread(file_data, 1, file_size, file);
+	size_t read_size = fsReadFromStream(&file, file_data, (size_t)length);
 
-	fclose(file);
+	fsCloseStream(&file);
 
-	if (read_size != file_size)
+	if (read_size != (size_t)length)
 	{
 		memory_free(options->memory_user_data, file_data);
 		return cgltf_result_io_error;
 	}
 
-	cgltf_result result = cgltf_parse(options, file_data, file_size, out_data);
+	cgltf_result result = cgltf_parse(options, file_data, length, out_data);
 
 	if (result != cgltf_result_success)
 	{
@@ -936,11 +935,12 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 
 	cgltf_combine_paths(path, gltf_path, uri);
 
-	FILE* file = fopen(path, "rb");
+	FileStream file;
+	bool opened = fsOpenStreamFromPath(options->rd, path, FM_READ, &file);
 
 	memory_free(options->memory_user_data, path);
 
-	if (!file)
+	if (!opened)
 	{
 		return cgltf_result_file_not_found;
 	}
@@ -948,13 +948,13 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 	char* file_data = (char*)memory_alloc(options->memory_user_data, size);
 	if (!file_data)
 	{
-		fclose(file);
+		fsCloseStream(&file);
 		return cgltf_result_out_of_memory;
 	}
 
-	cgltf_size read_size = fread(file_data, 1, size, file);
+	size_t read_size = fsReadFromStream(&file, file_data, size);
 
-	fclose(file);
+	fsCloseStream(&file);
 
 	if (read_size != size)
 	{
@@ -1429,7 +1429,7 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory_free(data->memory_user_data, data->materials);
 
-	for (cgltf_size i = 0; i < data->images_count; ++i) 
+	for (cgltf_size i = 0; i < data->images_count; ++i)
 	{
 		data->memory_free(data->memory_user_data, data->images[i].name);
 		data->memory_free(data->memory_user_data, data->images[i].uri);
@@ -2561,7 +2561,7 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 			out_texture_view->texcoord = cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0)
 		{
 			++i;
 			out_texture_view->scale = cgltf_json_to_float(tokens + i, json_chunk);
@@ -2634,11 +2634,11 @@ static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "metallicFactor") == 0)
 		{
 			++i;
-			out_pbr->metallic_factor = 
+			out_pbr->metallic_factor =
 				cgltf_json_to_float(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0) 
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0)
 		{
 			++i;
 			out_pbr->roughness_factor =
@@ -2730,11 +2730,11 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 	int size = tokens[i].size;
 	++i;
 
-	for (int j = 0; j < size; ++j) 
+	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
 
-		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0)
 		{
 			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->uri);
 		}
@@ -2785,7 +2785,7 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
 
-		if (cgltf_json_strcmp(tokens + i, json_chunk, "magFilter") == 0) 
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "magFilter") == 0)
 		{
 			++i;
 			out_sampler->mag_filter
@@ -2806,7 +2806,7 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 				= cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0)
 		{
 			++i;
 			out_sampler->wrap_t
@@ -2853,7 +2853,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 			out_texture->sampler = CGLTF_PTRINDEX(cgltf_sampler, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0)
 		{
 			++i;
 			out_texture->image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
@@ -4579,6 +4579,10 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	return 0;
 }
 
+#endif /* #ifdef CGLTF_IMPLEMENTATION */
+
+#if defined(CGLTF_IMPLEMENTATION) || defined(CGLTF_JSMN_IMPLEMENTATION)
+
 /*
  * -- jsmn.c start --
  * Source: https://github.com/zserge/jsmn
@@ -4920,7 +4924,8 @@ static void jsmn_init(jsmn_parser *parser) {
  * -- jsmn.c end --
  */
 
-#endif /* #ifdef CGLTF_IMPLEMENTATION */
+#endif /* #ifdef defined(CGLTF_IMPLEMENTATION) || defined(CGLTF_JSMN_IMPLEMENTATION) */
+
 
 #ifdef _WIN32
 #pragma warning(pop)

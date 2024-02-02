@@ -9,89 +9,54 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug_XboxOne|x64">
+      <Configuration>Debug_XboxOne</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_XboxOne|x64">
+      <Configuration>Release_XboxOne</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\OS\Windows\WindowsFileSystem.cpp" />
-    <ClCompile Include="..\..\..\OS\Windows\WindowsLog.c" />
-    <ClCompile Include="..\..\..\OS\Windows\WindowsStackTraceDump.cpp" />
-    <ClCompile Include="..\..\..\OS\Windows\WindowsThread.c" />
-    <ClCompile Include="..\..\..\OS\Windows\WindowsTime.c" />
+    <ClCompile Include="..\..\..\..\Prospero\Common_3\Tools\AssetPipeline\AssetPipeline_TexturesGnf.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64' and !exists('$(SCE_PROSPERO_SDK_DIR)')">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64' and !exists('$(SCE_PROSPERO_SDK_DIR)')">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64' and !exists('$(SCE_PROSPERO_SDK_DIR)')">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64' and !exists('$(SCE_PROSPERO_SDK_DIR)')">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\Xbox\Common_3\Tools\AssetPipeline\AssetPipeline_TexturesXbox.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64' and !(exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64' and !(exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64' and !(exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln'))">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64' and !(exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln'))">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\OS\Windows\WindowsToolsFileSystem.cpp" />
     <ClCompile Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp" />
-    <ClCompile Include="..\..\..\Utilities\FileSystem\FileSystem.cpp" />
-    <ClCompile Include="..\..\..\Utilities\FileSystem\SystemRun.cpp" />
-    <ClCompile Include="..\..\..\Utilities\FileSystem\ZipFileSystem.c" />
-    <ClCompile Include="..\..\..\Utilities\Log\Log.c" />
-    <ClCompile Include="..\..\..\Utilities\Math\Algorithms.c" />
-    <ClCompile Include="..\..\..\Utilities\Math\StbDs.c" />
-    <ClCompile Include="..\..\..\Utilities\MemoryTracking\MemoryTracking.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aescrypt.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aeskey.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt_brg.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.cpp" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_raw.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.c" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp" />
-    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp" />
-    <ClCompile Include="..\..\..\Utilities\Threading\ThreadSystem.cpp" />
-    <ClCompile Include="..\..\..\Utilities\Timer.c" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\allocator.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\clusterizer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\indexcodec.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\indexgenerator.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\overdrawanalyzer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\overdrawoptimizer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\simplifier.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\spatialorder.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\stripifier.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vcacheanalyzer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vcacheoptimizer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vertexcodec.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vertexfilter.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vfetchanalyzer.cpp" />
+    <ClCompile Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\vfetchoptimizer.cpp" />
+    <ClCompile Include="..\..\..\Utilities\FileSystem\ToolFileSystem.c" />
     <ClCompile Include="..\src\AssetPipeline.cpp" />
     <ClCompile Include="..\src\AssetPipelineCmd.cpp" />
+    <ClCompile Include="..\src\AssetPipeline_Textures.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Application\Interfaces\IApp.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\ICameraController.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IInput.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IMiddleware.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IProfiler.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IScreenshot.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IUI.h" />
-    <ClInclude Include="..\..\..\Game\Interfaces\IScripting.h" />
-    <ClInclude Include="..\..\..\Application\Interfaces\IFont.h" />
-    <ClInclude Include="..\..\..\OS\Core\GPUConfig.h" />
-    <ClInclude Include="..\..\..\OS\Interfaces\IOperatingSystem.h" />
-    <ClInclude Include="..\..\..\OS\Windows\WindowsStackTraceDump.h" />
     <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXAsset.h" />
     <ClInclude Include="..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IFileSystem.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\ILog.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IMemory.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IThread.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\ITime.h" />
-    <ClInclude Include="..\..\..\Utilities\Interfaces\IToolFileSystem.h" />
-    <ClInclude Include="..\..\..\Utilities\Log\Log.h" />
-    <ClInclude Include="..\..\..\Utilities\Math\Algorithms.h" />
-    <ClInclude Include="..\..\..\Utilities\Math\AlgorithmsImpl.h" />
-    <ClInclude Include="..\..\..\Utilities\Math\BStringHashMap.h" />
-    <ClInclude Include="..\..\..\Utilities\MemoryTracking\NoMemoryDefines.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aes.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aesopt.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\aestab.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_endian.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\brg_types.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\hmac.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha1.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\lib\brg\sha2.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_crypt.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_os.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_wzaes.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_strm_zlib.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\minizip\mz_zip.h" />
-    <ClInclude Include="..\..\..\Utilities\ThirdParty\OpenSource\zip\miniz.h" />
-    <ClInclude Include="..\..\..\Utilities\Threading\Atomics.h" />
-    <ClInclude Include="..\..\..\Utilities\Threading\ThreadSystem.h" />
+    <ClInclude Include="..\..\ThirdParty\OpenSource\meshoptimizer\src\meshoptimizer.h" />
     <ClInclude Include="..\src\AssetPipeline.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -106,13 +71,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -121,94 +99,259 @@
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\IDE\Visual Studio\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VULKAN_SDK)\Include;$(ProjectDir)..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\include;$(IncludePath)</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;astc-encoder.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;ispc_texcomp.lib;OS.lib;BunyLib.lib</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>IF EXIST "$(GXDKLatest)\bin\Scarlett\xg_xs.dll" $(systemroot)\System32\xcopy /Y "$(GXDKLatest)\bin\Scarlett\xg_xs.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' and exists('$(SCE_PROSPERO_SDK_DIR)')">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);PROSPERO_GNF;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SCE_PROSPERO_SDK_DIR)\target\include_common;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);libSceAgcTextureTool_Debug.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SCE_PROSPERO_SDK_DIR)\host_tools\lib;$(OutDir)..\Debug;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' and exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln')">
+    <PreBuildEvent>
+      <Message>Building DirectXTex Lib For XBoxOne and Scarlett DDS Support</Message>
+      <Command>"$(VSAPPIDDIR)devenv" "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln" /Build Debug_Scarlett /project "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\DirectXTex_GXDK_PC_2019.vcxproj"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);XBOX_SCARLETT_DDS;_GAMING_XBOX_SCARLETT;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(GXDKLatest)\toolKit\include\Scarlett;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);xg_xs.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(GXDKLatest)\toolKit\lib\amd64\Scarlett;$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\Bin\GXDKPC_2019\x64\Debug_Scarlett;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;astc-encoder.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;ispc_texcomp.lib;OS.lib;BunyLib.lib</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>IF EXIST "$(GXDKLatest)\bin\XboxOne\xg.dll" $(systemroot)\System32\xcopy /Y "$(GXDKLatest)\bin\XboxOne\xg.dll" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y /S   "$(ProjectDir)$(Platform)\Debug\OS" "$(TargetDir)OS\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\OS.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\bunylib.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ispc_texcomp.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ozz_animation.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ozz_animation_offline.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Debug\ozz_base.lib" "$(TargetDir)"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
       </Command>
     </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64' and exists('$(SCE_PROSPERO_SDK_DIR)')">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);PROSPERO_GNF;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SCE_PROSPERO_SDK_DIR)\target\include_common;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);libSceAgcTextureTool_Debug.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SCE_PROSPERO_SDK_DIR)\host_tools\lib;$(OutDir)..\Debug;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_XboxOne|x64' and exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln')">
+    <PreBuildEvent>
+      <Message>Building DirectXTex Lib For XBoxOne and Scarlett DDS Support</Message>
+      <Command>"$(VSAPPIDDIR)devenv" "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln" /Build Debug /project "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\DirectXTex_GXDK_PC_2019.vcxproj"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);XBOX_SCARLETT_DDS;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(GXDKLatest)\toolKit\include\XboxOne;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);xg.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(GXDKLatest)\toolKit\lib\amd64\XboxOne;$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\Bin\GXDKPC_2019\x64\Debug;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>%(AdditionalDependencies);WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;ispc_texcomp.lib;OS.lib;BunyLib.lib</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF EXIST "$(GXDKLatest)\bin\Scarlett\xg_xs.dll" $(systemroot)\System32\xcopy /Y "$(GXDKLatest)\bin\Scarlett\xg_xs.dll" "$(TargetDir)"</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' and exists('$(SCE_PROSPERO_SDK_DIR)')">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);PROSPERO_GNF;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SCE_PROSPERO_SDK_DIR)\target\include_common;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);libSceAgcTextureTool.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SCE_PROSPERO_SDK_DIR)\host_tools\lib;$(OutDir)..\Release;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' and exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln')">
+    <PreBuildEvent>
+      <Message>Building DirectXTex Libs For XBoxOne and Scarlett DDS Support</Message>
+      <Command>"$(VSAPPIDDIR)devenv" "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln" /Build Release_Scarlett /project "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\DirectXTex_GXDK_PC_2019.vcxproj"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);XBOX_SCARLETT_DDS;_GAMING_XBOX_SCARLETT;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(GXDKLatest)\toolKit\include\Scarlett;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);xg_xs.lib;DirectXTex.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\Bin\GXDKPC_2019\x64\Release_Scarlett;$(GXDKLatest)\toolKit\lib\amd64\Scarlett;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;_WINDOWS;_CONSOLE;TOOLS_FILESYSTEM;</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>%(AdditionalDependencies);WinMM.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;ispc_texcomp.lib;OS.lib;BunyLib.lib</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF EXIST "$(GXDKLatest)\bin\XboxOne\xg.dll" $(systemroot)\System32\xcopy /Y "$(GXDKLatest)\bin\XboxOne\xg.dll" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y /S   "$(ProjectDir)$(Platform)\Release\OS" "$(TargetDir)OS\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\OS.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\bunylib.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\ispc_texcomp.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\ozz_animation.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\ozz_animation_offline.lib" "$(TargetDir)"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)$(Platform)\Release\ozz_base.lib" "$(TargetDir)"</Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>
+      </Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64' and exists('$(SCE_PROSPERO_SDK_DIR)')">
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);PROSPERO_GNF;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SCE_PROSPERO_SDK_DIR)\target\include_common;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);libSceAgcTextureTool.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SCE_PROSPERO_SDK_DIR)\host_tools\lib;$(OutDir)..\Release;</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_XboxOne|x64' and exists('$(GXDKLatest)') and exists('$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln')">
+    <PreBuildEvent>
+      <Message>Building DirectXTex Libs For XBoxOne and Scarlett DDS Support</Message>
+      <Command>"$(VSAPPIDDIR)devenv" "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\xtexconv\xtexconv.sln" /Build Release /project "$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\DirectXTex_GXDK_PC_2019.vcxproj"</Command>
+    </PreBuildEvent>
+    <ClCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);XBOX_SCARLETT_DDS;</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(GXDKLatest)\toolKit\include\XboxOne;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>%(AdditionalDependencies);DirectXTex.lib;xg.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(SolutionDir)..\..\..\..\Xbox\Common_3\ThirdParty\OpenSource\DirectXTex\Bin\GXDKPC_2019\x64\Release;$(GXDKLatest)\toolKit\lib\amd64\XboxOne;</AdditionalLibraryDirectories>
+    </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

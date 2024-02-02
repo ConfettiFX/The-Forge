@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,8 +24,6 @@
 
 #include "resources.h.fsl"
 
-ENABLE_WAVEOPS()
-
 STRUCT(PSInput)
 {
 	DATA(float4, position, SV_Position);
@@ -46,13 +44,12 @@ float4 PS_MAIN( PSInput In )
 {
 	INIT_MAIN;
 	float4 Out;
-	
+
 	float4 outputColor;
 
 	// Add grid-like texture pattern on top of the color
 	float texP = texPattern(In.position.xy);
 	outputColor = texP * In.color;
-
 	switch (Get(renderMode))
 	{
 		case 1:
@@ -60,6 +57,7 @@ float4 PS_MAIN( PSInput In )
 			// Just pass through the color we generate before
 			break;
 		}
+		
 		case 2:
 		{
 			// Example of query intrinsics: WaveGetLaneIndex
@@ -67,74 +65,68 @@ float4 PS_MAIN( PSInput In )
 			outputColor = WaveGetLaneIndex() / f4(Get(laneSize));
 			break;
 		}
+		
 		case 3:
 		{
 			// Example of query intrinsics: WaveIsFirstLane
 			// Mark the first lane as white pixel
-#ifndef TARGET_IOS
 			if (WaveIsFirstLane())
 				outputColor = f4(1);
-#endif
 			break;
 		}
+		
+		#if (WAVE_SUPPORTED_FLAGS & WAVE_ARITHMETIC)
 		case 4:
 		{
 			// example of query intrinsics: waveisfirstlane
 			// mark the first active lane as white pixel. mark the last active lane as red pixel.
-#ifndef TARGET_IOS
 			if (WaveIsFirstLane())
 				outputColor = f4(1);
 			if (WaveGetLaneIndex() == WaveGetMaxActiveIndex())
 				outputColor = float4(1., 0., 0., 1.);
-#endif
 			break;
 		}
+		#endif
+		
+		#if (WAVE_SUPPORTED_FLAGS & WAVE_BALLOT)
 		case 5:
 		{
 
 			// Example of vote intrinsics: WaveActiveBallot
 			// Active lanes ratios (# of total activelanes / # of total lanes).
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS)
 			ballot_t activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = CountBallot(activeLaneMask);
 			float activeRatio = float(numActiveLanes) / float(Get(laneSize));
 			outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0);
-#endif
-						
+
 			break;
 		}
+		#endif
+		
+		#if (WAVE_SUPPORTED_FLAGS & WAVE_BALLOT)
 		case 6:
 		{
 			// Example of wave broadcast intrinsics: WaveReadLaneFirst
 			// Broadcast the color in first lan to the wave.
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			outputColor = WaveReadLaneFirst(outputColor);
-#endif
-			// switch/xboxone only support scalar broadcast
-#if defined(TARGET_SWITCH) || defined(TARGET_XBOX)
-			outputColor = float4(
-                WaveReadLaneFirst(outputColor.r),
-                WaveReadLaneFirst(outputColor.g),
-                WaveReadLaneFirst(outputColor.b),
-                WaveReadLaneFirst(outputColor.a)
-            );
-#endif
 			break;
 		}
-
+		#endif
+		
+		#if (WAVE_SUPPORTED_FLAGS & WAVE_BALLOT) && (WAVE_SUPPORTED_FLAGS & WAVE_ARITHMETIC)
 		case 7:
 		{
 			// Example of wave reduction intrinsics: WaveActiveSum
 			// Paint the wave with the averaged color inside the wave.
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS)
 			ballot_t activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = CountBallot(activeLaneMask);
 			float4 avgColor = WaveActiveSum(outputColor) / float(numActiveLanes);
 			outputColor = avgColor;
-#endif
 			break;
 		}
+		#endif
 
+		#if ((WAVE_SUPPORTED_FLAGS & WAVE_BALLOT) && (WAVE_SUPPORTED_FLAGS & WAVE_ARITHMETIC))
 		case 8:
 		{
 
@@ -142,20 +134,20 @@ float4 PS_MAIN( PSInput In )
 			// First, compute the prefix sum of distance each lane to first lane.
 			// Then, use the prefix sum value to color each pixel.
 
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			float4 basePos = WaveReadLaneFirst(In.position);
 			float4 prefixSumPos = WavePrefixSum(In.position - basePos);
-			
+
 			// Get the number of total active lanes.
 			ballot_t activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = CountBallot(activeLaneMask);
-			
+
 			outputColor = prefixSumPos / numActiveLanes;
-#endif
-			
+
 			break;
 		}
-
+		#endif
+		
+		#if (WAVE_SUPPORTED_FLAGS & WAVE_QUAD)
 		case 9:
 		{
 			// Example of Quad-Wide shuffle intrinsics: QuadReadAcrossX and QuadReadAcrossY
@@ -172,7 +164,6 @@ float4 PS_MAIN( PSInput In )
 			//  Y
 			//
 
-#if !defined(TARGET_SWITCH) && !defined(TARGET_IOS) && !defined(TARGET_XBOX)
 			float dx = QuadReadAcrossX(In.position.x) - In.position.x;
 			float dy = QuadReadAcrossY(In.position.y) - In.position.y;
 
@@ -191,8 +182,8 @@ float4 PS_MAIN( PSInput In )
 			else
 				outputColor = float4(0, 0, 0, 1);
 			break;
-#endif
 		}
+		#endif
 
 		default:
 		{

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,16 +22,16 @@
  * under the License.
 */
 
-#define D3D12_SHADING_RATE_1X1 0
-#define D3D12_SHADING_RATE_1X2 1
-#define D3D12_SHADING_RATE_2X1 4
-#define D3D12_SHADING_RATE_2X2 5
-#define D3D12_SHADING_RATE_2X4 6
-#define D3D12_SHADING_RATE_4X2 9
-#define D3D12_SHADING_RATE_4X4 10
-#define SR_COUNT 7
+#include "shaderDefs.h.fsl"
 
-STRUCT(VSOutput)
+PUSH_CONSTANT(cbRootConstant, b0)
+{
+    DATA(uint, kernelSize, None);
+    DATA(int, width, None);
+    DATA(int, height, None);
+};
+
+STRUCT(PsIn)
 {
     DATA(float4, position, SV_POSITION);
     DATA(float4, uv,       TEXCOORD0);
@@ -40,53 +40,29 @@ STRUCT(VSOutput)
 RES(SamplerState,  uSampler, UPDATE_FREQ_NONE, s1, binding = 0);
 RES(Tex2D(float4), uTexture, UPDATE_FREQ_NONE, t1, binding = 1);
 
-PUSH_CONSTANT(cbRootConstant, b0)
-{
-    DATA(float, toggleDebugView, None);
-};
-
-float4 PS_MAIN(VSOutput In, SV_ShadingRate(uint) shadingRate)
+float4 PS_MAIN(PsIn In, SV_SampleIndex(uint) i)
 {
     INIT_MAIN;
-    float4 color;
-    color = float4(SampleTex2D(Get(uTexture), Get(uSampler), In.uv.xy).rgb, 1.0f);
-    if (Get(toggleDebugView) == 0.0)
-        RETURN(color);
-    
-    if (shadingRate == D3D12_SHADING_RATE_1X1)
-    {
-        color.rgb *= float3(0.44, 1.0, 0.49);
-        RETURN(color);
-    }
-    if (shadingRate == D3D12_SHADING_RATE_1X2)
-    {
-        color.rgb *= float3(0.44, 0.49, 1.0);
-        RETURN(color);
-    }
-    if (shadingRate == D3D12_SHADING_RATE_2X1)
-    {
-        color.rgb *= float3(0.239, 0.309, 1);
-        RETURN(color);
-    }  
-    if (shadingRate == D3D12_SHADING_RATE_2X2)
-    {
-        color.rgb *= float3(0.9, 0.9, 0.0);
-        RETURN(color);
-    } 
-    if (shadingRate == D3D12_SHADING_RATE_2X4)
-    {
-        color.rgb *= float3(0.9, 0.9, 0.0);
-        RETURN(color);
-    }
-    if (shadingRate == D3D12_SHADING_RATE_4X2)
-    {
-        color.rgb *= float3(1.0, 0.6, 0.5);
-        RETURN(color);
-    }
-    if (shadingRate == D3D12_SHADING_RATE_4X4)
-    {
-        color.rgb *= float3(1.0, 0.0, 0.0);
-        RETURN(color);
+
+    float2 uv_dx = 0.5 * ddx( In.uv.xy );
+    float2 uv_dy = 0.5 * ddy( In.uv.xy );
+
+    float2 texCoords = In.uv.xy + uvOffsets[i].x * uv_dx + uvOffsets[i].y * uv_dy;
+
+    float4 color = float4(0.0, 0.0, 0.0, 0.0);
+
+    const float blurSizeX = 1.0 / Get(width);
+    const float blurSizeY = 1.0 / Get(height);
+
+    const int kernelRadius = int(Get(kernelSize)/2);
+    const float totalSamples = Get(kernelSize) * Get(kernelSize);
+
+    for (int y = -kernelRadius; y < kernelRadius + 1; y++) {
+        for (int x = -kernelRadius; x < kernelRadius + 1; x++) {
+            float2 coords = float2(texCoords.x + x * blurSizeX, texCoords.y + y * blurSizeY);
+            coords = clamp(coords, float2(0.0, 0.0), float2(0.9999, 0.9999));
+            color += float4(SampleTex2D(Get(uTexture), Get(uSampler), coords).rgb, 1.0) / totalSamples;
+        }
     }
     
     RETURN(color);

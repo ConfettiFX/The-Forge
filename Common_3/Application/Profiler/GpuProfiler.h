@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 #include "../../Utilities/Math/MathTypes.h"
@@ -35,60 +35,54 @@ typedef uint64_t ProfileToken;
 
 typedef struct GpuTimer
 {
-	static const uint32_t LENGTH_OF_HISTORY = 60;
+    static const uint32_t LENGTH_OF_HISTORY = 60;
 
-    char mName[64] =    "Timer";
-	uint32_t             mIndex = 0;
-	uint32_t             mHistoryIndex = 0;
-    uint32_t             mDepth = 0;
+    char     mName[64] = "Timer";
+    uint32_t mIndex = 0;
+    uint32_t mHistoryIndex = 0;
+    uint32_t mDepth = 0;
 
-	uint64_t mStartGpuTime = 0;
-	uint64_t mEndGpuTime = 0;
-	uint64_t mGpuTime = 0;
-    uint64_t mGpuMinTime = 0;
-    uint64_t mGpuMaxTime = 0;
-	uint64_t mGpuHistory[LENGTH_OF_HISTORY] = {};
-	ProfileToken mToken = {};
-	ProfileToken mMicroProfileToken = {};
-    GpuTimer* pParent = NULL;
-	bool mDebugMarker = false;
-    bool mStarted = false;
-
+    uint64_t     mStartGpuTime = 0;
+    uint64_t     mEndGpuTime = 0;
+    uint64_t     mGpuTime = 0;
+    uint64_t     mGpuMinTime = 0;
+    uint64_t     mGpuMaxTime = 0;
+    uint64_t     mGpuHistory[LENGTH_OF_HISTORY] = {};
+    size_t       mHash = 0;
+    ProfileToken mToken = {};
+    ProfileToken mMicroProfileToken = {};
+    GpuTimer*    pParent = NULL;
+    bool         mDebugMarker = false;
+    bool         mStarted = false;
 
 } GpuTimer;
 
 typedef struct GpuProfiler
 {
-	// double buffered
-	static const uint32_t NUM_OF_FRAMES = 3;
-	static const uint32_t MAX_TIMERS = 512;
+    // double buffered
+    static const uint32_t NUM_OF_FRAMES = 3;
+    static const uint32_t MAX_TIMERS = 512;
 
-	Renderer*             pRenderer = {};
-	Buffer*               pReadbackBuffer[NUM_OF_FRAMES] = {};
-	QueryPool*            pQueryPool[NUM_OF_FRAMES] = {};
-	uint64_t*             pTimeStamp = NULL;
-	double                mGpuTimeStampFrequency = 0.0;
+    Renderer*  pRenderer = {};
+    QueryPool* pQueryPool[NUM_OF_FRAMES] = {};
+    uint32_t   mCurrentTimerCount[NUM_OF_FRAMES] = {};
+    double     mGpuTimeStampFrequency = 0.0;
 
-	uint32_t mProfilerIndex = 0;
-	uint32_t mBufferIndex = 0;
-	uint32_t mCurrentTimerCount = 0;
-	uint32_t mMaxTimerCount = 0;
-	uint32_t mCurrentPoolIndex = 0;
+    uint32_t mProfilerIndex = 0;
+    uint32_t mBufferIndex = 0;
+    uint32_t mCurrentPoolIndex = 0;
 
-    GpuTimer*                    pGpuTimerPool = NULL;
-    GpuTimer*                    pCurrentNode = NULL;
+    GpuTimer* pGpuTimerPool = NULL;
+    GpuTimer* pCurrentNode = NULL;
 
-	// MicroProfile
-	char mGroupName[256] = "GPU";
-	ProfileThreadLog * pLog = nullptr;
-
-	bool mReset = true;
-	bool mUpdate = false;
+    // MicroProfile
+    char              mGroupName[256] = "GPU";
+    ProfileThreadLog* pLog = nullptr;
 } GpuProfiler;
 
 struct GpuProfilerContainer
 {
     static const uint32_t MAX_GPU_PROFILERS = 8;
-    GpuProfiler* mProfilers[MAX_GPU_PROFILERS] = { NULL };
-    uint32_t mSize = 0;
+    GpuProfiler*          mProfilers[MAX_GPU_PROFILERS] = { NULL };
+    uint32_t              mSize = 0;
 };

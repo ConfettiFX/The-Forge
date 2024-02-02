@@ -1142,7 +1142,7 @@ bool TinyKtx_GetFormatGL(TinyKtx_ContextHandle handle, uint32_t *glformat, uint3
 	*gltype = ctx->header.glType;
 	*glinternalformat = ctx->header.glInternalFormat;
 	*glbaseinternalformat = ctx->header.glBaseInternalFormat;
-	*typesize = ctx->header.glBaseInternalFormat;
+	*typesize = ctx->header.glTypeSize;
 
 	return true;
 }
@@ -1304,7 +1304,7 @@ bool TinyKtx_CrackFormatToGL(TinyKtx_Format format,
 	case TKTX_R8G8B8A8_SNORM:FT(RGBA, BYTE, RGBA8_SNORM, 1)
 	case TKTX_R8G8B8A8_UINT: FT(RGBA_INTEGER, UNSIGNED_BYTE, RGBA8UI, 1)
 	case TKTX_R8G8B8A8_SINT: FT(RGBA_INTEGER, BYTE, RGBA8I, 1)
-	case TKTX_R8G8B8A8_SRGB: FT(SRGB_ALPHA, UNSIGNED_BYTE, SRGB8, 1)
+	case TKTX_R8G8B8A8_SRGB: FT(SRGB_ALPHA, UNSIGNED_BYTE, SRGB8_ALPHA8, 1)
 
 	case TKTX_B8G8R8A8_UNORM: FT(BGRA, UNSIGNED_BYTE, RGBA8, 1)
 	case TKTX_B8G8R8A8_SNORM: FT(BGRA, BYTE, RGBA8_SNORM, 1)
@@ -1711,13 +1711,13 @@ TinyKtx_Format TinyKtx_CrackFormatFromGL(uint32_t const glformat,
 
 	case TINYKTX_GL_INTFORMAT_SRGB8:
 	case TINYKTX_GL_INTFORMAT_SRGB8_ALPHA8:
-		if (glformat == TINYKTX_GL_FORMAT_SLUMINANCE) {
+		if (glformat == TINYKTX_GL_FORMAT_SLUMINANCE || glformat == TINYKTX_GL_FORMAT_RED) {
 			return TKTX_R8_SRGB;
-		} else if (glformat == TINYKTX_GL_FORMAT_SLUMINANCE_ALPHA) {
+		} else if (glformat == TINYKTX_GL_FORMAT_SLUMINANCE_ALPHA || glformat == TINYKTX_GL_FORMAT_RG) {
 			return TKTX_R8G8_SRGB;
-		} else if (glformat == TINYKTX_GL_FORMAT_SRGB) {
+		} else if (glformat == TINYKTX_GL_FORMAT_SRGB || glformat == TINYKTX_GL_FORMAT_RGB) {
 			return TKTX_R8G8B8_SRGB;
-		} else if (glformat == TINYKTX_GL_FORMAT_SRGB_ALPHA) {
+		} else if (glformat == TINYKTX_GL_FORMAT_SRGB_ALPHA || glformat == TINYKTX_GL_FORMAT_RGBA) {
 			return TKTX_R8G8B8A8_SRGB;
 		} else if (glformat == TINYKTX_GL_FORMAT_BGR) {
 			return TKTX_B8G8R8_SRGB;
@@ -2051,14 +2051,16 @@ bool TinyKtx_WriteImageGL(TinyKtx_WriteCallbacks const *callbacks,
 			uint32_t const snl = s * n * w;
 			uint32_t const k = ((snl + 3u) & ~3u);
 
-			uint32_t const size = (k * h * d * snl);
-			if (size < mipmapsizes[i]) {
+			// Do NOT consider the number of faces in cubemaps for calculating the size according to spec
+			uint32_t const size = (k * h * d * sl);
+			uint32_t const compare_size = cubemap ? size * 6 : size;
+			if (compare_size < mipmapsizes[i]) {
 				callbacks->errorFn(user, "Internal size error, padding should only ever expand");
 				return false;
 			}
 
 			// if we need to expand for padding take the slow per row write route
-			if (size > mipmapsizes[i]) {
+			if (compare_size > mipmapsizes[i]) {
 				callbacks->writeFn(user, &size, sizeof(uint32_t));
 
 				uint8_t const *src = (uint8_t const*) mipmaps[i];
@@ -2084,7 +2086,8 @@ bool TinyKtx_WriteImageGL(TinyKtx_WriteCallbacks const *callbacks,
 
 		if(writeRaw) {
 			uint32_t const size = ((mipmapsizes[i] + 3u) & ~3u);
-			callbacks->writeFn(user, mipmapsizes + i, sizeof(uint32_t));
+			uint32_t const write_size = cubemap ? mipmapsizes[i] / 6 : mipmapsizes[i];
+			callbacks->writeFn(user, &write_size, sizeof(uint32_t));
 			callbacks->writeFn(user, mipmaps[i], mipmapsizes[i]);
 			callbacks->writeFn(user, padding, size - mipmapsizes[i]);
 		}
@@ -2112,8 +2115,17 @@ bool TinyKtx_WriteImage(TinyKtx_WriteCallbacks const *callbacks,
 	uint32_t glinternalFormat;
 	uint32_t gltype;
 	uint32_t gltypeSize;
+	uint32_t glbaseInternalFormat;
 	if (TinyKtx_CrackFormatToGL(format, &glformat, &gltype, &glinternalFormat, &gltypeSize) == false)
 		return false;
+
+	// According to KTX spec v1 https://registry.khronos.org/KTX/specs/1.0/ktxspec.v1.html :
+	// glFormat must equal 0 for compressed textures
+	// glBaseInternal format will be the same as glFormat for uncompressed textures
+	// glBaseInternal format will be one of the base formats for compressed textures
+	glbaseInternalFormat = glformat;
+	if (gltype == TINYKTX_GL_TYPE_COMPRESSED)
+		glformat = 0;
 
 	return TinyKtx_WriteImageGL(callbacks,
 															user,
@@ -2124,7 +2136,7 @@ bool TinyKtx_WriteImage(TinyKtx_WriteCallbacks const *callbacks,
 															mipmaplevels,
 															glformat,
 															glinternalFormat,
-															glinternalFormat, //??
+															glbaseInternalFormat,
 															gltype,
 															gltypeSize,
 															cubemap,
@@ -2392,6 +2404,36 @@ TinyKtx_Format TinyImageFormat_ToTinyKtxFormat(TinyImageFormat format) {
 	case TinyImageFormat_PVRTC1_4BPP_UNORM: return TKTX_PVR_4BPPA_UNORM_BLOCK;
 	case TinyImageFormat_PVRTC1_2BPP_SRGB: return TKTX_PVR_2BPPA_SRGB_BLOCK;
 	case TinyImageFormat_PVRTC1_4BPP_SRGB: return TKTX_PVR_4BPPA_SRGB_BLOCK;
+
+	// ASTC
+	case TinyImageFormat_ASTC_4x4_UNORM:	return TKTX_ASTC_4x4_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_4x4_SRGB:		return TKTX_ASTC_4x4_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_5x4_UNORM:	return TKTX_ASTC_5x4_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_5x4_SRGB:		return TKTX_ASTC_5x4_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_5x5_UNORM:	return TKTX_ASTC_5x5_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_5x5_SRGB:		return TKTX_ASTC_5x5_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_6x5_UNORM:	return TKTX_ASTC_6x5_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_6x5_SRGB:		return TKTX_ASTC_6x5_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_6x6_UNORM:	return TKTX_ASTC_6x6_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_6x6_SRGB:		return TKTX_ASTC_6x6_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_8x5_UNORM:	return TKTX_ASTC_8x5_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_8x5_SRGB:		return TKTX_ASTC_8x5_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_8x6_UNORM:	return TKTX_ASTC_8x6_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_8x6_SRGB:		return TKTX_ASTC_8x6_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_8x8_UNORM:	return TKTX_ASTC_8x8_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_8x8_SRGB:		return TKTX_ASTC_8x8_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_10x5_UNORM:	return TKTX_ASTC_10x5_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_10x5_SRGB:	return TKTX_ASTC_10x5_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_10x6_UNORM:	return TKTX_ASTC_10x6_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_10x6_SRGB:	return TKTX_ASTC_10x6_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_10x8_UNORM:	return TKTX_ASTC_10x8_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_10x8_SRGB:	return TKTX_ASTC_10x8_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_10x10_UNORM:	return TKTX_ASTC_10x10_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_10x10_SRGB:	return TKTX_ASTC_10x10_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_12x10_UNORM:	return TKTX_ASTC_12x10_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_12x10_SRGB:	return TKTX_ASTC_12x10_SRGB_BLOCK;
+	case TinyImageFormat_ASTC_12x12_UNORM:	return TKTX_ASTC_12x12_UNORM_BLOCK;
+	case TinyImageFormat_ASTC_12x12_SRGB:	return TKTX_ASTC_12x12_SRGB_BLOCK;
 
 	default: return TKTX_UNDEFINED;
 	};

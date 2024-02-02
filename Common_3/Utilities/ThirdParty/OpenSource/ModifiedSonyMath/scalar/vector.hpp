@@ -440,7 +440,8 @@ inline const Vector3 xorPerElem(const Vector3& a, const float b)
 {
 	VectorFI4 c{ Vector4(a) };
 	VectorFI4 d{ Vector4(b) };
-	VectorIF4 result = { c.i.x ^ d.i.x, c.i.y ^ d.i.y, c.i.z ^ d.i.z, c.i.w ^ d.i.w };
+	VectorIF4 result = {};
+	result.i = { c.i.x^ d.i.x, c.i.y^ d.i.y, c.i.z^ d.i.z, c.i.w^ d.i.w };
 	return result.f.getXYZ();
 }
 
@@ -1620,7 +1621,8 @@ inline const Vector3d xorPerElem(const Vector3d& a, const double b)
 {
 	VectorDI4 c{ Vector4d(a) };
 	VectorDI4 d{ Vector4d(b) };
-	VectorID4 result = { c.i.x ^ d.i.x, c.i.y ^ d.i.y, c.i.z ^ d.i.z, c.i.w ^ d.i.w };
+	VectorID4 result = {};
+	result.i = { c.i.x^ d.i.x, c.i.y^ d.i.y, c.i.z^ d.i.z, c.i.w^ d.i.w };
 	return result.d.getXYZ();
 }
 

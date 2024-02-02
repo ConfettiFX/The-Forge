@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,13 +20,13 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
-#include "../../Utilities/Interfaces/IToolFileSystem.h"
 #include "../../Utilities/Interfaces/IFileSystem.h"
 #include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IToolFileSystem.h"
 
-void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char *** out, int * count)
+void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, char*** out, int* count)
 {
     (void)resourceDir;
     (void)subDirectory;
@@ -37,7 +37,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
     LOGF(LogLevel::eERROR, "Android fsGetFilesWithExtension is not implemented.");
 }
 
-void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char *** out, int * count)
+void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory, char*** out, int* count)
 {
     (void)resourceDir;
     (void)subDirectory;
@@ -68,7 +68,8 @@ bool fsRenameFile(const ResourceDirectory resourceDir, const char* fileName, con
     return false;
 }
 
-bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir, const char* destFileName)
+bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFileName, const ResourceDirectory destResourceDir,
+                const char* destFileName)
 {
     (void)sourceResourceDir;
     (void)sourceFileName;
@@ -83,12 +84,12 @@ bool fsCopyFile(const ResourceDirectory sourceResourceDir, const char* sourceFil
 bool fsFileExist(const ResourceDirectory resourceDir, const char* fileName)
 {
     FileStream fileStream;
-    if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, NULL, &fileStream))
+    if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ, &fileStream))
     {
         LOGF(LogLevel::eERROR, "%s does not exist.", fileName);
         return false;
     }
     fsCloseStream(&fileStream);
 
-	return true;
+    return true;
 }

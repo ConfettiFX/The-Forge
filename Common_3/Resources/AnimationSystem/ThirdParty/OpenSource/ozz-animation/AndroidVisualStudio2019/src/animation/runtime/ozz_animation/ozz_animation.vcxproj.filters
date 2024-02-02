@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\animation\runtime">
+      <UniqueIdentifier>{c56fbf0c-bb1f-4b37-a21c-79fd0ea9618c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\animation">
+      <UniqueIdentifier>{bfe95b68-3095-452d-a82f-b6efebf13498}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{00a11852-997c-4a53-bdbf-82e3dc8f4fc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation\runtime">
+      <UniqueIdentifier>{ce6b839c-27f5-43f7-92f5-c0cdcfaad6aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation">
+      <UniqueIdentifier>{c2c8335e-e836-4ef0-93d8-906c883e918d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz">
+      <UniqueIdentifier>{f0db5617-0105-4ca3-842b-9d893ce841ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{8e32e127-c453-4a0d-a974-f7383f0a123a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\animation.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\blending_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\ik_aim_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\ik_two_bone_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\local_to_model_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\sampling_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\skeleton.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\skeleton_utils.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\track.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\track_sampling_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\track_triggering_job.cc">
+      <Filter>src\animation\runtime</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\animation.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\blending_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\ik_aim_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\ik_two_bone_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\local_to_model_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\sampling_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\skeleton.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\skeleton_utils.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\track.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\track_sampling_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\track_triggering_job.h">
+      <Filter>include\ozz\animation\runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\src\animation\runtime\animation_keyframe.h">
+      <Filter>src\animation\runtime</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

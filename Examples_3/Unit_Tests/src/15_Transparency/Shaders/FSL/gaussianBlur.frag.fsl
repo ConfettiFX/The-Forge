@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,6 +26,9 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, TEXCOORD0);
+#if FT_MULTIVIEW
+	DATA(FLAT(uint), ViewID, TEXCOORD1);
+#endif
 };
 
 PUSH_CONSTANT(RootConstant, b5)
@@ -33,7 +36,12 @@ PUSH_CONSTANT(RootConstant, b5)
 	DATA(float, axis, None);
 };
 
+#if FT_MULTIVIEW
+RES(Tex2DArray(float4), Source, UPDATE_FREQ_NONE, t0, binding = 0);
+#else
 RES(Tex2D(float4), Source, UPDATE_FREQ_NONE, t0, binding = 0);
+#endif
+
 RES(SamplerState, LinearSampler, UPDATE_FREQ_NONE, s0, binding = 1);
 
 float4 PS_MAIN( VSOutput In )
@@ -44,7 +52,11 @@ float4 PS_MAIN( VSOutput In )
 	const float Weights[StepCount] = { 0.44908f, 0.05092f };
 	const float Offsets[StepCount] = { 0.53805f, 2.06278f };
 
+#if FT_MULTIVIEW
+	int3 dim = GetDimensions(Get(Source), NO_SAMPLER);
+#else
 	int2 dim = GetDimensions(Get(Source), NO_SAMPLER);
+#endif
 	float2 stepSize = float2((1.0f - Get(axis)) / dim[0], Get(axis) / dim[1]);
 
 	Out = f4(0.0f);
@@ -52,8 +64,13 @@ float4 PS_MAIN( VSOutput In )
 	UNROLL for (int i = 0; i < StepCount; ++i)
 	{
 		float2 offset = Offsets[i] * stepSize;
+#if FT_MULTIVIEW
+		Out += SampleTex2DArray(Get(Source), Get(LinearSampler), float3(In.UV.xy + offset, VR_VIEW_ID(In.ViewID))) * Weights[i];
+		Out += SampleTex2DArray(Get(Source), Get(LinearSampler), float3(In.UV.xy - offset, VR_VIEW_ID(In.ViewID))) * Weights[i];
+#else
 		Out += SampleTex2D(Get(Source), Get(LinearSampler), In.UV.xy + offset) * Weights[i];
 		Out += SampleTex2D(Get(Source), Get(LinearSampler), In.UV.xy - offset) * Weights[i];
+#endif
 	}
 	RETURN(Out);
 }

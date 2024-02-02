@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,8 +27,8 @@
 STRUCT(VSInput)
 {
 	DATA(float4, Position, POSITION);
-	DATA(float3, Normal, NORMAL);
-	DATA(float2, UV, TEXCOORD0);
+	DATA(uint, Normal, NORMAL);
+	DATA(uint, UV, TEXCOORD0);
 };
 
 STRUCT(VSOutput)
@@ -44,7 +44,11 @@ VSOutput VS_MAIN( VSInput In, SV_InstanceID(uint) InstanceID)
 
 	uint instanceID = InstanceID + Get(baseInstance);
 	float4 pos = mul(Get(objectInfo)[instanceID].toWorld, In.Position);
+#if FT_MULTIVIEW
+	Out.Position = mul(Get(camViewProj)[0], pos);
+ #else
 	Out.Position = mul(Get(camViewProj), pos);
+ #endif
 	
 	RETURN(Out);
 }

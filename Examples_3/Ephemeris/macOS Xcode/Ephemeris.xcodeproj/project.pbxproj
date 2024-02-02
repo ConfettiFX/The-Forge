@@ -10,7 +10,6 @@
 		5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C1E6760247BF2D3006F49D1 /* libThe-Forge.a */; };
 		5C1E6792247BF7A5006F49D1 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */; };
 		5C1E6795247BF7B7006F49D1 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */; };
-		650CCC432223C40F003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */; };
 		6543D8F822932FC20098B17B /* Ephemeris.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F222932FC20098B17B /* Ephemeris.cpp */; };
 		6543D8F922932FC20098B17B /* Sky.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F322932FC20098B17B /* Sky.cpp */; };
 		6543D8FA22932FC20098B17B /* LocalTime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F522932FC20098B17B /* LocalTime.cpp */; };
@@ -18,6 +17,12 @@
 		6543D90222932FD90098B17B /* Terrain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8FF22932FD90098B17B /* Terrain.cpp */; };
 		6543D90522932FEB0098B17B /* VolumetricClouds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D90322932FEB0098B17B /* VolumetricClouds.cpp */; };
 		65C55CD2229734BF008456ED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65C55CD1229734BF008456ED /* Assets.xcassets */; };
+		7F6E01852A940C9C00981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01842A940C9C00981E7B /* QuartzCore.framework */; };
+		7F6E01872A940CA600981E7B /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01862A940CA600981E7B /* CoreGraphics.framework */; };
+		7F6E01882A940CAF00981E7B /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9CC323F4DDD1003EBFAC /* QuartzCore.framework */; };
+		7F6E018A2A940CB300981E7B /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E01892A940CB300981E7B /* CoreGraphics.framework */; };
+		7F6E018C2A940D3300981E7B /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E018B2A940D3300981E7B /* AppKit.framework */; };
+		7F6E018E2A940D4D00981E7B /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7F6E018D2A940D4D00981E7B /* CoreVideo.framework */; };
 		990C84B128A214C60007269D /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 990C84AF28A214C60007269D /* MetalPerformanceShaders.framework */; };
 		990C84B228A214C60007269D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 990C84B028A214C60007269D /* Metal.framework */; };
 		990C84B428A214CC0007269D /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 990C84B328A214CC0007269D /* GameController.framework */; };
@@ -33,9 +38,10 @@
 		99418139289A48160030D05E /* HeightData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8FB22932FD80098B17B /* HeightData.cpp */; };
 		9941813A289A48160030D05E /* Terrain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8FF22932FD90098B17B /* Terrain.cpp */; };
 		9941813B289A48160030D05E /* VolumetricClouds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D90322932FEB0098B17B /* VolumetricClouds.cpp */; };
+		997EE54A2A380ABF00FB75C1 /* CoreHaptics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 997EE5492A380ABF00FB75C1 /* CoreHaptics.framework */; };
+		997EE54B2A380AC300FB75C1 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9C0A23F4D99F003EBFAC /* GameController.framework */; };
+		997EE54C2A380AFF00FB75C1 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */; };
 		B2087DD421421A13006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
-		B21B9C0F23F4D9D8003EBFAC /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9C0E23F4D9D8003EBFAC /* IOKit.framework */; };
-		B21B9CC423F4DDD1003EBFAC /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9CC323F4DDD1003EBFAC /* QuartzCore.framework */; };
 		B27E01F425254E5B00AA6B42 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C1E6762247BF2D3006F49D1 /* libThe-Forge_iOS.a */; };
 		B296C8FB26148D7C0011E416 /* SpaceObjects.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B296C8FA26148D7C0011E416 /* SpaceObjects.cpp */; };
 		B296C90426148E1C0011E416 /* Perlin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B296C90226148E1C0011E416 /* Perlin.cpp */; };
@@ -102,11 +108,26 @@
 		6543D90422932FEB0098B17B /* VolumetricClouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VolumetricClouds.h; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"; sourceTree = "<group>"; };
 		65C55CCF229734B2008456ED /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		65C55CD1229734BF008456ED /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7F6E017B2A940C3400981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E017C2A940C3500981E7B /* CommonSettings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettings.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettings.xcconfig"; sourceTree = "<group>"; };
+		7F6E017D2A940C3500981E7B /* TF_App_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_App_Shared.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/TF_App_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E017E2A940C3500981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E017F2A940C3500981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01802A940C3600981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E01812A940C3600981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E01822A940C3600981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6E01832A940C3600981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../Common_3/IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E01842A940C9C00981E7B /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
+		7F6E01862A940CA600981E7B /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
+		7F6E01892A940CB300981E7B /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		7F6E018B2A940D3300981E7B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		7F6E018D2A940D4D00981E7B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.4.sdk/System/Library/Frameworks/CoreVideo.framework; sourceTree = DEVELOPER_DIR; };
 		990C84AF28A214C60007269D /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		990C84B028A214C60007269D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		990C84B328A214CC0007269D /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		990C84B528A214D60007269D /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		990C84B728A215450007269D /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS15.5.sdk/System/Library/Frameworks/CoreHaptics.framework; sourceTree = DEVELOPER_DIR; };
+		997EE5492A380ABF00FB75C1 /* CoreHaptics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreHaptics.framework; path = System/Library/Frameworks/CoreHaptics.framework; sourceTree = SDKROOT; };
 		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21B9C0A23F4D99F003EBFAC /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
@@ -191,7 +212,10 @@
 			files = (
 				B27E01F425254E5B00AA6B42 /* libThe-Forge_iOS.a in Frameworks */,
 				990C84B828A215450007269D /* CoreHaptics.framework in Frameworks */,
+				7F6E01852A940C9C00981E7B /* QuartzCore.framework in Frameworks */,
 				990C84B628A214D60007269D /* UIKit.framework in Frameworks */,
+				7F6E01872A940CA600981E7B /* CoreGraphics.framework in Frameworks */,
+				7F6E018E2A940D4D00981E7B /* CoreVideo.framework in Frameworks */,
 				990C84B428A214CC0007269D /* GameController.framework in Frameworks */,
 				990C84B128A214C60007269D /* MetalPerformanceShaders.framework in Frameworks */,
 				990C84B228A214C60007269D /* Metal.framework in Frameworks */,
@@ -202,10 +226,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B21B9CC423F4DDD1003EBFAC /* QuartzCore.framework in Frameworks */,
-				650CCC432223C40F003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				997EE54C2A380AFF00FB75C1 /* MetalPerformanceShaders.framework in Frameworks */,
+				997EE54B2A380AC300FB75C1 /* GameController.framework in Frameworks */,
+				7F6E01882A940CAF00981E7B /* QuartzCore.framework in Frameworks */,
+				7F6E018A2A940CB300981E7B /* CoreGraphics.framework in Frameworks */,
 				B2087DD421421A13006F372D /* Metal.framework in Frameworks */,
-				B21B9C0F23F4D9D8003EBFAC /* IOKit.framework in Frameworks */,
+				7F6E018C2A940D3300981E7B /* AppKit.framework in Frameworks */,
+				997EE54A2A380ABF00FB75C1 /* CoreHaptics.framework in Frameworks */,
 				5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -216,7 +243,13 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				7F6E018D2A940D4D00981E7B /* CoreVideo.framework */,
+				7F6E018B2A940D3300981E7B /* AppKit.framework */,
+				7F6E01862A940CA600981E7B /* CoreGraphics.framework */,
+				7F6E01892A940CB300981E7B /* CoreGraphics.framework */,
+				7F6E01842A940C9C00981E7B /* QuartzCore.framework */,
 				990C84B728A215450007269D /* CoreHaptics.framework */,
+				997EE5492A380ABF00FB75C1 /* CoreHaptics.framework */,
 				990C84B528A214D60007269D /* UIKit.framework */,
 				990C84B328A214CC0007269D /* GameController.framework */,
 				990C84B028A214C60007269D /* Metal.framework */,
@@ -287,6 +320,22 @@
 				6543D90422932FEB0098B17B /* VolumetricClouds.h */,
 			);
 			name = VolumetricClouds;
+			sourceTree = "<group>";
+		};
+		7F6E017A2A940C2600981E7B /* XcodeBuildConfigs */ = {
+			isa = PBXGroup;
+			children = (
+				7F6E017C2A940C3500981E7B /* CommonSettings.xcconfig */,
+				7F6E01822A940C3600981E7B /* CommonSettingsDebug.xcconfig */,
+				7F6E01812A940C3600981E7B /* CommonSettingsRelease.xcconfig */,
+				7F6E01832A940C3600981E7B /* Debug_iOS.xcconfig */,
+				7F6E017E2A940C3500981E7B /* Debug_MacOS.xcconfig */,
+				7F6E017F2A940C3500981E7B /* Release_iOS.xcconfig */,
+				7F6E017B2A940C3400981E7B /* Release_MacOS.xcconfig */,
+				7F6E017D2A940C3500981E7B /* TF_App_Shared.xcconfig */,
+				7F6E01802A940C3600981E7B /* TF_Lib_Shared.xcconfig */,
+			);
+			name = XcodeBuildConfigs;
 			sourceTree = "<group>";
 		};
 		B233F260260E1C5400FD6B1F /* SpaceObjects */ = {
@@ -445,6 +494,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				7F6E017A2A940C2600981E7B /* XcodeBuildConfigs */,
 				5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */,
 				EA463C941EF81E8F005AC8C7 /* Ephemeris */,
 				C95132EE2010E68A002E584B /* Ephemeris_iOS */,
@@ -621,7 +671,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "python3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Sky_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/SpaceObjects_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricClouds_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -l MACOS --incremental --compile\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Sky_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/SpaceObjects_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricClouds_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Resources/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l MACOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 		5C13A4FA24D1AD480023D339 /* Sync Assets */ = {
@@ -641,7 +691,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/dds/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/dds/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/dds/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/dds/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
 			showEnvVarsInLog = 0;
 		};
 		9941813C289A48290030D05E /* Copy Assets */ = {
@@ -660,7 +710,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\n# joystick pad\nrsync -u \"$SRCROOT/../../Unit_Tests/UnitTestResources/Textures/circlepad.ktx\" \"$DST/Textures/\"\n\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n";
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\n#rsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\n#rsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/Shaders/\" \"$DST/Shaders\"\nrsync -u -r \"$SRCROOT/The-Forge/CompiledShaders/\" \"$DST/CompiledShaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\nrsync -r \"$SRCROOT/../../../Common_3/Graphics/gpu.data\" \"$DST/GPUCfg/gpu.data\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\n# joystick pad\nrsync -u \"$SRCROOT/../../Unit_Tests/UnitTestResources/Textures/ktx/circlepad.tex\" \"$DST/Textures/\"\n\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/ktx/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/ktx/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/ktx/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/ktx/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n\n# Scripts\nrsync -u -r \"$SRC/Scripts/\" \"$DST/Scripts\"\n";
 		};
 		9941813D289A482A0030D05E /* Compile FSL Shaders */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -679,7 +729,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "python3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Sky_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/SpaceObjects_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricClouds_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -l IOS --incremental --compile\n";
+			shellScript = "[[ $CONFIGURATION = \"Debug\" ]] && debug=\"--debug\"\n\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/FSL/ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/FSL/Sky_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/FSL/SpaceObjects_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/FSL/Terrain_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile\npython3 ../../../Common_3/Tools/ForgeShadingLanguage/fsl.py --verbose \"$SRCROOT/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/FSL/VolumetricClouds_ShaderList.fsl\" -d \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/Shaders/\" -b \"${CONFIGURATION_BUILD_DIR}/${CONTENTS_FOLDER_PATH}/CompiledShaders\" -i \"${OBJROOT}\" --cache-args -l IOS --incremental --compile $debug\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -758,223 +808,93 @@
 /* Begin XCBuildConfiguration section */
 		C95133062010E68A002E584B /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E01832A940C3600981E7B /* Debug_iOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				INFOPLIST_FILE = Ephemeris_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TheForge.Ephemeris-IOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRIP_PNG_TEXT = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
 		C95133072010E68A002E584B /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E017F2A940C3500981E7B /* Release_iOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				INFOPLIST_FILE = Ephemeris_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.TheForge.Ephemeris-IOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRIP_PNG_TEXT = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
 		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E017D2A940C3500981E7B /* TF_App_Shared.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = NO;
-				"HEADER_SEARCH_PATHS[arch=*]" = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MTL_ENABLE_DEBUG_INFO = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
 		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E017D2A940C3500981E7B /* TF_App_Shared.xcconfig */;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = NO;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_IDENTITY = "-";
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				SDKROOT = macosx;
 			};
 			name = Release;
 		};
 		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E017E2A940C3500981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				HEADER_SEARCH_PATHS = "";
-				INFOPLIST_FILE = "$(SRCROOT)/Ephemeris/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				OBJROOT = build;
 				PRODUCT_BUNDLE_IDENTIFIER = com.TheForge.Ephemeris;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYMROOT = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
-				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Debug;
 		};
 		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E017B2A940C3400981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_UNUSED_FUNCTION = NO;
-				HEADER_SEARCH_PATHS = "";
-				INFOPLIST_FILE = "$(SRCROOT)/Ephemeris/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				OBJROOT = build;
 				PRODUCT_BUNDLE_IDENTIFIER = com.TheForge.Ephemeris;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
-				SYMROOT = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
-				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
-				SYSTEM_HEADER_SEARCH_PATHS = "";
 			};
 			name = Release;
 		};

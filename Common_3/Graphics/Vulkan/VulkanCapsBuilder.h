@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,30 +20,47 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
-#include "../GraphicsConfig.h"
-
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 
-inline void vk_utils_caps_builder(Renderer* pRenderer)
+#include "../GraphicsConfig.h"
+
+inline void vkCapsBuilder(GpuInfo* pGpu)
 {
-	pRenderer->pCapBits = (GPUCapBits*)tf_calloc(1, sizeof(GPUCapBits));
+    for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
+    {
+        VkFormatProperties formatSupport;
+        VkFormat           fmt = (VkFormat)TinyImageFormat_ToVkFormat((TinyImageFormat)i);
+        if (VK_FORMAT_UNDEFINED == fmt
+            // these values were deprecated and will cause validation errors
+            || VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG == fmt || VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG == fmt ||
+            VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG == fmt || VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG == fmt ||
+            VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG == fmt || VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG == fmt ||
+            VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG == fmt || VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG == fmt)
+        {
+            continue;
+        }
 
-	for (uint32_t i = 0; i < TinyImageFormat_Count;++i) {
-		VkFormatProperties formatSupport;
-		VkFormat fmt = (VkFormat) TinyImageFormat_ToVkFormat((TinyImageFormat)i);
-		if(fmt == VK_FORMAT_UNDEFINED) continue;
+        vkGetPhysicalDeviceFormatProperties(pGpu->mVk.pGpu, fmt, &formatSupport);
 
-		vkGetPhysicalDeviceFormatProperties(pRenderer->mVulkan.pVkActiveGPU, fmt, &formatSupport);
-		pRenderer->pCapBits->canShaderReadFrom[i] =
-				(formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
-		pRenderer->pCapBits->canShaderWriteTo[i] =
-				(formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT) != 0;
-		pRenderer->pCapBits->canRenderTargetWriteTo[i] =
-				(formatSupport.optimalTilingFeatures & 
-					(VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) != 0;
-	}
+        if (formatSupport.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
+        {
+            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER;
+        }
+        if (formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+        {
+            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_READ;
+        }
+        if (formatSupport.optimalTilingFeatures & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)
+        {
+            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_WRITE | FORMAT_CAP_READ_WRITE;
+        }
+        if (formatSupport.optimalTilingFeatures & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
+        {
+            pGpu->mCapBits.mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+        }
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
@@ -28,24 +28,39 @@
 
 #ifdef DIRECT3D12
 
-#include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
+#include "../../Resources/ResourceLoader/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 
-inline void d3d12_utils_caps_builder(Renderer* pRenderer)
+inline void d3d12CapsBuilder(ID3D12Device* pDevice, GPUCapBits* pCapBits)
 {
-	pRenderer->pCapBits = (GPUCapBits*)tf_calloc(1, sizeof(GPUCapBits));
+    // While DirectX-Specs state that any format that reports load support must also report store support
+    // I think it's just better to double check for both.
+    D3D12_FORMAT_SUPPORT2 loadStore = D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE;
+    for (uint32_t i = 0; i < TinyImageFormat_Count; ++i)
+    {
+        DXGI_FORMAT fmt = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)i);
+        if (fmt == DXGI_FORMAT_UNKNOWN)
+            continue;
 
-	for (uint32_t i = 0; i < TinyImageFormat_Count;++i)
-	{
-		DXGI_FORMAT fmt = (DXGI_FORMAT) TinyImageFormat_ToDXGI_FORMAT((TinyImageFormat)i);
-		if(fmt == DXGI_FORMAT_UNKNOWN) continue;
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { fmt };
 
-		D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = { fmt };
-
-		pRenderer->mD3D12.pDxDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
-		pRenderer->pCapBits->canShaderReadFrom[i] = (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE) != 0;
-		pRenderer->pCapBits->canShaderWriteTo[i] = (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
-		pRenderer->pCapBits->canRenderTargetWriteTo[i] = (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET)  != 0;
-	}
+        pDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(formatSupport));
+        if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE)
+        {
+            pCapBits->mFormatCaps[i] |= FORMAT_CAP_LINEAR_FILTER | FORMAT_CAP_READ;
+        }
+        if (formatSupport.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)
+        {
+            pCapBits->mFormatCaps[i] |= FORMAT_CAP_WRITE;
+        }
+        if (formatSupport.Support2 & loadStore)
+        {
+            pCapBits->mFormatCaps[i] |= FORMAT_CAP_READ_WRITE;
+        }
+        if (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_RENDER_TARGET)
+        {
+            pCapBits->mFormatCaps[i] |= FORMAT_CAP_RENDER_TARGET;
+        }
+    }
 }
 #endif

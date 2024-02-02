@@ -21,11 +21,11 @@
 */
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
- * 
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -33,9 +33,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -69,26 +69,31 @@ float PS_MAIN( VSOutput In )
 
 	uint depth = asuint(In.Position.z);
 	uint prevDepths[3];
-#ifdef METAL
-	uint2 p = uint2(In.Position.xy);
-	const uint coords[] = {
-		uint(p.x + p.y * Get(Viewport).x + Get(Viewport).x * Get(Viewport).y * 0),
-		uint(p.x + p.y * Get(Viewport).x + Get(Viewport).x * Get(Viewport).y * 1),
-		uint(p.x + p.y * Get(Viewport).x + Get(Viewport).x * Get(Viewport).y * 2)
-	};
-#else
+#if TEXTURE_ATOMIC_SUPPORTED
 	const uint3 coords[] = {
 		uint3(In.Position.x, In.Position.y, 0 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 		uint3(In.Position.x, In.Position.y, 1 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 		uint3(In.Position.x, In.Position.y, 2 + VR_MULTIVIEW_COUNT * VR_VIEW_ID(In.ViewID)),
 	};
+	AtomicMax3D(Get(DepthsTexture), coords[0], depth, prevDepths[0]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
+	AtomicMax3D(Get(DepthsTexture), coords[1], depth, prevDepths[1]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
+	AtomicMax3D(Get(DepthsTexture), coords[2], depth, prevDepths[2]);
+#else
+	uint2 p = uint2(In.Position.xy);
+	const uint coords[] = {
+		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 0),
+		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 1),
+		uint(p.x + p.y * Get(Viewport).z + Get(Viewport).z * Get(Viewport).w * 2)
+	};
+	AtomicMax(Get(DepthsTexture)[coords[0]], depth, prevDepths[0]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[0]);
+	AtomicMax(Get(DepthsTexture)[coords[1]], depth, prevDepths[1]);
+	depth = (alpha > 0.98f) ? depth : min(depth, prevDepths[1]);
+	AtomicMax(Get(DepthsTexture)[coords[2]], depth, prevDepths[2]);
 #endif
 
-	AtomicMin3D(Get(DepthsTexture), coords[0], depth, prevDepths[0]);
-	depth = (alpha > 0.98f) ? depth : max(depth, prevDepths[0]);
-	AtomicMin3D(Get(DepthsTexture), coords[1], depth, prevDepths[1]);
-	depth = (alpha > 0.98f) ? depth : max(depth, prevDepths[1]);
-	AtomicMin3D(Get(DepthsTexture), coords[2], depth, prevDepths[2]);
 
 	Coverage = 1.0f - alpha;
 	RETURN(Coverage);

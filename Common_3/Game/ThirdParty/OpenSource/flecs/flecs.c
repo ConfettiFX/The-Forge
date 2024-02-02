@@ -32,6 +32,20 @@
 #include "../../../../Utilities/Interfaces/ITime.h"
 #include "../../../../Utilities/Threading/Atomics.h"
 #include "../../../../Utilities/Interfaces/IMemory.h"
+
+#ifdef ENABLE_PROFILER
+static EcsTFProfileToken tf_profiler_enter_dummy(const char* group, const char* name, uint32_t color)
+{
+    EcsTFProfileToken token = { 0, 0 };
+    return token;
+}
+
+static void tf_profiler_leave_dummy(EcsTFProfileToken token)
+{
+
+}
+#endif
+
 #ifndef _MSC_VER
 #pragma GCC diagnostic ignored "-Wunreachable-code"
 #endif
@@ -10760,16 +10774,13 @@ const uint64_t* flecs_sparse_new_ids(
     ecs_assert(sparse != NULL, ECS_INVALID_PARAMETER, NULL);
     int32_t dense_count = ecs_vector_count(sparse->dense);
     int32_t count = sparse->count;
-    int32_t remaining = dense_count - count;
-    int32_t i, to_create = new_count - remaining;
+    int32_t recyclable = dense_count - count;
+    int32_t i, to_create = new_count - recyclable;
 
     if (to_create > 0) {
         flecs_sparse_set_size(sparse, dense_count + to_create);
-        uint64_t *dense_array = ecs_vector_first(sparse->dense, uint64_t);
-
         for (i = 0; i < to_create; i ++) {
-            uint64_t index = create_id(sparse, count + i);
-            dense_array[dense_count + i] = index;
+            create_id(sparse, count + recyclable + i);
         }
     }
 
@@ -13979,8 +13990,8 @@ ecs_os_thread_t tf_flecs_thread_new(ecs_os_thread_callback_t callback, void *arg
     ecs_os_strncpy(desc.mThreadName, "ECSWorkerThread", sizeof(desc.mThreadName));
 
 #if defined(NX64)
-    desc.mHasAffinityMask = true;
-    desc.mAffinityMask = 2;
+    desc.setAffinityMask = true;
+    desc.affinityMask[0] = 2;
 #endif
 
     ThreadHandle thread;
@@ -14133,9 +14144,21 @@ void initEntityComponentSystem(void)
 	api.cond_broadcast_ = tf_flecs_cond_broadcast;
 	api.cond_wait_ = tf_flecs_cond_wait;
 
+#ifdef ENABLE_PROFILER
+    api.tf_profiler_enter_ = tf_profiler_enter_dummy;
+    api.tf_profiler_leave_ = tf_profiler_leave_dummy;
+#endif
 
-	
 	ecs_os_set_api(&api);
+}
+
+void setEntityComponentSystemProfileCallbacks(ecs_tf_profiler_enter_fn_t enter, ecs_tf_profiler_leave_fn_t leave)
+{
+    ecs_assert(ecs_os_api.tf_profiler_enter_ != NULL, ECS_INVALID_OPERATION, "setEntityComponentSystemProfileCallbacks needs to be called after initEntityComponentSystem");
+    ecs_assert(enter != NULL, ECS_INVALID_PARAMETER, "");
+    ecs_assert(leave != NULL, ECS_INVALID_PARAMETER, "");
+    ecs_os_api.tf_profiler_enter_ = enter;
+    ecs_os_api.tf_profiler_leave_ = leave;
 }
 
 void _ecs_logv(
@@ -15305,7 +15328,7 @@ bool build_pipeline(
                 }
             }
 
-            if (needs_merge) {
+            if (needs_merge && op && op->count) {
                 /* After merge all components will be merged, so reset state */
                 reset_write_state(&ws);
                 op = NULL;
@@ -16917,6 +16940,28 @@ int32_t ecs_cpp_reset_count_get(void) {
 
 int32_t ecs_cpp_reset_count_inc(void) {
     return ++flecs_reset_count;
+}
+
+
+static ecs_vector_t* flecs_cpp_components_reset_functions = NULL;
+
+void ecs_cpp_register_reset_function(ecs_cpp_component_reset_function_t reset_function)
+{
+    ecs_cpp_component_reset_function_t* newResetFunction = ecs_vector_add(&flecs_cpp_components_reset_functions, ecs_cpp_component_reset_function_t);
+    *newResetFunction = reset_function;
+}
+
+void ecs_cpp_reset_all_cpp_components() {
+    const int32_t vectorSize = ecs_vector_count(flecs_cpp_components_reset_functions);
+
+    for (int32_t i = 0; i < vectorSize; ++i) {
+        ecs_cpp_component_reset_function_t* resetFunction = ecs_vector_get(flecs_cpp_components_reset_functions, ecs_cpp_component_reset_function_t, i);
+        (*resetFunction)();
+        *resetFunction = NULL;
+    }
+
+    ecs_vector_free(flecs_cpp_components_reset_functions);
+    flecs_cpp_components_reset_functions = NULL;
 }
 
 #endif
@@ -29209,6 +29254,8 @@ ecs_entity_t ecs_run_intern(
         }
     }
 
+	ecs_os_profile_enter(profileToken, "ECS", ecs_get_name(world, system), 0xffffffff);
+
     ecs_time_t time_start;
     bool measure_time = world->measure_system_time;
     if (measure_time) {
@@ -29272,6 +29319,8 @@ ecs_entity_t ecs_run_intern(
     system_data->invoke_count ++;
 
     ecs_defer_end(thread_ctx);
+
+    ecs_os_profile_leave(profileToken);
 
     return it->interrupted_by;
 }
@@ -40665,9 +40714,6 @@ bool observer_run(ecs_iter_t *it) {
     if (!prev_table) {
         prev_table = &world->store.root;
     }
-
-    static int obs_count = 0;
-    obs_count ++;
 
     /* Populate the column for the term that triggered. This will allow the
      * matching algorithm to pick the right column in case the term is a

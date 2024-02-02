@@ -1,11 +1,9 @@
 loader.SetTransparencyType(3)
-
-math.randomseed( os.time() )
-
--- LIGHT POSITION
-x = math.random() + math.random(-10.0, 9.0)
-y = math.random() + math.random(-10.0, 9.0)
-z = math.random() + math.random(-10.0, 9.0)
-loader.SetLightPosition(x, y, z)
-
 loader.SetCounter(5)
+
+local selectedAPIIndex = 0
+if loader.GetSelectAPI ~= nil then
+	selectedAPIIndex = loader.GetSelectAPI()
+end
+loader.SetScreenshotName("API" .. selectedAPIIndex .. "_" .. "Phenomenological")
+loader.TakeScreenshotOnEdited()

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,12 +20,15 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #import <UIKit/UIKit.h>
 
-@interface AppDelegate: UIResponder<UIApplicationDelegate>
+@interface AppDelegate: UIResponder <UIApplicationDelegate>
 
-@property(strong, nonatomic) UIWindow* window;
-
+@property(nullable, nonatomic, strong) UIWindow*      window;
+// Use for synchronizing to the display's vblanks
+@property(nullable, nonatomic, strong) CADisplayLink* displayLink;
+// Use to override target display's frame rate.
+@property(nonatomic) NSInteger                        displayLinkRefreshRate;
 @end

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,44 +22,33 @@
  * under the License.
 */
 
+#define NO_MATERIALID_ON_PIXEL_SHADER_INPUT
 #include "shader_defs.h.fsl"
-#include "packing.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
-
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if defined(VULKAN) || defined(ORBIS) || defined(PROSPERO) || defined(METAL)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
-uint calculateOutputVBID(uint drawID, uint primitiveID)
-{
-    return  (1 << ALPH_IS_LOW_BIT) | 
-			((drawID << DRAW_ID_LOW_BIT) & DRAW_ID_MASK) | 
-			((primitiveID << PRIM_ID_LOW_BIT) & PRIM_ID_MASK);
-}
 
 float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
 {
     INIT_MAIN;
 
-	uint width = Get(screenWidth); 
+	uint2 screenSize = uint2(Get(cullingViewports[VIEW_CAMERA]).windowSize);
 
 	uint nodeIdx = 0; 
 	uint2 screenPos = uint2(In.position.xy);
-	AtomicAdd(Get(geometryCountBuffer)[0].count, 1, nodeIdx);
-
-	if (nodeIdx < Get(maxNodeCount))
+	if (screenPos.x < screenSize.x && screenPos.y < screenSize.y)
 	{
-		uint prevHeadIdx;
-		uint bufferIdx = screenPos.y * width + screenPos.x; 
-		AtomicExchange(Get(headIndexBufferUAV)[bufferIdx], nodeIdx, prevHeadIdx);
+		AtomicAdd(Get(geometryCountBuffer)[0].count, 1, nodeIdx);
+		const uint maxNodeCount = OIT_MAX_FRAG_COUNT * screenSize.x * screenSize.y;
 
-		Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = calculateOutputVBID(getDrawID(), primitiveId);
-		Get(vbDepthLinkedListUAV)[nodeIdx].next = prevHeadIdx; 
+		if (nodeIdx < maxNodeCount)
+		{
+			uint prevHeadIdx;
+			uint bufferIdx = screenPos.y * screenSize.x + screenPos.x;
+			AtomicExchange(Get(headIndexBufferUAV)[bufferIdx], nodeIdx, prevHeadIdx);
+
+			Get(vbDepthLinkedListUAV)[nodeIdx].triangleData = GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId);
+			Get(vbDepthLinkedListUAV)[nodeIdx].next = prevHeadIdx;
+		}
 	}
 
 	clip(-1.0f);

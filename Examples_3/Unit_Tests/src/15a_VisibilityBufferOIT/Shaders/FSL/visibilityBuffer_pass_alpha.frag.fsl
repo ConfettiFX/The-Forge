@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,31 +23,15 @@
 */
 
 #include "shader_defs.h.fsl"
-#include "packing.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
-
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
-
-uint calculateOutputVBID(uint drawID, uint primitiveID)
-{
-    return  (1 << ALPH_IS_LOW_BIT) | 
-			((drawID << DRAW_ID_LOW_BIT) & DRAW_ID_MASK) | 
-			((primitiveID << PRIM_ID_LOW_BIT) & PRIM_ID_MASK);
-}
 
 float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
 {
     INIT_MAIN;
     float4 Out;
-    uint matBaseSlot = BaseMaterialBuffer(GEOMSET_ALPHATESTED, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
-    uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
+
+    uint materialID = In.materialID;
 
     float alpha = 0.0f;
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
@@ -56,6 +40,7 @@ float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
     
     //clip(texColor.a < 0.9 ? -1 : 1);
     clip(alpha - 0.5f);
-    Out = unpackUnorm4x8(calculateOutputVBID(getDrawID(), primitiveId));
+    Out = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId));
+
     RETURN(Out);
 }

@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,7 +47,7 @@
 #define SHORT_CUT_FILL_COLOR
 #include "hair.h.fsl"
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 #define VR_VIEWID_PARAM(x) , x
 #else
 #define VR_VIEWID_PARAM(x)
@@ -79,9 +79,6 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 
 
 	float3 diffuseSpecular = float3(Get(Kd) * diffuse, Get(Ks1) * pow(primarySpecular, Get(Ex1)), Get(Ks2) * pow(secundarySpecular, Get(Ex2)));
-#if defined(ORBIS) || defined(PROSPERO)
-	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
-#endif
 	return diffuseSpecular;
 }
 
@@ -100,7 +97,7 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 
 	if (shadowMap >= 0 && shadowMap < MAX_NUM_DIRECTIONAL_LIGHTS)
 	{
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix[VR_VIEW_ID(viewID)], float4(worldPosition, 1.0f));
 #else
 		float4 shadowPos = mul(Get(ShadowCameras)[lightIndex].VPMatrix, float4(worldPosition, 1.0f));
@@ -115,14 +112,15 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 		const float size = 2.4f;
 		const float sigma = (kernelSize / 2.0f) / size;
 		const float hairAlpha = 0.99998f;
-		#ifdef VULKAN
-		// Had to manually unroll loop. textureLodOffset requires offset parameter to be a compile time constant.
+		#if defined(VULKAN) || defined(METAL)
+		// Had to manually unroll loop. For Vulkan: textureLodOffset requires offset parameter to be a compile time constant.
+		// For Metal, manually unrolling is significantly faster.
 		#define LOOP_BODY(x, y)																				\
 		{																							\
 			float exp = 1.0f - (x * x + y * y) / (2.0f * sigma * sigma);							\
 			float weight = 1.0f / (2.0f * PI * sigma * sigma) * pow(e, exp);						\
-			float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(PointSampler), shadowPos.xy, 0, ivec2(x, y)).r;	\
-			float shadowRange = max(0.0f, light.shadowRange * (shadowPos.z - shadowMapDepth));		\
+			float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(pointSampler), shadowPos.xy, 0, int2(x, y)).r;	\
+			float shadowRange = shadowMapDepth > shadowPos.z? 1 : 0;								\
 			float numFibers = shadowRange / (Get(FiberSpacing) * Get(FiberRadius));							\
 			if (shadowRange > EPSILON) numFibers += 1;												\
 			shadowFactor += pow(hairAlpha, numFibers) * weight;										\
@@ -166,8 +164,8 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 				float exp = 1.0f - (x * x + y * y) / (2.0f * sigma * sigma);
 				float weight = 1.0f / (2.0f * PI * sigma * sigma) * pow(e, exp);
 
-				float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(PointSampler), shadowPos.xy, 0, int2(x, y)).r;
-				float shadowRange = max(0.0f, light.shadowRange * (shadowPos.z - shadowMapDepth));
+				float shadowMapDepth = SampleLvlOffsetTex2D(Get(DirectionalLightShadowMaps)[shadowMap], Get(pointSampler), shadowPos.xy, 0, int2(x, y)).r;
+				float shadowRange = shadowMapDepth > shadowPos.z? 1 : 0;
 				float numFibers = shadowRange / (Get(FiberSpacing) * Get(FiberRadius));
 
 				FLATTEN if (shadowRange > EPSILON)
@@ -243,7 +241,7 @@ float4 PS_MAIN( VSOutput In )
 		RETURN(Out);
 	}
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	float4 worldPos = mul(Get(Cam).InvVPMatrix[VR_VIEW_ID(In.ViewID)], float4(NDC, 1.0f));
 #else
 	float4 worldPos = mul(Get(Cam).InvVPMatrix, float4(NDC, 1.0f));

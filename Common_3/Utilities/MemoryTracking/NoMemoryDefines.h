@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,34 +20,33 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
-
+ */
 
 #ifndef THEFORGE_INCLUDE_NOMEMORYDEFINES_H
 #define THEFORGE_INCLUDE_NOMEMORYDEFINES_H
 
-#ifdef	malloc
-#undef	malloc
+#ifdef malloc
+#undef malloc
 #endif
 
-#ifdef	calloc
-#undef	calloc
+#ifdef calloc
+#undef calloc
 #endif
 
-#ifdef	realloc
-#undef	realloc
+#ifdef realloc
+#undef realloc
 #endif
 
-#ifdef	free
-#undef	free
+#ifdef free
+#undef free
 #endif
 
-#ifdef	new
-#undef	new
+#ifdef new
+#undef new
 #endif
 
-#ifdef	delete
-#undef	delete
+#ifdef delete
+#undef delete
 #endif
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,12 +25,15 @@
 CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
 	DATA(float4x4, projMat, None);
 	DATA(float4x4, viewProjMat, None);
 	DATA(float4x4, InvViewProjMat, None);
 
 	DATA(float4, cameraWorldPos, None);
-	DATA(float4, viewPortSize, None);
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
 };
 
 RES(Tex2D(float4), SceneTexture, UPDATE_FREQ_NONE, t1, binding = 1);
@@ -46,8 +49,8 @@ CBUFFER(cbProperties, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
 
 	DATA(float, intensity, None);
 	DATA(float, useFadeEffect, None);
+	DATA(float, debugNonProjected, None);
 	DATA(float, padding01, None);
-	DATA(float, padding02, None);
 };
 
 RES(SamplerState, nearestSampler, UPDATE_FREQ_NONE, s4, binding = 4);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #ifndef ISCRIPTING_H
 #define ISCRIPTING_H
@@ -31,9 +31,15 @@
 #include "../Scripting/LuaManager.h"
 
 #ifdef ENABLE_FORGE_SCRIPTING
-#define REGISTER_LUA_WIDGET(x) luaRegisterWidget((x))
+#define REGISTER_LUA_WIDGET(x)   luaRegisterWidget((x))
+#define DEFINE_LUA_SCRIPTS(x, y) luaDefineScripts((x), (y))
 #else
 #define REGISTER_LUA_WIDGET(x) (void)(x)
+#define DEFINE_LUA_SCRIPTS(x, y) \
+    {                            \
+        (void)(x);               \
+        (void)(y);               \
+    }
 #endif
 
 /****************************************************************************/
@@ -42,10 +48,8 @@
 
 typedef struct LuaScriptDesc
 {
-
-	const char* pScriptFileName = NULL; 
-	const char* pScriptFilePassword = NULL; 
-
+    const char* pScriptFileName = NULL;
+    const bool* pWaitCondition = NULL; // if pWaitCondition is not NULL, the script will not be executed until *pWaitCondition == true
 } LuaScriptDesc;
 
 /****************************************************************************/
@@ -57,14 +61,14 @@ typedef struct LuaScriptDesc
 /// This function MUST be called before a new LuaManager is instantiated
 FORGE_API void luaDestroyCurrentManager();
 
-/// Assigns custom user-defined LuaManager to be used internally 
+/// Assigns custom user-defined LuaManager to be used internally
 /// MUST be called to define a new Manager after luaDestroyCurrentManager is invoked
 FORGE_API void luaAssignCustomManager(LuaManager* pNewManager);
 
 /// Adds an array of scripts to the Lua interface by filenames
 FORGE_API void luaDefineScripts(LuaScriptDesc* pDescs, uint32_t count);
 
-/// Add existing defined script to a queue to be executed 
+/// Add existing defined script to a queue to be executed
 /// Script execution will occur on next platform layer system update
 FORGE_API void luaQueueScriptToRun(LuaScriptDesc* pDesc);
 

@@ -1,0 +1,52 @@
+ALWAYS_SEARCH_USER_PATHS=NO
+// Whether to compile NS assertions in.
+ENABLE_NS_ASSERTIONS = NO
+// Whether to strip debugging symbols when copying the built product to its
+// final installation location
+STRIP_INSTALLED_PRODUCT = NO
+
+DEAD_CODE_STRIPPING = YES
+
+// we don't want exceptions for any kind of config
+GCC_ENABLE_CPP_EXCEPTIONS = NO
+GCC_ENABLE_OBJC_EXCEPTIONS = NO
+GCC_ENABLE_CPP_RTTI = NO
+
+CLANG_ENABLE_OBJC_ARC = YES
+
+// unified across other platforms as this is min targetable by VS
+CLANG_CXX_LANGUAGE_STANDARD = c++14
+GCC_C_LANGUAGE_STANDARD = c11
+
+CLANG_WARN_DOCUMENTATION_COMMENTS = NO
+CLANG_WARN_COMMA = NO
+CLANG_WARN_UNGUARDED_AVAILABILITY = YES
+CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES
+//Compiles Objective-C code to enable weak references for code compiled with manual retain release (MRR) semantics.
+CLANG_ENABLE_OBJC_WEAK=YES
+ENABLE_BITCODE=NO
+
+//When enabled, out-of-line copies of inline methods are declared private extern.
+GCC_INLINES_ARE_PRIVATE_EXTERN = NO
+GCC_SYMBOLS_PRIVATE_EXTERN = NO
+
+//Generate debugging symbols regardless of config
+//we export dsym in release builds
+GCC_GENERATE_DEBUGGING_SYMBOLS = YES
+
+// treat warnings as errors
+GCC_TREAT_WARNINGS_AS_ERRORS = YES
+// objective-c selectors if undeclared can cause runtime crash
+// good warning
+GCC_WARN_UNDECLARED_SELECTOR = YES
+CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES
+
+CONFIGURATION_BUILD_DIR=$(PROJECT_DIR)/Bin/$(CONFIGURATION)/
+
+//NEEDS to be true for all dependencies overriden to false in main app
+SKIP_INSTALL=YES
+//no need for an install path for products
+INSTALL_PATH=
+
+// should be set in plist file.
+//PRODUCT_BUNDLE_IDENTIFIER=com.confetti.$(TARGET_NAME)

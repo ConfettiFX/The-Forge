@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "packing.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
 
@@ -31,7 +31,7 @@ PS_ZORDER_EARLYZ()
 void PS_MAIN( PsInShadowAlphaTested In )
 {
     INIT_MAIN;
-    uint matBaseSlot = BaseMaterialBuffer(true, 0); //1 is camera view, 0 is shadow map view
+    uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_SHADOW); //1 is camera view, 0 is shadow map view
     uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
 
     float alpha = 0.0f;

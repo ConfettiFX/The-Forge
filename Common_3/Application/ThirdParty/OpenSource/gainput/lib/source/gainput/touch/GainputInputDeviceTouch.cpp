@@ -11,11 +11,11 @@
 #include "GainputInputDeviceTouchNull.h"
 
 #if defined(GAINPUT_PLATFORM_ANDROID)
-	#include "GainputInputDeviceTouchAndroid.h"
+	#include "../android/GainputInputDeviceTouchAndroid.h"
 #elif defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_TVOS)
-	#include "GainputInputDeviceTouchIos.h"
+	#include "../apple/GainputInputDeviceTouchIos.h"
 #elif defined(GAINPUT_PLATFORM_NX64)
-	#include "../../../../../../../../../Switch/Common_3/Application/GainputInputDeviceTouchNX.h"
+	#include "../../../../../../../../../Switch/Common_3/Application/Input/GainputInputDeviceTouchNX.h"
 #endif
 
 namespace gainput

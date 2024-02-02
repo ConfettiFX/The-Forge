@@ -1,0 +1,447 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+/*
+ See LICENSE folder for this sample’s licensing information.
+
+ Abstract:
+ DX12 shaders used for ray tracing
+ */
+
+#include "fsl_ext.h"
+
+#define TOTAL_IMGS 256
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+
+#ifndef M_PI_F
+#define M_PI_F float(3.141592653589793)
+#endif
+#ifndef M_1_PI_F
+#define M_1_PI_F float(0.318309886183790)
+#endif
+
+#include "Shared.fsl.h"
+
+RES(RaytracingAccelerationStructure, gRtScene, UPDATE_FREQ_NONE, t0, binding = 0);
+RES(ByteBuffer, indices, UPDATE_FREQ_NONE, t1, binding = 1);
+RES(ByteBuffer, positions, UPDATE_FREQ_NONE, t2, binding = 2);
+RES(ByteBuffer, normals, UPDATE_FREQ_NONE, t3, binding = 3);
+RES(ByteBuffer, uvs, UPDATE_FREQ_NONE, t4, binding = 4);
+RES(ByteBuffer, indexOffsets, UPDATE_FREQ_NONE, t5, binding = 5);
+RES(SamplerState, linearSampler, UPDATE_FREQ_NONE, s0, binding = 6);
+RES(Tex2D(float4), materialTextures[TOTAL_IMGS], UPDATE_FREQ_NONE, t7, binding = 7);
+CBUFFER(gSettings, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
+{
+	DATA(ShadersConfigBlock, gSettingsData, None);
+};
+#if UAV_RW_FALLBACK
+RES(WTex2D(float4), gOutput, UPDATE_FREQ_NONE, u0, binding = 8);
+RES(RTex2D(float4), gInput, UPDATE_FREQ_NONE, u1, binding = 9);
+#else
+RES(RWTex2D(float4), gOutput, UPDATE_FREQ_NONE, u0, binding = 8);
+#endif
+#if DENOISER_ENABLED
+#if UAV_RW_FALLBACK
+RES(WTex2D(float4), gAlbedoOutput, UPDATE_FREQ_NONE, u2, binding = 10);
+RES(RTex2D(float4), gAlbedoInput, UPDATE_FREQ_NONE, u3, binding = 11);
+#else
+RES(RWTex2D(float4), gAlbedoOutput, UPDATE_FREQ_NONE, u1, binding = 9);
+#endif
+#endif
+
+// Uses the inversion method to map two uniformly random numbers to a three dimensional
+// unit hemisphere where the probability of a given sample is proportional to the cosine
+// of the angle between the sample direction and the "up" direction (0, 1, 0)
+float3 sampleCosineWeightedHemisphere(float2 u)
+{
+	float phi = 2.0f * M_PI_F * u.x;
+
+	float sin_phi, cos_phi;
+	sincos(phi, sin_phi, cos_phi);
+
+	float cos_theta = sqrt(u.y);
+	float sin_theta = sqrt(1.0f - cos_theta * cos_theta);
+
+	return float3(sin_theta * cos_phi, cos_theta, sin_theta * sin_phi);
+}
+
+// Aligns a direction on the unit hemisphere such that the hemisphere's "up" direction
+// (0, 1, 0) maps to the given surface normal direction
+float3 alignHemisphereWithNormal(float3 sampleVal, float3 normal)
+{
+	// Set the "up" vector to the normal
+	float3 up = normal;
+
+	// Find an arbitrary direction perpendicular to the normal. This will become the
+	// "right" vector.
+	float3 right = normalize(cross(normal, float3(0.0072f, 1.0f, 0.0034f)));
+
+	// Find a third vector perpendicular to the previous two. This will be the
+	// "forward" vector.
+	float3 forward = cross(right, up);
+
+	// Map the direction on the unit hemisphere to the coordinate system aligned
+	// with the normal.
+	return sampleVal.x * right + sampleVal.y * up + sampleVal.z * forward;
+}
+
+//====
+// https://github.com/playdeadgames/temporal/blob/master/Assets/Shaders/IncNoise.cginc
+// The MIT License (MIT)
+//
+// Copyright (c) [2015] [Playdead]
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+//note: normalized random, float=[0, 1]
+float PDnrand( float2 n ) {
+	return frac( sin(dot(n.xy, float2(12.9898, 78.233f)))* 43758.5453 );
+}
+float2 PDnrand2( float2 n ) {
+	return frac( sin(dot(n.xy, float2(12.9898, 78.233f)))* float2(43758.5453, 28001.8384) );
+}
+float3 PDnrand3( float2 n ) {
+	return frac( sin(dot(n.xy, float2(12.9898, 78.233f)))* float3(43758.5453, 28001.8384, 50849.4141 ) );
+}
+float4 PDnrand4( float2 n ) {
+	return frac( sin(dot(n.xy, float2(12.9898, 78.233f)))* float4(43758.5453, 28001.8384, 50849.4141, 12996.89) );
+}
+
+// Convert uniform distribution into triangle-shaped distribution.
+// https://www.shadertoy.com/view/4t2SDh
+// Input is in range [0, 1]
+// Output is in range [-1, 1], which is useful for dithering.
+float2 uniformNoiseToTriangular(float2 n) {
+	float2 orig = n*2.0-1.0;
+	n = orig*rsqrt(abs(orig));
+	n = max(f2(-1.0), n);
+	n = n-float2(sign(orig));
+	return n;
+}
+
+NUM_THREADS(8, 8, 1)
+void CS_MAIN(SV_DispatchThreadID(uint2) tid)
+{
+	INIT_MAIN;
+	if (tid.x >= Get(gSettingsData).mWidth || tid.y >= Get(gSettingsData).mHeight)
+	{
+		RETURN();
+	}
+
+	uint2 launchDim = uint2(Get(gSettingsData).mWidth, Get(gSettingsData).mHeight);
+
+	float2 crd = float2(tid) + Get(gSettingsData).mSubpixelJitter;
+	float2 dims = float2(launchDim);
+
+	float2 d = ((crd / dims) * 2.f - 1.f);
+	d.y *= -1;
+
+	float3 direction = normalize(float3(d * Get(gSettingsData).mZ1PlaneSize, 1.0));
+	float3 directionWS = mul(float3x3(Get(gSettingsData).mCameraToWorld[0].xyz, Get(gSettingsData).mCameraToWorld[1].xyz, Get(gSettingsData).mCameraToWorld[2].xyz), direction);
+
+	RayDesc ray;
+	ray.TMin = 0.001;
+	ray.TMax = 10000;
+	ray.Direction = directionWS;
+	ray.Origin = getCol(Get(gSettingsData).mCameraToWorld, 3).xyz + directionWS * Get(gSettingsData).mProjNear;
+
+	const uint maxBounce = 2;
+	float3 surfaceAlbedo[maxBounce];
+	float3 bounceRadiance[maxBounce];
+
+	UNROLL
+	for (uint b = 0; b < maxBounce; ++b)
+	{
+		bounceRadiance[b] = f3(0.0f);
+		surfaceAlbedo[b] = f3(0.0f);
+	}
+
+	const RayTraversalFlags traversalFlags = RAY_TRAVERSAL_FLAG_USE_SHARED_STACK | RAY_TRAVERSAL_FLAG_NO_AABB_GEOMETRY | RAY_TRAVERSAL_FLAG_NO_AABB_INSTANCE;
+
+	float4x4 worldMatrix = Get(gSettingsData).mWorldMatrix;
+
+	UNROLL
+	for (uint bounce = 0; bounce < maxBounce; ++bounce)
+	{
+		surfaceAlbedo[bounce] = f3(0.0f);
+		bounceRadiance[bounce] = f3(0.0f);
+
+        float3 uvw;
+		float3 position;
+		float3 normal;
+		float2 uv;
+
+		uint geometryIndex;
+		uint triangleIndex;
+		uint indexOffset;
+        float2 barycentricCoords;
+
+		uint i0;
+        uint i1;
+        uint i2;
+
+		float4 matColor;
+
+        RayQueryClosestHit(Get(gRtScene),
+				traversalFlags,
+				RAY_FLAG_SKIP_AABB,
+				ray, 0xFF, hit);
+
+		LOOP
+		RayQueryBeginForEachCandidate(hit)
+		{
+			if (RayQueryIsHitNonOpaqueTriangle(hit))
+            {
+				geometryIndex = RayQueryCandidateGeometryIndex(hit);
+                triangleIndex = RayQueryCandidatePrimitiveIndex(hit);
+                barycentricCoords = RayQueryCandidateBarycentrics(hit);
+				indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+
+                // Barycentric coordinates sum to one
+                uvw.yz = barycentricCoords;
+                uvw.x = 1.0f - uvw.y - uvw.z;
+
+                uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+                i0 = i012[0];
+                i1 = i012[1];
+                i2 = i012[2];
+
+                float2 uv012[3] = {
+					unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
+					unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
+					unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+				};
+
+                uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
+
+                BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
+                matColor = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).rgba;
+                EndNonUniformResourceIndex();
+
+                if (matColor.a > 0.5)
+                {
+                    RayQueryCommitCandidate(hit);
+                }
+            }
+
+			RayQueryProceed(hit);
+        }
+		RayQueryEndForEachCandidate(hit);
+
+        if (!RayQueryIsHit(hit))
+        {
+            float3 skyColor = float3(0.3f, 0.6f, 1.2f);
+            surfaceAlbedo[bounce] = f3(1.0f);
+            bounceRadiance[bounce] = skyColor;
+            break;
+        }
+
+		uint hitGeometryIndex = RayQueryGeometryIndex(hit);
+		uint hitTriangleIndex = RayQueryPrimitiveIndex(hit);
+		float2 hitBarycentricCoords = RayQueryBarycentrics(hit);
+		if (hitGeometryIndex != geometryIndex || hitTriangleIndex != triangleIndex || hitBarycentricCoords.x != barycentricCoords.x || hitBarycentricCoords.y != barycentricCoords.y)
+		{
+			triangleIndex = hitTriangleIndex;
+			barycentricCoords = hitBarycentricCoords;
+			geometryIndex = hitGeometryIndex;
+			indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+
+		    uvw.yz = barycentricCoords;
+            uvw.x = 1.0f - uvw.y - uvw.z;
+            
+            uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+            i0 = i012[0];
+            i1 = i012[1];
+            i2 = i012[2];
+
+            float2 uv012[3] = {
+				unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
+				unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
+				unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+			};
+
+            uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
+                
+            BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
+            matColor = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).rgba;
+            EndNonUniformResourceIndex();
+		}
+
+        float4 position012[3] =
+		{
+			asfloat(LoadByte4(Get(positions), ((i0 * 3) << 2))),
+			asfloat(LoadByte4(Get(positions), ((i1 * 3) << 2))),
+			asfloat(LoadByte4(Get(positions), ((i2 * 3) << 2)))
+		};
+		float3 normal012[3] = {
+			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i0 << 2))),
+			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i1 << 2))),
+			decodeDir(unpackUnorm2x16(LoadByte(Get(normals), i2 << 2)))
+		};
+
+        position = uvw.x * position012[0].xyz + uvw.y * position012[1].xyz + uvw.z * position012[2].xyz;
+        position = mul(worldMatrix, float4(position, 1.0f)).xyz;
+        normal = normalize(uvw.x * normal012[0].xyz + uvw.y * normal012[1].xyz + uvw.z * normal012[2].xyz);
+        surfaceAlbedo[bounce] = matColor.rgb;
+
+		float3 rayOrigin = position + normal * 0.001;
+
+		// Shadow ray
+		{
+			float3 lightDir = Get(gSettingsData).mLightDirection;
+
+			RayDesc shadowRay;
+			shadowRay.Origin = rayOrigin;
+			shadowRay.Direction = lightDir;
+			shadowRay.TMin = 0.001;
+			shadowRay.TMax = 10000;
+
+			RayQueryAnyHit(Get(gRtScene),
+				traversalFlags,
+				RAY_FLAG_SKIP_AABB | RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH,
+				shadowRay, 0xFF, shadowHit);
+
+			LOOP
+			RayQueryBeginForEachCandidate(shadowHit)
+			{
+				if (RayQueryIsHitNonOpaqueTriangle(shadowHit))
+				{
+					uint triangleIndex = RayQueryCandidatePrimitiveIndex(shadowHit);
+					float2 barycentricCoords = RayQueryCandidateBarycentrics(shadowHit);
+					uint geometryIndex = RayQueryCandidateGeometryIndex(shadowHit);
+					uint indexOffset = LoadByte(Get(indexOffsets), geometryIndex << 2);
+
+					// Barycentric coordinates sum to one
+					float3 uvw;
+					uvw.yz = barycentricCoords;
+					uvw.x = 1.0f - uvw.y - uvw.z;
+
+					uint4 i012 = LoadByte4(Get(indices), ((3 * triangleIndex + indexOffset) << 2));
+					uint i0 = i012[0];
+					uint i1 = i012[1];
+					uint i2 = i012[2];
+
+					float2 uv012[3] = {
+						unpack2Floats(LoadByte(Get(uvs), i0 << 2)),
+						unpack2Floats(LoadByte(Get(uvs), i1 << 2)),
+						unpack2Floats(LoadByte(Get(uvs), i2 << 2))
+					};
+
+					float2 uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
+
+					float alpha;
+					BeginNonUniformResourceIndex(geometryIndex, TOTAL_IMGS);
+					alpha = SampleLvlTex2D(Get(materialTextures)[geometryIndex], Get(linearSampler), uv, 0).a;
+					EndNonUniformResourceIndex();
+
+					if (alpha > 0.5)
+					{
+						RayQueryCommitCandidate(shadowHit);
+					}
+				}
+
+				RayQueryProceed(shadowHit);
+			}
+			RayQueryEndForEachCandidate(shadowHit)
+
+			if (!RayQueryIsHit(shadowHit))
+			{
+				float3 lightSample = 5.0f * saturate(dot(lightDir, normal)) * surfaceAlbedo[bounce] * M_1_PI_F;
+				bounceRadiance[bounce] += lightSample;
+			}
+		}
+
+		float2 pixelUV = (float2(tid) + f2(0.5)) / float2(launchDim.xy);
+		float2 sampleVal = uniformNoiseToTriangular(PDnrand2(pixelUV.xy + Get(gSettingsData).mRandomSeed + bounce)) * 0.5 + 0.5;
+		float3 sampleDirLocal = sampleCosineWeightedHemisphere(sampleVal);
+		float3 sampleDir = alignHemisphereWithNormal(sampleDirLocal, normal);
+
+		ray.Origin = rayOrigin;
+		ray.Direction = sampleDir;
+	}
+
+	UNROLL
+	for (int i = int(maxBounce) - 2; i >= 0; --i)
+	{
+		bounceRadiance[i] += bounceRadiance[i + 1] * surfaceAlbedo[i];
+	}
+
+	float3 payloadRadiance = bounceRadiance[0];
+
+	float4 accumulatedRadiance = f4(0.0f);
+	if (Get(gSettingsData).mFrameIndex == 0)
+	{
+		accumulatedRadiance = float4(payloadRadiance, 1.0);
+	}
+	else
+	{
+#if UAV_RW_FALLBACK
+		accumulatedRadiance = Load2D(Get(gInput), tid);
+#else
+		accumulatedRadiance = LoadRWTex2D(Get(gOutput), tid);
+#endif
+		accumulatedRadiance.w += 1.0;
+		accumulatedRadiance.rgb += (payloadRadiance - accumulatedRadiance.rgb) / accumulatedRadiance.w;
+	}
+
+	Write2D(Get(gOutput), tid, accumulatedRadiance);
+
+#if DENOISER_ENABLED
+	float3 accumulatedAlbedo = f3(0.0f);
+	if (Get(gSettingsData).mFramesSinceCameraMove == 0)
+	{
+		accumulatedAlbedo = surfaceAlbedo[0];
+	}
+	else
+	{
+		float invWeight = float(Get(gSettingsData).mFramesSinceCameraMove + 1);
+#if UAV_RW_FALLBACK
+		accumulatedAlbedo = Load2D(Get(gAlbedoInput), tid).rgb;
+#else
+		accumulatedAlbedo = LoadRWTex2D(Get(gAlbedoOutput), tid).rgb;
+#endif
+		accumulatedAlbedo += (surfaceAlbedo[0] - accumulatedAlbedo) / invWeight;
+	}
+
+	Write2D(Get(gAlbedoOutput), tid, float4(accumulatedAlbedo, 1.0));
+#endif
+
+	RETURN();
+}

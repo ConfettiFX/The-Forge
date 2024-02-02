@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -43,8 +43,9 @@ INLINE bool HasNormalTexture(int _textureConfig)    { return (_textureConfig & (
 INLINE bool HasMetallicTexture(int _textureConfig)  { return (_textureConfig & (1 << 2)) != 0; }
 INLINE bool HasRoughnessTexture(int _textureConfig) { return (_textureConfig & (1 << 3)) != 0; }
 INLINE bool HasAOTexture(int _textureConfig)        { return (_textureConfig & (1 << 4)) != 0; }
+INLINE bool HasVMFTexture(int _textureConfig)        { return (_textureConfig & (1 << 5)) != 0; }
 
-INLINE bool IsOrenNayarDiffuse(int _textureConfig)  { return (_textureConfig & (1 << 5)) != 0; }
+INLINE bool IsOrenNayarDiffuse(int _textureConfig)  { return (_textureConfig & (1 << 6)) != 0; }
 
 float3 ReconstructNormal(float4 sampleNormal, float intensity)
 {
@@ -212,11 +213,11 @@ float3 EnvironmentBRDF(float3 N, float3 V, float3 albedo, float roughness, float
 	float3 kS = F;
 	float3 kD = (float3(1.0f, 1.0f, 1.0f) - kS) * (1.0f - metalness);
 
-	float3 irradiance = SampleTexCube(Get(irradianceMap), Get(bilinearSampler), N).rgb;
-	float3 specular = SampleLvlTexCube(Get(specularMap), Get(bilinearSampler), R, roughness * 4).rgb;
+	float3 irradiance = SampleTexCube(Get(irradianceMap), Get(environmentSampler), N).rgb;
+	float3 specular = SampleLvlTexCube(Get(specularMap), Get(environmentSampler), R, roughness * 4).rgb;
 
 	float2 maxNVRough = float2(max(dot(N, V), 0.0), roughness);
-	float2 brdf = SampleTex2D(Get(brdfIntegrationMap), Get(bilinearClampedSampler), maxNVRough).rg;
+	float2 brdf = SampleTex2D(Get(brdfIntegrationMap), Get(brdfIntegrationSampler), maxNVRough).rg;
 
 	// Id & Is: diffuse & specular illumination
 	float3 Is = specular * (F * brdf.x + brdf.y);
@@ -250,7 +251,7 @@ float ShadowTest(float4 Pl, float2 shadowMapDimensions)
 	const float2 shadowTexCoords = float2(0.5f, 0.5f) + projLSpaceCoords.xy * float2(0.5f, -0.5f);	// invert Y
 	
 	//const float BIAS = pcfTestLightData.depthBias * tan(acos(pcfTestLightData.NdotL));
-	const float BIAS = 0.000001f;
+	const float BIAS = 0.00001f;
 	const float pxDepthInLSpace = projLSpaceCoords.z;
 
 	float shadow = 0.0f;
@@ -262,10 +263,10 @@ float ShadowTest(float4 Pl, float2 shadowMapDimensions)
 		for (int y = -rowHalfSize; y <= rowHalfSize; ++y)
 		{
 			float2 texelOffset = float2(x, y) * texelSize;
-			float closestDepthInLSpace = SampleLvlTex2D(Get(shadowMap), Get(bilinearSampler), shadowTexCoords + texelOffset, 0).x;	// TODO point sampler
+			float closestDepthInLSpace = SampleLvlTex2D(Get(shadowMap), Get(pointSampler), shadowTexCoords + texelOffset, 0).x;
 
 			// depth check
-			shadow += (pxDepthInLSpace - BIAS> closestDepthInLSpace) ? 1.0f : 0.0f;
+			shadow += (pxDepthInLSpace + BIAS < closestDepthInLSpace) ? 1.0f : 0.0f;
 		}
 	}
 
@@ -284,24 +285,26 @@ float4 PS_MAIN(VSOutput In)
 	const float2 uv = In.uv * Get(tiling);
 
 	float3 _albedo = HasDiffuseTexture(Get(textureConfig))
-		? SampleTex2D(Get(albedoMap), Get(bilinearSampler), uv).rgb
+		? SampleTex2D(Get(albedoMap), Get(materialSampler), uv).rgb
 		: Get(albedoAndRoughness).rgb;
 
 	float _roughness = HasRoughnessTexture(Get(textureConfig))
-		? SampleTex2D(Get(roughnessMap), Get(bilinearSampler), uv).r
+		? SampleTex2D(Get(roughnessMap), Get(materialSampler), uv).r
 		: Get(albedoAndRoughness).a;
 	if (_roughness < 0.04) _roughness = 0.04;
 
 	const float _metalness = HasMetallicTexture(Get(textureConfig)) 
-		? SampleTex2D(Get(metallicMap), Get(bilinearSampler), uv).r
+		? SampleTex2D(Get(metallicMap), Get(materialSampler), uv).r
 		: Get(baseMetalness);
 
 	const float _ao = HasAOTexture(Get(textureConfig)) 
-		? SampleTex2D(Get(aoMap), Get(bilinearSampler), uv).r
+		? SampleTex2D(Get(aoMap), Get(materialSampler), uv).r
 		: 1.0f;
 
+	float3 normalvMF = UnpackNormals(uv, -V, Get(vmfMap), Get(materialSampler), In.normal, Get(fNormalMapIntensity));
+	float3 normal = UnpackNormals(uv, -V, Get(normalMap), Get(materialSampler), In.normal, Get(fNormalMapIntensity));
 	float3 N = HasNormalTexture(Get(textureConfig))
-		? UnpackNormals(uv, -V, Get(normalMap), Get(bilinearSampler), In.normal, Get(fNormalMapIntensity))
+		?  (HasVMFTexture(Get(textureConfig)) ? normalvMF : normal)
 		: normalize(In.normal);
 	
 	const int isOrenNayar = IsOrenNayarDiffuse(Get(textureConfig)) ? 1 : 0;
@@ -358,8 +361,15 @@ float4 PS_MAIN(VSOutput In)
 	// Tone mapping
 	color = color / (color + float3(1.0f, 1.0f, 1.0f));
 	
+	int debugRenderMode = Get(renderMode);
+	
+	// This define is set in the fmat file
+#ifdef MATERIAL_RENDER_MODE
+	debugRenderMode = MATERIAL_RENDER_MODE;
+#endif
+
 	// final color
-	switch (Get(renderMode))
+	switch (debugRenderMode)
 	{
 	default:
 	case 0: break;

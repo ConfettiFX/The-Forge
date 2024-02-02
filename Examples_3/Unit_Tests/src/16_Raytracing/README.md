@@ -4,9 +4,9 @@
 
 This Raytracing test applies to the following Raytracing executables:
 
-* Windows x64 Vulkan - The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2017\x64\ReleaseVk\16_Raytracing
+* Windows x64 Vulkan - The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2019\x64\ReleaseVk\16_Raytracing
 
-* Windows x64 DirectX - The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2017\x64\ReleaseDx\16_Raytracing
+* Windows x64 DirectX - The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2019\x64\ReleaseDx\16_Raytracing
 
 * Linux	Vulkan - The-Forge\Examples_3\Unit_Tests\UbuntuCodelite\16_Raytracing\Release\16_Raytracing
 
@@ -38,7 +38,7 @@ The following commandline arguments are available:
 
 Example: 
 
-* The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2017\x64\ReleaseDx\16_Raytracing.exe -w 1280 -h 720 -b 512 -o "../../../raytracer"
+* The-Forge\Examples_3\Unit_Tests\PC Visual Studio 2019\x64\ReleaseDx\16_Raytracing.exe -w 1280 -h 720 -b 512 -o "../../../raytracer"
 
 
 ## Shortcut keys

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,18 +20,39 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
 #include "../Application/Config.h"
+
 #include "Interfaces/IGraphics.h"
 
-//Reads the gpu config and sets the preset level of all available gpu's
-FORGE_API GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, const char* revId);
+// read gpu.cfg and store all its content in specific structures
+FORGE_API void initGPUSettings(ExtendedSettings* pExtendedSettings);
 
-//Reads the graphics config and enables settings based on the available GPU settings
-FORGE_API void setExtendedSettings(ExtendedSettings* pExtendedSettings, GPUSettings* pGpuSettings);
+// free all specific gpu.cfg structures
+FORGE_API void exitGPUSettings();
 
+// set default value, samplerAnisotropySupported, graphicsQueueSupported, primitiveID
+FORGE_API void setDefaultGPUSettings(GPUSettings* pGpuSettings);
+
+// selects best gpu depending on the gpu comparison rules stored in gpu.cfg
+FORGE_API uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount);
+
+// reads the gpu data and sets the preset level of all available gpu's
+FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, uint32_t revId);
+
+// apply the configuration's rules to GPUSettings
+FORGE_API void applyConfigurationSettings(GPUSettings* pGpuSettings, GPUCapBits* pCapBits);
+
+// apply the user extended configuration rules to the ExtendedSetting
+FORGE_API void applyExtendedSettings(ExtendedSettings* pExtendedSettings, const GPUSettings* pGpuSettings);
+
+// return if the the GPUSettings validate the current driver rejection rules
+FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings);
+
+// ------ utilities ------
 FORGE_API const char*    presetLevelToString(GPUPresetLevel preset);
 FORGE_API GPUPresetLevel stringToPresetLevel(const char* presetLevel);
+FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);

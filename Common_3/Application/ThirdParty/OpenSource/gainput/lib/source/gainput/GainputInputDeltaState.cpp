@@ -69,7 +69,7 @@ InputDeltaState::NotifyListeners(float deltaTime, Array<InputListener*>& listene
 		{
 			if (change.type == BT_GESTURE)
 			{
-				if(!(*it2)->OnDeviceButtonGesture(change.device, change.deviceButton, change.g))
+				if(!(*it2)->OnDeviceButtonGesture(deltaTime, change.device, change.deviceButton, change.g))
 				{
 					break;
 				}

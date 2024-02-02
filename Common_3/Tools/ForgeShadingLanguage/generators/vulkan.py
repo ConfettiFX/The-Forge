@@ -1,10 +1,32 @@
+# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# 
+# This file is part of The-Forge
+# (see https://github.com/ConfettiFX/The-Forge).
+# 
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+# 
+#   http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """ GLSL shader generation """
 
-from utils import Stages, getHeader, getMacro, Platforms, getShader, getMacroName, get_whitespace
-from utils import isArray, getArrayLen, StageFlags, getArrayBaseName, fsl_assert, ShaderBinary
-from utils import is_input_struct, get_input_struct_var, getArrayLenFlat, is_groupshared_decl
-import os, sys, re
-from shutil import copyfile
+from utils import Stages, WaveopsFlags, Features, ShaderBinary, Platforms
+from utils import isArray, getArrayLen, getArrayBaseName, fsl_assert, getHeader, getMacro
+from utils import is_input_struct, get_input_struct_var, is_groupshared_decl, getShader, iter_lines
+from utils import getMacroFirstArg, get_interpolation_modifier, getMacroName, get_whitespace, get_fn_table
+import os, re
 
 def BeginNonUniformResourceIndex(index, max_index=None):
     case_list = ['#define CASE_LIST ']
@@ -21,8 +43,6 @@ def BeginNonUniformResourceIndex(index, max_index=None):
             case_list += ['CASE(',str(n_100*100 + n_10*10 + i), ') ']
     else:
         case_list += ['CASE_LIST_256']
-        # print(n_100, n_10, n_1)
-        # sys.exit(1)
     return case_list + [
         '\n#define NonUniformResourceIndexBlock(', index,') \\\n'
     ]
@@ -43,7 +63,7 @@ def EndNonUniformResourceIndex(index):
     ]
 
 def get_format_qualifier(name):
-    elem_type = getMacro(name)
+    elem_type = getMacroFirstArg(name)
     _map = {
         'float4': 'rgba32f',
         'float2': 'rg32f',
@@ -65,21 +85,34 @@ def get_format_qualifier(name):
 # helper to insert a level of indirection into buffer array expressions
 # replacing: buffer_array[i][j] by buffer_array[i]._data[j]
 def insert_buffer_array_indirections( line, buffer_name ):
-    id_beg = line.find(buffer_name+'[')
+    id_beg = line.find(buffer_name)        
     while id_beg > -1:
         # either the line starts with the identifier, or it is preceded
         # by a symbol that cannot be contained in an indentifier
         if id_beg == 0 or line[id_beg-1] in '(){}[]|&^, +-/*%:;,<>~!?=\t\n':
+            id_beg += len(buffer_name)
+            valid = True
+            while id_beg < len(line):
+                if line[id_beg] == '[': 
+                    id_beg += 1
+                    break
+                if line[id_beg] not in ') \t\n':
+                    valid = False
+                    break
+                id_beg += 1
+
+            if not valid: continue
+
             # walk the string and count angle bracket occurences to handle
             # nested expressions: buffer_array[buffer_array[0][0]][0]
-            num_br, id_end = 1, id_beg+len(buffer_name)+1 # offset by +4 due to 'Get'
+            num_br, id_end = 1, id_beg
             while id_end < len(line):
                 num_br += 1 if line[id_end] == '[' else  -1 if line[id_end] == ']' else 0
                 id_end += 1
                 if num_br == 0: 
                     line = line[:id_end] + '._data' + line[id_end:]
                     break
-        id_beg = line.find(buffer_name+'[', id_beg + len(buffer_name) + 1)
+        id_beg = line.find(buffer_name, id_beg + 1)
     return line
 
 def is_buffer(fsl_declaration):
@@ -147,6 +180,33 @@ def declare_rw_texture(fsl_declaration):
         access, ' uniform ', tex_type, ' ', tex_name, ';\n'
     ]
 
+def gen_passthrough_gs(shader, dst):
+    gs = getHeader(dst)
+    gs += ['// generated pass-through gs\n']
+    gs += ['#version 450\n']
+    gs += ['#extension GL_GOOGLE_include_directive : require\n']
+    gs += ['#include "includes/vulkan.h"\n']
+    gs += ['layout (triangles) in;\n']
+    gs += ['layout (triangle_strip, max_vertices = 3) out;\n']
+
+    ll = 0
+    assignment = []
+    for struct, _ in shader.struct_args:
+        for e in shader.structs[struct]:
+            sem = e[2].upper()
+            if sem in {'SV_POSITION', 'SV_POINTSIZE', 'SV_DEPTH', 'SV_RENDERTARGETARRAYINDEX'}:
+                continue
+            gs += [f'layout(location = {ll}) in {e[0]} in_{e[1]}[];\n']
+            gs += [f'layout(location = {ll}) out {e[0]} out_{e[1]};\n']
+            assignment += [f'\t\tout_{e[1]} = in_{e[1]}[i];\n']
+            ll += 1
+    gs += ['\nvoid main()\n{\n\tfor(int i = 0; i < 3; i++)\n\t{\n']
+    gs += ['\t\tgl_Position = gl_in[i].gl_Position;\n']
+    gs += ['\t\tgl_PrimitiveID = gl_PrimitiveIDIn;\n']
+    gs += assignment
+    gs += ['\t\tEmitVertex();\n\t}\n}\n']
+    open(dst, 'w').writelines(gs)
+
 def quest(*args):
     return glsl(Platforms.QUEST, *args)
 
@@ -156,57 +216,73 @@ def vulkan(*args):
 def switch(*args):
     return glsl(Platforms.SWITCH, *args)
 
-def android(*args):
-    return glsl(Platforms.ANDROID, *args)
+def android_vulkan(*args):
+    return glsl(Platforms.ANDROID_VULKAN, *args)
 
 def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     binary.derivatives[platform] = [['VK_EXT_DESCRIPTOR_INDEXING_ENABLED=0', 'VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED=0']]
 
     shader = getShader(platform, binary.fsl_filepath, binary.preprocessed_srcs[platform], dst)
+    # check for function overloading.
+    get_fn_table(shader.lines)
+
+    binary.waveops_flags = shader.waveops_flags
+
+    dependencies = []
 
     shader_src = getHeader(binary.preprocessed_srcs[platform])
-    shader_src += [ '#version 450 core\n', '#extension GL_GOOGLE_include_directive : require\nprecision highp float;\nprecision highp int;\n\n']
+    version = 450
+    extensions = ['GL_GOOGLE_include_directive']
+
+    if Features.RAYTRACING in binary.features:
+        version = max(version, 460)
+        extensions += [
+            'GL_EXT_ray_query',
+            'GL_EXT_ray_flags_primitive_culling',
+        ]
+
+    if Platforms.QUEST == platform:
+        if Features.MULTIVIEW in binary.features:
+            extensions += [
+                "GL_OVR_multiview2"
+            ]
+
+    shader_src += [f'#version {version} core\n']
+    for ext in extensions:
+        shader_src += [f'#extension {ext} : require\n']
+
+    shader_src += [ 'precision highp float;\nprecision highp int;\n\n']
     shader_src += ['#define STAGE_', shader.stage.name, '\n']
+
     if Platforms.QUEST == platform:
         shader_src += ['#define TARGET_QUEST\n']
-        if StageFlags.VR_MULTIVIEW in binary.flags:
-            shader_src += ['#define VR_MULTIVIEW_ENABLED 1\n']
 
-    if shader.enable_waveops:
-        shader_src += ['#define ENABLE_WAVEOPS()\n']
+    if shader.waveops_flags != WaveopsFlags.WAVE_OPS_NONE:
+        shader_src += ['#define ENABLE_WAVEOPS(flags)\n']
+        for flag in list(WaveopsFlags):
+            if flag not in shader.waveops_flags or flag == WaveopsFlags.WAVE_OPS_NONE or flag == WaveopsFlags.WAVE_OPS_ALL:
+                continue
+            shader_src += [ '#define {0}\n'.format(flag.name) ]
+
+    
+    if Features.PRIM_ID in binary.features and binary.stage == Stages.FRAG:
+        #  generate pass-through gs
+        fn = dst.replace('frag', 'geom')
+
+        gen_passthrough_gs(shader, fn)
+        dependencies += [(Stages.GEOM, fn, os.path.basename(fn))]
 
     in_location = 0
-    
-    # shader_src += ['#include "includes/vulkan.h"\n\n']
-    # incPath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'vulkan.h')
-    # dstInc = os.path.join(os.path.dirname(dst), "includes/vulkan.h")
-    # if True or not os.path.exists(dstInc):
-    #     os.makedirs(os.path.dirname(dstInc), exist_ok=True)
-    #     copyfile(incPath, dstInc)
 
     # directly embed vk header in shader
     header_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'includes', 'vulkan.h')
     header_lines = open(header_path).readlines()
     shader_src += header_lines + ['\n']
 
-    # pcf output defines (inputs are identical to main)
-    pcf_return_assignments = []
-    # if shader.stage == Stages.TESC and shader.pcf:
-    #     t = getMacroName(shader.pcf_returnType)
-    #     if t in shader.structs:
-    #         for t, n, s in shader.structs[t]:
-    #             pcf_return_assignments += ['ASSIGN_PCF_OUT_' + getArrayBaseName(n)]
-
-    # retrieve output patch size
-    patch_size = 0
-    for line in shader.lines:
-        if 'OUTPUT_CONTROL_POINTS' in line:
-            patch_size = int(getMacro(line))
-
     out_location = 0
 
-    arrBuffs = ['Get('+getArrayBaseName(res[1])+')' for res in shader.resources if 'Buffer' in res[0] and (isArray(res[1]))]
+    arrBuffs = [getArrayBaseName(res[1]) for res in shader.resources if 'Buffer' in res[0] and (isArray(res[1]))]
     returnType = None if not shader.returnType else (getMacroName(shader.returnType), getMacro(shader.returnType))
 
     push_constant = None
@@ -218,10 +294,6 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
 
     nonuniformresourceindex = None
     parsed_entry = False
-    
-    # tesselation
-    pcf_returnType = None
-    pcf_arguments = []
 
     substitutions = {
          'min16float(' : 'float(',
@@ -241,22 +313,9 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
     input_assignments = []
     return_assignments = []
 
-    line_index = 0
+    for fi, line_index, line in iter_lines(shader.lines):
 
-    for line in shader.lines:
-
-        line_index += 1
         shader_src_len = len(shader_src)
-        if line.startswith('#line'):
-            line_index = int(line.split()[1]) - 1
-
-        def get_uid(name):
-            return '_' + name + '_' + str(len(shader_src))
-
-        # dont process commented lines
-        if line.strip().startswith('//'):
-            shader_src += [line]
-            continue
         
         if '@fsl_extension' in line:
             shader_src += [line.replace('@fsl_extension', '#extension')]
@@ -283,10 +342,8 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             if not line.endswith('\n'): line += '\n'
             shader_src += [line]
 
-            for macro, struct_declaration in struct_declarations:
-                shader_src += ['#ifdef ' + macro + '\n']
+            for struct_declaration in struct_declarations:
                 shader_src += [''.join(struct_declaration) + '\n']
-                shader_src += ['#endif\n']
             shader_src += ['#line {}\n'.format(line_index + 1)]
 
             struct_declarations = []
@@ -301,139 +358,74 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             if shader.returnType and parsing_struct in shader.returnType:
                 var = 'out_'+shader.returnType
                 elem_dtype, elem_name, sem = getMacro(line)
+
                 sem = sem.upper()
-                flat_modifier = 'FLAT(' in line
-                if flat_modifier:
+                interpolation_modifier = get_interpolation_modifier(elem_dtype)
+                if interpolation_modifier:
                     elem_dtype = getMacro(elem_dtype)
                     line = get_whitespace(line) + getMacro(elem_dtype)+' '+elem_name+';\n'
 
                 basename = getArrayBaseName(elem_name)
-                macro = get_uid(basename)
-                shader_src += ['#define ', macro, '\n']
                 output_datapath = var + '_' + elem_name
                 reference = None
 
+                out_location_inc = 1
+
                 if sem == 'SV_POSITION':
                     output_datapath = 'gl_Position'
-                    if shader.stage == Stages.TESC:
-                        output_datapath = 'gl_out[gl_InvocationID].' + output_datapath
                 elif sem == 'SV_POINTSIZE': output_datapath = 'gl_PointSize'
                 elif sem == 'SV_DEPTH': output_datapath = 'gl_FragDepth'
                 elif sem == 'SV_RENDERTARGETARRAYINDEX' : output_datapath = 'gl_Layer'
+                elif sem == 'SV_COVERAGE' : output_datapath = 'gl_SampleMask[0]'
                 else:
                     output_prefix, out_postfix = '', ''
-                    if shader.stage == Stages.TESC:
-                        output_prefix = 'patch '
-                        out_postfix = '[]'
-                        if shader.input_patch_arg:
-                            out_postfix = '['+shader.input_patch_arg[1]+']'
-                    if flat_modifier:
-                        output_prefix = 'flat '+output_prefix
+                    if interpolation_modifier:
+                        output_prefix = f'{interpolation_modifier} '+output_prefix
                     reference = ['layout(location = ', str(out_location),') ', output_prefix, 'out(', elem_dtype, ') ', output_datapath, out_postfix, ';']
-                
-
-                if shader.stage == Stages.TESC and sem != 'SV_POSITION':
-                    output_datapath += '[gl_InvocationID]'
 
                 # unroll attribute arrays
                 if isArray(elem_name):
-                    # assignment = ['for(int i=0; i<', str(getArrayLenFlat(elem_name)), ';i++) ']
-                    # assignment += [var, '_', basename, '[i] = ', var, '.', basename, '[i]']
                     assignment = [var, '_', basename, ' = ', var, '.', basename, '']
-                    
                     out_location += getArrayLen(shader.defines, elem_name)
                 else:
                     if sem != 'SV_POSITION' and sem !='SV_POINTSIZE' and sem !='SV_DEPTH' and sem != 'SV_RENDERTARGETARRAYINDEX':
-                        out_location += 1
+                        out_location += out_location_inc
                     if output_datapath == 'gl_Layer':
                         assignment = [output_datapath, ' = int(', var, '.', elem_name, ')']
                     else:
                         assignment = [output_datapath, ' = ', var, '.', elem_name]
 
                 if reference:
-                    struct_declarations += [(macro, reference)]
-                return_assignments += [(macro, assignment)]
+                    struct_declarations += [reference]
+                return_assignments += [assignment]
 
-            # tesselation pcf output
-            elif shader.pcf_returnType and parsing_struct in shader.pcf_returnType:
-                # var = getMacro(shader.pcf_returnType)
-                var = 'out_'+shader.pcf_returnType
-                _, elem_name, sem = getMacro(line)
-                sem = sem.upper()
-
-                basename = getArrayBaseName(elem_name)
-                macro = get_uid(basename)
-                shader_src += ['#define ', macro, '\n']
-                tess_var = ''
-                if sem == 'SV_TESSFACTOR':
-                    tess_var = 'gl_TessLevelOuter'
-                if sem == 'SV_INSIDETESSFACTOR':
-                    tess_var = 'gl_TessLevelInner'
-                pcf_return_assignments += [(macro, [tess_var, ' = ', var, '.', basename, ';'])]
-
-            # elif shader.entry_arg and parsing_struct in shader.entry_arg:
             elif is_input_struct(parsing_struct, shader):
                 var = get_input_struct_var(parsing_struct, shader)
                 elem_dtype, elem_name, sem = getMacro(line)
                 sem = sem.upper()
-                flat_modifier = 'FLAT(' in line
-                if flat_modifier:
+                interpolation_modifier = get_interpolation_modifier(elem_dtype)
+                in_location_inc = 1
+                if interpolation_modifier:
                     elem_dtype = getMacro(elem_dtype)
                     line = get_whitespace(line) + getMacro(elem_dtype)+' '+elem_name+';\n'
                 is_array = isArray(elem_name)
                 
                 basename = getArrayBaseName(elem_name)
-                macro = get_uid(basename)
-                shader_src += ['#define ', macro, '\n']
                 input_datapath = var + '_' + elem_name
                 
                 if sem == 'SV_POINTSIZE' or sem == 'SV_RENDERTARGETARRAYINDEX': continue
                 # for vertex shaders, use the semantic as attribute name (for name-based reflection)
                 input_value = sem if shader.stage == Stages.VERT else var + '_' + elem_name
 
-                # tessellation
-                in_postfix, in_prefix = '', ''
-                if shader.stage == Stages.TESC: in_postfix = '[]'
-                if shader.stage == Stages.TESE:
-                    in_prefix = ' patch'
-                    in_postfix = '[]'
-                    if shader.output_patch_arg:
-                        in_postfix = '['+shader.output_patch_arg[1]+']'
+                in_prefix = ''
+                if interpolation_modifier:
+                    in_prefix = f' {interpolation_modifier} '+in_prefix
 
-                if flat_modifier:
-                    in_prefix = 'flat '+in_prefix
-
-                reference = ['layout(location = ', str(in_location),')', in_prefix, ' in(', elem_dtype, ') ', input_value, in_postfix, ';']
+                reference = ['layout(location = ', str(in_location),')', in_prefix, ' in(', elem_dtype, ') ', input_value, ';']
 
                 # input semantics
                 if sem == 'SV_POSITION' and shader.stage == Stages.FRAG:
                     input_value = elem_dtype+'(float4(gl_FragCoord.xyz, 1.0f / gl_FragCoord.w))'
-                    reference = []
-
-                var_postfix = ''
-                if shader.stage == Stages.TESC:
-                    if sem == 'SV_POSITION':
-                        input_value = 'gl_in[gl_InvocationID].gl_Position'
-                        reference = []
-                    else:
-                        input_value = input_value + '[gl_InvocationID]'
-                    var_postfix = '[gl_InvocationID]'
-
-                if shader.stage == Stages.TESE:
-                    if sem == 'SV_POSITION':
-                        input_value = 'gl_in[0].gl_Position'
-                        reference = []
-                    elif shader.output_patch_arg and shader.output_patch_arg[0] in parsing_struct:
-                        input_value = input_value + '[0]'
-                    var_postfix = '[0]'
-
-                if sem == 'SV_TESSFACTOR':
-                    input_value = 'gl_TessLevelOuter'
-                    var_postfix = ''
-                    reference = []
-                if sem == 'SV_INSIDETESSFACTOR':
-                    input_value = 'gl_TessLevelInner'
-                    var_postfix = ''
                     reference = []
 
                 assignment = []
@@ -444,16 +436,16 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                 #     assignment = ['for(int i=0; i<', str(getArrayLenFlat(elem_name)), ';i++) ']
                 #     assignment += [var, '.', basename, '[i] = ', var, '_', basename, '[i]']
                 # else:
-                assignment = [var, var_postfix, '.', basename, ' = ',  input_value]
+                assignment = [var, '.', basename, ' = ',  input_value]
 
                 if shader.stage == Stages.VERT and sem != 'SV_VERTEXID':
                     assignment += [';\n\t', sem]
 
                 if sem != 'SV_POSITION':
-                    in_location += 1
+                    in_location += in_location_inc
                 if reference:
-                    struct_declarations += [(macro, reference)]
-                input_assignments += [(macro, assignment)]
+                    struct_declarations += [reference]
+                input_assignments += [assignment]
 
         if (parsing_cbuffer or parsing_pushconstant) and line.strip().startswith('DATA('):
             dt, name, sem = getMacro(line)
@@ -466,7 +458,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['#define _Get', element_basename, ' ', element_path, '\n']
 
         if 'CBUFFER' in line:
-            fsl_assert(parsing_cbuffer == None, message='Inconsistent cbuffer declaration: \"' + line + '\"')
+            fsl_assert(parsing_cbuffer == None, fi, line_index, message='Inconsistent cbuffer declaration: \"' + line + '\"')
             parsing_cbuffer = tuple(getMacro(line))
         if '};' in line and parsing_cbuffer:
             parsing_cbuffer = None
@@ -504,7 +496,7 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
         resource_decl = None
         if line.strip().startswith('RES('):
             resource_decl = getMacro(line)
-            fsl_assert(len(resource_decl) == 5, binary.fsl_filepath, message='invalid Res declaration: \''+line+'\'')
+            fsl_assert(len(resource_decl) == 5, fi, line_index, message='invalid Res declaration: \''+line+'\'')
             basename = getArrayBaseName(resource_decl[1])
             shader_src += ['#define _Get' + basename + ' ' + basename + '\n']
         
@@ -544,17 +536,15 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             nonuniformresourceindex = None
             continue
         if nonuniformresourceindex :
-            shader_src += [line[:-1], ' \\\n']
+            # skip preprocessor directive for unwrapped switch statement
+            if not line.strip().startswith('#'):
+                shader_src += [line[:-1], ' \\\n']
             continue
 
         if '_MAIN(' in line:
 
             if shader.returnType and shader.returnType not in shader.structs:
                 shader_src += ['layout(location = 0) out(', shader.returnType, ') out_', shader.returnType, ';\n']
-
-            if shader.input_patch_arg:
-                patch_size = shader.input_patch_arg[1]
-                shader_src += ['layout(vertices = ', patch_size, ') out;\n']
 
             shader_src += ['void main()\n']
             shader_src += ['#line {}\n'.format(line_index), '//'+line]
@@ -570,13 +560,8 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
                     output_statement += [ws+'\tout_'+shader.returnType+' = '+output_value+';\n']
                 else:
                     output_statement += [ws+'\t'+shader.returnType+' out_'+shader.returnType+' = '+output_value+';\n']
-            for macro, assignment in return_assignments:
-                output_statement += ['#ifdef ' + macro + '\n']
+            for assignment in return_assignments:
                 output_statement += [ws+'\t' + ''.join(assignment) + ';\n']
-                output_statement += ['#endif\n']
-
-            if shader.stage == Stages.TESC:
-                output_statement += ['\t\t' + shader.pcf + '();\n']
 
             output_statement += [ws+'\treturn;\n'+ws+'}\n']
             shader_src += output_statement
@@ -584,23 +569,15 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             continue
 
         if 'INIT_MAIN' in line:
-
+            post_init = None
             # assemble input
             for dtype, var in shader.struct_args:
-                if shader.input_patch_arg and dtype in shader.input_patch_arg[0]:
-                    dtype, dim, var = shader.input_patch_arg
-                    shader_src += ['\t' + dtype + ' ' + var + '[' + dim + '];\n']
-                    continue
-                if shader.output_patch_arg and dtype in shader.output_patch_arg[0]:
-                    dtype, dim, var = shader.output_patch_arg
-                    shader_src += ['\t' + dtype + ' ' + var + '[' + dim + '];\n']
-                    continue
                 shader_src += ['\t' + dtype + ' ' + var + ';\n']
                 
-            for macro, assignment in input_assignments:
-                shader_src += ['#ifdef ' + macro + '\n']
+            for assignment in input_assignments:
                 shader_src += ['\t' + ''.join(assignment) + ';\n']
-                shader_src += ['#endif\n']
+
+            if post_init: shader_src += post_init
             
             ''' additional inputs '''
             for dtype, dvar in shader.flat_args:
@@ -620,58 +597,10 @@ def glsl(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
-        # tesselation
-        if shader.pcf and shader.pcf in line and not pcf_returnType:
-            loc = line.find(shader.pcf)
-            pcf_returnType = line[:loc].strip()
-            pcf_arguments = getMacro(line[loc:])
-            _pcf_arguments = [arg for arg in pcf_arguments if 'INPUT_PATCH' in arg]
-            ws = line[:len(line)-len(line.lstrip())]
-            shader_src += [ws + 'void ' + shader.pcf + '()\n']
-            continue
-
-        if pcf_returnType and 'PCF_INIT' in line:
-            ws = line[:len(line)-len(line.lstrip())]
-            for dtype, dvar in shader.pcf_arguments:
-
-                sem = getMacroName(dtype)
-                innertype = getMacro(dtype)
-                print(innertype, sem, dvar)
-                if 'INPUT_PATCH' in sem:
-                    shader_src += [ws + dtype + ' ' + dvar + ';\n']
-                else:
-                    shader_src += [ws + innertype + ' ' + dvar + ' = ' + sem.upper() + ';\n']
-
-            for macro, assignment in input_assignments:
-                shader_src += ['#ifdef ' + macro + '\n']
-                shader_src += ['\t' + ''.join(assignment) + ';\n']
-                shader_src += ['#endif\n']
-            shader_src += ['#line {}\n'.format(line_index), '//'+line]
-            continue
-
-        if pcf_returnType and 'PCF_RETURN' in line:
-            ws = get_whitespace(line)
-
-            output_statement = [ws+'{\n']
-            output_value = getMacro(line)
-            
-            output_statement += [ws+'\t'+pcf_returnType+' out_'+pcf_returnType+' = '+output_value+';\n']
-            for macro, assignment in pcf_return_assignments:
-                output_statement += ['#ifdef ' + macro + '\n']
-                output_statement += [ws+'\t' + ''.join(assignment) + '\n']
-                output_statement += ['#endif\n']
-            output_statement += [
-                ws+'\treturn;\n',
-                ws+'}\n'
-            ]
-            shader_src += output_statement
-            shader_src += ['#line {}\n'.format(line_index), '//'+line]
-            continue
-
         if shader_src_len != len(shader_src):
             shader_src += ['#line {}\n'.format(line_index)]
 
         shader_src += [line]
 
     open(dst, 'w').writelines(shader_src)
-    return 0, []
+    return 0, dependencies

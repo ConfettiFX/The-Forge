@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  *
@@ -48,8 +48,6 @@ RES(Tex3D(float4), LPVGrid[3],             UPDATE_FREQ_NONE, t100, binding = 80)
 RES(Tex3D(float4), LPVGridCascades[3 * 3], UPDATE_FREQ_NONE, t103, binding = 83);
 RES(Tex3D(float4), GridOccluder,           UPDATE_FREQ_NONE, t112, binding = 92);
 RES(Tex3D(float4), GridOccluderSecondary,  UPDATE_FREQ_NONE, t113, binding = 93);
-
-DECLARE_RESOURCES()
 
 #ifdef VULKAN
 
@@ -169,7 +167,7 @@ float4 SHRotate(float3 vcDir, const float2 vZHCoeffs)
 	return vResult;
 }
 
-float4 SHProjectCone(const float3 vcDir, const float angle)
+float4 SHProjectCone_angle(const float3 vcDir, const float angle)
 {
 	const float2 vZHCoeffs = SHProjectionScale * float2(0.5f * (1.0f - cos(angle)), 0.75f * sin(angle) * sin(angle));
 
@@ -193,11 +191,11 @@ float4 SHProjectCone(const float3 vcDir)
 
 SHCoeffs Cone90Degree(const float3 vcDir)
 {
-	return SHProjectCone(vcDir, float(PI / 4.0f));
+	return SHProjectCone_angle(vcDir, float(PI / 4.0f));
 }
 
 //	Calculate data
-float SHEvaluateFunction(const float3 vcDir, const float4 data)
+float SHEvaluateFunction_float4(const float3 vcDir, const float4 data)
 {
 	return dot(data, float4(1.0f, vcDir.yzx) * SHBasis);
 }

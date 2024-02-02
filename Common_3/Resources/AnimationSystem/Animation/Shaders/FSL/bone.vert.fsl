@@ -1,0 +1,152 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// Shader for simple shading with a point light
+// for skeletons in Unit Tests Animation
+
+#define MAX_INSTANCES 804
+
+CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
+{
+#if FT_MULTIVIEW
+    DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+#else
+    DATA(float4x4, mvp, None);
+#endif
+    DATA(float4x4, viewMatrix, None);
+    DATA(float4, color[MAX_INSTANCES], None);
+    // Point Light Information
+    DATA(float4, lightPosition, None);
+    DATA(float4, lightColor, None);
+    DATA(float4, jointColor, None);
+    DATA(uint4, skeletonInfo, None);
+    DATA(float4x4, toWorld[MAX_INSTANCES], None);
+};
+
+STRUCT(VSInput)
+{
+    DATA(float4, Position, POSITION);
+    DATA(float4, Normal, NORMAL);
+    DATA(uint4, BoneIndices, JOINTS);
+};
+
+STRUCT(VSOutput)
+{
+    DATA(float4, Position, SV_Position);
+    DATA(float4, Color, COLOR);
+};
+
+float4x4 computeBoneTransform( uint InstanceID, uint childIndex, uint parentIndex )
+{
+
+    float4x4 result =  float4x4( 0.0f, 0.0f, 0.0f, 0.0f,
+                         0.0f, 0.0f, 0.0f, 0.0f,
+                         0.0f, 0.0f, 0.0f, 0.0f,
+                         0.0f, 0.0f, 0.0f, 1.0f );
+    /// root doesnt draw a bone
+    if ( childIndex == 0 )
+    {
+        return result;
+    }
+
+    uint numJoints = Get(skeletonInfo).x;
+    childIndex = ( InstanceID * numJoints ) + childIndex;
+    parentIndex = ( InstanceID * numJoints ) + parentIndex;
+    float4x4 parentMat = Get(toWorld)[parentIndex];
+	float4x4 childMat = Get(toWorld)[childIndex];
+    float3  boneDir;
+    boneDir.x = getElem(childMat,3,0) - getElem(parentMat,3,0);
+    boneDir.y = getElem(childMat,3,1) - getElem(parentMat,3,1);
+    boneDir.z = getElem(childMat,3,2) - getElem(parentMat,3,2);
+    float boneLen = length(boneDir);
+    float3 normal = normalize(boneDir);
+    float3 binormal;
+    float3 tangent;
+    if ( abs( normal.x ) > 0.707 ) 
+    {
+        // choose p in y-z plane
+        float a = normal.y * normal.y + normal.z * normal.z;
+        float k = 1.0f / sqrt( a );
+        binormal.x = 0;
+        binormal.y = -normal.z * k;
+        binormal.z = normal.y * k;
+        // set q = normal x p
+        tangent.x = a * k;
+        tangent.y = -normal.x * binormal.z;
+        tangent.z = normal.x * binormal.y;
+    }
+    else
+    {
+        // choose p in x-y planeRew
+        float a = normal.x * normal.x + normal.y * normal.y;
+        float k = 1.0f / sqrt( a );
+        binormal.x = ( -normal.y * k );
+        binormal.y  =( normal.x * k );
+        binormal.z = ( 0 );
+        // set q = normal x p
+        tangent.x = ( -normal.z * binormal.y );
+        tangent.y =( normal.z * binormal.x );
+        tangent.z = ( a * k );
+    }
+    binormal = binormal * boneLen;
+    tangent = tangent * boneLen;
+    setRow(result, float4(boneDir.x,binormal.x,tangent.x,getElem(parentMat,3,0)),0);
+    setRow(result, float4(boneDir.y,binormal.y,tangent.y,getElem(parentMat,3,1)),1);
+    setRow(result, float4(boneDir.z,binormal.z,tangent.z,getElem(parentMat,3,2)),2);
+    setRow(result, float4(0.0f,0.0f,0.0f, 1.0f),3);
+    return result;
+}
+
+VSOutput VS_MAIN(VSInput In, SV_InstanceID(uint) InstanceID)
+{
+    INIT_MAIN;
+    VSOutput Out;
+    uint numJoints = Get(skeletonInfo).x;
+    uint boneIndex = ( InstanceID * numJoints ) + In.BoneIndices.x;
+    float4x4 matWorld = computeBoneTransform(InstanceID,In.BoneIndices.x,In.BoneIndices.y);
+
+#if FT_MULTIVIEW
+    float4x4 tempMat = mul(Get(mvp)[VR_VIEW_ID], matWorld);
+#else
+    float4x4 tempMat = mul(Get(mvp), matWorld);
+#endif
+    Out.Position = mul(tempMat, In.Position);
+
+    float4 normal = normalize(mul(matWorld, float4(In.Normal.xyz, 0.0f))); // Assume uniform scaling
+    float4 pos = mul(matWorld, float4(In.Position.xyz, 1.0f));
+
+    float lightIntensity = 1.0f;
+    float quadraticCoeff = 1.2;
+    float ambientCoeff = 0.4;
+
+    float3 lightDir = normalize(Get(lightPosition).xyz - pos.xyz);
+
+    float3 baseColor = Get(color)[boneIndex].xyz;
+    float3 blendedColor = (Get(lightColor).xyz * baseColor) * lightIntensity;
+    float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
+    float3 ambient = baseColor * ambientCoeff;
+    Out.Color = float4(diffuse + ambient, 1.0);
+
+    RETURN(Out);
+}

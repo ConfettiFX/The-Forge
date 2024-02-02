@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="Visibility_Buffer" InternalType="Console" Version="10.0.0">
+<CodeLite_Project Name="Visibility_Buffer" InternalType="Console" Version="11000">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -8,25 +8,17 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../src/Geometry.cpp"/>
-    <File Name="../../src/Geometry.h"/>
+    <File Name="../../../Visibility_Buffer/src/SanMiguel.cpp"/>
+    <File Name="../../../Visibility_Buffer/src/SanMiguel.h"/>
     <File Name="../../src/Visibility_Buffer.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Shaders">
+    <File Name="../../src/Shaders/FSL/godray_blur.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/batch_compaction.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/clear_buffers.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/clear_light_clusters.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/cluster_lights.comp.fsl"/>
-    <File Name="../../src/Shaders/FSL/cull_resources.h"/>
     <File Name="../../src/Shaders/FSL/CurveConversion.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_pass.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_pass.vert.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_pass_alpha.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_resources.h"/>
-    <File Name="../../src/Shaders/FSL/deferred_shade.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_shade.vert.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_shade_pointlight.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/deferred_shade_pointlight.vert.fsl"/>
     <File Name="../../src/Shaders/FSL/display.frag.fsl"/>
     <File Name="../../src/Shaders/FSL/display.vert.fsl"/>
     <File Name="../../src/Shaders/FSL/godray.frag.fsl"/>
@@ -34,11 +26,8 @@
     <File Name="../../src/Shaders/FSL/HDAO.vert.fsl"/>
     <File Name="../../src/Shaders/FSL/icb.comp.fsl" ExcludeProjConfig="Debug"/>
     <File Name="../../src/Shaders/FSL/light_cull_resources.h"/>
-    <File Name="../../src/Shaders/FSL/packing.h"/>
-    <File Name="../../src/Shaders/FSL/panoToCube.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/resolve.frag.fsl"/>
     <File Name="../../src/Shaders/FSL/resolve.vert.fsl"/>
-    <File Name="../../src/Shaders/FSL/resolveGodray.frag.fsl"/>
     <File Name="../../src/Shaders/FSL/shader_defs.h"/>
     <File Name="../../src/Shaders/FSL/shading.h"/>
     <File Name="../../src/Shaders/FSL/shadow_pass.vert.fsl"/>
@@ -46,8 +35,6 @@
     <File Name="../../src/Shaders/FSL/shadow_pass_alpha.vert.fsl"/>
     <File Name="../../src/Shaders/FSL/skybox.frag.fsl"/>
     <File Name="../../src/Shaders/FSL/skybox.vert.fsl"/>
-    <File Name="../../src/Shaders/FSL/sun.frag.fsl"/>
-    <File Name="../../src/Shaders/FSL/sun.vert.fsl"/>
     <File Name="../../src/Shaders/FSL/triangle_filtering.comp.fsl"/>
     <File Name="../../src/Shaders/FSL/vb_resources.h"/>
     <File Name="../../src/Shaders/FSL/visibilitybuffer_pass.vert.fsl"/>
@@ -62,14 +49,12 @@
     <Project Name="OS"/>
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
-    <Project Name="EASTL"/>
     <Project Name="gainput"/>
   </Dependencies>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
-    <Project Name="EASTL"/>
     <Project Name="gainput"/>
   </Dependencies>
   <Settings Type="Executable">
@@ -81,7 +66,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-march=native;-msse4.1;" C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-Wall;-Werror;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O0;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -91,14 +76,12 @@
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
-        <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -114,21 +97,23 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
-        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SanMiguel_3/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Other</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/cameraPath.bin $(ProjectPath)/$(ConfigurationName)/</Command>
         <Command Enabled="no"># Fonts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+        <Command Enabled="no"># Scripts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># Misc</Command>
+        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -145,7 +130,7 @@
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders/ --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders/ --verbose -b $(DST)/CompiledShaders -i $(DST) --cache-args --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)
@@ -159,7 +144,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O2;-std=gnu++14;-Wall;-Wno-comment;-Wno-unknown-pragmas;-Werror;-march=native;-msse4.1;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-Wall;-Werror;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O2;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
         <IncludePath Value="$(ProjectPath)/../../../.."/>
@@ -169,14 +154,12 @@ shaders:&#xD;
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../Unit_Tests/UbuntuCodelite/SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
-        <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -192,21 +175,23 @@ shaders:&#xD;
       <PreBuild/>
       <PostBuild>
         <Command Enabled="no"># Src</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
-        <Command Enabled="no">#rsync -u -r $(WorkspacePath)/../src/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
-        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
+        <Command Enabled="yes">rsync -u -r  --include '*/' --include '*.tex' --exclude '*' --prune-empty-dirs $(WorkspacePath)/../../../Art/SanMiguel_3/Textures/dds/ $(ProjectPath)/$(ConfigurationName)/Textures/</Command>
         <Command Enabled="no"># Meshes</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Art/SanMiguel_3/Meshes/ $(ProjectPath)/$(ConfigurationName)/Meshes/</Command>
         <Command Enabled="no"># Other</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/cameraPath.bin $(ProjectPath)/$(ConfigurationName)/</Command>
         <Command Enabled="no"># Fonts</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+        <Command Enabled="no"># Scripts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../Resources/Scripts/ $(ProjectPath)/$(ConfigurationName)/Scripts/</Command>
+        <Command Enabled="no"># Misc</Command>
+        <Command Enabled="yes">rsync -u -r --include '*.so' --include '*.json' --exclude '*' $(WorkspacePath)/../../../Common_3/Graphics/ThirdParty/OpenSource/VulkanSDK/bin/Linux/ $(ProjectPath)/$(ConfigurationName)/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -223,7 +208,7 @@ shaders:&#xD;
         <CustomPreBuild>shaders
 SRC = $(WorkspacePath)/../src/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders/ --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders/ --verbose -b $(DST)/CompiledShaders -i $(DST) --cache-args --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC)/*.fsl), $(fsl) $(file);)</CustomPreBuild>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -29,6 +29,11 @@
 #define PI 3.1415926
 #define e 2.71828183
 #define EPSILON 1e-7f
+#if defined(METAL)
+#define TEXTURE_ATOMIC_SUPPORTED 0
+#else
+#define TEXTURE_ATOMIC_SUPPORTED 1
+#endif // defined(METAL)
 
 struct PointLight
 {
@@ -49,7 +54,7 @@ struct DirectionalLight
 
 struct Camera
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	float4x4 VPMatrix[VR_MULTIVIEW_COUNT];
 	float4x4 InvVPMatrix[VR_MULTIVIEW_COUNT];
 #else
@@ -60,7 +65,7 @@ struct Camera
 #ifndef METAL
 	float __dumm;
 #endif
-	
+
 	float fAmbientLightIntensity;
 	int bUseEnvironmentLight;
 	float fEnvironmentLightIntensity;
@@ -86,9 +91,9 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b3, binding = 6)
 	DATA(uint, NumPointLights, None);
 };
 
-RES(SamplerState, PointSampler,  UPDATE_FREQ_NONE, s1, binding = 9);
+RES(SamplerState, pointSampler,  UPDATE_FREQ_NONE, s1, binding = 9);
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 RES(Tex2DArray(float4), ColorsTexture, UPDATE_FREQ_NONE, t5, binding = 6);
 RES(Tex2DArray(float), InvAlphaTexture, UPDATE_FREQ_NONE, t6, binding = 7);
 #else
@@ -97,14 +102,14 @@ RES(Tex2D(float), InvAlphaTexture,  UPDATE_FREQ_NONE, t6, binding = 7);
 #endif
 
 // TODO: fix this
-#ifdef METAL
-	RES(RWBuffer(uint), DepthsTexture,  UPDATE_FREQ_NONE, u0, binding = 6);
-#else
+#if TEXTURE_ATOMIC_SUPPORTED
 	#ifdef SHORT_CUT_RESOLVE_DEPTH
 		RES(Tex2DArray(uint), DepthsTexture,  UPDATE_FREQ_NONE, t4, binding = 6);
 	#elif defined(SHORT_CUT_DEPTH_PEELING) || defined(SHORT_CUT_CLEAR)
 		RES(RWTex2DArray(uint), DepthsTexture,  UPDATE_FREQ_NONE, u1, binding = 6);
 	#endif
+#else
+	RES(RWBuffer(uint), DepthsTexture,  UPDATE_FREQ_NONE, u0, binding = 6);
 #endif
 
 #endif
@@ -129,15 +134,6 @@ CBUFFER(cbCamera, UPDATE_FREQ_PER_BATCH, b0, binding = 0)
 };
 #endif
 
-#ifdef SHORT_CUT_FILL_COLOR
-CBUFFER(cbDirectionalLightShadowCameras, UPDATE_FREQ_PER_BATCH, b6, binding = 10)
-{
-	DATA(Camera, ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS], None);
-};
-
-RES(Tex2D(float), DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS],  UPDATE_FREQ_PER_BATCH, t3, binding = 8);
-#endif
-
 // UPDATE_FREQ_PER_DRAW
 CBUFFER(cbHair, UPDATE_FREQ_PER_DRAW, b2, binding = 1)
 {
@@ -157,6 +153,15 @@ CBUFFER(cbHair, UPDATE_FREQ_PER_DRAW, b2, binding = 1)
 RES(Buffer(float4), GuideHairVertexPositions,  UPDATE_FREQ_PER_DRAW, t0, binding = 3);
 RES(Buffer(float4), GuideHairVertexTangents,   UPDATE_FREQ_PER_DRAW, t1, binding = 4);
 RES(Buffer(float),  HairThicknessCoefficients, UPDATE_FREQ_PER_DRAW, t2, binding = 5);
+
+#ifdef SHORT_CUT_FILL_COLOR
+CBUFFER(cbDirectionalLightShadowCameras, UPDATE_FREQ_PER_BATCH, b6, binding = 10)
+{
+    DATA(Camera, ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS], None);
+};
+
+RES(Tex2D(float), DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS],  UPDATE_FREQ_PER_BATCH, t3, binding = 8);
+#endif
 
 // Common functions
 float3 ScreenPosToNDC(float3 screenPos, float4 viewport)
@@ -212,7 +217,7 @@ STRUCT(VSOutput)
 	DATA(float4, P0P1, POINT);
 	DATA(float4, Color, COLOR);
 	DATA(float2, W0W1, POINT1);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     DATA(FLAT(uint), ViewID, TEXCOORD3);
 #endif
 };
@@ -221,7 +226,7 @@ STRUCT(VSOutputFullscreen)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float2, UV, TEXCOORD);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     DATA(FLAT(uint), ViewID, TEXCOORD3);
 #endif
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  *
@@ -17,8 +17,8 @@
 
 RES(SamplerState,  textureFilter,                     UPDATE_FREQ_NONE,      s0, binding = 0);
 RES(SamplerState,  rsmFilter,                         UPDATE_FREQ_NONE,      s1, binding = 1);
-RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE], UPDATE_FREQ_NONE,      t1, binding = 2);
-RES(Buffer(uint),  indirectMaterialBuffer,            UPDATE_FREQ_PER_FRAME, t0, binding = 1);
+RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE,      t1, binding = 2);
+RES(Buffer(uint),  indirectMaterialBuffer,            UPDATE_FREQ_PER_FRAME, t0, binding = 3);
 
 PUSH_CONSTANT(materialRootConstant, b1)
 {
@@ -37,14 +37,12 @@ PUSH_CONSTANT(indirectRootConstant, b2)
 
 #else
 
-#ifdef PS_DRAW_ID
-#define getDrawID() In.drawID
-#else
-#define getDrawID() InstanceID
-#endif // PS_DRAW_ID
-
+#if defined(STAGE_VERT)
+	#define getDrawID() InstanceID
+#elif defined(STAGE_FRAG)
+	#define getDrawID() In.drawID
 #endif
 
-DECLARE_RESOURCES()
+#endif
 
 #endif // VB_RSM_RESOURCES_H

@@ -50,8 +50,16 @@ AffineTransform GetJointLocalRestPose(const Skeleton& _skeleton,
   ASSERT(_joint >= 0 && _joint < _skeleton.num_joints() &&
          "Joint index out of range.");
 
+#if defined(__GNUC__) && __GNUC__ >= 13
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference" // GCC 13 is confused by ozz::span<>
+#endif
   const SoaTransform& soa_transform =
       _skeleton.joint_rest_poses()[_joint / 4];
+#if defined(__GNUC__) && __GNUC__ >= 13
+#pragma GCC diagnostic pop
+#endif
+
 
   // Transpose SoA data to AoS.
   Vector4 translations[4];

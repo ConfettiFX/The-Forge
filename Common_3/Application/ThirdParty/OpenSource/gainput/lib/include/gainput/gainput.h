@@ -37,6 +37,8 @@
 		#define GAINPUT_LIBEXPORT
 	#endif
 #elif defined(__APPLE__)
+	#include "../../../../../../../OS/Interfaces/IOperatingSystem.h"
+
 	#define GAINPUT_LIBEXPORT
 	#include <TargetConditionals.h>
     #if TARGET_OS_TV
@@ -44,11 +46,14 @@
 	#elif TARGET_OS_IPHONE
 		#define GAINPUT_PLATFORM_IOS
 		//if this is enabled then we have linked with CoreHaptics
-		#if defined(ENABLE_FORGE_IOS_HAPTICS)
-			#define GAINPUT_IOS_HAPTICS
+		#if defined(ENABLE_FORGE_GC_HAPTICS)
+			#define GAINPUT_GC_HAPTICS
 		#endif
 	#elif TARGET_OS_MAC
 		#define GAINPUT_PLATFORM_MAC
+		#if defined(ENABLE_FORGE_GC_HAPTICS) && (MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_11_0)
+			#define GAINPUT_GC_HAPTICS
+		#endif
 	#else
 		#error Gainput: Unknown/unsupported Apple platform!
 	#endif
@@ -237,7 +242,6 @@ void DevSetHttp(bool enable);
 #include "GainputInputState.h"
 #include "GainputInputDevice.h"
 #include "GainputInputListener.h"
-#include "GainputInputManager.h"
 #include "GainputInputMap.h"
 
 #include "GainputInputDeviceMouse.h"
@@ -245,6 +249,8 @@ void DevSetHttp(bool enable);
 #include "GainputInputDevicePad.h"
 #include "GainputInputDeviceTouch.h"
 #include "GainputInputDeviceBuiltIn.h"
+
+#include "GainputInputManager.h"
 
 #include "gestures/GainputGestures.h"
 

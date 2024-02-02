@@ -3,10 +3,8 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="No"/>
+  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="Yes"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
-  <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
-  <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
@@ -24,16 +22,12 @@
   <Project Name="ozz_base" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
-  <Project Name="EASTL" Path="../../../Common_3/Utilities/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
-  <Project Name="18_VirtualTexture" Path="18_VirtualTexture/18_VirtualTexture.project" Active="No"/>
-  <Project Name="33_YUV" Path="33_YUV/33_YUV.project" Active="No"/>
-  <Project Name="37_PrecomputedVolumeDLUT" Path="37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.project" Active="No"/>
   <Project Name="15a_VisibilityBufferOIT" Path="15a_VisibilityBufferOIT/15a_VisibilityBufferOIT.project" Active="No"/>
   <Project Name="34_Input" Path="34_Input/34_Input.project" Active="No"/>
   <Project Name="36_AlgorithmsAndContainers" Path="36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.project" Active="No"/>
-  <Project Name="38_AmbientOcclusion_GTAO" Path="38_AmbientOcclusion_GTAO/38_AmbientOcclusion_GTAO.project" Active="Yes"/>
+  <Project Name="35_VariableRateShading" Path="35_VariableRateShading/35_VariableRateShading.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
@@ -41,9 +35,7 @@
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="01_Transformations" ConfigName="Debug"/>
       <Project Name="03_MultiThread" ConfigName="Debug"/>
-      <Project Name="04_ExecuteIndirect" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
-      <Project Name="07_Tessellation" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
@@ -64,21 +56,16 @@
       <Project Name="ozz_base" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
-      <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="29_InverseKinematic" ConfigName="Debug"/>
-      <Project Name="18_VirtualTexture" ConfigName="Debug"/>
-      <Project Name="33_YUV" ConfigName="Debug"/>
-      <Project Name="37_PrecomputedVolumeDLUT" ConfigName="Debug"/>
-      <Project Name="36_AmbientOcclusion_GTAO" ConfigName="Debug"/>
       <Project Name="15a_VisibilityBufferOIT" ConfigName="Debug"/>
       <Project Name="34_Input" ConfigName="Debug"/>
       <Project Name="19_CodeHotReload_Main" ConfigName="Debug"/>
       <Project Name="19a_CodeHotReload_Game" ConfigName="Debug"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Debug"/>
       <Project Name="21_Animations" ConfigName="Debug"/>
-      <Project Name="38_AmbientOcclusion_GTAO" ConfigName="Debug"/>
+      <Project Name="35_VariableRateShading" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
@@ -87,7 +74,6 @@
       <Project Name="ozz_animation" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
-      <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="28_Skinning" ConfigName="Release"/>
       <Project Name="27_MultiThread" ConfigName="Release"/>
       <Project Name="26_BakedPhysics" ConfigName="Release"/>
@@ -104,23 +90,17 @@
       <Project Name="10_ScreenSpaceReflections" ConfigName="Release"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
-      <Project Name="07_Tessellation" ConfigName="Release"/>
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
-      <Project Name="04_ExecuteIndirect" ConfigName="Release"/>
       <Project Name="03_MultiThread" ConfigName="Release"/>
       <Project Name="01_Transformations" ConfigName="Release"/>
       <Project Name="29_InverseKinematic" ConfigName="Release"/>
-      <Project Name="18_VirtualTexture" ConfigName="Release"/>
-      <Project Name="33_YUV" ConfigName="Release"/>
-      <Project Name="37_PrecomputedVolumeDLUT" ConfigName="Release"/>
-      <Project Name="36_AmbientOcclusion_GTAO" ConfigName="Release"/>
       <Project Name="15a_VisibilityBufferOIT" ConfigName="Release"/>
       <Project Name="34_Input" ConfigName="Release"/>
       <Project Name="19_CodeHotReload_Main" ConfigName="Release"/>
       <Project Name="19a_CodeHotReload_Game" ConfigName="Release"/>
       <Project Name="36_AlgorithmsAndContainers" ConfigName="Release"/>
       <Project Name="21_Animations" ConfigName="Release"/>
-      <Project Name="38_AmbientOcclusion_GTAO" ConfigName="Release"/>
+      <Project Name="35_VariableRateShading" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

@@ -1,339 +1,346 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gainput.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <Filter Include="source\gainput">
+      <UniqueIdentifier>{80be4810-0acf-4779-a4b3-c0bc7d323c60}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{423b294d-0e9d-4741-89f0-14823706b1c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\builtin">
+      <UniqueIdentifier>{61b5daa9-fd91-42e7-b82b-350e8fe73cd0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\dev">
+      <UniqueIdentifier>{523e91e8-3e37-4947-a34b-1021476b6e3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\gestures">
+      <UniqueIdentifier>{2f2d2125-b715-4cf8-a8dc-caca328ef97a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\keyboard">
+      <UniqueIdentifier>{07675e8d-2d5c-4fbf-8c08-1b3f2ba5599b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\mouse">
+      <UniqueIdentifier>{c2e753db-888d-4056-be01-f92eff5d3cce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\pad">
+      <UniqueIdentifier>{931670a0-b650-4689-8e80-cbcd838ad70b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\recorder">
+      <UniqueIdentifier>{6217f1c2-480f-432d-89b6-ea298d34b50f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\touch">
+      <UniqueIdentifier>{77d1994d-894b-40b9-936e-f681e4ee9373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\hid">
+      <UniqueIdentifier>{de5edf48-5348-477a-9944-a5c8c299449b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\hid\hidparsers">
+      <UniqueIdentifier>{49dcf5f5-8203-45c6-9712-7c8b0cc50c05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\hidapi\windows">
+      <UniqueIdentifier>{f5e03878-208e-4dc2-a84b-381bbf9c6019}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\hidapi">
+      <UniqueIdentifier>{2aad7689-35cf-4ac5-af35-e7f775d01cf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\linux">
+      <UniqueIdentifier>{4a54404b-8a08-44c5-b877-d0f4863e624b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\gainput\windows">
+      <UniqueIdentifier>{1dbc3447-c0d7-47a4-a983-3682a9847685}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\gainput">
+      <UniqueIdentifier>{f58a301e-b1de-42a6-b5cb-0f58afa13d8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{3e9b7634-f75f-4cb3-b1ac-07055cb9f72c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\gainput\gestures">
+      <UniqueIdentifier>{1f9c8efb-f333-4f9c-ab4e-9960ea14745c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\gainput\recorder">
+      <UniqueIdentifier>{49725b19-5482-4d68-a628-6db2b087fadd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputAllocator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputButtonStickGesture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDev.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputDoubleClickGesture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputHoldGesture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputInputDeltaState.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputInputDevice.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltIn.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboard.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePad.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouch.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputInputManager.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputInputMap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputPlayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecorder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecording.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputInputState.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputMapFilters.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltIn.cpp">
+      <Filter>source\gainput\builtin</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDev.cpp">
+      <Filter>source\gainput\dev</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputMemoryStream.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\dev</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gainput.cpp">
+      <Filter>source\gainput</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputButtonStickGesture.cpp">
+      <Filter>source\gainput\gestures</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputDoubleClickGesture.cpp">
+      <Filter>source\gainput\gestures</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputHoldGesture.cpp">
+      <Filter>source\gainput\gestures</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputPinchGesture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\gestures</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputRotateGesture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\gestures</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputSimultaneouslyDownGesture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\gestures</Filter>
     </ClCompile>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\gestures\GainputTapGesture.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\gestures</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\lib\source\hidapi\windows\hid.c">
-      <Filter>Source Files\HID\hidapi</Filter>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboard.cpp">
+      <Filter>source\gainput\keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp">
+      <Filter>source\gainput\mouse</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePad.cpp">
+      <Filter>source\gainput\pad</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputPlayer.cpp">
+      <Filter>source\gainput\recorder</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecorder.cpp">
+      <Filter>source\gainput\recorder</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\recorder\GainputInputRecording.cpp">
+      <Filter>source\gainput\recorder</Filter>
+    </ClCompile>
+    <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouch.cpp">
+      <Filter>source\gainput\touch</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\hid\GainputHID.cpp">
-      <Filter>Source Files\HID</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.cpp">
-      <Filter>Source Files\HID\HIDParsers</Filter>
+      <Filter>source\gainput\hid</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.cpp">
-      <Filter>Source Files\HID</Filter>
+      <Filter>source\gainput\hid</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.cpp">
-      <Filter>Source Files\HID\HIDParsers</Filter>
+      <Filter>source\gainput\hid\hidparsers</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputWindows.h">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.cpp">
+      <Filter>source\gainput\hid\hidparsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserSwitchController.cpp">
+      <Filter>source\gainput\hid\hidparsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\hidapi\windows\hid.c">
+      <Filter>source\hidapi\windows</Filter>
+    </ClCompile>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\linux\GainputHelpersEvdev.h">
+      <Filter>source\gainput\linux</Filter>
     </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gainput.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputAllocator.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputButtonStickGesture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputContainers.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputDebugRenderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDev.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDevProtocol.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputDoubleClickGesture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputGestures.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputHelpers.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputHelpersEvdev.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputHoldGesture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeltaState.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDevice.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceBuiltIn.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInAndroid.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputWindows.h">
+      <Filter>source\gainput\windows</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInImpl.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInIos.h">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\builtin</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInNull.h">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\builtin</Filter>
     </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceKeyboard.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDev.h">
+      <Filter>source\gainput\dev</Filter>
     </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardAndroid.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardEvdev.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardImpl.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardLinux.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardNull.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardWin.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardWinRaw.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceMouse.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseEvdev.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseImpl.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseLinux.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseMac.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseNull.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseWin.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseWinRaw.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDevicePad.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadAndroid.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadImpl.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadIos.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadLinux.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadMac.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadNull.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadWin.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceTouch.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchAndroid.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchImpl.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchIos.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchNull.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\lib\source\gainput\touch\gainputinputdevicetouchwin.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputListener.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputManager.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputMap.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputPlayer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecorder.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecording.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputState.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputIos.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputKeyboardKeyNames.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputLog.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputMapFilters.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDevProtocol.h">
+      <Filter>source\gainput\dev</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputMemoryStream.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputMouseInfo.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputPinchGesture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputRotateGesture.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputSimultaneouslyDownGesture.h">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\dev</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputStream.h">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\dev</Filter>
     </ClInclude>
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputTapGesture.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceKeyboardWin.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceKeyboardWinRaw.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardImpl.h">
+      <Filter>source\gainput\keyboard</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardNull.h">
+      <Filter>source\gainput\keyboard</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputKeyboardKeyNames.h">
+      <Filter>source\gainput\keyboard</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseImpl.h">
+      <Filter>source\gainput\mouse</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseNull.h">
+      <Filter>source\gainput\mouse</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceMouseWin.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceMouseWinRaw.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputMouseInfo.h">
+      <Filter>source\gainput\mouse</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadImpl.h">
+      <Filter>source\gainput\pad</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadNull.h">
+      <Filter>source\gainput\pad</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDevicePadWin.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchImpl.h">
+      <Filter>source\gainput\touch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchNull.h">
+      <Filter>source\gainput\touch</Filter>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputTouchInfo.h">
-      <Filter>Source Files</Filter>
+      <Filter>source\gainput\touch</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\lib\source\hidapi\hidapi.h">
-      <Filter>Source Files\HID\hidapi</Filter>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputAllocator.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputContainers.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputDebugRenderer.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputHelpers.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeltaState.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDevice.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceBuiltIn.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceKeyboard.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceMouse.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDevicePad.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputDeviceTouch.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputListener.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputManager.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputMap.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputState.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputLog.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputMapFilters.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gainput.h">
+      <Filter>include\gainput</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputButtonStickGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputDoubleClickGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputGestures.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputHoldGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputPinchGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputRotateGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputSimultaneouslyDownGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gestures\GainputTapGesture.h">
+      <Filter>include\gainput\gestures</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputPlayer.h">
+      <Filter>include\gainput\recorder</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecorder.h">
+      <Filter>include\gainput\recorder</Filter>
+    </ClInclude>
+    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\recorder\GainputInputRecording.h">
+      <Filter>include\gainput\recorder</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\source\gainput\hid\GainputHID.h">
-      <Filter>Source Files\HID</Filter>
+      <Filter>source\gainput\hid</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDTypes.h">
-      <Filter>Source Files\HID</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h">
-      <Filter>Source Files\HID\HIDParsers</Filter>
+      <Filter>source\gainput\hid</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.h">
-      <Filter>Source Files\HID</Filter>
+      <Filter>source\gainput\hid</Filter>
     </ClInclude>
     <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.h">
-      <Filter>Source Files\HID\HIDParsers</Filter>
+      <Filter>source\gainput\hid\hidparsers</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{082EDD63-C935-3D9E-A35D-F3A1554A9CAE}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{53C4E343-C81F-3F86-BA31-EFF74477211B}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\HID">
-      <UniqueIdentifier>{dff62ca2-eacf-4ec8-b7a9-80c30ff36acd}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\HID\hidapi">
-      <UniqueIdentifier>{d6001321-ab0f-4635-aa3f-6af61360cc32}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\HID\HIDParsers">
-      <UniqueIdentifier>{a426004f-d7c9-4611-ad8d-1e6675bae08e}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h">
+      <Filter>source\gainput\hid\hidparsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserSwitchController.h">
+      <Filter>source\gainput\hid\hidparsers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\pad\GainputInputDevicePadHID.h">
+      <Filter>source\gainput\pad</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinMsgHandler.h">
+      <Filter>source\gainput\windows</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\lib\source\hidapi\hidapi.h">
+      <Filter>source\hidapi</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
