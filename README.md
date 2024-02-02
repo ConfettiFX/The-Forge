@@ -607,7 +607,7 @@ Switch (1280x720)
 XBOX One Series S (1080p)
 ![Hybrid Ray Traced Shadows](Screenshots/09a_HybridRaytracing_XboxOneS_1920x1080.png)
 
-iPad Pro 12.9-inch (5th generation) (Model A2378) (2733x20484)
+iPad Pro 12.9-inch (5th generation) (Model A2378) (2733x2048)
 ![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows_iPad_2733x2048.png)
 
 ## 10. Screen-Space Reflections
@@ -788,7 +788,7 @@ Switch (1280x720):
 ![Variable Rate Shading on Switch](Screenshots/35_VariableRateShading_Switch_1280x720.PNG)
 
 XBOX One S (1080p):
-![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_XboxOneS_1920x1080.bmp)
+![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_XboxOneS_1920x1080.png)
 
 PS4 Pro (3840x2160):
 ![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_PS4Pro_3840x2160.png)
@@ -801,6 +801,8 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Blue – 2 horizontal samples;
 - Red – 2 vertical samples;
 - Green – all 4 samples;
+
+![Variable Rate Shading Debug](Screenshots/35_VRS_Debug.png)
 
 UI description:
 - Toggle VRS – enable/disable VRS
