@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
 	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
 #else
@@ -48,13 +48,11 @@ STRUCT(VSOutput)
 	DATA(float3, pos,    POSITION);
 };
 
-INDIRECT_DRAW()
-
 VSOutput VS_MAIN( VSInput In )
 {
     INIT_MAIN;
     VSOutput Out;
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	Out.Position = mul(Get(projView)[VR_VIEW_ID], In.Position);
 #else
 	Out.Position = mul(Get(projView), In.Position);

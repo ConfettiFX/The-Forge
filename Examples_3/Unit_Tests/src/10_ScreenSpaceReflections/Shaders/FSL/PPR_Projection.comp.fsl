@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,12 +27,15 @@
 CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
 	DATA(float4x4, projMat, None);
 	DATA(float4x4, viewProjMat, None);
 	DATA(float4x4, InvViewProjMat, None);
 
 	DATA(float4, cameraWorldPos, None);
-	DATA(float4, viewPortSize, None);
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
 };
 
 RES(RWBuffer(uint), IntermediateBuffer, UPDATE_FREQ_NONE, u1, binding = 1);
@@ -55,6 +58,7 @@ CBUFFER(planeInfoBuffer, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
 };
 
 RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s4, binding = 4);
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s5, binding = 5);
 
 
 float getDistance(float3 planeNormal, float3 planeCenter, float3 worldPos)
@@ -122,7 +126,7 @@ bool intersectPlane(uint index, float3 worldPos, float2 fragUV, out(float4) refl
 
 			reflectedPos.xy = float2( (reflectedPos.x + 1.0) * 0.5, (1.0 - reflectedPos.y) * 0.5);
 
-			float depth = SampleLvlTex2D(Get(DepthTexture), Get(defaultSampler),reflectedPos.xy, 0).r;
+			float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler),reflectedPos.xy, 0).r;
 
 			if(depth <= reflectedPos.z)
 			{
@@ -271,7 +275,7 @@ void CS_MAIN( SV_GroupID(uint3) Gid, SV_DispatchThreadID(uint3) DTid, SV_GroupTh
 
 	float2 fragUV = float2( float(indexX) / Get(viewPortSize).x, float(indexY) / Get(viewPortSize).y );
 		
-	float depth = SampleLvlTex2D(Get(DepthTexture), Get(defaultSampler), fragUV, 0).r;
+	float depth = SampleLvlTex2D(Get(DepthTexture), Get(depthSampler), fragUV, 0).r;
 
 	//if there is no obj
 	if(depth >= 1.0)

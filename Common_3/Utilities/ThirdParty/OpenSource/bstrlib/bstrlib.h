@@ -1,7 +1,7 @@
 /*
  * This source file is part of the bstring string library.  This code was
  * written by Paul Hsieh in 2002-2015, and is covered by the BSD open source
- * license and the GPL. Refer to the accompanying documentation for details
+ * license and the GPL. Refer to the accompanying documentation for details   //-V1042
  * on usage and license.
  */
 
@@ -302,7 +302,7 @@ FORGE_API extern BSTR_DECLARE_FN(int, bvformata, bstring* b, const char* fmt, va
 /* Initializes string that references string literal */
 #define bconstfromliteral(str) bconstfromblk( ("" str ""), sizeof(str) - 1)
 /* Initializes string that references a C string */
-#define bconstfromcstr(str) bconstfromblk( (str) , strlen(str) )
+#define bconstfromcstr(str) bconstfromblk( (str) , (int)strlen(str) )
 /* Initializes string that references the same buffer as input string */
 #define bconstfromstr(str) bconstfromblk(str->data, str->slen)
 

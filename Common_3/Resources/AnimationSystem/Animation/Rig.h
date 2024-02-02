@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,54 +20,53 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
-#include "../../../Utilities/Math/MathTypes.h"
-
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton_utils.h"
-
-#include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/span.h"
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/archive.h"
 #include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
+#include "../ThirdParty/OpenSource/ozz-animation/include/ozz/base/span.h"
 
 #include "../../../Utilities/Interfaces/ILog.h"
+
+#include "../../../Utilities/Math/MathTypes.h"
 
 // Stores skeleton properties and posable by animations
 class FORGE_API Rig
 {
-	public:
-	// Sets up the rig by loading the skeleton from an ozz skeleton file
-	void Initialize(const ResourceDirectory resourceDir, const char* fileName, const char* filePassword);
+public:
+    // Sets up the rig by loading the skeleton from an ozz skeleton file
+    void Initialize(const ResourceDirectory resourceDir, const char* fileName);
 
-	// Must be called to clean up the object if it was initialized
-	void Exit();
+    // Must be called to clean up the object if it was initialized
+    void Exit();
 
-	// Updates the skeleton's joint and bone world matricies based on mJointModelMats
-	void Pose(const Matrix4& rootTransform);
-	
-	// Finds the index of the joint with name jointName, if it cannot find it returns -1
-	int32_t FindJoint(const char* jointName);
+    // Updates the skeleton's joint and bone world matricies based on mJointModelMats
+    void Pose(const Matrix4& rootTransform);
 
-	// Finds the indexes of joint chain with names joinNames
-	void FindJointChain(const char* jointNames[], size_t numNames, int32_t jointChain[]);
+    // Finds the index of the joint with name jointName, if it cannot find it returns -1
+    int32_t FindJoint(const char* jointName);
 
-	// Runtime skeleton.
-	ozz::animation::Skeleton mSkeleton;
+    // Finds the indexes of joint chain with names joinNames
+    void FindJointChain(const char* jointNames[], size_t numNames, int32_t jointChain[]);
 
-	// The number of soa elements matching the number of joints of the
-	// skeleton. This value is useful to allocate SoA runtime data structures.
-	uint32_t mNumSoaJoints = 0;
+    // Runtime skeleton.
+    ozz::animation::Skeleton mSkeleton;
 
-	// The number of joints of the skeleton
-	uint32_t mNumJoints = 0;
+    // The number of soa elements matching the number of joints of the
+    // skeleton. This value is useful to allocate SoA runtime data structures.
+    uint32_t mNumSoaJoints = 0;
 
-	// Location of the root joint
-	uint32_t mRootIndex = 0;
+    // The number of joints of the skeleton
+    uint32_t mNumJoints = 0;
+
+    // Location of the root joint
+    uint32_t mRootIndex = 0;
 
 private:
-	// Load a runtime skeleton from a skeleton.ozz file
-	bool LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName, const char* filePassword);
+    // Load a runtime skeleton from a skeleton.ozz file
+    bool LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName);
 };

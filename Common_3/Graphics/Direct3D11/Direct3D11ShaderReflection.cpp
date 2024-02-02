@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,285 +20,302 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "../GraphicsConfig.h"
 
 #ifdef DIRECT3D11
-#include "../Interfaces/IGraphics.h"
-#include "../../Utilities/Interfaces/ILog.h"
 #include <d3dcompiler.h>
 
 #include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
 
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../Interfaces/IGraphics.h"
+
 #include "../../Utilities/Interfaces/IMemory.h"
 
-
 static DescriptorType sD3D11_TO_DESCRIPTOR[] = {
-	DESCRIPTOR_TYPE_UNIFORM_BUFFER,    //D3D_SIT_CBUFFER
-	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_TBUFFER
-	DESCRIPTOR_TYPE_TEXTURE,           //D3D_SIT_TEXTURE
-	DESCRIPTOR_TYPE_SAMPLER,           //D3D_SIT_SAMPLER
-	DESCRIPTOR_TYPE_RW_TEXTURE,        //D3D_SIT_UAV_RWTYPED
-	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_RWSTRUCTURED
-	DESCRIPTOR_TYPE_BUFFER,            //D3D_SIT_BYTEADDRESS
-	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWBYTEADDRESS
-	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_APPEND_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_CONSUME_STRUCTURED
-	DESCRIPTOR_TYPE_RW_BUFFER,         //D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
+    DESCRIPTOR_TYPE_UNIFORM_BUFFER, // D3D_SIT_CBUFFER
+    DESCRIPTOR_TYPE_BUFFER,         // D3D_SIT_TBUFFER
+    DESCRIPTOR_TYPE_TEXTURE,        // D3D_SIT_TEXTURE
+    DESCRIPTOR_TYPE_SAMPLER,        // D3D_SIT_SAMPLER
+    DESCRIPTOR_TYPE_RW_TEXTURE,     // D3D_SIT_UAV_RWTYPED
+    DESCRIPTOR_TYPE_BUFFER,         // D3D_SIT_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,      // D3D_SIT_RWSTRUCTURED
+    DESCRIPTOR_TYPE_BUFFER,         // D3D_SIT_BYTEADDRESS
+    DESCRIPTOR_TYPE_RW_BUFFER,      // D3D_SIT_UAV_RWBYTEADDRESS
+    DESCRIPTOR_TYPE_RW_BUFFER,      // D3D_SIT_UAV_APPEND_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,      // D3D_SIT_UAV_CONSUME_STRUCTURED
+    DESCRIPTOR_TYPE_RW_BUFFER,      // D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER
 };
 
 // Remove '[#n]' from uniform name and return '#n'
 int util_extract_array_index(char* uniformName)
 {
-	if (char* block = strrchr(uniformName, '['))
-	{
-		block[0] = '\0';
-		++block;
-		block[strlen(block) - 1] = '\0';
-		int arrayIndex = atoi(block);
-		return arrayIndex;
-	}
+    if (char* block = strrchr(uniformName, '['))
+    {
+        block[0] = '\0';
+        ++block;
+        block[strlen(block) - 1] = '\0';
+        int arrayIndex = atoi(block);
+        return arrayIndex;
+    }
 
-	return 0;
+    return 0;
+}
+
+char* util_extract_update_freq(char* resourceName, uint32_t* pSet)
+{
+    if (0 == strncmp("_fslF", resourceName, 5))
+    {
+        if (NULL != pSet)
+        {
+            *pSet = (uint32_t)resourceName[5] - '0';
+        }
+        return resourceName + 7;
+    }
+    return resourceName;
 }
 
 void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
-	//Check to see if parameters are valid
-	if (shaderCode == NULL)
-	{
-		LOGF(LogLevel::eERROR, "Parameter 'shaderCode' was NULL.");
-		return;
-	}
-	if (shaderSize == 0)
-	{
-		LOGF(LogLevel::eERROR, "Parameter 'shaderSize' was 0.");
-		return;
-	}
-	if (pOutReflection == NULL)
-	{
-		LOGF(LogLevel::eERROR, "Paramater 'pOutReflection' was NULL.");
-		return;
-	}
+    // Check to see if parameters are valid
+    if (shaderCode == NULL)
+    {
+        LOGF(LogLevel::eERROR, "Parameter 'shaderCode' was NULL.");
+        return;
+    }
+    if (shaderSize == 0)
+    {
+        LOGF(LogLevel::eERROR, "Parameter 'shaderSize' was 0.");
+        return;
+    }
+    if (pOutReflection == NULL)
+    {
+        LOGF(LogLevel::eERROR, "Paramater 'pOutReflection' was NULL.");
+        return;
+    }
 
-	//Run the D3D11 shader reflection on the compiled shader
-	ID3D11ShaderReflection* d3d11reflection;
-	D3DReflect(shaderCode, shaderSize, IID_PPV_ARGS(&d3d11reflection));
+    // Run the D3D11 shader reflection on the compiled shader
+    ID3D11ShaderReflection* d3d11reflection;
+    D3DReflect(shaderCode, shaderSize, IID_PPV_ARGS(&d3d11reflection));
 
-	//Allocate our internal shader reflection structure on the stack
-	ShaderReflection reflection = {};    //initialize the struct to 0
+    // Allocate our internal shader reflection structure on the stack
+    ShaderReflection reflection = {}; // initialize the struct to 0
 
-	//Get a description of this shader
-	D3D11_SHADER_DESC shaderDesc;
-	d3d11reflection->GetDesc(&shaderDesc);
+    // Get a description of this shader
+    D3D11_SHADER_DESC shaderDesc;
+    d3d11reflection->GetDesc(&shaderDesc);
 
-	//Get the number of bound resources
-	reflection.mShaderResourceCount = shaderDesc.BoundResources;
+    // Get the number of bound resources
+    reflection.mShaderResourceCount = shaderDesc.BoundResources;
 
-	//Count string sizes of the bound resources for the name pool
-	for (UINT i = 0; i < shaderDesc.BoundResources; ++i)
-	{
-		D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-		d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
-		util_extract_array_index((char*)bindDesc.Name);
-		reflection.mNamePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
-	}
+    // Count string sizes of the bound resources for the name pool
+    for (UINT i = 0; i < shaderDesc.BoundResources; ++i)
+    {
+        D3D11_SHADER_INPUT_BIND_DESC bindDesc;
+        d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
+        util_extract_array_index((char*)bindDesc.Name);
+        bindDesc.Name = util_extract_update_freq((char*)bindDesc.Name, NULL);
 
-	//Get the number of input parameters
-	reflection.mVertexInputsCount = 0;
+        reflection.mNamePoolSize += (uint32_t)strlen(bindDesc.Name) + 1;
+    }
 
-	if (shaderStage == SHADER_STAGE_VERT)
-	{
-		reflection.mVertexInputsCount = shaderDesc.InputParameters;
+    // Get the number of input parameters
+    reflection.mVertexInputsCount = 0;
 
-		//Count the string sizes of the vertex inputs for the name pool
-		for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
-		{
-			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-			d3d11reflection->GetInputParameterDesc(i, &paramDesc);
-			reflection.mNamePoolSize += (uint32_t)strlen(paramDesc.SemanticName) + 2;
-		}
-	}
-	//Get the number of threads per group
-	else if (shaderStage == SHADER_STAGE_COMP)
-	{
-		d3d11reflection->GetThreadGroupSize(
-			&reflection.mNumThreadsPerGroup[0], &reflection.mNumThreadsPerGroup[1], &reflection.mNumThreadsPerGroup[2]);
-	}
-	//Get the number of cnotrol point
-	else if (shaderStage == SHADER_STAGE_TESC)
-	{
-		reflection.mNumControlPoint = shaderDesc.cControlPoints;
-	}
+    if (shaderStage == SHADER_STAGE_VERT)
+    {
+        reflection.mVertexInputsCount = shaderDesc.InputParameters;
 
-	//Count the number of variables and add to the size of the string pool
-	for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
-	{
-		ID3D11ShaderReflectionConstantBuffer* buffer = d3d11reflection->GetConstantBufferByIndex(i);
+        // Count the string sizes of the vertex inputs for the name pool
+        for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
+        {
+            D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
+            d3d11reflection->GetInputParameterDesc(i, &paramDesc);
+            reflection.mNamePoolSize += (uint32_t)strlen(paramDesc.SemanticName) + 2;
+        }
+    }
+    // Get the number of threads per group
+    else if (shaderStage == SHADER_STAGE_COMP)
+    {
+        d3d11reflection->GetThreadGroupSize(&reflection.mNumThreadsPerGroup[0], &reflection.mNumThreadsPerGroup[1],
+                                            &reflection.mNumThreadsPerGroup[2]);
+    }
+    // Get the number of cnotrol point
+    else if (shaderStage == SHADER_STAGE_TESC)
+    {
+        reflection.mNumControlPoint = shaderDesc.cControlPoints;
+    }
 
-		D3D11_SHADER_BUFFER_DESC bufferDesc;
-		buffer->GetDesc(&bufferDesc);
+    // Count the number of variables and add to the size of the string pool
+    for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
+    {
+        ID3D11ShaderReflectionConstantBuffer* buffer = d3d11reflection->GetConstantBufferByIndex(i);
 
-		//We only care about constant buffers
-		if (bufferDesc.Type != D3D_CT_CBUFFER)
-			continue;
+        D3D11_SHADER_BUFFER_DESC bufferDesc;
+        buffer->GetDesc(&bufferDesc);
 
-		for (UINT v = 0; v < bufferDesc.Variables; ++v)
-		{
-			ID3D11ShaderReflectionVariable* variable = buffer->GetVariableByIndex(v);
+        // We only care about constant buffers
+        if (bufferDesc.Type != D3D_CT_CBUFFER)
+            continue;
 
-			D3D11_SHADER_VARIABLE_DESC varDesc;
-			variable->GetDesc(&varDesc);
+        for (UINT v = 0; v < bufferDesc.Variables; ++v)
+        {
+            ID3D11ShaderReflectionVariable* variable = buffer->GetVariableByIndex(v);
 
-			//Only count used variables
-			if ((varDesc.uFlags | D3D_SVF_USED) != 0)
-			{
-				reflection.mNamePoolSize += (uint32_t)strlen(varDesc.Name) + 1;
-				reflection.mVariableCount++;
-			}
-		}
-	}
+            D3D11_SHADER_VARIABLE_DESC varDesc;
+            variable->GetDesc(&varDesc);
 
-	//Allocate memory for the name pool
-	if (reflection.mNamePoolSize)
-	{
-		ASSERT(reflection.mNamePoolSize <= INT_MAX && "bstring below will overflow");
-		reflection.pNamePool = (char*)tf_malloc(reflection.mNamePoolSize);
-		reflection.pNamePool[0] = '\0';
-	}
-	char* pCurrentName = reflection.pNamePool;
-	char* pNamePoolEnd = pCurrentName + reflection.mNamePoolSize;
+            // Only count used variables
+            if ((varDesc.uFlags | D3D_SVF_USED) != 0)
+            {
+                reflection.mNamePoolSize += (uint32_t)strlen(varDesc.Name) + 1;
+                reflection.mVariableCount++;
+            }
+        }
+    }
 
-	reflection.pVertexInputs = NULL;
-	if (shaderStage == SHADER_STAGE_VERT && reflection.mVertexInputsCount > 0)
-	{
-		reflection.pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
+    // Allocate memory for the name pool
+    if (reflection.mNamePoolSize)
+    {
+        ASSERT(reflection.mNamePoolSize <= INT_MAX && "bstring below will overflow");
+        reflection.pNamePool = (char*)tf_malloc(reflection.mNamePoolSize);
+        reflection.pNamePool[0] = '\0';
+    }
+    char* pCurrentName = reflection.pNamePool;
+    char* pNamePoolEnd = pCurrentName + reflection.mNamePoolSize;
 
-		for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
-		{
-			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
-			d3d11reflection->GetInputParameterDesc(i, &paramDesc);
+    reflection.pVertexInputs = NULL;
+    if (shaderStage == SHADER_STAGE_VERT && reflection.mVertexInputsCount > 0)
+    {
+        reflection.pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
 
-			//Get the length of the semantic name
-			bstring currentName;
-			currentName.slen = 0;
-			currentName.mlen = (int)(pNamePoolEnd - pCurrentName);
-			currentName.data = (unsigned char*)pCurrentName;
+        for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
+        {
+            D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
+            d3d11reflection->GetInputParameterDesc(i, &paramDesc);
 
-			bassigncstr(&currentName, paramDesc.SemanticName);
-			if (paramDesc.SemanticIndex > 0 || biseqliteral(&currentName, "TEXCOORD"))
-				bformata(&currentName, "%u", paramDesc.SemanticIndex);
+            // Get the length of the semantic name
+            bstring currentName;
+            currentName.slen = 0;
+            currentName.mlen = (int)(pNamePoolEnd - pCurrentName);
+            currentName.data = (unsigned char*)pCurrentName;
 
-			ASSERT(!bownsdata(&currentName) && "bstring allocated additional memory");
+            bassigncstr(&currentName, paramDesc.SemanticName);
+            if (paramDesc.SemanticIndex > 0 || biseqliteral(&currentName, "TEXCOORD"))
+                bformata(&currentName, "%u", paramDesc.SemanticIndex);
 
-			reflection.pVertexInputs[i].name = (const char*)currentName.data;
-			reflection.pVertexInputs[i].name_size = currentName.slen;
-			reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
+            ASSERT(!bownsdata(&currentName) && "bstring allocated additional memory");
 
-			pCurrentName += currentName.slen + 1;     //move the name pointer through the name pool
-		}
-	}
+            reflection.pVertexInputs[i].name = (const char*)currentName.data;
+            reflection.pVertexInputs[i].name_size = currentName.slen;
+            reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
-	reflection.pShaderResources = NULL;
-	if (reflection.mShaderResourceCount > 0)
-	{
-		reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
+            pCurrentName += currentName.slen + 1; // move the name pointer through the name pool
+        }
+    }
 
-		for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
-		{
-			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-			d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
-			util_extract_array_index((char*)bindDesc.Name);
-			uint32_t len = (uint32_t)strlen(bindDesc.Name);
+    reflection.pShaderResources = NULL;
+    if (reflection.mShaderResourceCount > 0)
+    {
+        reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
 
-			reflection.pShaderResources[i].type = sD3D11_TO_DESCRIPTOR[bindDesc.Type];
-			reflection.pShaderResources[i].set = 0U;    // not used in dx11
-			reflection.pShaderResources[i].reg = bindDesc.BindPoint;
-			reflection.pShaderResources[i].size = bindDesc.BindCount;
-			reflection.pShaderResources[i].used_stages = shaderStage;
-			reflection.pShaderResources[i].name = pCurrentName;
-			reflection.pShaderResources[i].name_size = len;
+        for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
+        {
+            D3D11_SHADER_INPUT_BIND_DESC bindDesc;
+            d3d11reflection->GetResourceBindingDesc(i, &bindDesc);
+            util_extract_array_index((char*)bindDesc.Name);
+            uint32_t set = 0U;
+            bindDesc.Name = util_extract_update_freq((char*)bindDesc.Name, &set);
+            uint32_t len = (uint32_t)strlen(bindDesc.Name);
 
-			//Copy over the name
-			memcpy(pCurrentName, bindDesc.Name, len);
-			pCurrentName[len] = '\0';
-			pCurrentName += len + 1;
-		}
-	}
+            reflection.pShaderResources[i].type = sD3D11_TO_DESCRIPTOR[bindDesc.Type];
+            reflection.pShaderResources[i].set = set;
+            reflection.pShaderResources[i].reg = bindDesc.BindPoint;
+            reflection.pShaderResources[i].size = bindDesc.BindCount;
+            reflection.pShaderResources[i].used_stages = shaderStage;
+            reflection.pShaderResources[i].name = pCurrentName;
+            reflection.pShaderResources[i].name_size = len;
 
-	if (reflection.mVariableCount > 0)
-	{
-		reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
+            // Copy over the name
+            memcpy(pCurrentName, bindDesc.Name, len);
+            pCurrentName[len] = '\0';
+            pCurrentName += len + 1;
+        }
+    }
 
-		UINT v = 0;
-		for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
-		{
-			//Get the constant buffer
-			ID3D11ShaderReflectionConstantBuffer* buffer = d3d11reflection->GetConstantBufferByIndex(i);
+    if (reflection.mVariableCount > 0)
+    {
+        reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
 
-			//Get the constant buffer description
-			D3D11_SHADER_BUFFER_DESC bufferDesc;
-			buffer->GetDesc(&bufferDesc);
+        UINT v = 0;
+        for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
+        {
+            // Get the constant buffer
+            ID3D11ShaderReflectionConstantBuffer* buffer = d3d11reflection->GetConstantBufferByIndex(i);
 
-			//We only care about constant buffers
-			if (bufferDesc.Type != D3D_CT_CBUFFER)
-				continue;
+            // Get the constant buffer description
+            D3D11_SHADER_BUFFER_DESC bufferDesc;
+            buffer->GetDesc(&bufferDesc);
 
-			//Find the resource index for the constant buffer
-			uint32_t resourceIndex = ~0u;
-			for (UINT r = 0; r < shaderDesc.BoundResources; ++r)
-			{
-				D3D11_SHADER_INPUT_BIND_DESC inputDesc;
-				d3d11reflection->GetResourceBindingDesc(r, &inputDesc);
+            // We only care about constant buffers
+            if (bufferDesc.Type != D3D_CT_CBUFFER)
+                continue;
 
-				if (inputDesc.Type == D3D_SIT_CBUFFER && strcmp(inputDesc.Name, bufferDesc.Name) == 0)
-				{
-					resourceIndex = r;
-					break;
-				}
-			}
-			ASSERT(resourceIndex != ~0u);
+            // Find the resource index for the constant buffer
+            uint32_t resourceIndex = ~0u;
+            for (UINT r = 0; r < shaderDesc.BoundResources; ++r)
+            {
+                D3D11_SHADER_INPUT_BIND_DESC inputDesc;
+                d3d11reflection->GetResourceBindingDesc(r, &inputDesc);
 
-			//Go through all the variables in the constant buffer
-			for (UINT j = 0; j < bufferDesc.Variables; ++j)
-			{
-				//Get the variable
-				ID3D11ShaderReflectionVariable* variable = buffer->GetVariableByIndex(j);
+                if (inputDesc.Type == D3D_SIT_CBUFFER && strcmp(inputDesc.Name, bufferDesc.Name) == 0)
+                {
+                    resourceIndex = r;
+                    break;
+                }
+            }
+            ASSERT(resourceIndex != ~0u);
 
-				//Get the variable description
-				D3D11_SHADER_VARIABLE_DESC varDesc;
-				variable->GetDesc(&varDesc);
+            // Go through all the variables in the constant buffer
+            for (UINT j = 0; j < bufferDesc.Variables; ++j)
+            {
+                // Get the variable
+                ID3D11ShaderReflectionVariable* variable = buffer->GetVariableByIndex(j);
 
-				//If the variable is used in the shader
-				if ((varDesc.uFlags | D3D_SVF_USED) != 0)
-				{
-					uint32_t len = (uint32_t)strlen(varDesc.Name);
+                // Get the variable description
+                D3D11_SHADER_VARIABLE_DESC varDesc;
+                variable->GetDesc(&varDesc);
 
-					reflection.pVariables[v].parent_index = resourceIndex;
-					reflection.pVariables[v].offset = varDesc.StartOffset;
-					reflection.pVariables[v].size = varDesc.Size;
-					reflection.pVariables[v].name = pCurrentName;
-					reflection.pVariables[v].name_size = len;
+                // If the variable is used in the shader
+                if ((varDesc.uFlags | D3D_SVF_USED) != 0)
+                {
+                    uint32_t len = (uint32_t)strlen(varDesc.Name);
 
-					//Copy over the name
-					memcpy(pCurrentName, varDesc.Name, len);
-					pCurrentName[len] = '\0';
-					pCurrentName += len + 1;
+                    reflection.pVariables[v].parent_index = resourceIndex;
+                    reflection.pVariables[v].offset = varDesc.StartOffset;
+                    reflection.pVariables[v].size = varDesc.Size;
+                    reflection.pVariables[v].name = pCurrentName;
+                    reflection.pVariables[v].name_size = len;
 
-					++v;
-				}
-			}
-		}
-	}
+                    // Copy over the name
+                    memcpy(pCurrentName, varDesc.Name, len);
+                    pCurrentName[len] = '\0';
+                    pCurrentName += len + 1;
 
-	reflection.mShaderStage = shaderStage;
+                    ++v;
+                }
+            }
+        }
+    }
 
-	d3d11reflection->Release();
+    reflection.mShaderStage = shaderStage;
 
-	//Copy the shader reflection data to the output variable
-	*pOutReflection = reflection;
+    d3d11reflection->Release();
+
+    // Copy the shader reflection data to the output variable
+    *pOutReflection = reflection;
 }
 
 #endif

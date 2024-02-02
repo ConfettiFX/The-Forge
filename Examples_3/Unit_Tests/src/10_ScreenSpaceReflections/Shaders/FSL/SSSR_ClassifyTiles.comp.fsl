@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_CLASSIFY_TILES
 #define FFX_SSSR_CLASSIFY_TILES
 
-RES(Tex2D(float4), g_roughness, UPDATE_FREQ_NONE, t0, binding = 1);
+RES(Tex2D(float4), g_normal_roughness, UPDATE_FREQ_NONE, t0, binding = 1);
 
 RES(RWBuffer(uint), g_tile_list,    UPDATE_FREQ_NONE, u0, binding = 3);
 RES(RWBuffer(uint), g_ray_list,     UPDATE_FREQ_NONE, u1, binding = 4);
@@ -74,13 +74,13 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
     bool is_first_lane_of_threadgroup = group_index == 0;
 
     // First we figure out on a per thread basis if we need to shoot a reflection ray.
-    uint2 screen_size = uint2(GetDimensions(Get(g_roughness), NO_SAMPLER));
+    uint2 screen_size = uint2(GetDimensions(Get(g_normal_roughness), NO_SAMPLER));
 
     // Disable offscreen pixels
     bool needs_ray = !(did.x >= screen_size.x || did.y >= screen_size.y);
-    
+
     // Dont shoot a ray on very rough surfaces.
-    float roughness = FfxSssrUnpackRoughness(LoadTex2D(Get(g_roughness), NO_SAMPLER, did.xy, 0));
+    float roughness = FfxSssrUnpackRoughness(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, did.xy, 0));
     needs_ray = needs_ray && IsGlossy(roughness);
 
     // Also we dont need to run the denoiser on mirror reflections.
@@ -135,14 +135,14 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
         uint tile_index;
         uint ray_base_index = 0;
 
-        AtomicAdd(Get(g_tile_counter)[0], denoise_count, tile_index); 
+        AtomicAdd(Get(g_tile_counter)[0], denoise_count, tile_index);
         AtomicAdd(Get(g_ray_counter)[0], ray_count, ray_base_index);
 
         int cleaned_index = must_denoise ? int(tile_index) : -1;
-	if(must_denoise)
-	{
+	    if(must_denoise)
+	    {
         	Get(g_tile_list)[cleaned_index] = Pack(did.xy); // Write out pixel coords of upper left pixel
-	}
+	    }
         g_ray_base_index = ray_base_index;
     }
     GroupMemoryBarrier(); // Wait for ray base index to become available
@@ -151,11 +151,17 @@ void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupIndex(uint) group_index )
     {
         int ray_index = int(g_ray_base_index + local_ray_index_of_wave + local_ray_index_in_wave);
         Get(g_ray_list)[ray_index] = Pack(did.xy); // Write out pixel to trace
+    }
+
+    if(Get(g_clear_targets))
+    {
         // Clear intersection targets as there wont be any ray that overwrites them
         Write2D(Get(g_temporally_denoised_reflections), did.xy, f4(0));
-        Write2D(Get(g_ray_lengths), did.xy, 0.0f);
     }
+
+    Write2D(Get(g_ray_lengths), did.xy, 0.0f);
     Write2D(Get(g_denoised_reflections), did.xy, f4(0));
+
     // Re-purpose g_temporal_variance to hold the information for the spatial pass if a ray has been shot. Always write 0 if no denoiser is running.
     Write2D(Get(g_temporal_variance), did.xy, needs_ray ? (1.0f - Get(g_skip_denoiser)) : 0.0f);
 	RETURN();

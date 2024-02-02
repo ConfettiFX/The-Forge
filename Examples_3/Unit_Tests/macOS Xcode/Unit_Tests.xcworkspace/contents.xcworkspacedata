@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
+   <FileRef
+      location = "group:../../../Common_3/IDE/XCode Build Configs">
+   </FileRef>
    <Group
       location = "container:"
-      name = "Internal Tests">
+      name = "Functional Tests">
       <FileRef
          location = "group:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
       </FileRef>
@@ -18,13 +21,7 @@
          location = "group:03_MultiThread/03_MultiThread.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
-      </FileRef>
-      <FileRef
          location = "group:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:07_Tessellation/07_Tessellation.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
@@ -33,7 +30,7 @@
          location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
+         location = "group:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
@@ -63,10 +60,7 @@
          location = "group:34_Input/34_Input.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:38_AmbientOcclusion_GTAO/38_AmbientOcclusion_GTAO.xcodeproj">
+         location = "group:35_VariableRateShading/35_VariableRateShading.xcodeproj">
       </FileRef>
    </Group>
    <Group

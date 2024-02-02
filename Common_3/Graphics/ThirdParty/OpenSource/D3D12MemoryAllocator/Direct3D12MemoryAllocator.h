@@ -23,6 +23,15 @@
 #pragma once
 
 #include "../../../GraphicsConfig.h"
+#include "../../../../Utilities/Interfaces/IThread.h"
+
+#define D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED
+#if defined(XBOX)
+#define D3D12MA_DXGI_1_4 0
+#endif
+
+#define D3D12MAAllocator D3D12MA::Allocator
+#define D3D12MAAllocation D3D12MA::Allocation
 
 /** \mainpage D3D12 Memory Allocator
 

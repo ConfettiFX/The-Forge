@@ -25,6 +25,14 @@
 #define SAMPLE_DELTA 0.25f
 #include "computeIrradianceMap.comp.fsl"
 #end
+#comp computeIrradianceMap_SAMPLE_DELTA_0125.comp
+#define SAMPLE_DELTA 0.125f
+#include "computeIrradianceMap.comp.fsl"
+#end
+#comp computeIrradianceMap_SAMPLE_DELTA_005.comp
+#define SAMPLE_DELTA 0.05f
+#include "computeIrradianceMap.comp.fsl"
+#end
 #comp computeIrradianceMap_SAMPLE_DELTA_0025.comp
 #define SAMPLE_DELTA 0.025f
 #include "computeIrradianceMap.comp.fsl"
@@ -51,15 +59,11 @@
 #include "computeSpecularMap.comp.fsl"
 #end
 
-#vert VR_MULTIVIEW fullscreen.vert
+#vert FT_MULTIVIEW fullscreen.vert
 #include "fullscreen.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW hair.frag
-#include "hair.frag.fsl"
-#end
-
-#vert VR_MULTIVIEW hair.vert
+#vert FT_MULTIVIEW hair.vert
 #include "hair.vert.fsl"
 #end
 
@@ -91,23 +95,23 @@
 #include "hair_shock_propagation.comp.fsl"
 #end
 
-#frag VR_MULTIVIEW hair_short_cut_clear.frag
+#frag FT_MULTIVIEW hair_short_cut_clear.frag
 #include "hair_short_cut_clear.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW hair_short_cut_depth_peeling.frag
+#frag FT_MULTIVIEW hair_short_cut_depth_peeling.frag
 #include "hair_short_cut_depth_peeling.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW hair_short_cut_fill_color.frag
+#frag FT_MULTIVIEW hair_short_cut_fill_color.frag
 #include "hair_short_cut_fill_color.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW hair_short_cut_resolve_color.frag
+#frag FT_MULTIVIEW hair_short_cut_resolve_color.frag
 #include "hair_short_cut_resolve_color.frag.fsl"
 #end
 
-#frag VR_MULTIVIEW hair_short_cut_resolve_depth.frag
+#frag FT_MULTIVIEW hair_short_cut_resolve_depth.frag
 #include "hair_short_cut_resolve_depth.frag.fsl"
 #end
 
@@ -115,15 +119,11 @@
 #include "hair_update_follow_hairs.comp.fsl"
 #end
 
-#comp panoToCube.comp
-#include "panoToCube.comp.fsl"
-#end
-
-#frag VR_MULTIVIEW renderSceneBRDF.frag
+#frag FT_MULTIVIEW renderSceneBRDF.frag
 #include "renderSceneBRDF.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW renderSceneBRDF.vert
+#vert FT_MULTIVIEW renderSceneBRDF.vert
 #include "renderSceneBRDF.vert.fsl"
 #end
 
@@ -135,27 +135,18 @@
 #include "renderSceneShadows.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW showCapsules.frag
+#frag FT_MULTIVIEW showCapsules.frag
 #include "showCapsules.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW showCapsules.vert
+#vert FT_MULTIVIEW showCapsules.vert
 #include "showCapsules.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW skeleton.frag
-#include "skeleton.frag.fsl"
-#end
-
-#vert VR_MULTIVIEW skeleton.vert
-#include "skeleton.vert.fsl"
-#end
-
-#frag VR_MULTIVIEW skybox.frag
+#frag FT_MULTIVIEW skybox.frag
 #include "skybox.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW skybox.vert
+#vert FT_MULTIVIEW skybox.vert
 #include "skybox.vert.fsl"
 #end
-

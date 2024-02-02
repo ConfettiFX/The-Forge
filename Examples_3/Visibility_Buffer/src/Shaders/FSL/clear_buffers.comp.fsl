@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,7 +23,7 @@
 */
 
 #include "shader_defs.h.fsl"
-#include "cull_resources.h.fsl"
+#include "../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/clear_buffers.h.fsl"
 
 NUM_THREADS(CLEAR_THREAD_COUNT, 1, 1)
 void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
@@ -32,20 +32,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) threadID )
     if (threadID.x >= MAX_DRAWS_INDIRECT - 1)
         return;
 
-	UNROLL_N(NUM_CULLING_VIEWPORTS)
-	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-	{
-		Get(uncompactedDrawArgsRW)[i][threadID.x].numIndices = 0;
-	}
+	ClearUncompactedDrawArgsBuffer(threadID.x);
 
     if (threadID.x == 0)
     {
-	    UNROLL_N(NUM_CULLING_VIEWPORTS)
-		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-		{
-			AtomicStore(Get(indirectDrawArgsBufferAlpha)[i][DRAW_COUNTER_SLOT_POS], 0);
-			AtomicStore(Get(indirectDrawArgsBufferNoAlpha)[i][DRAW_COUNTER_SLOT_POS], 0);
-		}
+	   ClearIndirectDrawArgsBuffer();
     }
 	RETURN();
 }

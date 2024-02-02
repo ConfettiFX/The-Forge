@@ -1,62 +1,106 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;cc;s;asm</Extensions>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput">
+      <UniqueIdentifier>{e6283795-db5a-49b5-9691-d571c6556a8a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp</Extensions>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source">
+      <UniqueIdentifier>{f835fe39-c93a-4312-b586-786e3fbe7da1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib">
+      <UniqueIdentifier>{d8723ca2-48b0-4179-9a65-c3a72297e69d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput">
+      <UniqueIdentifier>{798560b8-ddfe-433c-abb4-298842e682b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource">
+      <UniqueIdentifier>{3e8986bb-f421-47a4-a948-c4995def4261}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty">
+      <UniqueIdentifier>{9aa35935-ad6c-4871-9f2c-5587336e9e6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application">
+      <UniqueIdentifier>{4a5611a9-1f08-4407-9347-fe2e7dd417ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3">
+      <UniqueIdentifier>{87b5dadf-0fb2-48d6-8477-11014b922002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard">
+      <UniqueIdentifier>{17d79cad-cf7b-47ec-b96b-e424c769df33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\mouse">
+      <UniqueIdentifier>{967cd533-9dec-40e0-bb6f-775a82600d1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\pad">
+      <UniqueIdentifier>{db354cdf-4150-4557-8f1b-688f23b1e6a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\touch">
+      <UniqueIdentifier>{6651306d-9ffb-4190-a0b4-503247650e91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Prospero\Common_3\Application\Input">
+      <UniqueIdentifier>{e6cc3ab1-a610-496d-9812-07732cde8b10}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Prospero\Common_3\Application">
+      <UniqueIdentifier>{ef9dc5a7-e93f-498b-b4fc-c65d350f5f20}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Prospero\Common_3">
+      <UniqueIdentifier>{7f0183f2-40fb-42e0-86e3-0422e1717e90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Prospero">
+      <UniqueIdentifier>{863785d0-e616-4af0-85bf-5376146e249a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\linux">
+      <UniqueIdentifier>{06205110-8b42-4461-bc31-2c91ad2ea3df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\windows">
+      <UniqueIdentifier>{a548957a-3f2e-4665-a04e-69c212751e09}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\lib\source\gainput\gainput.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputAllocator.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputInputDeltaState.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputInputDevice.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputInputManager.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputInputMap.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputInputState.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\GainputMapFilters.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\lib\source\gainput\pad\GainputInputDevicePad.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboard.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\mouse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\source\gainput\pad\GainputInputDevicePad.cpp">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\pad</Filter>
     </ClCompile>
     <ClCompile Include="..\..\lib\source\gainput\touch\GainputInputDeviceTouch.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\touch</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\lib\source\gainput\GainputHelpersEvdev.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\..\..\..\..\..\..\Prospero\Common_3\Application\Input\GainputInputDevicePadProspero.h">
+      <Filter>Prospero\Common_3\Application\Input</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\lib\source\gainput\GainputWindows.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="..\..\lib\source\gainput\linux\GainputHelpersEvdev.h">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\linux</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\Prospero\Common_3\Application\GainputInputDevicePadProspero.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\..\lib\source\gainput\windows\GainputWindows.h">
+      <Filter>Common_3\Application\ThirdParty\OpenSource\gainput\lib\source\gainput\windows</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

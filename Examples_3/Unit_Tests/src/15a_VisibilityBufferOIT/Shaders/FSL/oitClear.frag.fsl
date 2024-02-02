@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -44,13 +44,17 @@ void PS_MAIN( PsIn In )
 	
 	Get(geometryCountBuffer)[0].count = 0;
 
-	uint width = Get(screenWidth); 
+	uint windowWidth = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.x);
+	uint windowHeight = uint(Get(cullingViewports)[VIEW_CAMERA].windowSize.y);
 
 	uint data = OIT_HEAD_INVALID;
 	uint2 pixelAddr = uint2(In.position.xy);
 
-	uint bufferIdx = pixelAddr.y * width + pixelAddr.x; 
-	Get(headIndexBufferUAV)[bufferIdx] = data; 
+	if (pixelAddr.x < windowWidth && pixelAddr.y < windowHeight)
+	{
+		uint bufferIdx = pixelAddr.y * windowWidth + pixelAddr.x;
+		Get(headIndexBufferUAV)[bufferIdx] = data;
+	}
 
 	clip(-1.0f);
 	RETURN();

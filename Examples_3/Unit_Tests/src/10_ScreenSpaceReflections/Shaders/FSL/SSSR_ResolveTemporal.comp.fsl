@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -48,10 +48,8 @@ THE SOFTWARE.
 // #define FFX_SSSR_TEMPORAL_RESOLVE
 
 
-RES(Tex2D(float4), g_normal, UPDATE_FREQ_NONE, t0, binding = 5);
-RES(Tex2D(float4), g_roughness, UPDATE_FREQ_NONE, t1, binding = 9);
-RES(Tex2D(float4), g_normal_history, UPDATE_FREQ_NONE, t2, binding = 3);
-RES(Tex2D(float4), g_roughness_history, UPDATE_FREQ_NONE, t3, binding = 4);
+RES(Tex2D(float4), g_normal_roughness, UPDATE_FREQ_NONE, t0, binding = 5);
+RES(Tex2D(float4), g_normal_roughness_history, UPDATE_FREQ_NONE, t2, binding = 3);
 RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t4, binding = 1);
 RES(Tex2D(float2), g_motion_vectors, UPDATE_FREQ_NONE, t5, binding = 8);
 
@@ -124,15 +122,19 @@ float3 EstimateStdDeviation(int2 did)
 
     int radius = 1;
     float weight = (radius * 2.0 + 1.0) * (radius * 2.0 + 1.0);
+    int2 image_size = int2(GetDimensions(Get(g_spatially_denoised_reflections), NO_SAMPLER));
 
     for (int dx = -radius; dx <= radius; dx++)
     {
         for (int dy = -radius; dy <= radius; dy++)
         {
             int2 texel_coords = did + int2(dx, dy);
-            float3 value = LoadRWTex2D(Get(g_spatially_denoised_reflections), texel_coords).xyz;
-            color_sum += value;
-            color_sum_squared += value * value;
+            if(texel_coords.x >= 0 && texel_coords.x < image_size.x && texel_coords.y >= 0 && texel_coords.y < image_size.y)
+            {
+                float3 value = LoadRWTex2D(Get(g_spatially_denoised_reflections), texel_coords).xyz;
+                color_sum += value;
+                color_sum_squared += value * value;
+            }
         }
     }
 
@@ -169,14 +171,19 @@ float2 GetHitPositionReprojection(int2 did, float2 uv, float reflected_ray_lengt
     return history_uv;
 }
 
-float SampleHistory(float2 uv, uint2 image_size, float3 normal, float roughness, float3 radiance_min, float3 radiance_max, out(float3) radiance)
+float SampleHistory(float2 uv, int2 image_size, float3 normal, float roughness, float3 radiance_min, float3 radiance_max, out(float3) radiance)
 {
     int2 texel_coords = int2(float2(image_size) * uv);
+    if(texel_coords.x < 0 && texel_coords.x >= image_size.x && texel_coords.y < 0 && texel_coords.y >= image_size.y)
+    {
+        return 0.0;
+    }
+
     radiance = LoadRWTex2D(Get(g_temporally_denoised_reflections_history), texel_coords).xyz;
     radiance = ClipAABB(radiance_min, radiance_max, radiance);
 
-    float3 history_normal = LoadNormal(texel_coords, Get(g_normal_history));
-    float history_roughness = LoadRoughness(texel_coords, Get(g_roughness_history));
+    float3 history_normal = LoadNormal(texel_coords, Get(g_normal_roughness_history));
+    float history_roughness = LoadRoughness(texel_coords, Get(g_normal_roughness_history));
 
     const float normal_sigma = 8.0;
     const float roughness_sigma_min = 0.01;
@@ -194,15 +201,15 @@ float SampleHistory(float2 uv, uint2 image_size, float3 normal, float roughness,
 
 float ComputeTemporalVariance(float3 history_radiance, float3 radiance)
 {
-    // Check temporal variance. 
+    // Check temporal variance.
     float history_luminance = Luminance(history_radiance);
     float luminance = Luminance(radiance);
     return abs(history_luminance - luminance) / max(max(history_luminance, luminance), 0.00001);
 }
 
-float4 ResolveScreenspaceReflections(int2 did, float2 uv, uint2 image_size, float roughness)
+float4 ResolveScreenspaceReflections(int2 did, float2 uv, int2 image_size, float roughness)
 {
-    float3 normal = LoadNormal(did, Get(g_normal));
+    float3 normal = LoadNormal(did, Get(g_normal_roughness));
     float3 radiance = LoadRWTex2D(Get(g_spatially_denoised_reflections), did).xyz;
     float3 radiance_history = LoadRWTex2D(Get(g_temporally_denoised_reflections_history), did).xyz;
     float ray_length = LoadRWTex2D(Get(g_ray_lengths), did).x;
@@ -211,7 +218,7 @@ float4 ResolveScreenspaceReflections(int2 did, float2 uv, uint2 image_size, floa
     float2 motion_vector = FfxSssrUnpackMotionVectors(LoadTex2D(Get(g_motion_vectors), NO_SAMPLER, did, 0).xy);
     float3 color_std = EstimateStdDeviation(did);
     color_std *= (dot(motion_vector, motion_vector) == 0) ? 8 : 2.2; // Allow more accumulation if the surface did not move.
-    
+
     float3 radiance_min = radiance.xyz - color_std;
     float3 radiance_max = radiance + color_std;
 
@@ -238,13 +245,18 @@ float4 ResolveScreenspaceReflections(int2 did, float2 uv, uint2 image_size, floa
 
 void Resolve(int2 did)
 {
-    float roughness = LoadRoughness(did, Get(g_roughness));
+    float roughness = LoadRoughness(did, Get(g_normal_roughness));
     if (!IsGlossy(roughness) || IsMirrorReflection(roughness))
     {
         return;
     }
 
-    uint2 image_size = uint2(GetDimensions(Get(g_temporally_denoised_reflections), NO_SAMPLER));
+    int2 image_size = int2(GetDimensions(Get(g_temporally_denoised_reflections), NO_SAMPLER));
+    if(did.x < 0 || did.x >= image_size.x || did.y < 0 || did.y >= image_size.y)
+    {
+        return;
+    }
+
     float2 uv = float2(did.x + 0.5, did.y + 0.5) / float2(image_size);
 
     float4 resolve = ResolveScreenspaceReflections(did.xy, uv, image_size, roughness);

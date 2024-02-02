@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+// This compute shader is ran over all indirect draw arguments - 0 - MAX_INDIRECT_DRAWS
+
+// After the triangle filtering stage, we have all the data needed for indirect drawing - filtered index buffer and the indirect draw arguments
+// Only caveat is that the indirect draw argument buffer has holes in places where the draws were culled
+
+// These holes impact performance since the GPU command processor has to do all the work setting up data for that draw and in the end just throw it all away since it was an empty draw call
+// To fix these holes, we run another pass - batch compaction which will remove these holes
+// This process also fills the per draw indirect material buffer which holds the material index for that draw
+// This process also fills the final draw counter which will be passed to the execute indirect draw call on the CPU side
+
+// Before Batch Compaction, the indirect argument buffer
+// [ Indirect Draw, Empty Draw, Indirect Draw, Empty Draw, ...]
+
+// After the batch compaction, the indirect draw buffer looks like this
+// [ Indirect Draw, Indirect Draw ]
+
+// Indirect draw argument buffer layout
+// [ Indirect Draw 0, Indirect Draw 1, Indirect Draw 2, ... Indirect Draw MAX_INDIRECT_DRAWS, Draw counter passed to the execute indirect call on CPU side ]
+
+#ifndef _VB_BATCH_COMPACION_H
+#define _VB_BATCH_COMPACION_H
+
+#include "vb_resources.h.fsl"
+
+// Returns index within an array of (NUM_CULLING_VIEWS * NUM_GEOMETRY_SETS * MAX_DRAWS_INDIRECT)
+uint BatchCompaction(const uint threadIDx, const uint view, const uint numIndices, inout(uint) slot )
+{
+	uint uncompactIndex = GET_UNCOMPACT_DRAW_INDEX(view, threadIDx);
+	uint geometrySet = Get(uncompactedDrawArgs)[uncompactIndex].geometrySet;
+	uint baseInstanceSlot = BaseInstanceBuffer(geometrySet, view);
+	
+	uint indexCountOffset = INDIRECT_DRAW_ARGUMENTS_INDEX_COUNT_OFFSET;
+	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
+	uint vertexOffsetOffset = INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET;
+
+	uint startIndex = Get(uncompactedDrawArgs)[uncompactIndex].startIndex;
+	uint vertexOffset = Get(uncompactedDrawArgs)[uncompactIndex].vertexOffset;
+
+	uint baseIndex = GET_INDIRECT_DRAW_ELEM_INDEX(view, geometrySet, 0);
+
+	AtomicAdd(Get(indirectDrawArgsBuffer)[baseIndex + DRAW_COUNTER_SLOT_POS], 1, slot);
+	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + indexCountOffset], numIndices);
+	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset], startIndex);
+	AtomicStore(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + vertexOffsetOffset], vertexOffset);
+#if defined(INDIRECT_COMMAND_BUFFER)
+	uint startInstanceOffset = INDIRECT_DRAW_ARGUMENTS_START_INSTANCE_OFFSET;
+	uint startInstance = AtomicLoad(Get(indirectDrawArgsBuffer)[baseIndex + slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startInstanceOffset]);
+	uint icbIndex = ((view * NUM_GEOMETRY_SETS) + geometrySet) * MAX_DRAWS_INDIRECT + slot;
+	cmdDrawIndexedInstanced(Get(icb), icbIndex , PRIMITIVE_TYPE_TRIANGLE, Get(filteredIndicesBuffer)[view], numIndices, startIndex, vertexOffset, 1, startInstance);
+#endif
+
+	//VB_REPEAT(NUM_GEOMETRY_SETS, BATCH_GEOM_SET)
+	return baseInstanceSlot + slot;
+}
+#endif //!_VB_BATCH_COMPACION_H

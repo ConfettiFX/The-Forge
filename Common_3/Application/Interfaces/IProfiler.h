@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,16 +20,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
-#include "../../Graphics/GraphicsConfig.h"
-
-#include "../../Utilities/Interfaces/ILog.h"
-#include "../Interfaces/IApp.h"
 #include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
 #include "../../Utilities/Interfaces/IThread.h"
+#include "../Interfaces/IApp.h"
+
+#include "../../Graphics/GraphicsConfig.h"
 #include "../../Utilities/Math/MathTypes.h"
 
 typedef uint64_t ProfileToken;
@@ -38,21 +38,20 @@ typedef uint64_t ProfileToken;
 struct Cmd;
 struct Renderer;
 struct Queue;
-struct FontDrawDesc; 
+struct FontDrawDesc;
 struct UserInterface;
 
 typedef struct ProfilerDesc
 {
+    Renderer* pRenderer = NULL;
+    Queue**   ppQueues = NULL;
 
-	Renderer*     pRenderer = NULL; 
-	Queue**       ppQueues = NULL;
+    const char**  ppProfilerNames = NULL;
+    ProfileToken* pProfileTokens = NULL;
 
-	const char**  ppProfilerNames = NULL; 
-	ProfileToken* pProfileTokens = NULL; 
-
-	uint32_t      mGpuProfilerCount = 0;
-	uint32_t      mWidthUI = 0; 
-	uint32_t      mHeightUI = 0; 
+    uint32_t mGpuProfilerCount = 0;
+    uint32_t mWidthUI = 0;
+    uint32_t mHeightUI = 0;
 
 } ProfilerDesc;
 
@@ -69,10 +68,10 @@ FORGE_API void flipProfiler();
 FORGE_API void setAggregateFrames(uint32_t nFrames);
 
 // Dump profile data to "profile-(date).html" of recorded frames, until a maximum amount of frames
-FORGE_API void dumpProfileData(const char* appName = "" , uint32_t nMaxFrames = 64);
+FORGE_API void dumpProfileData(const char* appName = "", uint32_t nMaxFrames = 64);
 
 // Dump benchmark data to "benchmark-(data).txt" of recorded frames
-FORGE_API void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename = "", const char * appName = "");
+FORGE_API void dumpBenchmarkData(IApp::Settings* pSettings, const char* outFilename = "", const char* appName = "");
 
 //------ Profiler UI Widget --------//
 
@@ -89,6 +88,9 @@ FORGE_API void toggleProfilerUI(bool active);
 
 // Toggle profiler menu display on/off.
 FORGE_API void toggleProfilerMenuUI(bool active);
+
+// Toggle profiler display on/off. Includes system information. Used when taking screenshots.
+FORGE_API void toggleProfilerDrawing(bool active);
 
 //------ Gpu profiler ------------//
 
@@ -129,18 +131,18 @@ FORGE_API ProfileToken getCpuProfileToken(const char* pGroup, const char* pName,
 
 struct CpuProfileScopeMarker
 {
-	ProfileToken nToken;
-	uint64_t     nTick;
-	CpuProfileScopeMarker(const char* pGroup, const char* pName, uint32_t nColor)
-	{
-		nToken = getCpuProfileToken(pGroup, pName, nColor);
-		nTick = cpuProfileEnter(nToken);
-	}
-	~CpuProfileScopeMarker() { cpuProfileLeave(nToken, nTick); }
+    ProfileToken nToken;
+    uint64_t     nTick;
+    CpuProfileScopeMarker(const char* pGroup, const char* pName, uint32_t nColor)
+    {
+        nToken = getCpuProfileToken(pGroup, pName, nColor);
+        nTick = cpuProfileEnter(nToken);
+    }
+    ~CpuProfileScopeMarker() { cpuProfileLeave(nToken, nTick); }
 };
 
-#define PROFILER_CONCAT0(a, b) a##b
-#define PROFILER_CONCAT(a, b) PROFILER_CONCAT0(a, b)
+#define PROFILER_CONCAT0(a, b)                     a##b
+#define PROFILER_CONCAT(a, b)                      PROFILER_CONCAT0(a, b)
 // Call at the start of a block to profile cpu time between '{' '}'
 #define PROFILER_SET_CPU_SCOPE(group, name, color) CpuProfileScopeMarker PROFILER_CONCAT(marker, __LINE__)(group, name, color)
 

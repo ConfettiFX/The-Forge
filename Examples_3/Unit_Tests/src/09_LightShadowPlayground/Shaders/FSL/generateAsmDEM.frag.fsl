@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,7 +39,7 @@ STRUCT(VSOutput)
     DATA(float4, MiscData, TEXCOORD1);
 };
 
-SET_OUTPUT_FORMAT(FMT_32_ABGR)
+SET_OUTPUT_FORMAT(default, FMT_32_R)
 
 float PS_MAIN( VSOutput In )
 {

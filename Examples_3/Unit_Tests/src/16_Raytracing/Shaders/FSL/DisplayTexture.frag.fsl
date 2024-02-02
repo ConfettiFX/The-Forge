@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -39,7 +39,7 @@ RES(Tex2D(float4), uTex0, UPDATE_FREQ_PER_FRAME, t0, binding = 0);
 RES(Tex2D(float4), albedoTex, UPDATE_FREQ_PER_FRAME, t1, binding = 1);
 #endif
 
-RES(SamplerState, uSampler0, UPDATE_FREQ_NONE, s1, binding = 1);
+RES(SamplerState, uSampler0, UPDATE_FREQ_PER_FRAME, s1, binding = 1);
 
 FSOutput PS_MAIN( PsIn In )
 {

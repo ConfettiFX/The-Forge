@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,12 +31,15 @@
 CBUFFER(cbExtendCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
 	DATA(float4x4, viewMat, None);
+	DATA(float4x4, invViewMat, None);
 	DATA(float4x4, projMat, None);
 	DATA(float4x4, viewProjMat, None);
 	DATA(float4x4, InvViewProjMat, None);
 
 	DATA(float4, cameraWorldPos, None);
-	DATA(float4, viewPortSize, None);
+	DATA(float2, viewPortSize, None);
+	DATA(float,  mNear, None);
+	DATA(float,  mFar, None);
 };
 
 
@@ -70,12 +73,12 @@ CBUFFER(cbProperties, UPDATE_FREQ_PER_FRAME, b5, binding = 5)
 
 	DATA(float, intensity, None);
 	DATA(float, useFadeEffect, None);
+	DATA(float, debugNonProjected, None);
 	DATA(float, padding01, None);
-	DATA(float, padding02, None);
 };
 
 RES(SamplerState, defaultSampler, UPDATE_FREQ_NONE, s6, binding = 6);
-
+RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s7, binding = 7);
 
 bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(float4) hitPos, out(float2) relfectedUVonPlanar) 
 {
@@ -131,7 +134,7 @@ bool intersectPlane(in(uint) index, in(float3) worldPos, in(float2) fragUV, out(
 
 			reflectedPos.xy = float2( (reflectedPos.x + 1.0) * 0.5, (1.0 - reflectedPos.y) * 0.5);
 
-			float depth = SampleTex2D(Get(DepthTexture), Get(defaultSampler), reflectedPos.xy).r;
+			float depth = SampleTex2D(Get(DepthTexture), Get(depthSampler), reflectedPos.xy).r;
 
 			if(depth <= reflectedPos.z)
 				return false;
@@ -248,7 +251,7 @@ float4 PS_MAIN( VSOutput In )
 	uint CoordSys;
 	float2 offset = unPacked( bufferInfo , Get(viewPortSize).xy, CoordSys).xy;
 
-	float depth =  SampleTex2D(Get(DepthTexture), Get(defaultSampler), In.uv).r;
+	float depth =  SampleTex2D(Get(DepthTexture), Get(depthSampler), In.uv).r;
 
 	float4 worldPos = getWorldPosition(In.uv, depth);
 
@@ -316,6 +319,9 @@ float4 PS_MAIN( VSOutput In )
 	}
 	else
 	{
+		if(Get(debugNonProjected) > 0.5)
+			outColor = float4(0.5f, 0.0f, 0.5f, 0.0f);
+
 		outColor.w = FLT_MAX;
 	}
 

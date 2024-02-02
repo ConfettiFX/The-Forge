@@ -57,16 +57,6 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-            BuildableName = "09_LightShadowPlayground.app"
-            BlueprintName = "09_LightShadowPlayground"
-            ReferencedContainer = "container:09_LightShadowPlayground.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

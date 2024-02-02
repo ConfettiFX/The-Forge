@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -91,10 +91,14 @@ STRUCT(ObjectInfo)
 };
 
 // UPDATE_FREQ_NONE
-
+#if FT_MULTIVIEW
+RES(Tex2DArray(float4), VSM, UPDATE_FREQ_NONE, t1, binding = 2);
+#else
 RES(Tex2D(float4), VSM, UPDATE_FREQ_NONE, t1, binding = 2);
+#endif
+
 #if PT_USE_DIFFUSION != 0
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 RES(Tex2DArray(float4), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 #else
 RES(Tex2D(float4), DepthTexture, UPDATE_FREQ_NONE, t0, binding = 1);
@@ -129,7 +133,11 @@ CBUFFER(LightUniformBlock, UPDATE_FREQ_PER_FRAME, b3, binding = 3)
 
 CBUFFER(CameraUniform, UPDATE_FREQ_PER_FRAME, b1, binding = 1)
 {
-	DATA(float4x4, camViewProj, None);
+#if FT_MULTIVIEW
+    DATA(float4x4, camViewProj[VR_MULTIVIEW_COUNT], None);
+#else
+    DATA(float4x4, camViewProj, None);
+#endif
 	DATA(float4x4, camViewMat, None);
 	DATA(float4, camClipInfo, None);
 	DATA(float4, camPosition, None);

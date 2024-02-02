@@ -13,5 +13,5 @@ if plat ~= "Unsupported" then
 	--[[ At this point window is centered, so x & y should not have any effect. ]]--
 	loader.SetwindowrectangleOnEdited()
 	
-	loader.SetCounter(3)
+	loader.SetCounter(2)
 end

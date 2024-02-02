@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,8 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_EAW_RESOLVE
 #define FFX_SSSR_EAW_RESOLVE
 
-RES(Tex2D(float4), g_normal, UPDATE_FREQ_NONE, t0, binding = 5);
-RES(Tex2D(float4), g_roughness, UPDATE_FREQ_NONE, t1, binding = 2);
+RES(Tex2D(float4), g_normal_roughness, UPDATE_FREQ_NONE, t0, binding = 5);
 RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t2, binding = 6);
 
 RES(RWTex2D(float4), g_temporally_denoised_reflections, UPDATE_FREQ_NONE, u0, binding = 1);
@@ -85,7 +84,7 @@ min16float3 LoadRadiance(int2 idx)
 
 min16float LoadRoughnessValue(int2 idx)
 {
-    return min16float(FfxSssrUnpackRoughness(LoadTex2D(Get(g_roughness), NO_SAMPLER, idx, 0)));
+    return min16float(FfxSssrUnpackRoughness(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, idx, 0)));
 }
 
 min16float4 ResolveScreenspaceReflections(int2 gtid, min16float center_roughness)

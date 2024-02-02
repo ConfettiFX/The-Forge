@@ -1384,7 +1384,7 @@ int XMLDocument::LoadFile(const Path* filePath)
     size_t bytesRead = 0;
     char *data = NULL;
 
-	FileStream* fileStream = fsOpenFile(filePath, FM_READ_BINARY);
+	FileStream* fileStream = fsOpenFile(filePath, FM_READ);
 	if (!fileStream)
 	{
 		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );
@@ -1417,8 +1417,8 @@ int XMLDocument::SaveFile( const Path* filePath )
 {
 	XMLPrinter printer;
 	Print( &printer );
-	
-	FileStream* fs = fsOpenFile(filePath, FM_WRITE_BINARY);
+
+	FileStream* fs = fsOpenFile(filePath, FM_WRITE);
 	if (!fs)
 	{
 		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );

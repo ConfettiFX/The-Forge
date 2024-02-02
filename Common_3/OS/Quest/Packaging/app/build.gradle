@@ -7,7 +7,7 @@ android {
     defaultConfig {
         applicationId "com.forge.unittest.${ANDROID_APPLICATION_NAME}"
         minSdkVersion MSBUILD_MIN_SDK_VERSION
-        targetSdkVersion 29
+        targetSdkVersion 31
         versionCode 1
         versionName "1.0"
 

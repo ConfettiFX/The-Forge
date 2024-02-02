@@ -1,95 +1,109 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;cc;s;asm</Extensions>
+    <Filter Include="src\base\memory">
+      <UniqueIdentifier>{03a8adb8-2cc4-4533-895c-13228f03e8de}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp</Extensions>
+    <Filter Include="src\base">
+      <UniqueIdentifier>{52032201-9188-40ad-87fe-8fd559e3769b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{dab2f15c-2d00-40b9-ae0c-dd760e197cbd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\containers">
+      <UniqueIdentifier>{70fd82f1-114d-424d-b634-5aa8fc3bdaac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\io">
+      <UniqueIdentifier>{6e255b36-345d-4a52-94a3-252b84b8aa94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\maths">
+      <UniqueIdentifier>{dc260d55-4770-4167-af67-06f84b3f6d9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base">
+      <UniqueIdentifier>{584fa331-0e13-4486-8068-6fed41e3b972}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz">
+      <UniqueIdentifier>{1f4e49e7-36a5-4bf1-8eff-bddd1a6bcb69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{906c53ee-c1b3-4e61-ab79-66fdb959e564}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\memory">
+      <UniqueIdentifier>{99f587a0-c380-4781-9675-6e721a6e1b38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\containers">
+      <UniqueIdentifier>{7a89eddc-a173-4ad7-a03f-9fe78294ade3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\io">
+      <UniqueIdentifier>{1f4531c1-de8b-442e-838c-da0ffd7f797c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\maths">
+      <UniqueIdentifier>{1c71774f-c895-4d19-a3cc-976c6bf2e2eb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\base\memory\allocator.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\memory</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\platform.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\containers\string_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\containers</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\io\archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\io</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\maths\math_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\maths</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\maths\soa_math_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\maths</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\base\maths\simd_math_archive.cc">
-      <Filter>Source Files</Filter>
+      <Filter>src\base\maths</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\..\include\ozz\base\endianness.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\ozz\base\gtest_helper.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\memory\allocator.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\memory</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\platform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\ozz\base\containers\map.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\ozz\base\containers\set.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\containers\string.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\containers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\containers\string_archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\containers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\containers\vector.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\containers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\containers\vector_archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\containers</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\io\archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\io</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\io\archive_traits.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\ozz\base\io\stream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\include\ozz\base\maths\gtest_math_helper.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\io</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\maths\math_ex.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\maths</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\maths\math_constant.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\maths</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\maths\math_archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\maths</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\maths\soa_math_archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\maths</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\include\ozz\base\maths\simd_math_archive.h">
-      <Filter>Header Files</Filter>
+      <Filter>include\ozz\base\maths</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

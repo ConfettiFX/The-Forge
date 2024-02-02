@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,59 +20,57 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 /*
  * This file is supposed to be included only from <PlatformName>Thread.c
-*/
+ */
 
-#include "../Interfaces/IThread.h"
-#include "../Interfaces/ILog.h"
-#include "Atomics.h"
-
-#include <stdlib.h>
 #include <assert.h>
+#include <stdlib.h>
+
+#include "../Interfaces/ILog.h"
+#include "../Interfaces/IThread.h"
+
+#include "Atomics.h"
 
 static CallOnceGuard gKeyInitGuard = INIT_CALL_ONCE_GUARD;
 static pthread_key_t gThreadIDKey;
 
-static void destroyThreadIDKey() 
+static void destroyThreadIDKey(void) { pthread_key_delete(gThreadIDKey); }
+
+static void initThreadIDKey(void)
 {
-	pthread_key_delete(gThreadIDKey);
+    int result = pthread_key_create(&gThreadIDKey, NULL);
+    ASSERT(result == 0);
+    UNREF_PARAM(result);
+    result = atexit(destroyThreadIDKey);
+    ASSERT(result == 0);
 }
 
-static void initThreadIDKey() 
+static ThreadID getCurrentPthreadID(void)
 {
-	int result = pthread_key_create(&gThreadIDKey, NULL);
-	ASSERT(result == 0);
-	UNREF_PARAM(result);
-	result = atexit(destroyThreadIDKey);
-	ASSERT(result == 0);
-}
+    static tfrg_atomic32_t counter = 1;
+    callOnce(&gKeyInitGuard, initThreadIDKey);
 
-static ThreadID getCurrentPthreadID() 
-{
-	static tfrg_atomic32_t counter = 1;
-	callOnce(&gKeyInitGuard, initThreadIDKey);
+    void*     ptr = pthread_getspecific(gThreadIDKey);
+    uintptr_t ptr_id = (uintptr_t)ptr;
+    ASSERT(ptr_id < THREAD_ID_MAX);
+    ThreadID id = (ThreadID)ptr_id;
 
-	void* ptr = pthread_getspecific(gThreadIDKey);
-	uintptr_t ptr_id = (uintptr_t)ptr;
-	ASSERT(ptr_id < THREAD_ID_MAX);
-	ThreadID id = (ThreadID)ptr_id;
+    // thread id wasn't set
+    if (id == 0)
+    {
+        id = (ThreadID)tfrg_atomic32_add_relaxed(&counter, 1);
+        ASSERT(id != 0 && "integer overflow");
+        // we store plain integers instead of pointers to data
+        ptr_id = (uintptr_t)id;
+        ptr = (void*)ptr_id;
+        int result = pthread_setspecific(gThreadIDKey, ptr);
+        ASSERT(result == 0);
+        UNREF_PARAM(result);
+    }
 
-	// thread id wasn't set
-	if (id == 0) 
-	{
-		id = (ThreadID)tfrg_atomic32_add_relaxed(&counter, 1);
-		ASSERT(id != 0 && "integer overflow");
-		// we store plain integers instead of pointers to data
-		ptr_id = (uintptr_t)id;
-		ptr = (void*)ptr_id;
-		int result = pthread_setspecific(gThreadIDKey, ptr);
-		ASSERT(result == 0);
-		UNREF_PARAM(result);
-	}
-
-	ASSERT(id != 0);
-	return id;
+    ASSERT(id != 0);
+    return id;
 }

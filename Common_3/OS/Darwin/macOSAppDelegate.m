@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,17 +20,23 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #import "macOSAppDelegate.h"
+
 #import <IOKit/pwr_mgt/IOPMLib.h>
 #define DISPATCH_APPROACH
 
 static IOPMAssertionID systemSleepAssertionID, displaySleepAssertionID;
+@protocol              RenderDestinationProvider
+- (void)draw;
+- (void)didResize:(CGSize)size;
+- (void)didMiniaturize;
+- (void)didDeminiaturize;
+- (void)didFocusChange:(bool)active;
+@end
 
-@interface GameController: NSViewController
--(void)draw;
--(void)onFocusChanged:(BOOL)focused;
+@interface GameController: NSObject <RenderDestinationProvider>
 @end
 
 @interface AppDelegate ()
@@ -39,81 +45,82 @@ static IOPMAssertionID systemSleepAssertionID, displaySleepAssertionID;
 
 @implementation AppDelegate
 {
-    GameController *myController;
+    GameController* myController;
     void (^drawBlock)(void);
 }
 
--(void) drawFunc
+- (void)drawFunc
 {
-    [myController draw];
-    drawBlock();
+    @autoreleasepool
+    {
+        [myController draw];
+        drawBlock();
+    }
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification*)aNotification
 {
-
     // prevent Energy-Saver to turn off the display
-    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep,
-                                kIOPMAssertionLevelOn, CFSTR("Running The-Forge"), &systemSleepAssertionID);
-    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleDisplaySleep,
-                                kIOPMAssertionLevelOn, CFSTR("Running The-Forge"), &displaySleepAssertionID);
+    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleSystemSleep, kIOPMAssertionLevelOn, CFSTR("Running The-Forge"),
+                                &systemSleepAssertionID);
+    IOPMAssertionCreateWithName(kIOPMAssertPreventUserIdleDisplaySleep, kIOPMAssertionLevelOn, CFSTR("Running The-Forge"),
+                                &displaySleepAssertionID);
 
     myController = [GameController new];
 
 #ifdef DISPATCH_APPROACH
-    __weak AppDelegate *weakSelf = self;
-     drawBlock = ^{
-        dispatch_async( dispatch_get_main_queue(), ^{
+    __weak AppDelegate* weakSelf = self;
+    drawBlock = ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
             [weakSelf drawFunc];
         });
     };
-    
+
     drawBlock();
 #endif
-    
+
 #ifdef LOOP_IN_FINISH_LAUNCHING
     for (;;)
     {
-        NSEvent *Event;
+        NSEvent* Event;
         @autoreleasepool
         {
-            while ((Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: TRUE]))
-                   [NSApp sendEvent: Event];
-                   
+            while ((Event = [NSApp nextEventMatchingMask:NSAnyEventMask untilDate:nil inMode:NSDefaultRunLoopMode dequeue:TRUE]))
+                [NSApp sendEvent:Event];
+
             [myController draw];
         }
     }
     myController = nil;
 #endif
-    
 }
 
 - (void)applicationWillTerminate:(NSNotification*)aNotification
 {
-    if(systemSleepAssertionID > 0)
+    if (systemSleepAssertionID > 0)
     {
         IOPMAssertionRelease(systemSleepAssertionID);
     }
-    if(displaySleepAssertionID > 0) 
+    if (displaySleepAssertionID > 0)
     {
         IOPMAssertionRelease(displaySleepAssertionID);
     }
-	// Insert code here to tear down your application
+    // Insert code here to tear down your application
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
 {
-	return TRUE;
+    return TRUE;
 }
 
 - (void)applicationDidEnterBackground:(NSNotification*)aNotification
 {
-	[myController onFocusChanged:FALSE];
+    [myController didFocusChange:FALSE];
 }
 
 - (void)applicationWillEnterForeground:(NSNotification*)aNotification
 {
-	[myController onFocusChanged:TRUE];
+    [myController didFocusChange:TRUE];
 }
 
 @end

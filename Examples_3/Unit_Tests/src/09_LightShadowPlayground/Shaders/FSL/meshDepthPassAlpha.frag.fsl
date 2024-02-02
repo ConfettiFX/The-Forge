@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,7 +23,7 @@
 */
 
 #include "Shader_Defs.h.fsl"
-#include "Packing.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #define MESH_PASS
 #include "vb_resources.h.fsl"
 
@@ -39,8 +39,8 @@ STRUCT(PsIn)
 void PS_MAIN( PsIn In )
 {
 	INIT_MAIN;
-	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_SHADOW); //1 is camera view, 0 is shadow map view
-	uint materialID = LoadByte(Get(indirectMaterialBuffer), (matBaseSlot + getDrawID()) << 2);
+	uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, Get(ViewID)); //1 is camera view, 0 is shadow map view
+	uint materialID = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
 	float4 texColor;
 	BeginNonUniformResourceIndex(materialID, 256)
     	texColor = SampleLvlTex2D(Get(diffuseMaps)[materialID], Get(nearClampSampler), In.TexCoord, 0);

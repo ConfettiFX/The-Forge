@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,9 +26,9 @@
 #define vb_resources_h
 
 RES(SamplerState, textureFilter, UPDATE_FREQ_NONE, s0, binding = 2);
-RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE], UPDATE_FREQ_NONE, t1, binding = 3);
-RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding=1);
-// RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t1, binding=3 + MAX_TEXTURE_UNITS * 3);
+RES(Tex2D(float4), diffuseMaps[INSTANCE_BUFFER_SIZE], UPDATE_FREQ_NONE, t1, binding = 4);
+RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding=3);
+// RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t1, binding=4 + MAX_TEXTURE_UNITS * 3);
 
 #if defined(INDIRECT_ROOT_CONSTANT)
 	PUSH_CONSTANT(indirectRootConstant, b1)
@@ -92,7 +92,5 @@ STRUCT(PsInVBAlphaTested)
     DATA(FLAT(uint), drawId, TEXCOORD3);
 #endif
 };
-
-DECLARE_RESOURCES()
 
 #endif /* vb_resources_h */

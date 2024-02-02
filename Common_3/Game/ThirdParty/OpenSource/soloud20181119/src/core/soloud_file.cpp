@@ -87,17 +87,17 @@ namespace SoLoud
 
 	DiskFile::DiskFile()
 	{
-		
+
 	}
 
 	result DiskFile::open(const char *aFilename)
 	{
 		if (!aFilename)
-			return INVALID_PARAMETER;	
+			return INVALID_PARAMETER;
 
-       
 
-		if(!fsOpenStreamFromPath(RD_AUDIO, aFilename, FM_READ_BINARY, NULL, &mForgeFile))
+
+		if(!fsOpenStreamFromPath(RD_AUDIO, aFilename, FM_READ, NULL, &mForgeFile))
 			return FILE_NOT_FOUND;
 		return SO_NO_ERROR;
 	}
@@ -110,7 +110,7 @@ namespace SoLoud
 
 
 	unsigned int MemoryFile::read(unsigned char *aDst, unsigned int aBytes)
-	{		
+	{
 		if (mOffset + aBytes >= mDataLength)
 			aBytes = mDataLength - mOffset;
 

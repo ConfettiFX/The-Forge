@@ -1,24 +1,44 @@
-#frag ST_6_4 basic.frag
+#frag FT_VRS basic.frag
 #include "basic.frag.fsl"
 #end
 
-#vert ST_6_4 basic.vert
+#vert FT_VRS basic.vert
 #include "basic.vert.fsl"
 #end
 
-#comp compShadingRate.comp
-#include "compShadingRate.comp.fsl"
-#end
-#comp compShadingRate_ADDITIONAL_SUPPORT.comp
-#define ADDITIONAL_SUPPORT 1
-#include "compShadingRate.comp.fsl"
-#end
-
-#frag ST_6_4 cube.frag
+#frag FT_VRS cube.frag
 #include "cube.frag.fsl"
 #end
 
-#vert ST_6_4 cube.vert
+#vert FT_VRS cube.vert
 #include "cube.vert.fsl"
+#end
+
+#frag fillStencil.frag
+#include "fillStencil.frag.fsl"
+#end
+
+#vert fillStencil.vert
+#include "fillStencil.vert.fsl"
+#end
+
+#frag fillVelocity.frag
+#include "fillVelocity.frag.fsl"
+#end
+
+#vert fillVelocity.vert
+#include "fillVelocity.vert.fsl"
+#end
+
+#frag resolve.frag
+#include "resolve.frag.fsl"
+#end
+
+#vert resolve.vert
+#include "resolve.vert.fsl"
+#end
+
+#comp resolve.comp
+#include "resolve.comp.fsl"
 #end
 

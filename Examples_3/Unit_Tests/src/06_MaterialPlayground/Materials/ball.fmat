@@ -1,0 +1,171 @@
+### Forge Material Demo File
+
+# This is a comment. Commented lines are ignored by parser. (line marked with '#')
+
+# ShaderSet declaration this shader can then be referenced with it's name (BRDF) inside MaterialSets
+# 's' means shader file, 'v' or 'f' is the type of shader vertex/fragment respectively in this case
+# 'b' means binding to texture, the name of the variable in the shader to bind textures, the order 
+#     declared here needs to be the same order as declared in the TextureSets.
+S BRDF
+s v renderSceneBRDF
+s f renderSceneBRDF
+b albedoMap
+b normalMap
+b metallicMap
+b roughnessMap
+b aoMap
+b vmfMap
+
+
+# TextureSet declaration, all textures are bundled together and used in a MaterialSet
+T Aluminum
+t PBR/round_aluminum_panel_01/2K/Albedo.tex srgb
+t PBR/round_aluminum_panel_01/2K/Normal.tex
+t PBR/Metallic_on.tex
+t PBR/round_aluminum_panel_01/2K/Roughness.tex
+t PBR/round_aluminum_panel_01/2K/AO.tex
+t PBR/round_aluminum_panel_01/2K/vMF/Normal.tex
+
+T Gold
+t PBR/scratched_gold_01/2K/Albedo.tex srgb
+t PBR/scratched_gold_01/2K/Normal.tex
+t PBR/Metallic_on.tex
+t PBR/scratched_gold_01/2K/Roughness.tex
+t PBR/scratched_gold_01/2K/AO.tex
+t PBR/scratched_gold_01/2K/vMF/Normal.tex
+
+T Copper
+t PBR/copper_tiles_01/2K/Albedo.tex srgb
+t PBR/copper_tiles_01/2K/Normal.tex
+t PBR/Metallic_on.tex
+t PBR/copper_tiles_01/2K/Roughness.tex
+t PBR/copper_tiles_01/2K/AO.tex
+t PBR/copper_tiles_01/2K/vMF/Normal.tex
+
+T TiledMetal
+t PBR/brushed_iron_01/2K/Albedo.tex srgb
+t PBR/brushed_iron_01/2K/Normal.tex
+t PBR/brushed_iron_01/2K/Metallic.tex
+t PBR/brushed_iron_01/2K/Roughness.tex
+t PBR/brushed_iron_01/2K/Height.tex
+t PBR/brushed_iron_01/2K/vMF/Normal.tex
+
+T OldIron
+t PBR/old_iron_01/2K/Albedo.tex srgb
+t PBR/old_iron_01/2K/Normal.tex
+t PBR/old_iron_01/2K/Metallic.tex
+t PBR/old_iron_01/2K/Roughness.tex
+t PBR/old_iron_01/2K/Height.tex
+t PBR/old_iron_01/2K/vMF/Normal.tex
+
+T Bronze
+t PBR/bronze_01/2K/Albedo.tex srgb
+t PBR/bronze_01/2K/Normal.tex
+t PBR/bronze_01/2K/Metallic.tex
+t PBR/bronze_01/2K/Roughness.tex
+t PBR/bronze_01/2K/Height.tex
+t PBR/bronze_01/2K/vMF/Normal.tex
+
+T WoodenPlanks05
+t PBR/wooden_planks_05/2K/Albedo.tex srgb
+t PBR/wooden_planks_05/2K/Normal.tex
+t PBR/wooden_planks_05/2K/Normal.tex
+t PBR/wooden_planks_05/2K/Roughness.tex
+t PBR/wooden_planks_05/2K/AO.tex
+t PBR/wooden_planks_05/2K/vMF/Normal.tex
+
+T WoodenPlanks06
+t PBR/wooden_planks_06/2K/Albedo.tex srgb
+t PBR/wooden_planks_06/2K/Normal.tex
+t PBR/wooden_planks_06/2K/Normal.tex
+t PBR/wooden_planks_06/2K/Roughness.tex
+t PBR/wooden_planks_06/2K/AO.tex
+t PBR/wooden_planks_06/2K/vMF/Normal.tex
+
+T Wood03
+t PBR/wood_#03/2K/Albedo.tex srgb
+t PBR/wood_#03/2K/Normal.tex
+t PBR/wood_#03/2K/Normal.tex
+t PBR/wood_#03/2K/Roughness.tex
+t PBR/wood_#03/2K/AO.tex
+t PBR/wood_#03/2K/vMF/Normal.tex
+
+T Wood08
+t PBR/wood_#08/2K/Albedo.tex srgb
+t PBR/wood_#08/2K/Normal.tex
+t PBR/wood_#08/2K/Normal.tex
+t PBR/wood_#08/2K/Roughness.tex
+t PBR/wood_#08/2K/AO.tex
+t PBR/wood_#08/2K/vMF/Normal.tex
+
+T Wood16
+t PBR/wood_#16/2K/Albedo.tex srgb
+t PBR/wood_#16/2K/Normal.tex
+t PBR/wood_#16/2K/Normal.tex
+t PBR/wood_#16/2K/Roughness.tex
+t PBR/wood_#16/2K/AO.tex
+t PBR/wood_#16/2K/vMF/Normal.tex
+
+T Wood18
+t PBR/wood_#18/2K/Albedo.tex srgb
+t PBR/wood_#18/2K/Normal.tex
+t PBR/wood_#18/2K/Normal.tex
+t PBR/wood_#18/2K/Roughness.tex
+t PBR/wood_#18/2K/AO.tex
+t PBR/wood_#18/2K/vMF/Normal.tex
+
+# MaterialSet ('M') declarations, 's' is the ShaderSet name to use and 't' the TextureSet name to use.
+#
+# MaterialSets are the only thing the user interfaces with from the application, given a MaterialSet index.
+# For example, to use the 'Gold' material the user would do: bindMaterial(pMaterual, 1);
+# User can also query the index of a MaterialSet by name, but this optional and probably not recommended in release.
+#
+# Possible improvements would be to be able to reference multiple TextureSets.
+
+M Aluminum
+s BRDF
+t Aluminum
+
+M Gold
+s BRDF
+t Gold
+
+M Copper
+s BRDF
+t Copper
+
+M TiledMetal
+s BRDF
+t TiledMetal
+
+M OldIron
+s BRDF
+t OldIron
+
+M Bronze
+s BRDF
+t Bronze
+
+M WoodenPlanks05
+s BRDF
+t WoodenPlanks05
+
+M WoodenPlanks06
+s BRDF
+t WoodenPlanks06
+
+M Wood03
+s BRDF
+t Wood03
+
+M Wood08
+s BRDF
+t Wood08
+
+M Wood16
+s BRDF
+t Wood16
+
+M Wood18
+s BRDF
+t Wood18

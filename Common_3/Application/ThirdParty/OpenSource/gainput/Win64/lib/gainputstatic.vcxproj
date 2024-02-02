@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -11,114 +11,77 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}</ProjectGuid>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <Platform>x64</Platform>
-    <ProjectName>gainputstatic</ProjectName>
-    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+    <ProjectGuid>{339CF6F6-3272-49F6-BF3A-2CEC4685EB8A}</ProjectGuid>
+    <RootNamespace>gainputstatic</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='DebugVK|x64'">
-    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\..\..\..\IDE\Visual Studio\TF_Shared.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
-    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectName)</TargetName>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.lib</TargetExt>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectName)</TargetName>
-    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.lib</TargetExt>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Debug/</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>CompileAsCpp</CompileAs>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+            <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;GAINPUT_LIB_DYNAMIC=1;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Midl>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
-      <HeaderFileName>%(Filename).h</HeaderFileName>
-      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
-      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
-      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
-    </Midl>
-    <Lib>
-      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
-    </Lib>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\Application\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsCpp</CompileAs>
-      <ExceptionHandling>Sync</ExceptionHandling>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+            <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <RuntimeTypeInfo>true</RuntimeTypeInfo>
-      <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GAINPUT_LIB_DYNAMIC=1;CMAKE_INTDIR="Release";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
-      <DebugInformationFormat>
-      </DebugInformationFormat>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=1;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Midl>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
-      <HeaderFileName>%(Filename).h</HeaderFileName>
-      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
-      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
-      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
-    </Midl>
-    <Lib>
-      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
-    </Lib>
+    <Link>
+      <SubSystem>
+      </SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(ProjectDir)..\..\lib\source\gainput\GainputAllocator.cpp" />
@@ -150,45 +113,32 @@
     <ClCompile Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.cpp" />
     <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.cpp" />
     <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.cpp" />
+    <ClCompile Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserSwitchController.cpp" />
     <ClCompile Include="..\..\lib\source\hidapi\windows\hid.c" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputHelpersEvdev.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\GainputWindows.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInAndroid.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\linux\GainputHelpersEvdev.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputWindows.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInImpl.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInIos.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\builtin\GainputInputDeviceBuiltInNull.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDev.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputDevProtocol.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputMemoryStream.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\dev\GainputStream.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardAndroid.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardEvdev.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceKeyboardWin.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceKeyboardWinRaw.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardImpl.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardLinux.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardNull.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardWin.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputInputDeviceKeyboardWinRaw.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\keyboard\GainputKeyboardKeyNames.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseEvdev.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseImpl.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseLinux.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseMac.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseNull.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseWin.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputInputDeviceMouseWinRaw.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceMouseWin.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDeviceMouseWinRaw.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\mouse\GainputMouseInfo.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadAndroid.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadImpl.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadIos.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadLinux.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadMac.h">
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadImpl.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadNull.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\pad\GainputInputDevicePadWin.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchAndroid.h" />
+    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\windows\GainputInputDevicePadWin.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchImpl.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchIos.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputInputDeviceTouchNull.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\source\gainput\touch\GainputTouchInfo.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputAllocator.h" />
@@ -208,7 +158,6 @@
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputManager.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputMap.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputInputState.h" />
-    <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputIos.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputLog.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\GainputMapFilters.h" />
     <ClInclude Include="$(ProjectDir)..\..\lib\include\gainput\gainput.h" />
@@ -228,7 +177,9 @@
     <ClInclude Include="..\..\lib\source\gainput\hid\GainputHIDWhitelist.h" />
     <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS4Controller.h" />
     <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h" />
-    <ClInclude Include="..\..\lib\source\gainput\touch\gainputinputdevicetouchwin.h" />
+    <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserSwitchController.h" />
+    <ClInclude Include="..\..\lib\source\gainput\pad\GainputInputDevicePadHID.h" />
+    <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinMsgHandler.h" />
     <ClInclude Include="..\..\lib\source\hidapi\hidapi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

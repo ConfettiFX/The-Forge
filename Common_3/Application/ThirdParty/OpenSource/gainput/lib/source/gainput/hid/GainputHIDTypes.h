@@ -6,7 +6,7 @@
 
 // While the standard says this is the max packet size, there is no enforcement
 //   so some products may have larger packets
-#define HID_SPECIFICATION_MAX_PACKET_SIZE 64
+#define HID_DEFAULT_PACKET_SIZE 64
 
 struct hid_device_;
 typedef struct hid_device_ hid_device;
@@ -16,13 +16,16 @@ struct HIDController;
 // --- Device Tracker ---------------------------------------------------------
 
 // NOTE: see if this cap can be lowered
-#define MAX_PATH_LENGTH 247
+#define MAX_PATH_LENGTH 228
+#define INVALID_MAC (0u)
 
 typedef struct HIDDeviceInfo
 {
     // Identifiers needed for uniquely identifying a connected device
     uint16_t vendorID;
     uint16_t productID;
+	int32_t interface; // used by the Switch Grip
+    uint64_t mac;
 
     uint8_t active : 1;
     uint8_t wasActive : 1;
@@ -56,7 +59,7 @@ typedef void(*fnHIDSetPlayer)(HIDController *, uint8_t);
 typedef void(*fnHIDSetLights)(HIDController *, uint8_t, uint8_t, uint8_t);
 typedef void(*fnHIDDoRumble)(HIDController *, uint16_t, uint16_t);
 
-#define HID_CONTROLLER_BUFFER_SIZE 44
+#define HID_CONTROLLER_BUFFER_SIZE 60
 
 struct HIDController
 {
@@ -70,6 +73,7 @@ struct HIDController
     fnHIDDoRumble DoRumble;
 
     uint32_t rumbleEndTime = 0;
+    uint32_t manID = ~0u;
 
     uint8_t data[HID_CONTROLLER_BUFFER_SIZE];
 };

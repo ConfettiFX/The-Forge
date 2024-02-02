@@ -71,34 +71,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "04_ExecuteIndirect.app"
-               BlueprintName = "04_ExecuteIndirect"
-               ReferencedContainer = "container:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5AC78201F682F000E571F"
-               BuildableName = "04_ExecuteIndirect_iOS.app"
-               BlueprintName = "04_ExecuteIndirect_iOS"
-               ReferencedContainer = "container:04_ExecuteIndirect/04_ExecuteIndirect.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "06_MaterialPlayground.app"
                BlueprintName = "06_MaterialPlayground"
                ReferencedContainer = "container:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
@@ -116,34 +88,6 @@
                BuildableName = "06_MaterialPlayground_iOS.app"
                BlueprintName = "06_MaterialPlayground_iOS"
                ReferencedContainer = "container:06_MaterialPlayground/06_MaterialPlayground.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "07_Tessellation.app"
-               BlueprintName = "07_Tessellation"
-               ReferencedContainer = "container:07_Tessellation/07_Tessellation.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5ADA6201F7587000E571F"
-               BuildableName = "07_Tessellation_iOS.app"
-               BlueprintName = "07_Tessellation_iOS"
-               ReferencedContainer = "container:07_Tessellation/07_Tessellation.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -199,7 +143,7 @@
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "10_ScreenSpaceReflections.app"
                BlueprintName = "10_ScreenSpaceReflections"
-               ReferencedContainer = "container:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
+               ReferencedContainer = "container:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -213,7 +157,7 @@
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
                BuildableName = "10_ScreenSpaceReflections_iOS.app"
                BlueprintName = "10_ScreenSpaceReflections_iOS"
-               ReferencedContainer = "container:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
+               ReferencedContainer = "container:10_ScreenSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -421,20 +365,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "36_AlgorithmsAndContainers.app"
-               BlueprintName = "36_AlgorithmsAndContainers"
-               ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "19_CodeHotReload_Main.app"
                BlueprintName = "19_CodeHotReload_Main"
                ReferencedContainer = "container:19_CodeHotReload_Main/19_CodeHotReload_Main.xcodeproj">
@@ -490,9 +420,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "36_AlgorithmsAndContainers_iOS.app"
-               BlueprintName = "36_AlgorithmsAndContainers_iOS"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "36_AlgorithmsAndContainers.app"
+               BlueprintName = "36_AlgorithmsAndContainers"
                ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -504,24 +434,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "37_PrecomputedVolumeDLUT.app"
-               BlueprintName = "37_PrecomputedVolumeDLUT"
-               ReferencedContainer = "container:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28A5AE07201F7D41000E571F"
-               BuildableName = "37_PrecomputedVolumeDLUT_iOS.app"
-               BlueprintName = "37_PrecomputedVolumeDLUT_iOS"
-               ReferencedContainer = "container:37_PrecomputedVolumeDLUT/37_PrecomputedVolumeDLUT.xcodeproj">
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "36_AlgorithmsAndContainers_iOS.app"
+               BlueprintName = "36_AlgorithmsAndContainers_iOS"
+               ReferencedContainer = "container:36_AlgorithmsAndContainers/36_AlgorithmsAndContainers.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

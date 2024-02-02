@@ -1,0 +1,20 @@
+
+#if !defined(GLES)
+
+#frag joint.frag
+#include "joint.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW joint.vert
+#include "joint.vert.fsl"
+#end
+
+#frag bone.frag
+#include "bone.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW bone.vert
+#include "bone.vert.fsl"
+#end
+
+#endif

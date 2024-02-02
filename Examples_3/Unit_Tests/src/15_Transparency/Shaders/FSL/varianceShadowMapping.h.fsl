@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,12 +41,17 @@ float ChebyshevUpperBound(float2 moments, float t)
 	variance = max(variance, 0.001f);
 	float d = t - moments.x;
 	float pMax = variance / (variance + d * d);
+	pMax = max(0.2f, smoothstep(0.98f, 1.0f, pMax)); // reduce light bleeding
 	return max(p, pMax);
 }
 
-float3 ShadowContribution(float2 shadowMapPos, float distanceToLight)
+float3 ShadowContribution(float2 shadowMapPos, float distanceToLight, uint ViewID)
 {
+#if FT_MULTIVIEW
+	float2 moments = SampleTex2DArray(Get(VSM), Get(VSMSampler), float3(shadowMapPos, ViewID)).xy;
+#else
 	float2 moments = SampleTex2D(Get(VSM), Get(VSMSampler), shadowMapPos).xy;
+#endif
 	float3 shadow = f3(ChebyshevUpperBound(moments, distanceToLight));
 
 #if PT_USE_CAUSTICS != 0

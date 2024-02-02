@@ -6,12 +6,12 @@
 
 //#define HID_VERBOSE_LOGGING
 
-namespace gainput { class InputDeltaState; }
+namespace gainput { class InputManager;  class InputDeltaState; }
 
 // Initialize the HID driver, controller parsers, and request the system
 //   for prompts when devices are fully available (after driver installation,
 //   not merely after being connected)
-int HIDInit(void* window);
+int HIDInit(void* window, gainput::InputManager* man);
 // Clean up everything initialized above
 int HIDExit();
 
@@ -21,6 +21,8 @@ bool HIDHandleSystemMessage(void const* message);
 // Used to prompt the HID subsystem to fetch the input state for each HID
 //   device and forward changes to Gainput
 void HIDPromptForDeviceStateReports(gainput::InputDeltaState* state);
+// Live time for HID code that needs to wait on packets
+uint64_t HIDGetTime();
 
 
 // --- Controller Management
@@ -31,20 +33,12 @@ void HIDPromptForDeviceStateReports(gainput::InputDeltaState* state);
 //   For opening, though, they should be opened when a device connection
 //   event is pushed and/or through polling
 
-char const * HIDControllerName(uint8_t index);
-bool HIDControllerConnected(uint8_t index);
-
-// Returns 0 if none available, devID otherwise
-//   Sets given pointers if not null
-uint8_t HIDGetNextNewControllerID(uint8_t* outPlatform, uint16_t* outVendorID, uint16_t* outproductID);
-
-// devID should come from the event sent out when the device is connected.
-void HIDLoadController(uint8_t devID, uint8_t playerNum);
-void HIDUnloadController(uint8_t devID);
-
+bool GetIDByMac(uint64_t mac, uint8_t* outID);
+bool GetIDByMac(uint64_t mac, uint8_t* outID, uint8_t devIDToIgnore);
+bool HIDControllerIsConnected(uint8_t devId);
+void HIDUpdate(uint8_t devID, gainput::InputDeltaState * state);
+char const * HIDControllerName(uint8_t devId);
 void HIDSetPlayer(uint8_t devID, uint8_t playerNum);
 void HIDSetLights(uint8_t devID, uint8_t r, uint8_t g, uint8_t b);
 void HIDDoRumble(uint8_t devID, float left, float right, uint32_t durationMS);
-
-void HIDSetDeviceChangeCallback(void (*deviceChange)(const char*, bool, int));
 #endif

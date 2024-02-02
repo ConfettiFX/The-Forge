@@ -23,18 +23,6 @@
 		8B4D4D75A1034FA6BF32DA76 /* simd_math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 055CE43F9F89417FBB9EED25 /* simd_math_archive.cc */; };
 		952EFD0F10F3426B9F9A446F /* platform.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3CB2E8B31E9840C6B93C8023 /* platform.cc */; };
 		AD40FA742B2D42F0A6D76D61 /* allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 93B830B3E8C54EEB91FA9060 /* allocator.cc */; };
-		B28C6ED221B2099C00FBA1BF /* raw_animation_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC321B2099C00FBA1BF /* raw_animation_utils.cc */; };
-		B28C6ED321B2099C00FBA1BF /* track_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC421B2099C00FBA1BF /* track_builder.cc */; };
-		B28C6ED421B2099C00FBA1BF /* skeleton_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC521B2099C00FBA1BF /* skeleton_builder.cc */; };
-		B28C6ED521B2099C00FBA1BF /* raw_track.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC621B2099C00FBA1BF /* raw_track.cc */; };
-		B28C6ED621B2099C00FBA1BF /* additive_animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC821B2099C00FBA1BF /* additive_animation_builder.cc */; };
-		B28C6ED721B2099C00FBA1BF /* animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC921B2099C00FBA1BF /* animation_builder.cc */; };
-		B28C6ED821B2099C00FBA1BF /* raw_animation_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECA21B2099C00FBA1BF /* raw_animation_archive.cc */; };
-		B28C6ED921B2099C00FBA1BF /* animation_optimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECB21B2099C00FBA1BF /* animation_optimizer.cc */; };
-		B28C6EDA21B2099C00FBA1BF /* raw_animation.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECC21B2099C00FBA1BF /* raw_animation.cc */; };
-		B28C6EDB21B2099C00FBA1BF /* raw_skeleton.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECD21B2099C00FBA1BF /* raw_skeleton.cc */; };
-		B28C6EDC21B2099C00FBA1BF /* track_optimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECE21B2099C00FBA1BF /* track_optimizer.cc */; };
-		B28C6EDD21B2099C00FBA1BF /* raw_skeleton_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECF21B2099C00FBA1BF /* raw_skeleton_archive.cc */; };
 		B28C6EEF21B209DA00FBA1BF /* additive_animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC821B2099C00FBA1BF /* additive_animation_builder.cc */; };
 		B28C6EF021B209DA00FBA1BF /* animation_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6EC921B2099C00FBA1BF /* animation_builder.cc */; };
 		B28C6EF121B209DA00FBA1BF /* animation_optimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECB21B2099C00FBA1BF /* animation_optimizer.cc */; };
@@ -120,8 +108,14 @@
 		76C882D97F4A4B8885E9A86B /* track_triggering_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = track_triggering_job.h; path = include/ozz/animation/runtime/track_triggering_job.h; sourceTree = SOURCE_ROOT; };
 		76E86DCA018846688B72C202 /* soa_math_archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = soa_math_archive.cc; path = src/base/maths/soa_math_archive.cc; sourceTree = SOURCE_ROOT; };
 		7D429F4EACC545598471D16B /* map.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = map.h; path = include/ozz/base/containers/map.h; sourceTree = SOURCE_ROOT; };
+		7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = TF_Lib_Shared.xcconfig; path = "../../../../../IDE/XCode Build Configs/TF_Lib_Shared.xcconfig"; sourceTree = "<group>"; };
+		7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_MacOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Release_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release_iOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Release_iOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E008A2A93DA8A00981E7B /* CommonSettingsRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsRelease.xcconfig; path = "../../../../../IDE/XCode Build Configs/CommonSettingsRelease.xcconfig"; sourceTree = "<group>"; };
+		7F6E008B2A93DA8A00981E7B /* CommonSettingsDebug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = CommonSettingsDebug.xcconfig; path = "../../../../../IDE/XCode Build Configs/CommonSettingsDebug.xcconfig"; sourceTree = "<group>"; };
+		7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_MacOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Debug_MacOS.xcconfig"; sourceTree = "<group>"; };
+		7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Debug_iOS.xcconfig; path = "../../../../../IDE/XCode Build Configs/Debug_iOS.xcconfig"; sourceTree = "<group>"; };
 		812DB072C4224A1C8307E7FE /* sampling_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = sampling_job.h; path = include/ozz/animation/runtime/sampling_job.h; sourceTree = SOURCE_ROOT; };
-		88DF3489E6364B89869CC71D /* json_d.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = json_d.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CD3CA6CE9CB41BE81431880 /* skeleton_utils.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = skeleton_utils.cc; path = src/animation/runtime/skeleton_utils.cc; sourceTree = SOURCE_ROOT; };
 		93B830B3E8C54EEB91FA9060 /* allocator.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = allocator.cc; path = src/base/memory/allocator.cc; sourceTree = SOURCE_ROOT; };
 		94EAC6ABFD4D4744A3898F77 /* gtest_math_helper.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = gtest_math_helper.h; path = include/ozz/base/maths/gtest_math_helper.h; sourceTree = SOURCE_ROOT; };
@@ -213,7 +207,6 @@
 		1DC48294C07C4F0CBADB09D7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				88DF3489E6364B89869CC71D /* json_d.a */,
 				AD14F53CA01347BBA91C7F42 /* ozz_animation.a */,
 				A69A1ECFEC9145D3A46BAA96 /* ozz_base.a */,
 				D0796ACD211ED7370028AFFD /* ozz_animation_IOS.a */,
@@ -245,9 +238,24 @@
 		7875EF627F3644AB935892F7 = {
 			isa = PBXGroup;
 			children = (
+				7F6E00142A93D9FF00981E7B /* BuildConfigs */,
 				2657173E25BE482D8C6F67F9 /* ozz */,
 				1DC48294C07C4F0CBADB09D7 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		7F6E00142A93D9FF00981E7B /* BuildConfigs */ = {
+			isa = PBXGroup;
+			children = (
+				7F6E008B2A93DA8A00981E7B /* CommonSettingsDebug.xcconfig */,
+				7F6E008A2A93DA8A00981E7B /* CommonSettingsRelease.xcconfig */,
+				7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */,
+				7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */,
+				7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */,
+				7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */,
+				7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */,
+			);
+			name = BuildConfigs;
 			sourceTree = "<group>";
 		};
 		99C0A9C1D0D645A0A34BB654 /* ozz_base */ = {
@@ -356,21 +364,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		044BDF74CF6244EF986AE689 /* json */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7A77279C53DD4D82894F2BF9 /* Build configuration list for PBXNativeTarget "json" */;
-			buildPhases = (
-				C5EDF91D6C8E423788B85AC2 /* Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = json;
-			productName = json;
-			productReference = 88DF3489E6364B89869CC71D /* json_d.a */;
-			productType = "com.apple.product-type.library.static";
-		};
 		B28C6EDE21B209AA00FBA1BF /* ozz_animation offline */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B28C6EEB21B209AA00FBA1BF /* Build configuration list for PBXNativeTarget "ozz_animation offline" */;
@@ -469,7 +462,6 @@
 			projectDirPath = ../;
 			projectRoot = "";
 			targets = (
-				044BDF74CF6244EF986AE689 /* json */,
 				B578F05FA1304339B5CEB8AB /* ozz_animation */,
 				ECEC0611C3BB4CAF82DAF102 /* ozz_base */,
 				D0796ABD211ED7370028AFFD /* ozz_animation_IOS */,
@@ -531,25 +523,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C5EDF91D6C8E423788B85AC2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				B28C6ED621B2099C00FBA1BF /* additive_animation_builder.cc in Sources */,
-				B28C6ED221B2099C00FBA1BF /* raw_animation_utils.cc in Sources */,
-				B28C6EDA21B2099C00FBA1BF /* raw_animation.cc in Sources */,
-				B28C6ED421B2099C00FBA1BF /* skeleton_builder.cc in Sources */,
-				B28C6ED521B2099C00FBA1BF /* raw_track.cc in Sources */,
-				B28C6EDB21B2099C00FBA1BF /* raw_skeleton.cc in Sources */,
-				B28C6EDC21B2099C00FBA1BF /* track_optimizer.cc in Sources */,
-				B28C6ED921B2099C00FBA1BF /* animation_optimizer.cc in Sources */,
-				B28C6ED821B2099C00FBA1BF /* raw_animation_archive.cc in Sources */,
-				B28C6ED721B2099C00FBA1BF /* animation_builder.cc in Sources */,
-				B28C6EDD21B2099C00FBA1BF /* raw_skeleton_archive.cc in Sources */,
-				B28C6ED321B2099C00FBA1BF /* track_builder.cc in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		D0796AC0211ED7370028AFFD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -605,595 +578,145 @@
 /* Begin XCBuildConfiguration section */
 		03B1F196F2434AAD996D269C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/include",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
-				PRODUCT_NAME = ozz_base;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Release;
 		};
 		09AFC00406B345B1A7197144 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */;
 			buildSettings = {
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				SYMROOT = MacOS/build;
 			};
 			name = Debug;
 		};
 		2702DA3BCD864584BA88C0AE /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src/",
 					"$(PROJECT_DIR)/include/",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = ozz_animation;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Debug;
 		};
 		B28C6EEC21B209AA00FBA1BF /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src/",
 					"$(PROJECT_DIR)/include/",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"-Werror",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Debug;
 		};
 		B28C6EED21B209AA00FBA1BF /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src/",
 					"$(PROJECT_DIR)/include/",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"-Werror",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Release;
 		};
 		C50165A3A115490F96F07AC1 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E008C2A93DA8A00981E7B /* Debug_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/include",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
-				PRODUCT_NAME = ozz_base;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
+				PRODUCT_NAME = "$(TARGET_NAME)";
 				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Debug;
 		};
 		D0796ACB211ED7370028AFFD /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				RESOURCES_TARGETED_DEVICE_FAMILY = "";
 				SDKROOT = iphoneos;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Debug;
 		};
 		D0796ACC211ED7370028AFFD /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				HEADER_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/src/",
-					"$(PROJECT_DIR)/include/",
-				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				RESOURCES_TARGETED_DEVICE_FAMILY = "";
 				SDKROOT = iphoneos;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Release;
 		};
 		D0796ADC211ED7430028AFFD /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E008D2A93DA8A00981E7B /* Debug_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_X86_VECTOR_INSTRUCTIONS = default;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/include",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Debug;
 		};
 		D0796ADD211ED7430028AFFD /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00892A93DA8A00981E7B /* Release_iOS.xcconfig */;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/include",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Release;
 		};
 		D6A84B59F6D945079448B3CA /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00882A93DA8A00981E7B /* Release_MacOS.xcconfig */;
 			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
 				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/src/",
 					"$(PROJECT_DIR)/include/",
 				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"-Wall",
-					"-Wno-ignored-attributes",
-					"'-std=gnu++11'",
-					"-Wno-c++14-extensions",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = ozz_animation;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/build;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
-			};
-			name = Release;
-		};
-		EDA2CDB766824B81821C3A86 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				HEADER_SEARCH_PATHS = (
-					"/Users/macosmetalmachine/Documents/Gitlab/The-Forge/Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/src/.",
-					"/Users/macosmetalmachine/Documents/Gitlab/The-Forge/Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/extern/jsoncpp/dist",
-				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = "   '-std=gnu++11'  ";
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
-				PRODUCT_NAME = json_d;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/src/animation/offline/tools/json;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
-			};
-			name = Debug;
-		};
-		F19EAC40A73947E6817FAC64 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				COMBINE_HIDPI_IMAGES = YES;
-				EXECUTABLE_PREFIX = "";
-				EXECUTABLE_SUFFIX = .a;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_INLINES_ARE_PRIVATE_EXTERN = NO;
-				GCC_OPTIMIZATION_LEVEL = 3;
-				GCC_PREPROCESSOR_DEFINITIONS = "";
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				HEADER_SEARCH_PATHS = (
-					"/Users/macosmetalmachine/Documents/Gitlab/The-Forge/Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/src/.",
-					"/Users/macosmetalmachine/Documents/Gitlab/The-Forge/Common_3/Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/extern/jsoncpp/dist",
-				);
-				INSTALL_PATH = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LIBRARY_STYLE = STATIC;
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_CPLUSPLUSFLAGS = (
-					"-DNDEBUG",
-					"'-std=gnu++11'",
-				);
-				OTHER_LIBTOOLFLAGS = " ";
-				OTHER_REZFLAGS = "";
-				PRODUCT_NAME = json_r;
-				SECTORDER_FLAGS = "";
-				SYMROOT = MacOS/src/animation/offline/tools/json;
-				USE_HEADERMAP = NO;
-				WARNING_CFLAGS = (
-					"-Wmost",
-					"-Wno-four-char-constants",
-					"-Wno-unknown-pragmas",
-					"$(inherited)",
-				);
 			};
 			name = Release;
 		};
 		FEB4102D00AC4C2AB4AAA9EE /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7F6E00872A93DA8A00981E7B /* TF_Lib_Shared.xcconfig */;
 			buildSettings = {
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.13;
-				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				SYMROOT = MacOS/build;
 			};
 			name = Release;
 		};
@@ -1214,15 +737,6 @@
 			buildConfigurations = (
 				2702DA3BCD864584BA88C0AE /* Debug */,
 				D6A84B59F6D945079448B3CA /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		7A77279C53DD4D82894F2BF9 /* Build configuration list for PBXNativeTarget "json" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				EDA2CDB766824B81821C3A86 /* Debug */,
-				F19EAC40A73947E6817FAC64 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

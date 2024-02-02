@@ -2,8 +2,8 @@ local plat = loader.GetPlatformName()
 
 if plat ~= "Unsupported" then 
 	loader.SetToggleWindowCentered(1)
-	loader.SetrecommendedwindowrectangleOnEdited()
 	loader.BorderlessOnEdited()
+	loader.SetrecommendedwindowrectangleOnEdited()
 	
-	loader.SetCounter(3)
+	loader.SetCounter(2)
 end

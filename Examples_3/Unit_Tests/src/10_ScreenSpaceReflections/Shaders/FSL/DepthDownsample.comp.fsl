@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -47,7 +47,7 @@ THE SOFTWARE.
 #ifndef FFX_SSSR_DEPTH_DOWNSAMPLE
 #define FFX_SSSR_DEPTH_DOWNSAMPLE
 
-ENABLE_WAVEOPS()
+ENABLE_WAVEOPS(WAVE_OPS_BASIC_BIT | WAVE_OPS_SHUFFLE_BIT)
 
 RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t0, binding = 0);
 RES(RWTex2D(float), g_downsampled_depth_buffer[13], UPDATE_FREQ_NONE, u0, binding = 1);
@@ -386,29 +386,16 @@ NUM_THREADS(32,  8,  1)
 void CS_MAIN( SV_DispatchThreadID(uint3) did, SV_GroupID(uint3) gid, SV_GroupIndex(uint) gi )
 {
 	INIT_MAIN;
-	int2 depth_image_size =  GetDimensions(Get(g_depth_buffer), NO_SAMPLER);
-
-    // Copy most detailed level into the hierarchy and transform it.
-	for (int i = 0; i < 2; ++i)
-	{
-		for (int j = 0; j < 8; ++j)
-		{
-			int2 idx = int2(2 * did.x + i, 8 * did.y + j);
-			if (idx.x < depth_image_size.x && idx.y < depth_image_size.y)
-			{
-                Write2D(Get(g_downsampled_depth_buffer)[0], idx, LoadTex2D(Get(g_depth_buffer), NO_SAMPLER, idx, 0));
-			}
-		}
-	}
 
     int2 image_size = GetDimensions(Get(g_downsampled_depth_buffer)[0], NO_SAMPLER);
-    float mips_count = GetMipsCount(image_size);
+    // reduce by 1 since we skip the first mip and offset spd writes
+    float spd_mips_count = GetMipsCount(image_size) - 1;
     uint threadgroup_count = GetThreadgroupCount(image_size);
 
 	SpdDownsample(
 		uint2(gid.xy),
 		uint(gi),
-		uint(mips_count),
+		uint(spd_mips_count),
 		uint(threadgroup_count));
 	RETURN();
 }

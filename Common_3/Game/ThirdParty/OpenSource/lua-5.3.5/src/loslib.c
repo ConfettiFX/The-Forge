@@ -132,6 +132,7 @@ static time_t l_checktime (lua_State *L, int arg) {
         e = (e == -1); }
 
 #elif defined(ORBIS) || defined(PROSPERO) || defined(__APPLE__) || defined(__ANDROID__)
+#include <unistd.h>
 
 /* ISO C definitions */
 #define LUA_TMPNAMBUFSIZE	256

@@ -8,9 +8,9 @@
 #include "../../../include/gainput/GainputLog.h"
 
 #if defined(GAINPUT_PLATFORM_ANDROID)
-	#include "GainputInputDeviceBuiltInAndroid.h"
+	#include "../android/GainputInputDeviceBuiltInAndroid.h"
 #elif defined(GAINPUT_PLATFORM_IOS)
-	#include "GainputInputDeviceBuiltInIos.h"
+	#include "../apple/GainputInputDeviceBuiltInIos.h"
 #endif
 
 #include "GainputInputDeviceBuiltInNull.h"

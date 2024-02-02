@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,15 +24,27 @@
 
 #ifndef vb_resources_h
 #define vb_resources_h
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
+
 
 RES(Tex2D(float4), diffuseMaps[256], UPDATE_FREQ_NONE, t1, binding = 2);
 RES(SamplerState, nearClampSampler, UPDATE_FREQ_NONE, s0, binding = 3);
-RES(ByteBuffer, indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
+RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
 CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 {
     DATA(float4x4, WorldViewProjMat, None);
-	DATA(float4x4, WorldMat, None);
+    DATA(uint, ViewID, None);
 };
+
+float4 PackMoments(float4 b)
+{
+    float4x4 mat =  make_f4x4_row_elems(1.5f,            0.0f, -2.0f,             0.0f,
+                                        0.0f,            4.0f,  0.0f,            -4.0f,
+                                        sqrt(3.0f)/2.0f, 0.0f, -sqrt(12.0f)/9.0f, 0.0f,
+                                        0.0f,            0.5f,  0.0f,             0.5f);
+
+    return mul(mat, b) + float4(0.5f, 0.0f, 0.5f, 0.0f);
+}
 
 #if defined(INDIRECT_ROOT_CONSTANT)
     PUSH_CONSTANT(indirectRootConstant, b2)
@@ -43,7 +55,5 @@ CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 #else
     #define getDrawID() In.drawId
 #endif
-
-DECLARE_RESOURCES()
 
 #endif /* vb_resources_h */

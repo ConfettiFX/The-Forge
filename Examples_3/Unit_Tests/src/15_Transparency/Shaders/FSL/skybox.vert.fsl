@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,7 +33,11 @@ RES(SamplerState, SkySampler, UPDATE_FREQ_NONE, s0, binding = 7);
 
 CBUFFER(SkyboxUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
+#if FT_MULTIVIEW
+    DATA(float4x4, vp[VR_MULTIVIEW_COUNT], None);
+#else
     DATA(float4x4, vp, None);
+#endif
 };
 
 STRUCT(VSOutput)
@@ -53,7 +57,13 @@ VSOutput VS_MAIN( VSInput In )
 	VSOutput Out;
 
     float4 p = float4(In.Position.xyz, 1.0);
+
+#if FT_MULTIVIEW
+    p = mul(Get(vp)[VR_VIEW_ID], p);
+ #else
     p = mul(Get(vp), p);
+ #endif
+
     Out.Position = p.xyww;
     Out.TexCoord = In.Position;
 

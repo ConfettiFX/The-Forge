@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  * 
@@ -12,10 +12,9 @@
  * You may not use the material for commercial purposes.
 */
 
-#define PS_DRAW_ID
 #include "shader_defs.h.fsl"
 #include "vb_rsm_resources.h.fsl"
-#include "packing.h.fsl"
+#include "../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 
 STRUCT(PsIn)
 {
@@ -26,17 +25,11 @@ STRUCT(PsIn)
 #endif
 };
 
-uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
-{
-    uint drawID_primID = ((drawID << 23) & 0x7F800000) | (primitiveID & 0x007FFFFF);
-    return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
-}
-
 float4 PS_MAIN(PsIn In, SV_PrimitiveID(uint) primitiveID)
 {
 	INIT_MAIN;
 
-    uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
+    uint matBaseSlot = BaseInstanceBuffer(GEOMSET_ALPHA_CUTOUT, VIEW_CAMERA);
     uint materialID  = Get(indirectMaterialBuffer)[matBaseSlot + getDrawID()];
 
 	float4 texColor;
@@ -46,5 +39,5 @@ float4 PS_MAIN(PsIn In, SV_PrimitiveID(uint) primitiveID)
 
     clip(texColor.a - 0.5f);
 
-    RETURN(unpackUnorm4x8(calculateOutputVBID(false, getDrawID(), primitiveID)));
+    RETURN(unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveID)));
 }

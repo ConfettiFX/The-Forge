@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#ifndef _VB_RESOURCES_H
+#define _VB_RESOURCES_H
+
+#ifdef _VB_CLEAR_BUFFERS_H
+// indirectDrawArgsBuffer Size NUM_GEOMETRY_SETS * NUM_CULLING_VIEWPORTS * MAX_DRAWS_INDIRECT_ELEMENTS * sizeof(uint32_t)
+RES(RWBuffer(atomic_uint), indirectDrawArgsBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
+RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW, UPDATE_FREQ_NONE, u1, binding = 1);
+#endif
+
+#ifdef _VB_BATCH_COMPACION_H
+RES(RWBuffer(atomic_uint), indirectDrawArgsBuffer, UPDATE_FREQ_NONE, u0, binding = 0);
+RES(Buffer(UncompactedDrawArguments), uncompactedDrawArgs, UPDATE_FREQ_NONE, t0, binding = 1);
+
+#ifdef INDIRECT_COMMAND_BUFFER
+RES(COMMAND_BUFFER, icb, UPDATE_FREQ_NONE, u1, binding = 2);
+RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_NONE, u1, binding = 2);
+#endif
+
+#endif
+
+#ifdef _VB_TRIANGLE_FILTERING_H
+RES(RWBuffer(UncompactedDrawArguments), uncompactedDrawArgsRW, UPDATE_FREQ_PER_FRAME, u0, binding = 7);
+RES(RWByteBuffer, filteredIndicesBuffer[NUM_CULLING_VIEWPORTS], UPDATE_FREQ_PER_FRAME, u1, binding = 8);
+
+RES(ByteBuffer, vertexPositionBuffer, UPDATE_FREQ_NONE, t0, binding = 3);
+
+CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 2)
+{
+    DATA(FilterBatchData, filterBatchDataBuffer[FILTER_BATCH_COUNT], None);
+};
+#endif
+
+#ifdef _VB_PRE_SKIN_VERTEXES_H
+CBUFFER(batchData_rootcbv, UPDATE_FREQ_USER, b2, binding = 0)
+{
+    DATA(PreSkinBatchData, skinBatchDataBuffer[SKIN_BATCH_COUNT], None);
+};
+#endif
+
+#endif

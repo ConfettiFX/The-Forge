@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,9 +20,9 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
-#pragma once 
+#pragma once
 
 #ifndef FORGE_RENDERER_CONFIG_H
 #error "VulkanConfig should be included from RendererConfig only"
@@ -38,23 +38,21 @@
 #endif
 #elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
 // TODO: Separate vulkan ext from choosing xlib vs xcb
-#define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib or Xcb as display server, defaults to Xlib
-#endif
-
-#if defined(NX64)
+#define VK_USE_PLATFORM_XLIB_KHR // Use Xlib or Xcb as display server, defaults to Xlib
+#define VK_USE_PLATFORM_WAYLAND_KHR
+#elif defined(NX64)
 #define VK_USE_PLATFORM_VI_NN
-#include <vulkan/vulkan.h>
-#include "../../../Switch/Common_3/Graphics/Vulkan/NXVulkanExt.h"
 #else
-#include "../ThirdParty/OpenSource/volk/volk.h"
 #endif
 
+#define VOLK_VULKAN_H_PATH "../VulkanSDK/include/vulkan/vulkan.h"
+#include "../ThirdParty/OpenSource/volk/volk.h"
 
 // #define USE_EXTERNAL_MEMORY_EXTENSIONS
 #ifdef USE_EXTERNAL_MEMORY_EXTENSIONS
-#define VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME "Memory ext name"
+#define VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME    "Memory ext name"
 #define VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME "Semaphore ext name"
-#define VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME "Fence ext name"
+#define VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME     "Fence ext name"
 #endif
 
 #define TARGET_VULKAN_API_VERSION VK_API_VERSION_1_1
@@ -62,15 +60,6 @@
 /************************************************************************/
 // Debugging Macros
 /************************************************************************/
-// Uncomment this to enable render doc capture support
-//#define ENABLE_RENDER_DOC
-
-// Debug Utils Extension not present on many Android devices
-#if !defined(__ANDROID__)
-#define ENABLE_DEBUG_UTILS_EXTENSION
-#endif
-
-
 //////////////////////////////////////////////
 //// Availability macros
 //////////////////////////////////////////////
@@ -83,12 +72,40 @@
 #define NSIGHT_AFTERMATH_AVAILABLE
 #endif
 
-#define CHECK_VKRESULT(exp)                                                      \
-	{                                                                            \
-		VkResult vkres = (exp);                                                  \
-		if (VK_SUCCESS != vkres)                                                 \
-		{                                                                        \
-			LOGF(eERROR, "%s: FAILED with VkResult: %d", #exp, vkres); \
-			ASSERT(false);                                                       \
-		}                                                                        \
-	}
+#define SHADER_STATS_AVAILABLE
+
+#ifndef VK_OVERRIDE_LAYER_PATH
+#define VK_OVERRIDE_LAYER_PATH 1
+#endif
+
+extern void OnVkDeviceLost(struct Renderer*);
+
+// Validate VkResult for functions that take a VkDevice or object created using VkDevice
+// Needs Renderer* pRenderer to be declared in scope
+#define CHECK_VKRESULT(exp)                                            \
+    {                                                                  \
+        VkResult vkres = (exp);                                        \
+        if (vkres == VK_ERROR_DEVICE_LOST)                             \
+        {                                                              \
+            OnVkDeviceLost(pRenderer);                                 \
+        }                                                              \
+        if (VK_SUCCESS != vkres)                                       \
+        {                                                              \
+            LOGF(eERROR, "%s: FAILED with VkResult: %d", #exp, vkres); \
+            ASSERT(false);                                             \
+        }                                                              \
+    }
+
+// Validate VkResult for functions that take a VkInstance or object created using VkInstance
+#define CHECK_VKRESULT_INSTANCE(exp)                                   \
+    {                                                                  \
+        VkResult vkres = (exp);                                        \
+        if (VK_SUCCESS != vkres)                                       \
+        {                                                              \
+            LOGF(eERROR, "%s: FAILED with VkResult: %d", #exp, vkres); \
+            ASSERT(false);                                             \
+        }                                                              \
+    }
+
+// #NOTE: Keep the door open to disable the extension on buggy drivers as it is still new
+extern bool gEnableDynamicRenderingExtension;

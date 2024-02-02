@@ -1,29 +1,29 @@
 
-#vert shadow_pass.vert
+#vert FT_ICB shadow_pass.vert
 #include "shadow_pass.vert.fsl"
 #end
 
-#vert shadow_pass_alpha.vert
+#vert FT_ICB shadow_pass_alpha.vert
 #include "shadow_pass_alpha.vert.fsl"
 #end
 
-#frag shadow_pass_alpha.frag
+#frag FT_ICB shadow_pass_alpha.frag
 #include "shadow_pass_alpha.frag.fsl"
 #end
 
-#vert ORBIS_GEOM visibilityBuffer_pass.vert
+#vert FT_PRIM_ID FT_ICB visibilityBuffer_pass.vert
 #include "visibilityBuffer_pass.vert.fsl"
 #end
 
-#frag visibilityBuffer_pass.frag
+#frag FT_PRIM_ID FT_ICB visibilityBuffer_pass.frag
 #include "visibilityBuffer_pass.frag.fsl"
 #end
 
-#vert ORBIS_GEOM visibilityBuffer_pass_alpha.vert
+#vert FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.vert
 #include "visibilityBuffer_pass_alpha.vert.fsl"
 #end
 
-#frag visibilityBuffer_pass_alpha.frag
+#frag FT_PRIM_ID FT_ICB visibilityBuffer_pass_alpha.frag
 #include "visibilityBuffer_pass_alpha.frag.fsl"
 #end
 
@@ -100,22 +100,18 @@
 #include "skybox.frag.fsl"
 #end
 
-#vert fill_rsm.vert
+#vert FT_ICB fill_rsm.vert
 #include "fill_rsm.vert.fsl"
 #end
 
-#frag fill_rsm.frag
+#frag FT_ICB fill_rsm.frag
 #include "fill_rsm.frag.fsl"
 #end
 
-#vert fill_rsm_alpha.vert
+#vert FT_ICB fill_rsm_alpha.vert
 #include "fill_rsm_alpha.vert.fsl"
 #end
 
-#frag fill_rsm_alpha.frag
+#frag FT_ICB fill_rsm_alpha.frag
 #include "fill_rsm_alpha.frag.fsl"
-#end
-
-#comp panoToCube.comp
-#include "panoToCube.comp.fsl"
 #end

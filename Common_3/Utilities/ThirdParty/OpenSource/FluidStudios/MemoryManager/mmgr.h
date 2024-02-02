@@ -44,6 +44,17 @@
 
 #include "stdbool.h"
 
+/* Assume every non-glibc Linux target has no execinfo.
+   This mainly fixes musl support, as musl doesn't define any preprocessor macro specifying its presence. */
+#if defined(__linux__) && !defined(__GLIBC__)
+#define MMGR_BACKTRACE 0
+#elif !defined(XBOX) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !defined(PROSPERO) && !defined(ORBIS) && !defined(NX64)
+#define MMGR_BACKTRACE 1
+#define MMGR_BACKTRACE_SIZE 128
+#else
+#define MMGR_BACKTRACE 0
+#endif
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -58,6 +69,11 @@ typedef struct tag_au
 	void*          reportedAddress;
 	char           sourceFile[140];
 	char           sourceFunc[140];
+#if MMGR_BACKTRACE
+	void*          backtrace_buffer[MMGR_BACKTRACE_SIZE];
+	int            backtrace_nptrs;
+	int            backtrace_skip;
+#endif
 	unsigned int   sourceLine;
 	unsigned int   allocationType;
 	bool           breakOnDealloc;

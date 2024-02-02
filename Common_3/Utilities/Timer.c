@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,7 +20,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "Interfaces/ITime.h"
 
@@ -28,56 +28,56 @@ void initTimer(Timer* pTimer) { resetTimer(pTimer); }
 
 unsigned getTimerMSec(Timer* pTimer, bool reset)
 {
-	unsigned currentTime = getSystemTime();
-	unsigned elapsedTime = currentTime - pTimer->mStartTime;
-	if (reset)
-		pTimer->mStartTime = currentTime;
+    unsigned currentTime = getSystemTime();
+    unsigned elapsedTime = currentTime - pTimer->mStartTime;
+    if (reset)
+        pTimer->mStartTime = currentTime;
 
-	return elapsedTime;
+    return elapsedTime;
 }
 
 void resetTimer(Timer* pTimer) { pTimer->mStartTime = getSystemTime(); }
 
 void initHiresTimer(HiresTimer* pTimer)
 {
-	*pTimer = (HiresTimer){ 0 };
-	resetHiresTimer(pTimer);
+    *pTimer = (HiresTimer){ 0 };
+    resetHiresTimer(pTimer);
 }
 
 int64_t getHiresTimerUSec(HiresTimer* pTimer, bool reset)
 {
-	int64_t currentTime = getUSec(false);
-	int64_t elapsedTime = currentTime - pTimer->mStartTime;
+    int64_t currentTime = getUSec(true);
+    int64_t elapsedTime = currentTime - pTimer->mStartTime;
 
-	// Correct for possible weirdness with changing internal frequency
-	if (elapsedTime < 0)
-		elapsedTime = 0;
+    // Correct for possible weirdness with changing internal frequency
+    if (elapsedTime < 0)
+        elapsedTime = 0;
 
-	if (reset)
-		pTimer->mStartTime = currentTime;
+    if (reset)
+        pTimer->mStartTime = currentTime;
 
-	pTimer->mHistory[pTimer->mHistoryIndex] = elapsedTime;
-	pTimer->mHistoryIndex = (pTimer->mHistoryIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
+    pTimer->mHistory[pTimer->mHistoryIndex] = elapsedTime;
+    pTimer->mHistoryIndex = (pTimer->mHistoryIndex + 1) % HIRES_TIMER_LENGTH_OF_HISTORY;
 
-	return elapsedTime;
+    return elapsedTime;
 }
 
 int64_t getHiresTimerUSecAverage(HiresTimer* pTimer)
 {
-	int64_t elapsedTime = 0;
-	for (uint32_t i = 0; i < HIRES_TIMER_LENGTH_OF_HISTORY; ++i)
-		elapsedTime += pTimer->mHistory[i];
-	elapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
+    int64_t elapsedTime = 0;
+    for (uint32_t i = 0; i < HIRES_TIMER_LENGTH_OF_HISTORY; ++i)
+        elapsedTime += pTimer->mHistory[i];
+    elapsedTime /= HIRES_TIMER_LENGTH_OF_HISTORY;
 
-	// Correct for overflow
-	if (elapsedTime < 0)
-		elapsedTime = 0;
+    // Correct for overflow
+    if (elapsedTime < 0)
+        elapsedTime = 0;
 
-	return elapsedTime;
+    return elapsedTime;
 }
 
 float getHiresTimerSeconds(HiresTimer* pTimer, bool reset) { return (float)(getHiresTimerUSec(pTimer, reset) / 1e6); }
 
 float getHiresTimerSecondsAverage(HiresTimer* pTimer) { return (float)(getHiresTimerUSecAverage(pTimer) / 1e6); }
 
-void resetHiresTimer(HiresTimer* pTimer) { pTimer->mStartTime = getUSec(false); }
+void resetHiresTimer(HiresTimer* pTimer) { pTimer->mStartTime = getUSec(true); }

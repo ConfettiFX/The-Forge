@@ -6,20 +6,26 @@
         <DataSource Persistence="ProjectFile" ItemType="FSLShader" HasConfigurationCondition="true"  />
     </Rule.DataSource>
     <EnumProperty Name="Language" Default="Auto">
-        <EnumValue Name="Auto" DisplayName="Auto"/>
+        <EnumValue Name="" DisplayName="Auto"/>
         <EnumValue Name="DIRECT3D11" DisplayName="DIRECT3D11"/>
         <EnumValue Name="DIRECT3D12" DisplayName="DIRECT3D12"/>
         <EnumValue Name="VULKAN" DisplayName="VULKAN"/>
-        <!-- METAL -->
+        <EnumValue Name="MACOS" DisplayName="MACOS"/>
+        <EnumValue Name="IOS" DisplayName="IOS"/>
         <EnumValue Name="ORBIS" DisplayName="ORBIS"/>
         <EnumValue Name="PROSPERO" DisplayName="PROSPERO"/>
         <EnumValue Name="XBOX" DisplayName="XBOX"/>
         <EnumValue Name="SCARLETT" DisplayName="SCARLETT"/>
-        <EnumValue Name="GLES" DisplayName="GLES"/>
+        <EnumValue Name="ANDROID_GLES" DisplayName="ANDROID_GLES"/>
+        <EnumValue Name="SWITCH" DisplayName="SWITCH"/>
+        <EnumValue Name="ANDROID_VULKAN" DisplayName="ANDROID_VULKAN"/>
+        <EnumValue Name="QUEST" DisplayName="QUEST"/>
     </EnumProperty>
     <!-- <StringProperty Subtype="file" Name="RootSignature" DisplayName="RootSignature"/> -->
     <StringProperty Subtype="folder" Name="OutDir" DisplayName="OutDir" Default="$(OutDir)/Shaders/"/>
     <StringProperty Subtype="folder" Name="BinaryOutDir" DisplayName="BinaryOutDir" Default="$(OutDir)/CompiledShaders"/>
     <BoolProperty Name="Compile" DisplayName="Compile shader after generation"/>
     <BoolProperty Name="Verbose" DisplayName="Verbose shader generation"/>
+    <BoolProperty Name="CacheArgs" Default="Yes" DisplayName="Cache fsl.py args and generate shader-server.txt"/>
+    <IntProperty Name="Port" DisplayName="ShaderServerPort" Default="6543" MinValue="1024" MaxValue="65536"/>
 </Rule>

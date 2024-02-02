@@ -2,11 +2,13 @@
 
 #include "cgltf.h"
 
-#include "../../../OS/Interfaces/ILog.h"
-#include "../../../Renderer/IRenderer.h"
+#include "../../../../../Utilities/Interfaces/ILog.h"
+#include "../../../../../Utilities/Interfaces/IToolFileSystem.h"
+#include "../../../../../Graphics/Interfaces/IGraphics.h"
+#include "../../../../../Utilities/Math/MathTypes.h"
 
 #define IMEMORY_FROM_HEADER
-#include "../../../OS/Interfaces/IMemory.h"
+#include "../../../../../Utilities/Interfaces/IMemory.h"
 
 // MARK: - Materials
 
@@ -184,7 +186,7 @@ static void addImageUsage(const cgltf_data* pScene, const cgltf_texture_view* pT
 	ASSERT(imageId >= 0 && (size_t)imageId < pScene->images_count);
 
 	pOut[imageId] = (GLTFImageUsage)(pOut[imageId] | flag);
-	
+
 }
 
 static void gltfGetTextureView(const cgltf_data* scene, GLTFTextureView* textureView, const cgltf_texture_view* sourceView)
@@ -327,11 +329,11 @@ typedef enum GLTFFlags
 	GLTF_FLAG_CALCULATE_BOUNDS = 0x2,
 } GLTFFlags;
 
-static uint32_t gltfLoadContainer(const char* pFileName, const char* filePassword, GLTFFlags flags, GLTFContainer** ppGLTF)
+static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFContainer** ppGLTF)
 {
 	FileStream file = {};
 
-	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ_BINARY, filePassword, &file))
+	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ, &file))
 	{
 		LOGF(eERROR, "Failed to open gltf file %s", pFileName);
 		ASSERT(false);
@@ -383,8 +385,8 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 			char parentPath[FS_MAX_PATH] = {};
 			fsGetParentPath(pFileName, parentPath);
 			fsAppendPathComponent(parentPath, uri, binFile);
-			FileStream fs = {};	
-			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ_BINARY, filePassword, &fs))
+			FileStream fs = {};
+			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ, &fs))
 			{
 				ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
 				data->buffers[i].data = tf_malloc(data->buffers[i].size);
@@ -711,7 +713,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 
 			gltfGetTextureView(data, &pOutMaterial->mSpecularGlossiness.mDiffuseTexture, &sourceMaterial->pbr_specular_glossiness.diffuse_texture);
 			gltfGetTextureView(data, &pOutMaterial->mSpecularGlossiness.mSpecularGlossinessTexture, &sourceMaterial->pbr_specular_glossiness.specular_glossiness_texture);
-			
+
 			addImageUsage(data, &sourceMaterial->pbr_specular_glossiness.diffuse_texture, GLTF_IMAGE_USAGE_DIFFUSE, pGLTF->pImageUsage);
 			addImageUsage(data, &sourceMaterial->pbr_specular_glossiness.specular_glossiness_texture, GLTF_IMAGE_USAGE_SPECULAR_GLOSSINESS, pGLTF->pImageUsage);
 
@@ -725,7 +727,7 @@ static uint32_t gltfLoadContainer(const char* pFileName, const char* filePasswor
 
 			gltfGetTextureView(data, &pOutMaterial->mMetallicRoughness.mBaseColorTexture, &sourceMaterial->pbr_metallic_roughness.base_color_texture);
 			gltfGetTextureView(data, &pOutMaterial->mMetallicRoughness.mMetallicRoughnessTexture, &sourceMaterial->pbr_metallic_roughness.metallic_roughness_texture);
-			
+
 			addImageUsage(data, &sourceMaterial->pbr_metallic_roughness.base_color_texture, GLTF_IMAGE_USAGE_BASE_COLOR, pGLTF->pImageUsage);
 			addImageUsage(data, &sourceMaterial->pbr_metallic_roughness.metallic_roughness_texture, GLTF_IMAGE_USAGE_METALLIC_ROUGHNESS, pGLTF->pImageUsage);
 

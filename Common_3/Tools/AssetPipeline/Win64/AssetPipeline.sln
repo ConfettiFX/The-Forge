@@ -1,17 +1,15 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2016
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "basisu", "..\..\..\Utilities\ThirdParty\OpenSource\basis_universal\basisu.vcxproj", "{59586A07-8E7E-411D-BC3D-387E039AA423}"
-EndProject
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33214.272
+MinimumVisualStudioVersion = 16.0.0.0
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetPipelineCmd", "AssetPipelineCmd.vcxproj", "{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}"
 	ProjectSection(ProjectDependencies) = postProject
-		{59586A07-8E7E-411D-BC3D-387E039AA423} = {59586A07-8E7E-411D-BC3D-387E039AA423}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052} = {9B44F7B9-A9AF-45A4-8695-96792A18B052}
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139} = {AC91B515-5B5E-399D-BF31-B6272AF9D139}
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139} = {AC91B518-5B5E-399D-BF31-B6272AF9D139}
 		{E0CB3186-0614-4DF0-891B-848743572AB2} = {E0CB3186-0614-4DF0-891B-848743572AB2}
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE} = {EE1F0FC8-40F5-476A-8553-C8175B343BEE}
+		{F4BE7E97-8876-4A34-834F-4BC918020B57} = {F4BE7E97-8876-4A34-834F-4BC918020B57}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_base", "..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\base\ozz_base.vcxproj", "{EE1F0FC8-40F5-476A-8553-C8175B343BEE}"
@@ -20,52 +18,76 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation", "..\..\..\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\runtime\ozz_animation.vcxproj", "{E0CB3186-0614-4DF0-891B-848743572AB2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "astc-encoder", "..\..\..\Resources\ResourceLoader\ThirdParty\OpenSource\astc-encoder\Win64\Source\astc-encoder.vcxproj", "{AC91B518-5B5E-399D-BF31-B6272AF9D139}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ispc_texcomp", "..\..\ThirdParty\OpenSource\ISPCTextureCompressor\ispc_texcomp\ispc_texcomp.vcxproj", "{9B44F7B9-A9AF-45A4-8695-96792A18B052}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OS", "..\..\..\..\Examples_3\Unit_Tests\PC Visual Studio 2019\Libraries\OS\OS.vcxproj", "{30DD3D57-0026-48C8-BFD1-6392F319E23A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BunyLib", "..\..\BunyArchive\VisualStudio\BunyLib.vcxproj", "{F4BE7E97-8876-4A34-834F-4BC918020B57}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_XboxOne|x64 = Debug_XboxOne|x64
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
+		Release_XboxOne|x64 = Release_XboxOne|x64
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Debug|x64.ActiveCfg = Debug|x64
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Debug|x64.Build.0 = Debug|x64
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Debug|x86.ActiveCfg = Debug|x64
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Release|x64.ActiveCfg = Release|x64
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Release|x64.Build.0 = Release|x64
-		{59586A07-8E7E-411D-BC3D-387E039AA423}.Release|x86.ActiveCfg = Release|x64
+		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Debug_XboxOne|x64.ActiveCfg = Debug_XboxOne|x64
+		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Debug_XboxOne|x64.Build.0 = Debug_XboxOne|x64
 		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Debug|x64.ActiveCfg = Debug|x64
 		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Debug|x64.Build.0 = Debug|x64
-		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Debug|x86.ActiveCfg = Debug|x64
+		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Release_XboxOne|x64.ActiveCfg = Release_XboxOne|x64
+		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Release_XboxOne|x64.Build.0 = Release_XboxOne|x64
 		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Release|x64.ActiveCfg = Release|x64
 		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Release|x64.Build.0 = Release|x64
-		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64}.Release|x86.ActiveCfg = Release|x64
+		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Debug_XboxOne|x64.Build.0 = Debug|x64
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Debug|x64.ActiveCfg = Debug|x64
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Debug|x64.Build.0 = Debug|x64
-		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Debug|x86.ActiveCfg = Debug|x64
+		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Release_XboxOne|x64.Build.0 = Release|x64
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Release|x64.ActiveCfg = Release|x64
 		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Release|x64.Build.0 = Release|x64
-		{EE1F0FC8-40F5-476A-8553-C8175B343BEE}.Release|x86.ActiveCfg = Release|x64
+		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Debug_XboxOne|x64.Build.0 = Debug|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.ActiveCfg = Debug|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.Build.0 = Debug|x64
-		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Debug|x86.ActiveCfg = Debug|x64
+		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Release_XboxOne|x64.Build.0 = Release|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Release|x64.ActiveCfg = Release|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Release|x64.Build.0 = Release|x64
-		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.Release|x86.ActiveCfg = Release|x64
+		{E0CB3186-0614-4DF0-891B-848743572AB2}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{E0CB3186-0614-4DF0-891B-848743572AB2}.Debug_XboxOne|x64.Build.0 = Debug|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Debug|x64.ActiveCfg = Debug|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Debug|x64.Build.0 = Debug|x64
-		{E0CB3186-0614-4DF0-891B-848743572AB2}.Debug|x86.ActiveCfg = Debug|x64
+		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release_XboxOne|x64.Build.0 = Release|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x64.ActiveCfg = Release|x64
 		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x64.Build.0 = Release|x64
-		{E0CB3186-0614-4DF0-891B-848743572AB2}.Release|x86.ActiveCfg = Release|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.ActiveCfg = Debug|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x64.Build.0 = Debug|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Debug|x86.ActiveCfg = Debug|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x64.ActiveCfg = Release|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x64.Build.0 = Release|x64
-		{AC91B518-5B5E-399D-BF31-B6272AF9D139}.Release|x86.ActiveCfg = Release|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Debug_XboxOne|x64.Build.0 = Debug|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Debug|x64.ActiveCfg = Debug|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Debug|x64.Build.0 = Debug|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Release_XboxOne|x64.Build.0 = Release|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Release|x64.ActiveCfg = Release|x64
+		{9B44F7B9-A9AF-45A4-8695-96792A18B052}.Release|x64.Build.0 = Release|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug_XboxOne|x64.Build.0 = Debug|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug|x64.ActiveCfg = Debug|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Debug|x64.Build.0 = Debug|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release_XboxOne|x64.Build.0 = Release|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release|x64.ActiveCfg = Release|x64
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A}.Release|x64.Build.0 = Release|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Debug_XboxOne|x64.ActiveCfg = Debug|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Debug_XboxOne|x64.Build.0 = Debug|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Debug|x64.ActiveCfg = Debug|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Debug|x64.Build.0 = Debug|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Release_XboxOne|x64.ActiveCfg = Release|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Release_XboxOne|x64.Build.0 = Release|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Release|x64.ActiveCfg = Release|x64
+		{F4BE7E97-8876-4A34-834F-4BC918020B57}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

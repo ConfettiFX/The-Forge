@@ -365,7 +365,7 @@ namespace gainput
 
 void TF_FailedAssert(const char* file, int line, const char* statement)
 {
-	_FailedAssert(file, line, statement);
+	_FailedAssert(file, line, statement, NULL);
 }
 
 const char*

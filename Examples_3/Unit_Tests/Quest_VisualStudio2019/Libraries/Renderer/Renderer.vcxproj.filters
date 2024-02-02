@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{975e765a-72ed-49b0-a13d-506b8beb52c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Quest">
+      <UniqueIdentifier>{634cfb96-ab28-4deb-84ee-e85d019ff60e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Vulkan">
+      <UniqueIdentifier>{35b05cf3-6777-4f3c-b5fe-2b3d0ef89507}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\ResourceLoader">
+      <UniqueIdentifier>{b66fbc2b-b94b-42c2-a3bd-46fcbbe772eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{2473f081-29b4-414e-82a5-cc7fa0148492}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\Network">
+      <UniqueIdentifier>{471190c8-a7c5-46f2-9488-fbcefd8c2d35}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{171589e9-e5e5-4c31-8d38-927398a6e9ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\ReloadServer">
+      <UniqueIdentifier>{2f4d21de-9cc8-4d2e-9f7d-e5317a16868a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Interfaces">
+      <UniqueIdentifier>{d4b4c524-73f1-4ddc-9a4b-ec953b0e2fb4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\CommonShaderReflection.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\PickRenderingApi.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Quest\VrApiHooks.cpp">
+      <Filter>Graphics\Quest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\Vulkan.cpp">
+      <Filter>Graphics\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanRaytracing.cpp">
+      <Filter>Graphics\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanShaderReflection.cpp">
+      <Filter>Graphics\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Resources\ResourceLoader\ResourceLoader.cpp">
+      <Filter>Resources\ResourceLoader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Network\Network.c">
+      <Filter>Tools\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.cpp">
+      <Filter>Tools\ReloadServer</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\GPUConfig.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Interfaces\IGraphics.h">
+      <Filter>Graphics\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Quest\VrApiHooks.h">
+      <Filter>Graphics\Quest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Graphics\Vulkan\VulkanCapsBuilder.h">
+      <Filter>Graphics\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Network\Network.h">
+      <Filter>Tools\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\ReloadServer\ReloadClient.h">
+      <Filter>Tools\ReloadServer</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

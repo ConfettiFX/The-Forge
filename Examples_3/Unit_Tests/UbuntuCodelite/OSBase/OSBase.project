@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="11000">
+  <VirtualDirectory Name="Tools">
+    <VirtualDirectory Name="ReloadServer">
+      <File Name="../../../../Common_3/Tools/ReloadServer/ReloadClient.cpp"/>
+      <File Name="../../../../Common_3/Tools/ReloadServer/ReloadClient.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="Network">
+      <File Name="../../../../Common_3/Tools/Network/Network.c"/>
+      <File Name="../../../../Common_3/Tools/Network/Network.h"/>
+    </VirtualDirectory>
+  </VirtualDirectory>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -7,6 +17,15 @@
   </Plugins>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="Animation">
+      <VirtualDirectory Name="Shaders">
+        <VirtualDirectory Name="FSL">
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/Animation_ShaderList.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.vert.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/joint.frag.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/bone.vert.fsl"/>
+          <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/bone.frag.fsl"/>
+        </VirtualDirectory>
+      </VirtualDirectory>
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.cpp"/>
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/AnimatedObject.h"/>
       <File Name="../../../../Common_3/Resources/AnimationSystem/Animation/Animation.cpp"/>
@@ -36,16 +55,17 @@
     <File Name="../../../../Common_3/Application/CameraController.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Core">
+    <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.c"/>
     <File Name="../../../../Common_3/Utilities/Threading/Atomics.h"/>
     <File Name="../../../../Common_3/Application/Config.h"/>
     <File Name="../../../../Common_3/Utilities/Math/Algorithms.c"/>
     <File Name="../../../../Common_3/Utilities/Math/Algorithms.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/Random.h"/>
     <File Name="../../../../Common_3/Utilities/Math/BStringHashMap.h"/>
     <File Name="../../../../Common_3/Utilities/Math/StbDs.c"/>
     <File Name="../../../../Common_3/Utilities/RingBuffer.h"/>
     <File Name="../../../../Common_3/Utilities/Timer.c"/>
     <File Name="../../../../Common_3/OS/CPUConfig.cpp"/>
-    <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.cpp"/>
     <File Name="../../../../Common_3/Application/DLL.h"/>
     <File Name="../../../../Common_3/Application/Screenshot.cpp"/>
     <File Name="../../../../Common_3/Utilities/Threading/ThreadSystem.h"/>
@@ -77,6 +97,7 @@
   </VirtualDirectory>
   <VirtualDirectory Name="Math">
     <File Name="../../../../Common_3/Utilities/Math/MathTypes.h"/>
+    <File Name="../../../../Common_3/Utilities/Math/ShaderUtilities.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="MemoryTracking">
     <File Name="../../../../Common_3/Utilities/MemoryTracking/MemoryTracking.c"/>
@@ -85,50 +106,36 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.c"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxLog.c"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxBase.cpp"/>
-    <File Name="../../../../Common_3/OS/Linux/LinuxFileSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/Linux/LinuxFileSystem.c"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxThread.c"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxWindow.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
+    <VirtualDirectory Name="zstd">
+      <VirtualDirectory Name="decompress">
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/huf_decompress_amd64.S"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/zstd_decompress_block.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/zstd_decompress.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/zstd_ddict.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/decompress/huf_decompress.c"/>
+      </VirtualDirectory>
+      <VirtualDirectory Name="common">
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/zstd_common.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/xxhash.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/threading.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/pool.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/fse_decompress.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/error_private.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/entropy_common.c"/>
+        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zstd/common/debug.c"/>
+      </VirtualDirectory>
+    </VirtualDirectory>
+    <VirtualDirectory Name="lz4">
+      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/lz4/lz4.c"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="bstrlib">
       <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.c"/>
       <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"/>
-    </VirtualDirectory>
-    <VirtualDirectory Name="minizip">
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/zip.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_zip.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_zip.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_zlib.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_wzaes.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm_raw.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_strm.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_os.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_os.cpp"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt_brg.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt.h"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz_crypt.c"/>
-      <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/mz.h"/>
-      <VirtualDirectory Name="brg">
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha2.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha2.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha1.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/sha1.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/hmac.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/hmac.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/brg_types.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/brg_endian.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aestab.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aestab.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aesopt.h"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aeskey.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aescrypt.c"/>
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/minizip/lib/brg/aes.h"/>
-      </VirtualDirectory>
-      <VirtualDirectory Name="libzip(zip)">
-        <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/zip/miniz.h"/>
-      </VirtualDirectory>
     </VirtualDirectory>
     <VirtualDirectory Name="rmem">
       <File Name="../../../../Common_3/Utilities/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
@@ -221,10 +228,9 @@
     </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
-    <File Name="../../../../Common_3/Utilities/FileSystem/FileSystem.cpp"/>
-    <File Name="../../../../Common_3/Utilities/FileSystem/SystemRun.cpp"/>
-    <File Name="../../../../Common_3/Utilities/FileSystem/UnixFileSystem.cpp"/>
-    <File Name="../../../../Common_3/Utilities/FileSystem/ZipFileSystem.c"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/FileSystem.c"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/SystemRun.c"/>
+    <File Name="../../../../Common_3/Utilities/FileSystem/UnixFileSystem.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Profiler">
     <File Name="../../../../Common_3/Application/Profiler/GpuProfiler.cpp"/>
@@ -268,7 +274,7 @@
   <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
-      <Compiler Options="" C_Options="" Assembler="">
+      <Compiler Options="$(shell pkg-config --cflags gtk+-3.0)" C_Options="" Assembler="">
         <IncludePath Value="."/>
         <IncludePath Value="../../../../Common_3/Utilities/ThirdParty/OpenSource/TaskScheduler/Scheduler/Include"/>
       </Compiler>
@@ -276,7 +282,7 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=gnu++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-Wall;-Werror;-Wno-array-bounds;-Wno-stringop-overflow;-mavx2;-std=gnu++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O0;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -308,14 +314,18 @@
         <CustomPreBuild>shaders
 SRC_UI = $(WorkspacePath)/../../../Common_3/Application/UI/Shaders/FSL/
 SRC_TEXT = $(WorkspacePath)/../../../Common_3/Application/Fonts/Shaders/FSL/
+SRC_ANIMATION = $(WorkspacePath)/../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
+
+AS=$(CC) -O3 -c
 </CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
@@ -326,7 +336,7 @@ shaders:&#xD;
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-std=gnu++14;$(shell pkg-config --cflags gtk+-3.0);-Wall;-Wno-comment;-Werror;" C_Options="-g;-Wall;-Wno-comment;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-Wall;-Werror;-Wno-array-bounds;-Wno-stringop-overflow;-mavx2;-std=gnu++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O2;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="" Required="yes"/>
@@ -358,14 +368,18 @@ shaders:&#xD;
         <CustomPreBuild>shaders
 SRC_UI = $(WorkspacePath)/../../../Common_3/Application/UI/Shaders/FSL/
 SRC_TEXT = $(WorkspacePath)/../../../Common_3/Application/Fonts/Shaders/FSL/
+SRC_ANIMATION = $(WorkspacePath)/../../../Common_3/Resources/AnimationSystem/Animation/Shaders/FSL/
 SRC_PANINI = $(WorkspacePath)/../../../Middleware_3/PaniniProjection/Shaders/FSL/&#xD;
 DST = $(ProjectPath)/$(ConfigurationName)/&#xD;
-fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders/ --incremental --compile&#xD;
+fsl = python3 ../../../../Common_3/Tools/ForgeShadingLanguage/fsl.py -l VULKAN -d $(DST)/Shaders --verbose -b $(DST)/CompiledShaders  --incremental --compile&#xD;
 &#xD;
 shaders:&#xD;
 	$(foreach file, $(wildcard $(SRC_UI)/*.fsl), $(fsl) $(file);)&#xD;
 	$(foreach file, $(wildcard $(SRC_TEXT)/*.fsl), $(fsl) $(file);)&#xD;
-	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)</CustomPreBuild>
+	$(foreach file, $(wildcard $(SRC_ANIMATION)/*.fsl), $(fsl) $(file);)&#xD;
+	$(foreach file, $(wildcard $(SRC_PANINI)/*.fsl), $(fsl) $(file);)
+
+AS=$(CC) -O3 -c</CustomPreBuild>
       </AdditionalRules>
       <Completion EnableCpp11="no" EnableCpp14="no">
         <ClangCmpFlagsC/>

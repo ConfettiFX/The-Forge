@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
 */
 
 #ifndef SKINNING_H
@@ -9,7 +9,7 @@
 
 CBUFFER(uniformBlock, UPDATE_FREQ_PER_DRAW, b0, binding = 0)
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     DATA(float4x4, vpMatrix[VR_MULTIVIEW_COUNT], None);
 #else
     DATA(float4x4, vpMatrix, None);

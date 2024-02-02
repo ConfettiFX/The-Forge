@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,11 +20,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include <math.h>
 #include <stdint.h>
 #include <time.h>
+
 #include "../../Utilities/Interfaces/ITime.h"
 
 /************************************************************************/
@@ -33,33 +34,33 @@
 
 uint32_t getSystemTime()
 {
-	long            ms;    // Milliseconds
-	time_t          s;     // Seconds
-	struct timespec spec;
+    long            ms; // Milliseconds
+    time_t          s;  // Seconds
+    struct timespec spec;
 
-	clock_gettime(CLOCK_REALTIME, &spec);
+    clock_gettime(CLOCK_REALTIME, &spec);
 
-	s = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
+    s = spec.tv_sec;
+    ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
 
-	ms += s * 1000;
+    ms += s * 1000;
 
-	return (uint32_t)ms;
+    return (uint32_t)ms;
 }
 
 int64_t getUSec(bool precise)
 {
-	struct timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	long us = (ts.tv_nsec / 1000);
-	us += ts.tv_sec * 1e6;
-	return us;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    long us = (ts.tv_nsec / 1000);
+    us += ts.tv_sec * 1e6;
+    return us;
 }
 
 uint32_t getTimeSinceStart() { return (uint32_t)time(NULL); }
 
 int64_t getTimerFrequency()
 {
-	// This is us to s
-	return 1000000LL;
+    // This is us to s
+    return 1000000LL;
 }

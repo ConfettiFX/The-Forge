@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,11 +30,6 @@ RES(Tex2D(float4), FrontText, UPDATE_FREQ_NONE, t4, binding = 5);
 RES(Tex2D(float4), BackText, UPDATE_FREQ_NONE, t5, binding = 6);
 
 RES(SamplerState, SkySampler, UPDATE_FREQ_NONE, s0, binding = 7);
-
-CBUFFER(SkyboxUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-    DATA(float4x4, vp, None);
-};
 
 STRUCT(VSOutput)
 {

@@ -21,7 +21,7 @@ THE SOFTWARE.
 ********************************************************************/
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -48,19 +48,17 @@ THE SOFTWARE.
 #define FFX_SSSR_SPATIAL_RESOLVE
 
 RES(Tex2D(float), g_depth_buffer, UPDATE_FREQ_NONE, t0, binding = 4);
-RES(Tex2D(float4), g_normal, UPDATE_FREQ_NONE, t1, binding = 3);
-RES(Tex2D(float4), g_roughness, UPDATE_FREQ_NONE, t2, binding = 6);
+RES(Tex2D(float4), g_normal_roughness, UPDATE_FREQ_NONE, t1, binding = 3);
 
 // RES(SamplerState, g_linear_sampler, UPDATE_FREQ_NONE, s0, binding = binding = _INSERT_);
 
 RES(RWTex2D(float4), g_spatially_denoised_reflections, UPDATE_FREQ_NONE, u0, binding = 7);
 RES(RWTex2D(float), g_ray_lengths, UPDATE_FREQ_NONE, u1, binding = 1);
 RES(RWTex2D(float4), g_intersection_result, UPDATE_FREQ_NONE, u2, binding = 2);
-RES(RWTex2D(float), g_has_ray, UPDATE_FREQ_NONE, u3, binding = 5);
 RES(RWBuffer(uint), g_tile_list, UPDATE_FREQ_NONE, u4, binding = 8);
+RES(RWTex2D(float), g_has_ray, UPDATE_FREQ_NONE, u3, binding = 5);
 
 #include "SSSR_Common.h.fsl"
-
 
 // Only really need 16x16 but 17x17 avoids bank conflicts.
 GroupShared(uint,  g_shared_0[17][17]);
@@ -68,36 +66,6 @@ GroupShared(uint,  g_shared_1[17][17]);
 GroupShared(uint,  g_shared_2[17][17]);
 GroupShared(uint,  g_shared_3[17][17]);
 GroupShared(float, g_shared_depth[17][17]);
-
-half4 LoadRadianceFromGroupSharedMemory(int2 idx)
-{
-    uint2 tmp;
-    tmp.x = Get(g_shared_0)[idx.x][idx.y];
-    tmp.y = Get(g_shared_1)[idx.x][idx.y];
-    return half4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
-}
-
-half3 LoadNormalFromGroupSharedMemory(int2 idx)
-{
-    uint2 tmp;
-    tmp.x = Get(g_shared_2)[idx.x][idx.y];
-    tmp.y = Get(g_shared_3)[idx.x][idx.y];
-    return half4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y)).xyz;
-}
-
-float LoadDepthFromGroupSharedMemory(int2 idx)
-{
-    return Get(g_shared_depth)[idx.x][idx.y];
-}
-
-void StoreInGroupSharedMemory(int2 idx, min16float4 radiance, min16float3 normal, float depth)
-{
-    Get(g_shared_0)[idx.x][idx.y] = PackFloat16(min16float2(radiance.xy));
-    Get(g_shared_1)[idx.x][idx.y] = PackFloat16(min16float2(radiance.zw));
-    Get(g_shared_2)[idx.x][idx.y] = PackFloat16(min16float2(normal.xy));
-    Get(g_shared_3)[idx.x][idx.y] = PackFloat16(min16float2(normal.z, 0));
-    Get(g_shared_depth)[idx.x][idx.y] = depth;
-}
 
 min16float LoadRayLengthFP16(int2 idx)
 {
@@ -111,7 +79,7 @@ min16float3 LoadRadianceFP16(int2 idx)
 
 min16float3 LoadNormalFP16(int2 idx)
 {
-    return min16float3(FfxSssrUnpackNormals(LoadTex2D(Get(g_normal), NO_SAMPLER, idx, 0)));
+    return min16float3(FfxSssrUnpackNormals(LoadTex2D(Get(g_normal_roughness), NO_SAMPLER, idx, 0)));
 }
 
 float LoadDepth(int2 idx)
@@ -124,55 +92,87 @@ bool LoadHasRay(int2 idx)
     return LoadRWTex2D(Get(g_has_ray), idx).x != 0.0f;
 }
 
-void LoadWithOffset(int2 did, int2 offset, out(min16float) ray_length, out(min16float3) radiance, out(min16float3) normal, out(float) depth, out(bool) has_ray)
+min16float4 LoadRadianceFromGroupSharedMemory(int2 idx)
 {
-    did += offset;
-    ray_length = LoadRayLengthFP16(did);
-    radiance = LoadRadianceFP16(did);
-    normal = LoadNormalFP16(did);
+    uint2 tmp;
+    tmp.x = Get(g_shared_0)[idx.x][idx.y];
+    tmp.y = Get(g_shared_1)[idx.x][idx.y];
+    return min16float4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
+}
+
+min16float3 LoadNormalFromGroupSharedMemory(int2 idx)
+{
+    uint2 tmp;
+    tmp.x = Get(g_shared_2)[idx.x][idx.y];
+    tmp.y = Get(g_shared_3)[idx.x][idx.y];
+    return min16float4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y)).xyz;
+}
+
+float LoadDepthFromGroupSharedMemory(int2 idx)
+{
+    return Get(g_shared_depth)[idx.x][idx.y];
+}
+
+void StoreInGroupSharedMemory(int2 idx, float4 radiance, float3 normal, float depth)
+{
+    Get(g_shared_0)[idx.x][idx.y] = PackFloat16(min16float2(radiance.xy));
+    Get(g_shared_1)[idx.x][idx.y] = PackFloat16(min16float2(radiance.zw));
+    Get(g_shared_2)[idx.x][idx.y] = PackFloat16(min16float2(normal.xy));
+    Get(g_shared_3)[idx.x][idx.y] = PackFloat16(min16float2(normal.z, 0));
+    Get(g_shared_depth)[idx.x][idx.y] = depth;
+}
+
+void LoadWithOffset(int2 did, int2 offset, int2 image_size, out(float) ray_length, out(float3) radiance, out(float3) normal, out(float) depth, out(bool) has_ray)
+{
+    did = clamp(did + offset, int2(0, 0), image_size - 1);
+
+    ray_length = float(LoadRayLengthFP16(did));
+    radiance = float3(LoadRadianceFP16(did));
+    normal = float3(LoadNormalFP16(did));
     depth = LoadDepth(did);
     has_ray = LoadHasRay(did);
 }
 
-void StoreWithOffset(int2 gtid, int2 offset, min16float ray_length, min16float3 radiance, min16float3 normal, float depth)
+void StoreWithOffset(int2 gtid, int2 offset, float ray_length, float3 radiance, float3 normal, float depth)
 {
     gtid += offset;
-    StoreInGroupSharedMemory(gtid, min16float4(radiance, ray_length), normal, depth); // Pack ray length and radiance together
+    StoreInGroupSharedMemory(gtid, float4(radiance, ray_length), normal, depth); // Pack ray length and radiance together
 }
 
-void InitializeGroupSharedMemory(int2 did, int2 gtid)
+void InitializeGroupSharedMemory(int2 did, int2 gtid, uint group_thread_id_linear)
 {
     const uint samples_per_quad = Get(g_samples_per_quad);
+    const int2 image_size = int2(GetDimensions(Get(g_normal_roughness), NO_SAMPLER));
 
     // First pass, load (1 + 3 + 8 + 3 + 1) = (16x16) region into shared memory.
     // That is a guard band of 3, the inner region of 8 plus one additional band to catch base pixels if we didn't shoot rays for the respective edges/corners of the loaded region.
 
-    int2 offset_0 = i2(0);
-    int2 offset_1 = int2(8, 0);
-    int2 offset_2 = int2(0, 8);
-    int2 offset_3 = int2(8, 8);
+    const int2 offset_0 = int2(0, 0);
+    const int2 offset_1 = int2(8, 0);
+    const int2 offset_2 = int2(0, 8);
+    const int2 offset_3 = int2(8, 8);
 
-    min16float ray_length_0;
-    min16float3 radiance_0;
-    min16float3 normal_0;
+    float ray_length_0;
+    float3 radiance_0;
+    float3 normal_0;
     float depth_0;
     bool has_ray_0;
 
-    min16float ray_length_1;
-    min16float3 radiance_1;
-    min16float3 normal_1;
+    float ray_length_1;
+    float3 radiance_1;
+    float3 normal_1;
     float depth_1;
     bool has_ray_1;
 
-    min16float ray_length_2;
-    min16float3 radiance_2;
-    min16float3 normal_2;
+    float ray_length_2;
+    float3 radiance_2;
+    float3 normal_2;
     float depth_2;
     bool has_ray_2;
 
-    min16float ray_length_3;
-    min16float3 radiance_3;
-    min16float3 normal_3;
+    float ray_length_3;
+    float3 radiance_3;
+    float3 normal_3;
     float depth_3;
     bool has_ray_3;
 
@@ -180,10 +180,11 @@ void InitializeGroupSharedMemory(int2 did, int2 gtid)
     /// BC
 
     did -= 4; // 1 + 3 => additional band + left band
-    LoadWithOffset(did, offset_0, ray_length_0, radiance_0, normal_0, depth_0, has_ray_0); // X
-    LoadWithOffset(did, offset_1, ray_length_1, radiance_1, normal_1, depth_1, has_ray_1); // A
-    LoadWithOffset(did, offset_2, ray_length_2, radiance_2, normal_2, depth_2, has_ray_2); // B
-    LoadWithOffset(did, offset_3, ray_length_3, radiance_3, normal_3, depth_3, has_ray_3); // C
+
+    LoadWithOffset(did, offset_0, image_size, ray_length_0, radiance_0, normal_0, depth_0, has_ray_0); // X
+    LoadWithOffset(did, offset_1, image_size, ray_length_1, radiance_1, normal_1, depth_1, has_ray_1); // A
+    LoadWithOffset(did, offset_2, image_size, ray_length_2, radiance_2, normal_2, depth_2, has_ray_2); // B
+    LoadWithOffset(did, offset_3, image_size, ray_length_3, radiance_3, normal_3, depth_3, has_ray_3); // C
 
     // If own values are invalid, because no ray created them, lookup the values from the neighboring threads
     const uint lane_index = WaveGetLaneIndex();
@@ -195,20 +196,68 @@ void InitializeGroupSharedMemory(int2 did, int2 gtid)
     const uint lane_index_2 = (has_ray_2 || is_base_ray) ? lane_index : base_lane_index;
     const uint lane_index_3 = (has_ray_3 || is_base_ray) ? lane_index : base_lane_index;
 
-    radiance_0 = WaveReadLaneAt(radiance_0, lane_index_0);
-    radiance_1 = WaveReadLaneAt(radiance_1, lane_index_1);
-    radiance_2 = WaveReadLaneAt(radiance_2, lane_index_2);
-    radiance_3 = WaveReadLaneAt(radiance_3, lane_index_3);
+    // Just set some defaults to avoid compiler warnings
+    float3 radiance_0_output = float3(1.0, 0.0, 1.0);
+    float3 radiance_1_output = float3(1.0, 0.0, 1.0);
+    float3 radiance_2_output = float3(1.0, 0.0, 1.0);
+    float3 radiance_3_output = float3(1.0, 0.0, 1.0);
 
-    ray_length_0 = WaveReadLaneAt(ray_length_0, lane_index_0);
-    ray_length_1 = WaveReadLaneAt(ray_length_1, lane_index_1);
-    ray_length_2 = WaveReadLaneAt(ray_length_2, lane_index_2);
-    ray_length_3 = WaveReadLaneAt(ray_length_3, lane_index_3);
+    float ray_length_0_output = FLT_MAX;
+    float ray_length_1_output = FLT_MAX;
+    float ray_length_2_output = FLT_MAX;
+    float ray_length_3_output = FLT_MAX;
 
-    StoreWithOffset(gtid, offset_0, ray_length_0, radiance_0, normal_0, depth_0); // X
-    StoreWithOffset(gtid, offset_1, ray_length_1, radiance_1, normal_1, depth_1); // A
-    StoreWithOffset(gtid, offset_2, ray_length_2, radiance_2, normal_2, depth_2); // B
-    StoreWithOffset(gtid, offset_3, ray_length_3, radiance_3, normal_3, depth_3); // C
+    // Apparently Xbox cannot do WaveReadLaneAt with a non uniform index. Hence the need for the hack.
+    // See details here: https://silvesthu.github.io/posts/2020/05/hlsl-pitfalls/#wavereadlaneat
+    // For other platforms, we use WaveReadLaneAt directly as the documentation tells us that it supports
+    // both uniform and non uniform indices. 
+    // https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/wavereadlaneat
+    // Also the case for Prospero, Orbis, Metal, Vulkan.
+#if defined(TARGET_XBOX) || defined(TARGET_SCARLETT)
+    while (true)
+    {
+        if (WaveReadLaneFirst(group_thread_id_linear) == group_thread_id_linear)
+        {
+            uint uniform_index_0 = WaveReadLaneFirst(lane_index_0);
+            uint uniform_index_1 = WaveReadLaneFirst(lane_index_1);
+            uint uniform_index_2 = WaveReadLaneFirst(lane_index_2);
+            uint uniform_index_3 = WaveReadLaneFirst(lane_index_3);
+
+            radiance_0_output = WaveReadLaneAt(radiance_0, uniform_index_0);
+            radiance_1_output = WaveReadLaneAt(radiance_1, uniform_index_1);
+            radiance_2_output = WaveReadLaneAt(radiance_2, uniform_index_2);
+            radiance_3_output = WaveReadLaneAt(radiance_3, uniform_index_3);
+
+            ray_length_0_output = WaveReadLaneAt(ray_length_0, uniform_index_0);
+            ray_length_1_output = WaveReadLaneAt(ray_length_1, uniform_index_1);
+            ray_length_2_output = WaveReadLaneAt(ray_length_2, uniform_index_2);
+            ray_length_3_output = WaveReadLaneAt(ray_length_3, uniform_index_3);
+
+            // DXC won't make this a loop if we break here.
+            //break;
+        }
+
+        if (WaveReadLaneFirst(group_thread_id_linear) == group_thread_id_linear)
+        {
+            break;
+        }
+    }
+#else
+    radiance_0_output = WaveReadLaneAt(radiance_0, lane_index_0);
+    radiance_1_output = WaveReadLaneAt(radiance_1, lane_index_1);
+    radiance_2_output = WaveReadLaneAt(radiance_2, lane_index_2);
+    radiance_3_output = WaveReadLaneAt(radiance_3, lane_index_3);
+
+    ray_length_0_output = WaveReadLaneAt(ray_length_0, lane_index_0);
+    ray_length_1_output = WaveReadLaneAt(ray_length_1, lane_index_1);
+    ray_length_2_output = WaveReadLaneAt(ray_length_2, lane_index_2);
+    ray_length_3_output = WaveReadLaneAt(ray_length_3, lane_index_3);
+#endif
+	
+    StoreWithOffset(gtid, offset_0, ray_length_0_output, radiance_0_output, normal_0, depth_0); // X
+    StoreWithOffset(gtid, offset_1, ray_length_1_output, radiance_1_output, normal_1, depth_1); // A
+    StoreWithOffset(gtid, offset_2, ray_length_2_output, radiance_2_output, normal_2, depth_2); // B
+    StoreWithOffset(gtid, offset_3, ray_length_3_output, radiance_3_output, normal_3, depth_3); // C
 }
 
 min16float3 ResolveScreenspaceReflections(int2 gtid, min16float3 center_radiance, min16float3 center_normal, float center_depth)
@@ -242,9 +291,9 @@ min16float3 ResolveScreenspaceReflections(int2 gtid, min16float3 center_radiance
     for (uint i = 0; i < sample_count; ++i)
     {
         int2 new_idx = gtid + reuse_offsets[i];
-        half3 normal = LoadNormalFromGroupSharedMemory(new_idx);
+        min16float3 normal = LoadNormalFromGroupSharedMemory(new_idx);
         float depth = LoadDepthFromGroupSharedMemory(new_idx);
-        half4 radiance = LoadRadianceFromGroupSharedMemory(new_idx);
+        min16float4 radiance = LoadRadianceFromGroupSharedMemory(new_idx);
         float weight = 1
             * GetEdgeStoppingNormalWeight(float3(center_normal), float3(normal), normal_sigma)
             * Gaussian(center_depth, depth, depth_sigma)
@@ -252,17 +301,17 @@ min16float3 ResolveScreenspaceReflections(int2 gtid, min16float3 center_radiance
 
         // Accumulate all contributions.
         accumulated_weight += weight;
-        accumulated_radiance += float3(weight * radiance.xyz);
+        accumulated_radiance += weight * float3(radiance.xyz);
     }
 
     accumulated_radiance /= max(accumulated_weight, 0.00001);
     return min16float3(accumulated_radiance);
 }
 
-void Resolve(int2 did, int2 gtid)
+void Resolve(int2 did, int2 gtid, uint group_thread_id_linear)
 {
-    float center_roughness = LoadRoughness(did, Get(g_roughness));
-    InitializeGroupSharedMemory(did, gtid);
+    float center_roughness = LoadRoughness(did, Get(g_normal_roughness));
+    InitializeGroupSharedMemory(did, gtid, group_thread_id_linear);
     GroupMemoryBarrier();
 
     if (!IsGlossy(center_roughness) || IsMirrorReflection(center_roughness))
@@ -272,11 +321,11 @@ void Resolve(int2 did, int2 gtid)
 
     gtid += 4; // Center threads in groupshared memory
 
-    min16float4 center_radiance = min16float4(LoadRadianceFromGroupSharedMemory(gtid));
-    min16float3 center_normal   = min16float3(LoadNormalFromGroupSharedMemory(gtid));
+    min16float4 center_radiance = LoadRadianceFromGroupSharedMemory(gtid);
+    min16float3 center_normal   = LoadNormalFromGroupSharedMemory(gtid);
     float  center_depth    = LoadDepthFromGroupSharedMemory(gtid);
     min16float3 radiance = ResolveScreenspaceReflections(gtid, center_radiance.xyz, center_normal, center_depth);
-    Write2D(Get(g_spatially_denoised_reflections), did.xy, float4(float3(radiance.xyz), 1.0f));
+    Write2D(Get(g_spatially_denoised_reflections), did.xy, float4(float3(radiance.xyz), 1.0));
     Write2D(Get(g_ray_lengths), did.xy, float(center_radiance.w)); // ray_length
 }
 
@@ -286,9 +335,9 @@ void CS_MAIN( SV_GroupThreadID(uint3) group_thread_id_linear, SV_GroupID(uint3) 
 	INIT_MAIN;
     uint packed_base_coords = Get(g_tile_list)[group_id.x];
     uint2 base_coords = Unpack(packed_base_coords);
-    uint2 group_thread_id_2d = RemapLane8x8(group_thread_id_linear.x);
+    uint2 group_thread_id_2d = RemapLane8x8(group_thread_id_linear.x % 64);
     uint2 coords = base_coords + group_thread_id_2d;
-    Resolve(int2(coords), int2(group_thread_id_2d));
+    Resolve(int2(coords), int2(group_thread_id_2d), group_thread_id_linear.x);
 	RETURN();
 }
 #endif // FFX_SSSR_SPATIAL_RESOLVE

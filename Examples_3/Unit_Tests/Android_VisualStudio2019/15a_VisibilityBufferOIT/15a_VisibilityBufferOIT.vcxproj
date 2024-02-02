@@ -1,0 +1,229 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Android-arm64-v8a">
+      <Configuration>Debug</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Android-arm64-v8a">
+      <Configuration>Release</Configuration>
+      <Platform>Android-arm64-v8a</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\15a_VisibilityBufferOIT\15a_VisibilityBufferOIT.cpp" />
+    <ClCompile Include="..\..\..\Visibility_Buffer\src\SanMiguel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Visibility_Buffer\src\SanMiguel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\batch_compaction.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_buffers.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\clear_light_clusters.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\cluster_lights.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\CurveConversion.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\light_cull_resources.h.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\oitClear.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShaderList.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shader_defs.h.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shading.h.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shadow_pass_transparent.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\skybox_tri.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\triangle_filtering.comp.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\vb_resources.h.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_alpha.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_alpha.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_ret.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_ret.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_void.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
+      <Project>{2f0e7e67-ff8e-4a4e-8271-11614a284790}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\base\ozz_base\ozz_base.vcxproj">
+      <Project>{055fad37-a3d6-4d9a-a63a-c81716339982}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\OS\OS.vcxproj">
+      <Project>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Renderer\Renderer.vcxproj">
+      <Project>{db6193e0-3c12-450f-b344-dc4daed8c421}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Tools\gainputstatic\gainputstatic.vcxproj">
+      <Project>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Libraries\Tools\SpirvTools\SpirvTools.vcxproj">
+      <Project>{5e22ffea-7871-4e40-96b0-269809340c5f}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{610C39FA-F02B-4237-BA8C-4EED56FA8D9F}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>VisibilityBufferOIT</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="..\AGDEVersions.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\..\Common_3\IDE\Visual Studio\TF_Shared.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Android-arm64-v8a'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <StandardLib>
+      </StandardLib>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>%(Command) 
+      </Command>
+    </PostBuildEvent>
+    <CustomBuildStep>
+      <Command>%(Command) 
+      </Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>
+      </Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
+    <PreLinkEvent>
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+
+if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
+if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
+
+xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
+xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Android-arm64-v8a'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <StandardLib>
+      </StandardLib>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+    </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>%(Command) 
+      </Command>
+    </PostBuildEvent>
+    <CustomBuildStep>
+      <Command>%(Command) 
+      </Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>
+      </Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>
+      </Outputs>
+    </CustomBuildStep>
+    <PreLinkEvent>
+      <Command>%(Command) set ART=$(ProjectDir)..\..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\"
+xcopy /Y /S /D "%ART%\Textures\ktx\*.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\cameraPath.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Fonts\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\Scripts\*.lua" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Scripts\"
+xcopy /Y /S /D  "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\circlepad.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\animations\*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\skeleton.ozz" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Animations\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Animation\stormtrooper\riggedMesh.bin" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Meshes\stormtrooper\"
+xcopy /Y /S /D "$(ProjectDir)..\..\UnitTestResources\Textures\ktx\Stormtrooper_D.tex" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Textures\"
+
+if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "$(OutDir)PipelineCaches\VULKAN\"
+if not exist "$(OutDir)PipelineCaches\DIRECT3D12\" mkdir "$(OutDir)PipelineCaches\DIRECT3D12\"
+
+xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\Shaders"
+xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
+
+xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
+    </PreLinkEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\Common_3\Tools\ForgeShadingLanguage\VS\fsl.targets" />
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

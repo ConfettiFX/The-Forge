@@ -1,5 +1,3 @@
-#include "../Shared.h"
-
 #comp BRDFIntegration_SAMPLES_0.comp
 #define IMPORTANCE_SAMPLE_COUNT 0
 #include "BRDFIntegration.comp.fsl"
@@ -23,6 +21,14 @@
 
 #comp computeIrradianceMap_SAMPLE_DELTA_025.comp
 #define SAMPLE_DELTA 0.25f
+#include "computeIrradianceMap.comp.fsl"
+#end
+#comp computeIrradianceMap_SAMPLE_DELTA_0125.comp
+#define SAMPLE_DELTA 0.125f
+#include "computeIrradianceMap.comp.fsl"
+#end
+#comp computeIrradianceMap_SAMPLE_DELTA_005.comp
+#define SAMPLE_DELTA 0.05f
 #include "computeIrradianceMap.comp.fsl"
 #end
 #comp computeIrradianceMap_SAMPLE_DELTA_0025.comp
@@ -55,107 +61,128 @@
 #include "copyDepth.comp.fsl"
 #end
 
-#comp DepthDownsample.comp
+// force AB usage here, because the total number of rw textures in
+// this shader exceeds the metal limit (8) for direct bindings
+#comp FT_ICB DepthDownsample.comp
 #include "DepthDownsample.comp.fsl"
 #end
 
-#frag VR_MULTIVIEW fillGbuffers.frag
-#include "fillGbuffers.frag.fsl"
+#if defined(METAL)
+#comp clearVisibilityBuffers_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "clearVisibilityBuffers.comp.fsl"
 #end
 
-#vert VR_MULTIVIEW fillGbuffers.vert
-#include "fillGbuffers.vert.fsl"
+#comp triangleFiltering_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "triangleFiltering.comp.fsl"
 #end
 
-#if defined(TARGET_IOS)
-
-#frag VR_MULTIVIEW fillGbuffers_TEX_FALLBACK.frag
-#define USE_TEXTURES_FALLBACK
-#include "fillGbuffers.frag.fsl"
+#comp batchCompaction_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "batchCompaction.comp.fsl"
 #end
-
-#frag VR_MULTIVIEW fillGbuffers_TEX_FALLBACK.vert
-#define USE_TEXTURES_FALLBACK
-#include "fillGbuffers.vert.fsl"
-#end
-
 #endif
 
-#comp VR_MULTIVIEW generateMips.comp
+#comp clearVisibilityBuffers.comp
+#include "clearVisibilityBuffers.comp.fsl"
+#end
+
+#comp triangleFiltering.comp
+#include "triangleFiltering.comp.fsl"
+#end
+
+#comp batchCompaction.comp
+#include "batchCompaction.comp.fsl"
+#end
+
+#frag FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.frag
+#include "visibilityBufferPass.frag.fsl"
+#end
+
+#vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.vert
+#include "visibilityBufferPass.vert.fsl"
+#end
+
+#vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.vert
+#include "visibilityBufferPassAlpha.vert.fsl"
+#end
+
+#frag FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.frag
+#include "visibilityBufferPassAlpha.frag.fsl"
+#end
+
+#vert FT_MULTIVIEW visibilityBufferShade.vert
+#include "visibilityBufferShade.vert.fsl"
+#end
+
+#frag FT_MULTIVIEW visibilityBufferShade.frag
+#include "visibilityBufferShade.frag.fsl"
+#end
+
+#comp FT_MULTIVIEW generateMips.comp
 #include "generateMips.comp.fsl"
 #end
 
-#comp panoToCube.comp
-#include "panoToCube.comp.fsl"
-#end
-
-#frag VR_MULTIVIEW PPR_Holepatching.frag
+#frag FT_MULTIVIEW PPR_Holepatching.frag
 #include "PPR_Holepatching.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW PPR_Holepatching.vert
+#vert FT_MULTIVIEW PPR_Holepatching.vert
 #include "PPR_Holepatching.vert.fsl"
 #end
 
-#comp VR_MULTIVIEW PPR_Projection.comp
+#comp FT_MULTIVIEW PPR_Projection.comp
 #include "PPR_Projection.comp.fsl"
 #end
 
-#frag VR_MULTIVIEW PPR_Reflection.frag
+#frag FT_MULTIVIEW PPR_Reflection.frag
 #include "PPR_Reflection.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW PPR_Reflection.vert
+#vert FT_MULTIVIEW PPR_Reflection.vert
 #include "PPR_Reflection.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW renderSceneBRDF.frag
-#include "renderSceneBRDF.frag.fsl"
-#end
-
-#vert VR_MULTIVIEW renderSceneBRDF.vert
-#include "renderSceneBRDF.vert.fsl"
-#end
-
-#frag VR_MULTIVIEW skybox.frag
+#frag FT_MULTIVIEW skybox.frag
 #include "skybox.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW skybox.vert
+#vert FT_MULTIVIEW skybox.vert
 #include "skybox.vert.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ClassifyTiles.comp
+#comp FT_MULTIVIEW SSSR_ClassifyTiles.comp
 #include "SSSR_ClassifyTiles.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_Intersect.comp
+#comp FT_MULTIVIEW SSSR_Intersect.comp
 #include "SSSR_Intersect.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_PrepareIndirectArgs.comp
+#comp FT_MULTIVIEW SSSR_PrepareIndirectArgs.comp
 #include "SSSR_PrepareIndirectArgs.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ResolveEaw.comp
+#comp FT_MULTIVIEW SSSR_ResolveEaw.comp
 #include "SSSR_ResolveEaw.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ResolveEawStride_2.comp
+#comp FT_MULTIVIEW SSSR_ResolveEawStride_2.comp
 #define FFX_SSSR_EAW_STRIDE 2
 #include "SSSR_ResolveEawStride.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ResolveEawStride_4.comp
+#comp FT_MULTIVIEW SSSR_ResolveEawStride_4.comp
 #define FFX_SSSR_EAW_STRIDE 4
 #include "SSSR_ResolveEawStride.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ResolveSpatial.comp
+#comp FT_MULTIVIEW SSSR_ResolveSpatial.comp
 #include "SSSR_ResolveSpatial.comp.fsl"
 #end
 
-#comp VR_MULTIVIEW SSSR_ResolveTemporal.comp
+#comp FT_MULTIVIEW SSSR_ResolveTemporal.comp
 #include "SSSR_ResolveTemporal.comp.fsl"
 #end
 

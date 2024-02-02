@@ -1,0 +1,65 @@
+/*
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+
+#define PRE_SKIN_NORMALS
+//#define PRE_SKIN_TANGENTS
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/pre_skin_vertexes.h.fsl"
+
+RES(ByteBuffer, vertexJointsBuffer, UPDATE_FREQ_NONE, t11, binding = 11);
+RES(ByteBuffer, vertexWeightsBuffer, UPDATE_FREQ_NONE, t12, binding = 12);
+
+NUM_THREADS(SKIN_BATCH_SIZE, 1, 1)
+void CS_MAIN(SV_GroupThreadID(uint3) threadId, SV_GroupID(uint3) groupId)
+{
+	INIT_MAIN;
+
+	if (threadId.x >= Get(skinBatchDataBuffer)[groupId.x].vertexCount)
+	{
+		RETURN();
+	}
+	
+	// Index for position might be different than index for joints, positions live in a buffer with position all other meshes in
+	// the scene, whereas joints buffer is smaller and only contains the data necessary for the few skinned meshes in the scene
+	uint inVertexIndex = threadId.x + Get(skinBatchDataBuffer)[groupId.x].vertexPositionOffset;
+	uint jointIndex = threadId.x + Get(skinBatchDataBuffer)[groupId.x].vertexJointsOffset;
+
+	uint4 joints = LoadJointIndexes4x16(vertexJointsBuffer, jointIndex);
+	float4 weights = LoadJointWeightsFloat4(vertexWeightsBuffer, jointIndex);
+
+	// jointMatrixes buffer contains matrixes for all animated instances in the scene, we need to offset our joints to the correct offset
+	joints += Get(skinBatchDataBuffer)[groupId.x].jointMatrixOffset;
+
+	PreSkinIn In;
+	In.position = LoadVertexPositionFloat3(inVertexIndex);
+#if defined(PRE_SKIN_NORMALS)
+	In.normal = LoadVertexNormalUint(inVertexIndex);
+#endif
+#if defined(PRE_SKIN_TANGENTS)
+	In.tangent = LoadVertexTangentUint(inVertexIndex);
+#endif
+
+	PreSkinVertex(groupId.x, threadId.x, In, joints, weights);
+	RETURN();
+}
+

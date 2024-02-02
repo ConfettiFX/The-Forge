@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,37 +20,37 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
+
+#include <android/configuration.h>
+#include <android/log.h>
+#include <android/looper.h>
+#include <android/native_activity.h>
+#include <ctime>
+#include <memory_advice/memory_advice.h>
+#include <sys/system_properties.h>
+#include <unistd.h>
 
 #include "../../Graphics/GraphicsConfig.h"
 
-#include <ctime>
-#include <unistd.h>
-#include <android/configuration.h>
-#include <android/looper.h>
-#include <android/native_activity.h>
-#include <android/log.h>
-
 #if defined(GLES)
-#include <GLES2/gl2.h>
 #include <EGL/egl.h>
+#include <GLES2/gl2.h>
 #endif
 
-#include "../CPUConfig.h"
-
-#include "../Interfaces/IOperatingSystem.h"
-#include "../../Utilities/Interfaces/ILog.h"
-#include "../../Utilities/Interfaces/ITime.h"
-#include "../../Utilities/Interfaces/IThread.h"
-#include "../../Application/Interfaces/IProfiler.h"
 #include "../../Application/Interfaces/IApp.h"
-#include "../../Utilities/Interfaces/IFileSystem.h"
-
-#include "../../Game/Interfaces/IScripting.h"
 #include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IProfiler.h"
 #include "../../Application/Interfaces/IUI.h"
-
+#include "../../Game/Interfaces/IScripting.h"
 #include "../../Graphics/Interfaces/IGraphics.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/ITime.h"
+#include "../Interfaces/IOperatingSystem.h"
+
+#include "../CPUConfig.h"
 
 #if defined(QUEST_VR)
 #include "../Quest/VrApi.h"
@@ -58,146 +58,218 @@
 
 #include "../../Utilities/Interfaces/IMemory.h"
 
-
-static IApp* pApp = NULL;
+static IApp*       pApp = NULL;
 static WindowDesc* gWindowDesc = nullptr;
-extern WindowDesc gWindow;
+extern WindowDesc  gWindow;
 
-static ResetDesc gResetDescriptor = { RESET_TYPE_NONE };
+static ResetDesc  gResetDescriptor = { RESET_TYPE_NONE };
 static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
-static bool    gShowPlatformUI = true;
+static bool       gShutdownRequested = false;
+static bool       gShowPlatformUI = true;
+
+static ThermalStatus               gThermalStatus = THERMAL_STATUS_NONE;
+static MemoryState                 gMemoryState = MEMORY_STATE_UNKNOWN;
+static errorMessagePopupCallbackFn gErrorMessagePopupCallback = NULL;
 
 /// CPU
 static CpuInfo gCpu;
+static OSInfo  gOsInfo = {};
 
 /// UI
 static UIComponent* pAPISwitchingWindow = NULL;
 static UIComponent* pToggleVSyncWindow = NULL;
-UIWidget* pSwitchWindowLabel = NULL;
-UIWidget* pSelectApUIWidget = NULL;
+static UIComponent* pReloadShaderComponent = NULL;
+UIWidget*           pSwitchWindowLabel = NULL;
+UIWidget*           pSelectApUIWidget = NULL;
 
 static uint32_t gSelectedApiIndex = 0;
 
-// Renderer.cpp
-extern RendererApi gSelectedRendererApi;
-extern bool gGLESUnsupported;
+// PickRenderingAPI.cpp
+extern PlatformParameters gPlatformParameters;
+extern bool               gGLESUnsupported;
 
 // AndroidWindow.cpp
 extern IApp* pWindowAppRef;
-extern bool windowReady;
-extern bool isActive;
-extern bool isLoaded;
+extern bool  windowReady;
+extern bool  isActive;
+extern bool  isLoaded;
 
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
 //------------------------------------------------------------------------
-CpuInfo* getCpuInfo() {
-	return &gCpu;
+CpuInfo* getCpuInfo() { return &gCpu; }
+
+OSInfo* getOsInfo() { return &gOsInfo; }
+
+extern "C"
+{
+    JNIEXPORT void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeThermalEvent)(JNIEnv* env, jobject obj, jint status);
+    JNIEXPORT void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeOnAlertClosed)(JNIEnv* env, jobject obj);
 }
 
-bool getBenchmarkArguments(android_app* pAndroidApp, JNIEnv* pJavaEnv, int& frameCount, char * benchmarkOutput)
+void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeThermalEvent)(JNIEnv* env, jobject obj, jint status)
+{
+    const ThermalStatus thermalStatus = (ThermalStatus)status;
+    ASSERT(thermalStatus >= THERMAL_STATUS_MIN && thermalStatus < THERMAL_STATUS_MAX);
+
+    LOGF(eINFO, "Thermal status event: %s (%d)", getThermalStatusString(thermalStatus), thermalStatus);
+    gThermalStatus = thermalStatus;
+}
+
+void JNICALL TF_ANDROID_JAVA_NATIVE_EVENT(ForgeBaseActivity, nativeOnAlertClosed)(JNIEnv* env, jobject obj)
+{
+    if (gErrorMessagePopupCallback)
+    {
+        gErrorMessagePopupCallback();
+    }
+}
+
+// this callback is called only for states other then MEMORYADVICE_STATE_OK.
+void memoryStateWatcherCallback(MemoryAdvice_MemoryState state, void* userData)
+{
+    MemoryState tfState;
+    switch (state)
+    {
+    case MEMORYADVICE_STATE_UNKNOWN:
+        tfState = MEMORY_STATE_UNKNOWN;
+        break;
+    case MEMORYADVICE_STATE_OK:
+        tfState = MEMORY_STATE_OK;
+        break;
+    case MEMORYADVICE_STATE_APPROACHING_LIMIT:
+        tfState = MEMORY_STATE_APPROACHING_LIMIT;
+        break;
+    case MEMORYADVICE_STATE_CRITICAL:
+        tfState = MEMORY_STATE_CRITICAL;
+        break;
+    default:
+        tfState = MEMORY_STATE_UNKNOWN;
+        break;
+    }
+
+    if (gMemoryState != tfState)
+    {
+        LOGF(eINFO, "Memory state change: %s (%d)", getMemoryStateString(tfState), tfState);
+    }
+    gMemoryState = tfState;
+}
+
+bool getBenchmarkArguments(android_app* pAndroidApp, JNIEnv* pJavaEnv, int& frameCount, uint32_t& requestRecompileAfter,
+                           char* benchmarkOutput)
 {
     if (!pAndroidApp || !pAndroidApp->activity || !pAndroidApp->activity->vm || !pJavaEnv)
         return false;
 
-	jobject me = pAndroidApp->activity->clazz;
+    jobject me = pAndroidApp->activity->clazz;
 
-	jclass acl = pJavaEnv->GetObjectClass(me); //class pointer of NativeActivity
-	jmethodID giid = pJavaEnv->GetMethodID(acl, "getIntent", "()Landroid/content/Intent;");
-	jobject intent = pJavaEnv->CallObjectMethod(me, giid); //Got our intent
+    jclass    acl = pJavaEnv->GetObjectClass(me); // class pointer of NativeActivity
+    jmethodID giid = pJavaEnv->GetMethodID(acl, "getIntent", "()Landroid/content/Intent;");
+    jobject   intent = pJavaEnv->CallObjectMethod(me, giid); // Got our intent
 
-	jclass icl = pJavaEnv->GetObjectClass(intent); //class pointer of Intent
-	jmethodID gseid = pJavaEnv->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+    jclass    icl = pJavaEnv->GetObjectClass(intent); // class pointer of Intent
+    jmethodID gseid = pJavaEnv->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
 
-	bool argumentsPassed = false;
+    bool argumentsPassed = false;
 
-	jstring benchmarkParam = (jstring)pJavaEnv->CallObjectMethod(intent, gseid, pJavaEnv->NewStringUTF("-b"));
-	if (benchmarkParam != 0x0)
-	{
-		//get c string for value of parameter
-		const char *benchParamCstr = pJavaEnv->GetStringUTFChars(benchmarkParam, 0);
-		//convert to int.
-		frameCount = (int)strtol(benchParamCstr, NULL, 10);
-		//When done with it, or when you've made a copy
-		pJavaEnv->ReleaseStringUTFChars(benchmarkParam, benchParamCstr);
-		argumentsPassed = true;
-	}
+    jstring benchmarkParam = (jstring)pJavaEnv->CallObjectMethod(intent, gseid, pJavaEnv->NewStringUTF("-b"));
+    if (benchmarkParam != 0x0)
+    {
+        // get c string for value of parameter
+        const char* benchParamCstr = pJavaEnv->GetStringUTFChars(benchmarkParam, 0);
+        // convert to int.
+        frameCount = (int)strtol(benchParamCstr, NULL, 10);
+        // When done with it, or when you've made a copy
+        pJavaEnv->ReleaseStringUTFChars(benchmarkParam, benchParamCstr);
+        argumentsPassed = true;
+    }
 
-	jstring outputParam = (jstring)pJavaEnv->CallObjectMethod(intent, gseid, pJavaEnv->NewStringUTF("-o"));
-	if (outputParam != 0x0)
-	{
-		//get c string for value of parameter
-		const char *benchParamCstr = pJavaEnv->GetStringUTFChars(outputParam, 0);
-		strcpy(benchmarkOutput, benchParamCstr);
-		//When done with it, or when you've made a copy
-		pJavaEnv->ReleaseStringUTFChars(outputParam, benchParamCstr);
-		argumentsPassed = true;
-	}
-	
-	return argumentsPassed;
+    jstring recompileAfterParam = (jstring)pJavaEnv->CallObjectMethod(intent, gseid, pJavaEnv->NewStringUTF("--request-recompile-after"));
+    if (recompileAfterParam != 0x0)
+    {
+        // get c string for value of parameter
+        const char* benchParamCstr = pJavaEnv->GetStringUTFChars(recompileAfterParam, 0);
+        // convert to int.
+        requestRecompileAfter = (int)strtol(benchParamCstr, NULL, 10);
+        // When done with it, or when you've made a copy
+        pJavaEnv->ReleaseStringUTFChars(recompileAfterParam, benchParamCstr);
+        argumentsPassed = true;
+    }
+
+    jstring outputParam = (jstring)pJavaEnv->CallObjectMethod(intent, gseid, pJavaEnv->NewStringUTF("-o"));
+    if (outputParam != 0x0)
+    {
+        // get c string for value of parameter
+        const char* benchParamCstr = pJavaEnv->GetStringUTFChars(outputParam, 0);
+        strcpy(benchmarkOutput, benchParamCstr);
+        // When done with it, or when you've made a copy
+        pJavaEnv->ReleaseStringUTFChars(outputParam, benchParamCstr);
+        argumentsPassed = true;
+    }
+
+    return argumentsPassed;
 }
 
-void onStart(ANativeActivity* activity)
-{ 
-	printf("start\b");
-}
+void onStart(ANativeActivity* activity) { printf("start\b"); }
 
 //------------------------------------------------------------------------
 // OPERATING SYSTEM INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-void requestShutdown()
-{
-	LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android");
-}
+void requestShutdown() { gShutdownRequested = true; }
 
-void requestReset(const ResetDesc* pResetDesc)
-{
-	gResetDescriptor = *pResetDesc;
-}
+void requestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
 
-void requestReload(const ReloadDesc* pReloadDesc)
-{
-	gReloadDescriptor = *pReloadDesc;
-}
+void requestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
 
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
+void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
 {
-#if !defined(QUEST_VR)
-	ASSERT(windowHandle);
-	
-	WindowHandle* handle = (WindowHandle*)windowHandle;
-	JNIEnv* jni = 0;
-	handle->activity->vm->AttachCurrentThread(&jni, NULL);
-	if (!jni)
-		return;
-	
-	jclass clazz = jni->GetObjectClass(handle->activity->clazz);
-	jmethodID methodID = jni->GetMethodID(clazz, "showAlert", "(Ljava/lang/String;Ljava/lang/String;)V");
-	if (!methodID)
-	{
-		LOGF(LogLevel::eERROR, "Could not find method \'showAlert\' in activity class");
-		handle->activity->vm->DetachCurrentThread();
-		return;
-	}
-	
-	jstring jTitle = jni->NewStringUTF(title);
-	jstring jMessage = jni->NewStringUTF(msg);
-	
-	jni->CallVoidMethod(handle->activity->clazz, methodID, jTitle, jMessage);
-	
-	jni->DeleteLocalRef(jTitle);
-	jni->DeleteLocalRef(jMessage);
-	
-	handle->activity->vm->DetachCurrentThread();
+#if defined(AUTOMATED_TESTING) || defined(QUEST_VR)
+    LOGF(eERROR, title);
+    LOGF(eERROR, msg);
+    if (callback)
+    {
+        callback();
+    }
+#else
+    ASSERT(handle);
+    gErrorMessagePopupCallback = callback;
+
+    JNIEnv* jni = 0;
+    handle->activity->vm->AttachCurrentThread(&jni, NULL);
+    if (!jni)
+    {
+        return;
+    }
+
+    jclass    clazz = jni->GetObjectClass(handle->activity->clazz);
+    jmethodID methodID = jni->GetMethodID(clazz, "showAlert", "(Ljava/lang/String;Ljava/lang/String;)V");
+    if (!methodID)
+    {
+        LOGF(LogLevel::eERROR, "Could not find method \'showAlert\' in activity class");
+        return;
+    }
+
+    jstring jTitle = jni->NewStringUTF(title);
+    jstring jMessage = jni->NewStringUTF(msg);
+
+    jni->CallVoidMethod(handle->activity->clazz, methodID, jTitle, jMessage);
+
+    jni->DeleteLocalRef(jTitle);
+    jni->DeleteLocalRef(jMessage);
+
 #endif
 }
 
 CustomMessageProcessor sCustomProc = nullptr;
-void setCustomMessageProcessor(CustomMessageProcessor proc)
-{
-	sCustomProc = proc;
-}
+void                   setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
+
+//------------------------------------------------------------------------
+// DEVICE STATUS
+//------------------------------------------------------------------------
+
+ThermalStatus getThermalStatus(void) { return gThermalStatus; }
+
+MemoryState getMemoryState(void) { return gMemoryState; }
 
 //------------------------------------------------------------------------
 // PLATFORM LAYER CORE SUBSYSTEMS
@@ -205,70 +277,82 @@ void setCustomMessageProcessor(CustomMessageProcessor proc)
 
 bool initBaseSubsystems(IApp* app)
 {
-	// Not exposed in the interface files / app layer
-	extern bool platformInitFontSystem();
-	extern bool platformInitUserInterface();
-	extern void platformInitLuaScriptingSystem();
-	extern void platformInitWindowSystem(WindowDesc*);
+    // Not exposed in the interface files / app layer
+    extern bool platformInitFontSystem();
+    extern bool platformInitUserInterface();
+    extern void platformInitLuaScriptingSystem();
+    extern void platformInitWindowSystem(WindowDesc*);
 
-	platformInitWindowSystem(gWindowDesc);
-	pApp->pWindow = gWindowDesc;
+    platformInitWindowSystem(gWindowDesc);
+    pApp->pWindow = gWindowDesc;
 
 #ifdef ENABLE_FORGE_FONTS
-	if (!platformInitFontSystem())
-		return false;
+    if (!platformInitFontSystem())
+        return false;
 #endif
 
 #ifdef ENABLE_FORGE_UI
-	if (!platformInitUserInterface())
-		return false;
+    if (!platformInitUserInterface())
+        return false;
 #endif
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	platformInitLuaScriptingSystem();
+    platformInitLuaScriptingSystem();
+
+#if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
+    // Tests below are executed first, before any tests registered in IApp::Init
+    const char*    sFirstTestScripts[] = { "Test_Default.lua" };
+    const uint32_t numScripts = sizeof(sFirstTestScripts) / sizeof(sFirstTestScripts[0]);
+    LuaScriptDesc  scriptDescs[numScripts] = {};
+    for (uint32_t i = 0; i < numScripts; ++i)
+    {
+        scriptDescs[i].pScriptFileName = sFirstTestScripts[i];
+    }
+    luaDefineScripts(scriptDescs, numScripts);
+#endif
 #endif
 
-	return true;
+    return true;
 }
 
-void updateBaseSubsystems(float deltaTime)
+void updateBaseSubsystems(float deltaTime, bool appDrawn)
 {
-	// Not exposed in the interface files / app layer
-	extern void platformUpdateLuaScriptingSystem();
-	extern void platformUpdateUserInterface(float deltaTime);
-	extern void platformUpdateWindowSystem();
+    // Not exposed in the interface files / app layer
+    extern void platformUpdateLuaScriptingSystem(bool appDrawn);
+    extern void platformUpdateUserInterface(float deltaTime);
+    extern void platformUpdateWindowSystem();
 
-	platformUpdateWindowSystem();
+    platformUpdateWindowSystem();
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	platformUpdateLuaScriptingSystem();
+    platformUpdateLuaScriptingSystem(appDrawn);
 #endif
 
 #ifdef ENABLE_FORGE_UI
-	platformUpdateUserInterface(deltaTime);
+    platformUpdateUserInterface(deltaTime);
 #endif
 }
 
 void exitBaseSubsystems()
 {
-	// Not exposed in the interface files / app layer
-	extern void platformExitFontSystem();
-	extern void platformExitUserInterface();
-	extern void platformExitLuaScriptingSystem();
-	extern void platformExitWindowSystem();
+    // Not exposed in the interface files / app layer
+    extern void platformExitFontSystem();
+    extern void platformExitUserInterface();
+    extern void platformExitLuaScriptingSystem();
+    extern void platformExitWindowSystem();
 
-	platformExitWindowSystem();
+    platformExitWindowSystem();
 
 #ifdef ENABLE_FORGE_UI
-	platformExitUserInterface();
+    platformExitUserInterface();
 #endif
 
 #ifdef ENABLE_FORGE_FONTS
-	platformExitFontSystem();
+    platformExitFontSystem();
 #endif
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	platformExitLuaScriptingSystem();
+    platformExitLuaScriptingSystem();
 #endif
 }
 
@@ -279,70 +363,110 @@ void exitBaseSubsystems()
 void setupPlatformUI(int32_t width, int32_t height)
 {
 #ifdef ENABLE_FORGE_UI
-	// WINDOW AND RESOLUTION CONTROL
+    // WINDOW AND RESOLUTION CONTROL
+    extern void platformSetupWindowSystemUI(IApp*);
+    platformSetupWindowSystemUI(pApp);
 
-	extern void platformSetupWindowSystemUI(IApp*);
-	platformSetupWindowSystemUI(pApp);
+    // VSYNC CONTROL
+    UIComponentDesc UIComponentDesc = {};
+    UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
+    uiCreateComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
 
-	// VSYNC CONTROL
+    CheckboxWidget checkbox;
+    checkbox.pData = &pApp->mSettings.mVSyncEnabled;
+    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+    REGISTER_LUA_WIDGET(pCheckbox);
 
-	UIComponentDesc UIComponentDesc = {};
-	UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.90f);
-	uiCreateComponent("VSync Control", &UIComponentDesc, &pToggleVSyncWindow);
+    // RELOAD CONTROL
+    UIComponentDesc = {};
+    UIComponentDesc.mStartPosition = vec2(width * 0.6f, height * 0.90f);
+    uiCreateComponent("Reload Control", &UIComponentDesc, &pReloadShaderComponent);
 
-	CheckboxWidget checkbox;
-	checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-	UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncWindow, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
-	REGISTER_LUA_WIDGET(pCheckbox);
+    // MICROPROFILER UI
+    toggleProfilerMenuUI(true);
 
-	gSelectedApiIndex = gSelectedRendererApi;
+    extern void platformReloadClientAddReloadShadersButton(UIComponent * pReloadShaderComponent);
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 
-	static const char* pApiNames[] =
-	{
-	#if defined(GLES)
-		"GLES",
-	#endif
-	#if defined(VULKAN)
-		"Vulkan",
-	#endif
-	};
-	uint32_t apiNameCount = sizeof(pApiNames) / sizeof(*pApiNames); 
+    gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
 
-	if (apiNameCount > 1 && !gGLESUnsupported)
-	{
-		UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
-		uiCreateComponent("API Switching", &UIComponentDesc, &pAPISwitchingWindow);
-
-		// Select Api 
-		DropdownWidget selectApUIWidget;
-		selectApUIWidget.pData = &gSelectedApiIndex;
-		selectApUIWidget.pNames = pApiNames;
-		selectApUIWidget.mCount = RENDERER_API_COUNT;
-
-		pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-		pSelectApUIWidget->pOnEdited = [](void* pUserData){ ResetDesc resetDesc; resetDesc.mType = RESET_TYPE_API_SWITCH; requestReset(&resetDesc); };
-
-#ifdef ENABLE_FORGE_SCRIPTING
-		REGISTER_LUA_WIDGET(pSelectApUIWidget);
-		LuaScriptDesc apiScriptDesc = {};
-		apiScriptDesc.pScriptFileName = "Test_API_Switching.lua";
-		luaDefineScripts(&apiScriptDesc, 1);
+    static const char* pApiNames[] = {
+#if defined(GLES)
+        "GLES",
 #endif
-	}
+#if defined(VULKAN)
+        "Vulkan",
+#endif
+    };
+    uint32_t apiNameCount = sizeof(pApiNames) / sizeof(*pApiNames);
+
+    if (apiNameCount > 1 && !gGLESUnsupported)
+    {
+        UIComponentDesc.mStartPosition = vec2(width * 0.4f, height * 0.01f);
+        uiCreateComponent("API Switching", &UIComponentDesc, &pAPISwitchingWindow);
+
+        // Select Api
+        DropdownWidget selectApUIWidget;
+        selectApUIWidget.pData = &gSelectedApiIndex;
+        selectApUIWidget.pNames = pApiNames;
+        selectApUIWidget.mCount = RENDERER_API_COUNT;
+
+        pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingWindow, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
+        pSelectApUIWidget->pOnEdited = [](void* pUserData)
+        {
+            ResetDesc resetDesc;
+            resetDesc.mType = RESET_TYPE_API_SWITCH;
+            requestReset(&resetDesc);
+        };
+    }
+
+#if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
+    // Tests below are executed last, after tests registered in IApp::Init have executed
+    const char*    sLastTestScripts[] = { "Test_API_Switching.lua" };
+    const uint32_t numScripts = sizeof(sLastTestScripts) / sizeof(sLastTestScripts[0]);
+    LuaScriptDesc  scriptDescs[numScripts] = {};
+    for (uint32_t i = 0; i < numScripts; ++i)
+    {
+        scriptDescs[i].pScriptFileName = sLastTestScripts[i];
+    }
+    luaDefineScripts(scriptDescs, numScripts);
+#endif
 #endif
 }
 
 void togglePlatformUI()
 {
-	gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
+    gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
 
 #ifdef ENABLE_FORGE_UI
-	extern void platformToggleWindowSystemUI(bool);
-	platformToggleWindowSystemUI(gShowPlatformUI); 
+    extern void platformToggleWindowSystemUI(bool);
+    platformToggleWindowSystemUI(gShowPlatformUI);
 
-	uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI); 
-	uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
+    uiSetComponentActive(pToggleVSyncWindow, gShowPlatformUI);
+    uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
+
+    if (pAPISwitchingWindow)
+        uiSetComponentActive(pAPISwitchingWindow, gShowPlatformUI);
 #endif
+}
+
+void processAllEvents(android_app* app, bool* windowReady, int* cancelationToken)
+{
+    ASSERT(app);
+    ASSERT(windowReady);
+    ASSERT(cancelationToken);
+
+    while (!(*cancelationToken))
+    {
+        // Used to poll the events in the main loop
+        int                  events;
+        android_poll_source* source;
+        if (ALooper_pollAll(*windowReady ? 1 : 0, NULL, &events, (void**)&source) >= 0)
+        {
+            if (source != NULL)
+                source->process(app, source);
+        }
+    }
 }
 
 //------------------------------------------------------------------------
@@ -350,87 +474,112 @@ void togglePlatformUI()
 //------------------------------------------------------------------------
 
 // AndroidWindow.cpp
-extern void handleMessages(WindowDesc*);
-extern void getDisplayMetrics(android_app*, JNIEnv*);
-extern void handle_cmd(android_app*, int32_t);
+extern void    handleMessages(WindowDesc*);
+extern void    getDisplayMetrics(android_app*, JNIEnv*);
+extern void    handle_cmd(android_app*, int32_t);
 extern int32_t handle_input(struct android_app*, AInputEvent*);
+
+int          IApp::argc;
+const char** IApp::argv;
 
 int AndroidMain(void* param, IApp* app)
 {
-	struct android_app* android_app = (struct android_app*)param;
+    if (!initMemAlloc(app->GetName()))
+    {
+        while (0 > __android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application"))
+            ;
+        return EXIT_FAILURE;
+    }
 
-	if (!initMemAlloc(app->GetName()))
-	{
-		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application");
-		return EXIT_FAILURE;
-	}
+    struct android_app* android_app = (struct android_app*)param;
 
-	FileSystemInitDesc fsDesc = {};
-	fsDesc.pPlatformData = android_app->activity;
-	fsDesc.pAppName = app->GetName();
-	if (!initFileSystem(&fsDesc))
-	{
-		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application");
-		return EXIT_FAILURE;
-	}
+    FileSystemInitDesc fsDesc = {};
+    fsDesc.pPlatformData = android_app->activity;
+    fsDesc.pAppName = app->GetName();
+    if (!initFileSystem(&fsDesc))
+    {
+        while (0 > __android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application"))
+            ;
+        return EXIT_FAILURE;
+    }
 
-	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
-	fsSetPathForResourceDir(pSystemFileIO, RM_SYSTEM, RD_SYSTEM, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_SYSTEM, RD_SYSTEM, "");
 
-	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+    initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+
+    snprintf(gOsInfo.osName, 256, "Android");
+    bool knownVersion = __system_property_get("ro.build.version.sdk", gOsInfo.osVersion);
+    bool knownModel = __system_property_get("ro.product.model", gOsInfo.osDeviceName);
+    LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName,
+         knownVersion ? gOsInfo.osVersion : "Unknown Version", knownModel ? gOsInfo.osDeviceName : "Unknown Model");
 
     JNIEnv* pJavaEnv;
     android_app->activity->vm->AttachCurrentThread(&pJavaEnv, NULL);
 
-	// Set the callback to process system events
-	gWindow.handle.activity = android_app->activity;
-	gWindow.handle.configuration = android_app->config;
-	gWindow.cursorCaptured = false;
-	gWindowDesc = &gWindow;
+    // Set the callback to process system events
+    gWindow.handle.type = WINDOW_HANDLE_TYPE_ANDROID;
+    gWindow.handle.activity = android_app->activity;
+    gWindow.handle.configuration = android_app->config;
+    gWindow.cursorCaptured = false;
+    gWindowDesc = &gWindow;
 
-	android_app->onAppCmd = handle_cmd;
-	pApp = app;
-	pWindowAppRef = app; 
+    android_app->onAppCmd = handle_cmd;
+    pApp = app;
+    pWindowAppRef = app;
 
-	//Used for automated testing, if enabled app will exit after 120 frames
+    MemoryAdvice_ErrorCode code = MemoryAdvice_init(pJavaEnv, gWindow.handle.activity->clazz);
+    if (code == MEMORYADVICE_ERROR_OK)
+    {
+        code = MemoryAdvice_registerWatcher(1000.0f, memoryStateWatcherCallback, NULL);
+        gMemoryState = MEMORY_STATE_OK;
+        if (code != MEMORYADVICE_ERROR_OK)
+        {
+            LOGF(eWARNING, "Unable to register Memory Advice watcher.");
+        }
+    }
+
+    // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
 #ifdef AUTOMATED_TESTING
-	uint32_t	testingFrameCount = 0;
-	uint32_t	targetFrameCount = 120;
+    uint32_t testingFrameCount = 0;
+    uint32_t targetFrameCount = DEFAULT_AUTOMATION_FRAME_COUNT;
 #endif
 
-	initCpuInfo(&gCpu, pJavaEnv);
+    initCpuInfo(&gCpu, pJavaEnv);
 
-	IApp::Settings* pSettings = &pApp->mSettings;
-	HiresTimer           deltaTimer;
-	initHiresTimer(&deltaTimer);
+    IApp::Settings* pSettings = &pApp->mSettings;
+    HiresTimer      deltaTimer;
+    initHiresTimer(&deltaTimer);
 
-	getDisplayMetrics(android_app, pJavaEnv);
+    getDisplayMetrics(android_app, pJavaEnv);
 
 #if defined(QUEST_VR)
-	initVrApi(android_app, pJavaEnv);
-	ASSERT(pQuest);
-	pSettings->mWidth = pQuest->mEyeTextureWidth;
-	pSettings->mHeight = pQuest->mEyeTextureHeight;
-#else		
-	RectDesc rect = {};
-	getRecommendedResolution(&rect);
-	pSettings->mWidth = getRectWidth(&rect);
-	pSettings->mHeight = getRectHeight(&rect);
-#endif
-		
-#ifdef AUTOMATED_TESTING
-	int frameCountArgs;
-	char benchmarkOutput[1024] = { "\0" };
-	bool benchmarkArgs = getBenchmarkArguments(android_app, pJavaEnv, frameCountArgs, &benchmarkOutput[0]);
-	if (benchmarkArgs)
-	{
-		pSettings->mBenchmarking = true;
-		targetFrameCount = frameCountArgs;
-	}
+    initVrApi(android_app, pJavaEnv);
+    ASSERT(pQuest);
+    pSettings->mWidth = pQuest->mEyeTextureWidth;
+    pSettings->mHeight = pQuest->mEyeTextureHeight;
+#else
+    RectDesc rect = {};
+    getRecommendedResolution(&rect);
+    pSettings->mWidth = getRectWidth(&rect);
+    pSettings->mHeight = getRectHeight(&rect);
 #endif
 
-	// Set the callback to process input events
-	android_app->onInputEvent = handle_input;
+#ifdef AUTOMATED_TESTING
+    int             frameCountArgs;
+    extern uint32_t gShaderServerRequestRecompileAfter;
+    char            benchmarkOutput[1024] = { "\0" };
+    bool            benchmarkArgs =
+        getBenchmarkArguments(android_app, pJavaEnv, frameCountArgs, gShaderServerRequestRecompileAfter, &benchmarkOutput[0]);
+    if (benchmarkArgs)
+    {
+        pSettings->mBenchmarking = true;
+        targetFrameCount = frameCountArgs;
+    }
+#endif
+
+    // Set the callback to process input events
+    android_app->onInputEvent = handle_input;
 
     if (!initBaseSubsystems(pApp))
     {
@@ -439,108 +588,187 @@ int AndroidMain(void* param, IApp* app)
 
     if (!pApp->Init())
     {
+        const char* pRendererReason;
+        if (hasRendererInitializationError(&pRendererReason))
+        {
+            pApp->ShowUnsupportedMessage(pRendererReason);
+        }
+
+        if (pApp->mUnsupported)
+        {
+            android_app->onAppCmd = NULL;
+            android_app->onInputEvent = NULL;
+            static int popupClosed = 0;
+            errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "", &pApp->pWindow->handle,
+                              []() { popupClosed = 1; });
+            processAllEvents(android_app, &windowReady, &popupClosed);
+
+#ifdef AUTOMATED_TESTING
+            sleep(5); // logcat may "reorder" messages, this can break testing with apps that very quickly open and exit
+#endif
+
+            ANativeActivity_finish(android_app->activity);
+            processAllEvents(android_app, &windowReady, &android_app->destroyRequested);
+
+            exitLog();
+#ifdef AUTOMATED_TESTING
+            while (0 > __android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application"))
+                ;
+#endif
+            exit(0);
+        }
         abort();
     }
 
-	setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
-	pSettings->mInitialized = true;
+    setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
+    pSettings->mInitialized = true;
 
 #ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
+    if (pSettings->mBenchmarking)
+    {
+        setAggregateFrames(targetFrameCount / 2);
+    }
 #endif
 
-	bool quit = false;
-	while (!quit)
-	{
-		// Used to poll the events in the main loop
-		int                  events;
-		android_poll_source* source;
+    bool baseSubsystemAppDrawn = false;
+    bool quit = false;
+    while (!quit)
+    {
+        // Used to poll the events in the main loop
+        int                  events;
+        android_poll_source* source;
 
-		if (ALooper_pollAll(windowReady ? 1 : 0, NULL, &events, (void**)&source) >= 0)
-		{
-			if (source != NULL)
-				source->process(android_app, source);
+        if (ALooper_pollAll(windowReady ? 1 : 0, NULL, &events, (void**)&source) >= 0)
+        {
+            if (source != NULL)
+                source->process(android_app, source);
 
 #if defined(QUEST_VR)
             hook_poll_events(isActive, windowReady, pApp->pWindow->handle.window);
 #endif
-		}
+        }
 
-		if (isActive && gResetDescriptor.mType != RESET_TYPE_NONE)
-		{
-			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+        float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
+        // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+        if (deltaTime > 0.15f)
+            deltaTime = 0.05f;
 
-			pApp->Unload(&gReloadDescriptor);
-			pApp->Exit();
+#if defined(AUTOMATED_TESTING)
+        // Used to keep screenshot results consistent across CI runs
+        deltaTime = AUTOMATION_FIXED_FRAME_TIME;
+#endif
 
-			exitBaseSubsystems();
+        handleMessages(&gWindow);
 
-			gSelectedRendererApi = (RendererApi)gSelectedApiIndex;
-			pSettings->mInitialized = false;
+        if (gShutdownRequested && !android_app->destroyRequested)
+        {
+            ANativeActivity_finish(android_app->activity);
+            pApp->mSettings.mQuit = true;
+            continue;
+        }
 
-			{
+        // UPDATE BASE INTERFACES
+        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        baseSubsystemAppDrawn = false;
+
+        if (isActive && isLoaded && gResetDescriptor.mType != RESET_TYPE_NONE)
+        {
+            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+
+            pApp->Unload(&gReloadDescriptor);
+            pApp->Exit();
+
+            exitBaseSubsystems();
+
+            gPlatformParameters.mSelectedRendererApi = (RendererApi)gSelectedApiIndex;
+            pSettings->mInitialized = false;
+
+            {
                 if (!initBaseSubsystems(pApp))
                 {
                     abort();
                 }
 
-				Timer t;
-				initTimer(&t);
+                Timer t;
+                initTimer(&t);
                 if (!pApp->Init())
                 {
+                    if (pApp->mUnsupported)
+                    {
+                        android_app->onAppCmd = NULL;
+                        android_app->onInputEvent = NULL;
+                        static int popupClosed = 0;
+                        errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                                          &pApp->pWindow->handle, []() { popupClosed = 1; });
+                        processAllEvents(android_app, &windowReady, &popupClosed);
+
+#ifdef AUTOMATED_TESTING
+                        sleep(5); // logcat may "reorder" messages, this can break testing with apps that very quickly open and exit
+#endif
+
+                        ANativeActivity_finish(android_app->activity);
+                        processAllEvents(android_app, &windowReady, &android_app->destroyRequested);
+
+                        exitLog();
+#ifdef AUTOMATED_TESTING
+                        while (0 > __android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application"))
+                            ;
+#endif
+                        exit(0);
+                    }
                     abort();
                 }
 
-				setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
-				pSettings->mInitialized = true;
+                setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
+                pSettings->mInitialized = true;
 
                 if (!pApp->Load(&gReloadDescriptor))
                 {
                     abort();
                 }
 
-				LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
-			}
+                LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
+            }
 
-			gResetDescriptor.mType = RESET_TYPE_NONE;
-			continue;
-		}
+            gResetDescriptor.mType = RESET_TYPE_NONE;
+            continue;
+        }
 
-		if (isActive && gReloadDescriptor.mType != RELOAD_TYPE_ALL)
-		{
-			Timer t;
-			initTimer(&t);
+        if (isActive && isLoaded && gReloadDescriptor.mType != RELOAD_TYPE_ALL)
+        {
+            Timer t;
+            initTimer(&t);
 
-			pApp->Unload(&gReloadDescriptor);
+            pApp->Unload(&gReloadDescriptor);
 
-			if (!pApp->Load(&gReloadDescriptor))
-			{
-				abort();
-			}
+            if (!pApp->Load(&gReloadDescriptor))
+            {
+                abort();
+            }
 
-			LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
-			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-			continue;
-		}
+            LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+            continue;
+        }
 
-		if (!windowReady || !isActive)
-		{
-			if (android_app->destroyRequested)
-			{
-				quit = true;
-				pApp->mSettings.mQuit = true;
-			}
+        if (!windowReady || !isActive)
+        {
+            if (android_app->destroyRequested)
+            {
+                quit = true;
+                pApp->mSettings.mQuit = true;
+            }
 
-			if (isLoaded && !windowReady)
-			{
-				gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-				pApp->Unload(&gReloadDescriptor);
-				isLoaded = false;
-			}
+            if (isLoaded && !windowReady)
+            {
+                gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+                pApp->Unload(&gReloadDescriptor);
+                isLoaded = false;
+            }
 
-			usleep(1);
-			continue;
-		}
+            usleep(1);
+            continue;
+        }
 
 #if defined(QUEST_VR)
         if (pQuest->pOvr == NULL)
@@ -549,65 +777,65 @@ int AndroidMain(void* param, IApp* app)
         updateVrApi();
 #endif
 
-		float deltaTime = getHiresTimerSeconds(&deltaTimer, true);
-		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
-		if (deltaTime > 0.15f)
-			deltaTime = 0.05f;
+        // UPDATE APP
+        pApp->Update(deltaTime);
+        pApp->Draw();
+        baseSubsystemAppDrawn = true;
 
-		handleMessages(&gWindow);
+        if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+        {
+            togglePlatformUI();
+        }
 
-		// UPDATE BASE INTERFACES
-		updateBaseSubsystems(deltaTime);
-
-		// UPDATE APP
-		pApp->Update(deltaTime);
-		pApp->Draw();
-
-		if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
-		{
-			togglePlatformUI(); 
-		}
+        extern bool platformReloadClientShouldQuit(void);
+        if (platformReloadClientShouldQuit())
+        {
+            ANativeActivity_finish(android_app->activity);
+            pApp->mSettings.mQuit = true;
+        }
 
 #ifdef AUTOMATED_TESTING
-		//used in automated tests only.
-		testingFrameCount++;
-		if (testingFrameCount >= targetFrameCount)
-		{
-			ANativeActivity_finish(android_app->activity);
-			pApp->mSettings.mQuit = true;
-		}
+        extern bool gAutomatedTestingScriptsFinished;
+        // wait for the automated testing if it hasn't managed to finish in time
+        if (gAutomatedTestingScriptsFinished && testingFrameCount >= targetFrameCount)
+        {
+            ANativeActivity_finish(android_app->activity);
+            pApp->mSettings.mQuit = true;
+        }
+        testingFrameCount++;
 #endif
-	}
+    }
 
 #ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking)
-	{
-		dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
-		dumpProfileData(benchmarkOutput, targetFrameCount);
-	}
+    if (pSettings->mBenchmarking)
+    {
+        dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+        dumpProfileData(benchmarkOutput, targetFrameCount);
+    }
 #endif
 
-	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-	if (isLoaded)
-		pApp->Unload(&gReloadDescriptor);
+    gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+    if (isLoaded)
+        pApp->Unload(&gReloadDescriptor);
 
-	pApp->Exit();
+    pApp->Exit();
 
-	exitLog();
+    exitLog();
 
-	exitBaseSubsystems();
+    exitBaseSubsystems();
 
 #if defined(QUEST_VR)
     exitVrApi();
 #endif
 
-	exitFileSystem();
+    exitFileSystem();
 
-	exitMemAlloc();
+    exitMemAlloc();
 
 #ifdef AUTOMATED_TESTING
-	__android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application");
+    while (0 > __android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application"))
+        ;
 #endif
 
-	exit(0);
+    exit(0);
 }

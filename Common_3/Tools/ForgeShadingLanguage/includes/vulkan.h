@@ -1,3 +1,27 @@
+/*
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 #ifndef _VULKAN_H
 #define _VULKAN_H
 
@@ -6,10 +30,6 @@
 
 #if VK_EXT_DESCRIPTOR_INDEXING_ENABLED
 	#extension GL_EXT_nonuniform_qualifier : enable
-#endif
-
-#if VR_MULTIVIEW_ENABLED && defined(STAGE_VERT)
-    #extension GL_OVR_multiview2 : require
 #endif
 
 #define f4(X) vec4(X)
@@ -48,9 +68,12 @@
 #define SV_SAMPLEINDEX      gl_SampleID
 #define SV_PRIMITIVEID      gl_PrimitiveID
 #define SV_SHADINGRATE      0u //ShadingRateKHR
+#define SV_COVERAGE         gl_SampleMaskIn[0]
 
 #define SV_OUTPUTCONTROLPOINTID gl_InvocationID
 #define SV_DOMAINLOCATION gl_TessCoord
+
+#define out_coverage int
 
 #define inout(T) inout T
 #define out(T) out T
@@ -90,7 +113,10 @@
 
 #define STRUCT(NAME) struct NAME
 #define DATA(TYPE, NAME, SEM) TYPE NAME
+
+// these are handled by vulkan.py
 #define FLAT(TYPE) TYPE
+#define CENTROID(TYPE) TYPE
 
 #define AnyLessThan(X, Y)         any( LessThan((X), (Y)) )
 #define AnyLessThanEqual(X, Y)    any( LessThanEqual((X), (Y)) )
@@ -184,14 +210,14 @@ vec3 mul(vec3 a, float b) { return a * b; }
 
 #define RES(TYPE, NAME, FREQ, REG, BINDING) layout(FREQ, BINDING) uniform TYPE NAME
 
-vec4 SampleLvlTex2D( texture2D NAME, sampler SAMPLER, vec2 COORD, float LEVEL )
-{ return textureLod(sampler2D(NAME, SAMPLER), COORD, LEVEL); }
-vec4 SampleLvlTex3D( texture3D NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
-{ return textureLod(sampler3D(NAME, SAMPLER), COORD, LEVEL); }
-vec4 SampleLvlTex3D( texture2DArray NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
-{ return textureLod(sampler2DArray(NAME, SAMPLER), COORD, LEVEL); }
-vec4 SampleLvlTexCube( textureCube NAME, sampler SAMPLER, vec3 COORD, float LEVEL )
-{ return textureLod(samplerCube(NAME, SAMPLER), COORD, LEVEL); }
+#define SampleLvlTex2D(NAME, SAMPLER, COORD, LEVEL) \
+textureLod(sampler2D(NAME, SAMPLER), COORD, LEVEL)
+#define SampleLvlTex3D(NAME, SAMPLER, COORD, LEVEL) \
+textureLod(sampler3D(NAME, SAMPLER), COORD, LEVEL)
+#define SampleLvlTex2DArray(NAME, SAMPLER, COORD, LEVEL ) \
+textureLod(sampler2DArray(NAME, SAMPLER), COORD, LEVEL)
+#define SampleLvlTexCube(NAME, SAMPLER, COORD, LEVEL ) \
+textureLod(samplerCube(NAME, SAMPLER), COORD, LEVEL)
 
 // vec4 SampleLvlOffsetTex2D( texture2D NAME, sampler SAMPLER, vec2 COORD, float LEVEL, const in(ivec2) OFFSET )
 // { return textureLodOffset(sampler2D(NAME, SAMPLER), COORD, LEVEL, OFFSET); }
@@ -203,14 +229,14 @@ textureLodOffset(sampler2DArray(NAME, SAMPLER), COORD, LEVEL, OFFSET)
 textureLodOffset(sampler3D(NAME, SAMPLER), COORD, LEVEL, OFFSET)
 
 #define LoadByte(BYTE_BUFFER, ADDRESS) ((BYTE_BUFFER)[(ADDRESS)>>2])
-#define LoadByte4(BYTE_BUFFER, ADDRESS) uint4( \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+0], \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+1], \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+2], \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+3])
+#define LoadByte2(BYTE_BUFFER, ADDRESS) uint2(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]))
+#define LoadByte3(BYTE_BUFFER, ADDRESS) uint3(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 2]))
+#define LoadByte4(BYTE_BUFFER, ADDRESS) uint4(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 2]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 3]))
 
-#define StoreByte(BYTE_BUFFER, ADDRESS, VALUE) \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+0] = VALUE;
+#define StoreByte(BYTE_BUFFER, ADDRESS, VALUE)  (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE;
+#define StoreByte2(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1];
+#define StoreByte3(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 2] = VALUE[2];
+#define StoreByte4(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 2] = VALUE[2]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 3] = VALUE[3];
 
 // #define LoadLvlTex2D(TEX, SMP, P, L) _LoadLvlTex2D(TEX, SMP, ivec2((P).xy), L)
 // vec4 _LoadLvlTex2D(texture2D TEX, sampler SMP, ivec2 P, int L) { return texelFetch(sampler2D(TEX, SMP), P, L); }
@@ -223,6 +249,11 @@ textureLodOffset(sampler3D(NAME, SAMPLER), COORD, LEVEL, OFFSET)
 //  vec4 _LoadTex2D( texture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch( sampler2DArray(TEX, SMP), P, lod); }
 // uvec4 _LoadTex2D(utexture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch(usampler2DArray(TEX, SMP), P, lod); }
 // ivec4 _LoadTex2D(itexture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch(isampler2DArray(TEX, SMP), P, lod); }
+
+#define LoadTex1D(TEX, SMP, P, LOD) _LoadTex1D((TEX), (SMP), int(P), int(LOD))
+ vec4 _LoadTex1D( texture1D TEX, sampler SMP, int P, int lod) { return texelFetch( sampler1D(TEX, SMP), P, lod); }
+uvec4 _LoadTex1D(utexture1D TEX, sampler SMP, int P, int lod) { return texelFetch(usampler1D(TEX, SMP), P, lod); }
+ivec4 _LoadTex1D(itexture1D TEX, sampler SMP, int P, int lod) { return texelFetch(isampler1D(TEX, SMP), P, lod); }
 
 #define LoadTex2D(TEX, SMP, P, LOD) _LoadTex2D((TEX), (SMP), ivec2((P).xy), int(LOD))
  vec4 _LoadTex2D( texture2D TEX, sampler SMP, ivec2 P, int lod) { return texelFetch( sampler2D(TEX, SMP), P, lod); }
@@ -248,6 +279,9 @@ ivec4 _LoadTex3D(itexture3D TEX, sampler SMP, ivec3 P, int lod) { return texelFe
 
 #ifdef GL_EXT_samplerless_texture_functions
 #extension GL_EXT_samplerless_texture_functions : enable
+vec4  _LoadTex1D(texture1D TEX,       uint _NO_SAMPLER, int P, int lod) { return texelFetch(TEX, P, lod); }
+uvec4 _LoadTex1D(utexture1D TEX,      uint _NO_SAMPLER, int P, int lod) { return texelFetch(TEX, P, lod); }
+ivec4 _LoadTex1D(itexture1D TEX,      uint _NO_SAMPLER, int P, int lod) { return texelFetch(TEX, P, lod); }
 vec4  _LoadTex2D(texture2D TEX,       uint _NO_SAMPLER, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
 uvec4 _LoadTex2D(utexture2D TEX,      uint _NO_SAMPLER, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
 ivec4 _LoadTex2D(itexture2D TEX,      uint _NO_SAMPLER, ivec2 P, int lod) { return texelFetch(TEX, P, lod); }
@@ -283,34 +317,45 @@ vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, sampler SMP, ivec3 P, int S) { retu
 vec4 _LoadTex2DArrayMS(texture2DMSArray TEX, uint _NO_SAMPLER, ivec3 P, int S) { return texelFetch(TEX, P, S); }
 #endif
 
-#define SampleGradTex2D(TEX, SMP, P, DX, DY) _SampleGradTex2D((TEX), (SMP), vec2((P).xy), vec2((DX).xy), vec2((DY).xy))
-vec4 _SampleGradTex2D(texture2D TEX, sampler SMP, vec2 P, vec2 DX, vec2 DY)
-{ return textureGrad(sampler2D(TEX, SMP), P, DX, DY); }
+#define SampleGradTex2D(TEX, SMP, P, DX, DY) \
+textureGrad(sampler2D(TEX, SMP), P, DX, DY)
 
 #define GatherRedTex2D(TEX, SMP, P) _GatherRedTex2D((TEX), (SMP), vec2(P.xy))
 vec4 _GatherRedTex2D(texture2D TEX, sampler SMP, vec2 P) { return textureGather(sampler2D(TEX, SMP), P, 0 ); }
 
-#define SampleTexCube(TEX, SMP, P) _SampleTexCube((TEX), (SMP), vec3((P).xyz))
- vec4 _SampleTexCube( textureCube TEX, sampler SMP, vec3 P) { return texture( samplerCube(TEX, SMP), P);}
-uvec4 _SampleTexCube(utextureCube TEX, sampler SMP, vec3 P) { return texture(usamplerCube(TEX, SMP), P);}
-ivec4 _SampleTexCube(itextureCube TEX, sampler SMP, vec3 P) { return texture(isamplerCube(TEX, SMP), P);}
+#define GatherRedOffsetTex2D(TEX, SMP, P, O) _GatherRedOffsetTex2D((TEX), (SMP), vec2(P.xy), ivec2(O))
+vec4 _GatherRedOffsetTex2D(texture2D TEX, sampler SMP, vec2 P, ivec2 O) { return textureGatherOffset(sampler2D(TEX, SMP), P, O, 0 ); }
 
-#define SampleTex1D(TEX, SMP, P)            _SampleTex1D((TEX), (SMP), float((P).x) )
-vec4 _SampleTex1D(texture1D TEX, sampler SMP, float P) { return texture(sampler1D(TEX, SMP), P);}
+#define SampleTexCube(TEX, SMP, P) \
+texture(samplerCube(TEX, SMP), P)
+#define SampleUTexCube(TEX, SMP, P) \
+texture(usamplerCube(TEX, SMP), P)
+#define SampleITexCube(TEX, SMP, P) \
+texture(isamplerCube(TEX, SMP), P)
 
-#define SampleTex2D(TEX, SMP, P)            _SampleTex2D((TEX), (SMP), vec2((P).xy) )
-vec4 _SampleTex2D(texture2D TEX, sampler SMP, vec2 P) { return texture(sampler2D(TEX, SMP), P);}
+#define SampleTex1D(TEX, SMP, P) \
+texture(sampler1D(TEX, SMP), P)
 
-#define SampleTex2DArray(TEX, SMP, P) _SampleTex2DArray((TEX), (SMP), vec3((P).xyz))
-vec4 _SampleTex2DArray(texture2DArray TEX, sampler SMP, vec3 P) { return texture(sampler2DArray(TEX, SMP), P); }
+#define SampleTex2D(TEX, SMP, P) \
+texture(sampler2D(TEX, SMP), P)
 
-#define SampleTex2DProj(TEX, SMP, P)       _SampleTex2DProj((TEX), (SMP), vec4(P.xyzw))
-vec4 _SampleTex2DProj(texture2D TEX, sampler SMP, vec4 P) { return textureProj(sampler2D(TEX, SMP), P); }
+#define SampleTex2DArray(TEX, SMP, P) \
+texture(sampler2DArray(TEX, SMP), P)
+
+#define SampleTex2DProj(TEX, SMP, P) \
+textureProj(sampler2D(TEX, SMP), P)
 
 // #define SampleTex3D(NAME, SAMPLER, COORD)            texture(_getSampler(NAME, SAMPLER), COORD)
-#define SampleTex3D(TEX, SMP, P)            _SampleTex3D((TEX), (SMP), vec3((P).xyz) )
-vec4 _SampleTex3D(texture3D TEX, sampler SMP, vec3 P)
-{ return texture(sampler3D(TEX, SMP), P);}
+#define SampleTex3D(TEX, SMP, P) \
+texture(sampler3D(TEX, SMP), P)
+
+/* Doesn't work on steam deck, 09_LightShadowPlayground
+#define SampleCmp2D(TEX, SMP, PC) \
+texture(sampler2DShadow(TEX, SMP), PC)
+#define CompareTex2D(TEX, SMP, PC) \
+textureLod(sampler2DShadow(TEX, SMP), PC, 0.0f)
+#define CompareTex2DProj(TEX, SMP, PC) \
+textureProj(sampler2DShadow(TEX, SMP), PC)*/
 
 #define SampleCmp2D(TEX, SMP, PC) _SampleCmp2D((TEX), (SMP), vec3((PC).xyz))
 float _SampleCmp2D(texture2D TEX, sampler SMP, vec3 PC)
@@ -323,24 +368,6 @@ float _CompareTex2D(texture2D TEX, sampler SMP, vec3 PC)
 #define CompareTex2DProj(TEX, SMP, PC) _CompareTex2DProj((TEX), (SMP), vec4((PC).xyzw))
 float _CompareTex2DProj(texture2D TEX, sampler SMP, vec4 PC)
 { return textureProj(sampler2DShadow(TEX, SMP), PC); }
-
-#ifdef STAGE_FRAG // only available in ps
-    #define CalculateLvlTex2D(TEX, SMP, P) _CalculateLvlTex2D((TEX), (SMP), vec2((P).xy))
-    float _CalculateLvlTex2D(texture2D TEX, sampler SMP, vec2 P)
-    { return textureQueryLod(sampler2D(TEX, SMP), P).y; }
-
-#define residency_status int
-
-#extension GL_ARB_sparse_texture2 : enable
-#extension GL_ARB_sparse_texture_clamp : enable
-#define SampleClampedSparseTex2D(TEX, SMP, P, L, RC) \
-    _SampleClampedSparseTex2D((TEX), (SMP), vec2((P).xy), (L), (RC))
-vec4 _SampleClampedSparseTex2D(texture2D TEX, sampler SMP, vec2 P, float L, out(residency_status) RC)
-{ vec4 texel; RC = sparseTextureClampARB(sampler2D(TEX, SMP), P, L, texel); return texel; }
-
-#define IsFullyMapped(RC) sparseTexelsResidentARB(RC)
-#endif
-
 
 #define SHADER_CONSTANT(INDEX, TYPE, NAME, VALUE) layout (constant_id = INDEX) const TYPE NAME = VALUE
 
@@ -387,6 +414,7 @@ ivec4 _to4(in(int)   x)  { return ivec4(x, 0, 0, 0); }
 #define Load3D( NAME, COORD ) imageLoad( (NAME), ivec3((COORD).xyz) )
 
 #define AtomicMin3D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMin((DST), ivec3((COORD).xyz), (VALUE)))
+#define AtomicMax3D( DST, COORD, VALUE, ORIGINAL_VALUE ) ((ORIGINAL_VALUE) = imageAtomicMax((DST), ivec3((COORD).xyz), (VALUE)))
 #define AtomicMin(DST, VALUE) atomicMin(DST, VALUE)
 #define AtomicMax(DST, VALUE) atomicMax(DST, VALUE)
 
@@ -522,6 +550,7 @@ f2x2 setRow(inout(f2x2) M, in(vec2) row, const uint i) { M[0][i] = row[0]; M[1][
 #define float float
 #define float2 vec2
 #define float3 vec3
+#define packed_float3 vec3
 #define float4 vec4
 #define float2x2 mat2
 #define float3x3 mat3
@@ -637,8 +666,8 @@ int3 imageSize(utexture2DArray TEX) { return textureSize(TEX, 0); }
 
 #define RWTex2DArrayMS(T, S) VK_T_##T(image2DMSArray)
 
-#define RasterizerOrderedTex2D(T) VK_T_##T(image2D)
-#define RasterizerOrderedTex2DArray(T) VK_T_##T(image2DArray)
+#define RasterizerOrderedTex2D(ELEM_TYPE, GROUP_INDEX) coherent RWTex2D(ELEM_TYPE)
+#define RasterizerOrderedTex2DArray(ELEM_TYPE, GROUP_INDEX) coherent RWTex2DArray(ELEM_TYPE)
 
 #define Depth2D(T)              VK_T_##T(texture2D)
 #define Depth2DMS(T, S)         VK_T_##T(texture2DMS)
@@ -721,7 +750,10 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
 
 #define CountBallot(X) (bitCount(X.x) + bitCount(X.y) + bitCount(X.z) + bitCount(X.w))
 
+#ifdef WAVE_OPS_BASIC_BIT
     #extension GL_KHR_shader_subgroup_basic: enable
+#endif
+
 #ifdef TARGET_SWITCH
     #extension GL_ARB_shader_ballot: enable
     #extension GL_ARB_gpu_shader_int64: enable
@@ -730,36 +762,69 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
     #define WaveGetMaxActiveIndex() (gl_SubGroupSizeARB - 1)
     #define WaveReadLaneFirst readFirstInvocationARB
 #else
-    #extension GL_KHR_shader_subgroup_arithmetic: enable
-    #extension GL_KHR_shader_subgroup_ballot: enable
-    #extension GL_KHR_shader_subgroup_quad: enable
-    #extension GL_KHR_shader_subgroup_shuffle: enable
-    #extension GL_KHR_shader_subgroup_vote: enable
-    #define WaveIsFirstLane        subgroupElect
-    #define WaveGetLaneIndex() gl_SubgroupInvocationID
-    #define WaveGetMaxActiveIndex() subgroupMax(gl_SubgroupInvocationID)
-    #define WaveReadLaneFirst subgroupBroadcastFirst
+    #ifdef WAVE_OPS_VOTE_BIT
+        #extension GL_KHR_shader_subgroup_vote: enable
+    #endif
+    #ifdef WAVE_OPS_ARITHMETIC_BIT
+        #extension GL_KHR_shader_subgroup_arithmetic: enable
+    #endif
+    #ifdef WAVE_OPS_BALLOT_BIT
+        #extension GL_KHR_shader_subgroup_ballot: enable
+    #endif
+    #ifdef WAVE_OPS_QUAD_BIT
+        #extension GL_KHR_shader_subgroup_quad: enable
+    #endif
+    #ifdef WAVE_OPS_SHUFFLE_BIT
+        #extension GL_KHR_shader_subgroup_shuffle: enable
+    #endif
+    
+    #ifdef WAVE_OPS_BASIC_BIT
+        #define WaveIsFirstLane        subgroupElect
+        #define WaveGetLaneIndex() gl_SubgroupInvocationID
+    #endif
+    
+    #ifdef WAVE_OPS_ARITHMETIC_BIT
+        #define WaveGetMaxActiveIndex() subgroupMax(gl_SubgroupInvocationID)
+    #endif
+
+    #ifdef WAVE_OPS_BALLOT_BIT
+        #define WaveReadLaneFirst subgroupBroadcastFirst
+    #endif
 #endif
 
-    #define WaveReadLaneAt(X, Y) subgroupShuffle(X, Y)
-    #define WaveActiveAnyTrue      subgroupAny
-    #define WavePrefixCountBits(X) subgroupBallotInclusiveBitCount(subgroupBallot(X))
-    #define WaveActiveCountBits(X) subgroupBallotBitCount(subgroupBallot(X))
+    #ifdef WAVE_OPS_VOTE_BIT
+        #define WaveActiveAnyTrue      subgroupAny
+        #define WaveActiveAllTrue      subgroupAll
+    #endif
 
-    #define WaveActiveMax subgroupMax
-    #ifdef TARGET_ANDROID
-    #define WaveActiveBallot(X) subgroupBallot(false)
-    #else
-    #define WaveActiveBallot subgroupBallot
+    #ifdef WAVE_OPS_ARITHMETIC_BIT
+        #define WaveActiveMax subgroupMax
+        #define WaveActiveSum subgroupAdd
+        #define WavePrefixSum subgroupExclusiveAdd
+    #endif
+
+    #ifdef WAVE_OPS_BALLOT_BIT
+        #define WavePrefixCountBits(X) subgroupBallotInclusiveBitCount(subgroupBallot(X))
+        #define WaveActiveCountBits(X) subgroupBallotBitCount(subgroupBallot(X))
+        
+        #ifdef TARGET_ANDROID
+            #define WaveActiveBallot(X) subgroupBallot(false)
+        #else
+            #define WaveActiveBallot subgroupBallot
+        #endif
+    #endif
+
+    #ifdef WAVE_OPS_QUAD_BIT
+        #define QuadReadAcrossX subgroupQuadSwapHorizontal
+        #define QuadReadAcrossY subgroupQuadSwapVertical
+    #endif
+
+    #ifdef WAVE_OPS_SHUFFLE_BIT
+        #define WaveReadLaneAt(X, Y) subgroupShuffle(X, Y)
     #endif
 
     #define countbits bitCount
-    #define WaveActiveSum subgroupAdd
-    #define WavePrefixSum subgroupExclusiveAdd
-
-    #define QuadReadAcrossX subgroupQuadSwapHorizontal
-    #define QuadReadAcrossY subgroupQuadSwapVertical
-
+    
 #endif
 
 #ifdef GL_ARB_fragment_shader_interlock
@@ -772,25 +837,8 @@ bool any(vec3 x) { return any(notEqual(x, vec3(0))); }
 #define EndPSInterlock()
 #endif
 
-#define DECLARE_RESOURCES()
-#define INDIRECT_DRAW()
-#define SET_OUTPUT_FORMAT(FMT)
+#define SET_OUTPUT_FORMAT(target, fmt)
 #define PS_ZORDER_EARLYZ()
 
-#if VR_MULTIVIEW_ENABLED
-    #ifndef STAGE_VERT
-        #define VR_VIEW_ID(VID) VID
-    #else
-        #define VR_VIEW_ID (gl_ViewID_OVR)
-    #endif
-    #define VR_MULTIVIEW_COUNT 2
-#else
-    #ifndef STAGE_VERT
-        #define VR_VIEW_ID(VID) (0)
-    #else
-        #define VR_VIEW_ID 0
-    #endif
-    #define VR_MULTIVIEW_COUNT 1
-#endif
 
 #endif // _VULKAN_H

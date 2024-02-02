@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Workspace Name="BunyTool" Database="" Version="10000">
+  <Project Name="Buny" Path="Buny.project" Active="No"/>
+  <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
+  <Project Name="BunyTool" Path="BunyTool.project" Active="Yes"/>
+  <BuildMatrix>
+    <WorkspaceConfiguration Name="Debug" Selected="no">
+      <Environment/>
+      <Project Name="Buny" ConfigName="Debug"/>
+      <Project Name="BunyTool" ConfigName="Debug"/>
+      <Project Name="OS" ConfigName="Debug"/>
+    </WorkspaceConfiguration>
+    <WorkspaceConfiguration Name="Release" Selected="yes">
+      <Environment/>
+      <Project Name="Buny" ConfigName="Release"/>
+      <Project Name="BunyTool" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
+    </WorkspaceConfiguration>
+  </BuildMatrix>
+</CodeLite_Workspace>

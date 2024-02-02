@@ -30,7 +30,6 @@ freely, subject to the following restrictions:
 #endif
 
 #include "soloud.h"
-#include "../../../../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "soloud_thread.h"
 
 namespace SoLoud {

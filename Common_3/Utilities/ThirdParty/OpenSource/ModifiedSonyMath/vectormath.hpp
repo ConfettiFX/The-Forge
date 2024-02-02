@@ -16,9 +16,11 @@
 // Sony's library includes:
 #if VECTORMATH_MODE_SCE
 #if defined(ORBIS)
+#include "../../../../../PS4/Common_3/Utilities/ThirdParty/OpenSource/vectormath/VectorMathConfig.h"
 #include "../../../../../PS4/Common_3/Utilities/ThirdParty/OpenSource/vectormath/cpp/vectormath_aos.h"
 #include "../../../../../PS4/Common_3/Utilities/ThirdParty/OpenSource/vectormath/cpp/vectormath_namespace.h"
 #elif defined(PROSPERO)
+#include "../../../../../Prospero/Common_3/Utilities/ThirdParty/OpenSource/vectormath/VectorMathConfig.h"
 #include "../../../../../Prospero/Common_3/Utilities/ThirdParty/OpenSource/vectormath/cpp/vectormath_aos.h"
 #include "../../../../../Prospero/Common_3/Utilities/ThirdParty/OpenSource/vectormath/cpp/vectormath_namespace.h"
 #endif

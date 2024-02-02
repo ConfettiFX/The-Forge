@@ -11,8 +11,7 @@
 #include "rmem_enums.h"
 
 #if RMEM_ENABLE_LZ4_COMPRESSION
-#include "../3rd/lz4-r191/lz4.h"
-#include "../3rd/lz4-r191/lz4.c"
+#include "../../lz4/lz4.h"
 #endif // RMEM_ENABLE_LZ4_COMPRESSION
 
 #if RMEM_PLATFORM_WINDOWS
@@ -84,11 +83,11 @@ namespace rmem {
 /// we need to guarantee that the internal buffer is writable.
 /// Since the buffer is full we need to copy the data so we can
 /// reset the buffer pointer and practically make the buffer empty again.
-/// The code assumes that buffer is big enough to store all information 
+/// The code assumes that buffer is big enough to store all information
 /// resulting from file writing calls. Generally that's not a problem as
 /// it already has to be big enough to store the CRT initialization data.
 /// Since the buffer is static, it is also assumed that this is single
-/// threaded operation which is guaranteed by a lock on a higher level 
+/// threaded operation which is guaranteed by a lock on a higher level
 /// (dispatcher).
 static uint8_t s_tempBuffer[MemoryHook::BufferSize];
 
@@ -99,7 +98,7 @@ MemoryHook::MemoryHook(void* _data)
 	: m_ignoreAllocs(false)
 {
 	(void)_data;
-	
+
 	m_startTime = getCPUClock();
 	m_bufferPtr	= m_bufferData;
 
@@ -208,7 +207,7 @@ MemoryHook::MemoryHook(void* _data)
 //	strcpy(m_fileName, "game:\\");
 //#else
 	strcpy(m_fileName, "");
-//#endif 
+//#endif
 
 	strcat(m_fileName, "MemoryData.MTuner");
 
@@ -341,7 +340,7 @@ void MemoryHook::registerAllocator(const char* _name, uint64_t _handle)
 {
 	uint8_t		tmpBuffer[512];
 	size_t		tmpBufferPtr = 0;
-	
+
 	uint8_t Marker = LogMarkers::Allocator;
 	addVarToBuffer(Marker, tmpBuffer, tmpBufferPtr);
 	addStrToBuffer(_name, tmpBuffer, tmpBufferPtr);
@@ -683,14 +682,14 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 	{
 		/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
 
-		// ISSUE FIX: Do not track creation of MTuner file itself. 
+		// ISSUE FIX: Do not track creation of MTuner file itself.
 		m_ignoreAllocs = true;
 
 		//_bstr_t b(m_fileName);
 
-		m_fileValid = fsOpenStreamFromPath(RD_LOG, m_fileName, FM_WRITE_BINARY_ALLOW_READ, NULL, &m_file);
+		m_fileValid = fsOpenStreamFromPath(RD_LOG, m_fileName, FM_WRITE_ALLOW_READ, &m_file);
 
-		// ISSUE FIX: Do not track creation of MTuner file itself. 
+		// ISSUE FIX: Do not track creation of MTuner file itself.
 		m_ignoreAllocs = false;
 
 		/// CONFFX END
@@ -732,7 +731,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 		/// CONNFX END
 #else
 
-		fsWriteToStream(m_file, _ptr, _bytesToWrite); 
+		fsWriteToStream(m_file, _ptr, _bytesToWrite);
 
 #endif // RMEM_ENABLE_LZ4_COMPRESSION
 	}
@@ -749,7 +748,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 		memcpy(&m_excessBuffer[m_excessBufferSize], _ptr, _bytesToWrite);
 		m_excessBufferSize += _bytesToWrite;
 	}
-	
+
 #if RMEM_FLUSH_FILE_WRITES
 
 	/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
@@ -769,7 +768,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 //--------------------------------------------------------------------------
 extern size_t getModuleInfo(uint8_t* _buffer);
 void MemoryHook::writeModuleInfo()
-{	
+{
 	uint8_t buffer[32*1024];
 	uint32_t symbolDataSize = (uint32_t)getModuleInfo(buffer);
 

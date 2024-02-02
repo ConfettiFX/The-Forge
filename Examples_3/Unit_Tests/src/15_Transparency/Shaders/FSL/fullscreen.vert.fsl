@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,7 +26,7 @@ STRUCT(VSOutput)
 {
 	DATA(float4, Position, SV_Position);
 	DATA(float4, UV, TEXCOORD0);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(FLAT(uint), ViewID, TEXCOORD1);
 #endif
 };
@@ -39,7 +39,7 @@ VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
 
 	Out.UV = float4((VertexID << 1) & 2, VertexID & 2, 0, 0);
 	Out.Position = float4(Out.UV.xy * float2(2, -2) + float2(-1, 1), 0, 1);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	Out.ViewID = VR_VIEW_ID;
 #endif
 	RETURN(Out);

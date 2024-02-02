@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,7 +27,11 @@
 
 CBUFFER(uniformBlock_rootcbv, UPDATE_FREQ_NONE, b1, binding = 1)
 {
+#if FT_MULTIVIEW
+	DATA(float4x4, mvp[VR_MULTIVIEW_COUNT], None);
+#else
 	DATA(float4x4, mvp, None);
+#endif
 };
 
 RES(Tex2D(float4), uTex0, UPDATE_FREQ_NONE, t2, binding = 2);

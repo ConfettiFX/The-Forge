@@ -73,6 +73,7 @@ enum ProductID
     pidNintendoSwitchJoyConLeft       = 0x2006,
     pidNintendoSwitchJoyConRight      = 0x2007,
     pidNintendoSwitchJoyConGrip       = 0x200E,
+	pidNintendoWiiRVL003              = 0x0306,
 
     pidRazerPanthera                  = 0x0401,
     pidRazerPantheraEvo               = 0x1008,

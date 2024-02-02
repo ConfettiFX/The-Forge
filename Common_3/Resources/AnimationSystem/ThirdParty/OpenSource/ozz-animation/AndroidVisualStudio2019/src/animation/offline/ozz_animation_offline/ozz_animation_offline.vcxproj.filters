@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\animation\offline">
+      <UniqueIdentifier>{a4ae83d9-7d62-4cc8-a629-9265737b5903}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\animation">
+      <UniqueIdentifier>{e420f645-20fa-4376-a405-1d23de5c101c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{46895d13-a307-457c-b980-67c8cd8987bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation\offline">
+      <UniqueIdentifier>{3d361404-f35e-4a4a-98a0-d208acb332c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\animation">
+      <UniqueIdentifier>{48dd540d-1d9c-43a3-8749-f8bf6cc8f1bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz">
+      <UniqueIdentifier>{c612b70a-cdc5-41e2-9b89-4cd2ba765377}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{a45b691a-1014-431d-8522-8a145af49dbb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\additive_animation_builder.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\animation_builder.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\animation_optimizer.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_animation.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_animation_archive.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_animation_utils.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_skeleton.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_skeleton_archive.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\raw_track.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\skeleton_builder.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\track_builder.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\src\animation\offline\track_optimizer.cc">
+      <Filter>src\animation\offline</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\additive_animation_builder.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\animation_builder.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\animation_optimizer.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\raw_animation.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\raw_animation_utils.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\raw_skeleton.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\raw_track.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\skeleton_builder.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\track_builder.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\offline\track_optimizer.h">
+      <Filter>include\ozz\animation\offline</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

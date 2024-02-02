@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,6 +24,7 @@
 
 // Shader for Skybox in Unit Test 01 - Transformations
 
+#define SKY_SHADER
 #include "resources.h.fsl"
 
 STRUCT(VSOutput)
@@ -43,7 +44,7 @@ VSOutput VS_MAIN( VSInput In )
     VSOutput Out;
  
     float4 p = float4(In.Position.x*9.0, In.Position.y*9.0, In.Position.z*9.0, 1.0);
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
     p = mul(Get(mvp)[VR_VIEW_ID], p);
 #else
     p = mul(Get(mvp), p);

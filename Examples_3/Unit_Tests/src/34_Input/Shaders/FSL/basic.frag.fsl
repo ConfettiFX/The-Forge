@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -158,8 +158,8 @@ STATIC float2 SCROLL_UP_POS = {  3.36f, 0.21f };
 STATIC float2 SCROLL_DOWN_POS = {  3.36f, 0.29f };
 
 
-RES(SamplerState, Sampler, UPDATE_FREQ_NONE, s0, binding = 0);
-RES(Tex2D(float4), Texture, UPDATE_FREQ_NONE, t0, binding = 1);
+RES(SamplerState, uSampler, UPDATE_FREQ_NONE, s0, binding = 0);
+RES(Tex2D(float4), uTexture, UPDATE_FREQ_NONE, t0, binding = 1);
 
 STRUCT(VSOutput)
 {
@@ -352,7 +352,7 @@ float4 PS_MAIN( VSOutput In )
 		uv -= (1.0f - adjustment) * 0.5f;
 		uv /= adjustment;
 
-  		Out = SampleTex2D(Texture, Sampler, uv);
+  		Out = SampleTex2D(Get(uTexture), Get(uSampler), uv);
 		uv /= float2(GamepadTexRes.y / GamepadTexRes.x, 1.0f);
 		Out = Gamepad(In, Out, uv);
 	}
@@ -370,7 +370,7 @@ float4 PS_MAIN( VSOutput In )
 		uv -= (1.0f - adjustment) * 0.5f;
 		uv /= adjustment;
 		
-  		Out = SampleTex2D(Texture, Sampler, uv);
+  		Out = SampleTex2D(Get(uTexture), Get(uSampler), uv);
 		uv /= float2(KeyboardMouseTexRes.y / KeyboardMouseTexRes.x, 1.0f);
 		Out = KeyboardMouse(In, Out, uv);
 	}

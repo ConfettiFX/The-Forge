@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -21,13 +21,6 @@
  * specific language governing permissions and limitations
  * under the License.
 */
-
-CBUFFER(uniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
-{
-	DATA(float4x4, projView, None);
-	DATA(float4x4, invProjView, None);
-	DATA(float3, camPos, None);
-};
 
 RES(TexCube(float4), skyboxTex,  UPDATE_FREQ_NONE, t1, binding = 1);
 RES(SamplerState, skyboxSampler, UPDATE_FREQ_NONE, s2, binding = 2);

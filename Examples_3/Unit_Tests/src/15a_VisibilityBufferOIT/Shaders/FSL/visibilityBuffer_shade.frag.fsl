@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,8 +28,8 @@
 // gradients instead of screen-space projected triangles method.
 #define USE_RAY_DIFFERENTIALS
 
-#include "packing.h.fsl"
 #include "shading.h.fsl"
+#include "../../../../../../Common_3/Renderer/VisibilityBuffer/Shaders/FSL/vb_shading_utilities.h.fsl"
 
 // This shader loads draw / triangle Id per pixel and reconstruct interpolated vertex data.
 
@@ -48,182 +48,16 @@ struct TransparentNodeOIT
 struct NodeFinalOIT
 {
 	float3 color;
+	float  alpha;
 	float  depth;
 	uint   next; 
 };
 
-struct DerivativesOutput
+struct ShadedFragment
 {
-	float3 db_dx;
-	float3 db_dy;
+	float4 color;
+	float depth;
 };
-
-// 2D interpolation results for texture gradient values
-struct GradientInterpolationResults
-{
-	float2 interp;
-	float2 dx;
-	float2 dy;
-};
-
-// Barycentric coordinates and gradients, struct needed to interpolate values.
-struct BarycentricDeriv
-{
-	float3 m_lambda;
-	float3 m_ddx;
-	float3 m_ddy;
-};
-
-// Calculates the local (barycentric coordinates) position of a ray hitting a triangle (Muller-Trumbore algorithm)
-// Parameters: p0,p1,p2 -> World space coordinates of triangle
-// o -> Origin of ray in world space (Mainly view camera here)
-// d-> Unit vector direction of ray from origin
-float3 rayTriangleIntersection(float3 p0, float3 p1, float3 p2, float3 o, float3 d)
-{
-	float3 v0v1 = p1-p0;
-	float3 v0v2 = p2-p0;
-	float3 pvec = cross(d,v0v2);
-	float det = dot(v0v1,pvec);
-	float invDet = 1/det;
-	float3 tvec = o - p0;
-	float u = dot(tvec,pvec) * invDet;
-	float3 qvec = cross(tvec,v0v1);
-	float v = dot(d,qvec) *invDet;
-	float w = 1.0f - v - u;
-	return float3(w,u,v);
-}
-
-// Computes the partial derivatives of a triangle from the projected screen space vertices
-BarycentricDeriv CalcFullBary(float4 pt0, float4 pt1, float4 pt2, float2 pixelNdc, float2 winSize)
-{
-	BarycentricDeriv ret ;
-	float3 invW =  1.0f / float3(pt0.w, pt1.w, pt2.w);
-	//Project points on screen to calculate post projection positions in 2D
-	float2 ndc0 = pt0.xy * invW.x;
-	float2 ndc1 = pt1.xy * invW.y;
-	float2 ndc2 = pt2.xy * invW.z;
-
-	// Computing partial derivatives and prospective correct attribute interpolation with barycentric coordinates
-	// Equation for calculation taken from Appendix A of DAIS paper:
-	// https://cg.ivd.kit.edu/publications/2015/dais/DAIS.pdf
-
-	// Calculating inverse of determinant(rcp of area of triangle).
-	float invDet = rcp(determinant(float2x2(ndc2 - ndc1, ndc0 - ndc1)));
-
-	//determining the partial derivatives
-	// ddx[i] = (y[i+1] - y[i-1])/Determinant
-	ret.m_ddx = float3(ndc1.y - ndc2.y, ndc2.y - ndc0.y, ndc0.y - ndc1.y) * invDet * invW;
-	ret.m_ddy = float3(ndc2.x - ndc1.x, ndc0.x - ndc2.x, ndc1.x - ndc0.x) * invDet * invW;
-	// sum of partial derivatives.
-	float ddxSum = dot(ret.m_ddx, float3(1,1,1));
-	float ddySum = dot(ret.m_ddy, float3(1,1,1));
-	
-	// Delta vector from pixel's screen position to vertex 0 of the triangle.
-	float2 deltaVec = pixelNdc - ndc0;
-
-	// Calculating interpolated W at point.
-	float interpInvW = invW.x + deltaVec.x*ddxSum + deltaVec.y*ddySum;
-	float interpW = rcp(interpInvW);
-	// The barycentric co-ordinate (m_lambda) is determined by perspective-correct interpolation. 
-	// Equation taken from DAIS paper.
-	ret.m_lambda.x = interpW * (invW[0] + deltaVec.x*ret.m_ddx.x + deltaVec.y*ret.m_ddy.x);
-	ret.m_lambda.y = interpW * (0.0f    + deltaVec.x*ret.m_ddx.y + deltaVec.y*ret.m_ddy.y);
-	ret.m_lambda.z = interpW * (0.0f    + deltaVec.x*ret.m_ddx.z + deltaVec.y*ret.m_ddy.z);
-
-	//Scaling from NDC to pixel units
-	ret.m_ddx *= (2.0f/winSize.x);
-	ret.m_ddy *= (2.0f/winSize.y);
-	ddxSum    *= (2.0f/winSize.x);
-	ddySum    *= (2.0f/winSize.y);
-
-	// This part fixes the derivatives error happening for the projected triangles.
-	// Instead of calculating the derivatives constantly across the 2D triangle we use a projected version
-	// of the gradients, this is more accurate and closely matches GPU raster behavior.
-	// Final gradient equation: ddx = (((lambda/w) + ddx) / (w+|ddx|)) - lambda
-
-	// Calculating interpW at partial derivatives position sum.
-	float interpW_ddx = 1.0f / (interpInvW + ddxSum);
-	float interpW_ddy = 1.0f / (interpInvW + ddySum);
-
-	// Calculating perspective projected derivatives.
-	ret.m_ddx = interpW_ddx*(ret.m_lambda*interpInvW + ret.m_ddx) - ret.m_lambda;
-	ret.m_ddy = interpW_ddy*(ret.m_lambda*interpInvW + ret.m_ddy) - ret.m_lambda;  
-
-	return ret;
-}
-
-// Helper functions to interpolate vertex attributes using derivatives.
-
-// Interpolate a float3 vector.
-float InterpolateWithDeriv(BarycentricDeriv deriv, float3 v)
-{
-	return dot(v,deriv.m_lambda);
-}
-// Interpolate single values over triangle vertices.
-float InterpolateWithDeriv(BarycentricDeriv deriv, float v0, float v1, float v2)
-{
-	float3 mergedV = float3(v0, v1, v2);
-	return InterpolateWithDeriv(deriv,mergedV);
-}
-
-// Interpolate a float3 attribute for each vertex of the triangle.
-// Attribute parameters: a 3x3 matrix (Row denotes attributes per vertex).
-float3 InterpolateWithDeriv(BarycentricDeriv deriv,f3x3 attributes)
-{
-	float3 attr0 = getCol0(attributes);
-	float3 attr1 = getCol1(attributes);
-	float3 attr2 = getCol2(attributes);
-	return float3(dot(attr0,deriv.m_lambda),dot(attr1,deriv.m_lambda),dot(attr2,deriv.m_lambda));
-}
-
-// Interpolate 2D attributes using the partial derivatives and generates dx and dy for texture sampling.
-// Attribute paramters: a 3x2 matrix of float2 attributes (Column denotes attribuets per vertex).
-GradientInterpolationResults Interpolate2DWithDeriv(BarycentricDeriv deriv,f3x2 attributes)
-{
-	float3 attr0 = getRow0(attributes);
-	float3 attr1 = getRow1(attributes);
-	
-	GradientInterpolationResults result;
-	// independently interpolate x and y attributes.
-	result.interp.x = InterpolateWithDeriv(deriv,attr0);
-	result.interp.y = InterpolateWithDeriv(deriv,attr1);
-
-	// Calculate attributes' dx and dy (for texture sampling).
-	result.dx.x = dot(attr0,deriv.m_ddx);
-	result.dx.y = dot(attr1,deriv.m_ddx);
-	result.dy.x = dot(attr0,deriv.m_ddy);
-	result.dy.y = dot(attr1,deriv.m_ddy);
-	return result;
-}
-
-// Calculate ray differentials for a point in world-space
-// Parameters: pt0,pt1,pt2 -> world space coordinates of the triangle currently visible on the pixel
-// position -> world-space calculated position of the current pixel by reconstructing Z value
-// positionDX,positionDY -> world-space positions a pixel footprint right and down of the calculated position w.r.t traingle
-BarycentricDeriv CalcRayBary(float3 pt0, float3 pt1, float3 pt2,float3 position,float3 positionDX,float3 positionDY,
-								float3 camPos)
-{
-	BarycentricDeriv ret ;
-
-	// Calculating unit vector directions of all 3 rays
-	float3 curRay = position - camPos;
-	float3 rayDX = positionDX - camPos;
-	float3 rayDY = positionDY - camPos;
-	// Calculating barycentric coordinates of each rays hitting the triangle
-	float3 H = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(curRay));
-	float3 Hx = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(rayDX));
-	float3 Hy = rayTriangleIntersection(pt0,pt1,pt2,camPos,normalize(rayDY));
-	ret.m_lambda = H;
-	// Ray coordinates differential
-	ret.m_ddx = Hx-H;
-	ret.m_ddy = Hy-H;
-	return ret;
-}
-
-float depthLinearization(float depth, float near, float far)
-{
-	return (2.0 * near) / (far + near - depth * (far - near));
-}
 
 // Static descriptors
 #if(SAMPLE_COUNT > 1)
@@ -238,23 +72,23 @@ RES(Buffer(TransparentNodeOIT), vbDepthLinkedListSRV, UPDATE_FREQ_NONE, t31, bin
 RES(Tex2D(float), shadowMap, UPDATE_FREQ_NONE, t101, binding = 18);
 
 #if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
-	RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE],  UPDATE_FREQ_NONE, t0, binding = 19);
-	RES(Tex2D(float4), normalMaps[MATERIAL_BUFFER_SIZE],   UPDATE_FREQ_NONE, t1, binding = 19 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[MATERIAL_BUFFER_SIZE], UPDATE_FREQ_NONE, t2, binding = 19 + MAX_TEXTURE_UNITS * 2);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  UPDATE_FREQ_NONE, t0, binding = 19);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   UPDATE_FREQ_NONE, t1, binding = 19 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t2, binding = 19 + MAX_TEXTURE_UNITS * 2);
 #else
-	RES(Tex2D(float4), diffuseMaps[MATERIAL_BUFFER_SIZE],  space4, t0, binding = 19);
-	RES(Tex2D(float4), normalMaps[MATERIAL_BUFFER_SIZE],   space5, t0, binding = 19 + MAX_TEXTURE_UNITS);
-	RES(Tex2D(float4), specularMaps[MATERIAL_BUFFER_SIZE], space6, t0, binding = 19 + MAX_TEXTURE_UNITS * 2);
+	RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS],  space4, t0, binding = 19);
+	RES(Tex2D(float4), normalMaps[MAX_TEXTURE_UNITS],   space5, t0, binding = 19 + MAX_TEXTURE_UNITS);
+	RES(Tex2D(float4), specularMaps[MAX_TEXTURE_UNITS], space6, t0, binding = 19 + MAX_TEXTURE_UNITS * 2);
 #endif
 
 RES(ByteBuffer, vertexPos,           UPDATE_FREQ_NONE, t10, binding=0);
 RES(ByteBuffer, vertexTexCoord,      UPDATE_FREQ_NONE, t11, binding=1);
 RES(ByteBuffer, vertexNormal,        UPDATE_FREQ_NONE, t12, binding=2);
-RES(ByteBuffer, vertexTangent,       UPDATE_FREQ_NONE, t13, binding=3);
 RES(ByteBuffer, filteredIndexBuffer, UPDATE_FREQ_PER_FRAME, t14, binding=4);
 
-RES(Buffer(uint), indirectMaterialBuffer,       UPDATE_FREQ_PER_FRAME, t15, binding=5);
-RES(Buffer(uint), indirectDrawArgs[3],          UPDATE_FREQ_PER_FRAME, t17, binding=9);
+RES(Buffer(InstanceData), instanceData, UPDATE_FREQ_PER_FRAME, t22, binding = 14);
+RES(Buffer(uint), indirectInstanceIndexBuffer,       UPDATE_FREQ_PER_FRAME, t15, binding=5);
+RES(Buffer(uint), indirectDrawArgs,   UPDATE_FREQ_PER_FRAME, t17, binding=9);
 RES(Buffer(MeshConstants), meshConstantsBuffer, UPDATE_FREQ_NONE, t16, binding=6);
 RES(Buffer(LightData), lights,                  UPDATE_FREQ_NONE, t19, binding=11);
 
@@ -264,138 +98,9 @@ RES(ByteBuffer, lightClusters,      UPDATE_FREQ_PER_FRAME, t21, binding=13);
 RES(SamplerState, textureSampler, UPDATE_FREQ_NONE, s0, binding = 7);
 RES(SamplerState, depthSampler, UPDATE_FREQ_NONE, s1, binding = 8);
 
-float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, uint triangleID, uint trans1_opaque0, uint alpha1_opaque0)
+ShadedFragment tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, uint triangleID, uint geomSet)
 {
-	// TODO: Inefficient
-	uint materialIndex = GEOMSET_OPAQUE;
-	materialIndex = materialIndex; 
-	if (alpha1_opaque0 == 1)
-		materialIndex = GEOMSET_ALPHATESTED; 
-	if (trans1_opaque0 == 1)
-		materialIndex = GEOMSET_TRANSPARENT; 
-
-	// This is the start vertex of the current draw batch
-	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_STRUCT_OFFSET + 2;
-	//uint startIndex = alpha1_opaque0 == 0 ?
-	//	Get(indirectDrawArgs)[0][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset] :
-	//	Get(indirectDrawArgs)[1][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset];
-	
-	// TODO: Inefficient
-	uint startIndex = Get(indirectDrawArgs)[GEOMSET_OPAQUE][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset];
-	if (alpha1_opaque0 == 1)
-		startIndex = Get(indirectDrawArgs)[GEOMSET_ALPHATESTED][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset]; 
-	if (trans1_opaque0 == 1)
-		startIndex = Get(indirectDrawArgs)[GEOMSET_TRANSPARENT][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset];
-
-	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
-	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
-	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
-
-	uint index0 = LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
-	uint index1 = LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
-	uint index2 = LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
-
-	// Load vertex data of the 3 vertices
-	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), index0 * 12)).xyz;
-	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), index1 * 12)).xyz;
-	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), index2 * 12)).xyz;
-
-	// Transform positions to clip space
-	float4 pos0 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v0pos, 1.0f));
-	float4 pos1 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v1pos, 1.0f));
-	float4 pos2 = mul(Get(transform)[VIEW_CAMERA].mvp, float4(v2pos, 1.0f));
-
-	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP,pos0);
-	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP,pos1);
-	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP,pos2);
-
-	// Calculate the inverse of w, since it's going to be used several times
-	float3 one_over_w = 1.0f / float3(pos0.w, pos1.w, pos2.w);
-
-	// Project vertex positions to calculate 2D post-perspective positions
-	pos0 *= one_over_w[0];
-	pos1 *= one_over_w[1];
-	pos2 *= one_over_w[2];
-
-	float2 pos_scr[3] = { pos0.xy, pos1.xy, pos2.xy };
-
-	// Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
-	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,screenPos,Get(cullingViewports)[VIEW_CAMERA].windowSize);
-
-
-	// Interpolate the 1/w (one_over_w) for all three vertices of the triangle
-	// using the barycentric coordinates and the delta vector
-	float w = 1.0f / dot(one_over_w,derivativesOut.m_lambda);
-
-	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
-	// operations that involve computing Z
-	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
-
-	// Calculate the world position coordinates:
-	// First the projected coordinates at this point are calculated using screenPos and the computed Z value at this point.
-	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(screenPos * w, z, w)).xyz;
-
-	// TEXTURE COORD INTERPOLATION
-#if defined(USE_RAY_DIFFERENTIALS)
-	// We don't apply perspective correction to texture coordinates in case of ray differentials
-	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index0 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index1 << 2)) ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) 
-	);
-	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+Get(twoOverRes).x/2) * w, z, w)).xyz;
-	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+Get(twoOverRes).y/2) * w, z, w)).xyz;
-
-	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
-												Get(camPos).xyz);
-#else
-	// Apply perspective correction to texture coordinates
-	f3x2 texCoords = make_f3x2_cols(
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index0 << 2)) * one_over_w[0] ,
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index1 << 2)) * one_over_w[1],
-			unpack2Floats(LoadByte(Get(vertexTexCoord), index2 << 2)) * one_over_w[2]
-	);
-#endif
-
-	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
-	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);			
-	
-	float linearZ = depthLinearization(z/w, Get(CameraPlane).x, Get(CameraPlane).y);
-	float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
-	
-	float2 texCoordDX = results.dx * mip;
-	float2 texCoordDY = results.dy * mip;
-	float2 texCoord = results.interp ;
-
-#if !defined(USE_RAY_DIFFERENTIALS)
-	//Perspective correct in case of screen differentials
-	texCoord *= w;
-	texCoordDX *= w;
-	texCoordDY *= w;
-#endif
-
-	/////////////LOAD///////////////////////////////
-	// TANGENT INTERPOLATION
-	// Apply perspective division to tangents
-#if defined(USE_RAY_DIFFERENTIALS)
-	// We don't apply perspective correction in case of ray differentials
-	float3x3 tangents = make_f3x3_rows(
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index0 << 2))) ,
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index1 << 2))),
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index2 << 2))) 
-	);
-#else
-	float3x3 tangents = make_f3x3_rows(
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index0 << 2))) * one_over_w[0],
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index1 << 2))) * one_over_w[1],
-			decodeDir(unpackUnorm2x16(LoadByte(Get(vertexTangent), index2 << 2))) * one_over_w[2]
-	);
-
-#endif
-	float3 tangent = normalize(InterpolateWithDeriv(derivativesOut,tangents));
-
-	// BaseMaterialBuffer returns constant offset values
+	// BaseInstanceBuffer returns constant offset values
 	// The following value defines the maximum amount of indirect draw calls that will be 
 	// drawn at once. This value depends on the number of submeshes or individual objects 
 	// in the scene. Changing a scene will require to change this value accordingly.
@@ -407,13 +112,117 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 	// #define MATERIAL_BASE_NOALPHA0 MAX_DRAWS_INDIRECT
 	// #define MATERIAL_BASE_ALPHA1 (MAX_DRAWS_INDIRECT*2)
 	// #define MATERIAL_BASE_NOALPHA1 (MAX_DRAWS_INDIRECT*3)
-	uint materialBaseSlot = BaseMaterialBuffer(materialIndex, VIEW_CAMERA);
+	uint geomSetBaseSlot = BaseInstanceBuffer(geomSet, VIEW_CAMERA);
+	uint drawIndex = geomSetBaseSlot + drawID; // Index into indirect buffers at which data for this specific draw is stored
 
-	// potential results for materialBaseSlot + drawID are
+	// This is the start vertex of the current draw batch
+	uint startIndexOffset = INDIRECT_DRAW_ARGUMENTS_START_INDEX_OFFSET;
+	uint vertexOffsetOffset = INDIRECT_DRAW_ARGUMENTS_VERTEX_OFFSET_OFFSET;
+	// View is always 0, since only CAMERA_VIEW sets are stored
+    uint indirectStartElemIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, geomSet, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + startIndexOffset);
+	uint vertexOffsetIndex = GET_INDIRECT_DRAW_ELEM_INDEX(0, geomSet, drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + vertexOffsetOffset);
+	uint startIndex = Get(indirectDrawArgs)[indirectStartElemIndex];
+	uint drawVertexOffset = Get(indirectDrawArgs)[vertexOffsetIndex]; // vertexOffset written in the indirect draw arguments
+
+	uint triIdx0 = (triangleID * 3 + 0) + startIndex;
+	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
+	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
+
+	float4x4 mvp = Get(transform)[VIEW_CAMERA].mvp;
+
+	// If this triangle comes from an instance of an object we need to include model matrix
+	uint meshIndex = (Get(indirectInstanceIndexBuffer)[drawIndex] & INSTANCE_MESH_MASK) >> INSTANCE_MESH_LOW_BIT;
+	uint instanceIndex = (Get(indirectInstanceIndexBuffer)[drawIndex] & INSTANCE_INDEX_MASK) >> INSTANCE_INDEX_LOW_BIT;
+	
+	// If triangle belongs to an animated instance: drawVertexOffset contains the offset to the animated attributes, 
+	// we need a different offset to access the constant data.
+	// If triangle is not animated: drawVertexOffset contains the offset to the normal mesh, same as meshConstantsBuffer[meshIndex].vertexOffset
+	uint constAttrVertexOffset = drawVertexOffset;
+	uint animatedAttrVertexOffset = drawVertexOffset;
+
+	if (instanceIndex != INSTANCE_INDEX_NONE)
+	{
+		mvp = mul(mvp, Get(instanceData)[instanceIndex].modelMtx);
+
+		uint preSkinnedVtxOffset = Get(instanceData)[instanceIndex].preSkinnedVertexOffset;
+		if (preSkinnedVtxOffset != PRE_SKINNED_VERTEX_OFFSET_NONE)
+		{
+			// Note: drawVertexOffset (used to initialize animatedAttrVertexOffset) should be the same as preSkinnedVtxOffset, 
+			//       therefore we don't need thi assignment.
+			//animatedAttrVertexOffset = preSkinnedVtxOffset;
+
+			// Read constant attributes from the main mesh data
+			constAttrVertexOffset = Get(meshConstantsBuffer)[meshIndex].vertexOffset;
+		}
+	}
+
+	uint constIndex0 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
+	uint constIndex1 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
+	uint constIndex2 = constAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
+
+	uint animIndex0 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx0 << 2);
+	uint animIndex1 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx1 << 2);
+	uint animIndex2 = animatedAttrVertexOffset + LoadByte(Get(filteredIndexBuffer), triIdx2 << 2);
+
+	// Load vertex data of the 3 vertices
+	float3 v0pos = asfloat(LoadByte4(Get(vertexPos), animIndex0 * 12)).xyz;
+	float3 v1pos = asfloat(LoadByte4(Get(vertexPos), animIndex1 * 12)).xyz;
+	float3 v2pos = asfloat(LoadByte4(Get(vertexPos), animIndex2 * 12)).xyz;
+
+	// Transform positions to clip space
+	float4 pos0 = mul(mvp, float4(v0pos, 1.0f));
+	float4 pos1 = mul(mvp, float4(v1pos, 1.0f));
+	float4 pos2 = mul(mvp, float4(v2pos, 1.0f));
+
+	float2 two_over_windowsize = Get(twoOverRes);
+
+	// Compute partial derivatives. This is necessary to interpolate triangle attributes per pixel.
+	BarycentricDeriv derivativesOut = CalcFullBary(pos0,pos1,pos2,screenPos, two_over_windowsize);
+
+	// Interpolate the 1/w (one_over_w) for all three vertices of the triangle
+	// using the barycentric coordinates and the delta vector
+	float w = dot(float3(pos0.w, pos1.w, pos2.w),derivativesOut.m_lambda);
+
+	// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
+	// operations that involve computing Z
+	float z = w * getElem(Get(transform)[VIEW_CAMERA].projection, 2, 2) + getElem(Get(transform)[VIEW_CAMERA].projection, 3, 2);
+
+	// Calculate the world position coordinates:
+	// First the projected coordinates at this point are calculated using screenPos and the computed Z value at this point.
+	// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
+	float3 position = mul(Get(transform)[VIEW_CAMERA].invVP, float4(screenPos * w, z, w)).xyz;
+
+	// TEXTURE COORD INTERPOLATION
+	f3x2 texCoords = make_f3x2_cols(
+			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex0 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex1 << 2)) ,
+			unpack2Floats(LoadByte(Get(vertexTexCoord), constIndex2 << 2)) 
+	);
+
+	float4 wPos0 = mul(Get(transform)[VIEW_CAMERA].invVP, pos0);
+	float4 wPos1 = mul(Get(transform)[VIEW_CAMERA].invVP, pos1);
+	float4 wPos2 = mul(Get(transform)[VIEW_CAMERA].invVP, pos2);
+
+#if defined(USE_RAY_DIFFERENTIALS)
+	float3 positionDX = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+two_over_windowsize.x) * w, z, w)).xyz;
+	float3 positionDY = mul(Get(transform)[VIEW_CAMERA].invVP, float4((screenPos+two_over_windowsize.y) * w, z, w)).xyz;
+
+	derivativesOut = CalcRayBary(wPos0.xyz,wPos1.xyz,wPos2.xyz,position,positionDX,positionDY,
+												Get(camPos).xyz);
+#endif
+
+	// potential results for geomSetBaseSlot + drawID are
 	// 0 - 299 - shadow alpha
 	// 300 - 599 - shadow no alpha
 	// 600 - 899 - camera alpha
-	uint materialID = Get(indirectMaterialBuffer)[materialBaseSlot + drawID];
+	uint materialID = Get(meshConstantsBuffer)[meshIndex].materialID;
+
+	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
+	GradientInterpolationResults results = Interpolate2DWithDeriv(derivativesOut,texCoords);			
+
+	float2 texCoordDX = results.dx;
+	float2 texCoordDY = results.dy;
+	float2 texCoord = results.interp;
 
 	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 	// Reconstruct normal map Z from X and Y
@@ -430,32 +239,44 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 		specularColor = SampleGradTex2D(Get(specularMaps)[materialID], Get(textureSampler), texCoord, texCoordDX, texCoordDY);
 	EndNonUniformResourceIndex();
 
+	// TheForge UnitTest specific code to test different alpha blend values.
+	{
+		if (geomSet == GEOMSET_ALPHA_BLEND)
+		{
+			// We are alpha blending the Flags in SanMiguel, all flags are stored in the same texture, with this we can assign one alpha blend value for each one
+			uint transparentIdx = clamp(uint(texCoord.x / 0.25f), 0u, 3u);
+			diffuseColor.a *= Get(transAlphaPerFlag)[transparentIdx];
+		}
+	}
+
 	float3 reconstructedNormalMap;
 	reconstructedNormalMap.xy = normalMapRG.ga * 2.0f - 1.0f;
-	reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
+	reconstructedNormalMap.z = sqrt(saturate(1.0f - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy)));
 
 	// NORMAL INTERPOLATION
-#if defined(USE_RAY_DIFFERENTIALS)
-	// We don't apply perspective correction in case of ray differentials
 	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index0 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index1 << 2))) ,
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index2 << 2))) 
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), animIndex0 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), animIndex1 << 2))) ,
+		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), animIndex2 << 2)))
 	);
-#else
-	float3x3 normals = make_f3x3_rows(
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index0 << 2))) * one_over_w[0],
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index1 << 2))) * one_over_w[1],
-		decodeDir(unpackUnorm2x16(LoadByte(Get(vertexNormal), index2 << 2))) * one_over_w[2]
-	);
-#endif 
-	float3 normal = normalize(InterpolateWithDeriv(derivativesOut, normals));
+	float3 normal = normalize(InterpolateWithDeriv_float3x3(derivativesOut, normals));
 
-	// Calculate vertex binormal from normal and tangent
-	float3 binormal = normalize(cross(tangent, normal));
-	
-	// Calculate pixel normal using the normal map and the tangent space vectors
-	normal = reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal;
+	if (instanceIndex != INSTANCE_INDEX_NONE)
+	{
+		float4x4 modelMtx = Get(instanceData)[instanceIndex].modelMtx;
+		normal = normalize(mul(adjoint_float4x4(modelMtx), normal));
+	}
+
+	//Calculate pixel normal and tangent vectors
+	f3x3 wPositions = make_f3x3_cols(
+			wPos0.xyz,
+			wPos1.xyz,
+			wPos2.xyz
+	);
+
+	DerivativesOutput wPosDer = Cal3DDeriv(derivativesOut, wPositions);
+	DerivativesOutput uvDer = { float3(results.dx, 0.0),  float3(results.dy, 0.0) };
+	normal = perturb_normal(reconstructedNormalMap, normal, wPosDer, uvDer);
 
 	// Sample Diffuse color
 	float4 posLS = mul(Get(transform)[VIEW_SHADOW].vp, float4(position, 1.0f));
@@ -465,7 +286,7 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 
 	float ao = 1.0f;
 
-	bool isTwoSided = (alpha1_opaque0 == 1 || trans1_opaque0 == 1) && bool(Get(meshConstantsBuffer)[materialID].twoSided);
+	bool isTwoSided = (geomSet != GEOMSET_OPAQUE) && bool(Get(meshConstantsBuffer)[meshIndex].flags & MESH_CONSTANT_FLAG_TWO_SIDED);
 	bool isBackFace = false;
 
 	float3 ViewVec = normalize(Get(camPos).xyz - position.xyz);
@@ -490,8 +311,12 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 
 	float3 shadedColor = f3(0.0f);
 
-	float3 F0 = specularColor.xyz;
-	float3 DiffuseColor = diffuseColor.xyz;
+	// calculate color contribution from specular lighting
+	float3 F0 = f3(0.08); // 0.08 is the index of refraction
+	float3 SpecularColor = lerp(F0, diffuseColor.rgb, Metallic);
+	float3 DiffuseColor = lerp(diffuseColor.rgb, f3(0.0), Metallic);
+
+	float alpha = diffuseColor.a;
 	float shadowFactor = 1.0f;
 	float fLightingMode = saturate(float(Get(lightingMode)));
 
@@ -509,7 +334,7 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 			position,
 			Get(shadowMap),
 			DiffuseColor,
-			F0,
+			SpecularColor,
 			Roughness,
 			Metallic,			
 			Get(depthSampler),
@@ -517,7 +342,7 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 			fLightingMode,
 			shadowFactor);
 			
-	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL * ao;
+	shadedColor = shadedColor * Get(lightColor).rgb * Get(lightColor).a * NoL;
 	
 	// point lights
 	// Find the light cluster for the current pixel
@@ -544,17 +369,20 @@ float4 tri_data_to_frag_color(float4 inPosition, float2 screenPos, uint drawID, 
 		posLS,
 		position,
 		DiffuseColor,
-		F0,
+		SpecularColor,
 		Roughness,
 		Metallic,		
 		isBackFace,
 		fLightingMode);
 	}
 
-	float ambientIntencity = 0.05f;
-	float3 ambient = diffuseColor.xyz * ambientIntencity;
+	float ambientIntencity = 0.05f * ao;
+	float3 ambient = diffuseColor.rgb * ambientIntencity;
 
-	return float4(shadedColor + ambient, linearZ);
+	ShadedFragment shadedFragment;
+	shadedFragment.color = float4(shadedColor + ambient, alpha);
+	shadedFragment.depth = z / w;
+	return shadedFragment;
 }
 
 float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
@@ -572,56 +400,61 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 	uint opaqueShaded = 0;
 	uint transparentShaded = 0; 
 
-	float VisDepth = 1.0f;
+	float VisDepth = 0.0f;
 	float3 OutColor = float3(0, 0, 0);
 
 	// Early exit if this pixel doesn't contain triangle data
 	if (alphaBit_transBit_drawID_triID != ~0u)
 	{
 		// Extract packed data
-		uint drawID = (alphaBit_transBit_drawID_triID >> DRAW_ID_LOW_BIT) & 0x000000FF;
-		uint triangleID = (alphaBit_transBit_drawID_triID & PRIM_ID_MASK);
-		uint alpha1_opaque0 = (alphaBit_transBit_drawID_triID >> ALPH_IS_LOW_BIT);
-		
-		float4 VisColor = tri_data_to_frag_color(In.position, In.screenPos, drawID, triangleID, 0, alpha1_opaque0);
-		OutColor = VisColor.xyz;
-		VisDepth = VisColor.w;
+		uint drawID = (alphaBit_transBit_drawID_triID & DRAW_ID_MASK) >> DRAW_ID_LOW_BIT;
+		uint triangleID = (alphaBit_transBit_drawID_triID & PRIM_ID_MASK) >> PRIM_ID_LOW_BIT;
+		uint alpha1_opaque0 = (alphaBit_transBit_drawID_triID & ALPH_IS_MASK) >> ALPH_IS_LOW_BIT;
+		uint geomSet = alpha1_opaque0; // GEOMSET_OPAQUE == 0, GEOMSET_ALPHA_CUTOUT == 1
+
+		ShadedFragment shadedFragment = tri_data_to_frag_color(In.position, In.screenPos, drawID, triangleID, geomSet);
+		OutColor = shadedFragment.color.rgb; // Alpha is 1 for GEOMSET_OPAQUE and GEOMSET_ALPHA_CUTOUT, we can ignore it
+		VisDepth = shadedFragment.depth;
 
 		opaqueShaded = 1; 
 	}
 
 	uint2 pixelAddr = uint2(In.position.xy);
 	uint scrW = Get(screenWidth); 
-	uint bufferIdx = pixelAddr.y * scrW + pixelAddr.x;
-	uint nodeIdx = Get(headIndexBufferSRV)[bufferIdx];
+	uint scrH = Get(screenHeight); 
+	uint nodeIdx = OIT_HEAD_INVALID;
+	if (pixelAddr.x < scrW && pixelAddr.y < scrH)
+	{
+		uint bufferIdx = pixelAddr.y * scrW + pixelAddr.x;
+		nodeIdx = Get(headIndexBufferSRV)[bufferIdx];
+	}
 
+	float transAlpha = 0.f;
 	if (nodeIdx != OIT_HEAD_INVALID)
 	{
 		uint count = 0; 
 		NodeFinalOIT fragments[OIT_MAX_FRAG_COUNT];
 
 		// Accumulate transparent pixel color data
-		while (nodeIdx != OIT_HEAD_INVALID)
+		LOOP for (uint loopIteration = 0;
+					loopIteration < OIT_MAX_FRAG_COUNT && nodeIdx != OIT_HEAD_INVALID;
+					++loopIteration)
 		{
-			if (count >= OIT_MAX_FRAG_COUNT)
-			{
-				break; 
-			}
-
 			TransparentNodeOIT node = Get(vbDepthLinkedListSRV)[nodeIdx];
 
 			uint nodeNextIdx = node.next;
 			uint nodeTriangleData = node.triangleData;
 
-			uint nodeDrawID = (nodeTriangleData >> DRAW_ID_LOW_BIT) & 0x000000FF;
-			uint nodeTriangleID = (nodeTriangleData & PRIM_ID_MASK);
-			float4 nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodeDrawID, nodeTriangleID, 1, 0);
+			uint nodeDrawID = (nodeTriangleData & DRAW_ID_MASK) >> DRAW_ID_LOW_BIT;
+			uint nodeTriangleID = (nodeTriangleData & PRIM_ID_MASK) >> PRIM_ID_LOW_BIT;
+			ShadedFragment nodeColorData = tri_data_to_frag_color(In.position, In.screenPos, nodeDrawID, nodeTriangleID, GEOMSET_ALPHA_BLEND);
 
 			// Manual visbuf depth test
-			if (nodeColorData.w < VisDepth)
+			if (nodeColorData.depth > VisDepth)
 			{
-				fragments[count].color = nodeColorData.xyz; 
-				fragments[count].depth = nodeColorData.w;
+				fragments[count].color = nodeColorData.color.xyz; 
+				fragments[count].alpha = nodeColorData.color.a;
+				fragments[count].depth = nodeColorData.depth;
 				fragments[count].next  = nodeNextIdx;
 
 				++count;
@@ -641,7 +474,7 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 			
 				while (k > 0)
 				{
-					if (insert.depth <= fragments[k - 1].depth)
+					if (insert.depth >= fragments[k - 1].depth)
 					{
 						break; 
 					}
@@ -654,13 +487,11 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 			}
 
 			// Blending
-			float3 TransparentColor = fragments[0].color; 
-			float alpha = Get(transAlpha); 
-			for (uint l = 1; l < count; ++l)
+			for (uint l = 0; l < count; ++l)
 			{
-				TransparentColor = lerp(TransparentColor, fragments[l].color, alpha);
+				OutColor = lerp(OutColor, fragments[l].color, fragments[l].alpha);
+				transAlpha = saturate(transAlpha * (1.f - fragments[l].alpha) + fragments[l].alpha);
 			}
-			OutColor = lerp(OutColor, TransparentColor, alpha); 
 
 			transparentShaded = 1; 
 		}
@@ -670,6 +501,6 @@ float4 PS_MAIN( VSOutput In, SV_SampleIndex(uint) i )
 		discard; 
 	}
 
-	float OutAlpha = (transparentShaded == 1 && opaqueShaded == 0) ? Get(transAlpha) : 1.0f; 
+	float OutAlpha = (transparentShaded == 1 && opaqueShaded == 0) ? transAlpha : 1.0f; 
 	RETURN(float4(OutColor, OutAlpha));
 }

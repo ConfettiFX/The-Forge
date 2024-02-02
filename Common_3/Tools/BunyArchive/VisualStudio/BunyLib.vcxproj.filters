@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Utilities\ThirdParty\OpenSource\lz4">
+      <UniqueIdentifier>{98c6c122-eadc-4d7d-8cfc-7a0380dbe636}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\ThirdParty\OpenSource">
+      <UniqueIdentifier>{7e531b54-f4ae-4d52-9db5-72772540b618}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\ThirdParty">
+      <UniqueIdentifier>{05cb81b7-a6a8-4207-9647-acae9304e47b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{46b21fbf-d199-42f3-a660-9ea8a433c21c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\ThirdParty\OpenSource\zstd\compress">
+      <UniqueIdentifier>{437e979b-6831-46ad-8ff3-7157226acb89}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\ThirdParty\OpenSource\zstd">
+      <UniqueIdentifier>{9389f187-55fa-4b65-89dd-8bd5d3eb7d8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools\BunyArchive">
+      <UniqueIdentifier>{cc836836-8495-4c22-aaad-4ba5a9e80396}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{2d3d2196-7b81-45e4-9189-8b686fb51d63}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\lz4\lz4hc.c">
+      <Filter>Utilities\ThirdParty\OpenSource\lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\fse_compress.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\hist.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\huf_compress.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstdmt_compress.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_compress.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_compress_literals.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_compress_sequences.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_compress_superblock.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_double_fast.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_fast.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_lazy.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_ldm.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Utilities\ThirdParty\OpenSource\zstd\compress\zstd_opt.c">
+      <Filter>Utilities\ThirdParty\OpenSource\zstd\compress</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Buny.c">
+      <Filter>Tools\BunyArchive</Filter>
+    </ClCompile>
+    <ClInclude Include="..\Buny.h">
+      <Filter>Tools\BunyArchive</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

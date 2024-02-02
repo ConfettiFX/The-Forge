@@ -1,3 +1,27 @@
+/*
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 #ifndef _METAL_H
 #define _METAL_H
 
@@ -39,18 +63,22 @@ float length(int2 x)
 #define SV_PRIMITIVEID      [[primitive_id]]
 #define SV_DOMAINLOCATION   [[position_in_patch]]
 #define SV_SHADINGRATE      [[_ERROR_NOT_IMPLEMENTED]]
+#define SV_COVERAGE         [[sample_mask]]
 
 #define UPDATE_FREQ_NONE      0
 #define UPDATE_FREQ_PER_FRAME 1
 #define UPDATE_FREQ_PER_BATCH 2
 #define UPDATE_FREQ_PER_DRAW  3
-#define UPDATE_FREQ_USER      4
+
 #define MAX_BUFFER_BINDINGS  31
 
 #define STATIC constant
 #define INLINE inline
 
-#define FLAT(X) X
+// these are handled by metal.py
+#define FLAT(TYPE) TYPE
+#define CENTROID(TYPE) TYPE
+#define centroid centroid_perspective
 
 // #define SHADER_VIS_VS   1
 // #define SHADER_VIS_TC   2
@@ -67,6 +95,7 @@ float length(int2 x)
 #define ddy dfdy
 
 #define SV_Depth float
+#define out_coverage uint
 
 bool2 And( bool2 a, bool2 b)
 { return a && b; }
@@ -274,17 +303,17 @@ void AtomicAdd(device uint& DEST, threadgroup atomic_uint& VALUE, threadgroup at
 #define AtomicExchange(DEST, VALUE, ORIGINAL_VALUE) \
     ORIGINAL_VALUE = atomic_exchange_explicit(&DEST, VALUE, memory_order_relaxed)
 
-#define AtomicMin3D( DST, COORD, VALUE, ORIGINAL_VALUE ) \
-{ (ORIGINAL_VALUE) = atomic_fetch_min_explicit( ((device atomic_uint*)&(DST)[uint(COORD)]) , (VALUE), memory_order_relaxed ); }
+#define AtomicMin3D NO_TEXTURE_ATOMIC_SUPPORT
+#define AtomicMax3D NO_TEXTURE_ATOMIC_SUPPORT
 
-inline void AtomicMax( device uint& DST, uint VAL)
-{
-    atomic_fetch_max_explicit((device atomic_uint*)&DST, VAL, memory_order_relaxed);
-}
-inline void AtomicMin( device uint& DST, uint VAL)
-{
-    atomic_fetch_min_explicit((device atomic_uint*)&DST, VAL, memory_order_relaxed);
-}
+void AtomicMax(device uint& DEST, uint VALUE, thread uint& ORIGINAL_VALUE)
+{ ORIGINAL_VALUE = atomic_fetch_max_explicit((device atomic_uint*)&(DEST), VALUE, memory_order_relaxed); }
+void AtomicMin(device uint& DEST, uint VALUE, thread uint& ORIGINAL_VALUE)
+{ ORIGINAL_VALUE = atomic_fetch_min_explicit((device atomic_uint*)&(DEST), VALUE, memory_order_relaxed); }
+void AtomicMax(device uint& DEST, uint VALUE)
+{ atomic_fetch_max_explicit((device atomic_uint*)&(DEST), VALUE, memory_order_relaxed); }
+void AtomicMin(device uint& DEST, uint VALUE)
+{ atomic_fetch_min_explicit((device atomic_uint*)&(DEST), VALUE, memory_order_relaxed); }
 
 // #define AtomicMax(DST, VAL) \
 // atomic_fetch_max_explicit((device atomic_uint*)&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
@@ -303,8 +332,11 @@ inline void AtomicMin( device uint& DST, uint VAL)
 
 #define SampleLvlTexCube(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
 #define SampleLvlTex3D(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
+#define SampleLvlTex2DArray(NAME, SAMPLER, COORD, LEVEL) NAME.sample(SAMPLER, COORD, level(LEVEL))
 
 #define SampleTexCube(NAME, SAMPLER, COORD) (NAME).sample( (SAMPLER), (COORD) )
+#define SampleUTexCube(NAME, SAMPLER, COORD) (NAME).sample( (SAMPLER), (COORD) )
+#define SampleITexCube(NAME, SAMPLER, COORD) (NAME).sample( (SAMPLER), (COORD) )
 
 #define SamplerState sampler
 #define SamplerComparisonState sampler
@@ -315,6 +347,7 @@ inline void AtomicMin( device uint& DST, uint VAL)
 #define LoadRWTex2D(TEX, P) (TEX).read(uint2((P).xy))
 #define LoadRWTex3D(TEX, P) (TEX).read(uint3((P).xyz))
 
+#define LoadTex1D(NAME, SAMPLER, COORD, L) NAME.read( uint((COORD)), uint(L) )
 #define LoadTex2D(NAME, SAMPLER, COORD, L) NAME.read( uint2((COORD).xy), uint(L) )
 // #define LoadLvlTex2D(TEX, SMP, P, L) (TEX).read(ushort2((P).xy), L)
 // #define LoadTex2DArray(NAME, SAMPLER, COORD) NAME.read( (COORD).xy, (COORD).z, 0 )
@@ -341,9 +374,11 @@ vec<T, 4> _LoadTex3D(texture3d<T, A> tex, uint3 p, uint lod)
 #define CompareTex2D(TEX, SMP, PC) (TEX).sample_compare(SMP, (PC).xy, (PC).z, level(0))
 #define CompareTex2DProj(TEX, SMP, PC) (TEX).sample_compare(SMP, (PC).xy/(PC).w, (PC).z/(PC).w, level(0))
 
-// #define GatherRedTex2D(NAME, SAMPLER, COORD) textureGather(sampler2D( (NAME), (SAMPLER) ), (COORD) ).rrrr
-#define GatherRedTex2D(NAME, SAMPLER, COORD) (NAME).gather( (SAMPLER), (COORD), int2(0) ).rrrr
+// #define GatherRedTex2D(NAME, SAMPLER, COORD) textureGather(sampler2D( (NAME), (SAMPLER) ), (COORD) )
+#define GatherRedTex2D(NAME, SAMPLER, COORD) (NAME).gather( (SAMPLER), (COORD), int2(0) )
 // Tex.gather(TexSampler, f2TexCoord, int2(0));
+
+#define GatherRedOffsetTex2D(NAME, SAMPLER, COORD, OFFSET) (NAME).gather( (SAMPLER), (COORD), OFFSET )
 
 // #define BUFFER(NAME) NAME
 
@@ -388,18 +423,20 @@ int2 GetDimensions(const texturecube<T, A> t, uint _NO_SAMPLER)
 #define ByteBuffer uint
 #define RWByteBuffer uint
 #define LoadByte(BYTE_BUFFER, ADDRESS) ((BYTE_BUFFER)[(ADDRESS)>>2])
-#define LoadByte4(BYTE_BUFFER, ADDRESS) uint4( \
-    BYTE_BUFFER[((ADDRESS)>>2)+0], \
-    BYTE_BUFFER[((ADDRESS)>>2)+1], \
-    BYTE_BUFFER[((ADDRESS)>>2)+2], \
-    BYTE_BUFFER[((ADDRESS)>>2)+3])
+#define LoadByte2(BYTE_BUFFER, ADDRESS) uint2(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]))
+#define LoadByte3(BYTE_BUFFER, ADDRESS) uint3(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 2]))
+#define LoadByte4(BYTE_BUFFER, ADDRESS) uint4(((BYTE_BUFFER)[((ADDRESS) >> 2) + 0]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 1]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 2]), ((BYTE_BUFFER)[((ADDRESS) >> 2) + 3]))
 
-#define StoreByte(BYTE_BUFFER, ADDRESS, VALUE) \
-    (BYTE_BUFFER)[((ADDRESS)>>2)+0] = VALUE;
+#define StoreByte(BYTE_BUFFER, ADDRESS, VALUE)  (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE;
+#define StoreByte2(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1];
+#define StoreByte3(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 2] = VALUE[2];
+#define StoreByte4(BYTE_BUFFER, ADDRESS, VALUE) (BYTE_BUFFER)[((ADDRESS) >> 2) + 0] = VALUE[0]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 1] = VALUE[1]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 2] = VALUE[2]; (BYTE_BUFFER)[((ADDRESS) >> 2) + 3] = VALUE[3];
 
 // #define asfloat(X) as_type<float>(X)
-inline float4 asfloat(uint4 X) { return as_type<float4>(X); }
 inline float asfloat(uint X) { return as_type<float>(X); }
+inline float2 asfloat(uint2 X) { return as_type<float2>(X); }
+inline float3 asfloat(uint3 X) { return as_type<float3>(X); }
+inline float4 asfloat(uint4 X) { return as_type<float4>(X); }
 inline uint asuint(float X) { return as_type<uint>(X); }
 inline uint2 asuint(float2 X) { return as_type<uint2>(X); }
 inline uint3 asuint(float3 X) { return as_type<uint3>(X); }
@@ -446,7 +483,8 @@ inline uint4 asuint(float4 X) { return as_type<uint4>(X); }
 #define Depth2D(ELEM_TYPE) depth2d<METAL_T(ELEM_TYPE), access::sample>
 #define Depth2DMS(ELEM_TYPE, SMP_CNT) depth2d_ms<METAL_T(ELEM_TYPE), access::read>
 
-#define RasterizerOrderedTex2D RWTex2D
+#define RasterizerOrderedTex2D(ELEM_TYPE, GROUP_INDEX) RWTex2D(ELEM_TYPE)
+#define RasterizerOrderedTex2DArray(ELEM_TYPE, GROUP_INDEX) RWTex2DArray(ELEM_TYPE)
 
 #define SampleTex2DArray(NAME, SAMPLER, COORD) NAME.sample(SAMPLER, COORD.xy, uint(COORD.z))
 
@@ -468,7 +506,7 @@ int4   _to4(int2   x) { return int4(x, 0, 0); }
 int4   _to4(int    x) { return int4(x, 0, 0, 0); }
 
 
-#define LoadTex2DMS(NAME, SAMPLER, COORD, SMP) _to4(NAME.read( (COORD).xy, SMP ))
+#define LoadTex2DMS(NAME, SAMPLER, COORD, SMP) _to4(NAME.read( uint2((COORD).xy), SMP ))
 #define LoadTex2DArrayMS(NAME, SAMPLER, COORD, SMP) _to4(NAME.read( (COORD).xyz, SMP ))
 #define SampleLvlTex2D(NAME, SAMPLER, COORD, LEVEL) _to4(NAME.sample(SAMPLER, COORD, level(LEVEL)))
 #define SampleTex2DProj(NAME, SAMPLER, COORD) _to4(NAME.sample(SAMPLER, float4(COORD).xy / float4(COORD).w))
@@ -525,7 +563,11 @@ bool any(float3 x) { return any(x!= 0.0f); }
         // 128 lanes in an SIMD-group.
         return uint4(
             (uint)(((simd_vote::vote_t)activeLaneMask)       & 0xFFFFFFFF),
+    #if defined(TARGET_IOS)
+            0, // ios simd_vote is 32 bits
+    #else
             (uint)(((simd_vote::vote_t)activeLaneMask >> 32) & 0xFFFFFFFF),
+    #endif
             uint2(0));
     }
     #define WaveReadLaneFirst simd_broadcast_first
@@ -535,6 +577,7 @@ bool any(float3 x) { return any(x!= 0.0f); }
     #define QuadReadAcrossY(X) quad_shuffle(X, (WaveGetLaneIndex() % 4u + 2) % 4)
     #define WaveReadLaneAt(X, Y) simd_shuffle(X, Y)
     #define WaveActiveAnyTrue simd_any
+    #define WaveActiveAllTrue simd_all
 
     inline uint _popcount_u4(uint4 values)
     {
@@ -572,9 +615,7 @@ bool any(float3 x) { return any(x!= 0.0f); }
 #define OUTPUT_CONTROL_POINTS(X)
 #define MAX_TESS_FACTOR(X)
 
-#define DECLARE_RESOURCES()
-#define INDIRECT_DRAW()
-#define SET_OUTPUT_FORMAT(FMT)
+#define SET_OUTPUT_FORMAT(target, fmt)
 #define PS_ZORDER_EARLYZ()
 
 #ifndef STAGE_VERT

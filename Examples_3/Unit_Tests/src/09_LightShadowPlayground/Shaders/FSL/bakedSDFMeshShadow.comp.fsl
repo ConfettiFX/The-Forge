@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -52,15 +52,11 @@ CBUFFER(cameraUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 5)
 	DATA(float4x4, InvViewProject, None);
 	DATA(float4, mCameraPos, None);
 	DATA(float, mNear, None);
+	DATA(float, mFar, None);
 	DATA(float, mFarNearDiff, None);
 	DATA(float, mFarNear, None);
-	DATA(float, paddingForAlignment0, None);
 	DATA(float2, mTwoOverRes, None);
-	DATA(float, _pad1, None);
-	DATA(float, _pad2, None);
 	DATA(float2, mWindowSize, None);
-	DATA(float, _pad3, None);
-	DATA(float, _pad4, None);
 	DATA(float4, mDeviceZToWorldZ, None);
 };
 
@@ -71,7 +67,6 @@ CBUFFER(meshSDFUniformBlock, UPDATE_FREQ_PER_FRAME, b1, binding = 6)
 	DATA(float4, mLocalPositionExtent[SDF_MAX_OBJECT_COUNT], None);
 	DATA(float4, mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT], None);
 	DATA(float4, mSDFMAD[SDF_MAX_OBJECT_COUNT], None);
-	DATA(uint, mNumObjects, None);
 };
 
 CBUFFER(lightUniformBlock, UPDATE_FREQ_PER_FRAME, b2, binding = 7)
@@ -82,6 +77,11 @@ CBUFFER(lightUniformBlock, UPDATE_FREQ_PER_FRAME, b2, binding = 7)
 	DATA(float4, mLightUpVec, None);
 	DATA(float4, mTanLightAngleAndThresholdValue, None);
 	DATA(float3, mLightDir, None);
+};
+
+PUSH_CONSTANT(meshSDFPushConstant, b3)
+{
+	DATA(uint, mNumObjects, None);
 };
 
 float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
@@ -166,7 +166,7 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 			float sampleRayTime = intersectionTimes.x * volumeRayLength;
 						
 			uint stepIndex = 0;
-			uint maxSteps = 64;
+			uint maxSteps = 32;
 
 			float minStepSize = 1.0f / (4.f * maxSteps);
 			
@@ -203,7 +203,7 @@ float ShadowRayMarch(float3 rayWorldStartPos,
 				
 				float nextStepIncrement = abs(sdfValue);
 				//magic number here to improve the shadow quality
-				nextStepIncrement = nextStepIncrement * 0.1f + 0.01f;
+				//nextStepIncrement = nextStepIncrement * 0.1f + 0.015f;
 				float curStepDist = max(nextStepIncrement, minStepSize);
 
 				sampleRayTime += curStepDist;
@@ -243,7 +243,7 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 	float depthVal = LoadTex2DMS(Get(DepthTexture), Get(clampToEdgeNearSampler), localDispatchThreadID.xy, 0).r;
 #else
 	float2 depthSize = Get(mWindowSize);
-	float2 depthUV = float2(localDispatchThreadID.xy) / depthSize;
+	float2 depthUV = (float2(localDispatchThreadID.xy) + 0.5f) / depthSize;
 	float depthVal = SampleLvlTex2D(Get(DepthTexture), Get(clampToEdgeNearSampler), depthUV, 0).r;
 #endif
 
@@ -258,7 +258,8 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 
 	float worldZ = ConvertFromDeviceZ(depthVal);
 
-	float RayStartOffset = 1.75f + 0.008f * worldZ;
+	float RayStartOffsetDepthScale = 0.001;
+	float RayStartOffset = 1.75f + RayStartOffsetDepthScale * worldZ;
 		
 	float minSphereRadius = .4f;
 	float maxSphereRadius = 10.f;
@@ -266,7 +267,7 @@ void CS_MAIN( SV_GroupID(uint3) GroupID, SV_DispatchThreadID(uint3) DispatchThre
 	float traceDistance = 10000;
 	float3 rayOrigin = worldPos;
 	//float3 rayDir = normalize(lightPosition.xyz - float3(0.0, 0.0, 0.0));
-	float3 rayDir = Get(mLightDir);
+	float3 rayDir = -Get(mLightDir);
 	rayOrigin += RayStartOffset * rayDir;
 	float3 rayEnd = worldPos + rayDir * traceDistance;
 

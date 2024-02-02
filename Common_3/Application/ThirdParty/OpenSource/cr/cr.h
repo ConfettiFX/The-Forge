@@ -142,7 +142,7 @@ Return
 
 - `true` in case of success, `false` otherwise.
 
-#### `void cr_set_temporary_path(cr_plugin& ctx, const eastl::string &path)`
+#### `void cr_set_temporary_path(cr_plugin& ctx, const char* path)`
 
 Sets temporary path to which temporary copies of plugin will be placed. Should be called
 immediately after `cr_plugin_open()`. If `temporary` path is not set, temporary copies of
@@ -182,7 +182,7 @@ Arguments
 Enum indicating the kind of step that is being executed by the `host`:
 
 - `CR_LOAD` A load caused by reload is being executed, can be used to restore any
- saved internal state. 
+ saved internal state.
 - `CR_STEP` An application update, this is the normal and most frequent operation;
 - `CR_UNLOAD` An unload for reloading the plugin will be executed, giving the
  application one chance to store any required data;
@@ -369,8 +369,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "../../../../Application/Config.h"
 #include "../../../../Utilities/Interfaces/ILog.h"
 
-#include "../../../../Utilities/ThirdParty/OpenSource/EASTL/string.h"
-
 #if !FORGE_CODE_HOT_RELOAD && defined(CR_HOST)
 #error "CR_HOST can't be defined when FORGE_CODE_HOT_RELOAD is disabled."
 #endif
@@ -392,6 +390,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define CR_REALLOC tf_realloc
 #define CR_FREE tf_free
 #define CR_MALLOC tf_malloc
+#define CR_STRLEN(x) (x ? strlen(x) : 0)
 
 #define CR_MAIN_FUNC "tfMainCodeReload"
 
@@ -560,7 +559,6 @@ struct cr_plugin {
 #include <algorithm>
 #include <chrono>  // duration for sleep
 #include <cstring> // memcpy
-#include <string>
 #include <thread> // this_thread::sleep_for
 
 #if defined(CR_WINDOWS)
@@ -571,52 +569,111 @@ struct cr_plugin {
 #define CR_PATH_SEPARATOR_INVALID '\\'
 #endif
 
-static void cr_split_path(eastl::string path, eastl::string &parent_dir,
-                          eastl::string &base_name, eastl::string &ext) {
-    eastl::replace(path.begin(), path.end(), CR_PATH_SEPARATOR_INVALID,
-                 CR_PATH_SEPARATOR);
-    eastl_size_t sep_pos = path.rfind(CR_PATH_SEPARATOR);
-    eastl_size_t dot_pos = path.rfind('.');
+// returns pointer to allocated memory, requires tf_free
+static char* cr_split_path(
+  const char* in_path,
+  char**      parent_dir,
+  char**      base_name,
+  char**      ext)
+{
+    size_t path_len = CR_STRLEN(in_path);
 
-    if (sep_pos == eastl::string::npos) {
-        parent_dir = "";
-        if (dot_pos == eastl::string::npos) {
-            ext = "";
-            base_name = path;
-        } else {
-            ext = path.substr(dot_pos);
-            base_name = path.substr(0, dot_pos);
+    size_t sep_pos = path_len;
+    size_t dot_pos = path_len;
+
+    char* path = (char*)tf_malloc(path_len + 1);
+    for (size_t i = 0; i < path_len; ++i)
+    {
+        path[i] = in_path[i];
+        if (path[i] == CR_PATH_SEPARATOR_INVALID)
+        {
+            path[i] = CR_PATH_SEPARATOR;
+            sep_pos = i;
+            dot_pos = path_len;
         }
-    } else {
-        parent_dir = path.substr(0, sep_pos + 1);
-        if (dot_pos == eastl::string::npos || sep_pos > dot_pos) {
-            ext = "";
-            base_name = path.substr(sep_pos + 1);
-        } else {
-            ext = path.substr(dot_pos);
-            base_name = path.substr(sep_pos + 1, dot_pos - sep_pos - 1);
+        else if (path[i] == '.')
+        {
+            dot_pos = i;
         }
     }
+    path[path_len] = 0;
+
+    *parent_dir = NULL;
+    *base_name  = path;
+    *ext        = NULL;
+
+    if (sep_pos != path_len)
+    {
+        path[sep_pos] = 0;
+        *parent_dir   = path;
+        *base_name += sep_pos + 1;
+    }
+
+    if (dot_pos != path_len)
+    {
+        path[dot_pos] = 0;
+        *ext          = path + dot_pos + 1;
+    }
+
+    return path;
 }
 
-static eastl::string cr_version_path(const eastl::string &basepath,
-                                   unsigned version,
-                                   const eastl::string &temppath) {
-    eastl::string folder, fname, ext;
-    cr_split_path(basepath, folder, fname, ext);
-    eastl::string ver = eastl::to_string(version);
-#if defined(_MSC_VER)
-    // When patching PDB file path in library file we will drop path and leave only file name.
-    // Length of path is extra space for version number. Trim file name only if version number
-    // length exceeds pdb folder path length. This is not relevant on other platforms.
-    if (ver.size() > folder.size()) {
-        fname = fname.substr(0, fname.size() - (ver.size() - folder.size()));
+// returns pointer to allocated memory, requires tf_free
+static char*
+cr_version_path(const char* basepath, unsigned version, const char* temppath)
+{
+    char version_str[32];
+    snprintf(version_str, 32, "%u", version);
+
+    char* folder;
+    char* fname;
+    char* ext;
+    char* memory = cr_split_path(basepath, &folder, &fname, &ext);
+
+    size_t verSize    = CR_STRLEN(version_str);
+    size_t folderSize = CR_STRLEN(folder);
+    size_t fnameSize  = CR_STRLEN(fname);
+    size_t extSize    = CR_STRLEN(ext);
+
+#if defined(_MSC_VER) // TODO this code does not make any sence
+
+    // When patching PDB file path in library file we will drop path and leave
+    // only file name. Length of path is extra space for version number. Trim
+    // file name only if version number length exceeds pdb folder path length.
+    // This is not relevant on other platforms.
+
+    if (verSize > folderSize && fnameSize > verSize + folderSize)
+    {
+        fname[verSize + folderSize] = 0;
     }
 #endif
-    if (!temppath.empty()) {
-        folder = temppath;
+
+    const char* folder2 = folder;
+    if (temppath && *temppath)
+    {
+        folder2    = temppath;
+        folderSize = CR_STRLEN(temppath);
     }
-    return folder + fname + ver + ext;
+
+    char* result =
+      (char*)tf_malloc(folderSize + 1 + fnameSize + verSize + 1 + extSize + 1);
+
+    char* curr = result;
+    memcpy(curr, folder2, folderSize);
+    curr += folderSize;
+    *(curr++) = '/';
+    memcpy(curr, fname, fnameSize);
+    curr += fnameSize;
+    memcpy(curr, version_str, verSize);
+    curr += verSize;
+    *(curr++) = '.';
+    memcpy(curr, ext, extSize);
+    curr += extSize;
+    *curr = 0;
+
+    tf_free(memory);
+
+    return result;
 }
 
 namespace cr_plugin_section_type {
@@ -643,8 +700,8 @@ struct cr_plugin_segment {
 // keep track of some internal state about the plugin, should not be messed
 // with by user
 struct cr_internal {
-    eastl::string fullname = {};
-    eastl::string temppath = {};
+    char* fullname = {};
+    char* temppath = {};
     time_t timestamp = {};
     void *handle = nullptr;
     cr_plugin_main_func main = nullptr;
@@ -668,9 +725,13 @@ static bool cr_plugin_changed(cr_plugin &ctx);
 static bool cr_plugin_rollback(cr_plugin &ctx);
 static int cr_plugin_main(cr_plugin &ctx, cr_op operation);
 
-void cr_set_temporary_path(cr_plugin &ctx, const eastl::string &path) {
+void cr_set_temporary_path(cr_plugin &ctx, const char* path) {
     cr_internal* pimpl = (cr_internal *)ctx.p;
-    pimpl->temppath = path;
+
+    size_t pathSize = CR_STRLEN(path);
+    pimpl->temppath = (char*)tf_malloc(pathSize + 1);
+    memcpy(pimpl->temppath, path, pathSize);
+    pimpl->temppath[pathSize] = 0;
 }
 
 #if defined(CR_WINDOWS)
@@ -688,38 +749,31 @@ void cr_set_temporary_path(cr_plugin &ctx, const eastl::string &path) {
 using so_handle = HMODULE;
 
 #ifdef UNICODE
-#   define CR_WINDOWS_ConvertPath(_newpath, _path)     eastl::wstring _newpath(cr_utf8_to_wstring(_path))
+#   define CR_WINDOWS_ConvertPath(_newpath, _path)     wchar_t* _newpath(cr_utf8_to_wstring(_path))
+#define CR_WINDOWS_ConvertPathFree(x) if (x && *x) tf_free(x)
 
-static eastl::wstring cr_utf8_to_wstring(const eastl::string &str) {
-    int wlen = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, 0, 0);
-    wchar_t wpath_small[MAX_PATH];
-    wchar_t* wpath_big = NULL;
-    wchar_t *wpath = wpath_small;
-    if (wlen > _countof(wpath_small)) {
-        wpath_big = (wchar_t*)CR_MALLOC(sizeof(wchar_t) * wlen);
-        wpath = wpath_big;
-    }
-
-    if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, wpath, wlen) != wlen) {
-        return L"";
-    }
-
-    if (wpath_big)
+static wchar_t* cr_utf8_to_wstring(const char* str)
+{
+    int      wlen  = MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0);
+    wchar_t* wpath = (wchar_t*)tf_malloc(sizeof(wchar_t) * wlen);
+    if (MultiByteToWideChar(CP_UTF8, 0, str, -1, wpath, wlen) != wlen)
     {
-        CR_FREE(wpath_big);
-        wpath_big = NULL;
+        static wchar_t failBuf[1] = L"";
+        return failBuf;
     }
-
     return wpath;
 }
 #else
-#   define CR_WINDOWS_ConvertPath(_newpath, _path)     const eastl::string &_newpath = _path
+#   define CR_WINDOWS_ConvertPath(_newpath, _path)     const char* _newpath = _path
+#define CR_WINDOWS_ConvertPathFree(x)
 #endif  // UNICODE
 
-static time_t cr_last_write_time(const eastl::string &path) {
+static time_t cr_last_write_time(const char* path) {
     CR_WINDOWS_ConvertPath(_path, path);
     WIN32_FILE_ATTRIBUTE_DATA fad;
-    if (!GetFileAttributesEx(_path.c_str(), GetFileExInfoStandard, &fad)) {
+    bool success = GetFileAttributesEx(_path, GetFileExInfoStandard, &fad);
+    CR_WINDOWS_ConvertPathFree(_path);
+    if (!success) {
         return -1;
     }
 
@@ -734,20 +788,26 @@ static time_t cr_last_write_time(const eastl::string &path) {
     return static_cast<time_t>(time.QuadPart / 10000000 - 11644473600LL);
 }
 
-static bool cr_exists(const eastl::string &path) {
+static bool cr_exists(const char* path) {
     CR_WINDOWS_ConvertPath(_path, path);
-    return GetFileAttributes(_path.c_str()) != INVALID_FILE_ATTRIBUTES;
+    bool success = GetFileAttributes(_path) != INVALID_FILE_ATTRIBUTES;
+    CR_WINDOWS_ConvertPathFree(_path);
+    return success;
 }
 
-static bool cr_copy(const eastl::string &from, const eastl::string &to) {
+static bool cr_copy(const char* from, const char* to) {
     CR_WINDOWS_ConvertPath(_from, from);
     CR_WINDOWS_ConvertPath(_to, to);
-    return CopyFile(_from.c_str(), _to.c_str(), FALSE) ? true : false;
+    bool success = CopyFile(_from, _to, FALSE);
+    CR_WINDOWS_ConvertPathFree(_from);
+    CR_WINDOWS_ConvertPathFree(_to);
+    return success;
 }
 
-static void cr_del(const eastl::string& path) {
+static void cr_del(const char* path) {
     CR_WINDOWS_ConvertPath(_path, path);
-    DeleteFile(_path.c_str());
+    DeleteFile(_path);
+    CR_WINDOWS_ConvertPathFree(_path);
 }
 
 // If using Microsoft Visual C/C++ compiler we need to do some workaround the
@@ -764,11 +824,33 @@ static void cr_del(const eastl::string& path) {
 #include <stdio.h>
 #include <tchar.h>
 
-static eastl::string cr_replace_extension(const eastl::string &filepath,
-                                        const eastl::string &ext) {
-    eastl::string folder, filename, old_ext;
-    cr_split_path(filepath, folder, filename, old_ext);
-    return folder + filename + ext;
+// returns pointer to allocated memory, requires tf_free
+static char* cr_replace_extension(const char* filepath, const char* ext)
+{
+    char* folder;
+    char* filename;
+    char* old_ext;
+    char* memory = cr_split_path(filepath, &folder, &filename, &old_ext);
+
+    size_t folderSize = CR_STRLEN(folder);
+    size_t fnameSize  = CR_STRLEN(filename);
+    size_t extSize    = CR_STRLEN(ext);
+
+    char* result = (char*)tf_malloc(folderSize + 1 + fnameSize + extSize + 1);
+
+    char* curr = result;
+    memcpy(curr, folder, folderSize);
+    curr += folderSize;
+    *(curr++) = '/';
+    memcpy(curr, filename, fnameSize);
+    curr += fnameSize;
+    memcpy(curr, ext, extSize);
+    curr += extSize;
+    *curr = 0;
+
+    tf_free(memory);
+
+    return result;
 }
 
 template <class T>
@@ -874,8 +956,11 @@ static char *cr_pdb_find(LPBYTE imageBase, PIMAGE_DEBUG_DIRECTORY debugDir) {
     return nullptr;
 }
 
-static bool cr_pdb_replace(const eastl::string &filename, const eastl::string &pdbname,
-                           eastl::string &orig_pdb) {
+static bool
+cr_pdb_replace(const char* filename, const char* pdbname, char** orig_pdb)
+{
+    *orig_pdb = NULL;
+
     CR_WINDOWS_ConvertPath(_filename, filename);
 
     HANDLE fp = nullptr;
@@ -883,7 +968,7 @@ static bool cr_pdb_replace(const eastl::string &filename, const eastl::string &p
     LPVOID mem = 0;
     bool result = false;
     do {
-        fp = CreateFile(_filename.c_str(), GENERIC_READ | GENERIC_WRITE,
+        fp = CreateFile(_filename, GENERIC_READ | GENERIC_WRITE,
                         FILE_SHARE_READ, nullptr, OPEN_EXISTING,
                         FILE_ATTRIBUTE_NORMAL, nullptr);
         if ((fp == INVALID_HANDLE_VALUE) || (fp == nullptr)) {
@@ -986,11 +1071,17 @@ static bool cr_pdb_replace(const eastl::string &filename, const eastl::string &p
         for (int i = 1; i <= numEntries; i++, debugDir++) {
             char *pdb = cr_pdb_find((LPBYTE)mem, debugDir);
             if (pdb) {
-                size_t len = strlen(pdb);
-                if (len >= strlen(pdbname.c_str())) {
-                    orig_pdb = pdb;
-                    memcpy_s(pdb, len, pdbname.c_str(), pdbname.length());
-                    pdb[pdbname.length()] = 0;
+                size_t len = CR_STRLEN(pdb);
+                size_t pdbnameSize = CR_STRLEN(pdbname);
+                if (len >= pdbnameSize)
+                {
+                    *orig_pdb = (char*)tf_malloc(len + 1);
+                    memcpy(*orig_pdb, pdb, len);
+                    (*orig_pdb)[len] = 0;
+
+                    memcpy_s(pdb, len, pdbname, pdbnameSize);
+                    pdb[pdbnameSize] = 0;
+
                     result = true;
                 }
             }
@@ -1009,14 +1100,39 @@ static bool cr_pdb_replace(const eastl::string &filename, const eastl::string &p
         CloseHandle(fp);
     }
 
+    CR_WINDOWS_ConvertPathFree(_filename);
     return result;
 }
 
-bool static cr_pdb_process(const eastl::string &desination) {
-    eastl::string folder, fname, ext, orig_pdb;
-    cr_split_path(desination, folder, fname, ext);
-    bool result = cr_pdb_replace(desination, fname + ".pdb", orig_pdb);
-    result &= cr_copy(orig_pdb, cr_replace_extension(desination, ".pdb"));
+bool static cr_pdb_process(const char* desination)
+{
+    char* folder;
+    char* fname;
+    char* ext;
+    char* allocation1 = cr_split_path(desination, &folder, &fname, &ext);
+
+    size_t fnameSize   = CR_STRLEN(fname);
+    char*  allocation2 = (char*)tf_malloc(fnameSize + 5);
+
+    {
+        char* cur = allocation2;
+        memcpy(cur, fname, fnameSize);
+        cur += fnameSize;
+        memcpy(cur, ".pdb", 4);
+        cur += 4;
+        *cur = 0;
+    }
+
+    char* orig_pdb;
+    bool  result = cr_pdb_replace(desination, allocation2, &orig_pdb);
+
+    char* allocation3 = cr_replace_extension(desination, ".pdb");
+    result &= cr_copy(orig_pdb, allocation3);
+
+    tf_free(orig_pdb);
+    tf_free(allocation1);
+    tf_free(allocation2);
+    tf_free(allocation3);
     return result;
 }
 #endif // _MSC_VER
@@ -1038,9 +1154,12 @@ static void cr_pe_section_save(cr_plugin &ctx, cr_plugin_section_type::e type,
     }
 }
 
-static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
-                                        const eastl::string &imagefile,
-                                        bool rollback) {
+static bool cr_plugin_validate_sections(
+  cr_plugin&  ctx,
+  so_handle   handle,
+  const char* imagefile,
+  bool        rollback)
+{
     (void)imagefile;
     CR_ASSERT(handle);
     cr_internal* p = (cr_internal *)ctx.p;
@@ -1089,12 +1208,13 @@ static void cr_so_unload(cr_plugin &ctx) {
     FreeLibrary((HMODULE)p->handle);
 }
 
-static so_handle cr_so_load(const eastl::string &filename) {
+static so_handle cr_so_load(const char* filename) {
     CR_WINDOWS_ConvertPath(_filename, filename);
-    so_handle new_dll = LoadLibrary(_filename.c_str());
+    so_handle new_dll = LoadLibrary(_filename);
     if (!new_dll) {
         CR_ERROR("Couldn't load plugin: %d\n", GetLastError());
     }
+    CR_WINDOWS_ConvertPathFree(_filename);
     return new_dll;
 }
 
@@ -1177,9 +1297,11 @@ static int cr_plugin_main(cr_plugin &ctx, cr_op operation) {
 
 using so_handle = void *;
 
-static time_t cr_last_write_time(const eastl::string &path) {
+static time_t cr_last_write_time(const char* path)
+{
     struct stat stats;
-    if (stat(path.c_str(), &stats) == -1) {
+    if (stat(path, &stats) == -1)
+    {
         return -1;
     }
 
@@ -1194,22 +1316,24 @@ static time_t cr_last_write_time(const eastl::string &path) {
 #endif
 }
 
-static bool cr_exists(const eastl::string &path) {
-    struct stat stats {};
-    return stat(path.c_str(), &stats) != -1;
+static bool cr_exists(const char* path)
+{
+	struct stat stats {};
+    return stat(path, &stats) != -1;
 }
 
-static bool cr_copy(const eastl::string &from, const eastl::string &to) {
+static bool cr_copy(const char* from, const char* to)
+{
 #if defined(CR_LINUX)
     // Reference: http://www.informit.com/articles/article.aspx?p=23618&seqNum=13
     int input, output;
     struct stat src_stat;
-    if ((input = open(from.c_str(), O_RDONLY)) == -1) {
+    if ((input = open(from, O_RDONLY)) == -1) {
         return false;
     }
     fstat(input, &src_stat);
 
-    if ((output = open(to.c_str(), O_WRONLY|O_CREAT, O_NOFOLLOW|src_stat.st_mode)) == -1) {
+    if ((output = open(to, O_WRONLY|O_CREAT, O_NOFOLLOW|src_stat.st_mode)) == -1) {
         close(input);
         return false;
     }
@@ -1219,12 +1343,13 @@ static bool cr_copy(const eastl::string &from, const eastl::string &to) {
     close(output);
     return result > -1;
 #elif defined(CR_OSX)
-    return copyfile(from.c_str(), to.c_str(), NULL, COPYFILE_ALL|COPYFILE_NOFOLLOW_DST) == 0;
+    return copyfile(from, to, NULL, COPYFILE_ALL|COPYFILE_NOFOLLOW_DST) == 0;
 #endif
 }
 
-static void cr_del(const eastl::string& path) {
-    unlink(path.c_str());
+static void cr_del(const char* path)
+{
+	unlink(path);
 }
 
 // unix,internal
@@ -1248,9 +1373,9 @@ bool cr_is_empty(const void *const buf, int64_t len) {
 #include <elf.h>
 #include <link.h>
 
-static size_t cr_file_size(const eastl::string &path) {
+static size_t cr_file_size(const char* path) {
     struct stat stats;
-    if (stat(path.c_str(), &stats) == -1) {
+    if (stat(path, &stats) == -1) {
         return 0;
     }
     return static_cast<size_t>(stats.st_size);
@@ -1267,7 +1392,7 @@ void cr_elf_section_save(cr_plugin &ctx, cr_plugin_section_type::e type,
                          int64_t vaddr, int64_t base, H shdr) {
     const cr_plugin_section_version::e version = cr_plugin_section_version::current;
     cr_internal* p = (cr_internal *)ctx.p;
-    auto data = &p->data[type][version];
+    cr_plugin_section* data = &p->data[type][version];
     const size_t old_size = data->size;
     data->base = base;
     data->ptr = (char *)vaddr;
@@ -1358,7 +1483,7 @@ static int cr_dl_header_handler(struct dl_phdr_info *info, size_t,
     }
 
     for (int i = 0; i < info->dlpi_phnum; i++) {
-        auto phdr = info->dlpi_phdr[i];
+        ElfW(Phdr) phdr = info->dlpi_phdr[i];
         if (phdr.p_type != PT_LOAD) {
             continue;
         }
@@ -1377,9 +1502,12 @@ static int cr_dl_header_handler(struct dl_phdr_info *info, size_t,
     return 0;
 }
 
-static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
-                                        const eastl::string &imagefile,
-                                        bool rollback) {
+static bool cr_plugin_validate_sections(
+  cr_plugin&  ctx,
+  so_handle   handle,
+  const char* imagefile,
+  bool        rollback)
+{
     CR_ASSERT(handle);
     cr_ld_data data;
     data.ctx = &ctx;
@@ -1387,14 +1515,14 @@ static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
     if (pimpl->mode == CR_DISABLE) {
         return true;
     }
-    data.fullname = imagefile.c_str();
+    data.fullname = imagefile;
     dl_iterate_phdr(cr_dl_header_handler, (void *)&data);
 
     const size_t len = cr_file_size(imagefile);
     char *p = nullptr;
     bool result = false;
     do {
-        int fd = open(imagefile.c_str(), O_RDONLY);
+        int fd = open(imagefile, O_RDONLY);
         p = (char *)mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
         close(fd);
 
@@ -1411,7 +1539,7 @@ static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
         }
 
         ElfW(Shdr*) shdr = (ElfW(Shdr) *)(p + ehdr->e_shoff);
-        auto sh_strtab = &shdr[ehdr->e_shstrndx];
+        ElfW(Shdr*) sh_strtab = &shdr[ehdr->e_shstrndx];
         const char *const sh_strtab_p = p + sh_strtab->sh_offset;
         result = cr_elf_validate_sections(ctx, rollback, shdr,
                                           ehdr->e_shnum, sh_strtab_p);
@@ -1452,7 +1580,7 @@ void cr_macho_section_save(cr_plugin &ctx, cr_plugin_section_type::e type,
                            intptr_t addr, size_t size) {
     const cr_plugin_section_version::e version = cr_plugin_section_version::current;
     cr_internal* p = (cr_internal *)ctx.p;
-    auto data = &p->data[type][version];
+    cr_plugin_section* data = &p->data[type][version];
     const size_t old_size = data->size;
     data->base = 0;
     data->ptr = (char *)addr;
@@ -1470,9 +1598,12 @@ void cr_macho_section_save(cr_plugin &ctx, cr_plugin_section_type::e type,
 //
 // Some useful references:
 // man 3 dyld
-static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
-                                        const eastl::string &imagefile,
-                                        bool rollback) {
+static bool cr_plugin_validate_sections(
+  cr_plugin& ctx,
+  so_handle handle,
+  const char* imagefile,
+  bool rollback)
+{
     bool result = true;
     cr_internal* pimpl = (cr_internal *)ctx.p;
     if (pimpl->mode == CR_DISABLE) {
@@ -1482,7 +1613,7 @@ static bool cr_plugin_validate_sections(cr_plugin &ctx, so_handle handle,
 
     // resolve absolute path of the image, because _dyld_get_image_name returns abs path
     char imageAbsPath[PATH_MAX+1];
-    if (!::realpath(imagefile.c_str(), imageAbsPath)) {
+    if (!::realpath(imagefile, imageAbsPath)) {
         CR_ASSERT(0 && "resolving absolute path for plugin failed");
         return false;
     }
@@ -1552,9 +1683,9 @@ static void cr_so_unload(cr_plugin &ctx) {
     p->main = nullptr;
 }
 
-static so_handle cr_so_load(const eastl::string &new_file) {
+static so_handle cr_so_load(const char* new_file) {
     dlerror();
-    so_handle new_dll = dlopen(new_file.c_str(), RTLD_NOW);
+    so_handle new_dll = dlopen(new_file, RTLD_NOW);
     if (!new_dll) {
         CR_ERROR("Couldn't load plugin: %s\n", dlerror());
     }
@@ -1644,20 +1775,28 @@ static int cr_plugin_main(cr_plugin &ctx, cr_op operation) {
 
 #endif // CR_LINUX || CR_OSX
 
-static bool cr_plugin_load_internal(cr_plugin &ctx, bool rollback) {
+static bool cr_plugin_load_internal(cr_plugin& ctx, bool rollback)
+{
     CR_TRACE
     cr_internal* p = (cr_internal *)ctx.p;
-    const eastl::string file = p->fullname;
-    if (cr_exists(file) || rollback) {
-        const eastl::string old_file = cr_version_path(file, ctx.version, p->temppath);
-        CR_LOG("unload '%s' with rollback: %d\n", old_file.c_str(), rollback);
+    const char*  file = p->fullname;
+    if (cr_exists(file) || rollback)
+    {
+        {
+            char* old_file = cr_version_path(file, ctx.version, p->temppath);
+            CR_LOG("unload '%s' with rollback: %d\n", old_file, rollback);
+            tf_free(old_file);
+        }
+
         int r = cr_plugin_unload(ctx, rollback, false);
         if (r < 0) {
             return false;
         }
 
         unsigned int new_version = rollback ? ctx.version : ctx.next_version;
-        eastl::string new_file = cr_version_path(file, new_version, p->temppath);
+
+        char* new_file = cr_version_path(file, new_version, p->temppath);
+
         if (rollback) {
             if (ctx.version == 0) {
                 ctx.failure = CR_INITIAL_FAILURE;
@@ -1709,8 +1848,12 @@ static bool cr_plugin_load_internal(cr_plugin &ctx, bool rollback) {
             p2->timestamp = cr_last_write_time(file);
         }
         ctx.version = new_version;
-        CR_LOG("loaded: %s (version: %d)\n", new_file.c_str(), ctx.version);
-    } else {
+
+        CR_LOG("loaded: %s (version: %d)\n", new_file, ctx.version);
+        tf_free(new_file);
+    }
+    else
+    {
         CR_ERROR("Error loading plugin.\n");
         return false;
     }
@@ -1938,11 +2081,18 @@ extern "C" bool cr_plugin_open(cr_plugin &ctx, const char *fullpath) {
     }
     cr_internal* p = new(CR_MALLOC(sizeof(cr_internal))) cr_internal;
     p->mode = CR_OP_MODE;
-    p->fullname = fullpath;
-    ctx.p = p;
-    ctx.next_version = 1;
+
+    {
+        size_t pathSize = CR_STRLEN(fullpath);
+        p->fullname     = (char*)tf_malloc(pathSize + 1);
+        memcpy(p->fullname, fullpath, pathSize);
+        p->fullname[pathSize] = 0;
+    }
+
+    ctx.p                    = p;
+    ctx.next_version         = 1;
     ctx.last_working_version = 0;
-    ctx.version = 0;
+    ctx.version              = 0;
     ctx.failure = CR_NONE;
     cr_plat_init();
     return true;
@@ -1954,26 +2104,39 @@ extern "C" bool cr_plugin_load(cr_plugin &ctx, const char *fullpath) {
 }
 
 // Call to cleanup internal state once the plugin is not required anymore.
-extern "C" void cr_plugin_close(cr_plugin &ctx) {
+extern "C" void cr_plugin_close(cr_plugin& ctx)
+{
     CR_TRACE
     const bool rollback = false;
-    const bool close = true;
+    const bool close    = true;
     cr_plugin_unload(ctx, rollback, close);
     cr_so_sections_free(ctx);
-    cr_internal* p = (cr_internal *)ctx.p;
+    cr_internal* p = (cr_internal*)ctx.p;
 
     // delete backups
-    const eastl::string file = p->fullname;
-    for (unsigned int i = 0; i < ctx.version; i++) {
-        cr_del(cr_version_path(file, i, p->temppath));
+    const char* file = p->fullname;
+    for (unsigned int i = 0; i < ctx.version; i++)
+    {
+        char* fd = cr_version_path(file, i, p->temppath);
+        cr_del(fd);
+        tf_free(fd);
 #if defined(_MSC_VER)
-        cr_del(cr_replace_extension(cr_version_path(file, i, p->temppath), ".pdb"));
+        fd        = cr_version_path(file, i, p->temppath);
+        char* fd2 = cr_replace_extension(fd, ".pdb");
+        cr_del(fd2);
+        tf_free(fd);
+        tf_free(fd2);
 #endif
     }
 
+    if (p->temppath)
+        tf_free(p->temppath);
+    if (p->fullname)
+        tf_free(p->fullname);
+
     p->~cr_internal();
     CR_FREE(p);
-    ctx.p = nullptr;
+    ctx.p       = nullptr;
     ctx.version = 0;
 }
 

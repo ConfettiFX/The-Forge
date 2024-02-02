@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,58 +20,58 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #include "ClipMask.h"
 
 void ClipMask::Initialize(Rig* rig)
 {
-	mRig = rig;
+    mRig = rig;
 
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
+    ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 
-	// Allocates per-joint weights used to mask the animation. Note that
-	// this is a Soa structure.
-	mJointWeights = allocator->AllocateRange<Vector4>(rig->mNumSoaJoints);
+    // Allocates per-joint weights used to mask the animation. Note that
+    // this is a Soa structure.
+    mJointWeights = allocator->AllocateRange<Vector4>(rig->mNumSoaJoints);
 
-	EnableAllJoints();
+    EnableAllJoints();
 }
 
 void ClipMask::Exit()
 {
-	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
-	allocator->Deallocate(mJointWeights.data());
-	mJointWeights = {};
+    ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
+    allocator->Deallocate(mJointWeights.data());
+    mJointWeights = {};
 }
 
 void ClipMask::EnableAllJoints()
 {
-	// Sets all weights to 1.0f
-	for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
-	{
-		mJointWeights[i] = Vector4::one();
-	}
+    // Sets all weights to 1.0f
+    for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
+    {
+        mJointWeights[i] = Vector4::one();
+    }
 }
 
 void ClipMask::DisableAllJoints()
 {
-	// Sets all weights to 0.0f
-	for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
-	{
-		mJointWeights[i] = Vector4::zero();
-	}
+    // Sets all weights to 0.0f
+    for (uint32_t i = 0; i < mRig->mNumSoaJoints; i++)
+    {
+        mJointWeights[i] = Vector4::zero();
+    }
 }
 
 void ClipMask::SetAllChildrenOf(int32_t jointIndex, float setValue)
 {
-	auto functor = [this, setValue](int32_t joint, int16_t jointParent)
-	{
-		// Sets the weight_setting of all the joints children to setValue. Note
-		// that weights are stored in SoA format.
-		const int32_t jointId = joint;
-		mJointWeights[jointId / 4].setElem(jointId % 4, setValue);
-	};
+    auto functor = [this, setValue](int32_t joint, int16_t jointParent)
+    {
+        // Sets the weight_setting of all the joints children to setValue. Note
+        // that weights are stored in SoA format.
+        const int32_t jointId = joint;
+        mJointWeights[jointId / 4].setElem(jointId % 4, setValue);
+    };
 
-	// Iterate children of the joint at jointIndex.
-	ozz::animation::IterateJointsDF(mRig->mSkeleton, functor, jointIndex);
+    // Iterate children of the joint at jointIndex.
+    ozz::animation::IterateJointsDF(mRig->mSkeleton, functor, jointIndex);
 }

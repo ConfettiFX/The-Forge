@@ -1,16 +1,16 @@
-#frag VR_MULTIVIEW basic.frag
-#include "basic.frag.fsl"
+#frag cube.frag
+#include "cube.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW basic.vert
-#include "basic.vert.fsl"
+#vert FT_MULTIVIEW cube.vert
+#include "cube.vert.fsl"
 #end
 
-#frag VR_MULTIVIEW plane.frag
+#frag plane.frag
 #include "plane.frag.fsl"
 #end
 
-#vert VR_MULTIVIEW plane.vert
+#vert FT_MULTIVIEW plane.vert
 #include "plane.vert.fsl"
 #end
 

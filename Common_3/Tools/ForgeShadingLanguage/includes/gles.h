@@ -1,3 +1,27 @@
+/*
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 #define f4(X) vec4(X)
 #define f3(X) vec3(X)
 #define f2(X) vec2(X)
@@ -27,6 +51,7 @@
 #define uint4 ivec4
 #define float2 vec2
 #define float3 vec3
+#define packed_float3 vec3
 #define float4 vec4
 #define float2x2 mat2
 #define float3x3 mat3
@@ -66,6 +91,21 @@
 #define round(X) int(X)
 #define Tex2D(T) sampler2D
 #define SamplerComparisonState highp sampler2DShadow
+
+#define getCol(M, I) M[I]
+#define getCol0(M) getCol(M, 0)
+#define getCol1(M) getCol(M, 1)
+#define getCol2(M) getCol(M, 2)
+#define getCol3(M) getCol(M, 3)
+
+float4 getRow(mat4 M, uint i) { return float4(M[0][i], M[1][i], M[2][i], M[3][i]); }
+float3 getRow(mat3 M, uint i) { return float3(M[0][i], M[1][i], M[2][i]); }
+float2 getRow(mat2 M, uint i) { return float2(M[0][i], M[1][i]); }
+
+#define getRow0(M) getRow(M, 0)
+#define getRow1(M) getRow(M, 1)
+#define getRow2(M) getRow(M, 2)
+#define getRow3(M) getRow(M, 3)
 
 void setCol(inout f4x4 M, in float4 col, const int i)
 { M[i] = col; }
@@ -112,7 +152,6 @@ float4 mul(float4 a, f4x4 b) { return a * b; }
 f4x4 mul(f4x4 a, f4x4 b) { return a * b; }
 float3 mul(float3 a, float b) { return a * b; }
 
-#define DECLARE_RESOURCES()
 #define STATIC
 #define INLINE
 

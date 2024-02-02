@@ -1,34 +1,34 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
-*
-* This file is part of The-Forge
-* (see https://github.com/ConfettiFX/The-Forge).
-*
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*   http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing,
-* software distributed under the License is distributed on an
-* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-* KIND, either express or implied.  See the License for the
-* specific language governing permissions and limitations
-* under the License.
-*/
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
+ *
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 #include "../../Application/Config.h"
 
 #ifdef _WINDOWS
 
-#include "../CPUConfig.h"
-
 #include <ctime>
 #include <ntverp.h>
+
+#include "../CPUConfig.h"
 
 #if !defined(XBOX)
 #include <shlwapi.h>
@@ -39,104 +39,115 @@
 #include "../../Utilities/ThirdParty/OpenSource/bstrlib/bstrlib.h"
 #include "../../Utilities/ThirdParty/OpenSource/rmem/inc/rmem.h"
 
+#include "../../Application/Interfaces/IApp.h"
+#include "../../Application/Interfaces/IFont.h"
+#include "../../Application/Interfaces/IProfiler.h"
+#include "../../Application/Interfaces/IUI.h"
+#include "../../Game/Interfaces/IScripting.h"
+#include "../../Graphics/Interfaces/IGraphics.h"
+#include "../../OS/Interfaces/IOperatingSystem.h"
+#include "../../Utilities/Interfaces/IFileSystem.h"
+#include "../../Utilities/Interfaces/ILog.h"
+#include "../../Utilities/Interfaces/IThread.h"
+#include "../../Utilities/Interfaces/ITime.h"
+
 #include "../../Utilities/Math/MathTypes.h"
 
-#include "../../OS/Interfaces/IOperatingSystem.h"
-#include "../../Utilities/Interfaces/ILog.h"
-#include "../../Utilities/Interfaces/ITime.h"
-#include "../../Utilities/Interfaces/IThread.h"
-#include "../../Application/Interfaces/IProfiler.h"
-#include "../../Application/Interfaces/IApp.h"
-#include "../../Utilities/Interfaces/IFileSystem.h"
-#include "../../Game/Interfaces/IScripting.h"
-#include "../../Application/Interfaces/IFont.h"
-#include "../../Application/Interfaces/IUI.h"
 #include "../../Utilities/Interfaces/IMemory.h"
-
-#include "../../Graphics/Interfaces/IGraphics.h"
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
 #include "WindowsStackTraceDump.h"
 #endif
 
+#include "../../Tools/ReloadServer/ReloadClient.h"
+
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
 // App Data
-static IApp*          pApp = nullptr;
+static IApp*       pApp = nullptr;
 static WindowDesc* gWindowDesc = nullptr;
-static bool           gShowPlatformUI = true;
-static ResetDesc gResetDescriptor = { RESET_TYPE_NONE };
-static ReloadDesc gReloadDescriptor = { RELOAD_TYPE_ALL };
+static bool        gShowPlatformUI = true;
+static ResetDesc   gResetDescriptor = { RESET_TYPE_NONE };
+static ReloadDesc  gReloadDescriptor = { RELOAD_TYPE_ALL };
 /// CPU
-static CpuInfo gCpu;
+static CpuInfo     gCpu;
+static OSInfo      gOsInfo = {};
 
 // UI
 static UIComponent* pAPISwitchingComponent = NULL;
 static UIComponent* pToggleVSyncComponent = NULL;
 static UIComponent* pReloadShaderComponent = NULL;
 static UIWidget*    pSwitchComponentLabelWidget = NULL;
-static UIWidget*    pSelectApUIWidget = NULL; 
-static uint32_t     gSelectedApiIndex = 0; 
+static UIWidget*    pSelectApUIWidget = NULL;
+static UIWidget*    pSelectGraphicCardWidget = NULL;
+static uint32_t     gSelectedApiIndex = 0;
 
-// Renderer.cpp
-extern RendererApi gSelectedRendererApi; 
-extern bool gD3D11Unsupported; 
+// PickRenderingAPI.cpp
+extern PlatformParameters gPlatformParameters;
+extern bool               gD3D11Unsupported;
 
 // WindowsWindow.cpp
-extern IApp* pWindowAppRef;
-extern WindowDesc* gWindow;
-extern bool gCursorVisible;
-extern bool gCursorInsideRectangle;
+extern IApp*        pWindowAppRef;
+extern WindowDesc*  gWindow;
+extern bool         gCursorVisible;
+extern bool         gCursorInsideRectangle;
 extern MonitorDesc* gMonitors;
 extern uint32_t     gMonitorCount;
 
 // WindowsLog.c
 extern "C" HWND* gLogWindowHandle;
 
-
 //------------------------------------------------------------------------
 // STATIC HELPER FUNCTIONS
 //------------------------------------------------------------------------
 
-static inline float CounterToSecondsElapsed(int64_t start, int64_t end) 
-{ 
-	return (float)(end - start) / (float)1e6; 
-}
+static inline float CounterToSecondsElapsed(int64_t start, int64_t end) { return (float)(end - start) / (float)1e6; }
+
+ThermalStatus getThermalStatus() { return THERMAL_STATUS_NOT_SUPPORTED; }
 
 //------------------------------------------------------------------------
 // OPERATING SYSTEM INTERFACE FUNCTIONS
 //------------------------------------------------------------------------
 
-void requestShutdown() 
-{ 
-	PostQuitMessage(0); 
-}
+void requestShutdown() { PostQuitMessage(0); }
 
-void requestReset(const ResetDesc* pResetDesc)
-{
-	gResetDescriptor = *pResetDesc;
-}
+void requestReset(const ResetDesc* pResetDesc) { gResetDescriptor = *pResetDesc; }
 
-void requestReload(const ReloadDesc* pReloadDesc)
-{
-	gReloadDescriptor = *pReloadDesc;
-}
+void requestReload(const ReloadDesc* pReloadDesc) { gReloadDescriptor = *pReloadDesc; }
 
-void errorMessagePopup(const char* title, const char* msg, void* windowHandle)
+void errorMessagePopup(const char* title, const char* msg, WindowHandle* handle, errorMessagePopupCallbackFn callback)
 {
-#ifndef AUTOMATED_TESTING
-	MessageBoxA((HWND)windowHandle, msg, title, MB_OK);
+#if defined(AUTOMATED_TESTING)
+    LOGF(eERROR, title);
+    LOGF(eERROR, msg);
+#else
+    MessageBoxA((HWND)handle->window, msg, title, MB_OK);
 #endif
+    if (callback)
+    {
+        callback();
+    }
 }
 
 CustomMessageProcessor sCustomProc = nullptr;
-void setCustomMessageProcessor(CustomMessageProcessor proc)
-{
-	sCustomProc = proc;
-}
+void                   setCustomMessageProcessor(CustomMessageProcessor proc) { sCustomProc = proc; }
 
-CpuInfo* getCpuInfo() {
-	return &gCpu;
+CpuInfo* getCpuInfo() { return &gCpu; }
+
+OSInfo* getOsInfo() { return &gOsInfo; }
+
+void getOsVersion(ULONG& majorVersion, ULONG& minorVersion, ULONG& buildNumber)
+{
+    void(WINAPI * pfnRtlGetNtVersionNumbers)(__out_opt ULONG * pNtMajorVersion, __out_opt ULONG * pNtMinorVersion,
+                                             __out_opt ULONG * pNtBuildNumber);
+
+    (FARPROC&)pfnRtlGetNtVersionNumbers = GetProcAddress(GetModuleHandle(L"ntdll.dll"), "RtlGetNtVersionNumbers");
+
+    if (pfnRtlGetNtVersionNumbers)
+    {
+        pfnRtlGetNtVersionNumbers(&majorVersion, &minorVersion, &buildNumber);
+        buildNumber = buildNumber & ~0xF0000000;
+    }
 }
 //------------------------------------------------------------------------
 // PLATFORM LAYER CORE SUBSYSTEMS
@@ -144,75 +155,82 @@ CpuInfo* getCpuInfo() {
 
 bool initBaseSubsystems()
 {
-	// Not exposed in the interface files / app layer
-	extern bool platformInitFontSystem();
-	extern bool platformInitUserInterface();
-	extern void platformInitLuaScriptingSystem();
-	extern void platformInitWindowSystem(WindowDesc*);
+    // Not exposed in the interface files / app layer
+    extern bool platformInitFontSystem();
+    extern bool platformInitUserInterface();
+    extern void platformInitLuaScriptingSystem();
+    extern void platformInitWindowSystem(WindowDesc*);
 
-	platformInitWindowSystem(gWindowDesc);
-	pApp->pWindow = gWindowDesc; 
+    platformInitWindowSystem(gWindowDesc);
+    pApp->pWindow = gWindowDesc;
 
 #ifdef ENABLE_FORGE_FONTS
-	extern bool platformInitFontSystem(); 
-	if (!platformInitFontSystem())
-		return false;
+    if (!platformInitFontSystem())
+        return false;
 #endif
 
 #ifdef ENABLE_FORGE_UI
-	extern bool platformInitUserInterface();
-	if (!platformInitUserInterface())
-		return false;
+    if (!platformInitUserInterface())
+        return false;
 #endif
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	extern void platformInitLuaScriptingSystem();
-	platformInitLuaScriptingSystem();
+    platformInitLuaScriptingSystem();
+
+#if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
+    // Tests below are executed first, before any tests registered in IApp::Init
+    const char*    sFirstTestScripts[] = { "Test_Default.lua" };
+    const uint32_t numScripts = sizeof(sFirstTestScripts) / sizeof(sFirstTestScripts[0]);
+    LuaScriptDesc  scriptDescs[numScripts] = {};
+    for (uint32_t i = 0; i < numScripts; ++i)
+    {
+        scriptDescs[i].pScriptFileName = sFirstTestScripts[i];
+    }
+    luaDefineScripts(scriptDescs, numScripts);
+#endif
 #endif
 
-	return true; 
+    return true;
 }
 
-void updateBaseSubsystems(float deltaTime)
+void updateBaseSubsystems(float deltaTime, bool appDrawn)
 {
-	// Not exposed in the interface files / app layer
-	extern void platformUpdateLuaScriptingSystem();
-	extern void platformUpdateUserInterface(float deltaTime);
-	extern void platformUpdateWindowSystem();
+    // Not exposed in the interface files / app layer
+    extern void platformUpdateLuaScriptingSystem(bool appDrawn);
+    extern void platformUpdateUserInterface(float deltaTime);
+    extern void platformUpdateWindowSystem();
 
-	platformUpdateWindowSystem(); 
+    platformUpdateWindowSystem();
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	extern void platformUpdateLuaScriptingSystem();
-	platformUpdateLuaScriptingSystem();
+    platformUpdateLuaScriptingSystem(appDrawn);
 #endif
 
 #ifdef ENABLE_FORGE_UI
-	extern void platformUpdateUserInterface(float deltaTime);
-	platformUpdateUserInterface(deltaTime);
+    platformUpdateUserInterface(deltaTime);
 #endif
 }
 
 void exitBaseSubsystems()
 {
-	// Not exposed in the interface files / app layer
-	extern void platformExitFontSystem();
-	extern void platformExitUserInterface();
-	extern void platformExitLuaScriptingSystem();
-	extern void platformExitWindowSystem();
+    // Not exposed in the interface files / app layer
+    extern void platformExitFontSystem();
+    extern void platformExitUserInterface();
+    extern void platformExitLuaScriptingSystem();
+    extern void platformExitWindowSystem();
 
-	platformExitWindowSystem(); 
+    platformExitWindowSystem();
 
 #ifdef ENABLE_FORGE_UI
-	platformExitUserInterface(); 
+    platformExitUserInterface();
 #endif
 
 #ifdef ENABLE_FORGE_FONTS
-	platformExitFontSystem();
+    platformExitFontSystem();
 #endif
 
 #ifdef ENABLE_FORGE_SCRIPTING
-	platformExitLuaScriptingSystem();
+    platformExitLuaScriptingSystem();
 #endif
 }
 
@@ -220,92 +238,119 @@ void exitBaseSubsystems()
 // PLATFORM LAYER USER INTERFACE
 //------------------------------------------------------------------------
 
-void setupPlatformUI(int32_t width, int32_t height)
+// Must be called after Graphics::initRenderer()
+void setupPlatformUI(const IApp::Settings* pSettings)
 {
-	gSelectedApiIndex = gSelectedRendererApi;
+    gSelectedApiIndex = gPlatformParameters.mSelectedRendererApi;
 
 #ifdef ENABLE_FORGE_UI
 
-	// WINDOW AND RESOLUTION CONTROL
+    // WINDOW AND RESOLUTION CONTROL
+    extern void platformSetupWindowSystemUI(IApp*);
+    platformSetupWindowSystemUI(pApp);
 
-	extern void platformSetupWindowSystemUI(IApp*);
-	platformSetupWindowSystemUI(pApp); 
+    // VSYNC CONTROL
+    UIComponentDesc uiDesc = {};
+    uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.8f);
+    uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
 
-	// VSYNC CONTROL
+    CheckboxWidget checkbox;
+    checkbox.pData = &pApp->mSettings.mVSyncEnabled;
+    UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
+    REGISTER_LUA_WIDGET(pCheckbox);
 
-	UIComponentDesc uiDesc = {};
-	uiDesc.mStartPosition = vec2(width * 0.7f, height * 0.8f);
-	uiCreateComponent("VSync Control", &uiDesc, &pToggleVSyncComponent);
+    // MICROPROFILER UI
+    toggleProfilerMenuUI(true);
 
-	CheckboxWidget checkbox;
-	checkbox.pData = &pApp->mSettings.mVSyncEnabled;
-	UIWidget* pCheckbox = uiCreateComponentWidget(pToggleVSyncComponent, "Toggle VSync\t\t\t\t\t", &checkbox, WIDGET_TYPE_CHECKBOX);
-	REGISTER_LUA_WIDGET(pCheckbox);
+    // RELOAD CONTROL
+    uiDesc = {};
+    uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.7f, pSettings->mHeight * 0.9f);
+    uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
 
-	// RELOAD CONTROL
+    platformReloadClientAddReloadShadersButton(pReloadShaderComponent);
 
-	uiDesc = {};
-	uiDesc.mStartPosition = vec2(width * 0.7f, height * 0.9f);
-	uiCreateComponent("Reload Control", &uiDesc, &pReloadShaderComponent);
+    // API SWITCHING
+    uiDesc = {};
+    uiDesc.mStartPosition = vec2(pSettings->mWidth * 0.6f, pSettings->mHeight * 0.01f);
+    uiCreateComponent("API Switching", &uiDesc, &pAPISwitchingComponent);
 
-	ButtonWidget shaderReload;
-	UIWidget* pShaderReload = uiCreateComponentWidget(pReloadShaderComponent, "Reload shaders", &shaderReload, WIDGET_TYPE_BUTTON);
-	uiSetWidgetOnEditedCallback(pShaderReload, nullptr, [](void* pUserData) {ReloadDesc reloadDesc; reloadDesc.mType = RELOAD_TYPE_SHADER; requestReload(&reloadDesc); });
-	REGISTER_LUA_WIDGET(pShaderReload);
-
-	// API SWITCHING
-	uiDesc = {};
-	uiDesc.mStartPosition = vec2(width * 0.6f, height * 0.01f);
-	uiCreateComponent("API Switching", &uiDesc, &pAPISwitchingComponent);
-
-	static const char* pApiNames[] =
-	{
-	#if defined(DIRECT3D12)
-		"D3D12",
-	#endif
-	#if defined(VULKAN)
-		"Vulkan",
-	#endif
-	#if defined(DIRECT3D11)
-		"D3D11",
-	#endif
-	};
-
-	// Select Api 
-	DropdownWidget selectApUIWidget = {};
-	selectApUIWidget.pData = &gSelectedApiIndex;
-
-	uint32_t apiCount = RENDERER_API_COUNT;
-#ifdef DIRECT3D11
-	if (gD3D11Unsupported) --apiCount;
+    static const char* pApiNames[] = {
+#if defined(DIRECT3D12)
+        "D3D12",
 #endif
-	ASSERT(apiCount != 0 && "No supported Graphics API available!");
-	selectApUIWidget.pNames = pApiNames;
-	selectApUIWidget.mCount = apiCount;
+#if defined(VULKAN)
+        "Vulkan",
+#endif
+#if defined(DIRECT3D11)
+        "D3D11",
+#endif
+    };
 
-	pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
-	pSelectApUIWidget->pOnEdited = [](void* pUserData) {ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH }; requestReset(&resetDescriptor); };
-	REGISTER_LUA_WIDGET(pSelectApUIWidget);
+    // Select Api
+    DropdownWidget selectApUIWidget = {};
+    selectApUIWidget.pData = &gSelectedApiIndex;
 
-#ifdef ENABLE_FORGE_SCRIPTING
-	LuaScriptDesc apiScriptDesc = {};
-	apiScriptDesc.pScriptFileName = "Test_API_Switching.lua";
-	luaDefineScripts(&apiScriptDesc, 1);
+    uint32_t apiCount = RENDERER_API_COUNT;
+#ifdef DIRECT3D11
+    if (gD3D11Unsupported)
+    {
+        --apiCount;
+    }
+#endif
+    ASSERT(apiCount != 0 && "No supported Graphics API available!");
+    selectApUIWidget.pNames = pApiNames;
+    selectApUIWidget.mCount = apiCount;
+
+    pSelectApUIWidget = uiCreateComponentWidget(pAPISwitchingComponent, "Select API", &selectApUIWidget, WIDGET_TYPE_DROPDOWN);
+    pSelectApUIWidget->pOnEdited = [](void* pUserData)
+    {
+        ResetDesc resetDescriptor{ RESET_TYPE_API_SWITCH };
+        requestReset(&resetDescriptor);
+    };
+    REGISTER_LUA_WIDGET(pSelectApUIWidget);
+
+    static const char* gpuNames[] = { gPlatformParameters.ppAvailableGpuNames[0], gPlatformParameters.ppAvailableGpuNames[1],
+                                      gPlatformParameters.ppAvailableGpuNames[2], gPlatformParameters.ppAvailableGpuNames[3] };
+
+    DropdownWidget selectGraphicCardUIWidget = {};
+    selectGraphicCardUIWidget.pData = &gPlatformParameters.mSelectedGpuIndex;
+    selectGraphicCardUIWidget.pNames = gpuNames;
+    selectGraphicCardUIWidget.mCount = gPlatformParameters.mAvailableGpuCount;
+
+    pSelectGraphicCardWidget =
+        uiCreateComponentWidget(pAPISwitchingComponent, "Select Graphic Card", &selectGraphicCardUIWidget, WIDGET_TYPE_DROPDOWN);
+    pSelectGraphicCardWidget->pOnEdited = [](void* pUserData)
+    {
+        ResetDesc resetDescriptor{ RESET_TYPE_GRAPHIC_CARD_SWITCH };
+        requestReset(&resetDescriptor);
+    };
+    REGISTER_LUA_WIDGET(pSelectGraphicCardWidget);
+
+#if defined(ENABLE_FORGE_SCRIPTING) && defined(AUTOMATED_TESTING)
+    // Tests below are executed last, after tests registered in IApp::Init have executed
+    const char*    sLastTestScripts[] = { "Test_API_Switching.lua" };
+    const uint32_t numScripts = sizeof(sLastTestScripts) / sizeof(sLastTestScripts[0]);
+    LuaScriptDesc  scriptDescs[numScripts] = {};
+    for (uint32_t i = 0; i < numScripts; ++i)
+    {
+        scriptDescs[i].pScriptFileName = sLastTestScripts[i];
+    }
+    luaDefineScripts(scriptDescs, numScripts);
 #endif
 #endif
 }
 
 void togglePlatformUI()
 {
-	gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
+    gShowPlatformUI = pApp->mSettings.mShowPlatformUI;
 
 #ifdef ENABLE_FORGE_UI
-	extern void platformToggleWindowSystemUI(bool);
-	platformToggleWindowSystemUI(gShowPlatformUI); 
+    extern void platformToggleWindowSystemUI(bool);
+    platformToggleWindowSystemUI(gShowPlatformUI);
 
-	uiSetComponentActive(pToggleVSyncComponent, gShowPlatformUI); 
-	uiSetComponentActive(pAPISwitchingComponent, gShowPlatformUI);
-	uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
+    uiSetComponentActive(pToggleVSyncComponent, gShowPlatformUI);
+    uiSetComponentActive(pAPISwitchingComponent, gShowPlatformUI);
+    uiSetComponentActive(pReloadShaderComponent, gShowPlatformUI);
 #endif
 }
 
@@ -317,272 +362,389 @@ void togglePlatformUI()
 extern void initWindowClass();
 extern void exitWindowClass();
 
+int          IApp::argc;
+const char** IApp::argv;
+
 int WindowsMain(int argc, char** argv, IApp* app)
 {
-	if (!initMemAlloc(app->GetName()))
-		return EXIT_FAILURE;
+    if (!initMemAlloc(app->GetName()))
+        return EXIT_FAILURE;
 
-	FileSystemInitDesc fsDesc = {};
-	fsDesc.pAppName = app->GetName();
-	if (!initFileSystem(&fsDesc))
-		return EXIT_FAILURE;
+    FileSystemInitDesc fsDesc = {};
+    fsDesc.pAppName = app->GetName();
+    if (!initFileSystem(&fsDesc))
+        return EXIT_FAILURE;
 
-	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+
+#if defined(ENABLE_GRAPHICS_DEBUG) && defined(VULKAN) && VK_OVERRIDE_LAYER_PATH
+    // We are now shipping validation layer in the repo itself to remove dependency on Vulkan SDK to be installed
+    // Set VK_LAYER_PATH to executable location so it can find the layer files that our application wants to use
+    SetEnvironmentVariableA("VK_LAYER_PATH", pSystemFileIO->GetResourceMount(RM_DEBUG));
+#endif
 
 #ifdef ENABLE_MTUNER
-	rmemInit(0);
+    rmemInit(0);
 #endif
 
-	initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+    initLog(app->GetName(), DEFAULT_LOG_LEVEL);
+
+    ULONG majorVersion = 0;
+    ULONG minorVersion = 0;
+    ULONG buildNumber = 0;
+    getOsVersion(majorVersion, minorVersion, buildNumber);
+    snprintf(gOsInfo.osName, 256, "Windows PC");
+    snprintf(gOsInfo.osVersion, 256, "%lu.%lu (Build: %lu)", majorVersion, minorVersion, buildNumber);
+    snprintf(gOsInfo.osDeviceName, 256, "Unknown");
+    LOGF(LogLevel::eINFO, "Operating System: %s. Version: %s. Device Name: %s.", gOsInfo.osName, gOsInfo.osVersion, gOsInfo.osDeviceName);
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
-	if (!WindowsStackTrace::Init())
-		return EXIT_FAILURE;
+    if (!WindowsStackTrace::Init())
+        return EXIT_FAILURE;
 #endif
 
-	pApp = app;
-	pWindowAppRef = app; 
+    pApp = app;
+    pWindowAppRef = app;
 
-	initWindowClass();
+    initWindowClass();
 
-	//Used for automated testing, if enabled app will exit after 120 frames
+    // Used for automated testing, if enabled app will exit after DEFAULT_AUTOMATION_FRAME_COUNT (240) frames
 #if defined(AUTOMATED_TESTING)
-	uint32_t frameCounter = 0;
-	uint32_t targetFrameCount = 120;
+    uint32_t frameCounter = 0;
+    uint32_t targetFrameCount = DEFAULT_AUTOMATION_FRAME_COUNT;
 #endif
 
-	initCpuInfo(&gCpu);
+    initCpuInfo(&gCpu);
 
-	IApp::Settings* pSettings = &pApp->mSettings;
-	WindowDesc window = {};
-	gWindow = &window;        // WindowsWindow.cpp
-	gWindowDesc = &window; // WindowsBase.cpp
-	gLogWindowHandle = (HWND*)&window.handle.window; // WindowsLog.c, save the address to this handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
+    IApp::Settings* pSettings = &pApp->mSettings;
+    WindowDesc      window = {};
+    gWindow = &window;     // WindowsWindow.cpp
+    gWindowDesc = &window; // WindowsBase.cpp
+    gLogWindowHandle =
+        (HWND*)&window.handle
+            .window; // WindowsLog.c, save the address to this handle to avoid having to adding includes to WindowsLog.c to use WindowDesc*.
 
-	if (pSettings->mMonitorIndex < 0 || pSettings->mMonitorIndex >= (int)gMonitorCount)
-	{
-		pSettings->mMonitorIndex = 0;
-	}
+    if (pSettings->mMonitorIndex < 0 || pSettings->mMonitorIndex >= (int)gMonitorCount)
+    {
+        pSettings->mMonitorIndex = 0;
+    }
 
-	if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
-	{
-		RectDesc rect = {};
+    if (pSettings->mWidth <= 0 || pSettings->mHeight <= 0)
+    {
+        RectDesc rect = {};
 
-		getRecommendedResolution(&rect);
-		pSettings->mWidth = getRectWidth(&rect);
-		pSettings->mHeight = getRectHeight(&rect);
-	}
+        getRecommendedResolution(&rect);
+        pSettings->mWidth = getRectWidth(&rect);
+        pSettings->mHeight = getRectHeight(&rect);
+    }
 
-	MonitorDesc* monitor = getMonitor(pSettings->mMonitorIndex);
-	ASSERT(monitor != nullptr);
+    MonitorDesc* monitor = getMonitor(pSettings->mMonitorIndex);
+    ASSERT(monitor != nullptr);
 
-	gWindow->clientRect = { (int)pSettings->mWindowX + monitor->monitorRect.left, (int)pSettings->mWindowY + monitor->monitorRect.top,
-							(int)pSettings->mWidth, (int)pSettings->mHeight };
+    gWindow->clientRect = { (int)pSettings->mWindowX + monitor->monitorRect.left, (int)pSettings->mWindowY + monitor->monitorRect.top,
+                            (int)pSettings->mWidth, (int)pSettings->mHeight };
 
-	gWindow->windowedRect = gWindow->clientRect;
-	gWindow->fullScreen = pSettings->mFullScreen;
-	gWindow->maximized = false;
-	gWindow->noresizeFrame = !pSettings->mDragToResize;
-	gWindow->borderlessWindow = pSettings->mBorderlessWindow;
-	gWindow->centered = pSettings->mCentered;
-	gWindow->forceLowDPI = pSettings->mForceLowDPI;
-	gWindow->overrideDefaultPosition = true;
-	gWindow->cursorCaptured = false;
+    gWindow->windowedRect = gWindow->clientRect;
+    gWindow->fullScreen = pSettings->mFullScreen;
+    gWindow->maximized = false;
+    gWindow->noresizeFrame = !pSettings->mDragToResize;
+    gWindow->borderlessWindow = pSettings->mBorderlessWindow;
+    gWindow->centered = false; // pSettings->mCentered;
+    gWindow->forceLowDPI = pSettings->mForceLowDPI;
+    gWindow->overrideDefaultPosition = true;
+    gWindow->cursorCaptured = false;
 
-	if (!pSettings->mExternalWindow)
-		openWindow(pApp->GetName(), gWindow);
+    if (!pSettings->mExternalWindow)
+        openWindow(pApp->GetName(), gWindow);
 
-	pSettings->mWidth = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
-	pSettings->mHeight =
-		gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
+    pSettings->mWidth = gWindow->fullScreen ? getRectWidth(&gWindow->fullscreenRect) : getRectWidth(&gWindow->clientRect);
+    pSettings->mHeight = gWindow->fullScreen ? getRectHeight(&gWindow->fullscreenRect) : getRectHeight(&gWindow->clientRect);
 
-	pApp->pCommandLine = GetCommandLineA();
+    pApp->pCommandLine = GetCommandLineA();
 
 #ifdef AUTOMATED_TESTING
-	char benchmarkOutput[1024] = { "\0" };
-	//Check if benchmarking was given through command line
-	for (int i = 0; i < argc; i += 1)
-	{
-		if (strcmp(argv[i], "-b") == 0)
-		{
-			pSettings->mBenchmarking = true;
-			if (i + 1 < argc && isdigit(*argv[i + 1]))
-				targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
-		}
-		else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
-		{
-			strcpy(benchmarkOutput, argv[i + 1]);
-		}
-	}
+    bool paramRenderingAPIFound = false;
+    char benchmarkOutput[1024] = { "\0" };
+    // Check if benchmarking was given through command line
+    for (int i = 0; i < argc; i += 1)
+    {
+        if (strcmp(argv[i], "-b") == 0)
+        {
+            pSettings->mBenchmarking = true;
+            if (i + 1 < argc && isdigit(*argv[i + 1]))
+                targetFrameCount = min(max(atoi(argv[i + 1]), 32), 512);
+        }
+        else if (strcmp(argv[i], "--request-recompile-after") == 0)
+        {
+            extern uint32_t gShaderServerRequestRecompileAfter;
+            if (i + 1 < argc && isdigit(*argv[i + 1]))
+                gShaderServerRequestRecompileAfter = atoi(argv[i + 1]);
+        }
+        // Run forever, this is useful when the app will control when the automated tests are over
+        else if (strcmp(argv[i], "--no-auto-exit") == 0)
+        {
+            targetFrameCount = UINT32_MAX;
+        }
+        else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
+        {
+            strcpy(benchmarkOutput, argv[i + 1]);
+        }
+        // Allow to set renderer API through command line so that we are able to test the same build with differnt APIs
+        // On the TheForge Jenkins setup we change APIs through a lua script that changes the selector variable in the UI,
+        // but for projects where we compile without our lua interface we cannot do this.
+#if defined(DIRECT3D11)
+        else if (strcmp(argv[i], "--d3d11") == 0)
+        {
+            if (paramRenderingAPIFound)
+            {
+                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
+                ASSERT(false);
+                return -1;
+            }
+            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D11;
+            paramRenderingAPIFound = true;
+        }
+#endif
+#if defined(DIRECT3D12)
+        else if (strcmp(argv[i], "--d3d12") == 0)
+        {
+            if (paramRenderingAPIFound)
+            {
+                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
+                ASSERT(false);
+                return -1;
+            }
+            gPlatformParameters.mSelectedRendererApi = RENDERER_API_D3D12;
+            paramRenderingAPIFound = true;
+        }
+#endif
+#if defined(VULKAN)
+        else if (strcmp(argv[i], "--vulkan") == 0)
+        {
+            if (paramRenderingAPIFound)
+            {
+                LOGF(eERROR, "Two command line parameters are requesting the rendering API, only one is allowed.");
+                ASSERT(false);
+                return -1;
+            }
+            gPlatformParameters.mSelectedRendererApi = RENDERER_API_VULKAN;
+            paramRenderingAPIFound = true;
+        }
+#endif
+    }
 #endif
 
-	{
-		if (!initBaseSubsystems())
-			return EXIT_FAILURE; 
+    {
+        if (!initBaseSubsystems())
+            return EXIT_FAILURE;
 
-		Timer t;
-		initTimer(&t);
-		if (!pApp->Init())
-			return EXIT_FAILURE;
+        Timer t;
+        initTimer(&t);
+        if (!pApp->Init())
+        {
+            const char* pRendererReason;
+            if (hasRendererInitializationError(&pRendererReason))
+            {
+                pApp->ShowUnsupportedMessage(pRendererReason);
+            }
 
-		setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
-		pSettings->mInitialized = true;
+            if (pApp->mUnsupported)
+            {
+                errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                                  &pApp->pWindow->handle, NULL);
+                exitLog();
+                return 0;
+            }
 
-		if (!pApp->Load(&gReloadDescriptor))
-			return EXIT_FAILURE;
+            return EXIT_FAILURE;
+        }
 
+        setupPlatformUI(pSettings);
+        pSettings->mInitialized = true;
 
-		LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
-	}
+        if (!pApp->Load(&gReloadDescriptor))
+            return EXIT_FAILURE;
+
+        LOGF(LogLevel::eINFO, "Application Init+Load+Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+    }
 
 #ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking) setAggregateFrames(targetFrameCount / 2);
+    if (pSettings->mBenchmarking)
+        setAggregateFrames(targetFrameCount / 2);
 #endif
 
-	bool quit = false;
-	int64_t lastCounter = getUSec(false);
-	while (!quit)
-	{
-		if (gResetDescriptor.mType != RESET_TYPE_NONE)
-		{
-			if (gResetDescriptor.mType & RESET_TYPE_DEVICE_LOST)
-			{
-				errorMessagePopup(
-					"Graphics Device Lost",
-					"Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the "
-					"logs for further details.",
-					&pApp->pWindow->handle.window);
-			}
+    bool    baseSubsystemAppDrawn = false;
+    bool    quit = false;
+    int64_t lastCounter = getUSec(false);
+    while (!quit)
+    {
+        int64_t counter = getUSec(false);
+        float   deltaTime = CounterToSecondsElapsed(lastCounter, counter);
+        lastCounter = counter;
 
-			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-			pApp->Unload(&gReloadDescriptor);
-			pApp->Exit();
+#ifdef FORGE_DEBUG
+        // if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
+        if (deltaTime > 0.15f)
+            deltaTime = 0.05f;
+#endif
 
-			gSelectedRendererApi = (RendererApi)gSelectedApiIndex;
-			pSettings->mInitialized = false;
+#if defined(AUTOMATED_TESTING)
+        // Used to keep screenshot results consistent across CI runs
+        deltaTime = AUTOMATION_FIXED_FRAME_TIME;
+#endif
 
-			closeWindow(app->pWindow);
-			openWindow(app->GetName(), app->pWindow);
+        bool lastMinimized = gWindow->minimized;
 
-			exitBaseSubsystems();
+        extern bool handleMessages();
+        quit = handleMessages() || pSettings->mQuit;
 
-			{
-				if (!initBaseSubsystems())
-					return EXIT_FAILURE;
+        // UPDATE BASE INTERFACES
+        updateBaseSubsystems(deltaTime, baseSubsystemAppDrawn);
+        baseSubsystemAppDrawn = false;
 
-				Timer t;
-				initTimer(&t);
-				if (!pApp->Init())
-					return EXIT_FAILURE;
+        if (gResetDescriptor.mType != RESET_TYPE_NONE)
+        {
+            if (gResetDescriptor.mType & RESET_TYPE_DEVICE_LOST)
+            {
+                errorMessagePopup(
+                    "Graphics Device Lost",
+                    "Connection to the graphics device has been lost.\nPlease verify the integrity of your graphics drivers.\nCheck the "
+                    "logs for further details.",
+                    &pApp->pWindow->handle, NULL);
+            }
 
-				setupPlatformUI(pSettings->mWidth, pSettings->mHeight);
-				pSettings->mInitialized = true;
+            if (gResetDescriptor.mType & RESET_TYPE_GRAPHIC_CARD_SWITCH)
+            {
+                ASSERT(gPlatformParameters.mSelectedGpuIndex < gPlatformParameters.mAvailableGpuCount);
+                gPlatformParameters.mPreferedGpuId = gPlatformParameters.pAvailableGpuIds[gPlatformParameters.mSelectedGpuIndex];
+            }
 
-				if (!pApp->Load(&gReloadDescriptor))
-					return EXIT_FAILURE;
+            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+            pApp->Unload(&gReloadDescriptor);
+            pApp->Exit();
 
-				LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
-			}
+            gPlatformParameters.mSelectedRendererApi = (RendererApi)gSelectedApiIndex;
+            pSettings->mInitialized = false;
 
-			gResetDescriptor.mType = RESET_TYPE_NONE;
-			continue;
-		}
+            closeWindow(app->pWindow);
+            openWindow(app->GetName(), app->pWindow);
 
-		if (gReloadDescriptor.mType != RELOAD_TYPE_ALL)
-		{
-			Timer t;
-			initTimer(&t);
+            exitBaseSubsystems();
 
-			pApp->Unload(&gReloadDescriptor);		
-			if (!pApp->Load(&gReloadDescriptor))
-				return EXIT_FAILURE;
+            {
+                if (!initBaseSubsystems())
+                    return EXIT_FAILURE;
 
-			LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
-			gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-			continue;
-		}
+                Timer t;
+                initTimer(&t);
+                if (!pApp->Init())
+                {
+                    if (pApp->mUnsupported)
+                    {
+                        errorMessagePopup("Application unsupported", pApp->pUnsupportedReason ? pApp->pUnsupportedReason : "",
+                                          &pApp->pWindow->handle, NULL);
+                        exitLog();
+                        return 0;
+                    }
+                    return EXIT_FAILURE;
+                }
 
-		int64_t counter = getUSec(false);
-		float   deltaTime = CounterToSecondsElapsed(lastCounter, counter);
-		lastCounter = counter;
+                setupPlatformUI(pSettings);
+                pSettings->mInitialized = true;
 
-		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
-		if (deltaTime > 0.15f)
-			deltaTime = 0.05f;
+                if (!pApp->Load(&gReloadDescriptor))
+                    return EXIT_FAILURE;
 
-		bool lastMinimized = gWindow->minimized;
+                LOGF(LogLevel::eINFO, "Application Reset %fms", getTimerMSec(&t, false) / 1000.0f);
+            }
 
-		extern bool handleMessages(); 
-		quit = handleMessages() || pSettings->mQuit;
+            gResetDescriptor.mType = RESET_TYPE_NONE;
+            continue;
+        }
 
-		// If window is minimized let other processes take over
-		if (gWindow->minimized)
-		{
+        if (gReloadDescriptor.mType != RELOAD_TYPE_ALL)
+        {
+            Timer t;
+            initTimer(&t);
+
+            pApp->Unload(&gReloadDescriptor);
+            if (!pApp->Load(&gReloadDescriptor))
+                return EXIT_FAILURE;
+
+            LOGF(LogLevel::eINFO, "Application Reload %fms", getTimerMSec(&t, false) / 1000.0f);
+            gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+            continue;
+        }
+
+        // If window is minimized let other processes take over
+        if (gWindow->minimized)
+        {
             // Call update once after minimize so app can react.
-			if (lastMinimized != gWindow->minimized)
-			{
-				pApp->Update(deltaTime);
-			}
-			threadSleep(1);
-			continue;
-		}
+            if (lastMinimized != gWindow->minimized)
+            {
+                pApp->Update(deltaTime);
+            }
+            threadSleep(1);
+            continue;
+        }
 
-		// UPDATE BASE INTERFACES
-		updateBaseSubsystems(deltaTime); 
+        // UPDATE APP
+        pApp->Update(deltaTime);
+        pApp->Draw();
+        baseSubsystemAppDrawn = true;
 
-		// UPDATE APP
-		pApp->Update(deltaTime);
-		pApp->Draw();
+        if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
+        {
+            togglePlatformUI();
+        }
 
-		if (gShowPlatformUI != pApp->mSettings.mShowPlatformUI)
-		{
-			togglePlatformUI(); 
-		}
-		
-#if defined(AUTOMATED_TESTING)
-		if ((pSettings->mDefaultAutomatedTesting) && frameCounter > targetFrameCount)
-		{
-			quit = true;
-		}
-		frameCounter++;
-#endif
-	}
+        if (platformReloadClientShouldQuit())
+            quit = true;
 
 #ifdef AUTOMATED_TESTING
-	if (pSettings->mBenchmarking)
-	{
-		dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
-		dumpProfileData(benchmarkOutput, targetFrameCount);
-	}
+        extern bool gAutomatedTestingScriptsFinished;
+        // wait for the automated testing if it hasn't managed to finish in time
+        if (gAutomatedTestingScriptsFinished && frameCounter >= targetFrameCount)
+            quit = true;
+        frameCounter++;
+#endif
+    }
+
+#ifdef AUTOMATED_TESTING
+    if (pSettings->mBenchmarking)
+    {
+        dumpBenchmarkData(pSettings, benchmarkOutput, pApp->GetName());
+        dumpProfileData(benchmarkOutput, targetFrameCount);
+    }
 #endif
 
-	gReloadDescriptor.mType = RELOAD_TYPE_ALL;
-	pApp->mSettings.mQuit = true;
-	pApp->Unload(&gReloadDescriptor);
-	pApp->Exit();
+    gReloadDescriptor.mType = RELOAD_TYPE_ALL;
+    pApp->mSettings.mQuit = true;
+    pApp->Unload(&gReloadDescriptor);
+    pApp->Exit();
 
-	exitWindowClass();
+    exitWindowClass();
 
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
-	WindowsStackTrace::Exit();
+    WindowsStackTrace::Exit();
 #endif
 
-	exitLog();
+    exitLog();
 
-	exitBaseSubsystems(); 
+    exitBaseSubsystems();
 
-	exitFileSystem();
+    exitFileSystem();
 
 #ifdef ENABLE_MTUNER
-	rmemUnload();
-	rmemShutDown();
+    rmemUnload();
+    rmemShutDown();
 #endif
 
-	exitMemAlloc();
+    exitMemAlloc();
 
-	gWindow = NULL;
-	gWindowDesc = NULL;
-	gLogWindowHandle = NULL;
-	return 0;
+    gWindow = NULL;
+    gWindowDesc = NULL;
+    gLogWindowHandle = NULL;
+    return 0;
 }
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,7 +27,6 @@ STRUCT(VSOutput)
 {
     DATA(float4, position,    SV_POSITION);
     DATA(float4, uv,          TEXCOORD0);
-    DATA(uint,   shadingRate, SV_ShadingRate);
 };
 
 VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
@@ -35,7 +34,6 @@ VSOutput VS_MAIN( SV_VertexID(uint) VertexID )
     INIT_MAIN;
     VSOutput Out;
     Out.uv = float4((VertexID << 1) & 2, VertexID & 2, 0, 0);
-    Out.position = float4(Out.uv.xy * float2(2, -2) + float2(-1, 1), 0, 1);
-    Out.shadingRate = 0;
+    Out.position = float4(Out.uv.xy * float2(2, -2) + float2(-1, 1), 1, 1);
     RETURN(Out);
 }

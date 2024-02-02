@@ -155,6 +155,8 @@ public:
 	/// Sets the dead zone for the given button.
 	void SetDeadZone(DeviceButtonId buttonId, float value);
 
+	void OverrideDeviceId(DeviceId newId) { deviceId_ = newId; }
+
 	/// Enable/disable debug rendering of this device.
 	void SetDebugRenderingEnabled(bool enabled);
 	/// Returns true if debug rendering is enabled, false otherwise.

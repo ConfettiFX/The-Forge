@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2017-2022 The Forge Interactive Inc.
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,7 +32,7 @@
 
 #define AOIT_TILED_ADDRESSING
 
-#ifndef AOIT_NODE_COUNT 
+#ifndef AOIT_NODE_COUNT
 #define AOIT_NODE_COUNT			(4)
 #endif
 
@@ -89,17 +89,17 @@ STRUCT(AOITColorData)
 EnablePSInterlock()
 
 #ifdef AOIT_UNORDERED_ACCESS
-#if VR_MULTIVIEW_ENABLED
-RES(RasterizerOrderedTex2DArray(uint), AOITClearMaskUAV, UPDATE_FREQ_NONE, u0, binding = 20);
+#if FT_MULTIVIEW
+RES(RasterizerOrderedTex2DArray(uint, 0), AOITClearMaskUAV, UPDATE_FREQ_NONE, u0, binding = 20);
 #else
-RES(RasterizerOrderedTex2D(uint), AOITClearMaskUAV, UPDATE_FREQ_NONE, u0, binding = 20);
+RES(RasterizerOrderedTex2D(uint, 0), AOITClearMaskUAV, UPDATE_FREQ_NONE, u0, binding = 20);
 #endif
-RES(RWBuffer(AOITDepthData),      AOITDepthDataUAV, UPDATE_FREQ_NONE, u1, binding = 21);
-RES(RWBuffer(AOITColorData),      AOITColorDataUAV, UPDATE_FREQ_NONE, u2, binding = 22);
+RES(RWCoherentBuffer(AOITDepthData),      AOITDepthDataUAV, UPDATE_FREQ_NONE, u1, binding = 21);
+RES(RWCoherentBuffer(AOITColorData),      AOITColorDataUAV, UPDATE_FREQ_NONE, u2, binding = 22);
 #endif
 
 #ifdef AOIT_ORDERED_ACCESS
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 RES(Tex2DArray(uint),           AOITClearMaskSRV, UPDATE_FREQ_NONE, t5, binding = 15);
 #else
 RES(Tex2D(uint),           AOITClearMaskSRV, UPDATE_FREQ_NONE, t5, binding = 15);
@@ -107,8 +107,6 @@ RES(Tex2D(uint),           AOITClearMaskSRV, UPDATE_FREQ_NONE, t5, binding = 15)
 RES(Buffer(AOITDepthData), AOITDepthDataSRV, UPDATE_FREQ_NONE, t6, binding = 16);
 RES(Buffer(AOITColorData), AOITColorDataSRV, UPDATE_FREQ_NONE, t7, binding = 17);
 #endif
-
-DECLARE_RESOURCES()
 
 /************************************************************************/
 // Helper functions
@@ -155,7 +153,7 @@ float UnpackUnnormAlpha(uint packedInput)
 	return float(packedInput >> 24U);
 }
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 
 uint AOITAddrGen(uint3 addr3D, int3 dim)
 {
@@ -625,9 +623,9 @@ void AOITClearData(inout(AOITData) data, float depth, float4 color)
 	uint packedColor = PackRGBA(float4(0, 0, 0, 1.0f - color.w));
 
 #if AOIT_NODE_COUNT == 2
-	data.depth[0] = 0;
+	data.depth[0] = f4(0);
 	data.color[0][0] = asuint(depth);
-	data.color[0][1] = asuint((float)AOIT_EMPTY_NODE_DEPTH);
+	data.color[0][1] = asuint(float(AOIT_EMPTY_NODE_DEPTH));
 	data.color[0][2] = PackRGBA(float4(color.www * color.xyz, 1.0f - color.w));
 	data.color[0][3] = packedColor;
 #else

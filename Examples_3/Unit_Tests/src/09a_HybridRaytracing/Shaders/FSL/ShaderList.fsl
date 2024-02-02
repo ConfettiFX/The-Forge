@@ -1,3 +1,22 @@
+
+#if defined(METAL)
+#comp clearVisibilityBuffers_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "clearVisibilityBuffers.comp.fsl"
+#end
+
+#comp triangleFiltering_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "triangleFiltering.comp.fsl"
+#end
+
+#comp batchCompaction_icb.comp
+#define INDIRECT_COMMAND_BUFFER 1
+#include "batchCompaction.comp.fsl"
+#end
+#endif
+
+
 #comp compositePass.comp
 #include "compositePass.comp.fsl"
 #end
@@ -10,12 +29,31 @@
 #include "display.vert.fsl"
 #end
 
-#frag gbufferPass.frag
-#include "gbufferPass.frag.fsl"
+#comp clearVisibilityBuffers.comp
+#include "clearVisibilityBuffers.comp.fsl"
 #end
 
-#vert gbufferPass.vert
-#include "gbufferPass.vert.fsl"
+#comp triangleFiltering.comp
+#include "triangleFiltering.comp.fsl"
+#end
+
+#comp batchCompaction.comp
+#include "batchCompaction.comp.fsl"
+#end
+
+#frag FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.frag
+#include "visibilityBufferPass.frag.fsl"
+#end
+
+#vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPass.vert
+#include "visibilityBufferPass.vert.fsl"
+#end
+
+#vert FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.vert
+#include "visibilityBufferPassAlpha.vert.fsl"
+#end
+#frag FT_ICB FT_MULTIVIEW FT_PRIM_ID visibilityBufferPassAlpha.frag
+#include "visibilityBufferPassAlpha.frag.fsl"
 #end
 
 #comp lightingPass.comp

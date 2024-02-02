@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src\base\containers">
+      <UniqueIdentifier>{9df2e525-ac0d-44cb-a450-289b1bb5cbec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base">
+      <UniqueIdentifier>{113983db-2364-44a4-af6e-4c41f5e99691}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{0d1836dc-b05c-4d19-aa49-36adf5346626}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\io">
+      <UniqueIdentifier>{a57cc1d1-492e-47a7-87e1-abe75000ad70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\maths">
+      <UniqueIdentifier>{eb1bb61d-c2b2-48b6-87f5-ee1b15d7bb4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\base\memory">
+      <UniqueIdentifier>{243aa6b3-34d2-47e6-8581-6a7cfd83d1cd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\containers">
+      <UniqueIdentifier>{f585766b-efc7-4baa-bb9f-47d35ee7516d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base">
+      <UniqueIdentifier>{463c0eee-ce49-4ff9-85fa-b3d09f012cdf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz">
+      <UniqueIdentifier>{caba7f3a-3731-4398-86d4-7cfebe86ca80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{ead3aa44-e828-4f77-aa5a-33d2c5fc359c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\io">
+      <UniqueIdentifier>{85c15785-b669-414b-8c1e-d54474ebc65a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\maths">
+      <UniqueIdentifier>{e2d1ebcb-46f1-4dbf-b378-5ce97c6e33cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ozz\base\memory">
+      <UniqueIdentifier>{ebb8921b-c002-4917-8129-db686a1c0cd4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\base\containers\string_archive.cc">
+      <Filter>src\base\containers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\io\archive.cc">
+      <Filter>src\base\io</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\maths\math_archive.cc">
+      <Filter>src\base\maths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\maths\simd_math_archive.cc">
+      <Filter>src\base\maths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\maths\soa_math_archive.cc">
+      <Filter>src\base\maths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\memory\allocator.cc">
+      <Filter>src\base\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\base\platform.cc">
+      <Filter>src\base</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\string.h">
+      <Filter>include\ozz\base\containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\string_archive.h">
+      <Filter>include\ozz\base\containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\vector.h">
+      <Filter>include\ozz\base\containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\containers\vector_archive.h">
+      <Filter>include\ozz\base\containers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\endianness.h">
+      <Filter>include\ozz\base</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\io\archive.h">
+      <Filter>include\ozz\base\io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\io\archive_traits.h">
+      <Filter>include\ozz\base\io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_archive.h">
+      <Filter>include\ozz\base\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_constant.h">
+      <Filter>include\ozz\base\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_ex.h">
+      <Filter>include\ozz\base\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\simd_math_archive.h">
+      <Filter>include\ozz\base\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_math_archive.h">
+      <Filter>include\ozz\base\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\memory\allocator.h">
+      <Filter>include\ozz\base\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\base\platform.h">
+      <Filter>include\ozz\base</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

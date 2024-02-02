@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,8 +33,6 @@ STRUCT(VSOutput)
 	DATA(float4, Position, SV_Position);
 	DATA(float4, Color,    COLOR);
 };
-
-INDIRECT_DRAW()
 
 VSOutput VS_MAIN( VSInput In )
 {

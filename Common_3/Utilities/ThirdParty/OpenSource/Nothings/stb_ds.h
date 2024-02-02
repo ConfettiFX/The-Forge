@@ -318,10 +318,6 @@ CREDITS
 
 struct bstring;
 
-// There is no way to get alignment of a variable behind pointer for msvc C compiler
-// We use size to determine the alignment and clamp it to the max alignment value from this macro
-#define STBDS_MSVC_MAX_ALIGNMENT ((size_t)64)
-
 // PVS Studio error supression
 //-V:arrfree:595
 //-V:stbds_arrfree:595
@@ -414,24 +410,67 @@ struct bstring;
 
 #ifdef _MSC_VER
 #define STBDS_NOTUSED(v)  (void)(v)
-#ifndef __cplusplus
-COMPILE_ASSERT(STBDS_MSVC_MAX_ALIGNMENT <= (1 << 8));
-#define STBDS_ALIGNOF_PTR(p)												\
-	(sizeof(*(p)) > STBDS_MSVC_MAX_ALIGNMENT ? STBDS_MSVC_MAX_ALIGNMENT :	\
-		(sizeof(*(p)) & (size_t)(1 << 8) ? (size_t)(1 << 8) :				\
-		(sizeof(*(p)) & (size_t)(1 << 7) ? (size_t)(1 << 7) :				\
-		(sizeof(*(p)) & (size_t)(1 << 6) ? (size_t)(1 << 6) :				\
-		(sizeof(*(p)) & (size_t)(1 << 5) ? (size_t)(1 << 5) :				\
-		(sizeof(*(p)) & (size_t)(1 << 4) ? (size_t)(1 << 4) :				\
-		(sizeof(*(p)) & (size_t)(1 << 3) ? (size_t)(1 << 3) :				\
-		(sizeof(*(p)) & (size_t)(1 << 2) ? (size_t)(1 << 2) :				\
-		(sizeof(*(p)) & (size_t)(1 << 1) ? (size_t)(1 << 1) : 1)))))))))
-#else
-#define STBDS_ALIGNOF_PTR(p) ALIGNOF(decltype(*(p)))
+
+#ifndef STBDS_MSVC_MAX_ALIGNMENT
+// There is no way to get alignment of a variable behind pointer for msvc C compiler
+// We use size to determine the alignment and clamp it to the max alignment value from this macro
+// Note: Actual alignment is defined as 2^STBDS_MSVC_MAX_ALIGNMENT_POWER
+#define STBDS_MSVC_MAX_ALIGNMENT_POWER 6
 #endif
+
+// Checks whether the sizeof(*p) is aligned to given power of 2
+// (Should be divisible by 2^power)
+#define STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, power) \
+  ( (power) <= STBDS_MSVC_MAX_ALIGNMENT_POWER && ( ( sizeof(*(p)) ) & ( ((size_t)1 << (size_t)(power)) - 1 ) ) == 0 )
+
+#if STBDS_MSVC_MAX_ALIGNMENT_POWER > 8
+#error "Max supported alignment power is 8 which corresponds to alignment of 256. When bumping this value adjust STBDS_MSVC_ALIGNOF_PTR macro definition"
+#endif
+
+#define STBDS_MSVC_ALIGNOF_PTR(p)                           \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 8) ? ( 1 << 8 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 7) ? ( 1 << 7 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 6) ? ( 1 << 6 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 5) ? ( 1 << 5 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 4) ? ( 1 << 4 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 3) ? ( 1 << 3 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 2) ? ( 1 << 2 ) :   \
+    ( STBDS_MSVC_IS_PTR_SIZE_ALIGNED(p, 1) ? ( 1 << 1 ) :   \
+    1))))))))
+
+#ifdef __cplusplus
+template<typename T>
+constexpr void STBDS_CheckAlignment()
+{
+  static_assert(ALIGNOF(T) <= ((size_t)1 << (size_t)STBDS_MSVC_MAX_ALIGNMENT_POWER), "Increase STBDS_MSVC_MAX_ALIGNMENT_POWER to meet alignment requirements of T");
+}
+#define STBDS_ALIGNOF_PTR(p) ( STBDS_CheckAlignment<decltype(*(p))>(), STBDS_MSVC_ALIGNOF_PTR(p) )
+#else
+#define STBDS_ALIGNOF_PTR(p) STBDS_MSVC_ALIGNOF_PTR(p)
+#endif
+
 #else
 #define STBDS_NOTUSED(v)  (void)sizeof(v)
 #define STBDS_ALIGNOF_PTR(p) ALIGNOF(*(p))
+#endif
+
+#ifdef __cplusplus
+template<typename Tablekey, typename ProvidedKey>
+inline void STBDS_AssertKeySizesImpl()
+{
+  COMPILE_ASSERT(sizeof(Tablekey) == sizeof(ProvidedKey) && "Sizes should be equal. You are probably mixing integers of different size.");
+}
+#define STBDS_ASSERT_KEY_SIZE(tableKey, key) ( (void)STBDS_AssertKeySizesImpl<decltype(tableKey), decltype(key)>() )
+
+#else
+#include "../../../Interfaces/ILog.h"
+// Can't do static assert in the middle of expression, so have to use ASSERT for C
+inline void STBDS_AssertKeySizesImpl(size_t realSize, size_t providedSize)
+{
+  ASSERT(realSize == providedSize && "Sizes should be equal. You are probably mixing integers of different size.");
+}
+#define STBDS_ASSERT_KEY_SIZE(tableKey, key) ( STBDS_AssertKeySizesImpl(sizeof(tableKey), sizeof(key) ) )
+
 #endif
 
 #ifdef ENABLE_MEMORY_TRACKING
@@ -558,7 +597,8 @@ void stbds_same_type(const T*, const T*) {}
 #define stbds_arrgrow(a,b,c)					stbds_arrgrow_impl((a),(b),(c), __FILE__, __LINE__, __FUNCTION__, "arrgrow")
 
 #define stbds_hmput_impl(t, k, v, f, l, fn, p) \
-    ((t) = stbds_hmput_key_wrapper((t), sizeof *(t), STBDS_ALIGNOF_PTR((t)), (void*) STBDS_ADDRESSOF((t)->key, (k)), sizeof (t)->key, 0 STBDS_IF_MEM_TRACKING(,f,l,fn,p)),   \
+    (STBDS_ASSERT_KEY_SIZE((t)->key, k ), \
+     (t) = stbds_hmput_key_wrapper((t), sizeof *(t), STBDS_ALIGNOF_PTR((t)), (void*) STBDS_ADDRESSOF((t)->key, (k)), sizeof (t)->key, 0 STBDS_IF_MEM_TRACKING(,f,l,fn,p)),   \
      (t)[stbds_temp((t)-1)].key = (k),    \
      (t)[stbds_temp((t)-1)].value = (v))
 
@@ -705,7 +745,7 @@ void stbds_same_type(const T*, const T*) {}
 #define stbds_shgetp_null(t, k)  (stbds_shgeti_unsafe_impl(t, k, __FILE__, __LINE__, __FUNCTION__, "shgetp_null") == -1 ? NULL : &(t)[stbds_temp((t)-1)])
 #define stbds_shlen        stbds_hmlen
 
-typedef struct
+typedef struct ALIGNAS(MIN_MALLOC_ALIGNMENT)
 {
   size_t      length;
   size_t      capacity;
@@ -835,7 +875,7 @@ size_t stbds_rehash_items;
 void *stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, size_t min_cap STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -868,16 +908,28 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, 
   //if (num_prev < 65536) if (a) prev_allocs[num_prev++] = (int *) ((char *) a+1);
   //if (num_prev == 2201)
   //  num_prev = num_prev;
-  size_t offset = elemalign + sizeof(stbds_array_header) - 1;
+  size_t max_offset = sizeof(stbds_array_header);
+  max_offset += elemalign <= MIN_MALLOC_ALIGNMENT ? 0 : elemalign - 1;
   ASSERT((elemalign & (elemalign - 1)) == 0 && "Alignment is not a power of 2");
+  const uint16_t old_offset = a ? stbds_header(a)->offset : UINT16_MAX;
   // orig pointer
-  b0 = tf_realloc_internal((a) ? stbds_mem_begin(a) : NULL, elemsize * min_cap + offset,
+  b0 = tf_realloc_internal((a) ? stbds_mem_begin(a) : NULL, elemsize * min_cap + max_offset,
 	  FILE_NAME, FILE_LINE, pFunction);
+  ASSERT((uintptr_t)b0 % MIN_MALLOC_ALIGNMENT == 0 && "Pointer produced by tf_realloc_internal is not aligned to MIN_MALLOC_ALIGNMENT");
   //if (num_prev < 65536) prev_allocs[num_prev++] = (int *) (char *) b;
   // Align b1
-  b1 = (void*)(((uintptr_t)b0 + offset) & ~(elemalign - 1));
+  b1 = (void*)(((uintptr_t)b0 + max_offset) & ~(elemalign - 1));
 
+  ASSERT((void*)stbds_header(b1) >= b0 && "Logical error in stb_ds code.");
   ASSERT((uintptr_t)stbds_header(b1) % ALIGNOF(stbds_array_header) == 0 && "Header is misaligned.");
+  ASSERT((uintptr_t)b1 % elemalign == 0 && "Pointer is misaligned");
+  ASSERT(((char*)b1 - (char*)b0) <= UINT16_MAX);
+
+  const uint16_t new_offset = (uint16_t)((char*)b1 - (char*)b0);
+  // When doing realloc pointer can get different alignment
+  // Move memory accordingly when this happens
+  if (a && new_offset != old_offset)
+    memmove(stbds_header(b1), stbds_header((char*)b0 + old_offset), elemsize * min_len + sizeof(stbds_array_header));
 
   if (a == NULL) {
     stbds_header(b1)->length = 0;
@@ -887,8 +939,7 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, 
     STBDS_STATS(++stbds_array_grow);
   }
   stbds_header(b1)->capacity = min_cap;
-  ASSERT(((char*)b1 - (char*)b0) <= UINT16_MAX);
-  stbds_header(b1)->offset = (uint16_t)((char*)b1 - (char*)b0);
+  stbds_header(b1)->offset = new_offset;
 
   return b1;
 }
@@ -896,7 +947,7 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t elemalign, size_t addlen, 
 void  stbds_arrfree_func(const void* a STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1007,15 +1058,15 @@ static inline size_t STBDS_HM_CONST_BSTRING_hash(const void* key, size_t keysize
 	return stbds_hash_bytes(b->data, b->slen, seed);
 }
 
-static inline int STBDS_HM_BINARY_default_storage_mode()
+static inline int STBDS_HM_BINARY_default_storage_mode(void)
 {
 	return STBDS_SH_NONE;
 }
-static inline int STBDS_HM_STRING_default_storage_mode()
+static inline int STBDS_HM_STRING_default_storage_mode(void)
 {
 	return STBDS_SH_DEFAULT;
 }
-static inline int STBDS_HM_CONST_BSTRING_default_storage_mode()
+static inline int STBDS_HM_CONST_BSTRING_default_storage_mode(void)
 {
 	return STBDS_SH_NONE;
 }
@@ -1027,7 +1078,7 @@ static inline void STBDS_HM_BINARY_free_key(stbds_hash_index* table, const void*
 static inline void STBDS_HM_STRING_free_key(stbds_hash_index* table, const void* key, size_t keysize STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1112,7 +1163,7 @@ static size_t stbds_log2(size_t slot_count)
 static stbds_hash_index *stbds_make_hash_index(size_t slot_count, stbds_hash_index *ot STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1464,7 +1515,7 @@ static int stbds_is_key_equal(void *a, size_t elemsize, const void *key, size_t 
 void stbds_hmfree_func(const void *a, size_t elemsize STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1599,7 +1650,7 @@ static char *stbds_strdup(char *str STBDS_FN_ALLOC_ARGS);
 void *stbds_hmput_key(void *a, size_t elemsize, size_t elemalign, const void *key, size_t keysize, int mode STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1751,7 +1802,7 @@ void * stbds_shmode_func(size_t elemsize, size_t elemalign, int mode STBDS_FN_AL
 void * stbds_hmdel_key(void *a, size_t elemsize, const void *key, size_t keysize, size_t keyoffset, int mode STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1830,7 +1881,7 @@ void * stbds_hmdel_key(void *a, size_t elemsize, const void *key, size_t keysize
 static char *stbds_strdup(char *str STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1870,7 +1921,7 @@ inline static char* stbds_string_arena_offset(stbds_string_arena *a, size_t offs
 char *stbds_stralloc_func(stbds_string_arena *a, char *str STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1931,7 +1982,7 @@ char *stbds_stralloc_func(stbds_string_arena *a, char *str STBDS_FN_ALLOC_ARGS)
 void stbds_strreset_func(stbds_string_arena *a STBDS_FN_ALLOC_ARGS)
 {
 #ifdef ENABLE_MEMORY_TRACKING
-	unsigned char fnNameBuf[128];
+	unsigned char fnNameBuf[256];
 	bstring fnName = bemptyfromarr(fnNameBuf);
 	bformat(&fnName, "%s(propagated from %s)", FUNCTION_NAME, PARENT_FUNCTION_NAME);
 	ASSERT(!bownsdata(&fnName));
@@ -1979,7 +2030,13 @@ char *strkey(int n)
    return buffer;
 }
 
-typedef struct alignas(64) alignedStruct
+#ifdef _MSC_VER
+#define STBDS_TEST_ALIGNMENT ( 1 << STBDS_MSVC_MAX_ALIGNMENT_POWER)
+#else
+#define STBDS_TEST_ALIGNMENT 64
+#endif
+
+typedef struct alignas(STBDS_TEST_ALIGNMENT) alignedStruct
 {
 	int key;
 	int value;

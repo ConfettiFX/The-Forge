@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,7 +37,7 @@ bool RayIntersectsBox(float3 origin, float3 rayDirInv, float3 BboxMin, float3 Bb
 	const float3 tmin = min(t0, t1);
 
 	const float a1 = min(tmax.x, min(tmax.y, tmax.z));
-	const float a0 = max( max(tmin.x,tmin.y), max(tmin.z, 0.0f) );
+	const float a0 = max( max(tmin.x,tmin.y), tmin.z );
 
 	return a1 >= a0;
 }
@@ -53,7 +53,7 @@ bool RayTriangleIntersect(
 	inout(float2) bCoord)
 {
 	const float3 s1 = cross(dir.xyz, e1);
-	const float  invd = 1.0 / (dot(s1, e0));
+	const float  invd = rcp(dot(s1, e0));
 	const float3 d = orig.xyz - v0;
 	bCoord.x = dot(d, s1) * invd;
 	const float3 s2 = cross(d, e0);

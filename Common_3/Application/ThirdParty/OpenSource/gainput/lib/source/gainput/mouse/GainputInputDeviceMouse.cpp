@@ -10,15 +10,15 @@
 #include "../../../include/gainput/GainputLog.h"
 
 #if defined(GAINPUT_PLATFORM_LINUX)
-	#include "GainputInputDeviceMouseLinux.h"
-	#include "GainputInputDeviceMouseEvdev.h"
-	#include "GainputInputDeviceMouseLinuxRaw.h"
+	#include "../linux/GainputInputDeviceMouseLinux.h"
+	#include "../linux/GainputInputDeviceMouseEvdev.h"
+	#include "../linux/GainputInputDeviceMouseLinuxRaw.h"
 #elif defined(GAINPUT_PLATFORM_WIN)
-	#include "GainputInputDeviceMouseWin.h"
-	#include "GainputInputDeviceMouseWinRaw.h"
+	#include "../windows/GainputInputDeviceMouseWin.h"
+	#include "../windows/GainputInputDeviceMouseWinRaw.h"
 #elif defined(GAINPUT_PLATFORM_MAC)
-	#include "GainputInputDeviceMouseMac.h"
-    #include "GainputInputDeviceMouseMacRaw.h"
+	#include "../apple/GainputInputDeviceMouseMac.h"
+    #include "../apple/GainputInputDeviceMouseMacRaw.h"
 #elif defined(GAINPUT_PLATFORM_GGP)
 	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceMouseGGP.h"
 	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceMouseGGPRaw.h"

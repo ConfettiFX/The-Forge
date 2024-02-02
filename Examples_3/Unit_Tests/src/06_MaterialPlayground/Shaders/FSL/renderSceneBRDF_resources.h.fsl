@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -59,15 +59,17 @@ CBUFFER(cbPointLights, UPDATE_FREQ_NONE, b2, binding = 2)
 RES(Tex2D(float2), brdfIntegrationMap, UPDATE_FREQ_NONE, t3, binding = 4);
 RES(TexCube(float4), irradianceMap, UPDATE_FREQ_NONE, t4, binding = 5);
 RES(TexCube(float4), specularMap, UPDATE_FREQ_NONE, t5, binding = 6);
-RES(Tex2D(float4), shadowMap, UPDATE_FREQ_NONE, t12, binding = 12);
+RES(Tex2D(float4), shadowMap, UPDATE_FREQ_NONE, t13, binding = 13);
 
-RES(SamplerState, bilinearSampler, UPDATE_FREQ_NONE, s12, binding = 13);
-RES(SamplerState, bilinearClampedSampler, UPDATE_FREQ_NONE, s6, binding = 14);
+RES(SamplerState, materialSampler, UPDATE_FREQ_NONE, s1, binding = 14);
+RES(SamplerState, brdfIntegrationSampler, UPDATE_FREQ_NONE, s2, binding = 15);
+RES(SamplerState, environmentSampler, UPDATE_FREQ_NONE, s3, binding = 16);
+RES(SamplerState, pointSampler, UPDATE_FREQ_NONE, s4, binding = 17);
 
 // UPDATE_FREQ_PER_FRAME
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(float4x4, projView[VR_MULTIVIEW_COUNT], None);
 	DATA(float4x4, invProjView[VR_MULTIVIEW_COUNT], None);
 #else
@@ -109,5 +111,6 @@ RES(Tex2D(float4), normalMap, UPDATE_FREQ_PER_DRAW, t8, binding = 8);
 RES(Tex2D(float4), metallicMap, UPDATE_FREQ_PER_DRAW, t9, binding = 9);
 RES(Tex2D(float4), roughnessMap, UPDATE_FREQ_PER_DRAW, t10, binding = 10);
 RES(Tex2D(float4), aoMap, UPDATE_FREQ_PER_DRAW, t11, binding = 11);
+RES(Tex2D(float4), vmfMap, UPDATE_FREQ_PER_DRAW, t12, binding = 12);
 
 #endif /* renderSceneBRDF_h */

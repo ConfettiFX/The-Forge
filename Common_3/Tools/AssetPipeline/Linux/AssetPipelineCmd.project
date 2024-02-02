@@ -1,33 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="AssetPipelineCmd" Version="11000" InternalType="Console">
+  <VirtualDirectory Name="MeshOptimizer">
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/vfetchoptimizer.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/vcacheoptimizer.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/overdrawoptimizer.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/indexgenerator.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/clusterizer.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/allocator.cpp"/>
+    <File Name="../../ThirdParty/OpenSource/meshoptimizer/src/meshoptimizer.h"/>
+  </VirtualDirectory>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
   <VirtualDirectory Name="src">
+    <File Name="../../../OS/Linux/LinuxToolsFileSystem.c"/>
+    <File Name="../../../Utilities/FileSystem/ToolFileSystem.c"/>
+    <File Name="../src/AssetPipeline_Textures.cpp"/>
     <File Name="../src/AssetPipelineCmd.cpp"/>
     <File Name="../src/AssetPipeline.cpp"/>
     <File Name="../../../Resources/AnimationSystem/ThirdParty/OpenSource/TressFX/TressFXAsset.cpp"/>
   </VirtualDirectory>
   <Description/>
-  <VirtualDirectory Name="FileSystem">
-    <File Name="../../FileSystem/IToolFileSystem.h"/>
-    <File Name="../../../OS/Linux/LinuxToolsFileSystem.cpp"/>
-  </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
-    <Project Name="astc-encoder"/>
+    <Project Name="ispc_texcomp"/>
+    <Project Name="Buny"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
-    <Project Name="astc-encoder"/>
+    <Project Name="ispc_texcomp"/>
+    <Project Name="Buny"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -38,22 +48,24 @@
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-g;-O0;-Wall;-Wno-unknown-pragmas;-Werror;" C_Options="-g;-O0;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O0;-Wall;-Werror;-Wno-error=unused-function;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O0;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
-      <Linker Options="-pthread" Required="yes">
+      <Linker Options="-pthread;-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_avx.o;" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
         <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Debug"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/Debug"/>
-        <LibraryPath Value="$(WorkspacePath)/astc-encoder/Debug"/>
+        <LibraryPath Value="$(WorkspacePath)/ispc_texcomp/Debug"/>
+        <LibraryPath Value="$(ProjectPath)/../../BunyArchive/codelite/Debug"/>
+        <Library Value="libBuny.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
-        <Library Value="libastc-encoder.a"/>
+        <Library Value="libispc_texcomp.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(WorkspacePath)/Bin/Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="yes" DebugArguments="-pwza --input ../../../../../Examples_3/Unit_Tests/UnitTestResources/ProcessedFiles --output ../../../../../Examples_3/Unit_Tests/UnitTestResources/ZipFiles --name 28-ZipFileSystem.zip" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -90,23 +102,25 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-O2;-Wall;-Werror;-Wno-stringop-overflow;" C_Options="-O2;-Wall;-Werror;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-O2;-Wall;-Werror;-Wno-error=unused-function;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O2;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/include"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
-      <Linker Options="-pthread" Required="yes">
+      <Linker Options="-pthread;-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_avx.o;" Required="yes">
         <LibraryPath Value="$(IntermediateDirectory)"/>
-        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Debug"/>
+        <LibraryPath Value="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_base/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation_offline/Release"/>
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/Release"/>
-        <LibraryPath Value="$(WorkspacePath)/astc-encoder/Release"/>
+        <LibraryPath Value="$(WorkspacePath)/ispc_texcomp/Release"/>
+        <LibraryPath Value="$(ProjectPath)/../../BunyArchive/codelite/Release"/>
+        <Library Value="libBuny.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
-        <Library Value="libastc-encoder.a"/>
+        <Library Value="libispc_texcomp.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="$(WorkspacePath)/Bin/Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>

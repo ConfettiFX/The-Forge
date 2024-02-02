@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,7 +25,7 @@
 #define EPSILON 1e-7f
 CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 {
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	DATA(float4x4, CamVPMatrix[VR_MULTIVIEW_COUNT], None);
 	DATA(float4x4, CamInvVPMatrix[VR_MULTIVIEW_COUNT], None);
 #else
@@ -37,17 +37,15 @@ CBUFFER(cbCamera, UPDATE_FREQ_PER_FRAME, b0, binding = 0)
 
 PUSH_CONSTANT(CapsuleRootConstant, b1)
 {
-	DATA(float3, Center0, None);
-	DATA(float, Radius0, None);
-	DATA(float3, Center1, None);
-	DATA(float, Radius1, None);
+	DATA(float4, CenterRadius0, None);
+	DATA(float4, CenterRadius1, None);
 };
 
 STRUCT(VSInput)
 {
 	DATA(float3, Position, POSITION);
-	DATA(float3, Normal, NORMAL);
-	DATA(float2, Uv, TEXCOORD0);
+	DATA(uint, Normal, NORMAL);
+	DATA(uint, Uv, TEXCOORD0);
 };
 
 STRUCT(VSOutput)
@@ -115,20 +113,25 @@ VSOutput VS_MAIN( VSInput In )
 	// Collapse the capsule to a sphere.
 	pos.y -= weight * 2.0f - 1.0f;	
 
+	float3 center0 = Get(CenterRadius0).xyz;
+	float radius0  = Get(CenterRadius0).w;
+	float3 center1 = Get(CenterRadius1).xyz;
+	float radius1  = Get(CenterRadius1).w;
+
 	// Rotate the sphere
-	if (length(Get(Center0) - Get(Center1)) > EPSILON)
+	if (length(center0 - center1) > EPSILON)
 	{
-		float3 dir = normalize(Get(Center0) - Get(Center1));
+		float3 dir = normalize(center0 - center1);
 		float4 quat = QuatFromUnitVectors(float3(0.0f, 1.0f, 0.0f), dir);
 		pos = RotateVec(quat, pos);
 	}
 
 	// Expand half spheres to match radius.
-	pos *= Get(Radius0) * weight + Get(Radius1) * (1.0f - weight);
+	pos *= radius0 * weight + radius1 * (1.0f - weight);
 	// Expand sphere to a capsule.
-	pos += Get(Center0) * weight + Get(Center1) * (1.0f - weight);
+	pos += center0 * weight + center1 * (1.0f - weight);
 
-#if VR_MULTIVIEW_ENABLED
+#if FT_MULTIVIEW
 	Out.Position = mul(Get(CamVPMatrix)[VR_VIEW_ID], float4(pos, 1.0f));
 #else
 	Out.Position = mul(Get(CamVPMatrix), float4(pos, 1.0f));

@@ -1,0 +1,172 @@
+---
+# BasedOnStyle:  LLVM
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+#AlignArrayOfStructures: Left
+AlignConsecutiveAssignments: None
+AlignConsecutiveBitFields: None
+AlignConsecutiveDeclarations: AcrossComments
+AlignConsecutiveMacros: AcrossEmptyLinesAndComments 
+AlignEscapedNewlines: Left
+AlignOperands:   Align
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: All
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+BitFieldColonSpacing: Both
+#BreakAfterAttributes: Never
+BreakAfterJavaFieldAnnotations: false
+#BreakArrays:     true
+BreakBeforeBinaryOperators: None
+BreakBeforeConceptDeclarations: true
+BreakBeforeBraces: Allman
+#BreakBeforeInlineASMColon: OnlyMultiline
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: AfterColon
+BreakInheritanceList: AfterColon
+BreakStringLiterals: true
+ColumnLimit:     140
+CompactNamespaces: false
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: false
+DerivePointerAlignment: false
+DisableFormat:   false
+#EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+FixNamespaceComments: true
+IncludeBlocks:   Regroup
+IncludeCategories:
+  - Regex:           'pch.h[">]$'
+    Priority:        -100
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           'Interfaces\/IMemory.h[">]$'
+    Priority:        100
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           '\/(Config.h|AuraConfig.h)[">]$'
+    Priority:        1
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           'ThirdParty\/'
+    Priority:        3
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           'Interfaces\/'
+    Priority:        4
+    SortPriority:    0
+    CaseSensitive:   true
+  - Regex:           '\.fsl[">]$'
+    Priority:        7
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '^<[[:alnum:]_\-\.\/]+>$'
+    Priority:        2
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '^"[[:alnum:]_\-\.]+"$'
+    Priority:        6
+    SortPriority:    0
+    CaseSensitive:   false
+  - Regex:           '.*'
+    Priority:        5
+    SortPriority:    0
+    CaseSensitive:   false
+IncludeIsMainRegex: '(Impl)?$'
+#IndentAccessModifiers: false
+IndentCaseBlocks: false
+IndentCaseLabels: false
+IndentExternBlock: NoIndent
+IndentGotoLabels: true
+IndentPPDirectives: None
+IndentRequires: true
+IndentWidth:     4
+IndentWrappedFunctionNames: false
+#InsertBraces:    false
+#InsertNewlineAtEOF: true
+InsertTrailingCommas: None
+#IntegerLiteralSeparator:
+#  Binary:          0
+#  BinaryMinDigits: 0
+#  Decimal:         0
+#  DecimalMinDigits: 0
+#  Hex:             0
+#  HexMinDigits:    0
+JavaScriptQuotes: Leave
+JavaScriptWrapImports: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+#LambdaBodyIndentation: Signature
+#LineEnding:      CRLF
+UseCRLF: true
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+ObjCBinPackProtocolList: Auto
+ObjCBlockIndentWidth: 4
+ObjCBreakBeforeNestedBlockParam: true
+ObjCSpaceAfterProperty: false
+ObjCSpaceBeforeProtocolList: true
+#PackConstructorInitializers: Never
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 19
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+#PenaltyBreakOpenParenthesis: 0
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 1000000
+PenaltyIndentedWhitespace: 0
+PenaltyReturnTypeOnItsOwnLine: 60
+PointerAlignment: Left
+#PPIndentWidth:   -1
+#QualifierAlignment: Left
+#ReferenceAlignment: Pointer
+ReflowComments:  true
+#RemoveBracesLLVM: false
+#RemoveSemicolon: false
+#RequiresClausePosition: OwnLine
+#RequiresExpressionIndentation: OuterScope
+#SeparateDefinitionBlocks: Always
+#ShortNamespaceLines: 1
+SortIncludes: true
+SortJavaStaticImport: Before
+SortUsingDeclarations: true
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: false
+SpaceBeforeInheritanceColon: false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInConditionalStatement: false
+SpacesInContainerLiterals: true
+SpacesInCStyleCastParentheses: false
+#SpacesInLineCommentPrefix:
+#  Minimum:         1
+#  Maximum:         -1
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Standard:        Latest
+TabWidth:        4
+UseTab:          Never
+...

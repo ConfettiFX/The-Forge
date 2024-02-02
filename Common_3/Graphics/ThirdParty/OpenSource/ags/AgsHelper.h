@@ -30,7 +30,7 @@ static AGSReturnCode agsInit()
 {
 #if defined(AMDAGS)
 	AGSConfiguration config = {};
-	gAgsStatus = agsInit(&pAgsContext, &config, &gAgsGpuInfo);
+	gAgsStatus = agsInitialize(AGS_CURRENT_VERSION, &config, &pAgsContext, &gAgsGpuInfo);
 	return gAgsStatus;
 #endif
 
@@ -40,7 +40,7 @@ static AGSReturnCode agsInit()
 static void agsExit()
 {
 #if defined(AMDAGS)
-	agsDeInit(pAgsContext);
+	agsDeInitialize(pAgsContext);
 #endif
 }
 
@@ -54,3 +54,21 @@ static void agsPrintDriverInfo()
 	}
 #endif
 }
+
+#if defined(AMDAGS)
+static AGSDeviceInfo::AsicFamily agsGetAsicFamily(uint32_t deviceId)
+{
+	if (pAgsContext)
+	{
+		for (int i = 0; i < gAgsGpuInfo.numDevices; i++)
+		{
+			if (gAgsGpuInfo.devices[i].deviceId == deviceId)
+			{
+				return gAgsGpuInfo.devices[i].asicFamily;
+			}
+		}
+	}
+
+	return AGSDeviceInfo::AsicFamily_Unknown;
+}
+#endif

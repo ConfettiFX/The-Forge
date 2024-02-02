@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This is a part of Aura.
  *
@@ -15,8 +15,8 @@
 #ifndef LIGHT_CULL_RESOURCES_H
 #define LIGHT_CULL_RESOURCES_H
 
-RES(Buffer(LightData),     lights,             UPDATE_FREQ_NONE,      t0, binding = 0);
-RES(RWBuffer(atomic_uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, u0, binding = 1);
-RES(RWBuffer(atomic_uint), lightClusters,      UPDATE_FREQ_PER_FRAME, u1, binding = 2);
+RES(Buffer(LightData),     lights,             UPDATE_FREQ_NONE,      t0, binding = 2);
+RES(RWBuffer(atomic_uint), lightClustersCount, UPDATE_FREQ_PER_FRAME, u0, binding = 3);
+RES(RWBuffer(atomic_uint), lightClusters,      UPDATE_FREQ_PER_FRAME, u1, binding = 4);
 
 #endif // LIGHT_CULL_RESOURCES_H

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -56,11 +56,15 @@ PUSH_CONSTANT(RootConstantSCurveInfo, b0)
 #define PQ_c2 f3(18.8515625)
 #define PQ_c3 f3(18.6875)
 
-float3 L2PQ_float3(float3 L)
+float3 L2PQ_float3(float3 color)
 {
-	L = pow(max(f3(0.0), L / 10000.0), PQ_N);
-	float3 PQ = pow(max(f3(0.0), ((PQ_c1 + PQ_c2 * L) / (1.0 + PQ_c3 * L))), PQ_M);
-	return saturate(PQ);
+    float m1 = 2610.0 / 4096.0 / 4;
+    float m2 = 2523.0 / 4096.0 * 128;
+    float c1 = 3424.0 / 4096.0;
+    float c2 = 2413.0 / 4096.0 * 32;
+    float c3 = 2392.0 / 4096.0 * 32;
+    float3 cp = pow(abs(color), f3(m1));
+    return pow((c1 + c2 * cp) / (1 + c3 * cp), f3(m2));
 }
 
 float3 Rec709ToRec2020(float3 color)

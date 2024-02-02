@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="ispc_texcomp" Version="11000" InternalType="Library">
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="src">
+    <File Name="../ispc_texcomp/ispc_texcomp.h"/>
+    <File Name="../ispc_texcomp/kernel_astc.ispc"/>
+    <File Name="../ispc_texcomp/kernel.ispc"/>
+    <File Name="../ispc_texcomp/ispc_texcomp_astc.cpp"/>
+    <File Name="../ispc_texcomp/ispc_texcomp.cpp"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="Generated Header Files">
+    <File Name="../ispc_texcomp/kernel_sse2.h"/>
+    <File Name="../ispc_texcomp/kernel_ispc_sse4.h"/>
+    <File Name="../ispc_texcomp/kernel_ispc_sse2.h"/>
+    <File Name="../ispc_texcomp/kernel_ispc_avx2.h"/>
+    <File Name="../ispc_texcomp/kernel_ispc_avx.h"/>
+    <File Name="../ispc_texcomp/kernel_ispc.h"/>
+    <File Name="../ispc_texcomp/kernel_astc_ispc_sse2.h"/>
+    <File Name="../ispc_texcomp/kernel_astc_ispc_avx.h"/>
+    <File Name="../ispc_texcomp/kernel_astc_ispc.h"/>
+  </VirtualDirectory>
+  <Settings Type="Static Library">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O0;-Wall;-Werror;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O0;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="1">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_sse4.o;-l:kernel_ispc_avx.o;" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../ispc_texcomp"/>
+        <LibraryPath Value="$(IntermediateDirectory)"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Debug" Command="$(OutputFile)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild>$(ProjectPath)/../ispc_texcomp/kernel.ispc
+ISPC_ARCH ?= x86-64
+	ISPC_TARGETS ?= sse2,avx
+	ISPC_OBJS ?= sse2 avx
+	ARCH_CXXFLAGS ?= -msse2
+	ISPCDIR =$(ProjectPath)/../ispc_texcomp
+	OUTDIR =$(IntermediateDirectory)
+	ISPC =$(ProjectPath)/../ISPC/linux/ispc
+	ISPC_FLAGS =--woff -O2 --arch=$(ISPC_ARCH) --target=$(ISPC_TARGETS) --opt=fast-math --pic
+	ISPC_INPUT_FILE=$(ProjectPath)/../ispc_texcomp/kernel
+
+PrePreBuild:
+	@mkdir -p $(OUTDIR)
+	$(ISPC) $(ISPC_FLAGS) -o $(OUTDIR)/kernel_ispc.o -h $(ISPCDIR)/kernel_ispc.h $(ISPC_INPUT_FILE).ispc
+	$(ISPC) $(ISPC_FLAGS) -o $(OUTDIR)/kernel_astc_ispc.o -h $(ISPCDIR)/kernel_astc_ispc.h $(ISPC_INPUT_FILE)_astc.ispc
+</CustomPreBuild>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O2;-Wall;-Werror;-mavx2;-std=c++14;-fno-rtti;-fno-exceptions;" C_Options="-g;-O2;-Wall;-Werror;-mavx2;" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="1">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="-l:kernel_astc_ispc.o;-l:kernel_astc_ispc_sse2.o;-l:kernel_astc_ispc_avx.o;-l:kernel_ispc.o;-l:kernel_ispc_sse2.o;-l:kernel_ispc_sse4.o;-l:kernel_ispc_avx.o;" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../ispc_texcomp"/>
+        <LibraryPath Value="$(IntermediateDirectory)"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/lib$(ProjectName).a" IntermediateDirectory="$(WorkspacePath)/$(ProjectName)/Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(ProjectPath)/" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName/>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild>$(ProjectPath)/../ispc_texcomp/kernel.ispc
+ISPC_ARCH ?= x86-64
+	ISPC_TARGETS ?= sse2,avx
+	ISPC_OBJS ?= sse2 avx
+	ARCH_CXXFLAGS ?= -msse2
+	ISPCDIR =$(ProjectPath)/../ispc_texcomp
+	OUTDIR =$(IntermediateDirectory)
+	ISPC =$(ProjectPath)/../ISPC/linux/ispc
+	ISPC_FLAGS =--woff -O2 --arch=$(ISPC_ARCH) --target=$(ISPC_TARGETS) --opt=fast-math --pic
+	ISPC_INPUT_FILE=$(ProjectPath)/../ispc_texcomp/kernel
+
+PrePreBuild:
+	@mkdir -p $(OUTDIR)
+	$(ISPC) $(ISPC_FLAGS) -o $(OUTDIR)/kernel_ispc.o -h $(ISPCDIR)/kernel_ispc.h $(ISPC_INPUT_FILE).ispc
+	$(ISPC) $(ISPC_FLAGS) -o $(OUTDIR)/kernel_astc_ispc.o -h $(ISPCDIR)/kernel_astc_ispc.h $(ISPC_INPUT_FILE)_astc.ispc</CustomPreBuild>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+</CodeLite_Project>

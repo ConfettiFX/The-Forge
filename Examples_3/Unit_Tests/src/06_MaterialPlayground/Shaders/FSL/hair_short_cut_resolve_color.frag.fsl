@@ -21,7 +21,7 @@
 */
 
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -53,10 +53,10 @@ float4 PS_MAIN( VSOutputFullscreen In )
 	INIT_MAIN;
 	float4 Out;
 
-#if VR_MULTIVIEW_ENABLED
-	float invAlpha = LoadTex3D(Get(InvAlphaTexture), Get(PointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
+#if FT_MULTIVIEW
+	float invAlpha = LoadTex3D(Get(InvAlphaTexture), Get(pointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0).r;
 #else
-	float invAlpha = LoadTex2D(Get(InvAlphaTexture), Get(PointSampler), uint2(In.Position.xy), 0).r;
+	float invAlpha = LoadTex2D(Get(InvAlphaTexture), Get(pointSampler), uint2(In.Position.xy), 0).r;
 #endif
 
 	float alpha = 1.0f - invAlpha;
@@ -67,20 +67,14 @@ float4 PS_MAIN( VSOutputFullscreen In )
 		RETURN(Out);
 	}
 
-#if VR_MULTIVIEW_ENABLED
-	float4 color = LoadTex3D(Get(ColorsTexture), Get(PointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0);
+#if FT_MULTIVIEW
+	float4 color = LoadTex3D(Get(ColorsTexture), Get(pointSampler), uint3(In.Position.xy, VR_VIEW_ID(In.ViewID)), 0);
 #else
-	float4 color = LoadTex2D(Get(ColorsTexture), Get(PointSampler), uint2(In.Position.xy), 0);
+	float4 color = LoadTex2D(Get(ColorsTexture), Get(pointSampler), uint2(In.Position.xy), 0);
 #endif
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;
-
-#if defined(ORBIS) || defined(PROSPERO)
-	color.rgb = color.rgb / (color.rgb + 1.0f);
-	float gammaCorr = 1.0f / 2.2f;
-	color.rgb = pow(color.rgb, gammaCorr);
-#endif
 
 	Out = color;
 	RETURN(Out);

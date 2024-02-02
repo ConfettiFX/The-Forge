@@ -339,7 +339,7 @@ int parseNumber(const char* string)
 //	// Handling Linux platform through /proc/cpuinfo.
 //
 //	FileStream fs = {};
-//	if (fsOpenStreamFromPath(RD_SYSTEM, "cpuinfo", FM_READ, NULL, &fs))
+//	if (fsOpenStreamFromPath(RD_SYSTEM, "cpuinfo", FM_READ, &fs))
 //	{
 //		char key[STACK_LINE_READER_BUFFER_SIZE];
 //		char val[STACK_LINE_READER_BUFFER_SIZE];

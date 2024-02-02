@@ -9,8 +9,19 @@ namespace gainput
 class InputDevicePadImplNull : public InputDevicePadImpl
 {
 public:
-	InputDevicePadImplNull(InputManager& manager, InputDevice& device, unsigned index, InputState& state, InputState& previousState)
+	InputDevicePadImplNull(InputManager& manager, InputDevice& device, unsigned index, InputState& state, InputState& previousState) :
+		manager_(manager),
+		device_(device)
 	{
+		DeviceId newId = manager_.GetNextId();
+		device_.OverrideDeviceId(newId);
+		manager_.AddDevice(newId, &device_);
+	}
+
+	~InputDevicePadImplNull()
+	{
+		manager_.RemoveDevice(device_.GetDeviceId());
+		device_.OverrideDeviceId(InvalidDeviceId);
 	}
 
 	InputDevice::DeviceVariant GetVariant() const
@@ -36,6 +47,10 @@ public:
 	{
 		return false;
 	}
+
+private:
+	InputManager& manager_;
+	InputDevice& device_;
 };
 
 }

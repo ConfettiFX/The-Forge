@@ -1,8 +1,30 @@
+# Copyright (c) 2017-2024 The Forge Interactive Inc.
+# 
+# This file is part of The-Forge
+# (see https://github.com/ConfettiFX/The-Forge).
+# 
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+# 
+#   http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """ GLSL shader generation """
 
-from utils import Platforms, Stages, getHeader, getMacro, genFnCall, getShader, getMacroName, get_whitespace
+from utils import Platforms, Stages, getHeader, getMacro, getShader, getMacroName, get_whitespace
 from utils import isArray, getArrayLen, resolveName, getArrayBaseName, fsl_assert, ShaderBinary
-from utils import is_input_struct, get_input_struct_var, getArrayLenFlat, is_groupshared_decl
+from utils import is_input_struct, get_input_struct_var, getArrayLenFlat, is_groupshared_decl, get_fn_table
 import os, sys, re, math
 from shutil import copyfile
 
@@ -243,11 +265,14 @@ def setUBOConversion(elem_dtype, ubo_name, float_offset, float_stride, is_array,
     out += ')'
     return out
 
-def gles(debug, binary: ShaderBinary, dst):
+def android_gles(debug, binary: ShaderBinary, dst):
 
-    fsl = binary.preprocessed_srcs[Platforms.GLES]
+    fsl = binary.preprocessed_srcs[Platforms.ANDROID_GLES]
 
-    shader = getShader(Platforms.GLES, binary.fsl_filepath, fsl, dst, line_directives=False)
+    shader = getShader(Platforms.ANDROID_GLES, binary.fsl_filepath, fsl, dst, line_directives=False)
+    binary.waveops_flags = shader.waveops_flags
+    # check for function overloading.
+    get_fn_table(shader.lines)
 
     #Only vertex and fragment shaders are valid for OpenGL ES 2.0
     if shader.stage != Stages.VERT and shader.stage != Stages.FRAG:
@@ -268,12 +293,6 @@ def gles(debug, binary: ShaderBinary, dst):
 
     if True or not os.path.exists(dst):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-
-    # retrieve output patch size
-    patch_size = 0
-    for line in shader.lines:
-        if 'OUTPUT_CONTROL_POINTS' in line:
-            patch_size = int(getMacro(line))
 
     arrBuffs = ['Get('+getArrayBaseName(res[1])+')' for res in shader.resources if 'Buffer' in res[0] and (isArray(res[1]))]
     returnType = None if not shader.returnType else (getMacroName(shader.returnType), getMacro(shader.returnType))
@@ -617,11 +636,6 @@ def gles(debug, binary: ShaderBinary, dst):
             if shader.returnType and shader.stage == Stages.VERT and shader.returnType not in shader.structs:
                 shader_src += ['RES_OUT(', shader.returnType, ', ', 'out_', shader.returnType, ');\n']
 
-            #TODO Check if this is needed somewere
-            #if shader.input_patch_arg:
-                #patch_size = shader.input_patch_arg[1]
-                #shader_src += ['layout(vertices = ', patch_size, ') out;\n']
-
             shader_src += ['void main()\n']
             shader_src += [f'#line {line_index} {gles_includes[current_src]} //{current_src}\n']
             parsed_entry = True
@@ -653,14 +667,6 @@ def gles(debug, binary: ShaderBinary, dst):
 
             # assemble input
             for dtype, var in shader.struct_args:
-                if shader.input_patch_arg and dtype in shader.input_patch_arg[0]:
-                    dtype, dim, var = shader.input_patch_arg
-                    shader_src += ['\t', dtype, ' ', var, '[', dim, '];\n']
-                    continue
-                if shader.output_patch_arg and dtype in shader.output_patch_arg[0]:
-                    dtype, dim, var = shader.output_patch_arg
-                    shader_src += ['\t', dtype, ' ', var, '[', dim, '];\n']
-                    continue
                 shader_src += ['\t', dtype, ' ', var, ';\n']
                 
             for macro, assignment in input_assignments:

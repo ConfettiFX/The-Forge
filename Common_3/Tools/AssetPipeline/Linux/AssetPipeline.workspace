@@ -4,28 +4,29 @@
   <Project Name="ozz_base" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Resources/AnimationSystem/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
-  <Project Name="astc-encoder" Path="../../../Resources/ResourceLoader/ThirdParty/OpenSource/astc-encoder/Linux/astc-encoder.project" Active="No"/>
   <Project Name="OSBase" Path="../../../../Examples_3/Unit_Tests/UbuntuCodelite/OSBase/OSBase.project" Active="No"/>
+  <Project Name="ispc_texcomp" Path="../../ThirdParty/OpenSource/ISPCTextureCompressor/Linux/ispc_texcomp.project" Active="No"/>
+  <Project Name="Buny" Path="../../BunyArchive/codelite/Buny.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
       <Environment/>
-      <Project Name="OS" ConfigName="Debug"/>
-      <Project Name="ozz_base" ConfigName="Debug"/>
-      <Project Name="ozz_animation_offline" ConfigName="Debug"/>
-      <Project Name="ozz_animation" ConfigName="Debug"/>
-      <Project Name="astc-encoder" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
+      <Project Name="Buny" ConfigName="Debug"/>
+      <Project Name="ispc_texcomp" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
+      <Project Name="ozz_animation" ConfigName="Debug"/>
+      <Project Name="ozz_animation_offline" ConfigName="Debug"/>
+      <Project Name="ozz_base" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release">
       <Environment/>
-      <Project Name="OS" ConfigName="Release"/>
-      <Project Name="ozz_base" ConfigName="Release"/>
-      <Project Name="ozz_animation_offline" ConfigName="Release"/>
-      <Project Name="ozz_animation" ConfigName="Release"/>
-      <Project Name="astc-encoder" ConfigName="Release"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="Buny" ConfigName="Release"/>
+      <Project Name="ispc_texcomp" ConfigName="Release"/>
       <Project Name="OS" ConfigName="Release"/>
+      <Project Name="ozz_animation" ConfigName="Release"/>
+      <Project Name="ozz_animation_offline" ConfigName="Release"/>
+      <Project Name="ozz_base" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

@@ -1,0 +1,58 @@
+uname_P := $(shell sh -c 'uname -p 2>/dev/null || echo not')
+
+CXX ?= g++
+ISPC ?= ISPC/linux/ispc
+CXXFLAGS ?= -O2 $(ARCH_CXXFLAGS) -fPIC -I.
+ISPC_FLAGS ?= -O2 --arch=$(ISPC_ARCH) --target=$(ISPC_TARGETS) --opt=fast-math --pic
+LDFLAGS ?= -shared -rdynamic
+
+ifeq ($(uname_P),amd64)
+ISPC_ARCH ?= x86-64
+ISPC_TARGETS ?= sse2,avx
+ISPC_OBJS ?= sse2 avx
+ARCH_CXXFLAGS ?= -msse2
+endif
+ifeq ($(uname_P),x86_64)
+ISPC_ARCH ?= x86-64
+ISPC_TARGETS ?= sse2,avx
+ISPC_OBJS ?= sse2 avx
+ARCH_CXXFLAGS ?= -msse2
+endif
+ifeq ($(uname_P),arm64)
+ISPC_ARCH ?= aarch64
+ISPC_TARGETS ?= neon-i32x4
+endif
+ifeq ($(uname_P),aarch64)
+ISPC_ARCH ?= aarch64
+ISPC_TARGETS ?= neon-i32x4
+endif
+
+DYNAMIC_LIBRARY = build/libispc_texcomp.so
+OBJS = ispc_texcomp/kernel_astc_ispc.o \
+$(foreach target,$(ISPC_OBJS),ispc_texcomp/kernel_astc_ispc_$(target).o ) \
+ispc_texcomp/kernel_ispc.o \
+$(foreach target,$(ISPC_OBJS),ispc_texcomp/kernel_ispc_$(target).o ) \
+ispc_texcomp/ispc_texcomp_astc.o \
+ispc_texcomp/ispc_texcomp.o
+
+all: $(DYNAMIC_LIBRARY)
+
+clean:
+	rm -f $(DYNAMIC_LIBRARY) $(OBJS) ispc_texcomp/kernel*ispc*.h
+
+# Force ispc targets to run before compiling the cpp that relies on their generated headers
+ispc_texcomp/ispc_texcomp.cpp : ispc_texcomp/kernel_ispc.o
+ispc_texcomp/ispc_texcomp_astc.cpp : ispc_texcomp/kernel_astc_ispc.o
+
+# Simple "generate .o from .cpp using c++ compiler"
+%.o : %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Generate .o and .h +variants using ispc
+%_ispc.o %_ispc_sse2.o %_ispc_avx.o %_ispc_neon.o %_ispc.h %_ispc_sse2.h %_ispc_avx.h %_ispc_neon.h : %.ispc
+	$(ISPC) $(ISPC_FLAGS) -o $@ -h $(patsubst %.o,%.h,$@) $<
+
+# Link
+$(DYNAMIC_LIBRARY) : $(OBJS)
+	mkdir -p build
+	$(CXX) $(LDFLAGS) -o $@ $^

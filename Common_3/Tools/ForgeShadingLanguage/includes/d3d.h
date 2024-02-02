@@ -1,3 +1,27 @@
+/*
+* Copyright (c) 2017-2024 The Forge Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 #ifndef _D3D_H
 #define _D3D_H
 
@@ -10,6 +34,8 @@ inline float2 f2(bool x) { return float2(x, x); }
 inline float2 f2(int x) { return float2(x, x); }
 inline float2 f2(uint x) { return float2(x, x); }
 #endif
+
+#define packed_float3 float3
 
 #define f4(X) float4(X,X,X,X)
 #define f3(X) float3(X,X,X)
@@ -196,6 +222,8 @@ f2x2 setRow(inout f2x2 M, in float2 row, const uint i) { M[i] = row; return M; }
 
 #define packed_float3 float3
 
+#define out_coverage uint
+
 // #define DDX ddx
 // #define DDY ddy
 
@@ -281,6 +309,7 @@ EXPR(float2) \
 EXPR(float3) \
 EXPR(float4)
 
+#ifndef _DECL_TYPES
 #define _DECL_TYPES(EXPR) \
 EXPR(int) \
 EXPR(int2) \
@@ -298,6 +327,7 @@ EXPR(float) \
 EXPR(float2) \
 EXPR(float3) \
 EXPR(float4)
+#endif
 
 #define _DECL_SCALAR_TYPES(EXPR) \
 EXPR(int) \
@@ -404,6 +434,7 @@ _DECL_TYPES(_DECL_AtomicStore)
 #define UPDATE_FREQ_USER      UPDATE_FREQ_NONE
 
 #define FLAT(X) nointerpolation X
+#define CENTROID(X) centroid X
 
 #define STRUCT(NAME) struct NAME
 
@@ -413,17 +444,20 @@ _DECL_TYPES(_DECL_AtomicStore)
 #define RWByteBuffer RWByteAddressBuffer
 #define WByteBuffer RWByteAddressBuffer
 
-inline int LoadByte(ByteBuffer buff, int address)
-{ return buff.Load(address);}
-inline int4 LoadByte4(ByteBuffer buff, int address)
-{ return buff.Load4(address);}
-inline int LoadByte(RWByteBuffer buff, int address)
-{ return buff.Load(address);}
-inline int4 LoadByte4(RWByteBuffer buff, int address)
-{ return buff.Load4(address);}
+inline uint LoadByte(ByteBuffer buff, uint address)   { return buff.Load(address);  }
+inline uint2 LoadByte2(ByteBuffer buff, uint address) { return buff.Load2(address); }
+inline uint3 LoadByte3(ByteBuffer buff, uint address) { return buff.Load3(address); }
+inline uint4 LoadByte4(ByteBuffer buff, uint address) { return buff.Load4(address); }
 
-inline void StoreByte(RWByteBuffer buff, int address, int val)
-{ buff.Store(address, val); }
+inline uint LoadByte(RWByteBuffer buff, uint address)   { return buff.Load(address);  }
+inline uint2 LoadByte2(RWByteBuffer buff, uint address) { return buff.Load2(address); }
+inline uint3 LoadByte3(RWByteBuffer buff, uint address) { return buff.Load3(address); }
+inline uint4 LoadByte4(RWByteBuffer buff, uint address) { return buff.Load4(address); }
+
+inline void StoreByte(RWByteBuffer buff, uint address, uint val)   { buff.Store(address, val);  }
+inline void StoreByte2(RWByteBuffer buff, uint address, uint2 val) { buff.Store2(address, val); }
+inline void StoreByte3(RWByteBuffer buff, uint address, uint3 val) { buff.Store3(address, val); }
+inline void StoreByte4(RWByteBuffer buff, uint address, uint4 val) { buff.Store4(address, val); }
 
 #define _DECL_SampleLvlTexCube(TYPE) \
 inline TYPE SampleLvlTexCube(TextureCube<TYPE> tex, SamplerState smp, float3 p, float l) \
@@ -446,6 +480,11 @@ _DECL_FLOAT_TYPES(_DECL_SampleLvlTex2D)
 inline TYPE SampleLvlTex3D(Texture3D<TYPE> tex, SamplerState smp, float3 p, float l) \
 { return tex.SampleLevel(smp, p, l); }
 _DECL_FLOAT_TYPES(_DECL_SampleLvlTex3D)
+
+#define _DECL_SampleLvlTex2DArray(TYPE) \
+inline TYPE SampleLvlTex2DArray(Texture3D<TYPE> tex, SamplerState smp, float3 p, float l) \
+{ return tex.SampleLevel(smp, p, l); }
+_DECL_FLOAT_TYPES(_DECL_SampleLvlTex2DArray)
 
 // #define SampleLvlOffsetTex2D(NAME, SAMPLER, COORD, LEVEL, OFFSET) NAME.SampleLevel(SAMPLER, COORD, LEVEL, OFFSET)
 #define SampleLvlOffsetTex3D(NAME, SAMPLER, COORD, LEVEL, OFFSET) NAME.SampleLevel(SAMPLER, COORD, LEVEL, OFFSET)
@@ -482,6 +521,11 @@ float4  _to4(in float x)    { return float4(x, 0, 0, 0); }
 // inline TYPE LoadTex2D(RWTexture2D<TYPE> tex, int _, int2 p) { return tex[p]; }
 // #endif
 
+#define _DECL_LoadTex1D(TYPE) \
+inline TYPE LoadTex1D(Texture1D<TYPE>   tex, SamplerState smp, int p, int lod) { return tex.Load(int2(p, lod)); } \
+inline TYPE LoadTex1D(Texture1D<TYPE>   tex, int _, int p, int lod) { return tex.Load(int2(p, lod)); } \
+inline TYPE LoadRWTex1D(RWTexture1D<TYPE> tex, int p) { return tex[p]; }
+_DECL_TYPES(_DECL_LoadTex1D)
 
 #define _DECL_LoadTex2D(TYPE) \
 inline TYPE LoadTex2D(Texture2D<TYPE>   tex, SamplerState smp, int2 p, int lod) { return tex.Load(int3(p, lod)); } \
@@ -518,6 +562,7 @@ inline TYPE SampleGradTex2D(Texture2D<TYPE> tex, SamplerState smp, float2 p, flo
 _DECL_FLOAT_TYPES(_DECL_SampleGradTex2D)
 
 #define GatherRedTex2D(NAME, SAMPLER, COORD) (NAME).GatherRed( (SAMPLER), (COORD) )
+#define GatherRedOffsetTex2D(NAME, SAMPLER, COORD, OFFSET) (NAME).GatherRed( (SAMPLER), (COORD), (OFFSET) )
 
 // #define SampleTexCube(NAME, SAMPLER, COORD) (NAME).Sample( (SAMPLER), (COORD) )
 
@@ -525,6 +570,16 @@ _DECL_FLOAT_TYPES(_DECL_SampleGradTex2D)
 inline TYPE SampleTexCube(TextureCube<TYPE> tex, SamplerState smp, float3 p) \
 { return tex.Sample(smp, p); }
 _DECL_FLOAT_TYPES(_DECL_SampleTexCube)
+
+#define _DECL_SampleUTexCube(TYPE) \
+inline TYPE SampleUTexCube(TextureCube<TYPE> tex, SamplerState smp, float3 p) \
+{ return tex.Sample(smp, p); }
+_DECL_FLOAT_TYPES(_DECL_SampleUTexCube)
+
+#define _DECL_SampleITexCube(TYPE) \
+inline TYPE SampleITexCube(TextureCube<TYPE> tex, SamplerState smp, float3 p) \
+{ return tex.Sample(smp, p); }
+_DECL_FLOAT_TYPES(_DECL_SampleITexCube)
 
 #define _DECL_SampleTex2D(TYPE) \
 inline TYPE SampleTex2D(Texture2D<TYPE> tex, SamplerState smp, float2 p) \
@@ -592,17 +647,9 @@ _DECL_TYPES(_DECL_Write3D)
 #define Load3D(TEX, P) (TEX[(P)])
 
 
-
 // #define _DECL_Load2D(TYPE) \
 // inline TYPE Load2D(Texture2D<TYPE> tex,   SamplerState smp, int2 p) { return tex[p]; }
 // _DECL_TYPES(_DECL_Load2D)
-
-#define residency_status uint
-
-// the 0 in Sample() is an optional offset
-#define SampleClampedSparseTex2D(TEX, SMP, P, L, RC) ((TEX).Sample((SMP), (P), 0, L, RC))
-#define CalculateLvlTex2D(TEX, SMP, P) ((TEX).CalculateLevelOfDetailUnclamped(SMP, P) )
-#define IsFullyMapped(RC) CheckAccessFullyMapped(RC)
 
 // void Write2D(RWTexture2D<float>  dst, int2 coord, float4 val) { dst[coord] = val.x;    }
 // void Write2D(RWTexture2D<float2> dst, int2 coord, float4 val) { dst[coord] = val.xy;   }
@@ -628,12 +675,20 @@ inline void AtomicMin3D(RWTexture2DArray<TYPE> tex, int3 p, TYPE val, out TYPE o
 { InterlockedMin(tex[p], val, original_val); }
 _DECL_AtomicMin3D(uint)
 
+// #define AtomicMax3D( DST, COORD, VALUE, ORIGINAL_VALUE ) (InterlockedMax((DST)[uint3((COORD).xyz)], (VALUE), (ORIGINAL_VALUE)))
+#define _DECL_AtomicMax3D(TYPE) \
+inline void AtomicMax3D(RWTexture3D<TYPE> tex, int3 p, TYPE val, out TYPE original_val) \
+{ InterlockedMax(tex[p], val, original_val); } \
+inline void AtomicMax3D(RWTexture2DArray<TYPE> tex, int3 p, TYPE val, out TYPE original_val) \
+{ InterlockedMax(tex[p], val, original_val); }
+_DECL_AtomicMax3D(uint)
+
 // #define _DECL_AtomicMin2DArray(TYPE) \
 // inline void AtomicMin2DArray(RWTexture2DArray<TYPE> tex, int2 p, int layer, TYPE val, out TYPE original_val) \
 // { InterlockedMin(tex[int3(p, layer)], val, original_val); }
 // _DECL_AtomicMin2DArray(uint)
 
-#if defined(DIRECT3D12)
+#if defined(DIRECT3D11) || defined(DIRECT3D12)
     #define AtomicMin InterlockedMin
     #define AtomicMax InterlockedMax
 #endif
@@ -669,7 +724,7 @@ _DECL_AtomicMin3D(uint)
 
 #if defined(DIRECT3D12)
 #define RWCoherentBuffer(TYPE) globallycoherent RWBuffer(TYPE)
-#else
+#elif !defined(PROSPERO)
 #define RWCoherentBuffer(TYPE) RWBuffer(TYPE)
 #endif
 
@@ -736,9 +791,11 @@ inline int2 GetDimensions(TextureCube t, SamplerState smp) { return GetDimension
 #define RTex2DArray RWTex2DArray
 
 #ifdef DIRECT3D12
-#define RasterizerOrderedTex2D(ELEM_TYPE) RasterizerOrderedTexture2D<ELEM_TYPE>
-#else
-#define RasterizerOrderedTex2D RWTex2D
+    #define RasterizerOrderedTex2D(ELEM_TYPE, GROUP_INDEX) RasterizerOrderedTexture2D<ELEM_TYPE>
+    #define RasterizerOrderedTex2DArray(ELEM_TYPE, GROUP_INDEX) RasterizerOrderedTexture2DArray<ELEM_TYPE>
+#elif !defined(PROSPERO)
+    #define RasterizerOrderedTex2D(ELEM_TYPE, GROUP_INDEX) RWTex2D(ELEM_TYPE)
+    #define RasterizerOrderedTex2DArray(ELEM_TYPE, GROUP_INDEX) RWTex2DArray(ELEM_TYPE)
 #endif
 
 #define Depth2D Tex2D

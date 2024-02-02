@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,18 +20,27 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #ifndef FORGE_RENDERER_CONFIG_H
 #define FORGE_RENDERER_CONFIG_H
 
-//Support external config file override
+// Support external config file override
 #if defined(EXTERNAL_RENDERER_CONFIG_FILEPATH)
-    #include EXTERNAL_RENDERER_CONFIG_FILEPATH
+#include EXTERNAL_RENDERER_CONFIG_FILEPATH
+#elif defined(EXTERNAL_RENDERER_CONFIG_FILEPATH_NO_STRING)
+// When invoking clanng from FastBuild the EXTERNAL_CONFIG_FILEPATH define doesn't get expanded to a string,
+// quotes are removed, that's why we add this variation of the macro that turns the define back into a valid string
+#define TF_EXTERNAL_CONFIG_STRINGIFY2(x) #x
+#define TF_EXTERNAL_CONFIG_STRINGIFY(x)  TF_EXTERNAL_CONFIG_STRINGIFY2(x)
+
+#include TF_EXTERNAL_CONFIG_STRINGIFY(EXTERNAL_RENDERER_CONFIG_FILEPATH_NO_STRING)
+
+#undef TF_EXTERNAL_CONFIG_STRINGIFY
+#undef TF_EXTERNAL_CONFIG_STRINGIFY2
 #else
 
 #include "../Application/Config.h"
-
 
 // Comment/uncomment includes to disable/enable rendering APIs
 #if defined(_WINDOWS)
@@ -62,35 +71,28 @@
 #ifdef RENDERER_CUSTOM_MAX
 enum
 {
-	MAX_INSTANCE_EXTENSIONS = 64,
-	MAX_DEVICE_EXTENSIONS = 64,
-	/// Max number of GPUs in SLI or Cross-Fire
-	MAX_LINKED_GPUS = 4,
-	MAX_RENDER_TARGET_ATTACHMENTS = 8,
-	MAX_VERTEX_BINDINGS = 15,
-	MAX_VERTEX_ATTRIBS = 15,
-	MAX_SEMANTIC_NAME_LENGTH = 128,
-	MAX_DEBUG_NAME_LENGTH = 128,
-	MAX_MIP_LEVELS = 0xFFFFFFFF,
-	MAX_SWAPCHAIN_IMAGES = 3,
-	MAX_GPU_VENDOR_STRING_LENGTH = 64,    //max size for GPUVendorPreset strings
+    MAX_INSTANCE_EXTENSIONS = 64,
+    MAX_DEVICE_EXTENSIONS = 64,
+    /// Max number of GPUs in SLI or Cross-Fire
+    MAX_LINKED_GPUS = 4,
+    MAX_RENDER_TARGET_ATTACHMENTS = 8,
+    MAX_VERTEX_BINDINGS = 15,
+    MAX_VERTEX_ATTRIBS = 15,
+    MAX_SEMANTIC_NAME_LENGTH = 128,
+    MAX_DEBUG_NAME_LENGTH = 128,
+    MAX_MIP_LEVELS = 0xFFFFFFFF,
+    MAX_SWAPCHAIN_IMAGES = 3,
+    MAX_GPU_VENDOR_STRING_LENGTH = 64, // max size for GPUVendorPreset strings
 #if defined(VULKAN)
-	MAX_PLANE_COUNT = 3,
+    MAX_PLANE_COUNT = 3,
 #endif
 };
 #endif
 
-
 // Enable raytracing if available
 // Possible renderers: D3D12, Vulkan, Metal
-#if defined(D3D12_RAYTRACING_AVAILABLE) || defined(VK_RAYTRACING_AVAILABLE) || defined(MTL_RAYTRACING_AVAILABLE)
+#if defined(D3D12_RAYTRACING_AVAILABLE) || defined(VK_RAYTRACING_AVAILABLE) || defined(MTL_RAYTRACING_AVAILABLE) || defined(PROSPERO)
 #define ENABLE_RAYTRACING
-#endif
-
-// Enable variable rate shading if available
-// Possible renderers: D3D12
-#ifdef VRS_AVAILABLE
-#define ENABLE_VRS
 #endif
 
 #ifdef ENABLE_PROFILER
@@ -106,13 +108,15 @@ enum
 
 #ifdef NSIGHT_AFTERMATH_AVAILABLE
 #ifdef FORGE_DEBUG
-//#define ENABLE_NSIGHT_AFTERMATH
+// #define ENABLE_NSIGHT_AFTERMATH
 #endif
 #endif
 
-#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) == 0
+#if (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
+     defined(NX64)) == 0
 #error "No rendering API defined"
-#elif (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + defined(NX64)) > 1
+#elif (defined(DIRECT3D12) + defined(DIRECT3D11) + defined(VULKAN) + defined(GLES) + defined(METAL) + defined(ORBIS) + defined(PROSPERO) + \
+       defined(NX64)) > 1
 #define USE_MULTIPLE_RENDER_APIS
 #endif
 
@@ -122,6 +126,11 @@ enum
 
 #ifdef FORGE_DEBUG
 #define ENABLE_DEPENDENCY_TRACKER
+#endif
+
+#if defined(_WIN32) && !defined(XBOX)
+#define FORGE_D3D11_DYNAMIC_LOADING
+#define FORGE_D3D12_DYNAMIC_LOADING
 #endif
 
 #endif

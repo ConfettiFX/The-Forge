@@ -92,6 +92,15 @@
 
 #include "mmgr.h"
 
+#if MMGR_BACKTRACE
+#if defined(_WIN32)
+#include <dbghelp.h>
+#pragma comment(lib, "dbghelp.lib")
+#else
+#include <execinfo.h>
+#endif
+#endif
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // -DOC- If you're like me, it's hard to gain trust in foreign code. This memory manager will try to INDUCE your code to crash (for
 // very good reasons... like making bugs obvious as early as possible.) Some people may be inclined to remove this memory tracking
@@ -223,6 +232,19 @@ extern void               debugger(const char* message);
 #define fopen_s(file, filename, mode) ((*file) = fopen(filename, mode))
 #endif
 
+#ifndef __has_feature
+#define __has_feature(...) 0
+#endif
+
+#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+#include <sanitizer/asan_interface.h>
+#define ASAN_POISON(addr, size) __asan_poison_memory_region(addr, size)
+#define ASAN_UNPOISON(addr, size) __asan_unpoison_memory_region(addr, size)
+#else
+#define ASAN_POISON(...)
+#define ASAN_UNPOISON(...)
+#endif
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Here, we turn off our macros because any place in this source file where the word 'new' or the word 'delete' (etc.)
 // appear will be expanded by the macro. So to avoid problems using them within this source file, we'll just #undef them.
@@ -264,6 +286,14 @@ static const char*  memoryLogFile = "memory.log";
 static void         doCleanupLogOnFirstRun(void);
 char*               LogToMemory(char* log);
 const char*         mAppName;
+
+#if MMGR_BACKTRACE
+static int stackSkipCount = 0;
+#ifdef _WIN32
+// A unique handle to use for backtrace symbols, must be closed before exit
+static HANDLE gProcessHandle;
+#endif
+#endif
 //
 
 // Mutex for different platforms
@@ -312,7 +342,7 @@ typedef struct tm tm;
 inline static char* tf_strncpy(char* dst, size_t dstSize, const char* src, size_t count)
 {
 	size_t size = dstSize < count ? dstSize - 1 : count;
-	char*  ret = strncpy(dst, src, size);
+	char* ret = strncpy(dst, src, size);
 	ret[size] = '\0';
 	return ret;
 }
@@ -384,7 +414,7 @@ static char* Log(const char* format, ...)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static void doCleanupLogOnFirstRun()
+static void doCleanupLogOnFirstRun(void)
 {
 	if (cleanupLogOnFirstRun)
 	{
@@ -631,13 +661,96 @@ static void dumpLine(FileStream* fileToWrite, const char* format, ...)
 
 	_OutputDebugString(buffer);
 	_OutputDebugString("\n");
-	if (fileToWrite != NULL)
+	if (fileToWrite != NULL && fileToWrite->pIO)
 	{
 		fsWriteToStream(fileToWrite, buffer, strlen(buffer));
 		fsWriteToStream(fileToWrite, "\n", 1);
 		fsFlushStream(fileToWrite);
 	}
 }
+
+#if MMGR_BACKTRACE
+static void dumpBacktrace(FileStream* fh, const sAllocUnit* ptr)
+{
+	if (ptr->backtrace_nptrs)
+	{
+#ifdef _WIN32
+		HANDLE process = gProcessHandle;
+		SymInitialize(process, NULL, TRUE);
+
+		char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+		PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)buffer;
+
+		char buffer_line[sizeof(IMAGEHLP_LINE64)];
+		PIMAGEHLP_LINE64 pLine = (PIMAGEHLP_LINE64)buffer_line;
+
+		char module_name[FS_MAX_PATH];
+
+		for (int i = ptr->backtrace_skip; i < ptr->backtrace_nptrs; i++)
+		{
+			DWORD64 address = (DWORD64)(ptr->backtrace_buffer[i]);
+
+			// Get symbol name for address
+			pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+			pSymbol->MaxNameLen = MAX_SYM_NAME;
+			SymFromAddr(process, address, 0, pSymbol);
+
+			// Try to get line
+			pLine->SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+			DWORD displacement;
+			if (SymGetLineFromAddr64(process, address, &displacement, pLine))
+			{
+				if (fh)
+				{
+					dumpLine(fh, "    at %s in %s: line: %lu: address: 0x%0X", pSymbol->Name, pLine->FileName, pLine->LineNumber, pSymbol->Address);
+				}
+				else
+				{
+					Log("    at %s in %s: line: %lu: address: 0x%0X", pSymbol->Name, pLine->FileName, pLine->LineNumber, pSymbol->Address);
+				}
+			}
+			else
+			{
+				// Try get the module name
+				HMODULE hModule = NULL;
+				module_name[0] = '\0';
+				GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)(address), &hModule);
+				if (hModule != NULL) GetModuleFileNameA(hModule, module_name, FS_MAX_PATH);
+
+				if (fh)
+				{
+					dumpLine(fh, "    at %s, address 0x%0X in %s", pSymbol->Name, pSymbol->Address, module_name);
+				}
+				else
+				{
+					Log("    at %s, address 0x%0X in %s", pSymbol->Name, pSymbol->Address, module_name);
+				}
+			}
+		}
+
+		SymCleanup(process);
+#else
+		char** strings = backtrace_symbols(ptr->backtrace_buffer, ptr->backtrace_nptrs);
+		if (strings != NULL)
+		{
+			for (int j = ptr->backtrace_skip; j < ptr->backtrace_nptrs; j++)
+			{
+				if (fh)
+				{
+					dumpLine(fh, "\t%s", strings[j]);
+				}
+				else
+				{
+					Log("\t%s", strings[j]);
+				}
+			}
+
+			free(strings);
+		}
+#endif
+	}
+}
+#endif
 
 static void dumpAllocations(FileStream* fh)
 {
@@ -658,6 +771,9 @@ static void dumpAllocations(FileStream* fh)
 				(size_t)(ptr->reportedAddress), ptr->reportedSize, (size_t)(ptr->actualAddress), ptr->actualSize, mmgrCalcUnused(ptr),
 				allocationTypes[ptr->allocationType], ptr->breakOnDealloc ? 'Y' : 'N', ptr->breakOnRealloc ? 'Y' : 'N',
 				ownerString(ptr->sourceFile, ptr->sourceLine, ptr->sourceFunc));
+			#if MMGR_BACKTRACE
+				dumpBacktrace(fh, ptr);
+			#endif
 			ptr = ptr->next;
 		}
 	}
@@ -665,12 +781,16 @@ static void dumpAllocations(FileStream* fh)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static void dumpLeakReport()
+static void dumpLeakReport(void)
 {
+	FileStream fh = { 0 };
+
+	if (mAppName)
 	{
 		// Open the report file
-		// NOTE: we can't use any allocating FileSystem functions here since the FileSystem
-		// may have already been destroyed by the time we get here.
+		// NOTE: we can't use any allocating FileSystem functions here since
+		// the FileSystem may have already been destroyed by the time we get
+		// here.
 
 		const char* extension = ".memleaks";
 
@@ -684,11 +804,33 @@ static void dumpLeakReport()
 		}
 		strcat(outputFileName, extension);
 
-		FileStream fh = { 0 };
-		bool       success = fsOpenStreamFromPath(RD_LOG, outputFileName, FM_WRITE, NULL, &fh);
+		if (!fsOpenStreamFromPath(RD_LOG, outputFileName, FM_WRITE, &fh))
+			memset(&fh, 0, sizeof fh);
+	}
 
-		/*if (!fh)
-			return;*/
+#if defined(__linux__) || defined(_WINDOWS) || defined(NX64)
+	// #VK_NOTE: Vulkan driver leak workaround
+	// When using validation layer + debug utils, some NVIDIA drivers are leaking memory which triggers leak report
+	// since we provide our allocation callbacks (which use tf_malloc) to Vulkan driver
+	// Ignore these driver leaks
+	if (stats.totalAllocUnitCount)
+	{
+		for (unsigned int i = 0; i < hashSize; i++)
+		{
+			sAllocUnit* ptr = hashTable[i];
+			while (ptr)
+			{
+				if (strstr(ptr->sourceFunc, "gVkAllocation") || strstr(ptr->sourceFunc, "gVkReallocation"))
+				{
+					--stats.totalAllocUnitCount;
+				}
+				ptr = ptr->next;
+			}
+		}
+	}
+#endif
+
+	{
 		// Header
 		time_t    t = time(NULL);
 		struct tm tme;
@@ -741,13 +883,11 @@ static void dumpLeakReport()
 			dumpLine(&fh, "Congratulations! No memory leaks found!");
 			dumpLine(&fh, " ------------------------------------------------------------------------------");
 		}
-		if (success)
-		{
-			fsCloseStream(&fh);
-		}
-
-		m_assert(stats.totalAllocUnitCount == 0 && "Memory leaks found");
 	}
+
+	fsCloseStream(&fh);
+
+	m_assert(stats.totalAllocUnitCount == 0 && "Memory leaks found");
 }
 // ---------------------------------------------------------------------------------------------------------------------------------
 // We use a static class to let us know when we're in the midst of static deinitialization
@@ -756,10 +896,47 @@ bool initMemAlloc(const char* appName)
 {
 	mAppName = appName;
 	doCleanupLogOnFirstRun();
+
+#if MMGR_BACKTRACE
+#ifdef _WIN32
+	// SymInitialize specifies that is should never be used with GetCurrentProcess and the handle should
+	// be unique to avoid issues with sharing. A few libraries do it anyway though and it seems to work fine.
+	// However avoid any undefined behaviour we create a real handle from GetCurrentProcess that we can
+	// later use with SymInitialize.
+	HANDLE currentProcess = GetCurrentProcess();
+	DuplicateHandle(currentProcess, currentProcess, currentProcess, &gProcessHandle, 0, true, DUPLICATE_SAME_ACCESS);
+#endif
+#endif
 	return true;
 }
 
-void exitMemAlloc(void) { dumpLeakReport(); }
+void exitMemAlloc(void)
+{
+	dumpLeakReport();
+
+#if MMGR_BACKTRACE
+#ifdef _WIN32
+	CloseHandle(gProcessHandle);
+#endif
+#endif
+}
+
+MemoryStatistics memGetStatistics(void)
+{
+	MemoryStatistics result = {
+		.totalReportedMemory = (uint32_t)stats.totalReportedMemory,
+		.totalActualMemory = (uint32_t)stats.totalActualMemory,
+		.peakReportedMemory = (uint32_t)stats.peakReportedMemory,
+		.peakActualMemory = (uint32_t)stats.peakActualMemory,
+		.accumulatedReportedMemory = (uint32_t)stats.accumulatedReportedMemory,
+		.accumulatedActualMemory = (uint32_t)stats.accumulatedActualMemory,
+		.accumulatedAllocUnitCount = (uint32_t)stats.accumulatedAllocUnitCount,
+		.totalAllocUnitCount = (uint32_t)stats.totalAllocUnitCount,
+		.peakAllocUnitCount = (uint32_t)stats.peakAllocUnitCount,
+	};
+	return result;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // -DOC- Flags & options -- Call these routines to enable/disable the following options
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -900,13 +1077,28 @@ void mmgrSetOwner(const char* file, const unsigned int line, const char* func)
 	sourceFunc = func;
 }
 
+void memSetStackSkipCount(int stackDepth)
+{
+#if MMGR_BACKTRACE
+	// Only set if another call hasn't set this previously
+	if (!stackSkipCount)
+	{
+		stackSkipCount = stackDepth;
+	}
+#endif
+}
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static void resetGlobals()
+static void resetGlobals(void)
 {
 	sourceFile = "??";
 	sourceLine = 0;
 	sourceFunc = "??";
+
+#if MMGR_BACKTRACE
+	stackSkipCount = 0;
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -1054,6 +1246,17 @@ void* mmgrAllocator(
 		else
 			tf_strcpyarr(au->sourceFunc, "??");
 
+#if MMGR_BACKTRACE
+#ifdef _WIN32
+		au->backtrace_nptrs = CaptureStackBackTrace(stackSkipCount + 1, MMGR_BACKTRACE_SIZE, au->backtrace_buffer, NULL);
+		// Skipped for us above
+		au->backtrace_skip = 0;
+#else
+		au->backtrace_nptrs = backtrace(au->backtrace_buffer, MMGR_BACKTRACE_SIZE);
+		au->backtrace_skip = stackSkipCount + 1;
+#endif
+#endif
+
 			// We don't want to assert with random failures, because we want the application to deal with them.
 
 #ifndef RANDOM_FAILURE
@@ -1108,6 +1311,8 @@ void* mmgrAllocator(
 		{
 			memset(au->reportedAddress, 0, au->reportedSize);
 		}
+
+
 
 		// Validate every single allocated unit in memory
 
@@ -1317,6 +1522,17 @@ void* mmgrReallocator(
 		else
 			tf_strcpyarr(au->sourceFunc, "??");
 
+#if MMGR_BACKTRACE
+#ifdef _WIN32
+		au->backtrace_nptrs = CaptureStackBackTrace(stackSkipCount + 1, MMGR_BACKTRACE_SIZE, au->backtrace_buffer, NULL);
+		// Skipped for us above
+		au->backtrace_skip = 0;
+#else
+		au->backtrace_nptrs = backtrace(au->backtrace_buffer, MMGR_BACKTRACE_SIZE);
+		au->backtrace_skip = stackSkipCount + 1;
+#endif
+#endif
+
 		// The reallocation may cause the address to change, so we should relocate our allocation unit within the hash table
 
 		unsigned int hashIndex = (unsigned int)(-1);
@@ -1439,6 +1655,11 @@ void mmgrDeallocator(
 			MUTEX_UNLOCK(allocMutex);
 			m_assert(false && "Request to deallocate RAM that was never allocated");
 		}
+
+		// If asan is active then unpoision the memory that may have been poisoned by another
+		// library. Otherwise we trip asan here during the validation steps
+		ASAN_UNPOISON(au->actualAddress, au->actualSize);
+
 		// If you hit this assert, then the allocation unit that is about to be deallocated is damaged. But you probably
 		// already know that from a previous assert you should have seen in validateAllocUnit() :)
 		m_assert(mmgrValidateAllocUnit(au));
@@ -1464,6 +1685,10 @@ void mmgrDeallocator(
 		// because Microsoft's memory debugging & tracking utilities will wipe it right after we do. Oh well.
 
 		wipeWithPattern(au, releasedPattern, 0);
+
+		// Inform asan that the memory is poisoned (again). Free should handle this for us but
+		// we might as well
+		ASAN_POISON(au->actualAddress, au->actualSize);
 
 		// Do the deallocation
 
@@ -1571,7 +1796,7 @@ bool mmgrValidateAllocUnit(const sAllocUnit* allocUnit)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool mmgrValidateAllAllocUnits()
+bool mmgrValidateAllAllocUnits(void)
 {
 	// Just go through each allocation unit in the hash table and count the ones that have errors
 
@@ -1638,7 +1863,7 @@ unsigned int mmgrCalcUnused(const sAllocUnit* allocUnit)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-unsigned int mmgrCalcAllUnused()
+unsigned int mmgrCalcAllUnused(void)
 {
 	// Just go through each allocation unit in the hash table and count the unused RAM
 
@@ -1669,6 +1894,12 @@ void mmgrDumpAllocUnit(const sAllocUnit* allocUnit, const char* prefix)
 	Log("[I] %sSize (actual)     : 0x%08X (%s)", prefix, (unsigned int)(allocUnit->actualSize),
 		memorySizeString((unsigned int)(allocUnit->actualSize)));
 	Log("[I] %sOwner             : %s(%d)::%s", prefix, allocUnit->sourceFile, allocUnit->sourceLine, allocUnit->sourceFunc);
+
+#if MMGR_BACKTRACE
+	Log("[I] %sBacktrace             : ", prefix);
+	dumpBacktrace(NULL, allocUnit);
+#endif
+
 	Log("[I] %sAllocation type   : %s", prefix, allocationTypes[allocUnit->allocationType]);
 	Log("[I] %sAllocation number : %d", prefix, allocUnit->allocationNumber);
 }
@@ -1688,7 +1919,7 @@ void mmgrDumpMemoryReport(const char* filename, const bool overwrite)
 {
 	{
 		FileStream fh = { 0 };
-		bool       success = fsOpenStreamFromPath(RD_LOG, filename, overwrite ? FM_WRITE : FM_APPEND, NULL, &fh);
+		bool       success = fsOpenStreamFromPath(RD_LOG, filename, overwrite ? FM_WRITE : FM_APPEND, &fh);
 
 		// If you hit this assert, then the memory report generator is unable to log information to a file (can't open the file for
 		// some reason.)
@@ -1798,7 +2029,7 @@ void mmgrDumpMemoryReport(const char* filename, const bool overwrite)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-sMStats mmgrGetMemoryStatistics() { return stats; }
+sMStats mmgrGetMemoryStatistics(void) { return stats; }
 
 #include "nommgr.h"
 char* LogToMemory(char* log)
@@ -1821,7 +2052,7 @@ char* LogToMemory(char* log)
 	return logMemory;
 }
 
-MUTEX* CreateMutex()
+MUTEX* CreateMutex(void)
 {
 	MUTEX* mutex = (MUTEX*)malloc(sizeof(MUTEX));
 	initMutex(mutex);

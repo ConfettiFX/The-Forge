@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,31 +22,22 @@
  * under the License.
 */
 
-#include "packing.h.fsl"
+#include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "shader_defs.h.fsl"
 #include "vb_resources.h.fsl"
-
-STRUCT(VsInAlphaTested)
-{
-    DATA(float3, position, POSITION);
-    DATA(uint, texCoord, TEXCOORD);
-};
-
-STRUCT(PsInAlphaTested)
-{
-	DATA(float4, position, SV_Position);
-	DATA(float2, texCoord, TEXCOORD0);
-#if !defined(INDIRECT_ROOT_CONSTANT)
-    DATA(FLAT(uint), drawId, TEXCOORD3);
-#endif
-};
 
 PsInAlphaTested VS_MAIN( VsInAlphaTested In, SV_InstanceID(uint) instanceId )
 {
 	INIT_MAIN;
+
+    uint materialID;
+    float4x4 mvp = GetModelViewProjAndMaterialID(GEOMSET_ALPHA_BLEND, VIEW_SHADOW, getDrawID(), materialID);
+    
 	PsInAlphaTested Out;
-    Out.position = mul(Get(transform)[VIEW_SHADOW].mvp, float4(In.position, 1.0f));
+    Out.position = mul(mvp, float4(In.position, 1.0f));
     Out.texCoord = unpack2Floats(In.texCoord);
+    Out.materialID = materialID;
+
     SET_DRAW_ID(Out, drawId, instanceId);
     RETURN(Out);
 }

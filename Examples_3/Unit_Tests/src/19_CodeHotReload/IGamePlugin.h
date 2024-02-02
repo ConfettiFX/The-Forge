@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 The Forge Interactive Inc.
+ * Copyright (c) 2017-2024 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -20,13 +20,14 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
-*/
+ */
 
 #pragma once
 
-#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
-#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 #include "../../../../Common_3/Application/Interfaces/IInput.h"
+#include "../../../../Common_3/Utilities/Interfaces/ILog.h"
+
+#include "../../../../Common_3/Utilities/Math/MathTypes.h"
 
 // Defined here because this is shared by the Main and Game projects.
 // Ideally it should be placed in some configuration file and disabled when not compiling with the editor.
@@ -48,63 +49,62 @@
 // done using this structure.
 struct EngineCallbacks
 {
-	void(*Log)(LogLevel, const char* msg);
+    void (*Log)(LogLevel, const char* msg);
 };
 
 struct GamePlugin;
 
-// COMPONENTS 
+// COMPONENTS
 
 struct AppDataComponent
 {
-	float deltaTime;
-	float aspectRatio;
+    float deltaTime;
+    float aspectRatio;
 
-	Vector2 cameraPos;
-	float cameraScale; // The bigger the camera the more we see
+    Vector2 cameraPos;
+    float   cameraScale; // The bigger the camera the more we see
 
-	Vector2 cameraMovementDir;
-	float cameraZoom;
+    Vector2 cameraMovementDir;
+    float   cameraZoom;
 
-	GamePlugin* mGamePlugin;
+    GamePlugin* mGamePlugin;
 };
 
 struct WorldBoundsComponent
 {
-	float xMin, xMax, yMin, yMax;
+    float xMin, xMax, yMin, yMax;
 };
 
 struct PositionComponent
 {
-	Vector2 pos;
+    Vector2 pos;
 };
 
 struct SpriteComponent
 {
-	float colorR, colorG, colorB;
-	int   spriteIndex;
-	float scale;
-	float angle;
+    float colorR, colorG, colorB;
+    int   spriteIndex;
+    float scale;
+    float angle;
 };
 
 struct MoveComponent
 {
-	Vector2 vel;
+    Vector2 vel;
 };
 
 // Functions from the hot reloadable module that are exposed to the engine.
 struct GameCallbacks
 {
-	void (*UpdateCamera)(GamePlugin* plugin, float deltaTime);
-	void (*UpdateWorldBounds)(WorldBoundsComponent* pWorldBounds, float deltaTime);
-	void (*UpdateSprite)(SpriteComponent* sprite, float deltaTime);
+    void (*UpdateCamera)(GamePlugin* plugin, float deltaTime);
+    void (*UpdateWorldBounds)(WorldBoundsComponent* pWorldBounds, float deltaTime);
+    void (*UpdateSprite)(SpriteComponent* sprite, float deltaTime);
 };
-
 
 struct GamePlugin
 {
-	EngineCallbacks* mEngine = nullptr;
-	GameCallbacks* mGame = nullptr;
+    EngineCallbacks* mEngine = nullptr;
+    GameCallbacks*   mGame = nullptr;
 
-	AppDataComponent* mAppData = nullptr;
+    AppDataComponent* mAppData = nullptr;
 };
