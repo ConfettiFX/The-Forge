@@ -56,13 +56,15 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members/list)
  
 
-# Build Status 
 
+<!---
+# Build Status 
 
 [![Windows](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_windows.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_windows.yml)
 [![MacOS + iOS](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_macos.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_macos.yml)
 [![Linux](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_linux.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_linux.yml)
 [![Android + Meta Quest](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_android.yml/badge.svg)](https://github.com/ConfettiFX/The-Forge/actions/workflows/build_android.yml)
+--->
 
 # News
 
@@ -77,7 +79,7 @@ Forza Motorsport has launched in the meantime:
 
 ![Forza Motorsport](Screenshots/Forza/Forza-Motorsport-Photo-Mode-Effects-Menu.jpg)
 
-Starfield has launched launched:
+Starfield has launched:
 
 ![Starfield](Screenshots/Starfield/starfield-screenshot-new-atlantis-1536x864.jpg)
 
@@ -202,6 +204,7 @@ So for example on macOS 10.13 running on a certain Macbook Pro (I make this up) 
 We track all this data already so that is not a problem. We know exactly what piece of hardware we are looking at (see above GPU Config system). 
 The problem is that we have to guard every @available macro with some of this. From a QA standpoint that generates an explosion of QA requests. To cut down on the number of variables we decided to focus only on calls that are available in two different macOS and two different iOS versions. Here is the code in iOperatingSystem.h
 
+```
 // Support fixed set of OS versions in order to minimize maintenance efforts
 // Two runtimes. Using IOS in the name as iOS versions are easier to remember
 // Try to match the macOS version with the relevant features in iOS version
@@ -210,7 +213,7 @@ The problem is that we have to guard every @available macro with some of this. F
 
 #define IOS17_API     API_AVAILABLE(macos(14.0), ios(17.0))
 #define IOS17_RUNTIME @available(macOS 14.0, iOS 17.0, *)
-
+```
 
 
 ### Dynamic Rendering extension - VK_KHR_dynamic_rendering
@@ -361,7 +364,7 @@ See the release notes from previous releases in the [Release section](https://gi
 2. The Forge is currently tested on the following macOS devices:
     * iMac Intel with AMD RADEON 580 (Part No. MNED2xx/A)
     * iMac with M1 macOS 11.6
-    * Mac Mini M3 with MacOS 14.1
+    * Mac Mini M2 with MacOS 14.1
 
 At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
@@ -588,14 +591,48 @@ To generate the SDF Mesh data you should select “Signed Distance Field” as t
 
 ## 9a. Hybrid Ray-Traced Shadows
 This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
-![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)
 
+
+<!--![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows.png)-->
+
+Mac M2 (1440x838)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HybridRaytracing_M2Mac_1440x838.png)
+
+PS4 Pro (3840x2160)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HybridRaytracing_PS4Pro_3840x2160.png)
+
+Switch (1280x720)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HybridRaytracing_Switch_1280x720.PNG)
+
+XBOX One Series S (1080p)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HybridRaytracing_XboxOneS_1920x1080.png)
+
+iPad Pro 12.9-inch (5th generation) (Model A2378) (2733x20484)
+![Hybrid Ray Traced Shadows](Screenshots/09a_HRT_Shadows_iPad_2733x2048.png)
 
 ## 10. Screen-Space Reflections
 This test offers two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
 
 Here are the screenshots of AMD's FX Stochastic Screen Space Reflections:
 
+Windows 10 (2560x1080)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_Win10_RX7600_2560x1080.png)
+
+PS4 PRO (3840x2160)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_PS4Pro_3840x2160.png)
+
+Switch (1280x720)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_Switch_1280x720.PNG)
+
+Mac M2 (1440x838)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_M2Mac_1440x838%20.png)
+
+XBOX One Series S (1080p)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_XboxOneS_1920x1080.png)
+
+iPad Pro 12.9-inch (5th generation) (Model A2378) (1366x1024)
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/10_ScreenSpaceReflections_IPad_1366x1024.PNG)
+<!--
 Windows final scene:
 ![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/SSSR_Scene_with_reflections.png)
 
@@ -614,6 +651,7 @@ macOS:
 In case you pick Pixel-Projected Reflections, the application features an implementation of the papers [Optimized pixel-projected reflections for planar reflectors](http://advances.realtimerendering.com/s2017/PixelProjectedReflectionsAC_v_1.92.pdf) and [IMPLEMENTATION OF OPTIMIZED PIXEL-PROJECTED REFLECTIONS FOR PLANAR REFLECTORS](https://github.com/byumjin/Jin-Engine-2.1/blob/master/%5BByumjin%20Kim%5D%20Master%20Thesis_Final.pdf)
 
 ![Image of the Pixel-Projected Reflections Unit test](Screenshots/10_Pixel-ProjectedReflections.png)
+-->
 
 ## 11. Multi-GPU (Driver support only on PC Windows)
 This unit test shows a typical VR Multi-GPU configuration. One eye is rendered by one GPU and the other eye by the other one.
@@ -655,28 +693,25 @@ This unit test shows how to handle per triangle order-independent transparency i
 
 
 ## 16. Path Tracer - Ray Tracing
-This unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
-To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
+We switched to Ray Queries for the common Ray Tracing APIs on all the platforms we support. The current Ray Tracing APIs increase the amount of memory necessary substantially, decrease performance and can't add much visually because the whole game has to run with lower resolution, lower texture resolution and lower graphics quality (to make up for this, upscalers were introduced that add new issues to the final image). 
+Because Ray Tracing became a Marketing term valuable to GPU manufacturers, some game developers support now Ray Tracing to help increase hardware sales. So we are going with the flow here by offering those APIs.
 
-macOS 1920x1080 AMD Pro Vega 64
+macOS (1440x810)
+![Ray Queries on macOS](Screenshots/Raytracing/16_Raytracing_M2Mac_1440x810.png)
 
-![Path Tracer running on macOS](Screenshots/16_Path_Tracer_macOS.png)
+PS5 (3840x2160)
+![Ray Queries on PS5](Screenshots/Raytracing/16_Raytracing_PS5_3840x2160.png)
 
-iOS iPhone X 812x375
+Windows 10 (2560x1080)
+![Ray Queries on Windows 10](Screenshots/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
 
-![Path Tracer running on macOS](Screenshots/16_Path_Tracer_iOS.jpeg)
+XBOX One Series X (1920x1080)
+![Ray Queries on XBOX One Series X](Screenshots/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
 
-Windows 10 1080p NVIDIA RTX 2080 with DXR Driver version 441.12
+iPhone 11 (Model A2111) at resolution 896x414
+![Ray Queries on iOS](Screenshots/Raytracing/16_Raytracing_iOS.png)
 
-![Path Tracer running on Windows DXR](Screenshots/16_Path_Tracer_DXR.png)
-
-Windows 10 1080p NVIDIA RTX 2080 with RTX Driver version 441.12
-
-![Path Tracer running on Windows RTX](Screenshots/16_Path_Tracer_RTX.png)
-
-Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
-
-![Path Tracer running on Linux RTX](Screenshots/16_Path_Tracer_Linux_RTX.png)
+We do not have a denoiser for the Path Tracer.
 
 
 ## 17. Entity Component System Test
