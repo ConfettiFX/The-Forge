@@ -125,6 +125,8 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Red – 2 vertical samples;
 - Green – all 4 samples;
 
+![Variable Rate Shading Debug](Screenshots/35_VRS_Debug.png)
+
 UI description:
 - Toggle VRS – enable/disable VRS
 - Draw Cubes – enable/disable dynamic objects in the scene
@@ -705,7 +707,7 @@ PS5 (1080p)
 Windows 10 (2560x1080)
 ![Ray Queries on Windows 10](Screenshots/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
 
-XBOX One Series X (1920x1080)
+XBOX One Series X (1080p)
 ![Ray Queries on XBOX One Series X](Screenshots/Raytracing/16_Raytracing_XboxSeriesX_1920x1080.png)
 
 iPhone 11 (Model A2111) at resolution 896x414
@@ -861,8 +863,6 @@ Implemented on MacOS/IOS, but doesn’t give expected performance benefits due t
 
 ## 36 AlgorithmsAndContainers
 This unit test is used to make sure the string, dynamic array and hash map implementation is stable.
-
-
 
 
 # Examples
