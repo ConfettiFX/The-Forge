@@ -699,8 +699,8 @@ Because Ray Tracing became a Marketing term valuable to GPU manufacturers, some 
 macOS (1440x810)
 ![Ray Queries on macOS](Screenshots/Raytracing/16_Raytracing_M2Mac_1440x810.png)
 
-PS5 (3840x2160)
-![Ray Queries on PS5](Screenshots/Raytracing/16_Raytracing_PS5_3840x2160.png)
+PS5 (1080p)
+![Ray Queries on PS5](Screenshots/Raytracing/16_Raytracing_PS5_1080p.png)
 
 Windows 10 (2560x1080)
 ![Ray Queries on Windows 10](Screenshots/Raytracing/16_Raytracing_Win10_RX7600_2560x1080.png)
@@ -771,6 +771,46 @@ Note: In this implementation we can't call any functions from The Forge from the
 
 
 ## 21. Animation
+This unit test shows a wide range of animation tasks. We used Ozz to achieve those. The following shots were taken on an Android phone. 
+
+Ozz Playback Animation
+Here is how to playback a clip on a rig:
+
+![Image of the Ozz Playback Animation](Screenshots/Animations/Animations_playback_stand.webp)
+
+Ozz Playback Blending
+This option shows how to blend multiple clips and play them back on a rig:
+
+![Image of the Ozz Playback Blending](Screenshots/Animations/Animations_Playback_blending.webp)
+
+
+<!--
+Ozz Joint Attachment
+This option shows how to attach an object to a rig which is being posed by an animation.
+
+![Image of the Ozz Playback Blending](Screenshots/Animations/Animations_Playback_blending.webp)
+-->
+
+Ozz Partial Blending
+This option shows how to blend clips having each only effect a certain portion of joints.
+
+![Image of the Ozz Partial Blending](Screenshots/Animations/Animation_partial_blending.webp)
+
+Ozz Additive Blending
+This option shows how to introduce an additive clip onto another clip and play the result on a rig.
+
+![Image of the Ozz Additive Blending](Screenshots/Animations/Animation_additive_blending.webp)
+
+Ozz Baked Physics
+This option shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
+
+![Image of the Ozz Baked Physics](Screenshots/Animations/Baked_physics.webp)
+
+Ozz Multi Threading
+This option shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates:
+
+![Image of the Ozz Multi Threading](Screenshots/Animations/Animations_multithreading.webp)
+
 
 ## 28. Ozz Skinning
 This unit test shows how to use skinning with Ozz
