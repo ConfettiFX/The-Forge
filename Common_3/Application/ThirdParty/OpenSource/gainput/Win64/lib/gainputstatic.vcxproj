@@ -52,7 +52,7 @@
       <AssemblerListingLocation>Debug/</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <CompileAs>CompileAsCpp</CompileAs>
-            <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -69,7 +69,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AssemblerListingLocation>Release/</AssemblerListingLocation>
       <CompileAs>CompileAsCpp</CompileAs>
-            <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -179,6 +179,7 @@
     <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserPS5Controller.h" />
     <ClInclude Include="..\..\lib\source\gainput\hid\hidparsers\HIDParserSwitchController.h" />
     <ClInclude Include="..\..\lib\source\gainput\pad\GainputInputDevicePadHID.h" />
+    <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinDirectInput.h" />
     <ClInclude Include="..\..\lib\source\gainput\windows\GainputInputDevicePadWinMsgHandler.h" />
     <ClInclude Include="..\..\lib\source\hidapi\hidapi.h" />
   </ItemGroup>

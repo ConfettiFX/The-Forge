@@ -156,7 +156,7 @@ typedef struct VisibilityBufferDesc
 
     // If the app uses async compute for triangle filtering this should be the same as mNumFrames.
     // If the app doesn't use async compute, this should be 1 and TriangleFilteringPassDesc::mBufferIndex musht be always 0.
-    // This is used to allocate GPU only buffers for data we genenrate on the GPU for Triangle Filtering and Batch Compaction stages.
+    // This is used to allocate GPU only buffers for data we generate on the GPU for Triangle Filtering and Batch Compaction stages.
     uint32_t mNumBuffers;
 
     uint32_t mIndirectElementCount;

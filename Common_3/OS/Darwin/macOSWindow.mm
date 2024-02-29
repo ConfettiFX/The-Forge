@@ -817,7 +817,7 @@ void openWindow(const char* app_name, WindowDesc* winDesc, id<MTLDevice> device,
     NSWindowStyleMask styleMask = PrepareStyleMask(winDesc);
 
     NSRect    viewRect{ { (float)gCurrentWindow.windowedRect.left, (float)gCurrentWindow.windowedRect.top },
-                        { (float)getRectWidth(&gCurrentWindow.clientRect), (float)getRectHeight(&gCurrentWindow.clientRect) } };
+                     { (float)getRectWidth(&gCurrentWindow.clientRect), (float)getRectHeight(&gCurrentWindow.clientRect) } };
     NSScreen* activeScreen = getNSScreenFromIndex(monitorIndex);
 
     NSRect styleAdjustedRect = [NSWindow frameRectForContentRect:viewRect styleMask:styleMask];

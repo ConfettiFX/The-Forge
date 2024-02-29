@@ -56,10 +56,6 @@
 #include "visibilityBufferPassAlpha.frag.fsl"
 #end
 
-#comp lightingPass.comp
-#include "lightingPass.comp.fsl"
-#end
-
 #comp raytracedShadowsPass.comp
 #include "raytracedShadowsPass.comp.fsl"
 #end

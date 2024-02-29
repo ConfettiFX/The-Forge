@@ -527,8 +527,8 @@ void openWindow(const char* app_name, WindowDesc* winDesc)
 
     // Adjust windowed rect for windowed mode rendering.
     RECT  rect = { (LONG)winDesc->clientRect.left, (LONG)winDesc->clientRect.top,
-                   (LONG)winDesc->clientRect.left + (LONG)winDesc->clientRect.right,
-                   (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
+                  (LONG)winDesc->clientRect.left + (LONG)winDesc->clientRect.right,
+                  (LONG)winDesc->clientRect.top + (LONG)winDesc->clientRect.bottom };
     DWORD windowStyle = PrepareStyleMask(winDesc);
 
     AdjustWindowRect(&rect, windowStyle, FALSE);
@@ -992,7 +992,7 @@ void getMonitorDpiScale(uint32_t monitorIndex, float dpiScale[2])
 
     HMONITOR currentMonitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
 
-    typedef HRESULT (*GetDpiForMonitorFn)(HMONITOR hmonitor, int32_t dpiType, uint32_t* dpiX, uint32_t* dpiY);
+    typedef HRESULT (*GetDpiForMonitorFn)(HMONITOR hmonitor, int32_t dpiType, uint32_t * dpiX, uint32_t * dpiY);
     static const GetDpiForMonitorFn getDpiForMonitor =
         (GetDpiForMonitorFn)GetProcAddress(GetModuleHandle(TEXT("shcore.dll")), "GetDpiForMonitor");
 

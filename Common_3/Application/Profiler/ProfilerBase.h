@@ -531,22 +531,22 @@ PROFILE_API void ProfileTogglePause();
 PROFILE_API void ProfileForceEnableGroup(const char* pGroup, ProfileTokenType Type);
 PROFILE_API void ProfileForceDisableGroup(const char* pGroup, ProfileTokenType Type);
 
-PROFILE_API void                     ProfileOnThreadCreate(const char* pThreadName); // should be called from newly created threads
-PROFILE_API void                     ProfileOnThreadExit();                          // call on exit to reuse log
-PROFILE_API void                     ProfileSetForceEnable(bool bForceEnable);
-PROFILE_API bool                     ProfileGetForceEnable();
-PROFILE_API void                     ProfileSetEnableAllGroups(bool bEnable);
-PROFILE_API void                     ProfileEnableCategory(const char* pCategory);
-PROFILE_API void                     ProfileDisableCategory(const char* pCategory);
-PROFILE_API bool                     ProfileGetEnableAllGroups();
-PROFILE_API void                     ProfileSetForceMetaCounters(bool bEnable);
-PROFILE_API bool                     ProfileGetForceMetaCounters();
-PROFILE_API void                     ProfileEnableMetaCounter(const char* pMet);
-PROFILE_API void                     ProfileDisableMetaCounter(const char* pMet);
-PROFILE_API int                      ProfileGetAggregateFrames();
-PROFILE_API int                      ProfileGetCurrentAggregateFrames();
-PROFILE_API Profile*                 ProfileGet();
-PROFILE_API void                     ProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2]);
+PROFILE_API void ProfileOnThreadCreate(const char* pThreadName); // should be called from newly created threads
+PROFILE_API void ProfileOnThreadExit();                          // call on exit to reuse log
+PROFILE_API void ProfileSetForceEnable(bool bForceEnable);
+PROFILE_API bool ProfileGetForceEnable();
+PROFILE_API void ProfileSetEnableAllGroups(bool bEnable);
+PROFILE_API void ProfileEnableCategory(const char* pCategory);
+PROFILE_API void ProfileDisableCategory(const char* pCategory);
+PROFILE_API bool ProfileGetEnableAllGroups();
+PROFILE_API void ProfileSetForceMetaCounters(bool bEnable);
+PROFILE_API bool ProfileGetForceMetaCounters();
+PROFILE_API void ProfileEnableMetaCounter(const char* pMet);
+PROFILE_API void ProfileDisableMetaCounter(const char* pMet);
+PROFILE_API int  ProfileGetAggregateFrames();
+PROFILE_API int  ProfileGetCurrentAggregateFrames();
+PROFILE_API Profile* ProfileGet();
+PROFILE_API void     ProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2]);
 PROFILE_API Mutex&                   ProfileGetMutex();
 PROFILE_API struct ProfileThreadLog* ProfileCreateThreadLog(const char* pName);
 PROFILE_API void                     ProfileRemoveThreadLog(struct ProfileThreadLog* pLog);

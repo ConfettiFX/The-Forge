@@ -22,6 +22,7 @@
 
 import argparse
 import json
+import hashlib
 import logging
 import os
 import platform
@@ -32,14 +33,15 @@ import sys
 import traceback
 import time
 from pathlib import Path
-from typing import List, Dict, Tuple, Callable
+from typing import List, Dict, Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 DEFAULT_PORT = 6543
-LOG_PREFIX = "ShaderServer [HOST]"
+MAX_CLIENT_MESSAGE_LENGTH = 1024 + 64  # FS_MAX_PATH + ShaderPlatformMaxLength
+LOG_PREFIX = "ReloadServer [HOST]"
 CURRENT_SCRIPT = Path(__file__).absolute()
 FSL = CURRENT_SCRIPT.parent.parent / 'ForgeShadingLanguage' / 'fsl.py'
-GLOBAL_MUTEX_NAME = 'ShaderServerGlobalMutex'
+GLOBAL_MUTEX_NAME = 'ReloadServerGlobalMutex'
 LOGGER = None
 
 
@@ -141,7 +143,6 @@ class CustomLogger(object):
 class Msg:
     SHADER = b's'
     RECOMPILE = b'r'
-    IS_RUNNING = b'i'
     KILL_SERVER = b'k'
     SUCCESS = b'\x00'
     ERROR = b'\x01'
@@ -158,6 +159,47 @@ class Shader(object):
     def __init__(self, relative_path: str, bytecode: bytes):
         self.relative_path = relative_path
         self.bytecode = bytecode
+
+
+def get_host_ip():
+    try:
+        (_, _, ips) = socket.gethostbyname_ex(socket.gethostname())
+        for ip in sorted(ips):
+            if ip.startswith('192.168'):
+                return ip
+    except:
+        pass
+    print(f'Could not find local network IP in the list of all IP addresses: {ips}')
+    return None
+
+
+def generate_reload_server_info(fsl_input, binary_dir, intermediate_dir, port, args_to_cache):
+    # write arguments to JSON file
+    fsl_cmds = os.path.join(intermediate_dir, 'fsl_cmds')
+    os.makedirs(fsl_cmds, exist_ok=True)
+    file_name = str(hashlib.md5(fsl_input.encode()).hexdigest()) + '.json'
+    with open(os.path.join(fsl_cmds, file_name), 'w') as f:
+        json.dump(args_to_cache, f)
+
+    # write info to text file
+    mutex = GlobalMutex(f'{hashlib.md5(str(binary_dir).encode()).hexdigest()}')
+    if not mutex.acquire():
+        return
+    try:
+        reload_server_file = os.path.join(binary_dir, 'reload-server.txt')
+        with open(reload_server_file, 'w') as f:
+            lines = [
+                get_host_ip() or '127.0.0.1',
+                str(port),
+                intermediate_dir
+            ]
+            for line in lines:
+                f.write(line)
+                f.write('\n')
+    except:
+        raise
+    finally:
+        mutex.release()
 
 
 def kwargs_ensure_no_popup_console() -> dict:    
@@ -181,21 +223,30 @@ def get_file_times_recursive(root: Path) -> Dict[Path, float]:
     return file_times
 
 
+def get_fsl_arg_index(cmd: list, *args: str) -> int:
+    for arg in args:
+        index = cmd.index(arg)
+        if index != -1:
+            return index
+    return -1
+
+
 def decode_u32_le(n: bytes) -> int:
     return struct.unpack('<I', n)[0]
 
 
+def decode_strings_from_bytes(count: int, data: bytes) -> List[str]:
+    offset = 0
+    strings = []
+    for _ in range(0, count):
+        length = decode_u32_le(data[offset:offset+4])
+        strings.append(data[offset+4:offset+4+length].decode())
+        offset += length + 4 + 1
+    return strings
+
+
 def encode_u32_le(n: int) -> bytes:
     return struct.pack('<I', n)
-
-
-def decode_str_from_readable(read_func: Callable[[int], bytes]) -> str:
-    length_bytes = read_func(4)
-    length = decode_u32_le(length_bytes)
-     # read string + null terminator
-    data = read_func(length + 1)
-    # ignore null terminator since this is Python
-    return data[:-1].decode()
 
 
 def encode_shaders_to_bytes(shaders: List[Shader]) -> bytearray:
@@ -226,7 +277,7 @@ def read_shaders_from_disk(paths: List[str], root: Path) -> List[Shader]:
     return result
 
 
-def recompile_shaders(ut_root: Path, intermediate_root: Path, platform: str) -> Tuple[bool, str]:
+def recompile_shaders(intermediate_root: Path, platform: str) -> Union[str, List[Shader]]:
     cmds = []    
     fsl_cmds_dir = intermediate_root / 'fsl_cmds'
     if not fsl_cmds_dir.exists():
@@ -238,14 +289,23 @@ def recompile_shaders(ut_root: Path, intermediate_root: Path, platform: str) -> 
         with open(cmd_path) as f:
             cmd = json.load(f)
             # replace language argument with currently selected API
-            lang_index = cmd.index('-l')
-            if lang_index == -1:
-                lang_index = cmd.index('--language')
-                if lang_index == -1:
-                    cmds.append(cmd)
-                    continue
-            cmd[lang_index + 1] = f'{platform}'
+            lang_index = get_fsl_arg_index(cmd, '-l', '--language')
+            if lang_index != -1:
+                cmd[lang_index + 1] = f'{platform}'
+            # remove `--cache-args` from list
+            cache_args_index = cmd.index('--cache-args')
+            if cache_args_index != -1:
+                cmd = cmd[:cache_args_index] + cmd[cache_args_index + 1:]
             cmds.append(cmd)
+
+    if not cmds:
+        return []
+
+    # To avoid requiring knowledge about `which` shaders are being compiled,
+    # we collect ALL file times in the `shaders_root` directory before and after re-compilation
+    # and upload every shader that has been modified by the call to `recompile_shaders`.
+    shaders_root = Path(cmds[0][get_fsl_arg_index(cmds[0], '-b', '--binaryDestination') + 1])
+    file_times_before = get_file_times_recursive(shaders_root)
 
     procs = []
     extra_kwargs = kwargs_ensure_no_popup_console()
@@ -253,7 +313,6 @@ def recompile_shaders(ut_root: Path, intermediate_root: Path, platform: str) -> 
         full_cmd = [sys.executable, str(FSL)] + cmd
         procs.append(subprocess.Popen(
             full_cmd, 
-            cwd=str(ut_root),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             **extra_kwargs
@@ -269,7 +328,19 @@ def recompile_shaders(ut_root: Path, intermediate_root: Path, platform: str) -> 
         output.extend(stdout)
         output.extend(stderr)
 
-    return ret, output.decode()
+    output = output.decode().strip()
+    if output:
+        log_info(f'fsl.py output:\n{output}')
+    if ret != 0: 
+        return output
+
+    file_times_after = get_file_times_recursive(shaders_root)
+    updated_shader_paths = []
+    for path, modified_time in file_times_before.items():
+        if path in file_times_after and modified_time < file_times_after[path]:
+            updated_shader_paths.append(str(path.relative_to(shaders_root).as_posix()))
+
+    return read_shaders_from_disk(updated_shader_paths, shaders_root)
 
 
 def setup_logging(file_name: str = 'server-log.txt'):
@@ -310,51 +381,36 @@ def server_loop(server: socket.socket) -> bool:
 
     conn.settimeout(0.5)
     try:
-        msg = conn.recv(1)
+        data = conn.recv(MAX_CLIENT_MESSAGE_LENGTH)
 
         # Checking server status succeeds if a connection is made, so we have nothing to do
-        if msg == Msg.IS_RUNNING or msg == Msg.KILL_SERVER:
+        if data and data[:1] == Msg.KILL_SERVER:
             conn.close()
-            return msg == Msg.KILL_SERVER
+            return True
         
         # We only allow the client to sent RECOMPILE messages that contain the shader binary root
-        if not msg or msg != Msg.RECOMPILE:
-            send_error_and_close(conn, f'Expected RECOMPILE message `{Msg.RECOMPILE}`, got `{msg}` instead')
+        if not data or data[:1] != Msg.RECOMPILE:
+            send_error_and_close(conn, f'Expected RECOMPILE message `{Msg.RECOMPILE}`, got `{data[0]}` instead')
             return False
 
-        # Get binary root directories that will be used for shader recompilation
-        platform = decode_str_from_readable(lambda n: conn.recv(n))
-        ut_root = Path(decode_str_from_readable(lambda n: conn.recv(n)))
-        shaders_root = Path(decode_str_from_readable(lambda n: conn.recv(n)))
-        intermediate_root = Path(decode_str_from_readable(lambda n: conn.recv(n)))
-        for r in [ut_root, shaders_root, intermediate_root]:
-            if not r.exists():
-                send_error_and_close(conn, f'Path `{str(r)}` does not exist')
-                return False
+        # Get intermediate directory and platform that will be used for shader recompilation
+        platform, intermediate_root = decode_strings_from_bytes(2, data[1:])
+        intermediate_root = Path(intermediate_root)
+        if not intermediate_root.exists():
+            send_error_and_close(conn, f'Path `{str(intermediate_root)}` does not exist')
+            return False
+        
     except (TimeoutError, socket.timeout):
         send_error_and_close(conn, 'Timed out while communicating with client - please try again')
         return False
     
-    # To avoid requiring knowledge about `which` shaders are being compiled,
-    # we collect ALL file times in the `shaders_root` directory before and after re-compilation
-    # and upload every shader that has been modified by the call to `recompile_shaders`.
-    file_times_before = get_file_times_recursive(shaders_root)
-    ret, output = recompile_shaders(ut_root, intermediate_root, platform)
-    if output.strip():
-        log_info(f'fsl.py output:\n{output}')
-    if ret != 0: 
-        send_error_and_close(conn, output.strip())
+    result_or_error = recompile_shaders(intermediate_root, platform)
+    if isinstance(result_or_error, str):
+        send_error_and_close(conn, result_or_error)
         return False
-    file_times_after = get_file_times_recursive(shaders_root)
-    updated_shader_paths = []
-    for path, modified_time in file_times_before.items():
-        if path in file_times_after and modified_time < file_times_after[path]:
-            updated_shader_paths.append(str(path.relative_to(shaders_root).as_posix()))
-
-    log_info(f'Shaders modified: {len(updated_shader_paths)}')
-    updated_shaders = read_shaders_from_disk(updated_shader_paths, shaders_root)
-    encoded_shaders = encode_shaders_to_bytes(updated_shaders)
-    log_info(f'Shaders encoded data length: {len(encoded_shaders)}')
+    
+    encoded_shaders = encode_shaders_to_bytes(result_or_error)
+    log_info(f'Uploading {len(result_or_error)} shaders to client ({len(encoded_shaders)} bytes)')
 
     conn.sendall(encoded_shaders)
     conn.close()
@@ -490,7 +546,7 @@ def main():
 
     if already_running:
         print(f'{LOG_PREFIX}: server is already running on port {args.port}')
-        return
+        sys.exit(1)
 
     if not args.daemon:
         print(f'{LOG_PREFIX}: listening on port {args.port}...')

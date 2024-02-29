@@ -90,6 +90,7 @@ void _FailedAssertImpl(const char* file, int line, const char* statement, const 
 
         const HWND hwnd = (gLogWindowHandle && isMainThread()) ? *gLogWindowHandle : NULL;
 
+#ifndef AUTOMATED_TESTING
         if (IsDebuggerPresent())
         {
             wcscat(str, L"Debug?");
@@ -105,6 +106,7 @@ void _FailedAssertImpl(const char* file, int line, const char* statement, const 
             }
         }
         else
+#endif
         {
 #ifdef ENABLE_FORGE_STACKTRACE_DUMP
             __debugbreak();

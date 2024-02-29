@@ -11,6 +11,8 @@
     <VirtualDirectory Name="Ephemeris">
       <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"/>
       <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/src/AppSettings.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/src/AppSettings.h"/>
       <VirtualDirectory Name="Sky">
         <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Aurora.cpp"/>
         <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Aurora.h"/>
@@ -176,7 +178,7 @@
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>
@@ -267,7 +269,7 @@ shaders:&#xD;
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/Shaders/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../Unit_Tests/UbuntuCodelite/OSBase/$(ConfigurationName)/CompiledShaders/ $(ProjectPath)/$(ConfigurationName)/CompiledShaders/</Command>
         <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
-        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/Graphics/gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
+        <Command Enabled="yes">rsync -u $(WorkspacePath)/../../../Common_3/OS/Linux/steamdeck_gpu.data $(ProjectPath)/$(ConfigurationName)/GPUCfg/gpu.data</Command>
         <Command Enabled="no"># Textures</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
         <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>

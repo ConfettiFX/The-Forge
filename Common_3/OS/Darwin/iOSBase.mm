@@ -507,9 +507,9 @@ char     benchmarkOutput[1024] = { "\0" };
             }
             else if (strcmp(pApp->argv[i], "--request-recompile-after") == 0)
             {
-                extern uint32_t gShaderServerRequestRecompileAfter;
+                extern uint32_t gReloadServerRequestRecompileAfter;
                 if (i + 1 < pApp->argc && isdigit(*pApp->argv[i + 1]))
-                    gShaderServerRequestRecompileAfter = atoi(pApp->argv[i + 1]);
+                    gReloadServerRequestRecompileAfter = atoi(pApp->argv[i + 1]);
             }
             else if (strcmp(pApp->argv[i], "--no-auto-exit") == 0)
             {

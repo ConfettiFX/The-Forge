@@ -53,11 +53,14 @@ void hook_post_init_renderer(Renderer*) {}
 
 void hook_post_remove_renderer(Renderer*) {}
 
+HRESULT WINAPI d3d12dll_DXGIGetDebugInterface1(UINT Flags, REFIID riid, void** ppFactory);
+
 void hook_enable_debug_layer(const RendererContextDesc* pDesc, RendererContext* pContext)
 {
     UNREF_PARAM(pContext);
 #if defined(ENABLE_GRAPHICS_DEBUG)
     pContext->mDx.pDebug->EnableDebugLayer();
+
     ID3D12Debug1* pDebug1 = NULL;
     if (SUCCEEDED(pContext->mDx.pDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
     {
@@ -147,7 +150,8 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
     IDXGIAdapter1* dxgiAdapter = NULL;
     CHECK_HRESULT(pRenderer->pContext->mDx.pDXGIFactory->EnumAdapters1(0, &dxgiAdapter));
     UINT         i = 0;
-    IDXGIOutput *currentOutput, *bestOutput;
+    IDXGIOutput* currentOutput = NULL;
+    IDXGIOutput* bestOutput = NULL;
     LONG         bestIntersection = -1;
     while (dxgiAdapter->EnumOutputs(i, &currentOutput) != DXGI_ERROR_NOT_FOUND)
     {
@@ -156,15 +160,24 @@ TinyImageFormat hook_get_recommended_swapchain_format(Renderer* pRenderer, const
         LONG intersection = util_compute_intersection(windowBounds, desc.DesktopCoordinates);
         if (intersection > bestIntersection)
         {
+            SAFE_RELEASE(bestOutput);
             bestIntersection = intersection;
             bestOutput = currentOutput;
         }
+        else
+        {
+            SAFE_RELEASE(currentOutput);
+        }
         ++i;
     }
+    SAFE_RELEASE(dxgiAdapter);
+
     IDXGIOutput6* output6;
     CHECK_HRESULT(bestOutput->QueryInterface(IID_PPV_ARGS(&output6)));
     DXGI_OUTPUT_DESC1 desc1;
     CHECK_HRESULT(output6->GetDesc1(&desc1));
+    SAFE_RELEASE(output6);
+    SAFE_RELEASE(bestOutput);
     const bool outputSupportsHDR = DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 == desc1.ColorSpace;
     if (outputSupportsHDR)
     {
@@ -269,4 +282,6 @@ void hook_modify_shader_compile_flags(uint32_t, bool, const WCHAR**, uint32_t* p
 void hook_modify_rootsignature_flags(uint32_t, D3D12_ROOT_SIGNATURE_FLAGS*) {}
 
 void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding) { pInOutDesc->ByteStride += padding; }
+
+void hook_pre_resolve_query(Cmd* pCmd) {}
 #endif

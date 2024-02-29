@@ -228,7 +228,6 @@ public:
     {
         // FILE PATHS
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_BINARIES, "CompiledShaders");
-        fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
         fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
@@ -577,7 +576,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -866,13 +865,6 @@ public:
         threadSystemAddTaskGroup(gThreadSystem, ParticleThreadDraw, gThreadCount, gThreadData);
         // simply record the screen cleaning command
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0].r = 0.0f;
-        loadActions.mClearColorValues[0].g = 0.0f;
-        loadActions.mClearColorValues[0].b = 0.0f;
-        loadActions.mClearColorValues[0].a = 0.0f;
-
         Cmd* cmd = elem.pCmds[0];
         beginCmd(cmd);
         cmdBeginGpuFrameProfile(cmd, gGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
@@ -889,7 +881,10 @@ public:
 
         RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -960,9 +955,10 @@ public:
                 pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
                 pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-                loadActions = {};
-                loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-                cmdBindRenderTargets(graphCmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+                BindRenderTargetsDesc bindRenderTargets = {};
+                bindRenderTargets.mRenderTargetCount = 1;
+                bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_LOAD };
+                cmdBindRenderTargets(graphCmd, &bindRenderTargets);
                 cmdSetViewport(graphCmd, pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
                                pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
                 cmdSetScissor(graphCmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
@@ -989,7 +985,7 @@ public:
             cmdEndDebugMarker(graphCmd);
         }
 
-        cmdBindRenderTargets(graphCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(graphCmd, NULL);
 
         barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(graphCmd, 0, NULL, 0, NULL, 1, &barrier);
@@ -1435,10 +1431,10 @@ public:
         snprintf(buffer, TF_ARRAY_COUNT(buffer), "Particle Thread Cmd %d", data.mThreadIndex);
         cmdBeginDebugMarker(cmd, 0.6f, 0.7f, 0.8f, buffer);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-
-        cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { data.pRenderTarget, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mWidth, (float)data.pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mWidth, data.pRenderTarget->mHeight);
 

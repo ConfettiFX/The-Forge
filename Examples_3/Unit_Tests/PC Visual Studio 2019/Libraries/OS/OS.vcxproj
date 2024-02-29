@@ -70,7 +70,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\Algorithms.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\Math\StbDs.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\MemoryTracking\MemoryTracking.c" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\lz4\lz4.c" />
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />

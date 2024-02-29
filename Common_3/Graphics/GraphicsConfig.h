@@ -128,6 +128,11 @@ enum
 #define ENABLE_DEPENDENCY_TRACKER
 #endif
 
+#if defined(FORGE_DEBUG) && defined(VULKAN)
+#define GFX_DRIVER_MEMORY_TRACKING
+#define GFX_DEVICE_MEMORY_TRACKING
+#endif
+
 #if defined(_WIN32) && !defined(XBOX)
 #define FORGE_D3D11_DYNAMIC_LOADING
 #define FORGE_D3D12_DYNAMIC_LOADING

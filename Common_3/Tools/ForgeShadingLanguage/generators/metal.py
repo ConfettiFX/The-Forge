@@ -266,11 +266,6 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
         if 'EARLY_FRAGMENT_TESTS' in line:
             line = '[[early_fragment_tests]]\n'
 
-        if 'BeginNonUniformResourceIndex' in line:
-            nuri = getMacro(line)
-            if type(nuri) is str:
-                line = line.replace(nuri, nuri + ', None')
-
         #  Shader I/O
         if struct and line.strip().startswith('DATA('):
             if shader.returnType and struct in shader.returnType:
@@ -330,6 +325,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
                     interpolation_modifier = get_interpolation_modifier(dtype)
                     if 'SV_POSITION' in sem:
                         attribute = '[[position]]'
+                        entry_declarations += [f'{var}.{name}.w = rcp({var}.{name}.w);\n']
                     elif 'SV_RENDERTARGETARRAYINDEX' in sem:
                         attribute = '[[render_target_array_index]]'
                     elif interpolation_modifier:
@@ -620,7 +616,7 @@ def metal(platform: Platforms, debug, binary: ShaderBinary, dst):
             shader_src += ['#line {}\n'.format(line_index), '//'+line]
             continue
 
-        if re.search('(^|\s+)RETURN', line):
+        if re.search(r'(^|\s+)RETURN', line):
             ws = get_whitespace(line)
             return_statement = [ ws+'{\n' ]
 

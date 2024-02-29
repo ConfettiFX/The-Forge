@@ -2048,13 +2048,10 @@ public:
         barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0].r = 0.0f;
-        loadActions.mClearColorValues[0].g = 0.0f;
-        loadActions.mClearColorValues[0].b = 0.0f;
-        loadActions.mClearColorValues[0].a = 0.0f;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -2070,9 +2067,6 @@ public:
 
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-        loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
         cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
         float yTxtOffset = 12.f;
@@ -2143,7 +2137,7 @@ public:
 #endif
 
         cmdDrawUserInterface(cmd);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
         cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
         barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };

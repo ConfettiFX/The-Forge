@@ -67,12 +67,6 @@
     <Filter Include="Common_3\OS\WindowSystem">
       <UniqueIdentifier>{09944702-aef3-41aa-8ef9-de92f531919e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder">
-      <UniqueIdentifier>{ef3abb1a-9911-4f00-aa7d-1e744178bc0b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\basis_universal">
-      <UniqueIdentifier>{e7956ebe-1b10-44e3-8090-25ac60bec645}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common_3\Utilities\ThirdParty\OpenSource\bstrlib">
       <UniqueIdentifier>{22a67ed8-d3ad-4f7f-9d4c-b1242d54a2c8}</UniqueIdentifier>
     </Filter>
@@ -296,9 +290,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\WindowSystem\WindowSystem.cpp">
       <Filter>Common_3\OS\WindowSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
-      <Filter>Common_3\Utilities\ThirdParty\OpenSource\basis_universal\transcoder</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Utilities\ThirdParty\OpenSource\bstrlib\bstrlib.c">
       <Filter>Common_3\Utilities\ThirdParty\OpenSource\bstrlib</Filter>

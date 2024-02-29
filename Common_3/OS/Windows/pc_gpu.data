@@ -1,0 +1,449 @@
+#version: 0.1
+#Possible Classfications for Preset: Ultra; High; Medium; Low; VeryLow; Office
+#Sources:
+#https://www.notebookcheck.net/Mobile-Graphics-Cards-Benchmark-List.844.0.html  -> Classifies into Ultra; High; Medium; Low; Office
+#https://github.com/GameTechDev/gpudetect/blob/master/IntelGfx.cfg
+#https://github.com/GPUOpen-Tools/common-src-DeviceInfo/blob/master/DeviceInfoUtils.cpp
+#https://www.techpowerup.com/vgabios
+#https://pci-ids.ucw.cz/
+
+BEGIN_DEFAULT_CONFIGURATION;
+#if the gpu doesn't exist in the GPU_LIST use this instead
+DefaultPresetLevel; Low;
+END_DEFAULT_CONFIGURATION;
+
+BEGIN_VENDOR_LIST;
+intel; 0x163C, 0x8086, 0x8087;
+nvidia; 0x10DE
+amd; 0x1002, 0x1022;
+Qualcomm; 0x5143;
+END_VENDOR_LIST;
+
+#VendorName ; DeviceName ; Classification ; DeviceID (Can be null) ; Revision ID (Can be null) ; Codename (can be null)
+BEGIN_GPU_LIST;
+#NVIDIA GPUs
+nvidia ; NVIDIA GeForce 6800 GT ; Low
+nvidia ; NVIDIA GeForce 6800 Ultra ; Low
+nvidia ; NVIDIA GeForce 6800 ; Low ;
+nvidia ; NVIDIA GeForce 6800 LE ; Low ;
+nvidia ; NVIDIA GeForce 8800 GTS ; Low ;
+nvidia ; NVIDIA GeForce 8800M GTS ; Low ;
+nvidia ; NVIDIA GeForce 9600 GT ; Low ;
+nvidia ; NVIDIA GeForce GT 330M ; Low ;
+nvidia ; NVIDIA GeForce GTX 460 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 480M ; Medium ;
+nvidia ; NVIDIA GeForce GTX 480 ; Medium ;
+nvidia ; NVIDIA Tesla C2050 ; Low ;
+nvidia ; NVIDIA GeForce GTX 580 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 580M ; Medium ;
+nvidia ; NVIDIA GeForce GTX 765M ; Medium ;
+nvidia ; NVIDIA GeForce GTX 780M ; Medium ;
+nvidia ; NVIDIA GeForce GTX 950 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 960 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 970 ; High ;
+nvidia ; NVIDIA GeForce GTX 980 ; High ;
+nvidia ; NVIDIA GeForce GTX 980 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce GTX 1050 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1050 Ti ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1060 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1070 ; High ;
+nvidia ; NVIDIA GeForce GTX 1080 ; High ;
+nvidia ; NVIDIA GeForce GTX 1080 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce GTX TITAN Black ; Ultra ;
+nvidia ; NVIDIA GeForce GTX TITAN X ; Ultra ;
+nvidia ; NVIDIA GeForce GTX 1650 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1650 Super ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1650 TI ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1660 ; Medium ;
+nvidia ; NVIDIA GeForce GTX 1660 Super ; High ;
+nvidia ; NVIDIA GeForce GTX 1660 Ti ; High ;
+nvidia ; NVIDIA GeForce RTX 2050 ; Medium ;
+nvidia ; NVIDIA GeForce RTX 2060 ; High ;
+nvidia ; NVIDIA GeForce RTX 2060 Super ; High ;
+nvidia ; NVIDIA GeForce RTX 2070 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 2070 Super ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 2080 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 2080 Super ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 2080 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce Titan RTX ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3050 ; High ;
+nvidia ; NVIDIA GeForce RTX 3050 Ti ; High ;
+nvidia ; NVIDIA GeForce RTX 3060 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3060 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3070 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3070 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3080 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3080 Ti ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3090 ; Ultra ;
+nvidia ; NVIDIA GeForce RTX 3090 Ti ; Ultra ;
+nvidia ; NVIDIA Quadro P6000 ; Ultra ;
+nvidia ; NVIDIA Geforce MX570 ; Medium ;
+nvidia ; NVIDIA Geforce RTX 4050 ; High ;
+nvidia ; NVIDIA Geforce RTX 4050 Ti ; High ;
+nvidia ; NVIDIA Geforce RTX 4060 ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4060 Ti ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4070 ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4070 Super ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4070 Ti ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4070 Ti Super ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4080 ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4080 Super ; Ultra ;
+nvidia ; NVIDIA Geforce RTX 4090 ; Ultra ;
+nvidia ; RTX TITAN Ada ; Ultra ;
+
+#VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
+#AMD GPUs
+amd ; AMD Radeon R9 200 ; High ;
+amd ; AMD FirePro W9000 ; Low ;
+amd ; ATI FirePro V (FireGL V) Graphics Adapter ; Low ;
+amd ; AMD FirePro W8000 ; Low ;
+amd ; AMD FirePro W7000 ; Low ;
+amd ; ATI FirePro W5000 ; Low ;
+amd ; AMD Radeon HD 7970M ; Low ;
+amd ; AMD Radeon HD8970M ; Low ;
+amd ; AMD Radeon R9 M290X ; Low ;
+amd ; AMD Radeon R9 M275X ; Low ;
+amd ; AMD Radeon R9 M375 ; Low ;
+amd ; AMD Radeon R9 M375X ; Low ;
+amd ; AMD Radeon R9 M370X ; Low ;
+amd ; AMD Radeon R7 M380 ; Low ;
+amd ; AMD Radeon E8860 ; Low ;
+amd ; AMD Radeon R9 M360 ; Low ;
+amd ; AMD FirePro W600 ; Low ;
+amd ; AMD FirePro W4100 ; Low ;
+
+#Navi 
+amd ; AMD Radeon Pro 5300M ; Medium ;
+amd ; AMD Radeon Pro 5500M ; Medium ;
+amd ; AMD Radeon Pro 5500 XT ; Medium ;
+amd ; AMD Radeon Pro 5600M ; Medium ;
+amd ; AMD Radeon RX 5600M ; Medium ;
+amd ; AMD Radeon RX 5600 XT ; Medium ;
+amd ; AMD Radeon RX 5700 ; Medium ;
+amd ; AMD Radeon RX 5700 XT ; Medium ;
+amd ; AMD Radeon RX 6500 XT ; Medium ;
+amd ; AMD Radeon RX6500 XT ; Medium ; #Vulkan seems to return "RX6500" without the space. Adding another entry for Vulkan
+amd ; AMD Radeon RX 6600 XT ; Ultra ;
+amd ; AMD Radeon RX 6600 ; Ultra ;
+amd ; AMD Radeon Pro W6600 ; High ;
+amd ; AMD Radeon Pro W6400 ; High ;
+amd ; AMD Radeon Pro W6800 ; Ultra ;
+amd ; AMD Radeon RX 6700 XT ; Ultra ;
+amd ; AMD Radeon RX 6800M ; High ;
+amd ; AMD Radeon RX 6800 XT ; Ultra ;
+amd ; AMD Radeon RX 6800 ; Ultra ;
+amd ; AMD Radeon RX 6900 XT ; Ultra ;
+
+
+#Amd-Oland
+amd ; AMD FirePro W2100 ; Low ;
+amd ; AMD Radeon R7 350 ; Low ;
+amd ; AMD Radeon R5 340 ; Low ;
+
+#Amd-Mars (Mobile Oland)
+amd ; AMD Radeon HD 8600 ; Low
+amd ; AMD Radeon HD 8700M ; Low ;
+amd ; AMD Radeon HD 8500M ; Low ;
+amd ; AMD Radeon HD 8790M ; Low ;
+amd ; AMD Radeon R7 M370 ; Low ;
+amd ; AMD Radeon R7 M265 Series ; Low ;
+amd ; AMD Radeon R7 M350 ; Low ;
+amd ; AMD Radeon R7 M340 ; Low ;
+amd ; AMD Radeon R5 M240 ; Low ;
+
+#Amd-Hainan
+amd ; AMD Radeon R5 M335 ; Low ;
+amd ; AMD Radeon R5 M330 ; Low ;
+amd ; AMD Radeon R5 M320 ; Low ; 
+amd ; AMD Radeon R5 M435 ; Low ; 
+amd ; AMD Radeon HD 8500M ; Low ;
+
+#Amd-Bonaire
+amd ; AMD FirePro W5100 ; Low ;
+amd ; AMD Radeon R7 200 Series ; Low ;
+amd ; AMD Radeon R7 360 Series ; Low ;
+
+#Amd-Saturn (mobile Bonaire)
+amd ; AMD Radeon HD 8950 ; Low ;
+amd ; AMD Radeon R9 M380 ; Low ;
+amd ; AMD Radeon R9 M280X ; Low ;
+amd ; AMD Radeon R9 M385 ; Low ;
+amd ; AMD Radeon R9 M380 ; Low ;
+
+#Amd-Hawaii
+amd ; AMD FirePro W9100 ; Low ;
+amd ; AMD FirePro W8100 ; Low ;
+
+#Amd-Kaveri -- will probably need multiple entries in g_deviceInfo for these
+amd ; AMD Radeon R7 Graphics ; Low ;
+amd ; AMD Radeon R6 Graphics ; Low ;
+amd ; AMD Radeon R5 Graphics ; Low ;
+amd ; AMD Radeon R4 Graphics ; Low ;
+
+#Amd-Kabini
+amd ; AMD Radeon HD 8400 ; Low ;
+amd ; AMD Radeon HD 8400E ; Low ;
+amd ; AMD Radeon HD 8330 ; Low ;
+amd ; AMD Radeon HD 8330E ; Low ;
+amd ; AMD Radeon HD 8210 ; Low ;
+amd ; AMD Radeon HD 8210E ; Low ;
+amd ; AMD Radeon HD 8200 ; Low ;
+amd ; AMD Radeon HD 8280E ; Low ;
+
+#Amd-Temash
+amd ; AMD Radeon HD 8180 ; Low ;
+amd ; AMD Radeon HD 8250 ; Low ;
+
+#Amd-Beema
+amd ; AMD Radeon R5E Graphics ; Low ;
+amd ; AMD Radeon R3 Graphics ; Low ;
+amd ; AMD Radeon R2 Graphics ; Low ;
+amd ; AMD Radeon E1 Graphics ; Low ;
+amd ; AMD Radeon R4E Graphics ; Low ;
+amd ; AMD Radeon R1E Graphics ; Low ;
+amd ; AMD Radeon R1E Graphics ; Low ;
+
+#Amd-Iceland/Topaz
+amd ; AMD Radeon R7 M260 ; Low ;
+amd ; AMD Radeon R7 M360 ; Low ;
+amd ; AMD Radeon R7 M340 ; Low ;
+amd ; AMD Radeon R5 M465 ; Low ;
+amd ; AMD Radeon R5 M445 ; Low ;
+amd ; AMD Radeon R5 M255 ; Low ;
+amd ; AMD Radeon R5 M255 ; Low ;
+amd ; AMD Radeon R5 M315 ; Low ;
+
+#Amd-Tonga
+amd ; AMD Radeon R9 M395X ; Low ;
+amd ; AMD Radeon R9 M390X ; Low ;
+amd ; AMD FirePro S7150 ; Low ;
+amd ; AMD FirePro S7100X ; Low ;
+amd ; AMD FirePro W7100 ; Low ;
+amd ; AMD MxGPU ; Low ;
+
+#Amd-Fiji
+amd ; AMD FirePro S9300 x2 ; Low ;
+amd ; AMD Radeon Pro Duo ; Low ;
+amd ; AMD MxGPU ; Low ;
+
+#Amd-Ellesmere
+amd ; AMD Radeon Pro WX 7100 Graphics ; Low ;
+amd ; AMD Radeon E9550 ; Low ;
+amd ; AMD Radeon Pro V7350x2 ; Low ;
+amd ; AMD Radeon Pro V7300X ; Low ;
+amd ; AMD Radeon Pro WX 7100 Graphics ; Low ;
+amd ; AMD Radeon Pro WX 5100 Graphics ; Low ;
+amd ; AMD Radeon Pro V7350x2 ; Low ;
+amd ; AMD Radeon Pro V7300X ; Low ;
+amd ; AMD Radeon RX 480 Graphics ; High ;
+amd ; AMD Radeon RX 470 Graphics ; High ;
+amd ; Radeon RX470/470 Series ; High ;
+amd ; AMD Radeon RX 470 ; Medium ;
+amd ; AMD Radeon RX 580 ; High ;
+amd ; AMD Radeon RX 570 ; High ;
+
+#Amd-Baffin
+amd ; AMD Radeon Pro WX 4100 ; Low ;
+amd ; AMD Radeon E9260 ; Low ;
+amd ; AMD Radeon Pro V5300X ; Low ;
+amd ; AMD Radeon Pro 460 ; Medium ;
+amd ; AMD Radeon Pro 455 ; Medium ;
+amd ; AMD Radeon Pro 450 ; Medium ;
+amd ; AMD Radeon Pro 465 ; Medium ;
+amd ; Radeon RX460/460 Series ; Medium ;
+amd ; Radeon RX560/560 Series ; Medium ;
+amd ; Radeon RX550/550 Series ; Medium ;
+
+#Amd-GFX8_0_4
+amd ; AMD Radeon Pro WX 3100 ; Low ;
+amd ; AMD Radeon Pro WX 3100 ; Low ;
+amd ; AMD Radeon Pro WX 2100 ; Low ;
+amd ; AMD Embedded Radeon E9171 ; Low ;
+amd ; AMD Radeon Pro WX 2100 ; Low ;
+amd ; AMD Radeon Pro WX 2100 ; Low ;
+amd ; AMD Embedded Radeon E9170 Series ; Low ;
+
+#Amd-VegaM
+amd ; AMD Radeon RX Vega M GH Graphics ; High ;
+amd ; AMD Radeon RX Vega M GL Graphics ; Medium ;
+
+
+#Amd-GFX9_0_2
+amd ; AMD 15DD Graphics ; Low ;
+amd ; AMD Radeon RX Vega 11 Graphics ; Medium ;
+amd ; AMD Radeon RX Vega 10 Graphics ; Medium ;
+amd ; AMD Radeon RX Vega 8 Graphics WS ; Medium ;
+amd ; AMD Radeon Vega 10 Graphics ; Medium ;
+amd ; AMD Radeon Vega 9 Graphics ; Medium ;
+amd ; AMD Radeon Vega 8 Graphics ; Medium ;
+amd ; AMD Radeon Vega 6 Graphics ; Low ;
+amd ; AMD Radeon Vega 3 Graphics ; Low ;
+amd ; AMD Radeon Vega 1 Graphics ; Low ;
+
+# GFX9_0_4
+amd ; AMD Radeon Pro Vega 20 ; Medium ;
+amd ; AMD Radeon Pro Vega 16 ; Medium ;
+amd ; AMD Radeon RX Vega 16 ; Medium ;
+
+# GFX9_0_6
+amd ; AMD Radeon VII ; High ;
+amd ; AMD RadeonProVII ; High ;
+
+# GFX10_1_0
+amd ; AMD Radeon Pro W5700X ; High ;
+amd ; AMD Radeon Pro W5700 ; High ;
+amd ; AMD Radeon Pro 5700 XT ; High ;
+amd ; AMD Radeon RX 5700M ; High ;
+amd ; AMD Radeon RX 5600 OEM ; High ;
+
+# GFX10_1_1
+amd ; AMD Radeon Pro 5600M ; High ;
+amd ; AMD Radeon Pro V520 ; High ;
+amd ; AMD Radeon Pro V520 MxGPU ; High ;
+
+# GFX10_1_2
+amd ; AMD Radeon Pro W5500X ; High ;
+amd ; AMD Radeon Pro 5300 ; Medium ;
+amd ; AMD Radeon RX 5500M ; Medium ;
+amd ; AMD Radeon RX 5300M ; Medium ;
+amd ; AMD Radeon RX 5500 XT ; High ;
+amd ; AMD Radeon RX 5500 ; High ;
+amd ; AMD Radeon RX 5300 ; Medium ;
+amd ; AMD Radeon Pro W5500 ; High ;
+amd ; AMD Radeon Pro W5500M ; High ;
+amd ; AMD Radeon Pro W5300M ; High ;
+
+# GFX10_3_0
+amd ; AMD Radeon RX 6950 XT ; Ultra ;
+amd ; AMD Radeon RX 6900 XT ; Ultra ;
+amd ; AMD Radeon RX 6800 XT ; Ultra ;
+amd ; AMD Radeon RX 6800 ; Ultra ;
+amd ; AMD Radeon Pro V620 ; Ultra ;
+amd ; AMD Radeon Pro W6800 ; Ultra ;
+
+# GFX10_3_1
+amd ; AMD Radeon RX 6750 XT ; High ;
+amd ; AMD Radeon RX 6800M ; High ;
+amd ; AMD Radeon RX 6700M ; High ;
+
+# GFX10_3_2
+amd ; AMD 73E0:00 ; Low ;
+amd ; AMD Radeon RX 6800S ; Ultra ;
+amd ; AMD Radeon RX 6650 XT ; High ;
+amd ; AMD Radeon RX 6700S ; High ;
+amd ; AMD Radeon RX 6650M ; High ;
+amd ; AMD Radeon RX 6650M XT ; High ;
+amd ; AMD Radeon RX 6600 XT ; High ;
+amd ; AMD Radeon RX 6600 ; High ;
+amd ; AMD Radeon RX 6600M ; High ;
+amd ; AMD Radeon RX 6600S ; High ;
+amd ; AMD Radeon Pro W6600M ; High ;
+amd ; AMD Radeon Pro W6600 ; High ;
+
+# GFX10_3_4
+amd ; AMD Radeon Graphics ; Low ;
+amd ; AMD Radeon Pro W6400 ; Medium ;
+amd ; AMD Radeon RX 6500 XT ; Medium ;
+amd ; AMD Radeon RX 6400 ; Medium ;
+amd ; AMD Radeon RX 6400 ; Medium ;
+amd ; AMD Radeon Pro W6500M ; Medium ;
+amd ; AMD Radeon Pro W6300M ; Medium ;
+amd ; AMD Radeon Pro W6300 ; Medium ;
+amd ; AMD Radeon RX 6500M ; Medium ;
+amd ; AMD Radeon RX 6300M ; Medium ;
+amd ; AMD Radeon RX 6500M ; Medium ;
+amd ; AMD Radeon 6550S ; Medium ;
+amd ; AMD Radeon RX 6400M ; Medium ;
+amd ; AMD Radeon RX 6500M ; Medium ;
+
+# GFX11_0_0
+amd ; AMD Radeon RX 7900 XTX ; Ultra ;
+amd ; AMD Radeon RX 7900 XT ; Ultra ;
+amd ; AMD Radeon RX 7600 ; High ;
+
+#Qualcomm
+Qualcomm ; Snapdragon X Elite Adreno GPU ; Medium
+
+# VendorId; DeviceId; Classification; Name ; Revision ID (Can be null) ; Codename (can be null)
+# INTEL GPUs
+# Other
+intel ; Intel G35 Express Chipset Family ; Office ;
+intel ; Mobile Intel 965 Express Chipset Family ; Office ; 
+intel ; Mobile Intel 4 Series Express Chipset Family ; Office ;
+intel ; Intel 4 Series Express Chipset ; Office ;
+intel ; Intel G45/G43 Express Chipset ; Office ; 
+intel ; Intel Q45/Q43 Express Chipset ; Office ; 
+intel ; Intel G41 Express Chipset ; Office ;
+intel ; Intel B43 Express Chipset ; Office ;
+intel ; Intel HD Graphics - Core i3/i5/i7 Mobile Processors ; Office ; 0x0046
+intel ; Intel HD Graphics - Core i3/i5 + Pentium G9650 Processors ; Office ; 0x0042
+
+# Sandybridge
+intel ; Intel HD Graphics 2000 ; Office ;
+intel ; Intel HD Graphics 3000 ; Office ;
+
+# Ivybridge
+intel ; Intel HD Graphics 2500 ; Office ;
+intel ; Intel HD Graphics 4000 ; Office ;
+
+# Haswell
+intel ; Intel HD Graphics 4600 ; Office ;
+intel ; Intel HD Graphics 5000 ; Office ;
+intel ; Intel HD Graphics 4600 ; Office ;
+intel ; Intel HD Graphics P4600/P4700 ; Office ;
+intel ; Intel HD Graphics 5000 ; Office ;
+intel ; Intel HD Graphics 4400 ; Office ;
+intel ; Intel HD Graphics 4200 ; Office ;
+intel ; Intel HD Graphics 4600 ; Office ;
+intel ; Intel Iris Graphics 5100 ; Office ;
+intel ; Intel Iris Graphics 5100 ; Office ;
+intel ; Intel Iris Graphics 5100 ; Office ;
+intel ; Intel Iris Graphics 5100 ; Office ;
+intel ; Intel Iris Pro Graphics 5200 ; Office ;
+
+# Broadwell
+intel ; Intel HD Graphics 5600 ; Low ;
+intel ; Intel HD Graphics 5500 ; Low ;
+intel ; Intel HD Graphics 5300 ; Low ;
+intel ; Intel Iris Pro Graphics 6200 ; Low ;
+intel ; Intel HD Graphics 6000 ; Low ;
+intel ; Intel Iris Graphics 6100 ; Low ;
+intel ; Intel Iris Pro Graphics P6300 ; Low ;
+
+# Skylake
+intel ; Intel Iris Graphics 540 ; Low ;
+intel ; Intel HD Graphics 530 ; Low ;
+intel ; Intel HD Graphics 520 ; Low ;
+intel ; Intel HD Graphics 515 ; Low ;
+intel ; Intel HD Graphics 510 ; Low ;
+intel ; Intel HD Graphics P530 ; Low ;
+
+intel ; Intel UHD Graphics 770 ; Low ;
+intel ; Intel UHD Graphics 750 ; Low ;
+intel ; Intel UHD Graphics 630 ; Low ;
+intel ; Intel UHD Graphics 620 ; Low ;
+intel ; Intel HD Graphics 630 ; Low ;
+intel ; Intel HD Graphics 630 ; Low ;
+intel ; Intel HD Graphics P630 ; Low ;
+intel ; Intel HD Graphics 620 ; Low ;
+intel ; Intel HD Graphics 615 ; Low ;
+intel ; Intel HD Graphics 610 ; Low ;
+intel ; Intel HD Graphics 610 ; Low ;
+intel ; Intel HD Graphics P610 ; Low ;
+
+intel ; Intel Iris Pro Graphics 580 ; Medium ;
+intel ; Intel Iris Pro Graphics P580 ; Medium ;
+intel ; Intel Iris Plus Graphics 640 ; Low ;
+intel ; Intel Iris Plus Graphics 650 ; Medium ;
+intel ; Intel Iris Plus Graphics ; Medium ;
+intel ; Intel Iris Xe Graphics ; Low ;
+intel ; Intel Iris Xe MAX Graphics ; Low ;
+
+# Alchemist/DG2
+intel ; Intel Arc A370M Graphics ; Medium ;
+intel ; Intel Arc A770M Graphics ; Medium ;
+intel ; Intel Arc A770 Graphics ; Medium ;
+intel ; Intel Arc A750 Graphics ; Medium ;
+intel ; Intel Arc A380 Graphics ; Medium ;
+
+END_GPU_LIST;

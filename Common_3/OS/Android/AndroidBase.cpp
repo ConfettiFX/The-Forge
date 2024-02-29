@@ -567,10 +567,10 @@ int AndroidMain(void* param, IApp* app)
 
 #ifdef AUTOMATED_TESTING
     int             frameCountArgs;
-    extern uint32_t gShaderServerRequestRecompileAfter;
+    extern uint32_t gReloadServerRequestRecompileAfter;
     char            benchmarkOutput[1024] = { "\0" };
     bool            benchmarkArgs =
-        getBenchmarkArguments(android_app, pJavaEnv, frameCountArgs, gShaderServerRequestRecompileAfter, &benchmarkOutput[0]);
+        getBenchmarkArguments(android_app, pJavaEnv, frameCountArgs, gReloadServerRequestRecompileAfter, &benchmarkOutput[0]);
     if (benchmarkArgs)
     {
         pSettings->mBenchmarking = true;

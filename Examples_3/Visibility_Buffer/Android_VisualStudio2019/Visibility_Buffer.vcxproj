@@ -99,6 +99,9 @@
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
+    <PreLinkEvent>
+    <Command></Command>
+    </PreLinkEvent>
     <PostBuildEvent>
       <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
 set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\
@@ -116,7 +119,7 @@ xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASS
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
 
 xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\Graphics\gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -140,6 +143,9 @@ xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\Graphics\gpu.data" "%ASSETS%GPUCf
       <EntryPointName>
       </EntryPointName>
     </FxCompile>
+    <PreLinkEvent>
+    <Command></Command>
+    </PreLinkEvent>
     <PostBuildEvent>
       <Command>%(Command) set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
 set ASSETS=$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\
@@ -156,7 +162,9 @@ if not exist "$(OutDir)PipelineCaches\VULKAN\" mkdir "%ASSETS%PipelineCaches\VUL
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders\" "%ASSETS%Shaders\"
 xcopy /E /Y /S /D "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders\" "%ASSETS%CompiledShaders\"
 
-xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"</Command>
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "%ASSETS%GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Common_3\OS\Android\android_gpu.data" "%ASSETS%GPUCfg\gpu.data*"
+</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

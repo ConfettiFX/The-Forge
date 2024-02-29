@@ -28,6 +28,10 @@
     #define SAMPLE_COUNT 1
 #endif
 
+#ifndef USE_VRS
+    #define USE_VRS 0
+#endif
+
 #include "shader_defs.h.fsl"
 
 STATIC const float PI = 3.1415926535897932384626422832795028841971f;
@@ -106,13 +110,16 @@ FSOutput PS_MAIN( PsIn In )
     FSOutput Out;
 
 	float depth = 0.0f;
-#if SAMPLE_COUNT > 1
+
+#if USE_VRS
+	depth += LoadTex2DMS(Get(depthTexture), Get(uSampler0), uint2(In.position.xy), 0).r;
+#elif SAMPLE_COUNT > 1
 	for(int i = 0; i < SAMPLE_COUNT; ++i)
 		depth += LoadTex2DMS(Get(depthTexture), Get(uSampler0), uint2(In.position.xy * 2), i).r;
+	depth /= SAMPLE_COUNT;
 #else
 	depth = SampleLvlTex2D(Get(depthTexture), Get(uSampler0), In.texCoord, 0).r;
 #endif
-	depth /= SAMPLE_COUNT;
 
 	float3 color = float3(0.0f, 0.0f, 0.0f);
 

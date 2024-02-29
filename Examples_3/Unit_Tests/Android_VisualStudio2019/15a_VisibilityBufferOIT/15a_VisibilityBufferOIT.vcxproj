@@ -25,6 +25,8 @@
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\CurveConversion.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\display.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\fillStencil.frag.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\fillStencil.vert.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\godray_blur.comp.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\light_cull_resources.h.fsl" />
@@ -32,6 +34,7 @@
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\pre_skin_vertexes.comp.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolve.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\resolveVRS.comp.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\ShaderList.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shader_defs.h.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\shading.h.fsl" />
@@ -55,6 +58,7 @@
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_pass_transparent_void.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.frag.fsl" />
     <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\visibilityBuffer_shade.vert.fsl" />
+    <FSLShader Include="..\..\src\15a_VisibilityBufferOIT\Shaders\FSL\vrs_resources.h.fsl" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Common_3\Resources\AnimationSystem\ThirdParty\OpenSource\ozz-animation\AndroidVisualStudio2019\src\animation\runtime\ozz_animation\ozz_animation.vcxproj">
@@ -150,7 +154,7 @@ xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(Sol
 xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -213,7 +217,7 @@ xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(Sol
 xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

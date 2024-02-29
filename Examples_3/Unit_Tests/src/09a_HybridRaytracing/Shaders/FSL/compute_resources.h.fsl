@@ -33,9 +33,8 @@
 RES(Tex2D(float),    depthBuffer,    UPDATE_FREQ_NONE, t1, binding = 15);
 RES(Buffer(float4),  BVHTree,        UPDATE_FREQ_NONE, t2, binding = 2);
 RES(Tex2D(float),    shadowbuffer,   UPDATE_FREQ_NONE, t3, binding = 3);
-RES(Tex2D(float4),   lightbuffer,    UPDATE_FREQ_NONE, t4, binding = 4);
-RES(WTex2D(float4), outputRT,       UPDATE_FREQ_NONE, u4, binding = 5);
-RES(WTex2D(float),  outputShadowRT, UPDATE_FREQ_NONE, u9, binding = 6);
+RES(WTex2D(float4), outputRT,       UPDATE_FREQ_NONE, u4, binding = 4);
+RES(WTex2D(float),  outputShadowRT, UPDATE_FREQ_NONE, u9, binding = 5);
 
 RES(Tex2D(float4), vbPassTexture, UPDATE_FREQ_NONE, t5, binding = 24);
 

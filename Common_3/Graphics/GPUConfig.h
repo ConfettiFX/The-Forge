@@ -41,7 +41,10 @@ FORGE_API void setDefaultGPUSettings(GPUSettings* pGpuSettings);
 FORGE_API uint32_t util_select_best_gpu(GPUSettings* availableSettings, uint32_t gpuCount);
 
 // reads the gpu data and sets the preset level of all available gpu's
-FORGE_API GPUPresetLevel getGPUPresetLevel(uint32_t vendorId, uint32_t modelId, uint32_t revId);
+FORGE_API GPUPresetLevel getDefaultPresetLevel();
+FORGE_API GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName);
+FORGE_API GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName, uint32_t modelId);
+FORGE_API GPUPresetLevel getGPUPresetLevel(const char* vendorName, const char* modelName, uint32_t modelId, uint32_t revId);
 
 // apply the configuration's rules to GPUSettings
 FORGE_API void applyConfigurationSettings(GPUSettings* pGpuSettings, GPUCapBits* pCapBits);
@@ -56,3 +59,5 @@ FORGE_API bool checkDriverRejectionSettings(const GPUSettings* pGpuSettings);
 FORGE_API const char*    presetLevelToString(GPUPresetLevel preset);
 FORGE_API GPUPresetLevel stringToPresetLevel(const char* presetLevel);
 FORGE_API bool           gpuVendorEquals(uint32_t vendorId, const char* vendorName);
+FORGE_API const char*    getGPUVendorName(uint32_t modelId);
+FORGE_API uint32_t       getGPUVendorID(const char*);

@@ -25,7 +25,9 @@
 #ifndef vb_resources_h
 #define vb_resources_h
 
-RES(Tex2D(float4), diffuseMaps[256], UPDATE_FREQ_NONE, t1, binding = 2);
+#define MAX_TEXTURE_UNITS 256U
+
+RES(Tex2D(float4), diffuseMaps[MAX_TEXTURE_UNITS], UPDATE_FREQ_NONE, t1, binding = 2);
 RES(SamplerState, nearClampSampler, UPDATE_FREQ_NONE, s0, binding = 3);
 RES(Buffer(uint), indirectMaterialBuffer, UPDATE_FREQ_PER_FRAME, t0, binding = 1);
 CBUFFER(objectUniformBlock, UPDATE_FREQ_PER_FRAME, b0, binding = 0)

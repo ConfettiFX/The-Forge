@@ -476,9 +476,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
         }
         else if (strcmp(argv[i], "--request-recompile-after") == 0)
         {
-            extern uint32_t gShaderServerRequestRecompileAfter;
+            extern uint32_t gReloadServerRequestRecompileAfter;
             if (i + 1 < argc && isdigit(*argv[i + 1]))
-                gShaderServerRequestRecompileAfter = atoi(argv[i + 1]);
+                gReloadServerRequestRecompileAfter = atoi(argv[i + 1]);
         }
         // Run forever, this is useful when the app will control when the automated tests are over
         else if (strcmp(argv[i], "--no-auto-exit") == 0)

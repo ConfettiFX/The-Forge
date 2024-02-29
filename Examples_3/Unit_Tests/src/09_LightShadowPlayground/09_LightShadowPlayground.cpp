@@ -1060,44 +1060,6 @@ Semaphore* pImageAcquiredSemaphore = NULL;
 
 uint32_t gCurrentShadowType = SHADOW_TYPE_ASM;
 
-// Graphics.cpp
-extern RendererApi gSelectedRendererApi;
-
-static void setRenderTarget(Cmd* cmd, uint32_t count, RenderTarget** pDestinationRenderTargets, RenderTarget* pDepthStencilTarget,
-                            LoadActionsDesc* loadActions, const vec2& viewPortLoc, const vec2& viewPortSize)
-{
-    if (count == 0 && pDestinationRenderTargets == NULL && pDepthStencilTarget == NULL)
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-    else
-    {
-        ASSERT(pDepthStencilTarget || (pDestinationRenderTargets && pDestinationRenderTargets[0]));
-
-        cmdBindRenderTargets(cmd, count, pDestinationRenderTargets, pDepthStencilTarget, loadActions, NULL, NULL, -1, -1);
-        // sets the rectangles to match with first attachment, I know that it's not very portable.
-        RenderTarget* pSizeTarget = pDepthStencilTarget ? pDepthStencilTarget : pDestinationRenderTargets[0]; //-V522
-        cmdSetViewport(cmd, viewPortLoc.getX(), viewPortLoc.getY(), viewPortSize.getX(), viewPortSize.getY(), 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pSizeTarget->mWidth, pSizeTarget->mHeight);
-    }
-}
-
-static void setRenderTarget(Cmd* cmd, uint32_t count, RenderTarget** pDestinationRenderTargets, RenderTarget* pDepthStencilTarget,
-                            LoadActionsDesc* loadActions)
-{
-    if (count == 0 && pDestinationRenderTargets == NULL && pDepthStencilTarget == NULL)
-    {
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-    }
-    else
-    {
-        ASSERT(pDepthStencilTarget || (pDestinationRenderTargets && pDestinationRenderTargets[0]));
-
-        cmdBindRenderTargets(cmd, count, pDestinationRenderTargets, pDepthStencilTarget, loadActions, NULL, NULL, -1, -1);
-        RenderTarget* pSizeTarget = pDepthStencilTarget ? pDepthStencilTarget : pDestinationRenderTargets[0]; //-V522
-        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSizeTarget->mWidth, (float)pSizeTarget->mHeight, 0.0f, 1.0f);
-        cmdSetScissor(cmd, 0, 0, pSizeTarget->mWidth, pSizeTarget->mHeight);
-    }
-}
-
 struct Triangle
 {
     Triangle() = default;
@@ -2823,17 +2785,11 @@ public:
             // needs to be cleared at the begininng for xbox.
             if (mDEMFirstTimeRender)
             {
-                LoadActionsDesc clearDEMLoadActions = {};
-                clearDEMLoadActions.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mClearValue;
-                clearDEMLoadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-                clearDEMLoadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-                clearDEMLoadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-
-                setRenderTarget(
-                    pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL, &clearDEMLoadActions, vec2(0.f, 0.f),
-                    vec2((float)pRenderTargetASMDEMAtlas->pTexture->mWidth, (float)pRenderTargetASMDEMAtlas->pTexture->mHeight));
-
-                setRenderTarget(pCurCmd, 0, NULL, NULL, NULL, vec2(0.f), vec2(0.f));
+                BindRenderTargetsDesc clearDEMBindDesc = {};
+                clearDEMBindDesc.mRenderTargetCount = 1;
+                clearDEMBindDesc.mRenderTargets[0] = { pRenderTargetASMDEMAtlas, LOAD_ACTION_CLEAR };
+                cmdBindRenderTargets(pCurCmd, &clearDEMBindDesc);
+                cmdBindRenderTargets(pCurCmd, NULL);
                 mDEMFirstTimeRender = false;
             }
 #endif
@@ -2847,16 +2803,12 @@ public:
 
             cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmAtlasToColorBarrier);
 
-            LoadActionsDesc atlasToColorLoadAction = {};
-            atlasToColorLoadAction.mClearColorValues[0] = demWorkBufferColor->mClearValue;
-            atlasToColorLoadAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            // atlasToColorLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-            atlasToColorLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
-            atlasToColorLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-            atlasToColorLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-
-            setRenderTarget(pCurCmd, 1, &demWorkBufferColor, NULL, &atlasToColorLoadAction, vec2(0.f, 0.f),
-                            vec2((float)demWorkBufferColor->mWidth, (float)demWorkBufferColor->mHeight));
+            BindRenderTargetsDesc atlasToColorBindDesc = {};
+            atlasToColorBindDesc.mRenderTargetCount = 1;
+            atlasToColorBindDesc.mRenderTargets[0] = { demWorkBufferColor, LOAD_ACTION_CLEAR };
+            cmdBindRenderTargets(pCurCmd, &atlasToColorBindDesc);
+            cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)demWorkBufferColor->mWidth, (float)demWorkBufferColor->mHeight, 0.0f, 1.0f);
+            cmdSetScissor(pCurCmd, 0, 0, demWorkBufferColor->mWidth, demWorkBufferColor->mHeight);
 
             // GenerateDEMAtlasToColorRenderData& atlasToColorRenderData = gASMTickData.mDEMAtlasToColorRenderData;
 
@@ -2873,18 +2825,11 @@ public:
 
             cmdDraw(pCurCmd, numTiles * 6, 0);
 
-            cmdBindRenderTargets(pCurCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(pCurCmd, NULL);
 
             cmdEndGpuTimestampQuery(pCurCmd, gCurrentGpuProfileToken);
 
             cmdBeginGpuTimestampQuery(pCurCmd, gCurrentGpuProfileToken, "DEM Color To Atlas");
-
-            LoadActionsDesc colorToAtlasLoadAction = {};
-            colorToAtlasLoadAction.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mClearValue;
-            colorToAtlasLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-            colorToAtlasLoadAction.mClearDepth = pRenderTargetASMDEMAtlas->mClearValue;
-            colorToAtlasLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-            colorToAtlasLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
             RenderTargetBarrier asmColorToAtlasBarriers[] = {
                 { demWorkBufferColor, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
@@ -2893,8 +2838,13 @@ public:
 
             cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmColorToAtlasBarriers);
 
-            setRenderTarget(pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL, &colorToAtlasLoadAction, vec2(0.f, 0.f),
-                            vec2((float)pRenderTargetASMDEMAtlas->mWidth, (float)pRenderTargetASMDEMAtlas->mHeight));
+            BindRenderTargetsDesc asmColorToAtlasBindDesc = {};
+            asmColorToAtlasBindDesc.mRenderTargetCount = 1;
+            asmColorToAtlasBindDesc.mRenderTargets[0] = { pRenderTargetASMDEMAtlas, LOAD_ACTION_DONTCARE };
+            cmdBindRenderTargets(pCurCmd, &asmColorToAtlasBindDesc);
+            cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)pRenderTargetASMDEMAtlas->mWidth, (float)pRenderTargetASMDEMAtlas->mHeight, 0.0f,
+                           1.0f);
+            cmdSetScissor(pCurCmd, 0, 0, pRenderTargetASMDEMAtlas->mWidth, pRenderTargetASMDEMAtlas->mHeight);
 
             cmdBindPipeline(pCurCmd, pPipelineASMDEMColorToAtlas);
 
@@ -2914,7 +2864,7 @@ public:
                 m_demQueue.Remove(tilesToUpdate[i]);
             }
 
-            cmdBindRenderTargets(pCurCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(pCurCmd, NULL);
 
             cmdEndGpuTimestampQuery(pCurCmd, gCurrentGpuProfileToken);
         }
@@ -3179,7 +3129,7 @@ public:
         vec3        halfSize = 0.5f * (mBBox.maxBounds - mBBox.minBounds);
         const vec3& curQuadIndxOffset = quadrantOffsets[childIndex];
         vec3        bboxMin = mBBox.minBounds + vec3(curQuadIndxOffset.getX() * halfSize.getX(), curQuadIndxOffset.getY() * halfSize.getY(),
-                                                     curQuadIndxOffset.getZ() * halfSize.getZ());
+                                              curQuadIndxOffset.getZ() * halfSize.getZ());
 
         vec3 bboxMax = bboxMin + halfSize;
         return AABB(bboxMin, bboxMax);
@@ -3750,9 +3700,9 @@ private:
             SortStruct& ss = nodesToSort[i];
             const AABB& nodeBBox = ss.m_pNode->mBBox;
             vec3        testMin(min(sortedBBox.minBounds.getX(), nodeBBox.minBounds.getX()),
-                                min(sortedBBox.minBounds.getY(), nodeBBox.minBounds.getY()), 0.f);
+                         min(sortedBBox.minBounds.getY(), nodeBBox.minBounds.getY()), 0.f);
             vec3        testMax(max(sortedBBox.maxBounds.getX(), nodeBBox.maxBounds.getX()),
-                                max(sortedBBox.maxBounds.getY(), nodeBBox.maxBounds.getY()), 0.f);
+                         max(sortedBBox.maxBounds.getY(), nodeBBox.maxBounds.getY()), 0.f);
 
             if ((testMax.getX() - testMin.getX()) > sortRegionMaxSize.getX() ||
                 (testMax.getY() - testMin.getY()) > sortRegionMaxSize.getY())
@@ -3941,19 +3891,6 @@ private:
     void UpdateIndirectionTexture(RenderTarget* indirectionTexture, ASMSShadowMapRenderContext context, bool disableHierarchy,
                                   bool isPreRender)
     {
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-#if defined(XBOX)
-        if (mFirstTimeRender)
-        {
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = m_indirectionTexturesMips[m_cfg.m_maxRefinement]->mClearValue;
-            mFirstTimeRender = false;
-        }
-#endif
-        loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-
         ASMRendererContext* curRendererContext = context.m_pRendererContext;
 
         IndirectionRenderData* finalIndirectionRenderData =
@@ -3975,12 +3912,26 @@ private:
         uint32_t firstQuad = 0;
         uint32_t numQuads = 0;
 
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+#if defined(XBOX)
+        if (mFirstTimeRender)
+        {
+            bindRenderTargets.mRenderTargets[0].mLoadAction = LOAD_ACTION_CLEAR;
+            mFirstTimeRender = false;
+        }
+#endif
+
         for (int32_t mip = m_cfg.m_maxRefinement; mip >= 0; --mip)
         {
             numQuads += m_quadsCnt[mip];
 
-            setRenderTarget(curRendererContext->m_pCmd, 1, &m_indirectionTexturesMips[mip], NULL, &loadActions, vec2(0.f),
-                            vec2((float)m_indirectionTexturesMips[mip]->mWidth, (float)m_indirectionTexturesMips[mip]->mHeight));
+            bindRenderTargets.mRenderTargets[0].pRenderTarget = m_indirectionTexturesMips[mip];
+            cmdBindRenderTargets(curRendererContext->m_pCmd, &bindRenderTargets);
+            cmdSetViewport(curRendererContext->m_pCmd, 0.0f, 0.0f, (float)m_indirectionTexturesMips[mip]->mWidth,
+                           (float)m_indirectionTexturesMips[mip]->mHeight, 0.0f, 1.0f);
+            cmdSetScissor(curRendererContext->m_pCmd, 0, 0, m_indirectionTexturesMips[mip]->mWidth,
+                          m_indirectionTexturesMips[mip]->mHeight);
 
             //------------------Clear ASM indirection quad
             cmdBindPipeline(curRendererContext->m_pCmd, indirectionRenderData.m_pGraphicsPipeline);
@@ -4005,7 +3956,7 @@ private:
                 numQuads = 0;
             }
 
-            cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(curRendererContext->m_pCmd, NULL);
         }
     }
     void UpdateLODClampTexture(RenderTarget* lodClampTexture, ASMSShadowMapRenderContext context)
@@ -4017,13 +3968,12 @@ private:
 
         cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, lodBarrier);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-
-        setRenderTarget(pCurCmd, 1, &lodClampTexture, NULL, &loadActions, vec2(0.f, 0.f),
-                        vec2((float)lodClampTexture->mWidth, (float)lodClampTexture->mHeight));
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { lodClampTexture, LOAD_ACTION_DONTCARE };
+        cmdBindRenderTargets(pCurCmd, &bindRenderTargets);
+        cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)lodClampTexture->mWidth, (float)lodClampTexture->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(pCurCmd, 0, 0, lodClampTexture->mWidth, lodClampTexture->mHeight);
 
         BufferUpdateDesc updateBufferDesc = { pBufferASMLodClampPackedQuadsUniform[gFrameIndex] };
         beginUpdateResource(&updateBufferDesc);
@@ -4034,7 +3984,7 @@ private:
         cmdBindDescriptorSet(pCurCmd, 0, pDescriptorSetASMFillLodClamp);
         cmdDraw(pCurCmd, (uint32_t)arrlen(m_lodClampQuads) * 6, 0);
 
-        cmdBindRenderTargets(pCurCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(pCurCmd, NULL);
     }
 
 private:
@@ -4075,18 +4025,16 @@ void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, Ren
     {
         uint32_t tilesToRender = min(maxTilesPerPass, numTiles - i);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mClearDepth = workBufferDepth->mClearValue;
-        loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-
         if (tilesToRender > 0)
         {
             RenderTargetBarrier textureBarriers[] = { { workBufferDepth, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE } };
             cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, textureBarriers);
 
-            setRenderTarget(context.m_pRendererContext->m_pCmd, 0, NULL, workBufferDepth, &loadActions, vec2(0.f, 0.f),
-                            vec2((float)workBufferDepth->mWidth, (float)workBufferDepth->mHeight));
+            BindRenderTargetsDesc bindRenderTargets = {};
+            bindRenderTargets.mDepthStencil = { workBufferDepth, LOAD_ACTION_CLEAR };
+            cmdBindRenderTargets(pCurCmd, &bindRenderTargets);
+            cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)workBufferDepth->mWidth, (float)workBufferDepth->mHeight, 0.0f, 1.0f);
+            cmdSetScissor(pCurCmd, 0, 0, workBufferDepth->mWidth, workBufferDepth->mHeight);
         }
 
         for (uint32_t geomSet = 0; geomSet < NUM_GEOMETRY_SETS; geomSet++)
@@ -4134,30 +4082,13 @@ void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, Ren
             }
         }
 
-        cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(curRendererContext->m_pCmd, NULL);
 
         RenderTargetBarrier copyDepthBarrier[] = { { pRenderTargetASMDepthAtlas, RESOURCE_STATE_SHADER_RESOURCE,
                                                      RESOURCE_STATE_RENDER_TARGET },
                                                    { workBufferDepth, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE } };
 
         cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, copyDepthBarrier);
-
-        LoadActionsDesc copyDepthQuadLoadAction = {};
-        copyDepthQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
-        copyDepthQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-
-#if defined(XBOX)
-        if (mDepthFirstTimeRender)
-        {
-            copyDepthQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            mDepthFirstTimeRender = false;
-        }
-#endif
-
-        copyDepthQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
-        copyDepthQuadLoadAction.mLoadActionStencil = LOAD_ACTION_LOAD;
-
-        copyDepthQuadLoadAction.mLoadActionDepth = LOAD_ACTION_LOAD;
 
         if (tilesToRender > 0)
         {
@@ -4168,15 +4099,27 @@ void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, Ren
             memcpy(updateUbDesc.pMappedData, &copyDepthQuads[0], sizeof(SCopyQuad) * tilesToRender);
             endUpdateResource(&updateUbDesc);
 
-            setRenderTarget(pCurCmd, 1, &pRenderTargetASMDepthAtlas, NULL, &copyDepthQuadLoadAction, vec2(0.f, 0.f),
-                            vec2((float)pRenderTargetASMDepthAtlas->mWidth, (float)pRenderTargetASMDepthAtlas->mHeight));
+            BindRenderTargetsDesc copyDepthQuadBindDesc = {};
+            copyDepthQuadBindDesc.mRenderTargetCount = 1;
+            copyDepthQuadBindDesc.mRenderTargets[0] = { pRenderTargetASMDepthAtlas, LOAD_ACTION_LOAD };
+#if defined(XBOX)
+            if (mDepthFirstTimeRender)
+            {
+                copyDepthQuadBindDesc.mRenderTargets[0].mLoadAction = LOAD_ACTION_CLEAR;
+                mDepthFirstTimeRender = false;
+            }
+#endif
+            cmdBindRenderTargets(pCurCmd, &copyDepthQuadBindDesc);
+            cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)pRenderTargetASMDepthAtlas->mWidth, (float)pRenderTargetASMDepthAtlas->mHeight, 0.0f,
+                           1.0f);
+            cmdSetScissor(pCurCmd, 0, 0, pRenderTargetASMDepthAtlas->mWidth, pRenderTargetASMDepthAtlas->mHeight);
 
             cmdBindPipeline(pCurCmd, pPipelineASMCopyDepthQuadPass);
             cmdBindDescriptorSet(pCurCmd, 0, pDescriptorSetASMCopyDepthQuadPass[0]);
             cmdBindDescriptorSet(pCurCmd, gFrameIndex, pDescriptorSetASMCopyDepthQuadPass[1]);
             cmdDraw(pCurCmd, 6 * tilesToRender, 0);
 
-            cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+            cmdBindRenderTargets(curRendererContext->m_pCmd, NULL);
             cmdEndGpuTimestampQuery(pCurCmd, gCurrentGpuProfileToken);
         }
 
@@ -4189,16 +4132,12 @@ void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, Ren
 
     if (numCopyDEMQuads > 0)
     {
-        LoadActionsDesc copyDEMQuadLoadAction = {};
-        copyDEMQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
-        copyDEMQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        copyDEMQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
-        copyDEMQuadLoadAction.mLoadActionStencil = LOAD_ACTION_LOAD;
-
-        copyDEMQuadLoadAction.mLoadActionDepth = LOAD_ACTION_LOAD;
-
-        setRenderTarget(pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL, &copyDEMQuadLoadAction, vec2(0.f, 0.f),
-                        vec2((float)pRenderTargetASMDEMAtlas->mWidth, (float)pRenderTargetASMDEMAtlas->mHeight));
+        BindRenderTargetsDesc copyDEMQuadBindDesc = {};
+        copyDEMQuadBindDesc.mRenderTargetCount = 1;
+        copyDEMQuadBindDesc.mRenderTargets[0] = { pRenderTargetASMDEMAtlas, LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(pCurCmd, &copyDEMQuadBindDesc);
+        cmdSetViewport(pCurCmd, 0.0f, 0.0f, (float)pRenderTargetASMDEMAtlas->mWidth, (float)pRenderTargetASMDEMAtlas->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(pCurCmd, 0, 0, pRenderTargetASMDEMAtlas->mWidth, pRenderTargetASMDEMAtlas->mHeight);
 
         BufferUpdateDesc copyDEMQuadUpdateUbDesc = { pBufferASMCopyDEMPackedQuadsUniform[gFrameIndex] };
         beginUpdateResource(&copyDEMQuadUpdateUbDesc);
@@ -4210,7 +4149,7 @@ void ASMTileCache::RenderTiles(uint32_t numTiles, ASMTileCacheEntry** tiles, Ren
         cmdBindDescriptorSet(pCurCmd, gFrameIndex, pDescriptorSetASMCopyDEM[1]);
         cmdDraw(pCurCmd, numCopyDEMQuads * 6, 0);
 
-        cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(curRendererContext->m_pCmd, NULL);
     }
 
     tf_free(copyDepthQuads);
@@ -5537,7 +5476,7 @@ public:
             return true;
         };
 
-        typedef bool (*CameraInputHandler)(InputActionContext* ctx, DefaultInputActions::DefaultInputAction action);
+        typedef bool (*CameraInputHandler)(InputActionContext * ctx, DefaultInputActions::DefaultInputAction action);
         static CameraInputHandler onCameraInput = [](InputActionContext* ctx, DefaultInputActions::DefaultInputAction action)
         {
             if (*(ctx->pCaptured))
@@ -6107,11 +6046,6 @@ public:
         Point3 lightSourcePos(10.f, 000.0f, 10.f);
         lightSourcePos[0] += (20.f);
         lightSourcePos[0] += (SAN_MIGUEL_OFFSETX);
-        // directional light rotation & translation
-        // mat4 translation = mat4::translation(-vec3(lightSourcePos));
-
-        // mat4 lightProjMat = mat4::orthographicLH(-140, 140, -210, 90, -220, 100);
-        // mat4 lightView = rotation * translation;
 
         //
         /************************************************************************/
@@ -6147,6 +6081,8 @@ public:
                 gBlurWeightsUniform.mBlurWeights[i] = gaussian((float)i, 0.0f, gGaussianBlurSigma[0]);
             }
         }
+
+        UpdateUniformData();
     }
 
     static void drawShadowMap(Cmd* cmd)
@@ -6157,11 +6093,7 @@ public:
                sizeof(gMeshASMProjectionInfoUniformData[0][gFrameIndex]));
         endUpdateResource(&bufferUpdate);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetShadowMap->mClearValue;
-
-        uint32_t      pRenderTargetCount = 0;
+        uint32_t      renderTargetCount = 0;
         RenderTarget* pRenderTarget = NULL;
         Pipeline *    pPipelineDepthPass = NULL, *pPipelineAlphaDepthPass = NULL;
         const char*   pTimestampQueryString = "";
@@ -6174,22 +6106,18 @@ public:
             pTimestampQueryString = "Draw ESM Shadow Map";
             break;
         case SHADOW_TYPE_VSM:
-            pRenderTargetCount = 1;
+            renderTargetCount = 1;
             pRenderTarget = pRenderTargetVSM[0];
             pPipelineDepthPass = pPipelineVSMIndirectDepthPass;
             pPipelineAlphaDepthPass = pPipelineVSMIndirectAlphaDepthPass;
             pTimestampQueryString = "Draw VSM Shadow Map";
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
             break;
         case SHADOW_TYPE_MSM:
-            pRenderTargetCount = 1;
+            renderTargetCount = 1;
             pRenderTarget = pRenderTargetMSM[0];
             pPipelineDepthPass = pPipelineMSMIndirectDepthPass;
             pPipelineAlphaDepthPass = pPipelineMSMIndirectAlphaDepthPass;
             pTimestampQueryString = "Draw MSM Shadow Map";
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-            loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
             break;
         default:
             ASSERT(false);
@@ -6204,7 +6132,13 @@ public:
         }
 
         // Start render pass and apply load actions
-        setRenderTarget(cmd, pRenderTargetCount, &pRenderTarget, pRenderTargetShadowMap, &loadActions);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = renderTargetCount;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pRenderTargetShadowMap, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mWidth, (float)pRenderTargetShadowMap->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mWidth, pRenderTargetShadowMap->mHeight);
 
         cmdBindIndexBuffer(cmd, pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_SHADOW], INDEX_TYPE_UINT32, 0);
 
@@ -6229,7 +6163,7 @@ public:
                                pVisibilityBuffer->ppFilteredIndirectDrawArgumentsBuffers[0], indirectBufferCounterByteOffset);
         }
 
-        setRenderTarget(cmd, 0, NULL, NULL, NULL);
+        cmdBindRenderTargets(cmd, NULL);
         if (pRenderTarget)
         {
             RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
@@ -6355,13 +6289,13 @@ public:
                                                RESOURCE_STATE_RENDER_TARGET } };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetUpSampleSDFShadow->mClearValue;
-
-        setRenderTarget(cmd, 1, &pRenderTargetUpSampleSDFShadow, NULL, &loadActions);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetUpSampleSDFShadow, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetUpSampleSDFShadow->mWidth, (float)pRenderTargetUpSampleSDFShadow->mHeight, 0.0f,
+                       1.0f);
+        cmdSetScissor(cmd, 0, 0, pRenderTargetUpSampleSDFShadow->mWidth, pRenderTargetUpSampleSDFShadow->mHeight);
 
         const uint32_t quadStride = sizeof(float) * 6;
         cmdBindPipeline(cmd, pPipelineUpsampleSDFShadow);
@@ -6370,7 +6304,7 @@ public:
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUpsampleSDFShadow[1]);
         cmdDraw(cmd, 6, 0);
 
-        setRenderTarget(cmd, 0, NULL, NULL, NULL);
+        cmdBindRenderTargets(cmd, NULL);
         rtBarriers[0] = { pRenderTargetUpSampleSDFShadow, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
@@ -6382,14 +6316,15 @@ public:
         RenderTargetBarrier barriers[] = { { pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET } };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-        const char*     profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
-        loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-        loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
+        const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 
-        setRenderTarget(cmd, 1, &pRenderTargetVBPass, pRenderTargetDepth, &loadActions);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTargetVBPass, LOAD_ACTION_CLEAR };
+        bindRenderTargets.mDepthStencil = { pRenderTargetDepth, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetVBPass->mWidth, (float)pRenderTargetVBPass->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, pRenderTargetVBPass->mWidth, pRenderTargetVBPass->mHeight);
 
         Buffer* pIndexBuffer = pVisibilityBuffer->ppFilteredIndexBuffer[VIEW_CAMERA];
         cmdBindIndexBuffer(cmd, pIndexBuffer, INDEX_TYPE_UINT32, 0);
@@ -6414,7 +6349,7 @@ public:
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
 
-        setRenderTarget(cmd, 0, NULL, NULL, NULL);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     // Render a fullscreen triangle to evaluate shading for every pixel.This render step uses the render target generated by
@@ -6433,11 +6368,12 @@ public:
 
         RenderTarget* pDestRenderTarget = gAppSettings.mMsaaLevel > 1 ? pRenderTargetMSAA : pRenderTargetIntermediate;
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = pDestRenderTarget->mClearValue;
-
-        setRenderTarget(cmd, 1, &pDestRenderTarget, NULL, &loadActions);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pDestRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDestRenderTarget->mWidth, (float)pDestRenderTarget->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, pDestRenderTarget->mWidth, pDestRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pPipelineVBShadeSrgb);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBShade[0]);
@@ -6470,7 +6406,7 @@ public:
             cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
         }
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void prepareASM()
@@ -6564,7 +6500,7 @@ public:
         endUpdateResource(&asmUpdateUbDesc);
     }
 
-    void UpdateInDraw()
+    void UpdateUniformData()
     {
         // update camera with time
         mat4           viewMat = pCameraController->getViewMatrix();
@@ -6574,11 +6510,11 @@ public:
         const uint32_t width = mSettings.mWidth;
         const uint32_t height = mSettings.mHeight;
 
-        float       aspectInverse = (float)height / (float)width;
-        const float horizontalFov = PI / 2.0f;
-        const float nearPlane = 0.1f;
-        const float farPlane = 1000.f;
-        mat4        projMat = CameraMatrix::perspectiveReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane).getPrimaryMatrix();
+        float           aspectInverse = (float)height / (float)width;
+        constexpr float horizontal_fov = PI / 2.0f;
+        constexpr float nearValue = 0.1f;
+        constexpr float farValue = 1000.f;
+        mat4            projMat = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, nearValue, farValue).getPrimaryMatrix();
 
         gCameraUniformData.mView = viewMat;
         gCameraUniformData.mProject = projMat;
@@ -6586,10 +6522,9 @@ public:
         gCameraUniformData.mInvProj = inverse(projMat);
         gCameraUniformData.mInvView = inverse(viewMat);
         gCameraUniformData.mInvViewProject = inverse(gCameraUniformData.mViewProject);
-        gCameraUniformData.mNear = nearPlane;
-        gCameraUniformData.mFar = farPlane;
-        gCameraUniformData.mFarNearDiff = farPlane - nearPlane; // if OpenGL convention was used this would be 2x the value
-        gCameraUniformData.mFarNear = nearPlane * farPlane;
+        gCameraUniformData.mNear = nearValue;
+        gCameraUniformData.mFarNearDiff = farValue - nearValue; // if OpenGL convention was used this would be 2x the value
+        gCameraUniformData.mFarNear = nearValue * farValue;
         gCameraUniformData.mCameraPos = vec4(pCameraController->getViewPosition(), 1.f);
 
         gCameraUniformData.mTwoOverRes = vec2(1.5f / width, 1.5f / height);
@@ -6615,7 +6550,7 @@ public:
         // Skybox
         /************************************************************************/
         viewMat.setTranslation(vec3(0));
-        gUniformDataSky.mProjectView = CameraMatrix::perspectiveReverseZ(horizontalFov, aspectInverse, nearPlane, farPlane) * viewMat;
+        gUniformDataSky.mProjectView = CameraMatrix::perspectiveReverseZ(horizontal_fov, aspectInverse, nearValue, farValue) * viewMat;
 
         /************************************************************************/
         // Light Matrix Update
@@ -6694,7 +6629,6 @@ public:
 
         resetCmdPool(pRenderer, elem.pCmdPool);
 
-        UpdateInDraw();
         if (gCurrentShadowType == SHADOW_TYPE_ASM)
         {
             prepareASM();
@@ -6864,7 +6798,7 @@ public:
             {
                 cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw ASM");
                 drawASM(cmd);
-                setRenderTarget(cmd, 0, NULL, NULL, NULL);
+                cmdBindRenderTargets(cmd, NULL);
                 cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
             }
             else if (gCurrentShadowType == SHADOW_TYPE_ESM)
@@ -7062,16 +6996,17 @@ public:
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
         // Set load actions to clear the screen to black
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        loadActions.mClearColorValues[0] = destRT->mClearValue;
-
-        cmdBindRenderTargets(cmd, 1, &destRT, NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { destRT, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)destRT->mWidth, (float)destRT->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, destRT->mWidth, destRT->mHeight);
         cmdBindPipeline(cmd, pPipelineResolve);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetResolve);
         cmdDraw(cmd, 3, 0);
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
     }
 
     void drawGUI(Cmd* cmd, uint32_t frameIdx)
@@ -7079,9 +7014,13 @@ public:
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Draw UI");
 
 #if !defined(TARGET_IOS)
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-        cmdBindRenderTargets(cmd, 1, &pSwapChain->ppRenderTargets[frameIdx], NULL, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pSwapChain->ppRenderTargets[frameIdx], LOAD_ACTION_LOAD };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
+        cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSwapChain->ppRenderTargets[frameIdx]->mWidth,
+                       (float)pSwapChain->ppRenderTargets[frameIdx]->mHeight, 0.0f, 1.0f);
+        cmdSetScissor(cmd, 0, 0, pSwapChain->ppRenderTargets[frameIdx]->mWidth, pSwapChain->ppRenderTargets[frameIdx]->mHeight);
 
         gFrameTimeDraw.mFontColor = 0xff00ffff;
         gFrameTimeDraw.mFontSize = 18.0f;
@@ -7092,7 +7031,7 @@ public:
         cmdDrawUserInterface(cmd);
 #endif
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
     }
@@ -7101,14 +7040,17 @@ public:
     {
         cmdBeginGpuTimestampQuery(cmd, gCurrentGpuProfileToken, "Present Image");
 
-        cmdBindRenderTargets(cmd, 1, &pDstCol, NULL, NULL, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pDstCol, LOAD_ACTION_DONTCARE };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
         cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstCol->mWidth, (float)pDstCol->mHeight, 0.0f, 1.0f);
         cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
         cmdBindPipeline(cmd, pPipelinePresentPass);
         cmdBindDescriptorSet(cmd, index, pDescriptorSetPresentPass);
         cmdDraw(cmd, 3, 0);
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
 
         cmdEndGpuTimestampQuery(cmd, gCurrentGpuProfileToken);
     }
@@ -7391,9 +7333,7 @@ public:
         depthAtlasRTDesc.mArraySize = 1;
         depthAtlasRTDesc.mClearValue = colorClearBlack;
         depthAtlasRTDesc.mDepth = 1;
-        depthAtlasRTDesc.mFormat = pRenderer->pGpu->mCapBits.mFormatCaps[TinyImageFormat_R32_SFLOAT] & FORMAT_CAP_LINEAR_FILTER
-                                       ? TinyImageFormat_R32_SFLOAT
-                                       : TinyImageFormat_R16_SFLOAT;
+        depthAtlasRTDesc.mFormat = TinyImageFormat_R32_SFLOAT;
         depthAtlasRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         depthAtlasRTDesc.mWidth = gs_ASMDepthAtlasTextureWidth;
         depthAtlasRTDesc.mHeight = gs_ASMDepthAtlasTextureHeight;
@@ -9167,7 +9107,7 @@ void GuiController::addGui()
 
         ButtonWidget generateSDFButtonWidget;
         UIWidget*    pGenerateSDF = uiCreateDynamicWidgets(&GuiController::bakedSDFDynamicWidgets, "Generate Missing SDF",
-                                                           &generateSDFButtonWidget, WIDGET_TYPE_BUTTON);
+                                                        &generateSDFButtonWidget, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(pGenerateSDF, nullptr, LightShadowPlayground::checkForMissingSDFDataAsync);
         luaRegisterWidget(pGenerateSDF);
 

@@ -27,7 +27,6 @@
 #include "../../../../Common_3/Application/Interfaces/ICameraController.h"
 #include "../../../../Common_3/Application/Interfaces/IFont.h"
 #include "../../../../Common_3/Application/Interfaces/IInput.h"
-#include "../../../../Common_3/Application/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Application/Interfaces/IScreenshot.h"
 #include "../../../../Common_3/Application/Interfaces/IUI.h"
 #include "../../../../Common_3/Game/Interfaces/IScripting.h"
@@ -63,30 +62,70 @@ GpuCmdRing gGraphicsCmdRing = {};
 SwapChain* pSwapChain = NULL;
 Semaphore* pImageAcquiredSemaphore = NULL;
 
-ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
-
 UIComponent* pGuiConnect = NULL;
 UIComponent* pGuiDisconnect = NULL;
+UIComponent* pAddHostWindow = NULL;
 
 const uint32_t gDataBufferCount = 1;
 uint32_t       gFontID = 0;
 uint32_t       gFrameIndex = 0;
 
+static bstring gConnectionErrMessage = bempty();
 static char    gHostNameBuffer[255];
 static bstring gHostName = bemptyfromarr(gHostNameBuffer);
+
+#define MAX_HOSTS_IN_LIST 20
+
+// Extra string in the HostList will be used to add new Hosts
+char*   gHostList[MAX_HOSTS_IN_LIST + 1] = {};
+bstring gHostListBStrings[MAX_HOSTS_IN_LIST + 1] = {};
+
+#define setHostListFromBSTring(index, bstr)    \
+    bassign(&gHostListBStrings[index], &bstr); \
+    gHostList[index] = bdata(&gHostListBStrings[index]);
+
+#define setHostListFromLiteral(index, litstr)          \
+    bassignliteral(&gHostListBStrings[index], litstr); \
+    gHostList[index] = bdata(&gHostListBStrings[index]);
+
+uint32_t  gSelectedHostIndex = 0;
+uint32_t  gHostListCount = 1;
+UIWidget* gSelectHostUIWidget;
+
 struct RemoteRenderTarget
 {
     float2 mWindowSize;
 
-    float2        mRemoteSize;
-    float2        mRemoteDisplaySize;
-    RenderTarget* pRenderTarget;
-    UIWidget*     pWidget;
+    float2                 mRemoteSize;
+    float2                 mRemoteDisplaySize;
+    RenderTarget*          pRenderTarget;
+    UIWidget*              pWidget;
+    UserInterfaceDrawData* pCurrentDrawData;
 
     bool mDestroySignal = false;
+    bool mUIVisible = true;
+    bool mSwappedTexture = false;
 };
 
 RemoteRenderTarget gRemoteRenderTarget = {};
+const uint32_t     remoteRenderTargetHeightOffset = 150;
+
+void destroyRemoteRenderTarget()
+{
+    if (gRemoteRenderTarget.pWidget != NULL)
+    {
+        uiDestroyComponentWidget(pGuiDisconnect, gRemoteRenderTarget.pWidget);
+    }
+
+    if (gRemoteRenderTarget.pRenderTarget != NULL)
+    {
+        removeRenderTarget(pRenderer, gRemoteRenderTarget.pRenderTarget);
+    }
+
+    gRemoteRenderTarget = {};
+}
+
+void toggleHideRemoteUI(void*);
 
 void reloadRequest(void*)
 {
@@ -94,13 +133,76 @@ void reloadRequest(void*)
     requestReload(&reload);
 }
 
-void buttonRemoteConnect(void*) { remoteControlConnect((const char*)gHostName.data, 8889); }
+void buttonRemoteConnect(void*)
+{
+    bassignliteral(&gConnectionErrMessage, "");
+    remoteControlConnect((const char*)gHostName.data, 8889);
+    if (gRemoteRenderTarget.mUIVisible)
+    {
+        toggleHideRemoteUI(NULL);
+    }
+
+    if (!remoteControlIsConnected())
+    {
+        bformat(&gConnectionErrMessage, "Failed to connect to host %s", gHostName.data);
+    }
+}
 
 void buttonRemoteDisconnect(void*)
 {
     gRemoteRenderTarget.mDestroySignal = true;
+
+    if (!gRemoteRenderTarget.mUIVisible)
+    {
+        toggleHideRemoteUI(NULL);
+    }
     remoteControlDisconnect();
+
+    bassignliteral(&gConnectionErrMessage, "");
 }
+
+void hostDropdownFunction(void*)
+{
+    ASSERT(gSelectedHostIndex <= gHostListCount);
+    // The last entry will always be the option to add a new host
+    if (gSelectedHostIndex == gHostListCount)
+    {
+        uiSetComponentActive(pGuiConnect, false);
+        uiSetComponentActive(pGuiDisconnect, false);
+        uiSetComponentActive(pAddHostWindow, true);
+    }
+    else
+    {
+        // Set the Hostname to connect to
+        bassigncstr(&gHostName, gHostList[gSelectedHostIndex]);
+    }
+}
+
+void buttonAddHostToList(void*)
+{
+    if (gHostListCount == MAX_HOSTS_IN_LIST)
+    {
+        bformat(&gConnectionErrMessage, "Cannot add more than %d hosts in the list", gHostListCount);
+        return;
+    }
+
+    // Make room for the new entry
+    setHostListFromBSTring(gHostListCount + 1, gHostListBStrings[gHostListCount]);
+
+    // Add the new entry (contained in gHostName)
+    setHostListFromBSTring(gHostListCount, gHostName);
+
+    // Always use the newly added entry as the first choice for a new connection
+    gSelectedHostIndex = gHostListCount;
+    // Increase the count
+    gHostListCount++;
+    ((DropdownWidget*)(gSelectHostUIWidget->pWidget))->mCount++;
+
+    // Bring back the connect window and hide the Add Host window
+    uiSetComponentActive(pGuiConnect, true);
+    uiSetComponentActive(pAddHostWindow, false);
+}
+
 static void registerRemoteInput(InputActionContext* ctx, uint32_t actionId)
 {
     float2              mousePos = {};
@@ -116,6 +218,18 @@ static void registerRemoteInput(InputActionContext* ctx, uint32_t actionId)
         mousePos *= remoteRender->mRemoteSize;
     }
     remoteControlCollectInputData(actionId, ctx->mBool, ctx->pPosition ? &mousePos : NULL, ctx->mFloat2);
+}
+
+void toggleHideRemoteUI(void*)
+{
+    if (gRemoteRenderTarget.pRenderTarget)
+    {
+        gRemoteRenderTarget.mUIVisible != gRemoteRenderTarget.mUIVisible;
+    }
+    // Manually send the NAV_HIDE_UI Input action
+    InputActionContext dummyContext = {};
+    dummyContext.mBool = false;
+    registerRemoteInput(&dummyContext, UISystemInputActions::UISystemInputAction::UI_ACTION_NAV_HIDE_UI_TOGGLE);
 }
 
 class UIRemoteControl: public IApp
@@ -137,7 +251,7 @@ public:
         memset(&settings, 0, sizeof(settings));
         settings.mD3D11Supported = true;
         settings.mGLESSupported = true;
-        settings.mDisableShaderServer = true;
+        settings.mDisableReloadServer = true;
         initRenderer(GetName(), &settings, &pRenderer);
         // check for init success
         if (!pRenderer)
@@ -145,7 +259,7 @@ public:
 
         QueueDesc queueDesc = {};
         queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-        queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+        queueDesc.mFlag = QUEUE_FLAG_NONE;
         addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
         GpuCmdRingDesc cmdRingDesc = {};
@@ -175,19 +289,12 @@ public:
         uiRenderDesc.mEnableRemoteUI = false;
         initUserInterface(&uiRenderDesc);
 
-        // Initialize micro profiler and its UI.
-        ProfilerDesc profiler = {};
-        profiler.pRenderer = pRenderer;
-        profiler.mWidthUI = mSettings.mWidth;
-        profiler.mHeightUI = mSettings.mHeight;
-        initProfiler(&profiler);
-
-        // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
-
         /************************************************************************/
         // GUI
         /************************************************************************/
+        // Disable platform UI
+        mSettings.mShowPlatformUI = false;
+
         UIComponentDesc connectDisconnectDesc = {};
         connectDisconnectDesc.mStartPosition = vec2(0.f, 0.f);
         connectDisconnectDesc.mStartSize = vec2(mSettings.mWidth, mSettings.mHeight);
@@ -198,20 +305,75 @@ public:
         uiSetComponentFlags(pGuiDisconnect, GUI_COMPONENT_FLAGS_NO_MOVE | GUI_COMPONENT_FLAGS_NO_COLLAPSE);
 
         bassignliteral(&gHostName, "localhost");
+        // Window popup to add new Hosts to the list
+        UIComponentDesc addHostDesc = {};
+        const vec2      addHostWindowSize = vec2(600, 150);
+        const vec2      addHostWindowStartPos = vec2(30, 30);
+        addHostDesc.mStartSize = addHostWindowSize;
+        addHostDesc.mStartPosition = addHostWindowStartPos;
+        uiCreateComponent("Add New Host", &addHostDesc, &pAddHostWindow);
+        uiSetComponentFlags(pAddHostWindow, GUI_COMPONENT_FLAGS_NO_MOVE | GUI_COMPONENT_FLAGS_NO_COLLAPSE | GUI_COMPONENT_FLAGS_NO_RESIZE);
+
         TextboxWidget textboxWidget;
         textboxWidget.pText = &gHostName;
         textboxWidget.mFlags = 0;
-        luaRegisterWidget(uiCreateComponentWidget(pGuiConnect, "Host Name", &textboxWidget, WIDGET_TYPE_TEXTBOX));
+        luaRegisterWidget(uiCreateComponentWidget(pAddHostWindow, "Host Name to Add", &textboxWidget, WIDGET_TYPE_TEXTBOX));
+        uiSetComponentActive(pAddHostWindow, false);
 
+        // Button to add a new host
+        ButtonWidget addHostButtonWidget;
+        UIWidget*    addHostUiWidget = uiCreateComponentWidget(pAddHostWindow, "Add Host", &addHostButtonWidget, WIDGET_TYPE_BUTTON);
+        uiSetWidgetOnEditedCallback(addHostUiWidget, nullptr, buttonAddHostToList);
+        luaRegisterWidget(addHostUiWidget);
+
+        // -- New Connection Window --
+        // Dropdown menu to select the host to connect to
+        DropdownWidget selectHostUIWidget = {};
+        selectHostUIWidget.pData = &gSelectedHostIndex;
+        selectHostUIWidget.pNames = gHostList;
+        selectHostUIWidget.mCount = 2;
+        gSelectHostUIWidget = uiCreateComponentWidget(pGuiConnect, "Select Host", &selectHostUIWidget, WIDGET_TYPE_DROPDOWN);
+        uiSetWidgetOnEditedCallback(gSelectHostUIWidget, nullptr, hostDropdownFunction);
+        luaRegisterWidget(gSelectHostUIWidget);
+
+        for (uint32_t i = 0; i < MAX_HOSTS_IN_LIST + 1; ++i)
+        {
+            gHostListBStrings[i] = bempty();
+        }
+
+        // Set the starting value for localhost
+        setHostListFromLiteral(0, "localhost");
+        // Entry for the "Add Host button"
+        setHostListFromLiteral(1, "<-- Add Host -->");
+        // Set the default hostname as "localhost"
+        bassign(&gHostName, &gHostListBStrings[0]);
+
+        // Button to connect to the selected host
         ButtonWidget connectButtonWidget;
         UIWidget*    connectUiWidget = uiCreateComponentWidget(pGuiConnect, "Connect", &connectButtonWidget, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(connectUiWidget, nullptr, buttonRemoteConnect);
         luaRegisterWidget(connectUiWidget);
 
+        // Error message in case connection fails
+        DynamicTextWidget connectErrorMessage;
+        connectErrorMessage.pText = &gConnectionErrMessage;
+        static float4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        connectErrorMessage.pColor = &color;
+        uiCreateComponentWidget(pGuiConnect, "Connection Status", &connectErrorMessage, WIDGET_TYPE_DYNAMIC_TEXT);
+        // ------------------
+        // -- Connected Window --
         ButtonWidget disconnectButtonWidget;
         UIWidget* disconnectUiWidget = uiCreateComponentWidget(pGuiDisconnect, "Disconnect", &disconnectButtonWidget, WIDGET_TYPE_BUTTON);
         uiSetWidgetOnEditedCallback(disconnectUiWidget, nullptr, buttonRemoteDisconnect);
         luaRegisterWidget(disconnectUiWidget);
+
+        LabelWidget toggleHostUIWidget;
+        uiCreateComponentWidget(pGuiDisconnect, "Press 'F1' to toggle Host UI", &toggleHostUIWidget, WIDGET_TYPE_LABEL);
+
+        DebugTexturesWidget widget = {};
+        gRemoteRenderTarget.pWidget = uiCreateComponentWidget(pGuiDisconnect, "Remote RT", &widget, WIDGET_TYPE_DEBUG_TEXTURES);
+        uiSetComponentActive(pGuiDisconnect, false);
+        // ------------------
 
         waitForAllResourceLoads();
 
@@ -223,27 +385,20 @@ public:
             return false;
 
         // App Actions
-        InputActionDesc actionDesc = { DefaultInputActions::DUMP_PROFILE_DATA,
+        InputActionDesc actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
                                        [](InputActionContext* ctx)
                                        {
-                                           dumpProfileData(((Renderer*)ctx->pUserData)->pName);
+                                           WindowDesc*winDesc = ((IApp*)ctx->pUserData)->pWindow;
+                                           if (winDesc->fullScreen)
+                                               winDesc->borderlessWindow ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect),
+                                                                                         getRectHeight(&winDesc->clientRect))
+                                                                         : setWindowed(winDesc, getRectWidth(&winDesc->clientRect),
+                                                                                       getRectHeight(&winDesc->clientRect));
+                                           else
+                                               setFullscreen(winDesc);
                                            return true;
                                        },
-                                       pRenderer };
-        addInputAction(&actionDesc);
-        actionDesc = { DefaultInputActions::TOGGLE_FULLSCREEN,
-                       [](InputActionContext* ctx)
-                       {
-                           WindowDesc* winDesc = ((IApp*)ctx->pUserData)->pWindow;
-                           if (winDesc->fullScreen)
-                               winDesc->borderlessWindow
-                                   ? setBorderless(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect))
-                                   : setWindowed(winDesc, getRectWidth(&winDesc->clientRect), getRectHeight(&winDesc->clientRect));
-                           else
-                               setFullscreen(winDesc);
-                           return true;
-                       },
-                       this };
+                                       this };
         addInputAction(&actionDesc);
         actionDesc = { DefaultInputActions::EXIT, [](InputActionContext* ctx)
                        {
@@ -259,9 +414,23 @@ public:
                        },
                        &gRemoteRenderTarget };
         addInputAction(&actionDesc);
+        actionDesc = { DefaultInputActions::UI_NAV_TOGGLE_UI,
+                       [](InputActionContext* ctx)
+                       {
+                           if (gRemoteRenderTarget.pRenderTarget)
+                           {
+                               gRemoteRenderTarget.mUIVisible != gRemoteRenderTarget.mUIVisible;
+                           }
+                           registerRemoteInput(ctx, UISystemInputActions::UISystemInputAction::UI_ACTION_NAV_HIDE_UI_TOGGLE);
+                           return true;
+                       },
+                       &gRemoteRenderTarget };
+        addInputAction(&actionDesc);
+
         InputActionCallback onAnyInput = [](InputActionContext* ctx)
         {
-            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_)
+            if (ctx->mActionId > UISystemInputActions::UI_ACTION_START_ID_ &&
+                ctx->mActionId < UISystemInputActions::UI_ACTION_NAV_TOGGLE_UI)
             {
                 registerRemoteInput(ctx, ctx->mActionId);
                 uiOnInput(ctx->mActionId, ctx->mBool, ctx->pPosition, &ctx->mFloat2);
@@ -293,26 +462,22 @@ public:
 
     void Exit()
     {
-        if (gRemoteRenderTarget.pWidget)
-        {
-            uiDestroyComponentWidget(pGuiDisconnect, gRemoteRenderTarget.pWidget);
-        }
-
-        if (gRemoteRenderTarget.pRenderTarget != NULL)
-        {
-            removeRenderTarget(pRenderer, gRemoteRenderTarget.pRenderTarget);
-        }
+        destroyRemoteRenderTarget();
 
         remoteControlDisconnect();
 
         exitInputSystem();
 
+        bdestroy(&gConnectionErrMessage);
+        bdestroy(&gHostName);
+        for (uint32_t i = 0; i < MAX_HOSTS_IN_LIST + 1; ++i)
+        {
+            bdestroy(&gHostListBStrings[i]);
+        }
+
         exitUserInterface();
 
         exitFontSystem();
-
-        // Exit profile
-        exitProfiler();
 
         removeGpuCmdRing(pRenderer, &gGraphicsCmdRing);
         removeSemaphore(pRenderer, pImageAcquiredSemaphore);
@@ -377,16 +542,82 @@ public:
         static float currentTime = 0.0f;
         currentTime += deltaTime * 1000.0f;
 
+        // If the AddHostWindow is Up then don't update anything else
+        if (pAddHostWindow->mActive)
+            return;
+
         /************************************************************************/
         // UI Update
         /************************************************************************/
         bool isRemoteControlConnected = remoteControlIsConnected();
         uiSetComponentActive(pGuiConnect, !isRemoteControlConnected);
         uiSetComponentActive(pGuiDisconnect, isRemoteControlConnected);
+
+        /************************************************************************/
+        // Remote Render Target Update
+        /************************************************************************/
+        gRemoteRenderTarget.mWindowSize = { mSettings.mWidth, mSettings.mHeight };
+        // This is just NULL if there's no active connection
+        gRemoteRenderTarget.pCurrentDrawData = remoteControlReceiveDrawData();
+        if (gRemoteRenderTarget.pCurrentDrawData)
+        {
+            gRemoteRenderTarget.mRemoteSize = gRemoteRenderTarget.pCurrentDrawData->mDisplaySize;
+        }
+        remoteControlSendInputData();
+        remoteControlReceiveTexture();
+
+        // Recreate the remote render target if the size changed
+        if (gRemoteRenderTarget.mRemoteSize.x > 0 && gRemoteRenderTarget.mRemoteSize.y > 0)
+        {
+            if (gRemoteRenderTarget.pRenderTarget == NULL ||
+                (gRemoteRenderTarget.pRenderTarget->mWidth != gRemoteRenderTarget.mRemoteSize.x ||
+                 gRemoteRenderTarget.pRenderTarget->mHeight != gRemoteRenderTarget.mRemoteSize.y))
+            {
+                if (gRemoteRenderTarget.pRenderTarget)
+                {
+                    removeRenderTarget(pRenderer, gRemoteRenderTarget.pRenderTarget);
+                }
+
+                const ClearValue colorClearBlack = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+
+                RenderTargetDesc rtDesc = {};
+                rtDesc.mArraySize = 1;
+                rtDesc.mClearValue = colorClearBlack;
+                rtDesc.mDepth = 1;
+                rtDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+                rtDesc.mFormat = pSwapChain->mFormat;
+                rtDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
+                rtDesc.mWidth = gRemoteRenderTarget.mRemoteSize.x;
+                rtDesc.mHeight = gRemoteRenderTarget.mRemoteSize.y;
+                rtDesc.mSampleCount = SAMPLE_COUNT_1;
+                rtDesc.mSampleQuality = 0;
+                rtDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
+                rtDesc.pName = "Remote RT";
+                addRenderTarget(pRenderer, &rtDesc, &gRemoteRenderTarget.pRenderTarget);
+
+                float ar = gRemoteRenderTarget.mRemoteSize.x / gRemoteRenderTarget.mRemoteSize.y;
+                float height = (mSettings.mHeight - remoteRenderTargetHeightOffset);
+                float width = height * ar;
+                gRemoteRenderTarget.mRemoteDisplaySize = { width, height };
+
+                DebugTexturesWidget* widget = (DebugTexturesWidget*)gRemoteRenderTarget.pWidget->pWidget;
+                widget->pTextures = &gRemoteRenderTarget.pRenderTarget->pTexture;
+                widget->mTexturesCount = 1;
+                widget->mTextureDisplaySize = gRemoteRenderTarget.mRemoteDisplaySize;
+
+                gRemoteRenderTarget.mSwappedTexture = true;
+            }
+        }
     }
 
     void Draw()
     {
+        if (gRemoteRenderTarget.mSwappedTexture)
+        {
+            // UI has invalid data because the underlying rendertarget texture was swapped. Skip drawing this frame
+            gRemoteRenderTarget.mSwappedTexture = false;
+            return;
+        }
         if (pSwapChain->mEnableVsync != mSettings.mVSyncEnabled)
         {
             waitQueueIdle(pGraphicsQueue);
@@ -416,24 +647,25 @@ public:
         };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-        LoadActionsDesc loadActions = {};
-        loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-        cmdBindRenderTargets(cmd, 1, &pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
+        BindRenderTargetsDesc bindRenderTargets = {};
+        bindRenderTargets.mRenderTargetCount = 1;
+        bindRenderTargets.mRenderTargets[0] = { pRenderTarget, LOAD_ACTION_CLEAR };
+        cmdBindRenderTargets(cmd, &bindRenderTargets);
 
         cmdDrawUserInterface((Cmd*)cmd);
-        UserInterfaceDrawData* drawData = remoteControlReceiveDrawData();
+
+        UserInterfaceDrawData* drawData = gRemoteRenderTarget.pCurrentDrawData;
         if (drawData)
         {
-            gRemoteRenderTarget.mRemoteSize = drawData->mDisplaySize;
             if (gRemoteRenderTarget.pRenderTarget)
             {
                 barriers[0] = { gRemoteRenderTarget.pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
                 cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-                LoadActionsDesc loadActions = {};
-                loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-                loadActions.mClearColorValues[0] = gRemoteRenderTarget.pRenderTarget->mClearValue;
-                cmdBindRenderTargets(cmd, 1, &gRemoteRenderTarget.pRenderTarget, nullptr, &loadActions, NULL, NULL, -1, -1);
+                BindRenderTargetsDesc bindRenderTargets = {};
+                bindRenderTargets.mRenderTargetCount = 1;
+                bindRenderTargets.mRenderTargets[0] = { gRemoteRenderTarget.pRenderTarget, LOAD_ACTION_CLEAR };
+                cmdBindRenderTargets(cmd, &bindRenderTargets);
 
                 cmdDrawUserInterface((Cmd*)cmd, drawData);
 
@@ -441,9 +673,8 @@ public:
                 cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
             }
         }
-        remoteControlSendInputData();
 
-        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        cmdBindRenderTargets(cmd, NULL);
         barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
         cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
@@ -471,82 +702,8 @@ public:
         presentDesc.mSubmitDone = true;
 
         queuePresent(pGraphicsQueue, &presentDesc);
-        flipProfiler();
 
         gFrameIndex = (gFrameIndex + 1) % gDataBufferCount;
-
-        remoteControlReceiveTexture();
-        // Update remote render target
-        gRemoteRenderTarget.mWindowSize = { mSettings.mWidth, mSettings.mHeight };
-
-        if (gRemoteRenderTarget.mDestroySignal)
-        {
-            if (gRemoteRenderTarget.pWidget)
-            {
-                uiDestroyComponentWidget(pGuiDisconnect, gRemoteRenderTarget.pWidget);
-                gRemoteRenderTarget.pWidget = NULL;
-                return;
-            }
-
-            if (gRemoteRenderTarget.pRenderTarget)
-            {
-                removeRenderTarget(pRenderer, gRemoteRenderTarget.pRenderTarget);
-            }
-
-            gRemoteRenderTarget = {};
-        }
-
-        if (gRemoteRenderTarget.mRemoteSize.x > 0 && gRemoteRenderTarget.mRemoteSize.y > 0)
-        {
-            if (gRemoteRenderTarget.pRenderTarget == NULL ||
-                (gRemoteRenderTarget.pRenderTarget->mWidth != gRemoteRenderTarget.mRemoteSize.x &&
-                 gRemoteRenderTarget.pRenderTarget->mHeight != gRemoteRenderTarget.mRemoteSize.y))
-            {
-                if (gRemoteRenderTarget.pWidget)
-                {
-                    uiDestroyComponentWidget(pGuiDisconnect, gRemoteRenderTarget.pWidget);
-                    gRemoteRenderTarget.pWidget = NULL;
-                    return;
-                }
-
-                if (gRemoteRenderTarget.pRenderTarget)
-                {
-                    removeRenderTarget(pRenderer, gRemoteRenderTarget.pRenderTarget);
-                }
-                const ClearValue colorClearBlack = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-
-                RenderTargetDesc rtDesc = {};
-                rtDesc.mArraySize = 1;
-                rtDesc.mClearValue = colorClearBlack;
-                rtDesc.mDepth = 1;
-                rtDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-                rtDesc.mFormat = pSwapChain->mFormat;
-                rtDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
-                rtDesc.mWidth = gRemoteRenderTarget.mRemoteSize.x;
-                rtDesc.mHeight = gRemoteRenderTarget.mRemoteSize.y;
-                rtDesc.mSampleCount = SAMPLE_COUNT_1;
-                rtDesc.mSampleQuality = 0;
-                rtDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-                rtDesc.pName = "Remote RT";
-                addRenderTarget(pRenderer, &rtDesc, &gRemoteRenderTarget.pRenderTarget);
-
-                if (gRemoteRenderTarget.pWidget)
-                {
-                    uiDestroyComponentWidget(pGuiDisconnect, gRemoteRenderTarget.pWidget);
-                }
-
-                float ar = gRemoteRenderTarget.mRemoteSize.x / gRemoteRenderTarget.mRemoteSize.y;
-                float height = (mSettings.mHeight - 150);
-                float width = height * ar;
-                gRemoteRenderTarget.mRemoteDisplaySize = { width, height };
-
-                DebugTexturesWidget widget;
-                widget.pTextures = &gRemoteRenderTarget.pRenderTarget->pTexture;
-                widget.mTexturesCount = 1;
-                widget.mTextureDisplaySize = gRemoteRenderTarget.mRemoteDisplaySize;
-                gRemoteRenderTarget.pWidget = uiCreateComponentWidget(pGuiDisconnect, "Remote RT", &widget, WIDGET_TYPE_DEBUG_TEXTURES);
-            }
-        }
     }
 
     const char* GetName() { return "UIRemoteControl"; }

@@ -55,8 +55,6 @@ typedef enum TextureContainerType
     TEXTURE_CONTAINER_KTX,
     /// .gnf
     TEXTURE_CONTAINER_GNF,
-    /// .basis
-    TEXTURE_CONTAINER_BASIS,
 } TextureContainerType;
 
 typedef enum RegisterMaterialResult

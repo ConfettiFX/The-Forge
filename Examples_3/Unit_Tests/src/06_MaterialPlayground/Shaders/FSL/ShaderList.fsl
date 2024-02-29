@@ -4,6 +4,10 @@
 #define IMPORTANCE_SAMPLE_COUNT 0
 #include "BRDFIntegration.comp.fsl"
 #end
+#comp BRDFIntegration_SAMPLES_32.comp
+#define IMPORTANCE_SAMPLE_COUNT 32
+#include "BRDFIntegration.comp.fsl"
+#end
 #comp BRDFIntegration_SAMPLES_64.comp
 #define IMPORTANCE_SAMPLE_COUNT 64
 #include "BRDFIntegration.comp.fsl"
@@ -21,6 +25,10 @@
 #include "BRDFIntegration.comp.fsl"
 #end
 
+#comp computeIrradianceMap_SAMPLE_DELTA_05.comp
+#define SAMPLE_DELTA 0.5f
+#include "computeIrradianceMap.comp.fsl"
+#end
 #comp computeIrradianceMap_SAMPLE_DELTA_025.comp
 #define SAMPLE_DELTA 0.25f
 #include "computeIrradianceMap.comp.fsl"
@@ -40,6 +48,10 @@
 
 #comp computeSpecularMap_SAMPLES_0.comp
 #define IMPORTANCE_SAMPLE_COUNT 0
+#include "computeSpecularMap.comp.fsl"
+#end
+#comp computeSpecularMap_SAMPLES_32.comp
+#define IMPORTANCE_SAMPLE_COUNT 64
 #include "computeSpecularMap.comp.fsl"
 #end
 #comp computeSpecularMap_SAMPLES_64.comp

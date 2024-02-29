@@ -438,7 +438,6 @@ FilteringStats cmdVisibilityBufferTriangleFilteringPass(VisibilityBuffer* pVisib
     bufferIndex = 0;
     barrier[bufferIndex++] = { pVisibilityBuffer->ppUncompactedDrawArgumentsBuffer[pDesc->mBuffersIndex], RESOURCE_STATE_UNORDERED_ACCESS,
                                RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
-
     cmdResourceBarrier(pCmd, bufferIndex, barrier, 0, nullptr, 0, nullptr);
 
     /************************************************************************/

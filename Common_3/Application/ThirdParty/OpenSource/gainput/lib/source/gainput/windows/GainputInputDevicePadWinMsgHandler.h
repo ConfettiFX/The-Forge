@@ -36,6 +36,11 @@ public:
 
 	void Exit()
 	{
+		if (instance)
+		{
+			instance->Exit();
+		}
+
 		if (manager)
 		{
 			for (int i = 0; i < dIPadMax; ++i)

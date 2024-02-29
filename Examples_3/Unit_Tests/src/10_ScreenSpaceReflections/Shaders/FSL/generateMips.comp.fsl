@@ -36,11 +36,11 @@ void CS_MAIN( SV_DispatchThreadID(uint3) id)
 	INIT_MAIN;
 	if (id.x < Get(MipSize).x && id.y < Get(MipSize).y)
 	{
-		float color = 1.0f;
+		float color = 0.0f;
 		UNROLL for (int x = 0; x < 2; ++x)
 		{
 			UNROLL for (int y = 0; y < 2; ++y)
-				color = min(color, LoadRWTex2D(Get(Source), id.xy * 2 + uint2(x, y)).x);
+				color = max(color, LoadRWTex2D(Get(Source), id.xy * 2 + uint2(x, y)).x);
 		}
 		Write2D(Get(Destination), id.xy, color);
 	}

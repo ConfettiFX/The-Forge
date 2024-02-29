@@ -33,8 +33,8 @@
   <ItemDefinitionGroup Condition="'$(UseQuest)' != ''">
 	<ClCompile>
       <AdditionalIncludeDirectories>
-        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;
-        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Include;
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\3rdParty\khronos\vulkan_1.1.100.0;
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Include;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>QUEST_VR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -42,7 +42,7 @@
 	<Link>
 	  <AdditionalLibraryDirectories>
         $(SolutionDir)\$(Platform)\$(Configuration);
-        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);
+        $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration);
         $(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
       <LibraryDependencies>vrapi;%(LibraryDependencies)</LibraryDependencies>
@@ -84,7 +84,7 @@
       </Command>
       <Command Condition="'$(UseQuest)' != ''">
         %(Command)
-        xcopy  $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\OpenSource\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(OutDir) /s /y /d
+        xcopy  $(SolutionDir)..\..\..\Common_3\OS\ThirdParty\PrivateOculus\ovr_sdk_mobile\VrApi\Libs\Android\$(PlatformTarget)\$(Configuration)\*.so $(OutDir) /s /y /d
       </Command>
     </PreBuildEvent>
     <Link>

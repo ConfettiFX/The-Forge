@@ -523,6 +523,9 @@ def needs_regen(args, dependency_filepath, platforms, regen, dependencies):
             for filepath in files:
                 if exists(filepath.strip()):
                     allTimestamps += [ getmtime(filepath.strip()) ]
+            if not allTimestamps:
+                regen.add(platform_filename)
+                continue
             deps_timestamp = max(allTimestamps)
             if dst_timestamp < deps_timestamp:
                 regen.add(platform_filename)

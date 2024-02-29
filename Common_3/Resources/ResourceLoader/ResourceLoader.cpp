@@ -35,7 +35,6 @@
 #include "ThirdParty/OpenSource/tinyktx/tinyktx.h"
 
 #define TINYDDS_IMPLEMENTATION
-#include "../../Utilities/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h"
 #include "ThirdParty/OpenSource/tinydds/tinydds.h"
 
 #include "../../Graphics/Interfaces/IGraphics.h"
@@ -1363,7 +1362,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
         const uint32_t    sliceAlignment = util_get_texture_subresource_alignment(pRenderer, fmt);
         const uint32_t    rowAlignment = util_get_texture_row_alignment(pRenderer);
         const uint64_t    requiredSize = util_get_surface_size(fmt, texture->mWidth, texture->mHeight, texture->mDepth, rowAlignment,
-                                                               sliceAlignment, 0, texture->mMipLevels, 0, texture->mArraySizeMinusOne + 1u);
+                                                            sliceAlignment, 0, texture->mMipLevels, 0, texture->mArraySizeMinusOne + 1u);
         MappedMemoryRange range = allocateStagingMemory(pCopyEngine, requiredSize, sliceAlignment, texture->mNodeIndex);
         memset(range.pData, 0, range.mSize);
 
@@ -1464,22 +1463,6 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
                     uint32_t mipSize = 0;
                     fsReadFromStream(pStream, &mipSize, sizeof(mipSize));
                 };
-            }
-            break;
-        }
-        case TEXTURE_CONTAINER_BASIS:
-        {
-            void*    data = NULL;
-            uint32_t dataSize = 0;
-            success = fsOpenStreamFromPath(RD_TEXTURES, pTextureDesc->pFileName, FM_READ, &stream);
-            if (success)
-            {
-                success = loadBASISTextureDesc(&stream, &textureDesc, &data, &dataSize);
-                if (success)
-                {
-                    fsCloseStream(&stream);
-                    fsOpenStreamFromMemory(data, dataSize, FM_READ, true, &stream);
-                }
             }
             break;
         }
@@ -2002,24 +1985,10 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     if (pTextureCopy.pWaitSemaphore)
         arrpush(pCopyEngine->mWaitSemaphores, pTextureCopy.pWaitSemaphore);
 
-#if defined(VULKAN)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_VULKAN)
-    {
-        TextureBarrier barrier = { texture, pTextureCopy.mTextureState, RESOURCE_STATE_COPY_SOURCE };
-        barrier.mAcquire = 1;
-        barrier.mQueueType = pTextureCopy.mQueueType;
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
-    }
-#endif
-#if defined(DIRECT3D12)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_D3D12)
-    {
-        TextureBarrier barrier = { texture, pTextureCopy.mTextureState, RESOURCE_STATE_COPY_SOURCE };
-        barrier.mAcquire = 1;
-        barrier.mQueueType = pTextureCopy.mQueueType;
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
-    }
-#endif
+    TextureBarrier barrier = { texture, pTextureCopy.mTextureState, RESOURCE_STATE_COPY_SOURCE };
+    barrier.mAcquire = 1;
+    barrier.mQueueType = pTextureCopy.mQueueType;
+    cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
 
     uint32_t numBytes = 0;
     uint32_t rowBytes = 0;
@@ -2044,24 +2013,12 @@ static UploadFunctionResult copyTexture(Renderer* pRenderer, CopyEngine* pCopyEn
     subresourceDesc.mSlicePitch = subSlicePitch;
 #endif
     cmdCopySubresource(cmd, pTextureCopy.pBuffer, pTextureCopy.pTexture, &subresourceDesc);
-#if defined(DIRECT3D12)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_D3D12)
-    {
-        TextureBarrier barrier = { texture, RESOURCE_STATE_COPY_SOURCE, pTextureCopy.mTextureState };
-        barrier.mRelease = 1;
-        barrier.mQueueType = pTextureCopy.mQueueType;
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
-    }
-#endif
-#if defined(VULKAN)
-    if (gPlatformParameters.mSelectedRendererApi == RENDERER_API_VULKAN)
-    {
-        TextureBarrier barrier = { texture, RESOURCE_STATE_COPY_SOURCE, pTextureCopy.mTextureState };
-        barrier.mRelease = 1;
-        barrier.mQueueType = pTextureCopy.mQueueType;
-        cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
-    }
-#endif
+
+    barrier = { texture, RESOURCE_STATE_COPY_SOURCE, pTextureCopy.mTextureState };
+    barrier.mRelease = 1;
+    barrier.mQueueType = pTextureCopy.mQueueType;
+    cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
+
     return UPLOAD_FUNCTION_RESULT_COMPLETED;
 }
 /************************************************************************/
@@ -3814,7 +3771,7 @@ TextureSubresourceUpdate TextureUpdateDesc::getSubresourceUpdateDesc(uint32_t mi
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
         bool     success = util_get_surface_info(MIP_REDUCE(texture->mWidth, i), MIP_REDUCE(texture->mHeight, i), fmt, &srcSliceStride,
-                                                 &srcRowStride, &rowCount);
+                                             &srcRowStride, &rowCount);
         ASSERT(success);
         uint32_t d = MIP_REDUCE(texture->mDepth, i);
 
@@ -3861,7 +3818,7 @@ void beginUpdateResource(TextureUpdateDesc* pTextureUpdate)
         uint32_t srcRowStride = 0;
         uint32_t rowCount = 0;
         bool     success = util_get_surface_info(MIP_REDUCE(texture->mWidth, mip), MIP_REDUCE(texture->mHeight, mip), fmt, &srcSliceStride,
-                                                 &srcRowStride, &rowCount);
+                                             &srcRowStride, &rowCount);
         ASSERT(success);
         uint32_t d = MIP_REDUCE(texture->mDepth, mip);
 

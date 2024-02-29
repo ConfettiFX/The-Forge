@@ -158,7 +158,7 @@ xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(Sol
 xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>
@@ -217,7 +217,7 @@ xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\Shaders" "$(Sol
 xcopy /Y /S /D /E "$(SolutionDir)$(Platform)\$(Configuration)\OS\CompiledShaders" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\CompiledShaders"
 
 xcopy /Y /S /D "$(ProjectDir)..\..\src\$(ProjectName)\GPUCfg\*.*" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\"
-xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\Graphics\gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Common_3\OS\Android\android_gpu.data"  "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\GPUCfg\gpu.data*"
 xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\$(PlatformTarget)\assets\"</Command>
     </PreLinkEvent>
   </ItemDefinitionGroup>

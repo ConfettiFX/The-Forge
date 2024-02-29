@@ -32,7 +32,6 @@
 
 namespace ImGui
 {
-
 int KnobFloat(const char* label, float* value_p, const float& step, const float& minv, const float& maxv, const char* format,
               const float& minimumHitRadius, bool doubleTapForText, bool spawnText)
 {

@@ -54,9 +54,13 @@ public class ForgeBaseActivity extends NativeActivity
         View decorView = getWindow().getDecorView();
         setImmersiveSticky();
 
-        decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
-            @Override public void onSystemUiVisibilityChange(int visibility) { setImmersiveSticky(); }
-        });
+        decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener()
+                                                        {
+                                                            @Override public void onSystemUiVisibilityChange(int visibility)
+                                                            {
+                                                                setImmersiveSticky();
+                                                            }
+                                                        });
 
         mMobileThermalMap = new HashMap<>();
         try
@@ -82,10 +86,12 @@ public class ForgeBaseActivity extends NativeActivity
             if (Build.VERSION.SDK_INT >= 29)
             {
                 PowerManager pManager = (PowerManager)getApplicationContext().getSystemService(Context.POWER_SERVICE);
-                pManager.addThermalStatusListener((int status) -> {
-                    Integer nativeStatus = mMobileThermalMap.get(status);
-                    nativeThermalEvent((nativeStatus != null) ? nativeStatus : MOBILE_THERMAL_ERROR);
-                });
+                pManager.addThermalStatusListener((int status)
+                                                      ->
+                                                  {
+                                                      Integer nativeStatus = mMobileThermalMap.get(status);
+                                                      nativeThermalEvent((nativeStatus != null) ? nativeStatus : MOBILE_THERMAL_ERROR);
+                                                  });
             }
             else
             {
@@ -117,20 +123,22 @@ public class ForgeBaseActivity extends NativeActivity
     // This function will be called from C++ by name and signature
     public void showAlert(final String title, final String message)
     {
-        this.runOnUiThread(new Runnable() {
-            public void run()
-            {
-                AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                builder.setTitle(title)
-                    .setMessage(message)
-                    .setPositiveButton("Close",
-                                       new DialogInterface.OnClickListener() {
-                                           public void onClick(DialogInterface dialog, int id) { nativeOnAlertClosed(); }
-                                       })
-                    .setCancelable(false)
-                    .show();
-            }
-        });
+        this.runOnUiThread(new Runnable()
+                           {
+                               public void run()
+                               {
+                                   AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                                   builder.setTitle(title)
+                                       .setMessage(message)
+                                       .setPositiveButton("Close",
+                                                          new DialogInterface.OnClickListener()
+                                                          {
+                                                              public void onClick(DialogInterface dialog, int id) { nativeOnAlertClosed(); }
+                                                          })
+                                       .setCancelable(false)
+                                       .show();
+                               }
+                           });
     }
 
     // Native thermal event entry point defined in AndroidBase.cpp

@@ -25,22 +25,39 @@
 #include "shader_defs.h.fsl"
 #include "../../../../../../Common_3/Graphics/ShaderUtilities.h.fsl"
 #include "vb_resources.h.fsl"
+#include "vrs_resources.h.fsl"
 
-float4 PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId )
+STRUCT(PsOut)
+{
+	DATA(float4, VBData,       SV_Target0);
+};
+
+PsOut PS_MAIN( PsInAlphaTested In, SV_PrimitiveID(uint) primitiveId, SV_SampleIndex(uint) i  )
 {
     INIT_MAIN;
-    float4 Out;
+    PsOut Out;
 
     uint materialID = In.materialID;
 
     float alpha = 0.0f;
+#if USE_VRS
+    float2 uv_dx = ddx( In.texCoord );
+    float2 uv_dy = ddy( In.texCoord );
+
+    float2 texCoords = In.texCoord.xy + uvOffsets[i].x * uv_dx + uvOffsets[i].y * uv_dy;
+
+    BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
+		alpha = SampleGradTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), texCoords, uv_dx, uv_dy).a;
+    EndNonUniformResourceIndex();
+#else
     BeginNonUniformResourceIndex(materialID, MAX_TEXTURE_UNITS);
 		alpha = SampleTex2D(Get(diffuseMaps)[materialID], Get(textureFilter), In.texCoord).a;
     EndNonUniformResourceIndex();
+#endif
     
     //clip(texColor.a < 0.9 ? -1 : 1);
     clip(alpha - 0.5f);
-    Out = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId));
+    Out.VBData = unpackUnorm4x8(GET_ALPHA_OUTPUT_VB_ID(getDrawID(), primitiveId));
 
     RETURN(Out);
 }
