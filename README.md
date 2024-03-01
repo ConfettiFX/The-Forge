@@ -81,16 +81,17 @@ Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPho
 
 
 Ephemeris on XBOX Series X
-![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/scarlet.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/Screenshots/scarlet.png)
 
 Ephemeris on Android
-![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/android.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/Screenshots/android.png)
 
 Ephemeris on PS4
-![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/PS4.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/Screenshots/PS4.png)
 
 Ephemeris on PS5
-![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/PS5.png)
+![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/Screenshots/PS5.png)
+
 
 
 ### IGraphics.h 
@@ -131,16 +132,16 @@ Debug Output with the original Image on PC
 ![VRS](Screenshots/UT%2015a/vrs_map_debug_vs_original2.png) 
 
 Android
-![VRS](Screenshots/UT%2015a/original2.png) 
+![VRS](Screenshots/UT%2015a/original2.jpg) 
 
 Debug Output with the original Image on Android
 ![VRS](Screenshots/UT%2015a/debug_vs_original2.jpg) 
 
 Android
-![VRS](Screenshots/UT%2015a/original2.png) 
+![VRS](Screenshots/UT%2015a/original3.jpg) 
 
 Debug Output with the original Image on Android
-![VRS](Screenshots/UT%2015a/debug_vs_original2.png) 
+![VRS](Screenshots/UT%2015a/debug_vs_original3.jpg) 
 
 
 UI description:
