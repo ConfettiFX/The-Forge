@@ -158,7 +158,7 @@ PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(
 You want to check out those files. They are now dedicated per supported platform. So it is easier for us to differ between different Playstations, XBOX'es, Switches, Android, iOS etc..
 
 ### Unlinked Multi GPU
-The Unlinked Multi GPU example was broken on AMD 7x GPUs with Vulkan. This looks like a bug. We had to disable DCC to make that work.
+The Unlinked Multi GPU example was broken on AMD 7x GPUs with Vulkan. We fixed it.
 
 ### Vulkan
 we track GPU memory now and will extend this to other platforms.
@@ -172,7 +172,7 @@ Various bug fixes to make this more stable. Still alpha ... will crash.
 
 ### Retired:
 - 35 Variable Rate Shading ... this went into the Visibility Buffer OIT example 15a.
-- Basis Library - after not having found any practical usage case, we remove Basis again.
+- Basis Library - after not having found any practical usage case, we removed Basis again.
 
 
 
