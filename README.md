@@ -108,7 +108,7 @@ Instead of a long list of parameters we now provide a struct that gives us enoug
 ### Variable Rate Shading
 We added Variable Rate Shading to the Visibility Buffer OIT example test 15a. This way we have a better looking test scene with St. Miguel.
 
-VRS allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
+VRS allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://research.activision.com/publications/2020-09/software-based-variable-rate-shading-in-call-of-duty--modern-war
 
 The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
 It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
@@ -144,11 +144,9 @@ Debug Output with the original Image on Android
 ![VRS](Screenshots/UT%2015a/debug_vs_original3.jpg) 
 
 
-UI description:
-- Toggle VRS – enable/disable VRS
-- Draw Cubes – enable/disable dynamic objects in the scene
-- Toggle Debug View – shows auto-generated VRS map if VRS is enabled
-- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
+Example 15a_VisibilityBufferOIT now has an additional option to toggle VRS - "Enable Variable Rate Shading"
+The Debug view can now be toggled with the "Draw Debug Targets" option. This shows the auto-generated VRS map if VRS is enabled.
+
 Limitations:
 	Relies on programmable sample locations support – not widely supported on Android devices.
 
@@ -841,11 +839,9 @@ Debug Output with the original Image on Android
 ![VRS](Screenshots/UT%2015a/debug_vs_original3.jpg) 
 
 
-UI description:
-- Toggle VRS – enable/disable VRS
-- Draw Cubes – enable/disable dynamic objects in the scene
-- Toggle Debug View – shows auto-generated VRS map if VRS is enabled
-- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
+Example 15a_VisibilityBufferOIT now has an additional option to toggle VRS - "Enable Variable Rate Shading"
+The Debug view can now be toggled with the "Draw Debug Targets" option. This shows the auto-generated VRS map if VRS is enabled.
+
 Limitations:
 	Relies on programmable sample locations support – not widely supported on Android devices.
 
