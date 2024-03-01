@@ -77,7 +77,7 @@ We improved Ephemeris again and support it now on more platforms. Updating some 
 [![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/blob/master/Ephemeris/Screenshots/apple_m1.png)](https://vimeo.com/918128458)
 
 
-Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPhone /macOS (so far not Switch)
+Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPhone 11 or higher  (so far not Switch)
 
 
 Ephemeris on XBOX Series X
@@ -803,20 +803,9 @@ This unit test compares various Order-Indpendent Transparency Methods. In the mo
 ## 15a. Visibility Buffer OIT
 This unit test shows how to handle per triangle order-independent transparency in an intuitive way in the Visibility Buffer context. The main idea is that a per-pixel linked list of triangle IDs is holding layers of transparency. This is occupies less memory and is more efficient than storing per-pixel information.
 
-## 35. Variable Shading Rate
-This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
+We also added Variable Rate Shading to this unit test. This way we have a better looking test scene with St. Miguel.
 
-PC Windows (2560x1080):
-![Variable Rate Shading on PC](Screenshots/35_VariableRateShading_Win10_RX7600_2560x1080.png)
-
-Switch (1280x720):
-![Variable Rate Shading on Switch](Screenshots/35_VariableRateShading_Switch_1280x720.PNG)
-
-XBOX One S (1080p):
-![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_XboxOneS_1920x1080.png)
-
-PS4 Pro (3840x2160):
-![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_PS4Pro_3840x2160.png)
+VRS allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
 
 The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
 It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
@@ -827,7 +816,30 @@ Shading rate view based on the color per 2x2 pixel quad:
 - Red – 2 vertical samples;
 - Green – all 4 samples;
 
-![Variable Rate Shading Debug](Screenshots/35_VRS_Debug.png)
+PC
+![VRS](Screenshots/UT%2015a/vrs_original1.png) 
+
+Debug Output with the original Image on PC
+![VRS](Screenshots/UT%2015a/vrs_map_debug_vs_original1.png) 
+
+PC
+![VRS](Screenshots/UT%2015a/vrs_original2.png) 
+
+Debug Output with the original Image on PC
+![VRS](Screenshots/UT%2015a/vrs_map_debug_vs_original2.png) 
+
+Android
+![VRS](Screenshots/UT%2015a/original2.jpg) 
+
+Debug Output with the original Image on Android
+![VRS](Screenshots/UT%2015a/debug_vs_original2.jpg) 
+
+Android
+![VRS](Screenshots/UT%2015a/original3.jpg) 
+
+Debug Output with the original Image on Android
+![VRS](Screenshots/UT%2015a/debug_vs_original3.jpg) 
+
 
 UI description:
 - Toggle VRS – enable/disable VRS
@@ -838,10 +850,7 @@ Limitations:
 	Relies on programmable sample locations support – not widely supported on Android devices.
 
 Supported platforms:
-
-PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(Vulkan/DX12).
-Implemented on MacOS/IOS, but doesn’t give expected performance benefits due to the issue with stencil testing on that platform
-
+PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(Vulkan/DX12), macOS/iOS.
 
 ## 16. Path Tracer - Ray Tracing
 We switched to Ray Queries for the common Ray Tracing APIs on all the platforms we support. The current Ray Tracing APIs increase the amount of memory necessary substantially, decrease performance and can't add much visually because the whole game has to run with lower resolution, lower texture resolution and lower graphics quality (to make up for this, upscalers were introduced that add new issues to the final image). 
