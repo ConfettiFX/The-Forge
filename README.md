@@ -68,6 +68,115 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.55 - March 1st, 2024 - Ephemeris | gpu.data | Many bug fixes and smaller improvements
+
+### Ephemeris 2.0 Update 
+We improved Ephemeris again and support it now on more platforms. Updating some of the algorithms used and adding more features. 
+
+
+[![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/apple_m1.png)](https://vimeo.com/918128458)
+
+
+Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPhone /macOS (so far not Switch)
+
+
+Ephemeris on XBOX Series X
+![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/scarlet.png)
+
+Ephemeris on Android
+![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/android.png)
+
+Ephemeris on PS4
+![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/PS4.png)
+
+Ephemeris on PS5
+![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/PS5.png)
+
+
+### IGraphics.h 
+We changed the graphics interface for cmdBindRenderTargets
+
+```
+// old
+DECLARE_RENDERER_FUNCTION(void, cmdBindRenderTargets, Cmd* pCmd, uint32_t renderTargetCount, RenderTarget** ppRenderTargets, RenderTarget* pDepthStencil, const LoadActionsDesc* loadActions, uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
+// new
+DECLARE_RENDERER_FUNCTION(void, cmdBindRenderTargets, Cmd* pCmd, const BindRenderTargetsDesc* pDesc)
+```
+Instead of a long list of parameters we now provide a struct that gives us enough flexibility to pack more functionality in there.
+
+### Variable Rate Shading
+We added Variable Rate Shading to the Visibility Buffer OIT example test 15a. This way we have a better looking test scene with St. Miguel.
+
+VRS allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
+
+The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
+It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
+
+Shading rate view based on the color per 2x2 pixel quad:
+- White – 1 sample (top left, always shaded);
+- Blue – 2 horizontal samples;
+- Red – 2 vertical samples;
+- Green – all 4 samples;
+
+PC
+![VRS](Screenshots/UT%2015a/vrs_original1.png) 
+
+Debug Output with the original Image on PC
+![VRS](Screenshots/UT%2015a/vrs_map_debug_vs_original1.png) 
+
+PC
+![VRS](Screenshots/UT%2015a/vrs_original2.png) 
+
+Debug Output with the original Image on PC
+![VRS](Screenshots/UT%2015a/vrs_map_debug_vs_original2.png) 
+
+Android
+![VRS](Screenshots/UT%2015a/original2.png) 
+
+Debug Output with the original Image on Android
+![VRS](Screenshots/UT%2015a/debug_vs_original2.jpg) 
+
+Android
+![VRS](Screenshots/UT%2015a/original2.png) 
+
+Debug Output with the original Image on Android
+![VRS](Screenshots/UT%2015a/debug_vs_original2.png) 
+
+
+UI description:
+- Toggle VRS – enable/disable VRS
+- Draw Cubes – enable/disable dynamic objects in the scene
+- Toggle Debug View – shows auto-generated VRS map if VRS is enabled
+- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
+Limitations:
+	Relies on programmable sample locations support – not widely supported on Android devices.
+
+Supported platforms:
+PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(Vulkan/DX12), macOS/iOS.
+
+
+### gpu.data
+You want to check out those files. They are now dedicated per supported platform. So it is easier for us to differ between different Playstations, XBOX'es, Switches, Android, iOS etc..
+
+### Unlinked Multi GPU
+The Unlinked Multi GPU example was broken on AMD 7x GPUs with Vulkan. This looks like a bug. We had to disable DCC to make that work.
+
+### Vulkan
+we track GPU memory now and will extend this to other platforms.
+
+### Vulkan mobile support
+We support now the VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME extension
+
+### Remote UI 
+Various bug fixes to make this more stable. Still alpha ... will crash.
+
+
+### Retired:
+- 35 Variable Rate Shading ... this went into the Visibility Buffer OIT example 15a.
+- Basis Library - after not having found any practical usage case, we remove Basis again.
+
+
+
 ## Release 1.54 - February 2nd, 2024 - Remote UI Control | Shader Server | Visibility Buffer | Asset Pipeline | GPU Config System | macOS/iOS | Lots more ...
 Our last release was in October 2022. We were so busy that we lost track of time. In March 2023 we planned to make the next release. We started testing and fixing and improving code up until today. The amount of improvements coming back from the -most of the time- 8 - 10 projects we are working on where so many, it was hard to integrate all this, test it and then maintain it. To a certain degree our business has higher priority than making GitHub releases but we realize that letting a lot of time pass makes it substantially harder for us to get the whole code base back in shape, even with a company size of nearly 40 graphics programmers. So we cut down functional or unit tests, so that we have less variables. We also restructured large parts of our code base so that it is easier to maintain. One of the constant maintenance challenges were the macOS / iOS run-time (More about that below). 
 We invested a lot in our testing environment. We have more consoles now for testing and we also have a much needed screenshot testing system. We outsource testing to external service providers more. We removed Linux as a stand-alone target but the native Steamdeck support should make up for this. 
@@ -95,7 +204,7 @@ No Man Sky has launched on macOS:
 ### Visibility Buffer 
 - the Visibility Buffer went through a lot of upgrades since October 2022. I think the most notable ones are:
   * Refactored the whole code so that it is easier to re-use in all our examples, there is now a dedicated Visibility Buffer directory holding this code
-  * Animation of characters is now integrated
+  * Animation of characters is now integrated (https://github.com/ConfettiFX/The-Forge/wiki/Triangle-Visibility-Buffer-Pre-Skinned-Animations)
   * Tangent and Bi-Tangent calculation is moved to the pixel shader and we removed the buffers
 
 
@@ -360,13 +469,14 @@ See the release notes from previous releases in the [Release section](https://gi
 # macOS Requirements:
 
 1. macOS & Xcode
-    * macOS 11.0 with Xcode 14, or
-    * macOS 14.0 with Xcode 15
+    * macOS 11.0 with Xcode 14.3.1, or
+    * macOS 14.0 with Xcode 15.0.1
 
 2. The Forge is currently tested on the following macOS devices:
     * iMac Intel with AMD RADEON 580 (Part No. MNED2xx/A)
     * iMac with M1 macOS 11.6
     * Mac Mini M2 with MacOS 14.1
+
 
 At this moment we do not have access to an iMac Pro or Mac Pro. We can test those either with Team Viewer access or by getting them into the office and integrating them into our build system.
 We will not test any Hackintosh configuration. 
@@ -692,6 +802,44 @@ This unit test compares various Order-Indpendent Transparency Methods. In the mo
 ## 15a. Visibility Buffer OIT
 This unit test shows how to handle per triangle order-independent transparency in an intuitive way in the Visibility Buffer context. The main idea is that a per-pixel linked list of triangle IDs is holding layers of transparency. This is occupies less memory and is more efficient than storing per-pixel information.
 
+## 35. Variable Shading Rate
+This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
+
+PC Windows (2560x1080):
+![Variable Rate Shading on PC](Screenshots/35_VariableRateShading_Win10_RX7600_2560x1080.png)
+
+Switch (1280x720):
+![Variable Rate Shading on Switch](Screenshots/35_VariableRateShading_Switch_1280x720.PNG)
+
+XBOX One S (1080p):
+![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_XboxOneS_1920x1080.png)
+
+PS4 Pro (3840x2160):
+![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_PS4Pro_3840x2160.png)
+
+The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
+It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
+
+Shading rate view based on the color per 2x2 pixel quad:
+- White – 1 sample (top left, always shaded);
+- Blue – 2 horizontal samples;
+- Red – 2 vertical samples;
+- Green – all 4 samples;
+
+![Variable Rate Shading Debug](Screenshots/35_VRS_Debug.png)
+
+UI description:
+- Toggle VRS – enable/disable VRS
+- Draw Cubes – enable/disable dynamic objects in the scene
+- Toggle Debug View – shows auto-generated VRS map if VRS is enabled
+- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
+Limitations:
+	Relies on programmable sample locations support – not widely supported on Android devices.
+
+Supported platforms:
+
+PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(Vulkan/DX12).
+Implemented on MacOS/IOS, but doesn’t give expected performance benefits due to the issue with stencil testing on that platform
 
 
 ## 16. Path Tracer - Ray Tracing
@@ -819,45 +967,6 @@ This unit test shows how to use skinning with Ozz
 
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
 
-
-## 35. Variable Shading Rate
-This Unit test represents software-based variable rate shading (VRS) technique that allows rendering parts of the render target at different resolution based on the auto-generated VRS map, thus achieving higher performance with minimal quality loss. It is inspired by Michael Drobot's SIGGRAPH 2020 talk: https://docs.google.com/presentation/d/1WlntBELCK47vKyOTYI_h_fZahf6LabxS/edit?usp=drive_link&ouid=108042338473354174059&rtpof=true&sd=true
-
-PC Windows (2560x1080):
-![Variable Rate Shading on PC](Screenshots/35_VariableRateShading_Win10_RX7600_2560x1080.png)
-
-Switch (1280x720):
-![Variable Rate Shading on Switch](Screenshots/35_VariableRateShading_Switch_1280x720.PNG)
-
-XBOX One S (1080p):
-![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_XboxOneS_1920x1080.png)
-
-PS4 Pro (3840x2160):
-![Variable Rate Shading on XBOX One S](Screenshots/35_VariableRateShading_PS4Pro_3840x2160.png)
-
-The key idea behind the software-based approach is to render everything in 4xMS targets and use a stencil buffer as a VRS map. VRS map is automatically generated based on the local image gradients.
-It could be used on a way wider range of platforms and devices than the hardware-based approach since the hardware VRS support is broken or not supported on many platforms. Because this software approach utilizes 2x2 tiles we could also achieve higher image quality compared to hardware-based VRS.
-
-Shading rate view based on the color per 2x2 pixel quad:
-- White – 1 sample (top left, always shaded);
-- Blue – 2 horizontal samples;
-- Red – 2 vertical samples;
-- Green – all 4 samples;
-
-![Variable Rate Shading Debug](Screenshots/35_VRS_Debug.png)
-
-UI description:
-- Toggle VRS – enable/disable VRS
-- Draw Cubes – enable/disable dynamic objects in the scene
-- Toggle Debug View – shows auto-generated VRS map if VRS is enabled
-- Blur kernel Size – change blur kernel size of the blur applied to the background image to highlight performance benefits of the solution by making fragment shader heavy enough.
-Limitations:
-	Relies on programmable sample locations support – not widely supported on Android devices.
-
-Supported platforms:
-
-PS4, PS5, all XBOXes, Nintendo Switch, Android (Galaxy S23 and higher), Windows(Vulkan/DX12).
-Implemented on MacOS/IOS, but doesn’t give expected performance benefits due to the issue with stencil testing on that platform
 
  
 
@@ -1311,7 +1420,6 @@ The Forge utilizes the following Open-Source libraries:
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
 * [MTuner](https://github.com/milostosic/MTuner) 
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
-* [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
 * [flecs](https://github.com/SanderMertens/flecs)
 * [CPU Features](https://github.com/google/cpu_features)
