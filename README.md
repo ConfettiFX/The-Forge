@@ -74,7 +74,7 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 We improved Ephemeris again and support it now on more platforms. Updating some of the algorithms used and adding more features. 
 
 
-[![Ephemeris 2.0 on February 28th, 2024](../Custom-Middleware/Ephemeris/Screenshots/apple_m1.png)](https://vimeo.com/918128458)
+[![Ephemeris 2.0 on February 28th, 2024](https://github.com/ConfettiFX/Custom-Middleware/Ephemeris/Screenshots/apple_m1.png)](https://vimeo.com/918128458)
 
 
 Now we are supporting PC, XBOX'es, PS4/5, Android, Steamdeck, iOS (requires iPhone /macOS (so far not Switch)
